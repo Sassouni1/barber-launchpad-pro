@@ -39,7 +39,11 @@ const OrderHairSystem = () => {
             />
           </div>
         </div>
-        <div className="glass-card p-4 rounded-xl" style={{ minHeight: "1400px" }}>
+        <div 
+          className="glass-card p-4 rounded-xl light bg-white" 
+          style={{ minHeight: "1400px", colorScheme: "light" }}
+          data-theme="light"
+        >
           <iframe
             src="https://api.leadconnectorhq.com/widget/form/DUMrKXsSUz4Q6N59izDU"
             style={{ width: "100%", height: "1345px", border: "none", borderRadius: "3px" }}
