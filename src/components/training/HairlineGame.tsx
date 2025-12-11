@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -11,15 +11,15 @@ interface Point {
   y: number;
 }
 
-// Different face shapes for practice
+// Different face shapes for practice - coordinates adjusted for 300x350 viewBox
 const faceShapes = [
   { 
     id: 'oval', 
     name: 'Oval Face', 
     description: 'Classic oval shape - aim for a natural rounded hairline',
     guidePoints: [
-      { x: 45, y: 58 }, { x: 65, y: 48 }, { x: 100, y: 42 }, 
-      { x: 135, y: 48 }, { x: 155, y: 58 }
+      { x: 70, y: 75 }, { x: 95, y: 60 }, { x: 150, y: 52 }, 
+      { x: 205, y: 60 }, { x: 230, y: 75 }
     ]
   },
   { 
@@ -27,8 +27,8 @@ const faceShapes = [
     name: 'Square Face', 
     description: 'Angular jawline - soften with a slightly rounded hairline',
     guidePoints: [
-      { x: 42, y: 62 }, { x: 60, y: 50 }, { x: 100, y: 45 }, 
-      { x: 140, y: 50 }, { x: 158, y: 62 }
+      { x: 65, y: 80 }, { x: 90, y: 65 }, { x: 150, y: 55 }, 
+      { x: 210, y: 65 }, { x: 235, y: 80 }
     ]
   },
   { 
@@ -36,8 +36,8 @@ const faceShapes = [
     name: 'Round Face', 
     description: 'Full cheeks - create height with a slightly higher hairline',
     guidePoints: [
-      { x: 50, y: 55 }, { x: 70, y: 45 }, { x: 100, y: 40 }, 
-      { x: 130, y: 45 }, { x: 150, y: 55 }
+      { x: 75, y: 70 }, { x: 100, y: 55 }, { x: 150, y: 48 }, 
+      { x: 200, y: 55 }, { x: 225, y: 70 }
     ]
   },
   { 
@@ -45,8 +45,8 @@ const faceShapes = [
     name: 'Heart Face', 
     description: 'Wide forehead - balance with a natural widow\'s peak',
     guidePoints: [
-      { x: 40, y: 60 }, { x: 60, y: 50 }, { x: 100, y: 44 }, 
-      { x: 140, y: 50 }, { x: 160, y: 60 }
+      { x: 60, y: 78 }, { x: 90, y: 62 }, { x: 150, y: 50 }, 
+      { x: 210, y: 62 }, { x: 240, y: 78 }
     ]
   },
 ];
@@ -72,8 +72,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
     if (!svg) return null;
 
     const rect = svg.getBoundingClientRect();
-    const scaleX = 200 / rect.width;
-    const scaleY = 220 / rect.height;
+    const scaleX = 300 / rect.width;
+    const scaleY = 350 / rect.height;
 
     if ('touches' in e) {
       const touch = e.touches[0];
@@ -262,12 +262,12 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           Draw from left to right across the forehead
         </p>
 
-        {/* SVG Head with drawing area */}
+        {/* Large SVG Head with drawing area */}
         <div className="flex justify-center mb-6">
           <svg 
             ref={svgRef}
-            viewBox="0 0 200 220" 
-            className="w-52 h-56 cursor-crosshair touch-none"
+            viewBox="0 0 300 350" 
+            className="w-72 h-80 md:w-80 md:h-[22rem] cursor-crosshair touch-none"
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}
@@ -276,33 +276,53 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             onTouchMove={handleMove}
             onTouchEnd={handleEnd}
           >
-            {/* Face - front view */}
-            <ellipse 
-              cx="100" 
-              cy="120" 
-              rx="65" 
-              ry="80" 
-              fill="#d4a574" 
-            />
+            {/* Definitions for gradients */}
+            <defs>
+              <radialGradient id="skinGradient" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stopColor="#e0b88a" />
+                <stop offset="70%" stopColor="#d4a574" />
+                <stop offset="100%" stopColor="#c9956a" />
+              </radialGradient>
+              <radialGradient id="baldGradient" cx="50%" cy="30%" r="50%">
+                <stop offset="0%" stopColor="#e0b88a" />
+                <stop offset="60%" stopColor="#d4a574" />
+                <stop offset="100%" stopColor="#c9956a" />
+              </radialGradient>
+            </defs>
+
+            {/* Neck */}
+            <rect x="115" y="280" width="70" height="60" fill="#d4a574" rx="5" />
             
+            {/* Main face shape */}
+            <ellipse cx="150" cy="160" rx="95" ry="115" fill="url(#skinGradient)" />
+
+            {/* Bald top - lighter area */}
+            <ellipse cx="150" cy="85" rx="70" ry="45" fill="url(#baldGradient)" />
+
             {/* Ear left */}
-            <ellipse cx="35" cy="120" rx="10" ry="18" fill="#c9956a" />
-            <ellipse cx="37" cy="120" rx="6" ry="12" fill="#d4a574" />
+            <ellipse cx="52" cy="165" rx="14" ry="25" fill="#c9956a" />
+            <ellipse cx="55" cy="165" rx="9" ry="18" fill="#d4a574" />
+            <ellipse cx="56" cy="165" rx="4" ry="10" fill="#c9956a" opacity="0.3" />
             
             {/* Ear right */}
-            <ellipse cx="165" cy="120" rx="10" ry="18" fill="#c9956a" />
-            <ellipse cx="163" cy="120" rx="6" ry="12" fill="#d4a574" />
-            
+            <ellipse cx="248" cy="165" rx="14" ry="25" fill="#c9956a" />
+            <ellipse cx="245" cy="165" rx="9" ry="18" fill="#d4a574" />
+            <ellipse cx="244" cy="165" rx="4" ry="10" fill="#c9956a" opacity="0.3" />
+
             {/* Hair on sides - left */}
             <path 
               d={`
-                M 35 70
-                Q 25 90, 28 120
-                Q 30 150, 40 160
-                L 45 160
-                Q 38 150, 36 120
-                Q 35 90, 42 70
-                Z
+                M 55 80
+                Q 35 100, 38 140
+                Q 40 180, 50 210
+                Q 55 230, 65 240
+                L 75 235
+                Q 65 220, 60 200
+                Q 52 170, 55 140
+                Q 58 110, 68 85
+                Q 75 70, 85 65
+                L 75 60
+                Q 60 65, 55 80
               `}
               fill="#2b2422"
             />
@@ -310,77 +330,116 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             {/* Hair on sides - right */}
             <path 
               d={`
-                M 165 70
-                Q 175 90, 172 120
-                Q 170 150, 160 160
-                L 155 160
-                Q 162 150, 164 120
-                Q 165 90, 158 70
-                Z
+                M 245 80
+                Q 265 100, 262 140
+                Q 260 180, 250 210
+                Q 245 230, 235 240
+                L 225 235
+                Q 235 220, 240 200
+                Q 248 170, 245 140
+                Q 242 110, 232 85
+                Q 225 70, 215 65
+                L 225 60
+                Q 240 65, 245 80
               `}
               fill="#2b2422"
             />
-            
+
             {/* Hair texture lines - left */}
-            <g stroke="rgba(0,0,0,0.2)" strokeWidth="1" fill="none">
-              <path d="M 38 80 Q 32 100, 34 130" />
-              <path d="M 40 75 Q 35 100, 37 140" />
+            <g stroke="rgba(0,0,0,0.15)" strokeWidth="1.5" fill="none">
+              <path d="M 50 100 Q 42 140, 50 190" />
+              <path d="M 58 90 Q 48 130, 55 180" />
+              <path d="M 65 85 Q 55 120, 60 170" />
             </g>
             
             {/* Hair texture lines - right */}
-            <g stroke="rgba(0,0,0,0.2)" strokeWidth="1" fill="none">
-              <path d="M 162 80 Q 168 100, 166 130" />
-              <path d="M 160 75 Q 165 100, 163 140" />
+            <g stroke="rgba(0,0,0,0.15)" strokeWidth="1.5" fill="none">
+              <path d="M 250 100 Q 258 140, 250 190" />
+              <path d="M 242 90 Q 252 130, 245 180" />
+              <path d="M 235 85 Q 245 120, 240 170" />
             </g>
 
-            {/* Bald top area - subtle shine */}
-            <ellipse 
-              cx="100" 
-              cy="70" 
-              rx="45" 
-              ry="25" 
-              fill="rgba(255,255,255,0.08)" 
-            />
-            
-            {/* Eyes */}
-            <ellipse cx="75" cy="125" rx="10" ry="6" fill="#fff" />
-            <circle cx="75" cy="125" r="4" fill="#3a2a25" />
-            <ellipse cx="125" cy="125" rx="10" ry="6" fill="#fff" />
-            <circle cx="125" cy="125" r="4" fill="#3a2a25" />
-            
-            {/* Eyebrows */}
-            <path d="M 60 115 Q 75 108, 88 115" stroke="#4a3830" strokeWidth="2.5" fill="none" />
-            <path d="M 112 115 Q 125 108, 140 115" stroke="#4a3830" strokeWidth="2.5" fill="none" />
-            
-            {/* Nose */}
-            <path d="M 100 125 L 97 145 Q 100 150, 103 145" stroke="#c9956a" strokeWidth="2" fill="none" />
-            
-            {/* Mouth */}
-            <path d="M 85 170 Q 100 178, 115 170" stroke="#b87a5a" strokeWidth="2.5" fill="none" />
-            
-            {/* Forehead guide zone - subtle dashed line */}
-            <line 
-              x1="40" y1="55" x2="160" y2="55" 
-              stroke="rgba(255,255,255,0.2)" 
-              strokeWidth="1" 
-              strokeDasharray="4 4"
-            />
-            
-            {/* Shirt collar hint */}
+            {/* Hair highlights */}
+            <g stroke="rgba(255,255,255,0.1)" strokeWidth="2" fill="none">
+              <path d="M 62 95 Q 52 130, 58 175" />
+              <path d="M 238 95 Q 248 130, 242 175" />
+            </g>
+
+            {/* Beard */}
             <path 
-              d="M 55 200 Q 70 190, 100 188 Q 130 190, 145 200" 
-              stroke="#374151" 
-              strokeWidth="8" 
-              fill="none"
-              strokeLinecap="round"
+              d={`
+                M 70 235
+                Q 80 270, 110 290
+                Q 130 300, 150 302
+                Q 170 300, 190 290
+                Q 220 270, 230 235
+                Q 220 245, 200 255
+                Q 175 268, 150 270
+                Q 125 268, 100 255
+                Q 80 245, 70 235
+              `}
+              fill="#2b2422"
             />
+
+            {/* Beard texture */}
+            <g stroke="rgba(0,0,0,0.12)" strokeWidth="1" fill="none">
+              <path d="M 90 250 Q 100 270, 110 280" />
+              <path d="M 110 255 Q 120 275, 130 285" />
+              <path d="M 130 258 Q 140 278, 150 290" />
+              <path d="M 150 258 Q 160 278, 170 285" />
+              <path d="M 170 255 Q 180 275, 190 280" />
+              <path d="M 190 250 Q 200 270, 210 280" />
+            </g>
+
+            {/* Sideburns - left */}
+            <path 
+              d={`M 65 200 Q 68 220, 70 235 Q 60 225, 55 210 Q 52 195, 58 185 L 65 200`}
+              fill="#2b2422"
+            />
+
+            {/* Sideburns - right */}
+            <path 
+              d={`M 235 200 Q 232 220, 230 235 Q 240 225, 245 210 Q 248 195, 242 185 L 235 200`}
+              fill="#2b2422"
+            />
+
+            {/* Eyes */}
+            <ellipse cx="110" cy="165" rx="18" ry="12" fill="#f5f5f0" />
+            <ellipse cx="190" cy="165" rx="18" ry="12" fill="#f5f5f0" />
+            <circle cx="112" cy="166" r="8" fill="#4a3525" />
+            <circle cx="188" cy="166" r="8" fill="#4a3525" />
+            <circle cx="113" cy="167" r="4" fill="#1a1210" />
+            <circle cx="187" cy="167" r="4" fill="#1a1210" />
+            <circle cx="115" cy="164" r="2" fill="#fff" />
+            <circle cx="189" cy="164" r="2" fill="#fff" />
+
+            {/* Eyebrows */}
+            <path d="M 85 145 Q 110 135, 130 145" stroke="#2b2422" strokeWidth="4" strokeLinecap="round" fill="none" />
+            <path d="M 170 145 Q 190 135, 215 145" stroke="#2b2422" strokeWidth="4" strokeLinecap="round" fill="none" />
+
+            {/* Nose */}
+            <path d="M 150 160 L 145 200 Q 150 210, 155 200 L 150 160" stroke="#c9956a" strokeWidth="2" fill="none" />
+            <ellipse cx="142" cy="205" rx="6" ry="4" fill="#c9956a" opacity="0.3" />
+            <ellipse cx="158" cy="205" rx="6" ry="4" fill="#c9956a" opacity="0.3" />
+
+            {/* Mouth */}
+            <path d="M 120 240 Q 150 255, 180 240" stroke="#a06050" strokeWidth="4" strokeLinecap="round" fill="none" />
+
+            {/* Forehead shine */}
+            <ellipse cx="150" cy="80" rx="40" ry="20" fill="rgba(255,255,255,0.08)" />
+
+            {/* Shirt collar */}
+            <path d="M 85 330 Q 115 315, 150 312 Q 185 315, 215 330" stroke="#374151" strokeWidth="12" fill="none" strokeLinecap="round" />
+
+            {/* Forehead guide zone - subtle */}
+            <line x1="55" y1="65" x2="245" y2="65" stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="6 6" />
 
             {/* User drawn hairline */}
             {drawnPoints.length > 1 && (
               <path
                 d={getPathFromPoints(drawnPoints)}
                 stroke="#1c1a1a"
-                strokeWidth="3"
+                strokeWidth="4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
@@ -393,9 +452,9 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               <path
                 d={getGuidePathFromPoints(round.guidePoints)}
                 stroke="#22c55e"
-                strokeWidth="2"
+                strokeWidth="3"
                 strokeLinecap="round"
-                strokeDasharray="4 4"
+                strokeDasharray="6 6"
                 fill="none"
                 className="animate-fade-in"
               />
