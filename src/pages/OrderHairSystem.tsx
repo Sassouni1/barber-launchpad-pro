@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ShoppingCart } from "lucide-react";
+import hairColors from "@/assets/hair-colors.jpg";
+import hairCurls from "@/assets/hair-curls.jpg";
 
 const OrderHairSystem = () => {
   useEffect(() => {
@@ -21,12 +23,21 @@ const OrderHairSystem = () => {
           <ShoppingCart className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Order Hair System</h1>
         </div>
-        <div className="glass-card rounded-xl overflow-hidden">
-          <img 
-            src="https://images.clickfunnels.com/8a/5b8c103a9849d09df3d4b478e1f9f8/IMG_1921.jpg" 
-            alt="Hair System" 
-            className="w-full h-auto"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="glass-card rounded-xl overflow-hidden">
+            <img 
+              src={hairColors}
+              alt="Hair System Colors" 
+              className="w-full h-auto"
+            />
+          </div>
+          <div className="glass-card rounded-xl overflow-hidden">
+            <img 
+              src={hairCurls}
+              alt="Hair System Curls" 
+              className="w-full h-auto"
+            />
+          </div>
         </div>
         <div className="glass-card p-4 rounded-xl" style={{ minHeight: "1400px" }}>
           <iframe
