@@ -149,7 +149,7 @@ export default function Lesson() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-4 pb-8">
         {/* Header */}
         <div className="flex items-center gap-4 animate-fade-up">
           <Button variant="ghost" size="icon" onClick={() => navigate('/courses')}>
@@ -190,14 +190,16 @@ export default function Lesson() {
 
         {/* Tabs */}
         <div className="flex gap-2 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-          <Button
-            variant={activeTab === 'video' ? 'default' : 'secondary'}
-            onClick={() => setActiveTab('video')}
-            className={activeTab === 'video' ? 'gold-gradient' : ''}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Resources
-          </Button>
+          {files.length > 0 && (
+            <Button
+              variant={activeTab === 'video' ? 'default' : 'secondary'}
+              onClick={() => setActiveTab('video')}
+              className={activeTab === 'video' ? 'gold-gradient' : ''}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Resources
+            </Button>
+          )}
           {module.has_quiz && (
             <Button
               variant={activeTab === 'quiz' ? 'default' : 'secondary'}
