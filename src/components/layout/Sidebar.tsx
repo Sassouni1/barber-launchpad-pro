@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Cpu,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -60,6 +61,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
   const memberLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/courses', icon: BookOpen, label: 'Courses' },
+    { to: '/training', icon: Target, label: 'Training' },
     { to: '/todos', icon: ListTodo, label: 'To-Do Lists' },
     { to: '/order-hair-system', icon: Scissors, label: 'Order Hair System' },
     { to: '/products', icon: Package, label: 'Products' },
