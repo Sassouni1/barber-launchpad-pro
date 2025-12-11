@@ -18,8 +18,8 @@ const faceShapes = [
     name: 'Oval Face', 
     description: 'Classic oval shape - aim for a natural rounded hairline',
     guidePoints: [
-      { x: 80, y: 85 }, { x: 100, y: 75 }, { x: 120, y: 70 }, 
-      { x: 150, y: 68 }, { x: 180, y: 70 }, { x: 200, y: 75 }, { x: 220, y: 85 }
+      { x: 45, y: 58 }, { x: 65, y: 48 }, { x: 100, y: 42 }, 
+      { x: 135, y: 48 }, { x: 155, y: 58 }
     ]
   },
   { 
@@ -27,8 +27,8 @@ const faceShapes = [
     name: 'Square Face', 
     description: 'Angular jawline - soften with a slightly rounded hairline',
     guidePoints: [
-      { x: 75, y: 90 }, { x: 95, y: 78 }, { x: 120, y: 72 }, 
-      { x: 150, y: 70 }, { x: 180, y: 72 }, { x: 205, y: 78 }, { x: 225, y: 90 }
+      { x: 42, y: 62 }, { x: 60, y: 50 }, { x: 100, y: 45 }, 
+      { x: 140, y: 50 }, { x: 158, y: 62 }
     ]
   },
   { 
@@ -36,8 +36,8 @@ const faceShapes = [
     name: 'Round Face', 
     description: 'Full cheeks - create height with a slightly higher hairline',
     guidePoints: [
-      { x: 85, y: 80 }, { x: 105, y: 72 }, { x: 125, y: 68 }, 
-      { x: 150, y: 65 }, { x: 175, y: 68 }, { x: 195, y: 72 }, { x: 215, y: 80 }
+      { x: 50, y: 55 }, { x: 70, y: 45 }, { x: 100, y: 40 }, 
+      { x: 130, y: 45 }, { x: 150, y: 55 }
     ]
   },
   { 
@@ -45,8 +45,8 @@ const faceShapes = [
     name: 'Heart Face', 
     description: 'Wide forehead - balance with a natural widow\'s peak',
     guidePoints: [
-      { x: 70, y: 88 }, { x: 90, y: 78 }, { x: 115, y: 72 }, 
-      { x: 150, y: 68 }, { x: 185, y: 72 }, { x: 210, y: 78 }, { x: 230, y: 88 }
+      { x: 40, y: 60 }, { x: 60, y: 50 }, { x: 100, y: 44 }, 
+      { x: 140, y: 50 }, { x: 160, y: 60 }
     ]
   },
 ];
@@ -62,198 +62,18 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const round = faceShapes[currentRound];
   const progress = (currentRound / faceShapes.length) * 100;
 
-  // Draw the face and hairline on canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const getSvgCoordinates = (e: React.MouseEvent | React.TouchEvent): Point | null => {
+    const svg = svgRef.current;
+    if (!svg) return null;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw face outline
-    drawFace(ctx, round.id);
-
-    // Draw user's hairline
-    if (drawnPoints.length > 1) {
-      ctx.beginPath();
-      ctx.moveTo(drawnPoints[0].x, drawnPoints[0].y);
-      
-      for (let i = 1; i < drawnPoints.length; i++) {
-        ctx.lineTo(drawnPoints[i].x, drawnPoints[i].y);
-      }
-      
-      ctx.strokeStyle = '#1c1a1a';
-      ctx.lineWidth = 4;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.stroke();
-
-      // Add hair texture strokes
-      for (let i = 0; i < drawnPoints.length - 1; i += 3) {
-        const point = drawnPoints[i];
-        for (let j = 0; j < 5; j++) {
-          ctx.beginPath();
-          ctx.moveTo(point.x + (Math.random() - 0.5) * 8, point.y);
-          ctx.lineTo(point.x + (Math.random() - 0.5) * 8, point.y - 15 - Math.random() * 20);
-          ctx.strokeStyle = '#2b2422';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        }
-      }
-    }
-
-    // Show guide after submission
-    if (isSubmitted) {
-      ctx.beginPath();
-      ctx.setLineDash([5, 5]);
-      ctx.moveTo(round.guidePoints[0].x, round.guidePoints[0].y);
-      
-      for (let i = 1; i < round.guidePoints.length; i++) {
-        ctx.lineTo(round.guidePoints[i].x, round.guidePoints[i].y);
-      }
-      
-      ctx.strokeStyle = '#22c55e';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }, [drawnPoints, isSubmitted, round]);
-
-  const drawFace = (ctx: CanvasRenderingContext2D, shapeId: string) => {
-    ctx.save();
-    
-    // Skin color
-    const skinColor = '#d4a574';
-    const shadowColor = '#c9956a';
-
-    // Draw face based on shape
-    ctx.beginPath();
-    
-    switch (shapeId) {
-      case 'oval':
-        ctx.ellipse(150, 180, 85, 110, 0, 0, Math.PI * 2);
-        break;
-      case 'square':
-        ctx.moveTo(65, 100);
-        ctx.lineTo(65, 260);
-        ctx.quadraticCurveTo(65, 290, 95, 290);
-        ctx.lineTo(205, 290);
-        ctx.quadraticCurveTo(235, 290, 235, 260);
-        ctx.lineTo(235, 100);
-        ctx.quadraticCurveTo(235, 70, 150, 70);
-        ctx.quadraticCurveTo(65, 70, 65, 100);
-        break;
-      case 'round':
-        ctx.ellipse(150, 175, 90, 100, 0, 0, Math.PI * 2);
-        break;
-      case 'heart':
-        ctx.moveTo(150, 280);
-        ctx.quadraticCurveTo(70, 220, 60, 150);
-        ctx.quadraticCurveTo(60, 80, 150, 70);
-        ctx.quadraticCurveTo(240, 80, 240, 150);
-        ctx.quadraticCurveTo(230, 220, 150, 280);
-        break;
-    }
-    
-    ctx.fillStyle = skinColor;
-    ctx.fill();
-    ctx.strokeStyle = shadowColor;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Draw ears
-    ctx.beginPath();
-    ctx.ellipse(52, 180, 12, 20, 0, 0, Math.PI * 2);
-    ctx.fillStyle = skinColor;
-    ctx.fill();
-    ctx.strokeStyle = shadowColor;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.ellipse(248, 180, 12, 20, 0, 0, Math.PI * 2);
-    ctx.fillStyle = skinColor;
-    ctx.fill();
-    ctx.strokeStyle = shadowColor;
-    ctx.stroke();
-
-    // Draw eyes
-    ctx.beginPath();
-    ctx.ellipse(115, 180, 12, 8, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(115, 180, 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#3a2a25';
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.ellipse(185, 180, 12, 8, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(185, 180, 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#3a2a25';
-    ctx.fill();
-
-    // Draw eyebrows
-    ctx.beginPath();
-    ctx.moveTo(100, 165);
-    ctx.quadraticCurveTo(115, 158, 130, 165);
-    ctx.strokeStyle = '#4a3830';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(170, 165);
-    ctx.quadraticCurveTo(185, 158, 200, 165);
-    ctx.stroke();
-
-    // Draw nose
-    ctx.beginPath();
-    ctx.moveTo(150, 175);
-    ctx.lineTo(145, 210);
-    ctx.quadraticCurveTo(150, 218, 155, 210);
-    ctx.strokeStyle = shadowColor;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Draw mouth
-    ctx.beginPath();
-    ctx.moveTo(130, 245);
-    ctx.quadraticCurveTo(150, 255, 170, 245);
-    ctx.strokeStyle = '#b87a5a';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Draw forehead guide zone (subtle)
-    ctx.beginPath();
-    ctx.setLineDash([3, 6]);
-    ctx.moveTo(60, 90);
-    ctx.lineTo(240, 90);
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.restore();
-  };
-
-  const getCanvasCoordinates = (e: React.MouseEvent | React.TouchEvent): Point | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const rect = svg.getBoundingClientRect();
+    const scaleX = 200 / rect.width;
+    const scaleY = 220 / rect.height;
 
     if ('touches' in e) {
       const touch = e.touches[0];
@@ -273,7 +93,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
     if (isSubmitted) return;
     e.preventDefault();
     setIsDrawing(true);
-    const point = getCanvasCoordinates(e);
+    const point = getSvgCoordinates(e);
     if (point) {
       setDrawnPoints([point]);
     }
@@ -282,7 +102,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
   const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing || isSubmitted) return;
     e.preventDefault();
-    const point = getCanvasCoordinates(e);
+    const point = getSvgCoordinates(e);
     if (point) {
       setDrawnPoints((prev) => [...prev, point]);
     }
@@ -295,7 +115,6 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
   const calculateScore = (): number => {
     if (drawnPoints.length < 5) return 0;
 
-    // Simple scoring based on proximity to guide points
     let totalDistance = 0;
     const guidePoints = round.guidePoints;
 
@@ -309,8 +128,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
     }
 
     const avgDistance = totalDistance / guidePoints.length;
-    // Score from 0-100, closer = better
-    const score = Math.max(0, Math.min(100, 100 - avgDistance));
+    const score = Math.max(0, Math.min(100, 100 - avgDistance * 2));
     return Math.round(score);
   };
 
@@ -360,6 +178,29 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
     setIsSubmitted(false);
     setScore(0);
     setGameComplete(false);
+  };
+
+  // Generate path string from points
+  const getPathFromPoints = (points: Point[]): string => {
+    if (points.length < 2) return '';
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      path += ` L ${points[i].x} ${points[i].y}`;
+    }
+    return path;
+  };
+
+  const getGuidePathFromPoints = (points: Point[]): string => {
+    if (points.length < 2) return '';
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cpX = (prev.x + curr.x) / 2;
+      const cpY = Math.min(prev.y, curr.y) - 3;
+      path += ` Q ${cpX} ${cpY}, ${curr.x} ${curr.y}`;
+    }
+    return path;
   };
 
   if (gameComplete) {
@@ -421,16 +262,12 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           Draw from left to right across the forehead
         </p>
 
-        {/* Drawing canvas */}
-        <div 
-          ref={containerRef}
-          className="flex justify-center mb-6"
-        >
-          <canvas
-            ref={canvasRef}
-            width={300}
-            height={320}
-            className="border border-border rounded-lg bg-card cursor-crosshair touch-none"
+        {/* SVG Head with drawing area */}
+        <div className="flex justify-center mb-6">
+          <svg 
+            ref={svgRef}
+            viewBox="0 0 200 220" 
+            className="w-52 h-56 cursor-crosshair touch-none"
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}
@@ -438,13 +275,138 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             onTouchStart={handleStart}
             onTouchMove={handleMove}
             onTouchEnd={handleEnd}
-          />
+          >
+            {/* Face - front view */}
+            <ellipse 
+              cx="100" 
+              cy="120" 
+              rx="65" 
+              ry="80" 
+              fill="#d4a574" 
+            />
+            
+            {/* Ear left */}
+            <ellipse cx="35" cy="120" rx="10" ry="18" fill="#c9956a" />
+            <ellipse cx="37" cy="120" rx="6" ry="12" fill="#d4a574" />
+            
+            {/* Ear right */}
+            <ellipse cx="165" cy="120" rx="10" ry="18" fill="#c9956a" />
+            <ellipse cx="163" cy="120" rx="6" ry="12" fill="#d4a574" />
+            
+            {/* Hair on sides - left */}
+            <path 
+              d={`
+                M 35 70
+                Q 25 90, 28 120
+                Q 30 150, 40 160
+                L 45 160
+                Q 38 150, 36 120
+                Q 35 90, 42 70
+                Z
+              `}
+              fill="#2b2422"
+            />
+            
+            {/* Hair on sides - right */}
+            <path 
+              d={`
+                M 165 70
+                Q 175 90, 172 120
+                Q 170 150, 160 160
+                L 155 160
+                Q 162 150, 164 120
+                Q 165 90, 158 70
+                Z
+              `}
+              fill="#2b2422"
+            />
+            
+            {/* Hair texture lines - left */}
+            <g stroke="rgba(0,0,0,0.2)" strokeWidth="1" fill="none">
+              <path d="M 38 80 Q 32 100, 34 130" />
+              <path d="M 40 75 Q 35 100, 37 140" />
+            </g>
+            
+            {/* Hair texture lines - right */}
+            <g stroke="rgba(0,0,0,0.2)" strokeWidth="1" fill="none">
+              <path d="M 162 80 Q 168 100, 166 130" />
+              <path d="M 160 75 Q 165 100, 163 140" />
+            </g>
+
+            {/* Bald top area - subtle shine */}
+            <ellipse 
+              cx="100" 
+              cy="70" 
+              rx="45" 
+              ry="25" 
+              fill="rgba(255,255,255,0.08)" 
+            />
+            
+            {/* Eyes */}
+            <ellipse cx="75" cy="125" rx="10" ry="6" fill="#fff" />
+            <circle cx="75" cy="125" r="4" fill="#3a2a25" />
+            <ellipse cx="125" cy="125" rx="10" ry="6" fill="#fff" />
+            <circle cx="125" cy="125" r="4" fill="#3a2a25" />
+            
+            {/* Eyebrows */}
+            <path d="M 60 115 Q 75 108, 88 115" stroke="#4a3830" strokeWidth="2.5" fill="none" />
+            <path d="M 112 115 Q 125 108, 140 115" stroke="#4a3830" strokeWidth="2.5" fill="none" />
+            
+            {/* Nose */}
+            <path d="M 100 125 L 97 145 Q 100 150, 103 145" stroke="#c9956a" strokeWidth="2" fill="none" />
+            
+            {/* Mouth */}
+            <path d="M 85 170 Q 100 178, 115 170" stroke="#b87a5a" strokeWidth="2.5" fill="none" />
+            
+            {/* Forehead guide zone - subtle dashed line */}
+            <line 
+              x1="40" y1="55" x2="160" y2="55" 
+              stroke="rgba(255,255,255,0.2)" 
+              strokeWidth="1" 
+              strokeDasharray="4 4"
+            />
+            
+            {/* Shirt collar hint */}
+            <path 
+              d="M 55 200 Q 70 190, 100 188 Q 130 190, 145 200" 
+              stroke="#374151" 
+              strokeWidth="8" 
+              fill="none"
+              strokeLinecap="round"
+            />
+
+            {/* User drawn hairline */}
+            {drawnPoints.length > 1 && (
+              <path
+                d={getPathFromPoints(drawnPoints)}
+                stroke="#1c1a1a"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+                className="animate-fade-in"
+              />
+            )}
+
+            {/* Guide hairline (shown after submit) */}
+            {isSubmitted && (
+              <path
+                d={getGuidePathFromPoints(round.guidePoints)}
+                stroke="#22c55e"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeDasharray="4 4"
+                fill="none"
+                className="animate-fade-in"
+              />
+            )}
+          </svg>
         </div>
 
         {/* Result feedback */}
         {isSubmitted && (
           <div className={cn(
-            'mb-4 p-4 rounded-lg text-center',
+            'mb-4 p-4 rounded-lg text-center animate-fade-in',
             calculateScore() >= 70 
               ? 'bg-green-500/10 border border-green-500/30 text-green-500' 
               : 'bg-amber-500/10 border border-amber-500/30 text-amber-500'
