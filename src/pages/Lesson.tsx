@@ -163,7 +163,7 @@ export default function Lesson() {
 
         {/* Video Player */}
         <div className="glass-card rounded-2xl overflow-hidden animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          <div className="aspect-video bg-black relative">
+          <div className="aspect-video max-h-[50vh] bg-black relative">
             {module.video_url ? (
               <iframe
                 src={getVimeoEmbedUrl(module.video_url)}
