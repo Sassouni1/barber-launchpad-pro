@@ -179,6 +179,33 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
     setAnswers(answers.map((a, i) => ({ ...a, is_correct: i === index })));
   };
 
+  // Close main dialog when opening question dialog to avoid nesting issues
+  const handleOpenNewQuestion = () => {
+    onOpenChange(false);
+    resetForm();
+    setTimeout(() => setShowQuestionDialog(true), 100);
+  };
+
+  const handleOpenEditQuestion = (question: QuizQuestion) => {
+    onOpenChange(false);
+    setTimeout(() => {
+      openEditQuestion(question);
+    }, 100);
+  };
+
+  const handleCloseQuestionDialog = (isOpen: boolean) => {
+    setShowQuestionDialog(isOpen);
+    if (!isOpen) {
+      resetForm();
+      setTimeout(() => onOpenChange(true), 100);
+    }
+  };
+
+  const handleSaveAndReturn = async () => {
+    await handleSave();
+    setTimeout(() => onOpenChange(true), 100);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -190,7 +217,7 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
-            <Button onClick={openNewQuestion} className="gold-gradient text-primary-foreground">
+            <Button onClick={handleOpenNewQuestion} className="gold-gradient text-primary-foreground">
               <Plus className="w-4 h-4 mr-2" />
               Add Question
             </Button>
@@ -252,7 +279,7 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => openEditQuestion(question)}
+                          onClick={() => handleOpenEditQuestion(question)}
                         >
                           <Edit2 className="w-4 h-4" />
                         </Button>
@@ -274,8 +301,8 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
         </DialogContent>
       </Dialog>
 
-      {/* Question Dialog */}
-      <Dialog open={showQuestionDialog} onOpenChange={setShowQuestionDialog}>
+      {/* Question Dialog - Separate from main dialog to avoid nesting */}
+      <Dialog open={showQuestionDialog} onOpenChange={handleCloseQuestionDialog}>
         <DialogContent className="glass-card border-border/50 max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
@@ -383,7 +410,7 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
 
             <Button
               className="w-full gold-gradient text-primary-foreground"
-              onClick={handleSave}
+              onClick={handleSaveAndReturn}
               disabled={
                 !questionText.trim() ||
                 answers.filter(a => a.answer_text.trim()).length < 2 ||
