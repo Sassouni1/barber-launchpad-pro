@@ -25,7 +25,7 @@ const OrderHairSystem = () => {
           <img 
             src="https://images.clickfunnels.com/8a/5b8c103a9849d09df3d4b478e1f9f8/IMG_1921.jpg" 
             alt="Hair System" 
-            className="w-full h-auto object-cover"
+            className="w-full max-h-48 object-cover"
           />
         </div>
         <div className="glass-card p-4 rounded-xl" style={{ minHeight: "1400px" }}>
