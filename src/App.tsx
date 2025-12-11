@@ -12,6 +12,7 @@ import Todos from "./pages/Todos";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Members from "./pages/admin/Members";
 import CourseBuilder from "./pages/admin/CourseBuilder";
+import TodosManager from "./pages/admin/TodosManager";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/members" element={<Members />} />
           <Route path="/admin/courses" element={<CourseBuilder />} />
+          <Route path="/admin/todos" element={<TodosManager />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

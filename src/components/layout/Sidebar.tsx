@@ -67,6 +67,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
     { to: '/admin/members', icon: Users, label: 'Members' },
     { to: '/admin/courses', icon: FileEdit, label: 'Course Builder' },
+    { to: '/admin/todos', icon: ListTodo, label: 'Todos Manager' },
     { to: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
 
