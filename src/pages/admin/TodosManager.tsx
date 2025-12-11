@@ -148,14 +148,14 @@ export default function TodosManager() {
                       </SelectContent>
                     </Select>
                     <Select
-                      value={formData.course_id}
-                      onValueChange={v => setFormData(p => ({ ...p, course_id: v }))}
+                      value={formData.course_id || "none"}
+                      onValueChange={v => setFormData(p => ({ ...p, course_id: v === "none" ? "" : v }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Link to course (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No course</SelectItem>
+                        <SelectItem value="none">No course</SelectItem>
                         {courses.map(c => (
                           <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
                         ))}
