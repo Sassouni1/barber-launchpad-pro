@@ -1,13 +1,17 @@
-import { currentUser } from '@/data/mockData';
 import { Zap, Activity } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export function WelcomeHero() {
+  const { user } = useAuth();
+  
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  const displayName = user?.email?.split('@')[0] || 'there';
 
   return (
     <div className="relative overflow-hidden glass-card cyber-corners p-8 rounded-xl animate-fade-up spotlight-pulse">
@@ -36,7 +40,7 @@ export function WelcomeHero() {
         </div>
         
         <h1 className="font-display text-4xl md:text-5xl font-bold mb-4 tracking-tight">
-          {getGreeting()}, <span className="gold-text gold-glow-text">{currentUser.name.split(' ')[0]}</span>
+          {getGreeting()}, <span className="gold-text gold-glow-text">{displayName}</span>
         </h1>
         
         <p className="text-muted-foreground text-lg max-w-2xl leading-relaxed">
@@ -49,10 +53,6 @@ export function WelcomeHero() {
             <Activity className="w-4 h-4 text-primary" />
             <span className="text-sm text-muted-foreground">Session Active</span>
           </div>
-          <div className="h-4 w-px bg-border/50" />
-          <span className="text-sm text-muted-foreground">
-            Last login: <span className="text-foreground">Today, 9:42 AM</span>
-          </span>
         </div>
       </div>
     </div>
