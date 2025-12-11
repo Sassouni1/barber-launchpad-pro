@@ -1,12 +1,37 @@
 interface BaldingHeadSVGProps {
   hairColor: string;
+  greyPercentage?: number; // 0, 10, 20, 30, 40, etc.
   className?: string;
 }
 
 export function BaldingHeadSVG({ 
   hairColor = '#3b2717', 
+  greyPercentage = 0,
   className = ''
 }: BaldingHeadSVGProps) {
+  // Generate grey strand paths based on percentage
+  const greyStrands = [];
+  const strandCount = Math.floor(greyPercentage / 5); // More strands for higher grey %
+  
+  for (let i = 0; i < strandCount; i++) {
+    const xOffset = 40 + (i * 15) % 120;
+    const yStart = 20 + (i * 7) % 30;
+    const curve1 = 50 + (i * 11) % 40;
+    const curve2 = 100 + (i * 13) % 50;
+    const yEnd = 150 + (i * 5) % 30;
+    
+    greyStrands.push(
+      <path 
+        key={`grey-${i}`}
+        d={`M ${xOffset} ${yStart} Q ${xOffset + 5} ${curve1}, ${xOffset - 3} ${curve2} Q ${xOffset + 2} ${curve2 + 30}, ${xOffset} ${yEnd}`}
+        stroke="#888888"
+        strokeWidth="2"
+        fill="none"
+        opacity={0.7 + (i % 3) * 0.1}
+      />
+    );
+  }
+
   return (
     <svg 
       viewBox="0 0 200 220" 
@@ -59,6 +84,11 @@ export function BaldingHeadSVG({
         <path d="M 125 25 Q 120 50, 125 85 Q 130 120, 125 160" />
         <path d="M 150 40 Q 140 60, 145 90 Q 150 120, 145 150" />
       </g>
+      
+      {/* Grey strands overlay */}
+      {greyPercentage > 0 && (
+        <g>{greyStrands}</g>
+      )}
       
       {/* Subtle highlight on hair */}
       <ellipse 
