@@ -10,34 +10,35 @@ import { HairSwatch } from './HairSwatch';
 
 // Hair color swatches with their hex colors based on real hair system codes
 const hairSwatches = [
-  { id: '1', name: '#1 - Jet Black', color: '#0a0a0a' },
-  { id: '1A', name: '#1A - Off Black', color: '#1a1a1a' },
-  { id: '1B', name: '#1B - Natural Black', color: '#2a2117' },
-  { id: '2', name: '#2 - Darkest Brown', color: '#3b2717' },
-  { id: '3', name: '#3 - Dark Brown', color: '#4a3520' },
-  { id: '4', name: '#4 - Medium Brown', color: '#5c4033' },
-  { id: '5', name: '#5 - Light Brown', color: '#7a5c45' },
-  { id: '6', name: '#6 - Chestnut Brown', color: '#8b6914' },
+  { id: '1', name: '#1 - Jet Black', color: '#000000' },
+  { id: '1A', name: '#1A - Off Black', color: '#2a2529' },
+  { id: '1B', name: '#1B - Natural Black', color: '#312f23' },
+  { id: '2', name: '#2 - Darkest Brown', color: '#312525' },
+  { id: '3', name: '#3 - Dark Brown', color: '#54413a' },
+  { id: '4', name: '#4 - Medium Brown', color: '#58453e' },
+  { id: '5', name: '#5 - Light Brown', color: '#665043' },
+  { id: '6', name: '#6 - Chestnut Brown', color: '#816649' },
+  { id: '7', name: '#7 - Golden Brown', color: '#91765b' },
 ];
 
 // Grey percentage swatches for grey matching rounds - base hair color + grey percentage
 const greySwatches = [
-  { id: '1A', name: '#1A - Off Black', color: '#1a1a1a', greyPercent: 0 },
-  { id: '10G', name: '10% Grey', color: '#1a1a1a', greyPercent: 10 },
-  { id: '20G', name: '20% Grey', color: '#1a1a1a', greyPercent: 20 },
-  { id: '30G', name: '30% Grey', color: '#1a1a1a', greyPercent: 30 },
-  { id: '40G', name: '40% Grey', color: '#1a1a1a', greyPercent: 40 },
+  { id: '1A', name: '#1A - No Grey', color: '#2a2529', greyPercent: 0 },
+  { id: '1A10', name: '#1A10 - 10% Grey', color: '#2a2529', greyPercent: 10 },
+  { id: '1A20', name: '#1A20 - 20% Grey', color: '#2a2529', greyPercent: 20 },
+  { id: '1A30', name: '#1A30 - 30% Grey', color: '#2a2529', greyPercent: 30 },
+  { id: '1A40', name: '#1A40 - 40% Grey', color: '#2a2529', greyPercent: 40 },
 ];
 
 // Rounds with target colors that trainees need to match
 const rounds = [
-  { targetColor: '#2a2117', correctAnswer: '1B', description: 'Natural black with warm undertones', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#3b2717', correctAnswer: '2', description: 'Very dark brown, almost black', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#0a0a0a', correctAnswer: '1', description: 'Pure jet black', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#1a1a1a', correctAnswer: '30G', description: 'Client has 30% grey mixed in - find the matching grey level', type: 'grey' as const, greyPercent: 30 },
-  { targetColor: '#4a3520', correctAnswer: '3', description: 'Rich dark brown', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#5c4033', correctAnswer: '4', description: 'Medium warm brown', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#1a1a1a', correctAnswer: '1A', description: 'Soft off-black', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#312f23', correctAnswer: '1B', description: 'Natural black with warm undertones', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#312525', correctAnswer: '2', description: 'Very dark brown, almost black', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#000000', correctAnswer: '1', description: 'Pure jet black', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#2a2529', correctAnswer: '1A30', description: 'Client has 30% grey mixed in - find the matching grey level', type: 'grey' as const, greyPercent: 30 },
+  { targetColor: '#54413a', correctAnswer: '3', description: 'Rich dark brown', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#58453e', correctAnswer: '4', description: 'Medium warm brown', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#2a2529', correctAnswer: '1A', description: 'Soft off-black', type: 'color' as const, greyPercent: 0 },
 ];
 
 export function ColorMatchGame() {
@@ -225,7 +226,7 @@ export function ColorMatchGame() {
                     }}
                   />
                   <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">
-                    {swatch.id.includes('G') ? swatch.name.split(' ')[0] : `#${swatch.id}`}
+                    {swatch.id.includes('1A') && swatch.id.length > 2 ? swatch.id : `#${swatch.id}`}
                   </span>
                 </button>
               ))}

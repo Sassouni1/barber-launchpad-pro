@@ -17,22 +17,22 @@ export function HairSwatch({
   isWrong,
   className = '' 
 }: HairSwatchProps) {
-  // Generate grey strands based on percentage
+  // Generate many tiny grey strands based on percentage
   const greyStrands = [];
-  const strandCount = Math.floor(greyPercent / 8);
+  const strandCount = Math.floor(greyPercent * 0.8); // 10% = 8 strands, 30% = 24 strands, 40% = 32 strands
   
   for (let i = 0; i < strandCount; i++) {
-    const x = 20 + (i * 18) % 80;
-    const yStart = 12 + (i * 5) % 15;
-    const yEnd = 65 + (i * 3) % 10;
+    const x = 15 + ((i * 13 + i * i * 2) % 90);
+    const yStart = 10 + ((i * 7) % 18);
+    const yEnd = 62 + ((i * 5) % 12);
     greyStrands.push(
       <path 
         key={`grey-${i}`}
-        d={`M ${x} ${yStart} Q ${x + 2} 40, ${x} ${yEnd}`}
-        stroke="#888888"
-        strokeWidth="1.5"
+        d={`M ${x} ${yStart} Q ${x + 1} 40, ${x} ${yEnd}`}
+        stroke="#a0a0a0"
+        strokeWidth="0.7"
         fill="none"
-        opacity={0.7}
+        opacity={0.6 + (i % 3) * 0.1}
       />
     );
   }
