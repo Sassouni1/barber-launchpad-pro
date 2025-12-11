@@ -20,14 +20,24 @@ const hairSwatches = [
   { id: '6', name: '#6 - Chestnut Brown', color: '#8b6914' },
 ];
 
+// Grey percentage swatches for grey matching rounds
+const greySwatches = [
+  { id: '1A', name: '#1A - Off Black', color: '#1a1a1a' },
+  { id: '10G', name: '10% Grey', color: '#2a2a2a' },
+  { id: '20G', name: '20% Grey', color: '#3d3d3d' },
+  { id: '30G', name: '30% Grey', color: '#555555' },
+  { id: '40G', name: '40% Grey', color: '#6e6e6e' },
+];
+
 // Rounds with target colors that trainees need to match
 const rounds = [
-  { targetColor: '#2a2117', correctAnswer: '1B', description: 'Natural black with warm undertones' },
-  { targetColor: '#3b2717', correctAnswer: '2', description: 'Very dark brown, almost black' },
-  { targetColor: '#0a0a0a', correctAnswer: '1', description: 'Pure jet black' },
-  { targetColor: '#4a3520', correctAnswer: '3', description: 'Rich dark brown' },
-  { targetColor: '#5c4033', correctAnswer: '4', description: 'Medium warm brown' },
-  { targetColor: '#1a1a1a', correctAnswer: '1A', description: 'Soft off-black' },
+  { targetColor: '#2a2117', correctAnswer: '1B', description: 'Natural black with warm undertones', type: 'color' as const },
+  { targetColor: '#3b2717', correctAnswer: '2', description: 'Very dark brown, almost black', type: 'color' as const },
+  { targetColor: '#0a0a0a', correctAnswer: '1', description: 'Pure jet black', type: 'color' as const },
+  { targetColor: '#555555', correctAnswer: '30G', description: 'Client has 30% grey - find the match', type: 'grey' as const },
+  { targetColor: '#4a3520', correctAnswer: '3', description: 'Rich dark brown', type: 'color' as const },
+  { targetColor: '#5c4033', correctAnswer: '4', description: 'Medium warm brown', type: 'color' as const },
+  { targetColor: '#1a1a1a', correctAnswer: '1A', description: 'Soft off-black', type: 'color' as const },
 ];
 
 export function ColorMatchGame() {
@@ -40,7 +50,8 @@ export function ColorMatchGame() {
 
   const round = rounds[currentRound];
   const progress = ((currentRound) / rounds.length) * 100;
-  const currentSwatch = hairSwatches.find(s => s.id === selectedSwatch);
+  const activePalette = round.type === 'grey' ? greySwatches : hairSwatches;
+  const currentSwatch = activePalette.find(s => s.id === selectedSwatch);
 
   const handleSwatchSelect = (swatchId: string) => {
     if (isSubmitted) return;
@@ -180,7 +191,7 @@ export function ColorMatchGame() {
           <div className="text-center w-full">
             <p className="text-sm text-muted-foreground mb-3">Select a Hair Sample to Compare</p>
             <div className="flex flex-wrap justify-center gap-3">
-              {hairSwatches.map((swatch) => (
+              {activePalette.map((swatch) => (
                 <button
                   key={swatch.id}
                   onClick={() => handleSwatchSelect(swatch.id)}
@@ -211,7 +222,7 @@ export function ColorMatchGame() {
                     }}
                   />
                   <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">
-                    #{swatch.id}
+                    {swatch.id.includes('G') ? swatch.name.split(' ')[0] : `#${swatch.id}`}
                   </span>
                 </button>
               ))}
@@ -241,11 +252,11 @@ export function ColorMatchGame() {
           )}>
             {selectedSwatch === round.correctAnswer ? (
               <p className="font-medium">
-                Correct! The best match is {hairSwatches.find(s => s.id === round.correctAnswer)?.name}
+                Correct! The best match is {activePalette.find(s => s.id === round.correctAnswer)?.name}
               </p>
             ) : (
               <p className="font-medium">
-                Not quite. The correct answer is {hairSwatches.find(s => s.id === round.correctAnswer)?.name}
+                Not quite. The correct answer is {activePalette.find(s => s.id === round.correctAnswer)?.name}
               </p>
             )}
           </div>
