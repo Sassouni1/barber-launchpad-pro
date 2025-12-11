@@ -63,6 +63,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
+  const [eyebrowsLifted, setEyebrowsLifted] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const round = faceShapes[currentRound];
@@ -410,9 +411,37 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             <circle cx="124" cy="144" r="1.5" fill="#fff" />
             <circle cx="178" cy="144" r="1.5" fill="#fff" />
 
-            {/* Eyebrows */}
-            <path d="M 100 130 Q 120 122, 135 130" stroke="#2b2422" strokeWidth="3" strokeLinecap="round" fill="none" />
-            <path d="M 165 130 Q 180 122, 200 130" stroke="#2b2422" strokeWidth="3" strokeLinecap="round" fill="none" />
+            {/* Eyebrows - lifted position when active */}
+            <path 
+              d={eyebrowsLifted ? "M 100 125 Q 120 115, 135 125" : "M 100 130 Q 120 122, 135 130"} 
+              stroke="#2b2422" 
+              strokeWidth="3" 
+              strokeLinecap="round" 
+              fill="none" 
+              className="transition-all duration-300"
+            />
+            <path 
+              d={eyebrowsLifted ? "M 165 125 Q 180 115, 200 125" : "M 165 130 Q 180 122, 200 130"} 
+              stroke="#2b2422" 
+              strokeWidth="3" 
+              strokeLinecap="round" 
+              fill="none"
+              className="transition-all duration-300"
+            />
+
+            {/* Forehead wrinkles - only visible when eyebrows lifted */}
+            {eyebrowsLifted && (
+              <g className="animate-fade-in">
+                {/* Wrinkle lines */}
+                <path d="M 110 105 Q 150 100, 190 105" stroke="#c9956a" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.6" />
+                <path d="M 115 92 Q 150 88, 185 92" stroke="#c9956a" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+                <path d="M 120 80 Q 150 77, 180 80" stroke="#c9956a" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.4" />
+                
+                {/* Hairline guide - 1 finger above top wrinkle */}
+                <path d="M 95 65 Q 150 58, 205 65" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" fill="none" opacity="0.7" />
+                <text x="150" y="52" textAnchor="middle" fill="#22c55e" fontSize="10" opacity="0.8">↑ Hairline (1 finger above)</text>
+              </g>
+            )}
 
             {/* Nose */}
             <path d="M 150 145 L 147 180 Q 150 188, 153 180" stroke="#c9956a" strokeWidth="1.5" fill="none" />
@@ -420,8 +449,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             {/* Mouth */}
             <path d="M 130 210 Q 150 222, 170 210" stroke="#a06050" strokeWidth="3" strokeLinecap="round" fill="none" />
 
-            {/* Forehead shine */}
-            <ellipse cx="150" cy="65" rx="30" ry="15" fill="rgba(255,255,255,0.08)" />
+            {/* Forehead shine - less visible when wrinkles showing */}
+            <ellipse cx="150" cy="65" rx="30" ry="15" fill="rgba(255,255,255,0.08)" opacity={eyebrowsLifted ? 0.3 : 1} />
 
             {/* Shirt collar */}
             <path d="M 105 315 Q 130 300, 150 298 Q 170 300, 195 315" stroke="#374151" strokeWidth="10" fill="none" strokeLinecap="round" />
@@ -489,11 +518,30 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           </div>
         )}
 
+        {/* Lift Eyebrows button */}
+        {!isSubmitted && (
+          <div className="flex justify-center mb-4">
+            <Button
+              variant={eyebrowsLifted ? "default" : "outline"}
+              onClick={() => setEyebrowsLifted(!eyebrowsLifted)}
+              className="gap-2"
+            >
+              {eyebrowsLifted ? 'Release Eyebrows' : 'Lift Eyebrows'}
+            </Button>
+          </div>
+        )}
+
+        {eyebrowsLifted && !isSubmitted && (
+          <p className="text-xs text-center text-muted-foreground mb-4">
+            The hairline should go <span className="text-green-500 font-medium">1 finger width above</span> the top wrinkle
+          </p>
+        )}
+
         {/* Action buttons */}
         <div className="flex justify-center gap-4">
           {!isSubmitted ? (
             <>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={handleClear} 
                 disabled={strokes.length === 0 && currentStroke.length === 0}
