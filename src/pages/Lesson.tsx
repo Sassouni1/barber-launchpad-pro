@@ -263,16 +263,15 @@ export default function Lesson() {
                   <CheckCircle2 className="w-4 h-4 mr-2" />
                   Mark as Complete
                 </Button>
-                {nextModule && (
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => navigate(`/lesson/${nextModule.id}`)}
-                  >
-                    Next Lesson
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                )}
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => nextModule && navigate(`/lesson/${nextModule.id}`)}
+                  disabled={!nextModule}
+                >
+                  Next Lesson
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
               </div>
             </div>
           )}
