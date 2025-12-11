@@ -95,7 +95,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
     setIsDrawing(true);
     const point = getSvgCoordinates(e);
     if (point) {
-      setDrawnPoints([point]);
+      // Add to existing points instead of replacing
+      setDrawnPoints((prev) => [...prev, point]);
     }
   };
 
