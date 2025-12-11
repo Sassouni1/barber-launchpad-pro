@@ -79,8 +79,8 @@ export default function Courses() {
                 </div>
 
                 {/* Modules */}
-                <div className="space-y-1 pl-2">
-                  {(course.modules || []).map((module) => {
+                <div className="space-y-2 pl-2">
+                  {(course.modules || []).map((module, index) => {
                     const isSelected = selectedModule === module.id;
 
                     return (
@@ -88,35 +88,60 @@ export default function Courses() {
                         key={module.id}
                         onClick={() => setSelectedModule(module.id)}
                         className={cn(
-                          'w-full p-3 rounded-lg flex items-center gap-3 transition-all duration-200 text-left',
-                          'hover:bg-secondary/30',
-                          isSelected && 'bg-primary/10 border border-primary/40'
+                          'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
+                          'border-2 hover:border-primary/30 hover:bg-secondary/20',
+                          isSelected 
+                            ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/50 shadow-lg shadow-primary/5' 
+                            : 'border-border/30 bg-secondary/10'
                         )}
                       >
                         <div className={cn(
-                          'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border',
+                          'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
                           isSelected
-                            ? 'bg-primary/20 border-primary text-primary'
-                            : 'bg-secondary border-border text-foreground'
+                            ? 'gold-gradient text-primary-foreground shadow-md'
+                            : 'bg-secondary border border-border text-muted-foreground'
                         )}>
-                          <Play className="w-4 h-4 ml-0.5" />
+                          {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">{module.title}</h4>
+                          <h4 className={cn(
+                            "font-semibold text-sm mb-1",
+                            isSelected && "text-primary"
+                          )}>{module.title}</h4>
                           {module.description && (
-                            <p className="text-xs text-muted-foreground truncate">{module.description}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
                           )}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {module.duration && (
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
+                                <Clock className="w-3 h-3" />
+                                {module.duration}
+                              </span>
+                            )}
+                            {module.has_download && (
+                              <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                <FileText className="w-3 h-3" />
+                                Files
+                              </span>
+                            )}
+                            {module.has_quiz && (
+                              <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                                <HelpCircle className="w-3 h-3" />
+                                Quiz
+                              </span>
+                            )}
+                            {module.has_homework && (
+                              <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                                <ClipboardList className="w-3 h-3" />
+                                Homework
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {module.duration && (
-                            <span className="text-xs text-muted-foreground">{module.duration}</span>
-                          )}
-                          {module.has_quiz && (
-                            <span className="px-1.5 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-medium">
-                              Quiz
-                            </span>
-                          )}
-                        </div>
+                        <Play className={cn(
+                          "w-5 h-5 flex-shrink-0 transition-transform",
+                          isSelected ? "text-primary scale-110" : "text-muted-foreground"
+                        )} />
                       </button>
                     );
                   })}
