@@ -1,43 +1,31 @@
-import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, ShoppingCart } from "lucide-react";
+import { ShoppingCart, Package } from "lucide-react";
 
 const HairSystems = () => {
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Hair Systems</h1>
-          <p className="text-muted-foreground">Order and manage your hair systems</p>
-        </div>
+      <div className="space-y-8">
+        {/* Order Hair System Section */}
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <ShoppingCart className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">Order Hair System</h1>
+          </div>
+          <div className="glass-card p-6">
+            <p className="text-muted-foreground">Order form coming soon.</p>
+          </div>
+        </section>
 
-        <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Products
-            </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              Orders
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="products" className="mt-6">
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Available Products</h2>
-              <p className="text-muted-foreground">No products available yet.</p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="orders" className="mt-6">
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Your Orders</h2>
-              <p className="text-muted-foreground">No orders yet.</p>
-            </div>
-          </TabsContent>
-        </Tabs>
+        {/* Products Section */}
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <Package className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">Products</h2>
+          </div>
+          <div className="glass-card p-6">
+            <p className="text-muted-foreground">No products available yet.</p>
+          </div>
+        </section>
       </div>
     </DashboardLayout>
   );
