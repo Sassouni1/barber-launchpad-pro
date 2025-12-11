@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses } from '@/hooks/useCourses';
 import { useModuleFiles } from '@/hooks/useModuleFiles';
@@ -31,8 +31,17 @@ import { toast } from 'sonner';
 export default function Lesson() {
   const navigate = useNavigate();
   const { lessonId } = useParams();
+  const [searchParams] = useSearchParams();
   const { data: courses = [], isLoading } = useCourses();
-  const [activeTab, setActiveTab] = useState<'video' | 'quiz' | 'homework'>('video');
+  
+  const initialTab = searchParams.get('tab') as 'video' | 'quiz' | 'homework' | null;
+  const [activeTab, setActiveTab] = useState<'video' | 'quiz' | 'homework'>(initialTab || 'video');
+
+  // Update tab when URL changes
+  useEffect(() => {
+    const tab = searchParams.get('tab') as 'video' | 'quiz' | 'homework' | null;
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   // Find the module
   const module = courses
