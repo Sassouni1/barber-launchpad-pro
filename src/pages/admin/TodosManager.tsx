@@ -5,9 +5,29 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useTodosWithSubtasks, useCreateTodo, useUpdateTodo, useDeleteTodo, useCreateSubtask, useDeleteSubtask, Todo, Subtask } from '@/hooks/useTodos';
+import { Label } from '@/components/ui/label';
+import { useTodosWithSubtasks, useCreateTodo, useUpdateTodo, useDeleteTodo, useCreateSubtask, useDeleteSubtask, Todo } from '@/hooks/useTodos';
 import { useCourses } from '@/hooks/useCourses';
-import { Plus, Pencil, Trash2, ListTodo, X } from 'lucide-react';
+import {
+  useDynamicTodoLists,
+  useCreateDynamicList,
+  useUpdateDynamicList,
+  useDeleteDynamicList,
+  useCreateDynamicItem,
+  useDeleteDynamicItem,
+  type DynamicTodoList,
+} from '@/hooks/useDynamicTodosAdmin';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, Pencil, Trash2, X, Sparkles, ChevronDown, ChevronRight, GripVertical, Loader2 } from 'lucide-react';
 
 export default function TodosManager() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
@@ -17,6 +37,14 @@ export default function TodosManager() {
   const deleteTodo = useDeleteTodo();
   const createSubtask = useCreateSubtask();
   const deleteSubtask = useDeleteSubtask();
+
+  // Dynamic todos hooks
+  const { data: dynamicLists, isLoading: dynamicLoading } = useDynamicTodoLists();
+  const createDynamicList = useCreateDynamicList();
+  const updateDynamicList = useUpdateDynamicList();
+  const deleteDynamicList = useDeleteDynamicList();
+  const createDynamicItem = useCreateDynamicItem();
+  const deleteDynamicItem = useDeleteDynamicItem();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -29,6 +57,16 @@ export default function TodosManager() {
   });
   const [subtaskInputs, setSubtaskInputs] = useState<string[]>([]);
   const [newSubtaskInput, setNewSubtaskInput] = useState('');
+
+  // Dynamic todos state
+  const [expandedDynamicList, setExpandedDynamicList] = useState<string | null>(null);
+  const [showDynamicListDialog, setShowDynamicListDialog] = useState(false);
+  const [showDynamicItemDialog, setShowDynamicItemDialog] = useState(false);
+  const [editingDynamicList, setEditingDynamicList] = useState<DynamicTodoList | null>(null);
+  const [selectedDynamicListId, setSelectedDynamicListId] = useState<string | null>(null);
+  const [dynamicListForm, setDynamicListForm] = useState({ title: '' });
+  const [dynamicItemForm, setDynamicItemForm] = useState({ title: '' });
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'dynamic-list' | 'dynamic-item'; id: string; name: string } | null>(null);
 
   const resetForm = () => {
     setFormData({ title: '', description: '', type: 'course', week_number: 1, course_id: '' });
@@ -79,7 +117,6 @@ export default function TodosManager() {
     if (editingTodo) {
       await updateTodo.mutateAsync({ id: editingTodo.id, ...payload });
       
-      // Delete removed subtasks
       const existingSubtasks = editingTodo.subtasks || [];
       for (const existing of existingSubtasks) {
         if (!subtaskInputs.includes(existing.title)) {
@@ -87,7 +124,6 @@ export default function TodosManager() {
         }
       }
       
-      // Add new subtasks
       const existingTitles = existingSubtasks.map(s => s.title);
       for (let i = 0; i < subtaskInputs.length; i++) {
         if (!existingTitles.includes(subtaskInputs[i])) {
@@ -100,7 +136,6 @@ export default function TodosManager() {
       }
     } else {
       const newTodo = await createTodo.mutateAsync(payload);
-      // Add subtasks for new todo
       for (let i = 0; i < subtaskInputs.length; i++) {
         await createSubtask.mutateAsync({
           todo_id: newTodo.id,
@@ -111,6 +146,58 @@ export default function TodosManager() {
     }
     setIsDialogOpen(false);
     resetForm();
+  };
+
+  // Dynamic list handlers
+  const openNewDynamicList = () => {
+    setEditingDynamicList(null);
+    setDynamicListForm({ title: '' });
+    setShowDynamicListDialog(true);
+  };
+
+  const openEditDynamicList = (list: DynamicTodoList) => {
+    setEditingDynamicList(list);
+    setDynamicListForm({ title: list.title });
+    setShowDynamicListDialog(true);
+  };
+
+  const handleSaveDynamicList = async () => {
+    if (editingDynamicList) {
+      await updateDynamicList.mutateAsync({ id: editingDynamicList.id, title: dynamicListForm.title });
+    } else {
+      const maxOrder = dynamicLists?.reduce((max, l) => Math.max(max, l.order_index), -1) ?? -1;
+      await createDynamicList.mutateAsync({ title: dynamicListForm.title, order_index: maxOrder + 1 });
+    }
+    setShowDynamicListDialog(false);
+  };
+
+  const openNewDynamicItem = (listId: string) => {
+    setSelectedDynamicListId(listId);
+    setDynamicItemForm({ title: '' });
+    setShowDynamicItemDialog(true);
+  };
+
+  const handleSaveDynamicItem = async () => {
+    if (selectedDynamicListId) {
+      const list = dynamicLists?.find((l) => l.id === selectedDynamicListId);
+      const maxOrder = list?.items.reduce((max, i) => Math.max(max, i.order_index), -1) ?? -1;
+      await createDynamicItem.mutateAsync({
+        list_id: selectedDynamicListId,
+        title: dynamicItemForm.title,
+        order_index: maxOrder + 1,
+      });
+    }
+    setShowDynamicItemDialog(false);
+  };
+
+  const handleDeleteDynamic = async () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.type === 'dynamic-list') {
+      await deleteDynamicList.mutateAsync(deleteTarget.id);
+    } else if (deleteTarget.type === 'dynamic-item') {
+      await deleteDynamicItem.mutateAsync(deleteTarget.id);
+    }
+    setDeleteTarget(null);
   };
 
   const groupedTodos = {
@@ -153,18 +240,18 @@ export default function TodosManager() {
     </div>
   );
 
-  if (isLoading) {
+  if (isLoading || dynamicLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout isAdmin>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout isAdmin>
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div>
@@ -239,7 +326,6 @@ export default function TodosManager() {
                   </>
                 )}
 
-                {/* Subtasks Section */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Subtasks</label>
                   {subtaskInputs.length > 0 && (
@@ -328,7 +414,192 @@ export default function TodosManager() {
             )}
           </div>
         </div>
+
+        {/* Dynamic To-Do Lists Section */}
+        <div className="pt-8 border-t border-border/30">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-6 h-6 text-primary" />
+              <h2 className="font-display text-2xl font-bold">Dynamic To-Do Lists</h2>
+            </div>
+            <Button variant="outline" onClick={openNewDynamicList}>
+              <Plus className="w-4 h-4 mr-2" />
+              New List
+            </Button>
+          </div>
+
+          {dynamicLists?.length === 0 && (
+            <div className="glass-card rounded-2xl p-8 text-center">
+              <p className="text-muted-foreground mb-4">No dynamic to-do lists yet.</p>
+              <Button variant="outline" onClick={openNewDynamicList}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create First List
+              </Button>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {dynamicLists?.map((list, listIndex) => (
+              <div
+                key={list.id}
+                className="glass-card rounded-2xl overflow-hidden animate-fade-up"
+                style={{ animationDelay: `${listIndex * 0.1}s` }}
+              >
+                <button
+                  onClick={() => setExpandedDynamicList(expandedDynamicList === list.id ? null : list.id)}
+                  className="w-full p-6 flex items-center gap-4 hover:bg-secondary/20 transition-colors"
+                >
+                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
+                  <div className="flex-1 text-left">
+                    <h3 className="font-display text-xl font-semibold">{list.title}</h3>
+                    <p className="text-sm text-muted-foreground">{list.items.length} items</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditDynamicList(list);
+                      }}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget({ type: 'dynamic-list', id: list.id, name: list.title });
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                    {expandedDynamicList === list.id ? (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
+
+                {expandedDynamicList === list.id && (
+                  <div className="border-t border-border/30">
+                    {list.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors border-b border-border/20 last:border-b-0"
+                      >
+                        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{item.title}</div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget({ type: 'dynamic-item', id: item.id, name: item.title })}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    <div className="p-4 ml-8">
+                      <Button variant="outline" size="sm" onClick={() => openNewDynamicItem(list.id)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Item
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* Dynamic List Dialog */}
+      <Dialog open={showDynamicListDialog} onOpenChange={setShowDynamicListDialog}>
+        <DialogContent className="glass-card border-border/50">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              {editingDynamicList ? 'Edit List' : 'New Dynamic List'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>List Title</Label>
+              <Input
+                value={dynamicListForm.title}
+                onChange={(e) => setDynamicListForm({ title: e.target.value })}
+                placeholder="e.g., Week 1 Tasks"
+                className="bg-secondary/50"
+              />
+            </div>
+            <Button
+              className="w-full gold-gradient text-primary-foreground"
+              onClick={handleSaveDynamicList}
+              disabled={!dynamicListForm.title || createDynamicList.isPending || updateDynamicList.isPending}
+            >
+              {createDynamicList.isPending || updateDynamicList.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
+              {editingDynamicList ? 'Save Changes' : 'Create List'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dynamic Item Dialog */}
+      <Dialog open={showDynamicItemDialog} onOpenChange={setShowDynamicItemDialog}>
+        <DialogContent className="glass-card border-border/50">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">New Item</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Item Title</Label>
+              <Input
+                value={dynamicItemForm.title}
+                onChange={(e) => setDynamicItemForm({ title: e.target.value })}
+                placeholder="e.g., Complete introduction video"
+                className="bg-secondary/50"
+              />
+            </div>
+            <Button
+              className="w-full gold-gradient text-primary-foreground"
+              onClick={handleSaveDynamicItem}
+              disabled={!dynamicItemForm.title || createDynamicItem.isPending}
+            >
+              {createDynamicItem.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Add Item
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent className="glass-card border-border/50">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteTarget?.type === 'dynamic-list' ? 'list' : 'item'}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteTarget?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDynamic}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

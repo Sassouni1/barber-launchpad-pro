@@ -24,7 +24,6 @@ import {
   ChevronRight,
   Loader2,
   Upload,
-  Sparkles,
 } from 'lucide-react';
 import { ModuleFilesManager } from '@/components/admin/ModuleFilesManager';
 import { QuizManager } from '@/components/admin/QuizManager';
@@ -39,15 +38,6 @@ import {
   type CourseWithModules,
   type Module,
 } from '@/hooks/useCourses';
-import {
-  useDynamicTodoLists,
-  useCreateDynamicList,
-  useUpdateDynamicList,
-  useDeleteDynamicList,
-  useCreateDynamicItem,
-  useDeleteDynamicItem,
-  type DynamicTodoList,
-} from '@/hooks/useDynamicTodosAdmin';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,30 +58,17 @@ export default function CourseBuilder() {
   const updateModule = useUpdateModule();
   const deleteModule = useDeleteModule();
 
-  // Dynamic todos hooks
-  const { data: dynamicLists, isLoading: dynamicLoading } = useDynamicTodoLists();
-  const createDynamicList = useCreateDynamicList();
-  const updateDynamicList = useUpdateDynamicList();
-  const deleteDynamicList = useDeleteDynamicList();
-  const createDynamicItem = useCreateDynamicItem();
-  const deleteDynamicItem = useDeleteDynamicItem();
-
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
-  const [expandedDynamicList, setExpandedDynamicList] = useState<string | null>(null);
 
   // Dialog states
   const [showCourseDialog, setShowCourseDialog] = useState(false);
   const [showModuleDialog, setShowModuleDialog] = useState(false);
-  const [showDynamicListDialog, setShowDynamicListDialog] = useState(false);
-  const [showDynamicItemDialog, setShowDynamicItemDialog] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseWithModules | null>(null);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
-  const [editingDynamicList, setEditingDynamicList] = useState<DynamicTodoList | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
-  const [selectedDynamicListId, setSelectedDynamicListId] = useState<string | null>(null);
 
   // Delete confirmation
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module' | 'dynamic-list' | 'dynamic-item'; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module'; id: string; name: string } | null>(null);
 
   // Files/Quiz manager
   const [filesManagerModule, setFilesManagerModule] = useState<{ id: string; name: string } | null>(null);
@@ -108,8 +85,6 @@ export default function CourseBuilder() {
     has_quiz: false,
     has_homework: false,
   });
-  const [dynamicListForm, setDynamicListForm] = useState({ title: '' });
-  const [dynamicItemForm, setDynamicItemForm] = useState({ title: '' });
 
   // Course handlers
   const openNewCourse = () => {
@@ -167,66 +142,19 @@ export default function CourseBuilder() {
     setShowModuleDialog(false);
   };
 
-  // Dynamic list handlers
-  const openNewDynamicList = () => {
-    setEditingDynamicList(null);
-    setDynamicListForm({ title: '' });
-    setShowDynamicListDialog(true);
-  };
-
-  const openEditDynamicList = (list: DynamicTodoList) => {
-    setEditingDynamicList(list);
-    setDynamicListForm({ title: list.title });
-    setShowDynamicListDialog(true);
-  };
-
-  const handleSaveDynamicList = async () => {
-    if (editingDynamicList) {
-      await updateDynamicList.mutateAsync({ id: editingDynamicList.id, title: dynamicListForm.title });
-    } else {
-      const maxOrder = dynamicLists?.reduce((max, l) => Math.max(max, l.order_index), -1) ?? -1;
-      await createDynamicList.mutateAsync({ title: dynamicListForm.title, order_index: maxOrder + 1 });
-    }
-    setShowDynamicListDialog(false);
-  };
-
-  // Dynamic item handlers
-  const openNewDynamicItem = (listId: string) => {
-    setSelectedDynamicListId(listId);
-    setDynamicItemForm({ title: '' });
-    setShowDynamicItemDialog(true);
-  };
-
-  const handleSaveDynamicItem = async () => {
-    if (selectedDynamicListId) {
-      const list = dynamicLists?.find((l) => l.id === selectedDynamicListId);
-      const maxOrder = list?.items.reduce((max, i) => Math.max(max, i.order_index), -1) ?? -1;
-      await createDynamicItem.mutateAsync({
-        list_id: selectedDynamicListId,
-        title: dynamicItemForm.title,
-        order_index: maxOrder + 1,
-      });
-    }
-    setShowDynamicItemDialog(false);
-  };
-
   // Delete handlers
   const handleDelete = async () => {
     if (!deleteTarget) return;
     
     if (deleteTarget.type === 'course') {
       await deleteCourse.mutateAsync(deleteTarget.id);
-    } else if (deleteTarget.type === 'module') {
+    } else {
       await deleteModule.mutateAsync(deleteTarget.id);
-    } else if (deleteTarget.type === 'dynamic-list') {
-      await deleteDynamicList.mutateAsync(deleteTarget.id);
-    } else if (deleteTarget.type === 'dynamic-item') {
-      await deleteDynamicItem.mutateAsync(deleteTarget.id);
     }
     setDeleteTarget(null);
   };
 
-  if (isLoading || dynamicLoading) {
+  if (isLoading) {
     return (
       <DashboardLayout isAdmin>
         <div className="flex items-center justify-center h-64">
@@ -407,112 +335,6 @@ export default function CourseBuilder() {
             </div>
           ))}
         </div>
-
-        {/* Dynamic To-Do Lists Section */}
-        <div className="pt-8 border-t border-border/30">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-6 h-6 text-primary" />
-              <h2 className="font-display text-2xl font-bold">Dynamic To-Do Lists</h2>
-            </div>
-            <Button variant="outline" onClick={openNewDynamicList}>
-              <Plus className="w-4 h-4 mr-2" />
-              New List
-            </Button>
-          </div>
-
-          {dynamicLists?.length === 0 && (
-            <div className="glass-card rounded-2xl p-8 text-center">
-              <p className="text-muted-foreground mb-4">No dynamic to-do lists yet.</p>
-              <Button variant="outline" onClick={openNewDynamicList}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create First List
-              </Button>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {dynamicLists?.map((list, listIndex) => (
-              <div
-                key={list.id}
-                className="glass-card rounded-2xl overflow-hidden animate-fade-up"
-                style={{ animationDelay: `${listIndex * 0.1}s` }}
-              >
-                {/* List Header */}
-                <button
-                  onClick={() => setExpandedDynamicList(expandedDynamicList === list.id ? null : list.id)}
-                  className="w-full p-6 flex items-center gap-4 hover:bg-secondary/20 transition-colors"
-                >
-                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
-                  <div className="flex-1 text-left">
-                    <h3 className="font-display text-xl font-semibold">{list.title}</h3>
-                    <p className="text-sm text-muted-foreground">{list.items.length} items</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditDynamicList(list);
-                      }}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteTarget({ type: 'dynamic-list', id: list.id, name: list.title });
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    {expandedDynamicList === list.id ? (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </div>
-                </button>
-
-                {/* Items */}
-                {expandedDynamicList === list.id && (
-                  <div className="border-t border-border/30">
-                    {list.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors border-b border-border/20 last:border-b-0"
-                      >
-                        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{item.title}</div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget({ type: 'dynamic-item', id: item.id, name: item.title })}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-
-                    <div className="p-4 ml-8">
-                      <Button variant="outline" size="sm" onClick={() => openNewDynamicItem(list.id)}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Item
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Course Dialog */}
@@ -631,66 +453,6 @@ export default function CourseBuilder() {
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : null}
               {editingModule ? 'Save Changes' : 'Create Module'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dynamic List Dialog */}
-      <Dialog open={showDynamicListDialog} onOpenChange={setShowDynamicListDialog}>
-        <DialogContent className="glass-card border-border/50">
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl">
-              {editingDynamicList ? 'Edit List' : 'New Dynamic List'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>List Title</Label>
-              <Input
-                value={dynamicListForm.title}
-                onChange={(e) => setDynamicListForm({ title: e.target.value })}
-                placeholder="e.g., Week 1 Tasks"
-                className="bg-secondary/50"
-              />
-            </div>
-            <Button
-              className="w-full gold-gradient text-primary-foreground"
-              onClick={handleSaveDynamicList}
-              disabled={!dynamicListForm.title || createDynamicList.isPending || updateDynamicList.isPending}
-            >
-              {createDynamicList.isPending || updateDynamicList.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : null}
-              {editingDynamicList ? 'Save Changes' : 'Create List'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dynamic Item Dialog */}
-      <Dialog open={showDynamicItemDialog} onOpenChange={setShowDynamicItemDialog}>
-        <DialogContent className="glass-card border-border/50">
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl">New Item</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Item Title</Label>
-              <Input
-                value={dynamicItemForm.title}
-                onChange={(e) => setDynamicItemForm({ title: e.target.value })}
-                placeholder="e.g., Complete introduction video"
-                className="bg-secondary/50"
-              />
-            </div>
-            <Button
-              className="w-full gold-gradient text-primary-foreground"
-              onClick={handleSaveDynamicItem}
-              disabled={!dynamicItemForm.title || createDynamicItem.isPending}
-            >
-              {createDynamicItem.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Add Item
             </Button>
           </div>
         </DialogContent>
