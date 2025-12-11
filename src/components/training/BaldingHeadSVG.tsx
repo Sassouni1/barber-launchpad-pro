@@ -9,25 +9,26 @@ export function BaldingHeadSVG({
   greyPercentage = 0,
   className = ''
 }: BaldingHeadSVGProps) {
-  // Generate grey strand paths based on percentage
+  // Generate many tiny grey strand paths based on percentage
   const greyStrands = [];
-  const strandCount = Math.floor(greyPercentage / 5); // More strands for higher grey %
+  const strandCount = greyPercentage * 2; // Many more strands: 10% = 20, 30% = 60, 40% = 80
   
   for (let i = 0; i < strandCount; i++) {
-    const xOffset = 40 + (i * 15) % 120;
-    const yStart = 20 + (i * 7) % 30;
-    const curve1 = 50 + (i * 11) % 40;
-    const curve2 = 100 + (i * 13) % 50;
-    const yEnd = 150 + (i * 5) % 30;
+    // Spread strands across the entire hair area
+    const xOffset = 30 + ((i * 17 + i * i * 3) % 140);
+    const yStart = 15 + ((i * 11) % 35);
+    const curve1 = 45 + ((i * 7) % 50);
+    const curve2 = 95 + ((i * 13) % 55);
+    const yEnd = 145 + ((i * 5) % 40);
     
     greyStrands.push(
       <path 
         key={`grey-${i}`}
-        d={`M ${xOffset} ${yStart} Q ${xOffset + 5} ${curve1}, ${xOffset - 3} ${curve2} Q ${xOffset + 2} ${curve2 + 30}, ${xOffset} ${yEnd}`}
-        stroke="#888888"
-        strokeWidth="2"
+        d={`M ${xOffset} ${yStart} Q ${xOffset + 3} ${curve1}, ${xOffset - 2} ${curve2} Q ${xOffset + 1} ${curve2 + 25}, ${xOffset} ${yEnd}`}
+        stroke="#a0a0a0"
+        strokeWidth="0.8"
         fill="none"
-        opacity={0.7 + (i % 3) * 0.1}
+        opacity={0.6 + (i % 4) * 0.1}
       />
     );
   }
