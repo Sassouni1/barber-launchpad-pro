@@ -39,6 +39,7 @@ const OrderHairSystem = () => {
             />
           </div>
         </div>
+        <h2 className="text-xl font-bold text-foreground">Place Order:</h2>
         <div className="glass-card p-4 rounded-xl" style={{ minHeight: "1400px" }}>
           <iframe
             src="https://api.leadconnectorhq.com/widget/form/DUMrKXsSUz4Q6N59izDU"
