@@ -15,7 +15,8 @@ import CourseBuilder from "./pages/admin/CourseBuilder";
 import TodosManager from "./pages/admin/TodosManager";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import HairSystems from "./pages/HairSystems";
+import OrderHairSystem from "./pages/OrderHairSystem";
+import Products from "./pages/Products";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +34,8 @@ const App = () => (
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/lesson/:lessonId" element={<Lesson />} />
           <Route path="/todos" element={<Todos />} />
-          <Route path="/hair-systems" element={<HairSystems />} />
+          <Route path="/order-hair-system" element={<OrderHairSystem />} />
+          <Route path="/products" element={<Products />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/members" element={<Members />} />
           <Route path="/admin/courses" element={<CourseBuilder />} />
