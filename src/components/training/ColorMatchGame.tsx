@@ -20,24 +20,24 @@ const hairSwatches = [
   { id: '6', name: '#6 - Chestnut Brown', color: '#8b6914' },
 ];
 
-// Grey percentage swatches for grey matching rounds
+// Grey percentage swatches for grey matching rounds - base hair color + grey percentage
 const greySwatches = [
-  { id: '1A', name: '#1A - Off Black', color: '#1a1a1a' },
-  { id: '10G', name: '10% Grey', color: '#2a2a2a' },
-  { id: '20G', name: '20% Grey', color: '#3d3d3d' },
-  { id: '30G', name: '30% Grey', color: '#555555' },
-  { id: '40G', name: '40% Grey', color: '#6e6e6e' },
+  { id: '1A', name: '#1A - Off Black', color: '#1a1a1a', greyPercent: 0 },
+  { id: '10G', name: '10% Grey', color: '#1a1a1a', greyPercent: 10 },
+  { id: '20G', name: '20% Grey', color: '#1a1a1a', greyPercent: 20 },
+  { id: '30G', name: '30% Grey', color: '#1a1a1a', greyPercent: 30 },
+  { id: '40G', name: '40% Grey', color: '#1a1a1a', greyPercent: 40 },
 ];
 
 // Rounds with target colors that trainees need to match
 const rounds = [
-  { targetColor: '#2a2117', correctAnswer: '1B', description: 'Natural black with warm undertones', type: 'color' as const },
-  { targetColor: '#3b2717', correctAnswer: '2', description: 'Very dark brown, almost black', type: 'color' as const },
-  { targetColor: '#0a0a0a', correctAnswer: '1', description: 'Pure jet black', type: 'color' as const },
-  { targetColor: '#555555', correctAnswer: '30G', description: 'Client has 30% grey - find the match', type: 'grey' as const },
-  { targetColor: '#4a3520', correctAnswer: '3', description: 'Rich dark brown', type: 'color' as const },
-  { targetColor: '#5c4033', correctAnswer: '4', description: 'Medium warm brown', type: 'color' as const },
-  { targetColor: '#1a1a1a', correctAnswer: '1A', description: 'Soft off-black', type: 'color' as const },
+  { targetColor: '#2a2117', correctAnswer: '1B', description: 'Natural black with warm undertones', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#3b2717', correctAnswer: '2', description: 'Very dark brown, almost black', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#0a0a0a', correctAnswer: '1', description: 'Pure jet black', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#1a1a1a', correctAnswer: '30G', description: 'Client has 30% grey mixed in - find the matching grey level', type: 'grey' as const, greyPercent: 30 },
+  { targetColor: '#4a3520', correctAnswer: '3', description: 'Rich dark brown', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#5c4033', correctAnswer: '4', description: 'Medium warm brown', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#1a1a1a', correctAnswer: '1A', description: 'Soft off-black', type: 'color' as const, greyPercent: 0 },
 ];
 
 export function ColorMatchGame() {
@@ -52,6 +52,7 @@ export function ColorMatchGame() {
   const progress = ((currentRound) / rounds.length) * 100;
   const activePalette = round.type === 'grey' ? greySwatches : hairSwatches;
   const currentSwatch = activePalette.find(s => s.id === selectedSwatch);
+  const selectedGreySwatch = round.type === 'grey' ? greySwatches.find(s => s.id === selectedSwatch) : null;
 
   const handleSwatchSelect = (swatchId: string) => {
     if (isSubmitted) return;
@@ -156,6 +157,7 @@ export function ColorMatchGame() {
             <div className="relative inline-block">
               <BaldingHeadSVG 
                 hairColor={round.targetColor}
+                greyPercentage={round.greyPercent}
                 className="w-52 h-56"
               />
               
@@ -164,7 +166,8 @@ export function ColorMatchGame() {
                 <div className="absolute top-8 left-1/2 -translate-x-1/2 w-28 transition-all duration-300 animate-fade-in">
                   <HairSwatch 
                     color={currentSwatch.color}
-                    label={`#${currentSwatch.id}`}
+                    greyPercent={selectedGreySwatch?.greyPercent || 0}
+                    label={selectedGreySwatch ? selectedGreySwatch.name.split(' ')[0] : `#${currentSwatch.id}`}
                     isCorrect={isSubmitted && selectedSwatch === round.correctAnswer}
                     isWrong={isSubmitted && selectedSwatch !== round.correctAnswer}
                   />

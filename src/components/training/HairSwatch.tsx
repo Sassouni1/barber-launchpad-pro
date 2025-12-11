@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 
 interface HairSwatchProps {
   color: string;
+  greyPercent?: number;
   label?: string;
   isCorrect?: boolean;
   isWrong?: boolean;
@@ -10,11 +11,31 @@ interface HairSwatchProps {
 
 export function HairSwatch({ 
   color, 
+  greyPercent = 0,
   label,
   isCorrect,
   isWrong,
   className = '' 
 }: HairSwatchProps) {
+  // Generate grey strands based on percentage
+  const greyStrands = [];
+  const strandCount = Math.floor(greyPercent / 8);
+  
+  for (let i = 0; i < strandCount; i++) {
+    const x = 20 + (i * 18) % 80;
+    const yStart = 12 + (i * 5) % 15;
+    const yEnd = 65 + (i * 3) % 10;
+    greyStrands.push(
+      <path 
+        key={`grey-${i}`}
+        d={`M ${x} ${yStart} Q ${x + 2} 40, ${x} ${yEnd}`}
+        stroke="#888888"
+        strokeWidth="1.5"
+        fill="none"
+        opacity={0.7}
+      />
+    );
+  }
   return (
     <div className={cn("relative", className)}>
       <svg 
@@ -66,6 +87,11 @@ export function HairSwatch({
           <path d="M 68 10 Q 65 40, 68 70" />
           <path d="M 85 15 Q 82 40, 85 65" />
         </g>
+        
+        {/* Grey strands overlay */}
+        {greyPercent > 0 && (
+          <g>{greyStrands}</g>
+        )}
         
         {/* Subtle shine */}
         <ellipse 
