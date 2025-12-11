@@ -1,5 +1,4 @@
 import { useCourses } from '@/hooks/useCourses';
-import { Progress } from '@/components/ui/progress';
 import { BookOpen, Trophy, Clock, TrendingUp, Loader2 } from 'lucide-react';
 
 export function ProgressOverview() {
@@ -13,13 +12,13 @@ export function ProgressOverview() {
     );
   }
 
-  const totalLessons = courses.reduce(
-    (acc, course) => acc + (course.modules || []).reduce((m, mod) => m + (mod.lessons || []).length, 0),
+  const totalModules = courses.reduce(
+    (acc, course) => acc + (course.modules || []).length,
     0
   );
 
   const stats = [
-    { icon: BookOpen, label: 'Total Lessons', value: totalLessons, color: 'text-primary' },
+    { icon: BookOpen, label: 'Total Modules', value: totalModules, color: 'text-primary' },
     { icon: Trophy, label: 'Courses', value: courses.length, color: 'text-primary' },
     { icon: Clock, label: 'Keep Learning', value: '—', color: 'text-muted-foreground' },
   ];
@@ -43,12 +42,12 @@ export function ProgressOverview() {
       {courses.length > 0 ? (
         <div className="space-y-5">
           {courses.map((course) => {
-            const lessonCount = (course.modules || []).reduce((m, mod) => m + (mod.lessons || []).length, 0);
+            const moduleCount = (course.modules || []).length;
             return (
               <div key={course.id} className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-sm">{course.title}</span>
-                  <span className="text-muted-foreground text-sm">{lessonCount} lessons</span>
+                  <span className="text-muted-foreground text-sm">{moduleCount} modules</span>
                 </div>
                 <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
                   <div 
