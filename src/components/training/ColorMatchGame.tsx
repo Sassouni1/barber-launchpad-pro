@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, RotateCcw, Trophy, ArrowRight } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Trophy, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
 import { BaldingHeadSVG } from './BaldingHeadSVG';
+import { HairSwatch } from './HairSwatch';
+
 // Hair color swatches with their hex colors based on real hair system codes
 const hairSwatches = [
   { id: '1', name: '#1 - Jet Black', color: '#0a0a0a' },
@@ -31,7 +33,7 @@ const rounds = [
 export function ColorMatchGame() {
   const [currentRound, setCurrentRound] = useState(0);
   const [selectedSwatch, setSelectedSwatch] = useState<string | null>(null);
-  const [showOverlay, setShowOverlay] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
@@ -77,7 +79,7 @@ export function ColorMatchGame() {
     } else {
       setCurrentRound((r) => r + 1);
       setSelectedSwatch(null);
-      setShowOverlay(false);
+      setShowOverlay(true);
       setIsSubmitted(false);
     }
   };
@@ -85,15 +87,10 @@ export function ColorMatchGame() {
   const handleRestart = () => {
     setCurrentRound(0);
     setSelectedSwatch(null);
-    setShowOverlay(false);
+    setShowOverlay(true);
     setIsSubmitted(false);
     setScore(0);
     setGameComplete(false);
-  };
-
-  const toggleOverlay = () => {
-    if (!selectedSwatch) return;
-    setShowOverlay(!showOverlay);
   };
 
   if (gameComplete) {
@@ -137,64 +134,59 @@ export function ColorMatchGame() {
           Match the Client's Hair Color
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-6">
-          Select a swatch to overlay it on the client's hair. Find the closest match!
+          Select a hair swatch to place on top of the client's hair. Find the color that matches best!
         </p>
 
-        {/* Comparison area */}
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 mb-8">
-          {/* Client's head with hair */}
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-3">Client's Hair</p>
-            <div className="relative">
+        {/* Main comparison area */}
+        <div className="flex flex-col items-center gap-6 mb-8">
+          {/* Client's head (back view) with overlay swatch */}
+          <div className="relative">
+            <p className="text-sm text-muted-foreground text-center mb-3">Client's Hair (Back View)</p>
+            <div className="relative inline-block">
               <BaldingHeadSVG 
                 hairColor={round.targetColor}
-                overlayColor={showOverlay && currentSwatch ? currentSwatch.color : undefined}
-                overlayOpacity={0.85}
-                className="w-48 h-56 drop-shadow-lg"
+                className="w-52 h-56"
               />
-              {/* Overlay indicator */}
-              {showOverlay && currentSwatch && (
-                <div className={cn(
-                  "absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-medium",
-                  isSubmitted && selectedSwatch === round.correctAnswer 
-                    ? "bg-green-500 text-white" 
-                    : isSubmitted 
-                    ? "bg-destructive text-destructive-foreground"
-                    : "bg-primary text-primary-foreground"
-                )}>
-                  {currentSwatch.id}
+              
+              {/* Overlay hair swatch positioned on top of the head */}
+              {selectedSwatch && currentSwatch && showOverlay && (
+                <div className="absolute top-8 left-1/2 -translate-x-1/2 w-28 transition-all duration-300 animate-fade-in">
+                  <HairSwatch 
+                    color={currentSwatch.color}
+                    label={`#${currentSwatch.id}`}
+                    isCorrect={isSubmitted && selectedSwatch === round.correctAnswer}
+                    isWrong={isSubmitted && selectedSwatch !== round.correctAnswer}
+                  />
                 </div>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">{round.description}</p>
+            <p className="text-xs text-muted-foreground text-center mt-2">{round.description}</p>
             
-            {/* Toggle overlay button */}
+            {/* Toggle overlay visibility */}
             {selectedSwatch && !isSubmitted && (
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 size="sm" 
-                onClick={toggleOverlay}
-                className="mt-3"
+                onClick={() => setShowOverlay(!showOverlay)}
+                className="mt-2 mx-auto flex gap-2"
               >
-                {showOverlay ? 'Hide Overlay' : 'Show Overlay'}
+                {showOverlay ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showOverlay ? 'Hide Sample' : 'Show Sample'}
               </Button>
             )}
           </div>
 
-          {/* Arrow indicator */}
-          <ArrowRight className="w-8 h-8 text-muted-foreground hidden lg:block" />
-
           {/* Swatch palette */}
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-3">Hair Color Swatches</p>
-            <div className="grid grid-cols-4 gap-3">
+          <div className="text-center w-full">
+            <p className="text-sm text-muted-foreground mb-3">Select a Hair Sample to Compare</p>
+            <div className="flex flex-wrap justify-center gap-3">
               {hairSwatches.map((swatch) => (
                 <button
                   key={swatch.id}
                   onClick={() => handleSwatchSelect(swatch.id)}
                   disabled={isSubmitted}
                   className={cn(
-                    'w-14 h-14 rounded-lg border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary/50 relative',
+                    'relative w-16 h-12 rounded-lg border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary/50',
                     selectedSwatch === swatch.id 
                       ? 'border-primary ring-2 ring-primary/30 scale-110' 
                       : 'border-border hover:border-primary/50',
@@ -207,10 +199,10 @@ export function ColorMatchGame() {
                   <span className="sr-only">{swatch.name}</span>
                   {/* Hair texture effect */}
                   <div 
-                    className="absolute inset-0 rounded-lg opacity-20"
+                    className="absolute inset-0 rounded-md opacity-20"
                     style={{
                       backgroundImage: `repeating-linear-gradient(
-                        45deg,
+                        90deg,
                         transparent,
                         transparent 1px,
                         rgba(255,255,255,0.3) 1px,
@@ -218,14 +210,10 @@ export function ColorMatchGame() {
                       )`
                     }}
                   />
+                  <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">
+                    #{swatch.id}
+                  </span>
                 </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-4 gap-3 mt-1">
-              {hairSwatches.map((swatch) => (
-                <span key={swatch.id} className="text-[10px] text-muted-foreground">
-                  {swatch.id}
-                </span>
               ))}
             </div>
           </div>
@@ -235,10 +223,10 @@ export function ColorMatchGame() {
         {selectedSwatch && currentSwatch && !isSubmitted && (
           <div className="text-center mb-4 p-3 rounded-lg bg-secondary/30 border border-border">
             <p className="text-sm">
-              Selected: <span className="font-bold text-primary">{currentSwatch.name}</span>
+              Comparing: <span className="font-bold text-primary">{currentSwatch.name}</span>
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Drag the overlay to compare, then submit your answer
+              Look at the sample on the client's hair. Does it match?
             </p>
           </div>
         )}
