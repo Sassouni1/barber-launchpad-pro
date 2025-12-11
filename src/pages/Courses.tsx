@@ -1,17 +1,16 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { courses } from '@/data/mockData';
+import { useCourses } from '@/hooks/useCourses';
 import { Progress } from '@/components/ui/progress';
-import { ChevronDown, BookOpen, CheckCircle2, Lock, Play, FileText, HelpCircle, ClipboardList, Clock, Settings } from 'lucide-react';
+import { ChevronDown, BookOpen, CheckCircle2, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 export default function Courses() {
-  const { isAdmin } = useAuth();
-  const [expandedModules, setExpandedModules] = useState<string[]>(['m2']);
-  const [selectedLesson, setSelectedLesson] = useState<string | null>('l4');
+  const { data: courses = [], isLoading } = useCourses();
+  const [expandedModules, setExpandedModules] = useState<string[]>([]);
+  const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev => 
@@ -24,8 +23,8 @@ export default function Courses() {
   // Find selected lesson data
   const findLesson = () => {
     for (const course of courses) {
-      for (const module of course.modules) {
-        const lesson = module.lessons.find(l => l.id === selectedLesson);
+      for (const module of course.modules || []) {
+        const lesson = (module.lessons || []).find(l => l.id === selectedLesson);
         if (lesson) return { lesson, module, course };
       }
     }
@@ -33,6 +32,34 @@ export default function Courses() {
   };
 
   const lessonData = findLesson();
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] gap-4">
+          <BookOpen className="w-16 h-16 text-muted-foreground" />
+          <h2 className="text-xl font-semibold">No Courses Yet</h2>
+          <p className="text-muted-foreground">Create your first course in the Admin panel</p>
+          <Link to="/admin/courses">
+            <Button className="gap-2">
+              <Settings className="w-4 h-4" />
+              Go to Admin
+            </Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -44,14 +71,12 @@ export default function Courses() {
               <h1 className="font-display text-xl font-bold gold-text">Course Library</h1>
               <p className="text-muted-foreground text-sm mt-1">Select a lesson to continue</p>
             </div>
-            {isAdmin && (
-              <Link to="/admin/course-builder">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Settings className="w-4 h-4" />
-                  Edit Courses
-                </Button>
-              </Link>
-            )}
+            <Link to="/admin/courses">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="w-4 h-4" />
+                Edit Courses
+              </Button>
+            </Link>
           </div>
           
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
@@ -59,17 +84,16 @@ export default function Courses() {
               <div key={course.id} className="space-y-2">
                 {/* Course Title */}
                 <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="font-semibold text-sm">{course.title}</h2>
-                    <span className="text-xs text-primary font-medium">{course.progress}%</span>
-                  </div>
-                  <Progress value={course.progress} className="h-1.5" />
+                  <h2 className="font-semibold text-sm">{course.title}</h2>
+                  {course.description && (
+                    <p className="text-xs text-muted-foreground mt-1">{course.description}</p>
+                  )}
                 </div>
 
                 {/* Modules */}
-                {course.modules.map((module) => {
+                {(course.modules || []).map((module) => {
                   const isExpanded = expandedModules.includes(module.id);
-                  const completedLessons = module.lessons.filter(l => l.completed).length;
+                  const lessons = module.lessons || [];
                   
                   return (
                     <div key={module.id} className="space-y-1">
@@ -82,22 +106,13 @@ export default function Courses() {
                           isExpanded && 'bg-secondary/50 border-primary/30'
                         )}
                       >
-                        <div className={cn(
-                          'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                          module.progress === 100 
-                            ? 'bg-primary/20 text-primary' 
-                            : 'bg-secondary text-muted-foreground'
-                        )}>
-                          {module.progress === 100 ? (
-                            <CheckCircle2 className="w-4 h-4" />
-                          ) : (
-                            <BookOpen className="w-4 h-4" />
-                          )}
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-secondary text-muted-foreground">
+                          <BookOpen className="w-4 h-4" />
                         </div>
                         <div className="flex-1 text-left min-w-0">
                           <h3 className="font-medium text-sm truncate">{module.title}</h3>
                           <p className="text-xs text-muted-foreground">
-                            {completedLessons}/{module.lessons.length} lessons • {module.progress}%
+                            {lessons.length} lessons
                           </p>
                         </div>
                         <ChevronDown className={cn(
@@ -109,49 +124,38 @@ export default function Courses() {
                       {/* Lessons */}
                       {isExpanded && (
                         <div className="pl-2 space-y-1 animate-fade-in">
-                          {module.lessons.map((lesson, lessonIndex) => {
-                            const previousLesson = module.lessons[lessonIndex - 1];
-                            const isLocked = lessonIndex > 0 && !previousLesson?.completed && !lesson.completed;
+                          {lessons.map((lesson) => {
                             const isSelected = selectedLesson === lesson.id;
 
                             return (
                               <button
                                 key={lesson.id}
-                                disabled={isLocked}
-                                onClick={() => !isLocked && setSelectedLesson(lesson.id)}
+                                onClick={() => setSelectedLesson(lesson.id)}
                                 className={cn(
                                   'w-full p-3 rounded-lg flex items-center gap-3 transition-all duration-200 text-left',
-                                  isLocked && 'opacity-40 cursor-not-allowed',
-                                  !isLocked && !isSelected && 'hover:bg-secondary/30',
-                                  isSelected && 'bg-primary/10 border border-primary/40',
-                                  lesson.completed && !isSelected && 'border border-primary/20 bg-primary/5'
+                                  'hover:bg-secondary/30',
+                                  isSelected && 'bg-primary/10 border border-primary/40'
                                 )}
                               >
                                 <div className={cn(
                                   'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border',
-                                  lesson.completed 
-                                    ? 'bg-primary text-primary-foreground border-primary' 
-                                    : isLocked 
-                                    ? 'bg-muted border-muted-foreground/30 text-muted-foreground'
-                                    : isSelected
+                                  isSelected
                                     ? 'bg-primary/20 border-primary text-primary'
                                     : 'bg-secondary border-border text-foreground'
                                 )}>
-                                  {lesson.completed ? (
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                  ) : isLocked ? (
-                                    <Lock className="w-3 h-3" />
-                                  ) : (
-                                    <Play className="w-3 h-3 ml-0.5" />
-                                  )}
+                                  <Play className="w-3 h-3 ml-0.5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <h4 className="font-medium text-sm truncate">{lesson.title}</h4>
-                                  <p className="text-xs text-muted-foreground truncate">{lesson.description}</p>
+                                  {lesson.description && (
+                                    <p className="text-xs text-muted-foreground truncate">{lesson.description}</p>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                  <span className="text-xs text-muted-foreground">{lesson.duration}</span>
-                                  {lesson.hasQuiz && (
+                                  {lesson.duration && (
+                                    <span className="text-xs text-muted-foreground">{lesson.duration}</span>
+                                  )}
+                                  {lesson.has_quiz && (
                                     <span className="px-1.5 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-medium">
                                       Quiz
                                     </span>
@@ -182,7 +186,9 @@ export default function Courses() {
                   <span>{lessonData.module.title}</span>
                 </div>
                 <h1 className="font-display text-2xl font-bold gold-text">{lessonData.lesson.title}</h1>
-                <p className="text-muted-foreground mt-1">{lessonData.lesson.description}</p>
+                {lessonData.lesson.description && (
+                  <p className="text-muted-foreground mt-1">{lessonData.lesson.description}</p>
+                )}
               </div>
 
               {/* Video Player Placeholder */}
@@ -192,10 +198,12 @@ export default function Courses() {
                   <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4 border border-primary/40 hover:bg-primary/30 transition-colors cursor-pointer group">
                     <Play className="w-8 h-8 text-primary ml-1 group-hover:scale-110 transition-transform" />
                   </div>
-                  <p className="text-muted-foreground text-sm">
-                    <Clock className="w-4 h-4 inline mr-1" />
-                    {lessonData.lesson.duration}
-                  </p>
+                  {lessonData.lesson.duration && (
+                    <p className="text-muted-foreground text-sm">
+                      <Clock className="w-4 h-4 inline mr-1" />
+                      {lessonData.lesson.duration}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -204,7 +212,7 @@ export default function Courses() {
                 <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Lesson Resources</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {lessonData.lesson.hasDownload && (
+                  {lessonData.lesson.has_download && (
                     <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
                       <FileText className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
                       <h4 className="font-medium text-sm">Downloads</h4>
@@ -212,7 +220,7 @@ export default function Courses() {
                     </div>
                   )}
                   
-                  {lessonData.lesson.hasQuiz && (
+                  {lessonData.lesson.has_quiz && (
                     <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
                       <HelpCircle className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
                       <h4 className="font-medium text-sm">Quiz</h4>
@@ -220,7 +228,7 @@ export default function Courses() {
                     </div>
                   )}
                   
-                  {lessonData.lesson.hasHomework && (
+                  {lessonData.lesson.has_homework && (
                     <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
                       <ClipboardList className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
                       <h4 className="font-medium text-sm">Homework</h4>
@@ -229,19 +237,9 @@ export default function Courses() {
                   )}
                 </div>
 
-                {/* Mark Complete Button */}
-                {!lessonData.lesson.completed && (
-                  <button className="w-full mt-4 py-3 px-4 rounded-lg gold-gradient text-primary-foreground font-semibold hover:opacity-90 transition-opacity">
-                    Mark Lesson as Complete
-                  </button>
-                )}
-                
-                {lessonData.lesson.completed && (
-                  <div className="flex items-center gap-2 text-primary mt-4">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span className="font-medium">Lesson Completed</span>
-                  </div>
-                )}
+                <button className="w-full mt-4 py-3 px-4 rounded-lg gold-gradient text-primary-foreground font-semibold hover:opacity-90 transition-opacity">
+                  Mark Lesson as Complete
+                </button>
               </div>
             </div>
           ) : (
