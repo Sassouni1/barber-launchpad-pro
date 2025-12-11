@@ -23,7 +23,7 @@ const OrderHairSystem = () => {
           <ShoppingCart className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Order Hair System</h1>
         </div>
-        <div className="grid grid-cols-2 gap-3 max-w-2xl">
+        <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
           <div className="glass-card rounded-lg overflow-hidden">
             <img 
               src={hairColors}
