@@ -12,14 +12,15 @@ interface Point {
 }
 
 // Different face shapes for practice - coordinates adjusted for 300x350 viewBox
+// Guide points positioned ~1 finger above top wrinkle (top wrinkle is at y≈76)
 const faceShapes = [
   { 
     id: 'oval', 
     name: 'Oval Face', 
     description: 'Classic oval shape - aim for a natural rounded hairline',
     guidePoints: [
-      { x: 70, y: 75 }, { x: 95, y: 60 }, { x: 150, y: 52 }, 
-      { x: 205, y: 60 }, { x: 230, y: 75 }
+      { x: 95, y: 72 }, { x: 120, y: 65 }, { x: 150, y: 62 }, 
+      { x: 180, y: 65 }, { x: 205, y: 72 }
     ]
   },
   { 
@@ -27,8 +28,8 @@ const faceShapes = [
     name: 'Square Face', 
     description: 'Angular jawline - soften with a slightly rounded hairline',
     guidePoints: [
-      { x: 65, y: 80 }, { x: 90, y: 65 }, { x: 150, y: 55 }, 
-      { x: 210, y: 65 }, { x: 235, y: 80 }
+      { x: 95, y: 74 }, { x: 118, y: 68 }, { x: 150, y: 65 }, 
+      { x: 182, y: 68 }, { x: 205, y: 74 }
     ]
   },
   { 
@@ -36,8 +37,8 @@ const faceShapes = [
     name: 'Round Face', 
     description: 'Full cheeks - create height with a slightly higher hairline',
     guidePoints: [
-      { x: 75, y: 70 }, { x: 100, y: 55 }, { x: 150, y: 48 }, 
-      { x: 200, y: 55 }, { x: 225, y: 70 }
+      { x: 95, y: 70 }, { x: 120, y: 62 }, { x: 150, y: 58 }, 
+      { x: 180, y: 62 }, { x: 205, y: 70 }
     ]
   },
   { 
@@ -45,8 +46,8 @@ const faceShapes = [
     name: 'Heart Face', 
     description: 'Wide forehead - balance with a natural widow\'s peak',
     guidePoints: [
-      { x: 60, y: 78 }, { x: 90, y: 62 }, { x: 150, y: 50 }, 
-      { x: 210, y: 62 }, { x: 240, y: 78 }
+      { x: 95, y: 75 }, { x: 118, y: 70 }, { x: 150, y: 60 }, 
+      { x: 182, y: 70 }, { x: 205, y: 75 }
     ]
   },
 ];
@@ -526,14 +527,14 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             {showGuide && (
               <g className="animate-fade-in">
                 <path 
-                  d="M 95 70 Q 150 62, 205 70" 
+                  d={getGuidePathFromPoints(round.guidePoints)} 
                   stroke="#22c55e" 
                   strokeWidth="3" 
                   strokeLinecap="round" 
                   strokeDasharray="6 6" 
                   fill="none" 
                 />
-                <text x="150" y="55" textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="500">Ideal hairline</text>
+                <text x="150" y="50" textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="500">Ideal hairline</text>
               </g>
             )}
 
