@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { RotateCcw, ArrowRight, Trophy, Eraser, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
-import { HeadFront, HeadAngled20, HeadAngled40 } from './heads';
+import { HeadAngle0, HeadAngleLeft20, HeadAngleRight20, HeadAngleLeft40, HeadAngleRight40 } from './heads';
 
 interface Point {
   x: number;
@@ -324,7 +324,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
         <div className="flex justify-center mb-6 relative">
           {/* Render appropriate head based on rotation */}
           {rotation === 0 && (
-            <HeadFront
+            <HeadAngle0
               ref={svgRef}
               eyebrowsLifted={eyebrowsLifted}
               showGuide={showGuide}
@@ -340,9 +340,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           )}
           
           {rotation === -20 && (
-            <HeadAngled20
+            <HeadAngleRight20
               ref={svgRef}
-              direction="left"
               eyebrowsLifted={eyebrowsLifted}
               showGuide={showGuide}
               className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
@@ -357,9 +356,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           )}
           
           {rotation === 20 && (
-            <HeadAngled20
+            <HeadAngleLeft20
               ref={svgRef}
-              direction="right"
               eyebrowsLifted={eyebrowsLifted}
               showGuide={showGuide}
               className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
@@ -374,9 +372,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           )}
           
           {rotation === -40 && (
-            <HeadAngled40
+            <HeadAngleRight40
               ref={svgRef}
-              direction="left"
               eyebrowsLifted={eyebrowsLifted}
               showGuide={showGuide}
               className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
@@ -391,9 +388,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           )}
           
           {rotation === 40 && (
-            <HeadAngled40
+            <HeadAngleLeft40
               ref={svgRef}
-              direction="right"
               eyebrowsLifted={eyebrowsLifted}
               showGuide={showGuide}
               className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
