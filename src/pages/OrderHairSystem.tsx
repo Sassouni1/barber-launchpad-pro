@@ -1,7 +1,19 @@
+import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ShoppingCart } from "lucide-react";
 
 const OrderHairSystem = () => {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://link.msgsndr.com/js/form_embed.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -9,8 +21,24 @@ const OrderHairSystem = () => {
           <ShoppingCart className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Order Hair System</h1>
         </div>
-        <div className="glass-card p-6">
-          <p className="text-muted-foreground">Order form coming soon.</p>
+        <div className="glass-card p-4 rounded-xl" style={{ minHeight: "1400px" }}>
+          <iframe
+            src="https://api.leadconnectorhq.com/widget/form/DUMrKXsSUz4Q6N59izDU"
+            style={{ width: "100%", height: "1345px", border: "none", borderRadius: "3px" }}
+            id="inline-DUMrKXsSUz4Q6N59izDU"
+            data-layout='{"id":"INLINE"}'
+            data-trigger-type="alwaysShow"
+            data-trigger-value=""
+            data-activation-type="alwaysActivated"
+            data-activation-value=""
+            data-deactivation-type="neverDeactivate"
+            data-deactivation-value=""
+            data-form-name="New Checkout"
+            data-height="1345"
+            data-layout-iframe-id="inline-DUMrKXsSUz4Q6N59izDU"
+            data-form-id="DUMrKXsSUz4Q6N59izDU"
+            title="New Checkout"
+          />
         </div>
       </div>
     </DashboardLayout>
