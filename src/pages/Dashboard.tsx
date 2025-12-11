@@ -11,16 +11,14 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto space-y-8">
         <WelcomeHero />
         
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <ProgressOverview />
-            <ContinueLearning />
-          </div>
-          
-          <div className="space-y-6">
-            <TodoCard title="Daily Goals" todos={dailyTodos} type="daily" />
-            <TodoCard title="Weekly Goals" todos={weeklyTodos} type="weekly" />
-          </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          <TodoCard title="Daily Goals" todos={dailyTodos} type="daily" />
+          <TodoCard title="Weekly Goals" todos={weeklyTodos} type="weekly" />
+        </div>
+        
+        <div className="space-y-6">
+          <ProgressOverview />
+          <ContinueLearning />
         </div>
       </div>
     </DashboardLayout>
