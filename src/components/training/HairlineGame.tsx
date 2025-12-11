@@ -389,8 +389,6 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               fill="url(#skinGradient)"
             />
 
-            {/* Bald top - subtle shine */}
-            <ellipse cx="150" cy="70" rx="50" ry="30" fill="url(#baldGradient)" />
 
             {/* Ear left */}
             <ellipse cx="78" cy="150" rx="10" ry="18" fill="#c9956a" />
