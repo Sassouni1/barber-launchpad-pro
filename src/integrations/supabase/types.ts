@@ -406,6 +406,38 @@ export type Database = {
           },
         ]
       }
+      todo_subtasks: {
+        Row: {
+          created_at: string
+          id: string
+          order_index: number
+          title: string
+          todo_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          title: string
+          todo_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          title?: string
+          todo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todo_subtasks_todo_id_fkey"
+            columns: ["todo_id"]
+            isOneToOne: false
+            referencedRelation: "todos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       todos: {
         Row: {
           course_id: string | null
@@ -543,6 +575,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_subtask_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          subtask_id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          subtask_id: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          subtask_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subtask_progress_subtask_id_fkey"
+            columns: ["subtask_id"]
+            isOneToOne: false
+            referencedRelation: "todo_subtasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_todos: {
         Row: {
