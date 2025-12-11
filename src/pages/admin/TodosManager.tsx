@@ -5,16 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo, Todo } from '@/hooks/useTodos';
+import { useTodosWithSubtasks, useCreateTodo, useUpdateTodo, useDeleteTodo, useCreateSubtask, useDeleteSubtask, Todo, Subtask } from '@/hooks/useTodos';
 import { useCourses } from '@/hooks/useCourses';
-import { Plus, Pencil, Trash2, ListTodo } from 'lucide-react';
+import { Plus, Pencil, Trash2, ListTodo, X } from 'lucide-react';
 
 export default function TodosManager() {
-  const { data: todos = [], isLoading } = useTodos();
+  const { data: todos = [], isLoading } = useTodosWithSubtasks();
   const { data: courses = [] } = useCourses();
   const createTodo = useCreateTodo();
   const updateTodo = useUpdateTodo();
   const deleteTodo = useDeleteTodo();
+  const createSubtask = useCreateSubtask();
+  const deleteSubtask = useDeleteSubtask();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -25,10 +27,14 @@ export default function TodosManager() {
     week_number: 1,
     course_id: '',
   });
+  const [subtaskInputs, setSubtaskInputs] = useState<string[]>([]);
+  const [newSubtaskInput, setNewSubtaskInput] = useState('');
 
   const resetForm = () => {
     setFormData({ title: '', description: '', type: 'course', week_number: 1, course_id: '' });
     setEditingTodo(null);
+    setSubtaskInputs([]);
+    setNewSubtaskInput('');
   };
 
   const handleOpenDialog = (todo?: Todo) => {
@@ -41,10 +47,22 @@ export default function TodosManager() {
         week_number: todo.week_number || 1,
         course_id: todo.course_id || '',
       });
+      setSubtaskInputs(todo.subtasks?.map(s => s.title) || []);
     } else {
       resetForm();
     }
     setIsDialogOpen(true);
+  };
+
+  const handleAddSubtask = () => {
+    if (newSubtaskInput.trim()) {
+      setSubtaskInputs([...subtaskInputs, newSubtaskInput.trim()]);
+      setNewSubtaskInput('');
+    }
+  };
+
+  const handleRemoveSubtask = (index: number) => {
+    setSubtaskInputs(subtaskInputs.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,8 +78,36 @@ export default function TodosManager() {
 
     if (editingTodo) {
       await updateTodo.mutateAsync({ id: editingTodo.id, ...payload });
+      
+      // Delete removed subtasks
+      const existingSubtasks = editingTodo.subtasks || [];
+      for (const existing of existingSubtasks) {
+        if (!subtaskInputs.includes(existing.title)) {
+          await deleteSubtask.mutateAsync({ id: existing.id, todoId: editingTodo.id });
+        }
+      }
+      
+      // Add new subtasks
+      const existingTitles = existingSubtasks.map(s => s.title);
+      for (let i = 0; i < subtaskInputs.length; i++) {
+        if (!existingTitles.includes(subtaskInputs[i])) {
+          await createSubtask.mutateAsync({
+            todo_id: editingTodo.id,
+            title: subtaskInputs[i],
+            order_index: i,
+          });
+        }
+      }
     } else {
-      await createTodo.mutateAsync(payload);
+      const newTodo = await createTodo.mutateAsync(payload);
+      // Add subtasks for new todo
+      for (let i = 0; i < subtaskInputs.length; i++) {
+        await createSubtask.mutateAsync({
+          todo_id: newTodo.id,
+          title: subtaskInputs[i],
+          order_index: i,
+        });
+      }
     }
     setIsDialogOpen(false);
     resetForm();
@@ -77,6 +123,35 @@ export default function TodosManager() {
     week,
     todos: groupedTodos.course.filter(t => t.week_number === week),
   }));
+
+  const renderTodoItem = (todo: Todo) => (
+    <div key={todo.id} className="p-3 bg-background/50 rounded-lg">
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <p className="font-medium">{todo.title}</p>
+          {todo.description && <p className="text-sm text-muted-foreground">{todo.description}</p>}
+        </div>
+        <div className="flex gap-2">
+          <Button size="icon" variant="ghost" onClick={() => handleOpenDialog(todo)}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={() => deleteTodo.mutate(todo.id)}>
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>
+        </div>
+      </div>
+      {todo.subtasks && todo.subtasks.length > 0 && (
+        <div className="mt-2 ml-4 space-y-1">
+          {todo.subtasks.map((subtask, index) => (
+            <div key={subtask.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="text-primary">{index + 1}.</span>
+              <span>{subtask.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -102,7 +177,7 @@ export default function TodosManager() {
                 <Plus className="w-4 h-4 mr-2" /> Add Todo
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>{editingTodo ? 'Edit Todo' : 'Create Todo'}</DialogTitle>
               </DialogHeader>
@@ -164,6 +239,46 @@ export default function TodosManager() {
                   </>
                 )}
 
+                {/* Subtasks Section */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Subtasks</label>
+                  {subtaskInputs.length > 0 && (
+                    <div className="space-y-2">
+                      {subtaskInputs.map((subtask, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                          <span className="text-sm text-primary font-medium">{index + 1}.</span>
+                          <span className="flex-1 text-sm">{subtask}</span>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => handleRemoveSubtask(index)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a subtask..."
+                      value={newSubtaskInput}
+                      onChange={e => setNewSubtaskInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddSubtask();
+                        }
+                      }}
+                    />
+                    <Button type="button" variant="outline" onClick={handleAddSubtask}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
                 <Button type="submit" className="w-full">
                   {editingTodo ? 'Update' : 'Create'}
                 </Button>
@@ -182,22 +297,7 @@ export default function TodosManager() {
                 <p className="text-sm text-muted-foreground">No tasks for this week</p>
               ) : (
                 <div className="space-y-2">
-                  {todos.map(todo => (
-                    <div key={todo.id} className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                      <div>
-                        <p className="font-medium">{todo.title}</p>
-                        {todo.description && <p className="text-sm text-muted-foreground">{todo.description}</p>}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="icon" variant="ghost" onClick={() => handleOpenDialog(todo)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => deleteTodo.mutate(todo.id)}>
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                  {todos.map(renderTodoItem)}
                 </div>
               )}
             </div>
@@ -212,19 +312,7 @@ export default function TodosManager() {
               <p className="text-sm text-muted-foreground">No daily tasks</p>
             ) : (
               <div className="space-y-2">
-                {groupedTodos.daily.map(todo => (
-                  <div key={todo.id} className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                    <p className="font-medium">{todo.title}</p>
-                    <div className="flex gap-2">
-                      <Button size="icon" variant="ghost" onClick={() => handleOpenDialog(todo)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => deleteTodo.mutate(todo.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                {groupedTodos.daily.map(renderTodoItem)}
               </div>
             )}
           </div>
@@ -235,19 +323,7 @@ export default function TodosManager() {
               <p className="text-sm text-muted-foreground">No weekly tasks</p>
             ) : (
               <div className="space-y-2">
-                {groupedTodos.weekly.map(todo => (
-                  <div key={todo.id} className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                    <p className="font-medium">{todo.title}</p>
-                    <div className="flex gap-2">
-                      <Button size="icon" variant="ghost" onClick={() => handleOpenDialog(todo)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => deleteTodo.mutate(todo.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                {groupedTodos.weekly.map(renderTodoItem)}
               </div>
             )}
           </div>
