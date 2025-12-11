@@ -1,8 +1,8 @@
-import { useTodos } from '@/hooks/useTodos';
+import { useTodosWithSubtasks } from '@/hooks/useTodos';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export function TodoList() {
-  const { data: todos = [], isLoading } = useTodos();
+  const { data: todos = [], isLoading } = useTodosWithSubtasks();
 
   const groupedTodos = {
     course: todos.filter(t => t.type === 'course'),
@@ -58,11 +58,23 @@ export function TodoList() {
         ) : (
           <div className="space-y-2">
             {groupedTodos.weekly.map(todo => (
-              <div key={todo.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
-                <Checkbox id={todo.id} />
-                <label htmlFor={todo.id} className="text-sm font-medium cursor-pointer">
-                  {todo.title}
-                </label>
+              <div key={todo.id} className="p-3 bg-background/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox id={todo.id} />
+                  <label htmlFor={todo.id} className="text-sm font-medium cursor-pointer">
+                    {todo.title}
+                  </label>
+                </div>
+                {todo.subtasks && todo.subtasks.length > 0 && (
+                  <div className="ml-8 mt-2 space-y-1.5">
+                    {todo.subtasks.map((subtask, index) => (
+                      <div key={subtask.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="text-xs">{index + 1}.</span>
+                        <span>{subtask.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
