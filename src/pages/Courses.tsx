@@ -1,11 +1,15 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { courses } from '@/data/mockData';
 import { Progress } from '@/components/ui/progress';
-import { ChevronDown, BookOpen, CheckCircle2, Lock, Play, FileText, HelpCircle, ClipboardList, Clock } from 'lucide-react';
+import { ChevronDown, BookOpen, CheckCircle2, Lock, Play, FileText, HelpCircle, ClipboardList, Clock, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 export default function Courses() {
+  const { isAdmin } = useAuth();
   const [expandedModules, setExpandedModules] = useState<string[]>(['m2']);
   const [selectedLesson, setSelectedLesson] = useState<string | null>('l4');
 
@@ -35,9 +39,19 @@ export default function Courses() {
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         {/* Left Panel - Module Tabs */}
         <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
-          <div className="glass-card rounded-xl p-4 mb-4">
-            <h1 className="font-display text-xl font-bold gold-text">Course Library</h1>
-            <p className="text-muted-foreground text-sm mt-1">Select a lesson to continue</p>
+          <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-xl font-bold gold-text">Course Library</h1>
+              <p className="text-muted-foreground text-sm mt-1">Select a lesson to continue</p>
+            </div>
+            {isAdmin && (
+              <Link to="/admin/course-builder">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Settings className="w-4 h-4" />
+                  Edit Courses
+                </Button>
+              </Link>
+            )}
           </div>
           
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
