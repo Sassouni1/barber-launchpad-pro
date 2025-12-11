@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, RotateCcw, Trophy, ArrowRight, Grab } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Trophy, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
-
+import { BaldingHeadSVG } from './BaldingHeadSVG';
 // Hair color swatches with their hex colors based on real hair system codes
 const hairSwatches = [
   { id: '1', name: '#1 - Jet Black', color: '#0a0a0a' },
@@ -31,12 +31,10 @@ const rounds = [
 export function ColorMatchGame() {
   const [currentRound, setCurrentRound] = useState(0);
   const [selectedSwatch, setSelectedSwatch] = useState<string | null>(null);
-  const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
-  const targetRef = useRef<HTMLDivElement>(null);
 
   const round = rounds[currentRound];
   const progress = ((currentRound) / rounds.length) * 100;
@@ -45,8 +43,7 @@ export function ColorMatchGame() {
   const handleSwatchSelect = (swatchId: string) => {
     if (isSubmitted) return;
     setSelectedSwatch(swatchId);
-    // Center the overlay on the target
-    setOverlayPosition({ x: 0, y: 0 });
+    setShowOverlay(true);
   };
 
   const handleSubmit = () => {
@@ -80,45 +77,23 @@ export function ColorMatchGame() {
     } else {
       setCurrentRound((r) => r + 1);
       setSelectedSwatch(null);
+      setShowOverlay(false);
       setIsSubmitted(false);
-      setOverlayPosition({ x: 0, y: 0 });
     }
   };
 
   const handleRestart = () => {
     setCurrentRound(0);
     setSelectedSwatch(null);
+    setShowOverlay(false);
     setIsSubmitted(false);
     setScore(0);
     setGameComplete(false);
-    setOverlayPosition({ x: 0, y: 0 });
   };
 
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (isSubmitted || !selectedSwatch) return;
-    setIsDragging(true);
-  };
-
-  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging || !targetRef.current) return;
-    
-    const rect = targetRef.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
-    const x = clientX - rect.left - rect.width / 2;
-    const y = clientY - rect.top - rect.height / 2;
-    
-    // Limit movement within reasonable bounds
-    const maxOffset = 60;
-    setOverlayPosition({
-      x: Math.max(-maxOffset, Math.min(maxOffset, x)),
-      y: Math.max(-maxOffset, Math.min(maxOffset, y)),
-    });
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
+  const toggleOverlay = () => {
+    if (!selectedSwatch) return;
+    setShowOverlay(!showOverlay);
   };
 
   if (gameComplete) {
@@ -147,14 +122,7 @@ export function ColorMatchGame() {
   }
 
   return (
-    <div 
-      className="space-y-6"
-      onMouseMove={handleDragMove}
-      onMouseUp={handleDragEnd}
-      onMouseLeave={handleDragEnd}
-      onTouchMove={handleDragMove}
-      onTouchEnd={handleDragEnd}
-    >
+    <div className="space-y-6">
       {/* Progress bar */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-muted-foreground">
@@ -166,81 +134,67 @@ export function ColorMatchGame() {
 
       <Card className="glass-card p-6">
         <h2 className="text-lg font-medium text-center mb-2">
-          Match the Hair Color
+          Match the Client's Hair Color
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-6">
-          Select a swatch and drag it over the target to compare. Find the closest match!
+          Select a swatch to overlay it on the client's hair. Find the closest match!
         </p>
 
         {/* Comparison area */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-8">
-          {/* Target color (client's hair) */}
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 mb-8">
+          {/* Client's head with hair */}
           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">Client's Hair</p>
-            <div 
-              ref={targetRef}
-              className="relative w-32 h-32 rounded-full border-4 border-border overflow-hidden shadow-lg"
-              style={{ backgroundColor: round.targetColor }}
-            >
-              {/* Hair texture overlay */}
-              <div 
-                className="absolute inset-0 opacity-30"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(
-                    45deg,
-                    transparent,
-                    transparent 2px,
-                    rgba(255,255,255,0.1) 2px,
-                    rgba(255,255,255,0.1) 4px
-                  )`
-                }}
+            <p className="text-sm text-muted-foreground mb-3">Client's Hair</p>
+            <div className="relative">
+              <BaldingHeadSVG 
+                hairColor={round.targetColor}
+                overlayColor={showOverlay && currentSwatch ? currentSwatch.color : undefined}
+                overlayOpacity={0.85}
+                className="w-48 h-56 drop-shadow-lg"
               />
-              
-              {/* Draggable overlay swatch */}
-              {selectedSwatch && currentSwatch && (
-                <div
-                  className={cn(
-                    'absolute w-20 h-20 rounded-full border-2 transition-all cursor-grab active:cursor-grabbing',
-                    isDragging ? 'scale-105 shadow-xl' : 'shadow-md',
-                    isSubmitted && selectedSwatch === round.correctAnswer && 'border-green-500 ring-4 ring-green-500/30',
-                    isSubmitted && selectedSwatch !== round.correctAnswer && 'border-destructive ring-4 ring-destructive/30',
-                    !isSubmitted && 'border-primary/50'
-                  )}
-                  style={{
-                    backgroundColor: currentSwatch.color,
-                    left: `calc(50% - 40px + ${overlayPosition.x}px)`,
-                    top: `calc(50% - 40px + ${overlayPosition.y}px)`,
-                    opacity: 0.85,
-                  }}
-                  onMouseDown={handleDragStart}
-                  onTouchStart={handleDragStart}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {!isSubmitted && <Grab className="w-5 h-5 text-white/50" />}
-                    {isSubmitted && selectedSwatch === round.correctAnswer && (
-                      <CheckCircle2 className="w-6 h-6 text-green-400" />
-                    )}
-                  </div>
+              {/* Overlay indicator */}
+              {showOverlay && currentSwatch && (
+                <div className={cn(
+                  "absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-medium",
+                  isSubmitted && selectedSwatch === round.correctAnswer 
+                    ? "bg-green-500 text-white" 
+                    : isSubmitted 
+                    ? "bg-destructive text-destructive-foreground"
+                    : "bg-primary text-primary-foreground"
+                )}>
+                  {currentSwatch.id}
                 </div>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">{round.description}</p>
+            <p className="text-xs text-muted-foreground mt-3">{round.description}</p>
+            
+            {/* Toggle overlay button */}
+            {selectedSwatch && !isSubmitted && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleOverlay}
+                className="mt-3"
+              >
+                {showOverlay ? 'Hide Overlay' : 'Show Overlay'}
+              </Button>
+            )}
           </div>
 
           {/* Arrow indicator */}
-          <ArrowRight className="w-8 h-8 text-muted-foreground hidden md:block" />
+          <ArrowRight className="w-8 h-8 text-muted-foreground hidden lg:block" />
 
           {/* Swatch palette */}
           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">Hair Color Swatches</p>
-            <div className="grid grid-cols-4 gap-2">
+            <p className="text-sm text-muted-foreground mb-3">Hair Color Swatches</p>
+            <div className="grid grid-cols-4 gap-3">
               {hairSwatches.map((swatch) => (
                 <button
                   key={swatch.id}
                   onClick={() => handleSwatchSelect(swatch.id)}
                   disabled={isSubmitted}
                   className={cn(
-                    'w-14 h-14 rounded-lg border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary/50',
+                    'w-14 h-14 rounded-lg border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary/50 relative',
                     selectedSwatch === swatch.id 
                       ? 'border-primary ring-2 ring-primary/30 scale-110' 
                       : 'border-border hover:border-primary/50',
@@ -251,10 +205,23 @@ export function ColorMatchGame() {
                   title={swatch.name}
                 >
                   <span className="sr-only">{swatch.name}</span>
+                  {/* Hair texture effect */}
+                  <div 
+                    className="absolute inset-0 rounded-lg opacity-20"
+                    style={{
+                      backgroundImage: `repeating-linear-gradient(
+                        45deg,
+                        transparent,
+                        transparent 1px,
+                        rgba(255,255,255,0.3) 1px,
+                        rgba(255,255,255,0.3) 2px
+                      )`
+                    }}
+                  />
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-4 gap-2 mt-1">
+            <div className="grid grid-cols-4 gap-3 mt-1">
               {hairSwatches.map((swatch) => (
                 <span key={swatch.id} className="text-[10px] text-muted-foreground">
                   {swatch.id}
