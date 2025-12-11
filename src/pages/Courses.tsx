@@ -1,14 +1,20 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses, type Module } from '@/hooks/useCourses';
-import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2 } from 'lucide-react';
+import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 export default function Courses() {
   const { data: courses = [], isLoading } = useCourses();
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const goToLesson = (moduleId: string, tab?: string) => {
+    const url = tab ? `/lesson/${moduleId}?tab=${tab}` : `/lesson/${moduleId}`;
+    navigate(url);
+  };
 
   // Find selected module data
   const findModule = (): { module: Module; courseName: string } | null => {
@@ -182,39 +188,41 @@ export default function Courses() {
                 </div>
               </div>
 
-              {/* Module Resources */}
+              {/* Actions */}
               <div className="flex-1 p-6 space-y-4">
-                <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Module Resources</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {moduleData.module.has_download && (
-                    <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
-                      <FileText className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                      <h4 className="font-medium text-sm">Downloads</h4>
-                      <p className="text-xs text-muted-foreground">PDF guides & resources</p>
-                    </div>
-                  )}
-                  
-                  {moduleData.module.has_quiz && (
-                    <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
-                      <HelpCircle className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                      <h4 className="font-medium text-sm">Quiz</h4>
-                      <p className="text-xs text-muted-foreground">Test your knowledge</p>
-                    </div>
-                  )}
-                  
-                  {moduleData.module.has_homework && (
-                    <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
-                      <ClipboardList className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                      <h4 className="font-medium text-sm">Homework</h4>
-                      <p className="text-xs text-muted-foreground">Practice assignment</p>
-                    </div>
-                  )}
-                </div>
+                <Button 
+                  className="w-full gold-gradient text-primary-foreground font-semibold py-6 text-lg"
+                  onClick={() => goToLesson(moduleData.module.id)}
+                >
+                  <Play className="w-5 h-5 mr-2" />
+                  Start Lesson
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
 
-                <button className="w-full mt-4 py-3 px-4 rounded-lg gold-gradient text-primary-foreground font-semibold hover:opacity-90 transition-opacity">
-                  Mark Module as Complete
-                </button>
+                {(moduleData.module.has_quiz || moduleData.module.has_homework) && (
+                  <div className="flex gap-3">
+                    {moduleData.module.has_quiz && (
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => goToLesson(moduleData.module.id, 'quiz')}
+                      >
+                        <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
+                        Take Quiz
+                      </Button>
+                    )}
+                    {moduleData.module.has_homework && (
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => goToLesson(moduleData.module.id, 'homework')}
+                      >
+                        <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
+                        Homework
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
