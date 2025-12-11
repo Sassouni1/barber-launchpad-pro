@@ -1,27 +1,27 @@
-import { courses } from '@/data/mockData';
+import { useCourses } from '@/hooks/useCourses';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Trophy, Clock, TrendingUp } from 'lucide-react';
+import { BookOpen, Trophy, Clock, TrendingUp, Loader2 } from 'lucide-react';
 
 export function ProgressOverview() {
-  const totalProgress = Math.round(
-    courses.reduce((acc, course) => acc + course.progress, 0) / courses.length
-  );
+  const { data: courses = [], isLoading } = useCourses();
+
+  if (isLoading) {
+    return (
+      <div className="glass-card cyber-corners p-6 rounded-xl animate-fade-up flex items-center justify-center min-h-[200px]">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const totalLessons = courses.reduce(
-    (acc, course) => acc + course.modules.reduce((m, mod) => m + mod.lessons.length, 0),
-    0
-  );
-
-  const completedLessons = courses.reduce(
-    (acc, course) =>
-      acc + course.modules.reduce((m, mod) => m + mod.lessons.filter((l) => l.completed).length, 0),
+    (acc, course) => acc + (course.modules || []).reduce((m, mod) => m + (mod.lessons || []).length, 0),
     0
   );
 
   const stats = [
-    { icon: BookOpen, label: 'Lessons Completed', value: `${completedLessons}/${totalLessons}`, color: 'text-primary' },
-    { icon: Trophy, label: 'Overall Progress', value: `${totalProgress}%`, color: 'text-primary' },
-    { icon: Clock, label: 'Est. Time Left', value: '12h 30m', color: 'text-muted-foreground' },
+    { icon: BookOpen, label: 'Total Lessons', value: totalLessons, color: 'text-primary' },
+    { icon: Trophy, label: 'Courses', value: courses.length, color: 'text-primary' },
+    { icon: Clock, label: 'Keep Learning', value: '—', color: 'text-muted-foreground' },
   ];
 
   return (
@@ -40,25 +40,35 @@ export function ProgressOverview() {
       </div>
 
       {/* Course progress */}
-      <div className="space-y-5">
-        {courses.map((course, index) => (
-          <div key={course.id} className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-sm">{course.title}</span>
-              <span className="text-primary font-bold text-sm">{course.progress}%</span>
-            </div>
-            <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
-              <div 
-                className="h-full gold-gradient rounded-full transition-all duration-500"
-                style={{ 
-                  width: `${course.progress}%`,
-                  boxShadow: '0 0 10px hsl(var(--gold) / 0.5)'
-                }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+      {courses.length > 0 ? (
+        <div className="space-y-5">
+          {courses.map((course) => {
+            const lessonCount = (course.modules || []).reduce((m, mod) => m + (mod.lessons || []).length, 0);
+            return (
+              <div key={course.id} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-sm">{course.title}</span>
+                  <span className="text-muted-foreground text-sm">{lessonCount} lessons</span>
+                </div>
+                <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full gold-gradient rounded-full transition-all duration-500"
+                    style={{ 
+                      width: '0%',
+                      boxShadow: '0 0 10px hsl(var(--gold) / 0.5)'
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p>No courses available yet</p>
+        </div>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-border/30">

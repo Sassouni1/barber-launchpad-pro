@@ -1,32 +1,40 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { courses, sampleQuiz } from '@/data/mockData';
+import { useCourses } from '@/hooks/useCourses';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   ArrowLeft,
-  ArrowRight,
   Download,
   FileText,
   CheckCircle2,
   Play,
   HelpCircle,
   ClipboardList,
+  Loader2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function Lesson() {
   const navigate = useNavigate();
   const { lessonId } = useParams();
+  const { data: courses = [], isLoading } = useCourses();
   const [activeTab, setActiveTab] = useState<'video' | 'quiz' | 'homework'>('video');
-  const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [homeworkComplete, setHomeworkComplete] = useState(false);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   // Find the lesson
   const lesson = courses
-    .flatMap((c) => c.modules.flatMap((m) => m.lessons.map((l) => ({ ...l, moduleName: m.title }))))
+    .flatMap((c) => (c.modules || []).flatMap((m) => (m.lessons || []).map((l) => ({ ...l, moduleName: m.title }))))
     .find((l) => l.id === lessonId);
 
   if (!lesson) {
@@ -39,14 +47,6 @@ export default function Lesson() {
       </DashboardLayout>
     );
   }
-
-  const handleQuizSubmit = () => {
-    setQuizSubmitted(true);
-  };
-
-  const quizScore = quizSubmitted
-    ? sampleQuiz.questions.filter((q) => quizAnswers[q.id] === q.correctAnswer).length
-    : 0;
 
   return (
     <DashboardLayout>
@@ -71,7 +71,9 @@ export default function Lesson() {
                 <Play className="w-8 h-8 text-primary-foreground ml-1" />
               </div>
               <p className="text-muted-foreground">Click to play lesson video</p>
-              <p className="text-sm text-muted-foreground mt-1">{lesson.duration}</p>
+              {lesson.duration && (
+                <p className="text-sm text-muted-foreground mt-1">{lesson.duration}</p>
+              )}
             </div>
           </div>
         </div>
@@ -86,7 +88,7 @@ export default function Lesson() {
             <FileText className="w-4 h-4 mr-2" />
             Resources
           </Button>
-          {lesson.hasQuiz && (
+          {lesson.has_quiz && (
             <Button
               variant={activeTab === 'quiz' ? 'default' : 'secondary'}
               onClick={() => setActiveTab('quiz')}
@@ -96,7 +98,7 @@ export default function Lesson() {
               Quiz
             </Button>
           )}
-          {lesson.hasHomework && (
+          {lesson.has_homework && (
             <Button
               variant={activeTab === 'homework' ? 'default' : 'secondary'}
               onClick={() => setActiveTab('homework')}
@@ -114,10 +116,10 @@ export default function Lesson() {
             <div className="space-y-6">
               <div>
                 <h2 className="font-display text-xl font-semibold mb-2">About This Lesson</h2>
-                <p className="text-muted-foreground">{lesson.description}</p>
+                <p className="text-muted-foreground">{lesson.description || 'No description available.'}</p>
               </div>
 
-              {lesson.hasDownload && (
+              {lesson.has_download && (
                 <div>
                   <h3 className="font-semibold mb-3">Downloadable Resources</h3>
                   <div className="space-y-2">
@@ -140,92 +142,14 @@ export default function Lesson() {
             </div>
           )}
 
-          {activeTab === 'quiz' && lesson.hasQuiz && (
+          {activeTab === 'quiz' && lesson.has_quiz && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="font-display text-xl font-semibold">{sampleQuiz.title}</h2>
-                {quizSubmitted && (
-                  <div className="text-lg font-bold">
-                    Score: <span className="text-primary">{quizScore}/{sampleQuiz.questions.length}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-6">
-                {sampleQuiz.questions.map((question, qIndex) => (
-                  <div key={question.id} className="space-y-3">
-                    <p className="font-medium">
-                      {qIndex + 1}. {question.question}
-                    </p>
-                    <div className="space-y-2">
-                      {question.options.map((option, oIndex) => {
-                        const isSelected = quizAnswers[question.id] === oIndex;
-                        const isCorrect = oIndex === question.correctAnswer;
-                        const showResult = quizSubmitted;
-
-                        return (
-                          <button
-                            key={oIndex}
-                            onClick={() => !quizSubmitted && setQuizAnswers({ ...quizAnswers, [question.id]: oIndex })}
-                            disabled={quizSubmitted}
-                            className={cn(
-                              'w-full p-4 rounded-lg text-left transition-all duration-300 border',
-                              showResult && isCorrect
-                                ? 'border-green-500 bg-green-500/10'
-                                : showResult && isSelected && !isCorrect
-                                ? 'border-destructive bg-destructive/10'
-                                : isSelected
-                                ? 'border-primary bg-primary/10'
-                                : 'border-border/50 bg-secondary/30 hover:bg-secondary/50'
-                            )}
-                          >
-                            <span className="flex items-center gap-3">
-                              <span className={cn(
-                                'w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm',
-                                isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'
-                              )}>
-                                {String.fromCharCode(65 + oIndex)}
-                              </span>
-                              {option}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {!quizSubmitted ? (
-                <Button
-                  className="w-full gold-gradient text-primary-foreground font-semibold"
-                  onClick={handleQuizSubmit}
-                  disabled={Object.keys(quizAnswers).length !== sampleQuiz.questions.length}
-                >
-                  Submit Quiz
-                </Button>
-              ) : (
-                <div className="flex gap-4">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      setQuizAnswers({});
-                      setQuizSubmitted(false);
-                    }}
-                  >
-                    Retake Quiz
-                  </Button>
-                  <Button className="flex-1 gold-gradient text-primary-foreground" onClick={() => setActiveTab('video')}>
-                    Continue
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              )}
+              <h2 className="font-display text-xl font-semibold">Lesson Quiz</h2>
+              <p className="text-muted-foreground">Quiz functionality coming soon.</p>
             </div>
           )}
 
-          {activeTab === 'homework' && lesson.hasHomework && (
+          {activeTab === 'homework' && lesson.has_homework && (
             <div className="space-y-6">
               <h2 className="font-display text-xl font-semibold">Homework Assignment</h2>
               <div className="bg-secondary/30 p-4 rounded-lg space-y-4">
