@@ -2,7 +2,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses, type Module } from '@/hooks/useCourses';
 import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -172,20 +172,32 @@ export default function Courses() {
                 )}
               </div>
 
-              {/* Video Player Placeholder */}
-              <div className="relative aspect-video bg-background/50 flex items-center justify-center border-b border-border/30">
-                <div className="absolute inset-0 cyber-grid opacity-30" />
-                <div className="relative z-10 text-center">
-                  <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4 border border-primary/40 hover:bg-primary/30 transition-colors cursor-pointer group">
-                    <Play className="w-8 h-8 text-primary ml-1 group-hover:scale-110 transition-transform" />
+              {/* Video Player */}
+              <div className="relative aspect-video bg-black border-b border-border/30">
+                {moduleData.module.video_url ? (
+                  <iframe
+                    src={getVimeoEmbedUrl(moduleData.module.video_url)}
+                    className="absolute inset-0 w-full h-full"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                    title={moduleData.module.title}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                    <div className="absolute inset-0 cyber-grid opacity-30" />
+                    <div className="relative z-10 text-center">
+                      <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4 border border-primary/40">
+                        <Play className="w-8 h-8 text-primary ml-1" />
+                      </div>
+                      {moduleData.module.duration && (
+                        <p className="text-muted-foreground text-sm">
+                          <Clock className="w-4 h-4 inline mr-1" />
+                          {moduleData.module.duration}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {moduleData.module.duration && (
-                    <p className="text-muted-foreground text-sm">
-                      <Clock className="w-4 h-4 inline mr-1" />
-                      {moduleData.module.duration}
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
 
               {/* Actions */}
