@@ -165,6 +165,50 @@ export type Database = {
         }
         Relationships: []
       }
+      todos: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number
+          title: string
+          type: string
+          updated_at: string
+          week_number: number | null
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          title: string
+          type?: string
+          updated_at?: string
+          week_number?: number | null
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          title?: string
+          type?: string
+          updated_at?: string
+          week_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todos_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_progress: {
         Row: {
           completed: boolean
@@ -220,6 +264,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_todos: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          todo_id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          todo_id: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          todo_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_todos_todo_id_fkey"
+            columns: ["todo_id"]
+            isOneToOne: false
+            referencedRelation: "todos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
