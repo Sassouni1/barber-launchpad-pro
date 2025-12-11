@@ -21,14 +21,14 @@ const OrderHairSystem = () => {
           <ShoppingCart className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Order Hair System</h1>
         </div>
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden max-w-md mx-auto">
           <img 
             src="https://images.clickfunnels.com/8a/5b8c103a9849d09df3d4b478e1f9f8/IMG_1921.jpg" 
             alt="Hair System" 
             className="w-full h-auto"
           />
         </div>
-        <div className="glass-card p-4 rounded-xl" style={{ minHeight: "1400px" }}>
+        <div className="glass-card p-4 rounded-xl max-w-md mx-auto" style={{ minHeight: "1400px" }}>
           <iframe
             src="https://api.leadconnectorhq.com/widget/form/DUMrKXsSUz4Q6N59izDU"
             style={{ width: "100%", height: "1345px", border: "none", borderRadius: "3px" }}
