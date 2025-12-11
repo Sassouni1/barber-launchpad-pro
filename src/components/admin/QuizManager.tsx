@@ -403,8 +403,36 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
                       className="bg-secondary/50"
                       disabled={questionType === 'true_false'}
                     />
+                    {questionType === 'multiple_choice' && answers.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newAnswers = answers.filter((_, i) => i !== index);
+                          // Ensure at least one is marked correct
+                          if (answer.is_correct && newAnswers.length > 0) {
+                            newAnswers[0].is_correct = true;
+                          }
+                          setAnswers(newAnswers);
+                        }}
+                        className="w-6 h-6 rounded-full border border-destructive/50 flex items-center justify-center flex-shrink-0 text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 ))}
+                {questionType === 'multiple_choice' && answers.length < 6 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAnswers([...answers, { answer_text: '', is_correct: false }])}
+                    className="mt-2"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Answer
+                  </Button>
+                )}
               </div>
             </div>
 
