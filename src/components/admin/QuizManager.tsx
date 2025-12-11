@@ -179,31 +179,24 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
     setAnswers(answers.map((a, i) => ({ ...a, is_correct: i === index })));
   };
 
-  // Close main dialog when opening question dialog to avoid nesting issues
   const handleOpenNewQuestion = () => {
-    onOpenChange(false);
     resetForm();
-    setTimeout(() => setShowQuestionDialog(true), 100);
+    setShowQuestionDialog(true);
   };
 
   const handleOpenEditQuestion = (question: QuizQuestion) => {
-    onOpenChange(false);
-    setTimeout(() => {
-      openEditQuestion(question);
-    }, 100);
+    openEditQuestion(question);
   };
 
   const handleCloseQuestionDialog = (isOpen: boolean) => {
     setShowQuestionDialog(isOpen);
     if (!isOpen) {
       resetForm();
-      setTimeout(() => onOpenChange(true), 100);
     }
   };
 
-  const handleSaveAndReturn = async () => {
+  const handleSaveAndClose = async () => {
     await handleSave();
-    setTimeout(() => onOpenChange(true), 100);
   };
 
   return (
@@ -438,7 +431,7 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
 
             <Button
               className="w-full gold-gradient text-primary-foreground"
-              onClick={handleSaveAndReturn}
+              onClick={handleSaveAndClose}
               disabled={
                 !questionText.trim() ||
                 answers.filter(a => a.answer_text.trim()).length < 2 ||
