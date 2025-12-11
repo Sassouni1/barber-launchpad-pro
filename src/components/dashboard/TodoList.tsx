@@ -69,8 +69,10 @@ export function TodoList() {
                   <div className="ml-8 mt-2 space-y-1.5">
                     {todo.subtasks.map((subtask, index) => (
                       <div key={subtask.id} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="text-xs">{index + 1}.</span>
-                        <span>{subtask.title}</span>
+                        <Checkbox id={subtask.id} className="h-3.5 w-3.5" />
+                        <label htmlFor={subtask.id} className="cursor-pointer">
+                          {index + 1}. {subtask.title}
+                        </label>
                       </div>
                     ))}
                   </div>
