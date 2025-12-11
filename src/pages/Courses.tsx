@@ -12,7 +12,7 @@ export default function Courses() {
   const navigate = useNavigate();
 
   const goToLesson = (moduleId: string, tab?: string) => {
-    const url = tab ? `/lesson/${moduleId}?tab=${tab}` : `/lesson/${moduleId}`;
+    const url = tab ? `/courses/lesson/${moduleId}?tab=${tab}` : `/courses/lesson/${moduleId}`;
     navigate(url);
   };
 
