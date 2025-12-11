@@ -57,7 +57,8 @@ interface HairlineGameProps {
 
 export function HairlineGame({ onBack }: HairlineGameProps) {
   const [currentRound, setCurrentRound] = useState(0);
-  const [drawnPoints, setDrawnPoints] = useState<Point[]>([]);
+  const [strokes, setStrokes] = useState<Point[][]>([]);
+  const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
@@ -95,8 +96,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
     setIsDrawing(true);
     const point = getSvgCoordinates(e);
     if (point) {
-      // Add to existing points instead of replacing
-      setDrawnPoints((prev) => [...prev, point]);
+      setCurrentStroke([point]);
     }
   };
 
@@ -105,23 +105,28 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
     e.preventDefault();
     const point = getSvgCoordinates(e);
     if (point) {
-      setDrawnPoints((prev) => [...prev, point]);
+      setCurrentStroke((prev) => [...prev, point]);
     }
   };
 
   const handleEnd = () => {
+    if (currentStroke.length > 1) {
+      setStrokes((prev) => [...prev, currentStroke]);
+    }
+    setCurrentStroke([]);
     setIsDrawing(false);
   };
 
   const calculateScore = (): number => {
-    if (drawnPoints.length < 5) return 0;
+    const allPoints = strokes.flat();
+    if (allPoints.length < 5) return 0;
 
     let totalDistance = 0;
     const guidePoints = round.guidePoints;
 
     for (const guide of guidePoints) {
       let minDist = Infinity;
-      for (const drawn of drawnPoints) {
+      for (const drawn of allPoints) {
         const dist = Math.sqrt((guide.x - drawn.x) ** 2 + (guide.y - drawn.y) ** 2);
         if (dist < minDist) minDist = dist;
       }
@@ -134,7 +139,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
   };
 
   const handleSubmit = () => {
-    if (drawnPoints.length < 5) return;
+    if (strokes.flat().length < 5) return;
     
     const roundScore = calculateScore();
     setScore((s) => s + roundScore);
@@ -164,18 +169,21 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
       }
     } else {
       setCurrentRound((r) => r + 1);
-      setDrawnPoints([]);
+      setStrokes([]);
+      setCurrentStroke([]);
       setIsSubmitted(false);
     }
   };
 
   const handleClear = () => {
-    setDrawnPoints([]);
+    setStrokes([]);
+    setCurrentStroke([]);
   };
 
   const handleRestart = () => {
     setCurrentRound(0);
-    setDrawnPoints([]);
+    setStrokes([]);
+    setCurrentStroke([]);
     setIsSubmitted(false);
     setScore(0);
     setGameComplete(false);
@@ -421,10 +429,25 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             {/* Forehead guide zone */}
             <line x1="88" y1="55" x2="212" y2="55" stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="5 5" />
 
-            {/* User drawn hairline */}
-            {drawnPoints.length > 1 && (
+            {/* User drawn hairline - completed strokes */}
+            {strokes.map((stroke, index) => (
+              stroke.length > 1 && (
+                <path
+                  key={index}
+                  d={getPathFromPoints(stroke)}
+                  stroke="#1c1a1a"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              )
+            ))}
+            
+            {/* Current stroke being drawn */}
+            {currentStroke.length > 1 && (
               <path
-                d={getPathFromPoints(drawnPoints)}
+                d={getPathFromPoints(currentStroke)}
                 stroke="#1c1a1a"
                 strokeWidth="4"
                 strokeLinecap="round"
@@ -473,7 +496,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               <Button 
                 variant="outline"
                 onClick={handleClear} 
-                disabled={drawnPoints.length === 0}
+                disabled={strokes.length === 0 && currentStroke.length === 0}
                 className="gap-2"
               >
                 <Eraser className="w-4 h-4" />
@@ -481,7 +504,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               </Button>
               <Button 
                 onClick={handleSubmit} 
-                disabled={drawnPoints.length < 5}
+                disabled={strokes.flat().length < 5}
                 className="gap-2"
               >
                 Submit Hairline
