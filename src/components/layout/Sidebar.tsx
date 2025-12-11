@@ -11,7 +11,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Cpu
+  Cpu,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -72,6 +73,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/admin/members', icon: Users, label: 'Members' },
     { to: '/admin/courses', icon: FileEdit, label: 'Course Builder' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos Manager' },
+    { to: '/admin/dynamic-todos', icon: Sparkles, label: 'Dynamic Todos' },
     { to: '/admin/products', icon: Package, label: 'Products Manager' },
     { to: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
