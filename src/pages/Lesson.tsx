@@ -156,17 +156,30 @@ export default function Lesson() {
 
         {/* Video Player */}
         <div className="glass-card rounded-2xl overflow-hidden animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          <div className="aspect-video bg-black/50 flex items-center justify-center relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
-            <div className="text-center z-10">
-              <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto mb-4 cursor-pointer hover:scale-110 transition-transform animate-pulse-gold">
-                <Play className="w-8 h-8 text-primary-foreground ml-1" />
+          <div className="aspect-video bg-black relative">
+            {module.video_url ? (
+              <iframe
+                src={module.video_url.includes('vimeo.com') 
+                  ? module.video_url.replace('vimeo.com/', 'player.vimeo.com/video/').replace('https://www.', 'https://') + '?autoplay=0&title=0&byline=0&portrait=0'
+                  : module.video_url}
+                className="absolute inset-0 w-full h-full"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                title={module.title}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center z-10">
+                  <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto mb-4">
+                    <Play className="w-8 h-8 text-primary-foreground ml-1" />
+                  </div>
+                  <p className="text-muted-foreground">No video available</p>
+                  {module.duration && (
+                    <p className="text-sm text-muted-foreground mt-1">{module.duration}</p>
+                  )}
+                </div>
               </div>
-              <p className="text-muted-foreground">Click to play module video</p>
-              {module.duration && (
-                <p className="text-sm text-muted-foreground mt-1">{module.duration}</p>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
