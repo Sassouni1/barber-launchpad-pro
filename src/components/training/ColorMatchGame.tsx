@@ -1,71 +1,62 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, XCircle, RotateCcw, Trophy } from 'lucide-react';
+import { CheckCircle2, RotateCcw, Trophy, ArrowRight, Grab } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
-import hairColorChart from '@/assets/hair-colors.jpg';
 
-// Hair color samples with their crop positions on the chart image
-// These are approximate positions based on the chart layout
-const hairSamples = [
-  { id: '1', name: '#1 - Jet Black', cropX: 0, cropY: 0 },
-  { id: '1A', name: '#1A - Off Black', cropX: 1, cropY: 0 },
-  { id: '1B', name: '#1B - Natural Black', cropX: 2, cropY: 0 },
-  { id: '2', name: '#2 - Darkest Brown', cropX: 3, cropY: 0 },
-  { id: '3', name: '#3 - Dark Brown', cropX: 4, cropY: 0 },
-  { id: '4', name: '#4 - Medium Brown', cropX: 0, cropY: 1 },
-  { id: '5', name: '#5 - Light Brown', cropX: 1, cropY: 1 },
-  { id: '6', name: '#6 - Chestnut Brown', cropX: 2, cropY: 1 },
-  { id: '7', name: '#7 - Medium Ash Brown', cropX: 3, cropY: 1 },
-  { id: '8', name: '#8 - Light Ash Brown', cropX: 4, cropY: 1 },
-  { id: '1B10', name: '#1B10 - 10% Grey', cropX: 0, cropY: 2 },
-  { id: '1B20', name: '#1B20 - 20% Grey', cropX: 1, cropY: 2 },
+// Hair color swatches with their hex colors based on real hair system codes
+const hairSwatches = [
+  { id: '1', name: '#1 - Jet Black', color: '#0a0a0a' },
+  { id: '1A', name: '#1A - Off Black', color: '#1a1a1a' },
+  { id: '1B', name: '#1B - Natural Black', color: '#2a2117' },
+  { id: '2', name: '#2 - Darkest Brown', color: '#3b2717' },
+  { id: '3', name: '#3 - Dark Brown', color: '#4a3520' },
+  { id: '4', name: '#4 - Medium Brown', color: '#5c4033' },
+  { id: '5', name: '#5 - Light Brown', color: '#7a5c45' },
+  { id: '6', name: '#6 - Chestnut Brown', color: '#8b6914' },
 ];
 
-// Generate quiz rounds by shuffling and picking random samples
-function generateRounds(count: number = 10) {
-  const shuffled = [...hairSamples].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, shuffled.length)).map((sample) => {
-    // Generate 3 wrong answers
-    const wrongOptions = hairSamples
-      .filter((s) => s.id !== sample.id)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
-    
-    // Combine correct answer with wrong ones and shuffle
-    const options = [sample, ...wrongOptions].sort(() => Math.random() - 0.5);
-    
-    return {
-      correctAnswer: sample.id,
-      sample,
-      options,
-    };
-  });
-}
+// Rounds with target colors that trainees need to match
+const rounds = [
+  { targetColor: '#2a2117', correctAnswer: '1B', description: 'Natural black with warm undertones' },
+  { targetColor: '#3b2717', correctAnswer: '2', description: 'Very dark brown, almost black' },
+  { targetColor: '#0a0a0a', correctAnswer: '1', description: 'Pure jet black' },
+  { targetColor: '#4a3520', correctAnswer: '3', description: 'Rich dark brown' },
+  { targetColor: '#5c4033', correctAnswer: '4', description: 'Medium warm brown' },
+  { targetColor: '#1a1a1a', correctAnswer: '1A', description: 'Soft off-black' },
+];
 
 export function ColorMatchGame() {
-  const [rounds] = useState(() => generateRounds(10));
   const [currentRound, setCurrentRound] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [selectedSwatch, setSelectedSwatch] = useState<string | null>(null);
+  const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
+  const targetRef = useRef<HTMLDivElement>(null);
 
   const round = rounds[currentRound];
   const progress = ((currentRound) / rounds.length) * 100;
+  const currentSwatch = hairSwatches.find(s => s.id === selectedSwatch);
 
-  const handleSelect = (answerId: string) => {
-    if (selectedAnswer) return; // Already answered
+  const handleSwatchSelect = (swatchId: string) => {
+    if (isSubmitted) return;
+    setSelectedSwatch(swatchId);
+    // Center the overlay on the target
+    setOverlayPosition({ x: 0, y: 0 });
+  };
+
+  const handleSubmit = () => {
+    if (!selectedSwatch) return;
     
-    setSelectedAnswer(answerId);
-    const correct = answerId === round.correctAnswer;
-    setIsCorrect(correct);
+    setIsSubmitted(true);
+    const isCorrect = selectedSwatch === round.correctAnswer;
     
-    if (correct) {
+    if (isCorrect) {
       setScore((s) => s + 1);
-      // Trigger confetti
       confetti({
         particleCount: 100,
         spread: 70,
@@ -78,7 +69,7 @@ export function ColorMatchGame() {
   const handleNext = () => {
     if (currentRound + 1 >= rounds.length) {
       setGameComplete(true);
-      if (score >= rounds.length * 0.8) {
+      if (score >= rounds.length * 0.7) {
         confetti({
           particleCount: 200,
           spread: 100,
@@ -88,17 +79,46 @@ export function ColorMatchGame() {
       }
     } else {
       setCurrentRound((r) => r + 1);
-      setSelectedAnswer(null);
-      setIsCorrect(null);
+      setSelectedSwatch(null);
+      setIsSubmitted(false);
+      setOverlayPosition({ x: 0, y: 0 });
     }
   };
 
   const handleRestart = () => {
     setCurrentRound(0);
-    setSelectedAnswer(null);
-    setIsCorrect(null);
+    setSelectedSwatch(null);
+    setIsSubmitted(false);
     setScore(0);
     setGameComplete(false);
+    setOverlayPosition({ x: 0, y: 0 });
+  };
+
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isSubmitted || !selectedSwatch) return;
+    setIsDragging(true);
+  };
+
+  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging || !targetRef.current) return;
+    
+    const rect = targetRef.current.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    const x = clientX - rect.left - rect.width / 2;
+    const y = clientY - rect.top - rect.height / 2;
+    
+    // Limit movement within reasonable bounds
+    const maxOffset = 60;
+    setOverlayPosition({
+      x: Math.max(-maxOffset, Math.min(maxOffset, x)),
+      y: Math.max(-maxOffset, Math.min(maxOffset, y)),
+    });
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
   };
 
   if (gameComplete) {
@@ -107,7 +127,7 @@ export function ColorMatchGame() {
       <Card className="glass-card p-8 text-center">
         <Trophy className={cn(
           'w-16 h-16 mx-auto mb-4',
-          percentage >= 80 ? 'text-primary' : 'text-muted-foreground'
+          percentage >= 70 ? 'text-primary' : 'text-muted-foreground'
         )} />
         <h2 className="text-2xl font-display font-bold mb-2">
           {percentage >= 80 ? 'Excellent Work!' : percentage >= 60 ? 'Good Job!' : 'Keep Practicing!'}
@@ -116,7 +136,7 @@ export function ColorMatchGame() {
           {score} / {rounds.length}
         </p>
         <p className="text-muted-foreground mb-6">
-          You scored {percentage}% on hair color identification
+          You matched {percentage}% of hair colors correctly
         </p>
         <Button onClick={handleRestart} className="gap-2">
           <RotateCcw className="w-4 h-4" />
@@ -127,95 +147,173 @@ export function ColorMatchGame() {
   }
 
   return (
-    <div className="space-y-6">
+    <div 
+      className="space-y-6"
+      onMouseMove={handleDragMove}
+      onMouseUp={handleDragEnd}
+      onMouseLeave={handleDragEnd}
+      onTouchMove={handleDragMove}
+      onTouchEnd={handleDragEnd}
+    >
       {/* Progress bar */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-muted-foreground">
-          <span>Sample {currentRound + 1} of {rounds.length}</span>
+          <span>Round {currentRound + 1} of {rounds.length}</span>
           <span>Score: {score}</span>
         </div>
         <Progress value={progress} className="h-2" />
       </div>
 
-      {/* Hair sample display */}
       <Card className="glass-card p-6">
-        <h2 className="text-lg font-medium text-center mb-4 text-muted-foreground">
-          What color code is this hair sample?
+        <h2 className="text-lg font-medium text-center mb-2">
+          Match the Hair Color
         </h2>
-        
-        {/* Hair sample image - cropped from chart */}
-        <div className="relative mx-auto w-48 h-48 overflow-hidden rounded-lg border-2 border-border bg-background mb-6">
-          <img
-            src={hairColorChart}
-            alt="Hair sample"
-            className="absolute"
-            style={{
-              width: '240%', // 5 columns
-              height: '300%', // 3 rows
-              objectFit: 'cover',
-              left: `${-round.sample.cropX * 100}%`,
-              top: `${-round.sample.cropY * 100}%`,
-            }}
-          />
+        <p className="text-sm text-muted-foreground text-center mb-6">
+          Select a swatch and drag it over the target to compare. Find the closest match!
+        </p>
+
+        {/* Comparison area */}
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-8">
+          {/* Target color (client's hair) */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-2">Client's Hair</p>
+            <div 
+              ref={targetRef}
+              className="relative w-32 h-32 rounded-full border-4 border-border overflow-hidden shadow-lg"
+              style={{ backgroundColor: round.targetColor }}
+            >
+              {/* Hair texture overlay */}
+              <div 
+                className="absolute inset-0 opacity-30"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255,255,255,0.1) 2px,
+                    rgba(255,255,255,0.1) 4px
+                  )`
+                }}
+              />
+              
+              {/* Draggable overlay swatch */}
+              {selectedSwatch && currentSwatch && (
+                <div
+                  className={cn(
+                    'absolute w-20 h-20 rounded-full border-2 transition-all cursor-grab active:cursor-grabbing',
+                    isDragging ? 'scale-105 shadow-xl' : 'shadow-md',
+                    isSubmitted && selectedSwatch === round.correctAnswer && 'border-green-500 ring-4 ring-green-500/30',
+                    isSubmitted && selectedSwatch !== round.correctAnswer && 'border-destructive ring-4 ring-destructive/30',
+                    !isSubmitted && 'border-primary/50'
+                  )}
+                  style={{
+                    backgroundColor: currentSwatch.color,
+                    left: `calc(50% - 40px + ${overlayPosition.x}px)`,
+                    top: `calc(50% - 40px + ${overlayPosition.y}px)`,
+                    opacity: 0.85,
+                  }}
+                  onMouseDown={handleDragStart}
+                  onTouchStart={handleDragStart}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    {!isSubmitted && <Grab className="w-5 h-5 text-white/50" />}
+                    {isSubmitted && selectedSwatch === round.correctAnswer && (
+                      <CheckCircle2 className="w-6 h-6 text-green-400" />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">{round.description}</p>
+          </div>
+
+          {/* Arrow indicator */}
+          <ArrowRight className="w-8 h-8 text-muted-foreground hidden md:block" />
+
+          {/* Swatch palette */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-2">Hair Color Swatches</p>
+            <div className="grid grid-cols-4 gap-2">
+              {hairSwatches.map((swatch) => (
+                <button
+                  key={swatch.id}
+                  onClick={() => handleSwatchSelect(swatch.id)}
+                  disabled={isSubmitted}
+                  className={cn(
+                    'w-14 h-14 rounded-lg border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary/50',
+                    selectedSwatch === swatch.id 
+                      ? 'border-primary ring-2 ring-primary/30 scale-110' 
+                      : 'border-border hover:border-primary/50',
+                    isSubmitted && swatch.id === round.correctAnswer && 'border-green-500 ring-2 ring-green-500/30',
+                    isSubmitted && 'opacity-70'
+                  )}
+                  style={{ backgroundColor: swatch.color }}
+                  title={swatch.name}
+                >
+                  <span className="sr-only">{swatch.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-4 gap-2 mt-1">
+              {hairSwatches.map((swatch) => (
+                <span key={swatch.id} className="text-[10px] text-muted-foreground">
+                  {swatch.id}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Answer options */}
-        <div className="grid grid-cols-2 gap-3">
-          {round.options.map((option) => {
-            const isSelected = selectedAnswer === option.id;
-            const isCorrectAnswer = option.id === round.correctAnswer;
-            const showResult = selectedAnswer !== null;
-            
-            return (
-              <Button
-                key={option.id}
-                variant="outline"
-                onClick={() => handleSelect(option.id)}
-                disabled={selectedAnswer !== null}
-                className={cn(
-                  'h-auto py-4 px-4 flex flex-col items-center gap-2 transition-all',
-                  showResult && isCorrectAnswer && 'border-green-500 bg-green-500/10 text-green-500',
-                  showResult && isSelected && !isCorrectAnswer && 'border-destructive bg-destructive/10 text-destructive animate-shake',
-                  !showResult && 'hover:border-primary hover:bg-primary/5'
-                )}
-              >
-                <span className="font-bold text-lg">{option.id}</span>
-                <span className="text-xs text-muted-foreground">{option.name.split(' - ')[1]}</span>
-                {showResult && isCorrectAnswer && (
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                )}
-                {showResult && isSelected && !isCorrectAnswer && (
-                  <XCircle className="w-5 h-5 text-destructive" />
-                )}
-              </Button>
-            );
-          })}
-        </div>
+        {/* Selected swatch info */}
+        {selectedSwatch && currentSwatch && !isSubmitted && (
+          <div className="text-center mb-4 p-3 rounded-lg bg-secondary/30 border border-border">
+            <p className="text-sm">
+              Selected: <span className="font-bold text-primary">{currentSwatch.name}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Drag the overlay to compare, then submit your answer
+            </p>
+          </div>
+        )}
 
-        {/* Feedback message */}
-        {selectedAnswer && (
+        {/* Result feedback */}
+        {isSubmitted && (
           <div className={cn(
-            'mt-6 p-4 rounded-lg text-center',
-            isCorrect ? 'bg-green-500/10 text-green-500' : 'bg-destructive/10 text-destructive'
+            'mb-4 p-4 rounded-lg text-center',
+            selectedSwatch === round.correctAnswer 
+              ? 'bg-green-500/10 border border-green-500/30 text-green-500' 
+              : 'bg-destructive/10 border border-destructive/30 text-destructive'
           )}>
-            {isCorrect ? (
-              <p className="font-medium">Correct! This is {round.sample.name}</p>
+            {selectedSwatch === round.correctAnswer ? (
+              <p className="font-medium">
+                Correct! The best match is {hairSwatches.find(s => s.id === round.correctAnswer)?.name}
+              </p>
             ) : (
               <p className="font-medium">
-                Incorrect. The correct answer is {round.sample.name}
+                Not quite. The correct answer is {hairSwatches.find(s => s.id === round.correctAnswer)?.name}
               </p>
             )}
           </div>
         )}
 
-        {/* Next button */}
-        {selectedAnswer && (
-          <div className="mt-6 text-center">
-            <Button onClick={handleNext} className="gap-2">
-              {currentRound + 1 >= rounds.length ? 'See Results' : 'Next Sample'}
+        {/* Action buttons */}
+        <div className="flex justify-center gap-4">
+          {!isSubmitted ? (
+            <Button 
+              onClick={handleSubmit} 
+              disabled={!selectedSwatch}
+              className="gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              Submit Answer
             </Button>
-          </div>
-        )}
+          ) : (
+            <Button onClick={handleNext} className="gap-2">
+              {currentRound + 1 >= rounds.length ? 'See Results' : 'Next Round'}
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
       </Card>
     </div>
   );
