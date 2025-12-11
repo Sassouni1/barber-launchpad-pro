@@ -44,6 +44,62 @@ export type Database = {
         }
         Relationships: []
       }
+      dynamic_todo_items: {
+        Row: {
+          created_at: string
+          id: string
+          list_id: string
+          order_index: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list_id: string
+          order_index?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list_id?: string
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_todo_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_todo_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dynamic_todo_lists: {
+        Row: {
+          created_at: string
+          id: string
+          order_index: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       homework_files: {
         Row: {
           created_at: string
@@ -478,6 +534,41 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_dynamic_todo_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_dynamic_todo_progress_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "dynamic_todo_items"
             referencedColumns: ["id"]
           },
         ]
