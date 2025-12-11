@@ -116,6 +116,11 @@ export default {
           "0%": { backgroundPosition: "0 0" },
           "100%": { backgroundPosition: "40px 40px" },
         },
+        shake: {
+          "0%, 100%": { transform: "translateX(0)" },
+          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-4px)" },
+          "20%, 40%, 60%, 80%": { transform: "translateX(4px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -129,6 +134,7 @@ export default {
         shimmer: "shimmer 2s infinite",
         ping: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite",
         "grid-flow": "grid-flow 20s linear infinite",
+        shake: "shake 0.5s ease-in-out",
       },
     },
   },

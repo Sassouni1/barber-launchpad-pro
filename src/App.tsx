@@ -13,12 +13,12 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import Members from "./pages/admin/Members";
 import CourseBuilder from "./pages/admin/CourseBuilder";
 import TodosManager from "./pages/admin/TodosManager";
-
 import ProductsManager from "./pages/admin/ProductsManager";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import OrderHairSystem from "./pages/OrderHairSystem";
 import Products from "./pages/Products";
+import Training from "./pages/Training";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +38,7 @@ const App = () => (
           <Route path="/todos" element={<Todos />} />
           <Route path="/order-hair-system" element={<OrderHairSystem />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/training" element={<Training />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/members" element={<Members />} />
           <Route path="/admin/courses" element={<CourseBuilder />} />
