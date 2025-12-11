@@ -10,35 +10,35 @@ import { HairSwatch } from './HairSwatch';
 
 // Hair color swatches with their hex colors based on real hair system codes
 const hairSwatches = [
-  { id: '1', name: '#1 - Jet Black', color: '#000000' },
-  { id: '1A', name: '#1A - Off Black', color: '#2a2529' },
-  { id: '1B', name: '#1B - Natural Black', color: '#312f23' },
-  { id: '2', name: '#2 - Darkest Brown', color: '#312525' },
-  { id: '3', name: '#3 - Dark Brown', color: '#54413a' },
-  { id: '4', name: '#4 - Medium Brown', color: '#58453e' },
-  { id: '5', name: '#5 - Light Brown', color: '#665043' },
-  { id: '6', name: '#6 - Chestnut Brown', color: '#816649' },
-  { id: '7', name: '#7 - Golden Brown', color: '#91765b' },
+  { id: '1', name: '#1 - Jet Black', color: '#0a0a0a' },
+  { id: '1A', name: '#1A - Off Black', color: '#1c1a1a' },
+  { id: '1B', name: '#1B - Natural Black', color: '#2b2422' },
+  { id: '2', name: '#2 - Darkest Brown', color: '#3a2a25' },
+  { id: '3', name: '#3 - Dark Brown', color: '#4a3830' },
+  { id: '4', name: '#4 - Medium Brown', color: '#5a4438' },
+  { id: '5', name: '#5 - Light Brown', color: '#6b5040' },
+  { id: '6', name: '#6 - Chestnut Brown', color: '#7d5f45' },
+  { id: '7', name: '#7 - Golden Brown', color: '#8f704e' },
 ];
 
 // Grey percentage swatches for grey matching rounds - base hair color + grey percentage
 const greySwatches = [
-  { id: '1A', name: '#1A - No Grey', color: '#2a2529', greyPercent: 0 },
-  { id: '1A10', name: '#1A10 - 10% Grey', color: '#2a2529', greyPercent: 10 },
-  { id: '1A20', name: '#1A20 - 20% Grey', color: '#2a2529', greyPercent: 20 },
-  { id: '1A30', name: '#1A30 - 30% Grey', color: '#2a2529', greyPercent: 30 },
-  { id: '1A40', name: '#1A40 - 40% Grey', color: '#2a2529', greyPercent: 40 },
+  { id: '1B', name: '#1B - No Grey', color: '#2b2422', greyPercent: 0 },
+  { id: '1B10', name: '#1B10 - 10% Grey', color: '#2b2422', greyPercent: 10 },
+  { id: '1B20', name: '#1B20 - 20% Grey', color: '#2b2422', greyPercent: 20 },
+  { id: '1B30', name: '#1B30 - 30% Grey', color: '#2b2422', greyPercent: 30 },
+  { id: '1B40', name: '#1B40 - 40% Grey', color: '#2b2422', greyPercent: 40 },
 ];
 
 // Rounds with target colors that trainees need to match
 const rounds = [
-  { targetColor: '#312f23', correctAnswer: '1B', description: 'Natural black with warm undertones', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#312525', correctAnswer: '2', description: 'Very dark brown, almost black', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#000000', correctAnswer: '1', description: 'Pure jet black', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#2a2529', correctAnswer: '1A30', description: 'Client has 30% grey mixed in - find the matching grey level', type: 'grey' as const, greyPercent: 30 },
-  { targetColor: '#54413a', correctAnswer: '3', description: 'Rich dark brown', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#58453e', correctAnswer: '4', description: 'Medium warm brown', type: 'color' as const, greyPercent: 0 },
-  { targetColor: '#2a2529', correctAnswer: '1A', description: 'Soft off-black', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#2b2422', correctAnswer: '1B', description: 'Natural black with warm undertones', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#3a2a25', correctAnswer: '2', description: 'Very dark brown, almost black', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#0a0a0a', correctAnswer: '1', description: 'Pure jet black', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#2b2422', correctAnswer: '1B30', description: 'Client has 30% grey mixed in - find the matching grey level', type: 'grey' as const, greyPercent: 30 },
+  { targetColor: '#4a3830', correctAnswer: '3', description: 'Rich dark brown', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#5a4438', correctAnswer: '4', description: 'Medium warm brown', type: 'color' as const, greyPercent: 0 },
+  { targetColor: '#1c1a1a', correctAnswer: '1A', description: 'Soft off-black', type: 'color' as const, greyPercent: 0 },
 ];
 
 export function ColorMatchGame() {
