@@ -298,16 +298,16 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
                 onClick={() => setRotation(r => r - 20)}
                 disabled={rotation <= -40}
               >
-                ↺ 20°
+                ← Turn
               </Button>
-              <span className="text-xs text-muted-foreground px-2">{rotation}°</span>
+              <span className="text-xs text-muted-foreground px-2">{rotation === 0 ? 'Front' : `${Math.abs(rotation)}° ${rotation > 0 ? 'Right' : 'Left'}`}</span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setRotation(r => r + 20)}
                 disabled={rotation >= 40}
               >
-                20° ↻
+                Turn →
               </Button>
             </div>
           </div>
@@ -320,11 +320,15 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
         )}
 
         {/* Large SVG Head with drawing area */}
-        <div className="flex justify-center mb-6">
+        <div 
+          className="flex justify-center mb-6"
+          style={{ perspective: '800px' }}
+        >
           <svg 
             ref={svgRef}
             viewBox="0 0 300 350" 
-            className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
+            className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none transition-transform duration-300"
+            style={{ transform: `rotateY(${rotation}deg)` }}
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}
@@ -347,8 +351,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               </radialGradient>
             </defs>
 
-            {/* Head group with rotation */}
-            <g transform={`rotate(${rotation}, 150, 175)`} className="transition-transform duration-300">
+            {/* Head group - no SVG rotation, using CSS 3D instead */}
+            <g>
             
             {/* Neck */}
             <path d="M 125 260 L 125 295 Q 125 305, 135 305 L 165 305 Q 175 305, 175 295 L 175 260" fill="#d4a574" />
@@ -491,10 +495,6 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
                 <path d="M 105 110 Q 150 104, 195 110" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
                 <path d="M 108 97 Q 150 90, 192 97" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
                 <path d="M 112 84 Q 150 78, 188 84" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
-                
-                {/* Hairline guide - 1 finger above top wrinkle */}
-                <path d="M 95 65 Q 150 55, 205 65" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeDasharray="6 6" fill="none" />
-                <text x="150" y="48" textAnchor="middle" fill="#22c55e" fontSize="11" fontWeight="500">↑ Hairline (1 finger above)</text>
               </g>
             )}
 
@@ -510,17 +510,19 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             {/* Shirt collar */}
             <path d="M 105 315 Q 130 300, 150 298 Q 170 300, 195 315" stroke="#374151" strokeWidth="10" fill="none" strokeLinecap="round" />
 
-            {/* Forehead guide zone */}
+            {/* Forehead guide zone - only when Show Guide is clicked */}
             {showGuide && (
-              <path 
-                d="M 95 65 Q 150 55, 205 65" 
-                stroke="#22c55e" 
-                strokeWidth="3" 
-                strokeLinecap="round" 
-                strokeDasharray="6 6" 
-                fill="none" 
-                className="animate-fade-in"
-              />
+              <g className="animate-fade-in">
+                <path 
+                  d="M 95 70 Q 150 62, 205 70" 
+                  stroke="#22c55e" 
+                  strokeWidth="3" 
+                  strokeLinecap="round" 
+                  strokeDasharray="6 6" 
+                  fill="none" 
+                />
+                <text x="150" y="55" textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="500">Ideal hairline</text>
+              </g>
             )}
 
             </g>
