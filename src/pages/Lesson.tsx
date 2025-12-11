@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import {
   ArrowLeft,
+  ArrowRight,
   Download,
   FileText,
   CheckCircle2,
@@ -44,10 +45,15 @@ export default function Lesson() {
     if (tab) setActiveTab(tab);
   }, [searchParams]);
 
-  // Find the module
-  const module = courses
-    .flatMap((c) => (c.modules || []).map((m) => ({ ...m, courseName: c.title })))
-    .find((m) => m.id === lessonId);
+  // Find the module and get all modules for navigation
+  const allModules = courses.flatMap((c) => 
+    (c.modules || []).map((m) => ({ ...m, courseName: c.title, courseId: c.id }))
+  );
+  const currentModuleIndex = allModules.findIndex((m) => m.id === lessonId);
+  const module = allModules[currentModuleIndex];
+  const nextModule = currentModuleIndex >= 0 && currentModuleIndex < allModules.length - 1 
+    ? allModules[currentModuleIndex + 1] 
+    : null;
 
   // Hooks for module content
   const { data: files = [] } = useModuleFiles(module?.id);
@@ -252,10 +258,22 @@ export default function Lesson() {
                 </div>
               )}
 
-              <Button className="w-full gold-gradient text-primary-foreground font-semibold">
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Mark as Complete
-              </Button>
+              <div className="flex gap-3">
+                <Button className="flex-1 gold-gradient text-primary-foreground font-semibold">
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Mark as Complete
+                </Button>
+                {nextModule && (
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => navigate(`/lesson/${nextModule.id}`)}
+                  >
+                    Next Lesson
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
