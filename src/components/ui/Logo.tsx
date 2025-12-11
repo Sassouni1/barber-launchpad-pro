@@ -1,27 +1,34 @@
 import { cn } from '@/lib/utils';
+import barberLaunchLogo from '@/assets/barber-launch-logo.png';
 
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  showText?: boolean;
 }
 
-export function Logo({ className, size = 'md' }: LogoProps) {
+export function Logo({ className, size = 'md', showText = true }: LogoProps) {
   const sizes = {
-    sm: 'text-xl',
-    md: 'text-2xl',
-    lg: 'text-4xl',
+    sm: { img: 'h-8', text: 'text-lg' },
+    md: { img: 'h-10', text: 'text-xl' },
+    lg: { img: 'h-14', text: 'text-2xl' },
   };
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <div className="relative">
-        <div className="w-10 h-10 gold-gradient rounded-lg flex items-center justify-center animate-pulse-gold">
-          <span className="text-primary-foreground font-display font-bold text-lg">BL</span>
-        </div>
-      </div>
-      <span className={cn('font-display font-bold gold-text', sizes[size])}>
-        Barber Launch
-      </span>
+    <div className={cn('flex items-center gap-3', className)}>
+      <img 
+        src={barberLaunchLogo} 
+        alt="Barber Launch" 
+        className={cn(sizes[size].img, 'w-auto object-contain')}
+      />
+      {showText && (
+        <span className={cn(
+          'font-display font-bold gold-text tracking-tight',
+          sizes[size].text
+        )}>
+          Barber Launch
+        </span>
+      )}
     </div>
   );
 }
