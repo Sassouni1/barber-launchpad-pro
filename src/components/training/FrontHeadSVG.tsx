@@ -173,31 +173,31 @@ export function FrontHeadSVG({
       />
 
       {/* Eyes - white */}
-      <ellipse cx="110" cy="165" rx="18" ry="12" fill="#f5f5f0" />
-      <ellipse cx="190" cy="165" rx="18" ry="12" fill="#f5f5f0" />
+      <ellipse cx="110" cy="180" rx="18" ry="12" fill="#f5f5f0" />
+      <ellipse cx="190" cy="180" rx="18" ry="12" fill="#f5f5f0" />
       
       {/* Eyes - iris */}
-      <circle cx="112" cy="166" r="8" fill="#4a3525" />
-      <circle cx="188" cy="166" r="8" fill="#4a3525" />
+      <circle cx="112" cy="181" r="8" fill="#4a3525" />
+      <circle cx="188" cy="181" r="8" fill="#4a3525" />
       
       {/* Eyes - pupil */}
-      <circle cx="113" cy="167" r="4" fill="#1a1210" />
-      <circle cx="187" cy="167" r="4" fill="#1a1210" />
+      <circle cx="113" cy="182" r="4" fill="#1a1210" />
+      <circle cx="187" cy="182" r="4" fill="#1a1210" />
       
       {/* Eyes - highlight */}
-      <circle cx="115" cy="164" r="2" fill="#fff" />
-      <circle cx="189" cy="164" r="2" fill="#fff" />
+      <circle cx="115" cy="179" r="2" fill="#fff" />
+      <circle cx="189" cy="179" r="2" fill="#fff" />
 
       {/* Eyebrows */}
       <path 
-        d="M 85 145 Q 110 135, 130 145" 
+        d="M 85 160 Q 110 150, 130 160" 
         stroke={hairColor} 
         strokeWidth="4" 
         strokeLinecap="round"
         fill="none" 
       />
       <path 
-        d="M 170 145 Q 190 135, 215 145" 
+        d="M 170 160 Q 190 150, 215 160" 
         stroke={hairColor} 
         strokeWidth="4" 
         strokeLinecap="round"
@@ -206,17 +206,17 @@ export function FrontHeadSVG({
 
       {/* Nose */}
       <path 
-        d="M 150 160 L 145 200 Q 150 210, 155 200 L 150 160" 
+        d="M 150 175 L 145 215 Q 150 225, 155 215 L 150 175" 
         stroke={skinShadow} 
         strokeWidth="2" 
         fill="none" 
       />
-      <ellipse cx="142" cy="205" rx="6" ry="4" fill={skinShadow} opacity="0.3" />
-      <ellipse cx="158" cy="205" rx="6" ry="4" fill={skinShadow} opacity="0.3" />
+      <ellipse cx="142" cy="220" rx="6" ry="4" fill={skinShadow} opacity="0.3" />
+      <ellipse cx="158" cy="220" rx="6" ry="4" fill={skinShadow} opacity="0.3" />
 
       {/* Mouth */}
       <path 
-        d="M 120 240 Q 150 255, 180 240" 
+        d="M 120 240 Q 150 250, 180 240" 
         stroke="#a06050" 
         strokeWidth="4" 
         strokeLinecap="round"
