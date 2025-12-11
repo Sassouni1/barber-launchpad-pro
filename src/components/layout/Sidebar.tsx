@@ -6,6 +6,7 @@ import {
   Settings, 
   Users, 
   FileEdit,
+  Scissors,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -59,6 +60,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/courses', icon: BookOpen, label: 'Courses' },
     { to: '/todos', icon: ListTodo, label: 'To-Do Lists' },
+    { to: '/hair-systems', icon: Scissors, label: 'Hair Systems' },
     { to: '/settings', icon: Settings, label: 'Settings' },
     { to: '/admin/courses', icon: FileEdit, label: 'Admin' },
   ];
