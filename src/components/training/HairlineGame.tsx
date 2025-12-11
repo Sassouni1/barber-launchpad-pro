@@ -267,7 +267,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           <svg 
             ref={svgRef}
             viewBox="0 0 300 350" 
-            className="w-72 h-80 md:w-80 md:h-[22rem] cursor-crosshair touch-none"
+            className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}
