@@ -23,7 +23,10 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  Upload,
 } from 'lucide-react';
+import { ModuleFilesManager } from '@/components/admin/ModuleFilesManager';
+import { QuizManager } from '@/components/admin/QuizManager';
 import {
   useCourses,
   useCreateCourse,
@@ -66,6 +69,10 @@ export default function CourseBuilder() {
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module'; id: string; name: string } | null>(null);
+
+  // Files/Quiz manager
+  const [filesManagerModule, setFilesManagerModule] = useState<{ id: string; name: string } | null>(null);
+  const [quizManagerModule, setQuizManagerModule] = useState<{ id: string; name: string } | null>(null);
 
   // Form states
   const [courseForm, setCourseForm] = useState({ title: '', description: '' });
@@ -276,6 +283,28 @@ export default function CourseBuilder() {
                           )}
                         </div>
                       </div>
+                      {module.has_download && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => setFilesManagerModule({ id: module.id, name: module.title })}
+                        >
+                          <Upload className="w-3 h-3 mr-1" />
+                          Files
+                        </Button>
+                      )}
+                      {module.has_quiz && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => setQuizManagerModule({ id: module.id, name: module.title })}
+                        >
+                          <HelpCircle className="w-3 h-3 mr-1" />
+                          Quiz
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -449,6 +478,26 @@ export default function CourseBuilder() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Files Manager */}
+      {filesManagerModule && (
+        <ModuleFilesManager
+          moduleId={filesManagerModule.id}
+          moduleName={filesManagerModule.name}
+          open={!!filesManagerModule}
+          onOpenChange={(open) => !open && setFilesManagerModule(null)}
+        />
+      )}
+
+      {/* Quiz Manager */}
+      {quizManagerModule && (
+        <QuizManager
+          moduleId={quizManagerModule.id}
+          moduleName={quizManagerModule.name}
+          open={!!quizManagerModule}
+          onOpenChange={(open) => !open && setQuizManagerModule(null)}
+        />
+      )}
     </DashboardLayout>
   );
 }
