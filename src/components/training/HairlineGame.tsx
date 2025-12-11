@@ -319,16 +319,28 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           </p>
         )}
 
-        {/* Large SVG Head with drawing area */}
+        {/* Large SVG Head with drawing area - 3D perspective rotation */}
         <div 
           className="flex justify-center mb-6"
-          style={{ perspective: '800px' }}
+          style={{ 
+            perspective: '1000px',
+            perspectiveOrigin: '50% 50%'
+          }}
         >
+          <div
+            className="transition-transform duration-500 ease-out"
+            style={{ 
+              transformStyle: 'preserve-3d',
+              transform: `rotateY(${rotation}deg)`,
+            }}
+          >
           <svg 
             ref={svgRef}
             viewBox="0 0 300 350" 
-            className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none transition-transform duration-300"
-            style={{ transform: `rotateY(${rotation}deg)` }}
+            className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
+            style={{ 
+              backfaceVisibility: 'hidden',
+            }}
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}
@@ -569,6 +581,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               />
             )}
           </svg>
+          </div>
         </div>
 
         {/* Result feedback */}
