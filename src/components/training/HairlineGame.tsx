@@ -64,6 +64,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
   const [score, setScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
   const [eyebrowsLifted, setEyebrowsLifted] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [rotation, setRotation] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const round = faceShapes[currentRound];
@@ -268,9 +270,54 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
         <p className="text-sm text-muted-foreground text-center mb-2">
           {round.name}: {round.description}
         </p>
-        <p className="text-xs text-muted-foreground text-center mb-6">
+        <p className="text-xs text-muted-foreground text-center mb-4">
           Draw from left to right across the forehead
         </p>
+
+        {/* Control buttons at top */}
+        {!isSubmitted && (
+          <div className="flex flex-wrap justify-center gap-3 mb-4">
+            <Button
+              variant={showGuide ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowGuide(!showGuide)}
+            >
+              {showGuide ? 'Hide Guide' : 'Show Guide'}
+            </Button>
+            <Button
+              variant={eyebrowsLifted ? "default" : "outline"}
+              size="sm"
+              onClick={() => setEyebrowsLifted(!eyebrowsLifted)}
+            >
+              {eyebrowsLifted ? 'Release Eyebrows' : 'Lift Eyebrows'}
+            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRotation(r => r - 20)}
+                disabled={rotation <= -40}
+              >
+                ↺ 20°
+              </Button>
+              <span className="text-xs text-muted-foreground px-2">{rotation}°</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRotation(r => r + 20)}
+                disabled={rotation >= 40}
+              >
+                20° ↻
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {eyebrowsLifted && !isSubmitted && (
+          <p className="text-xs text-center text-muted-foreground mb-4">
+            The hairline should go <span className="text-green-500 font-medium">1 finger width above</span> the top wrinkle
+          </p>
+        )}
 
         {/* Large SVG Head with drawing area */}
         <div className="flex justify-center mb-6">
@@ -300,6 +347,9 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               </radialGradient>
             </defs>
 
+            {/* Head group with rotation */}
+            <g transform={`rotate(${rotation}, 150, 175)`} className="transition-transform duration-300">
+            
             {/* Neck */}
             <path d="M 125 260 L 125 295 Q 125 305, 135 305 L 165 305 Q 175 305, 175 295 L 175 260" fill="#d4a574" />
             
@@ -432,14 +482,19 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             {/* Forehead wrinkles - only visible when eyebrows lifted */}
             {eyebrowsLifted && (
               <g className="animate-fade-in">
-                {/* Wrinkle lines */}
-                <path d="M 110 105 Q 150 100, 190 105" stroke="#c9956a" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.6" />
-                <path d="M 115 92 Q 150 88, 185 92" stroke="#c9956a" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
-                <path d="M 120 80 Q 150 77, 180 80" stroke="#c9956a" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.4" />
+                {/* Wrinkle lines - more visible */}
+                <path d="M 105 108 Q 150 102, 195 108" stroke="#a07050" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                <path d="M 108 95 Q 150 88, 192 95" stroke="#a07050" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                <path d="M 112 82 Q 150 76, 188 82" stroke="#a07050" strokeWidth="2" strokeLinecap="round" fill="none" />
+                
+                {/* Wrinkle shadows for depth */}
+                <path d="M 105 110 Q 150 104, 195 110" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
+                <path d="M 108 97 Q 150 90, 192 97" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
+                <path d="M 112 84 Q 150 78, 188 84" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
                 
                 {/* Hairline guide - 1 finger above top wrinkle */}
-                <path d="M 95 65 Q 150 58, 205 65" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" fill="none" opacity="0.7" />
-                <text x="150" y="52" textAnchor="middle" fill="#22c55e" fontSize="10" opacity="0.8">↑ Hairline (1 finger above)</text>
+                <path d="M 95 65 Q 150 55, 205 65" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeDasharray="6 6" fill="none" />
+                <text x="150" y="48" textAnchor="middle" fill="#22c55e" fontSize="11" fontWeight="500">↑ Hairline (1 finger above)</text>
               </g>
             )}
 
@@ -456,9 +511,22 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             <path d="M 105 315 Q 130 300, 150 298 Q 170 300, 195 315" stroke="#374151" strokeWidth="10" fill="none" strokeLinecap="round" />
 
             {/* Forehead guide zone */}
-            <line x1="88" y1="55" x2="212" y2="55" stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="5 5" />
+            {showGuide && (
+              <path 
+                d="M 95 65 Q 150 55, 205 65" 
+                stroke="#22c55e" 
+                strokeWidth="3" 
+                strokeLinecap="round" 
+                strokeDasharray="6 6" 
+                fill="none" 
+                className="animate-fade-in"
+              />
+            )}
 
-            {/* User drawn hairline - completed strokes */}
+            </g>
+            {/* End of rotated head group */}
+
+            {/* User drawn hairline - completed strokes (not rotated) */}
             {strokes.map((stroke, index) => (
               stroke.length > 1 && (
                 <path
@@ -516,25 +584,6 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               The green dashed line shows the ideal hairline
             </p>
           </div>
-        )}
-
-        {/* Lift Eyebrows button */}
-        {!isSubmitted && (
-          <div className="flex justify-center mb-4">
-            <Button
-              variant={eyebrowsLifted ? "default" : "outline"}
-              onClick={() => setEyebrowsLifted(!eyebrowsLifted)}
-              className="gap-2"
-            >
-              {eyebrowsLifted ? 'Release Eyebrows' : 'Lift Eyebrows'}
-            </Button>
-          </div>
-        )}
-
-        {eyebrowsLifted && !isSubmitted && (
-          <p className="text-xs text-center text-muted-foreground mb-4">
-            The hairline should go <span className="text-green-500 font-medium">1 finger width above</span> the top wrinkle
-          </p>
         )}
 
         {/* Action buttons */}
