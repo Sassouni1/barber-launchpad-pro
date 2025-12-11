@@ -60,6 +60,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/courses', icon: BookOpen, label: 'Courses' },
     { to: '/todos', icon: ListTodo, label: 'To-Do Lists' },
     { to: '/settings', icon: Settings, label: 'Settings' },
+    { to: '/admin/course-builder', icon: FileEdit, label: 'Admin' },
   ];
 
   const adminLinks = [
