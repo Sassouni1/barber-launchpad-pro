@@ -11,15 +11,15 @@ interface Point {
   y: number;
 }
 
-// Different face shapes for practice - coordinates adjusted for 300x400 viewBox (taller head)
+// Different face shapes for practice - coordinates adjusted for 300x350 viewBox
 const faceShapes = [
   { 
     id: 'oval', 
     name: 'Oval Face', 
     description: 'Classic oval shape - aim for a natural rounded hairline',
     guidePoints: [
-      { x: 70, y: 95 }, { x: 95, y: 80 }, { x: 150, y: 72 }, 
-      { x: 205, y: 80 }, { x: 230, y: 95 }
+      { x: 70, y: 75 }, { x: 95, y: 60 }, { x: 150, y: 52 }, 
+      { x: 205, y: 60 }, { x: 230, y: 75 }
     ]
   },
   { 
@@ -27,8 +27,8 @@ const faceShapes = [
     name: 'Square Face', 
     description: 'Angular jawline - soften with a slightly rounded hairline',
     guidePoints: [
-      { x: 65, y: 100 }, { x: 90, y: 85 }, { x: 150, y: 75 }, 
-      { x: 210, y: 85 }, { x: 235, y: 100 }
+      { x: 65, y: 80 }, { x: 90, y: 65 }, { x: 150, y: 55 }, 
+      { x: 210, y: 65 }, { x: 235, y: 80 }
     ]
   },
   { 
@@ -36,8 +36,8 @@ const faceShapes = [
     name: 'Round Face', 
     description: 'Full cheeks - create height with a slightly higher hairline',
     guidePoints: [
-      { x: 75, y: 90 }, { x: 100, y: 75 }, { x: 150, y: 68 }, 
-      { x: 200, y: 75 }, { x: 225, y: 90 }
+      { x: 75, y: 70 }, { x: 100, y: 55 }, { x: 150, y: 48 }, 
+      { x: 200, y: 55 }, { x: 225, y: 70 }
     ]
   },
   { 
@@ -45,8 +45,8 @@ const faceShapes = [
     name: 'Heart Face', 
     description: 'Wide forehead - balance with a natural widow\'s peak',
     guidePoints: [
-      { x: 60, y: 98 }, { x: 90, y: 82 }, { x: 150, y: 70 }, 
-      { x: 210, y: 82 }, { x: 240, y: 98 }
+      { x: 60, y: 78 }, { x: 90, y: 62 }, { x: 150, y: 50 }, 
+      { x: 210, y: 62 }, { x: 240, y: 78 }
     ]
   },
 ];
@@ -77,7 +77,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
 
     const rect = svg.getBoundingClientRect();
     const scaleX = 300 / rect.width;
-    const scaleY = 400 / rect.height;
+    const scaleY = 350 / rect.height;
 
     if ('touches' in e) {
       const touch = e.touches[0];
@@ -295,8 +295,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setRotation(r => r - 10)}
-                disabled={rotation <= -20}
+                onClick={() => setRotation(r => r - 20)}
+                disabled={rotation <= -40}
               >
                 ← Turn
               </Button>
@@ -304,8 +304,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setRotation(r => r + 10)}
-                disabled={rotation >= 20}
+                onClick={() => setRotation(r => r + 20)}
+                disabled={rotation >= 40}
               >
                 Turn →
               </Button>
@@ -319,16 +319,16 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           </p>
         )}
 
-        {/* Large SVG Head with drawing area - subtle 3D perspective */}
+        {/* Large SVG Head with drawing area - 3D perspective rotation */}
         <div 
           className="flex justify-center mb-6"
           style={{ 
-            perspective: '800px',
-            perspectiveOrigin: '50% 40%'
+            perspective: '1000px',
+            perspectiveOrigin: '50% 50%'
           }}
         >
           <div
-            className="transition-transform duration-300 ease-out"
+            className="transition-transform duration-500 ease-out"
             style={{ 
               transformStyle: 'preserve-3d',
               transform: `rotateY(${rotation}deg)`,
@@ -336,8 +336,8 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           >
           <svg 
             ref={svgRef}
-            viewBox="0 0 300 400" 
-            className="w-80 h-[26rem] md:w-[400px] md:h-[520px] cursor-crosshair touch-none"
+            viewBox="0 0 300 350" 
+            className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
             style={{ 
               backfaceVisibility: 'hidden',
             }}
@@ -363,52 +363,52 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               </radialGradient>
             </defs>
 
-            {/* Head structure - keep in place */}
+            {/* Head group - no SVG rotation, using CSS 3D instead */}
             <g>
             
-            {/* Neck - moved down */}
-            <path d="M 125 300 L 125 340 Q 125 350, 135 350 L 165 350 Q 175 350, 175 340 L 175 300" fill="#d4a574" />
+            {/* Neck */}
+            <path d="M 125 260 L 125 295 Q 125 305, 135 305 L 165 305 Q 175 305, 175 295 L 175 260" fill="#d4a574" />
             
-            {/* Main face shape - same size, natural forehead */}
+            {/* Main face shape - proper proportions like reference */}
             <path 
               d={`
                 M 85 130
-                Q 80 90, 100 55
-                Q 130 25, 150 25
-                Q 170 25, 200 55
+                Q 80 90, 100 60
+                Q 130 35, 150 35
+                Q 170 35, 200 60
                 Q 220 90, 215 130
                 Q 218 170, 210 200
-                Q 200 250, 175 280
-                Q 155 295, 150 295
-                Q 145 295, 125 280
-                Q 100 250, 90 200
+                Q 200 240, 175 260
+                Q 155 272, 150 272
+                Q 145 272, 125 260
+                Q 100 240, 90 200
                 Q 82 170, 85 130
               `}
               fill="url(#skinGradient)"
             />
 
             {/* Bald top - subtle shine */}
-            <ellipse cx="150" cy="55" rx="55" ry="30" fill="url(#baldGradient)" />
+            <ellipse cx="150" cy="70" rx="50" ry="30" fill="url(#baldGradient)" />
 
-            {/* Ear left - moved down with face */}
-            <ellipse cx="78" cy="175" rx="10" ry="18" fill="#c9956a" />
-            <ellipse cx="80" cy="175" rx="7" ry="13" fill="#d4a574" />
+            {/* Ear left */}
+            <ellipse cx="78" cy="150" rx="10" ry="18" fill="#c9956a" />
+            <ellipse cx="80" cy="150" rx="7" ry="13" fill="#d4a574" />
             
-            {/* Ear right - moved down */}
-            <ellipse cx="222" cy="175" rx="10" ry="18" fill="#c9956a" />
-            <ellipse cx="220" cy="175" rx="7" ry="13" fill="#d4a574" />
+            {/* Ear right */}
+            <ellipse cx="222" cy="150" rx="10" ry="18" fill="#c9956a" />
+            <ellipse cx="220" cy="150" rx="7" ry="13" fill="#d4a574" />
 
-            {/* Hair on sides - left */}
+            {/* Hair on sides - left - matching reference style */}
             <path 
               d={`
-                M 95 50
-                Q 75 60, 70 100
-                Q 68 150, 75 200
-                Q 78 225, 85 240
-                L 92 235
-                Q 85 215, 83 180
-                Q 82 130, 88 85
-                Q 92 60, 105 50
+                M 95 55
+                Q 75 65, 70 100
+                Q 68 140, 75 180
+                Q 78 200, 85 210
+                L 92 205
+                Q 85 190, 83 160
+                Q 82 120, 88 85
+                Q 92 65, 105 55
                 Z
               `}
               fill="#2b2422"
@@ -417,14 +417,14 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
             {/* Hair on sides - right */}
             <path 
               d={`
-                M 205 50
-                Q 225 60, 230 100
-                Q 232 150, 225 200
-                Q 222 225, 215 240
-                L 208 235
-                Q 215 215, 217 180
-                Q 218 130, 212 85
-                Q 208 60, 195 50
+                M 205 55
+                Q 225 65, 230 100
+                Q 232 140, 225 180
+                Q 222 200, 215 210
+                L 208 205
+                Q 215 190, 217 160
+                Q 218 120, 212 85
+                Q 208 65, 195 55
                 Z
               `}
               fill="#2b2422"
@@ -432,54 +432,54 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
 
             {/* Hair texture lines - left */}
             <g stroke="rgba(0,0,0,0.2)" strokeWidth="1" fill="none">
-              <path d="M 78 80 Q 73 130, 78 190" />
-              <path d="M 85 70 Q 78 120, 82 180" />
+              <path d="M 78 80 Q 73 120, 78 170" />
+              <path d="M 85 70 Q 78 110, 82 160" />
             </g>
             
             {/* Hair texture lines - right */}
             <g stroke="rgba(0,0,0,0.2)" strokeWidth="1" fill="none">
-              <path d="M 222 80 Q 227 130, 222 190" />
-              <path d="M 215 70 Q 222 120, 218 180" />
+              <path d="M 222 80 Q 227 120, 222 170" />
+              <path d="M 215 70 Q 222 110, 218 160" />
             </g>
 
-            {/* Beard - chin area - moved down */}
+            {/* Beard - chin area */}
             <path 
               d={`
-                M 95 245
-                Q 105 280, 125 300
-                Q 140 310, 150 312
-                Q 160 310, 175 300
-                Q 195 280, 205 245
-                Q 195 265, 180 280
-                Q 160 295, 150 297
-                Q 140 295, 120 280
-                Q 105 265, 95 245
+                M 95 210
+                Q 105 245, 125 265
+                Q 140 275, 150 277
+                Q 160 275, 175 265
+                Q 195 245, 205 210
+                Q 195 225, 180 240
+                Q 160 255, 150 257
+                Q 140 255, 120 240
+                Q 105 225, 95 210
               `}
               fill="#2b2422"
             />
 
-            {/* Beard texture - moved down */}
+            {/* Beard texture */}
             <g stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" fill="none">
-              <path d="M 110 265 Q 118 285, 125 295" />
-              <path d="M 130 273 Q 138 290, 145 300" />
-              <path d="M 150 275 Q 155 293, 155 303" />
-              <path d="M 170 273 Q 162 290, 155 300" />
-              <path d="M 190 265 Q 182 285, 175 295" />
+              <path d="M 110 230 Q 118 250, 125 260" />
+              <path d="M 130 238 Q 138 255, 145 265" />
+              <path d="M 150 240 Q 155 258, 155 268" />
+              <path d="M 170 238 Q 162 255, 155 265" />
+              <path d="M 190 230 Q 182 250, 175 260" />
             </g>
 
-            {/* Eyes - moved down */}
-            <ellipse cx="120" cy="175" rx="14" ry="10" fill="#f5f5f0" />
-            <ellipse cx="180" cy="175" rx="14" ry="10" fill="#f5f5f0" />
-            <circle cx="122" cy="176" r="6" fill="#4a3525" />
-            <circle cx="178" cy="176" r="6" fill="#4a3525" />
-            <circle cx="123" cy="177" r="3" fill="#1a1210" />
-            <circle cx="177" cy="177" r="3" fill="#1a1210" />
-            <circle cx="124" cy="174" r="1.5" fill="#fff" />
-            <circle cx="178" cy="174" r="1.5" fill="#fff" />
+            {/* Eyes */}
+            <ellipse cx="120" cy="145" rx="14" ry="10" fill="#f5f5f0" />
+            <ellipse cx="180" cy="145" rx="14" ry="10" fill="#f5f5f0" />
+            <circle cx="122" cy="146" r="6" fill="#4a3525" />
+            <circle cx="178" cy="146" r="6" fill="#4a3525" />
+            <circle cx="123" cy="147" r="3" fill="#1a1210" />
+            <circle cx="177" cy="147" r="3" fill="#1a1210" />
+            <circle cx="124" cy="144" r="1.5" fill="#fff" />
+            <circle cx="178" cy="144" r="1.5" fill="#fff" />
 
-            {/* Eyebrows - moved down */}
+            {/* Eyebrows - lifted position when active */}
             <path 
-              d={eyebrowsLifted ? "M 100 155 Q 120 145, 135 155" : "M 100 160 Q 120 152, 135 160"} 
+              d={eyebrowsLifted ? "M 100 125 Q 120 115, 135 125" : "M 100 130 Q 120 122, 135 130"} 
               stroke="#2b2422" 
               strokeWidth="3" 
               strokeLinecap="round" 
@@ -487,7 +487,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               className="transition-all duration-300"
             />
             <path 
-              d={eyebrowsLifted ? "M 165 155 Q 180 145, 200 155" : "M 165 160 Q 180 152, 200 160"} 
+              d={eyebrowsLifted ? "M 165 125 Q 180 115, 200 125" : "M 165 130 Q 180 122, 200 130"} 
               stroke="#2b2422" 
               strokeWidth="3" 
               strokeLinecap="round" 
@@ -495,50 +495,49 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
               className="transition-all duration-300"
             />
 
-            {/* Forehead wrinkles - only visible when eyebrows lifted, moved down */}
+            {/* Forehead wrinkles - only visible when eyebrows lifted */}
             {eyebrowsLifted && (
               <g className="animate-fade-in">
-                {/* Wrinkle lines */}
-                <path d="M 105 138 Q 150 132, 195 138" stroke="#a07050" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                <path d="M 108 125 Q 150 118, 192 125" stroke="#a07050" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                <path d="M 112 112 Q 150 106, 188 112" stroke="#a07050" strokeWidth="2" strokeLinecap="round" fill="none" />
-                <path d="M 115 100 Q 150 94, 185 100" stroke="#a07050" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                {/* Wrinkle lines - more visible */}
+                <path d="M 105 108 Q 150 102, 195 108" stroke="#a07050" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                <path d="M 108 95 Q 150 88, 192 95" stroke="#a07050" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                <path d="M 112 82 Q 150 76, 188 82" stroke="#a07050" strokeWidth="2" strokeLinecap="round" fill="none" />
                 
                 {/* Wrinkle shadows for depth */}
-                <path d="M 105 140 Q 150 134, 195 140" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
-                <path d="M 108 127 Q 150 120, 192 127" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
-                <path d="M 112 114 Q 150 108, 188 114" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
+                <path d="M 105 110 Q 150 104, 195 110" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
+                <path d="M 108 97 Q 150 90, 192 97" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
+                <path d="M 112 84 Q 150 78, 188 84" stroke="#c9956a" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5" />
               </g>
             )}
 
-            {/* Nose - moved down, closer to mouth */}
-            <path d="M 150 180 L 147 210 Q 150 218, 153 210" stroke="#c9956a" strokeWidth="1.5" fill="none" />
+            {/* Nose */}
+            <path d="M 150 145 L 147 180 Q 150 188, 153 180" stroke="#c9956a" strokeWidth="1.5" fill="none" />
 
-            {/* Mouth - moved down */}
-            <path d="M 130 235 Q 150 247, 170 235" stroke="#a06050" strokeWidth="3" strokeLinecap="round" fill="none" />
+            {/* Mouth */}
+            <path d="M 130 210 Q 150 222, 170 210" stroke="#a06050" strokeWidth="3" strokeLinecap="round" fill="none" />
 
-            {/* Forehead shine */}
-            <ellipse cx="150" cy="70" rx="30" ry="15" fill="rgba(255,255,255,0.08)" opacity={eyebrowsLifted ? 0.3 : 1} />
+            {/* Forehead shine - less visible when wrinkles showing */}
+            <ellipse cx="150" cy="65" rx="30" ry="15" fill="rgba(255,255,255,0.08)" opacity={eyebrowsLifted ? 0.3 : 1} />
 
-            {/* Shirt collar - moved down */}
-            <path d="M 105 360 Q 130 345, 150 343 Q 170 345, 195 360" stroke="#374151" strokeWidth="10" fill="none" strokeLinecap="round" />
+            {/* Shirt collar */}
+            <path d="M 105 315 Q 130 300, 150 298 Q 170 300, 195 315" stroke="#374151" strokeWidth="10" fill="none" strokeLinecap="round" />
 
-            </g>
-            
             {/* Forehead guide zone - only when Show Guide is clicked */}
             {showGuide && (
               <g className="animate-fade-in">
                 <path 
-                  d="M 95 85 Q 150 75, 205 85" 
+                  d="M 95 70 Q 150 62, 205 70" 
                   stroke="#22c55e" 
                   strokeWidth="3" 
                   strokeLinecap="round" 
                   strokeDasharray="6 6" 
                   fill="none" 
                 />
-                <text x="150" y="65" textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="500">Ideal hairline</text>
+                <text x="150" y="55" textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="500">Ideal hairline</text>
               </g>
             )}
+
+            </g>
             {/* End of rotated head group */}
 
             {/* User drawn hairline - completed strokes (not rotated) */}
