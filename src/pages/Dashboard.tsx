@@ -3,6 +3,7 @@ import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
 import { ProgressOverview } from '@/components/dashboard/ProgressOverview';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
 import { TodoList } from '@/components/dashboard/TodoList';
+import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
 
 export default function Dashboard() {
   return (
@@ -11,6 +12,7 @@ export default function Dashboard() {
         <WelcomeHero />
         
         <div className="space-y-6">
+          <DynamicTodoList />
           <TodoList />
           <ProgressOverview />
           <ContinueLearning />
