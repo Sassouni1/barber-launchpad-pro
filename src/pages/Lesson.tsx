@@ -32,16 +32,16 @@ export default function Lesson() {
     );
   }
 
-  // Find the lesson
-  const lesson = courses
-    .flatMap((c) => (c.modules || []).flatMap((m) => (m.lessons || []).map((l) => ({ ...l, moduleName: m.title }))))
-    .find((l) => l.id === lessonId);
+  // Find the module (now acts as lesson)
+  const module = courses
+    .flatMap((c) => (c.modules || []).map((m) => ({ ...m, courseName: c.title })))
+    .find((m) => m.id === lessonId);
 
-  if (!lesson) {
+  if (!module) {
     return (
       <DashboardLayout>
         <div className="text-center py-20">
-          <h1 className="font-display text-2xl font-bold mb-4">Lesson not found</h1>
+          <h1 className="font-display text-2xl font-bold mb-4">Module not found</h1>
           <Button onClick={() => navigate('/courses')}>Back to Courses</Button>
         </div>
       </DashboardLayout>
@@ -57,8 +57,8 @@ export default function Lesson() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <p className="text-sm text-muted-foreground">{lesson.moduleName}</p>
-            <h1 className="font-display text-3xl font-bold">{lesson.title}</h1>
+            <p className="text-sm text-muted-foreground">{module.courseName}</p>
+            <h1 className="font-display text-3xl font-bold">{module.title}</h1>
           </div>
         </div>
 
@@ -70,9 +70,9 @@ export default function Lesson() {
               <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto mb-4 cursor-pointer hover:scale-110 transition-transform animate-pulse-gold">
                 <Play className="w-8 h-8 text-primary-foreground ml-1" />
               </div>
-              <p className="text-muted-foreground">Click to play lesson video</p>
-              {lesson.duration && (
-                <p className="text-sm text-muted-foreground mt-1">{lesson.duration}</p>
+              <p className="text-muted-foreground">Click to play module video</p>
+              {module.duration && (
+                <p className="text-sm text-muted-foreground mt-1">{module.duration}</p>
               )}
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function Lesson() {
             <FileText className="w-4 h-4 mr-2" />
             Resources
           </Button>
-          {lesson.has_quiz && (
+          {module.has_quiz && (
             <Button
               variant={activeTab === 'quiz' ? 'default' : 'secondary'}
               onClick={() => setActiveTab('quiz')}
@@ -98,7 +98,7 @@ export default function Lesson() {
               Quiz
             </Button>
           )}
-          {lesson.has_homework && (
+          {module.has_homework && (
             <Button
               variant={activeTab === 'homework' ? 'default' : 'secondary'}
               onClick={() => setActiveTab('homework')}
@@ -115,17 +115,17 @@ export default function Lesson() {
           {activeTab === 'video' && (
             <div className="space-y-6">
               <div>
-                <h2 className="font-display text-xl font-semibold mb-2">About This Lesson</h2>
-                <p className="text-muted-foreground">{lesson.description || 'No description available.'}</p>
+                <h2 className="font-display text-xl font-semibold mb-2">About This Module</h2>
+                <p className="text-muted-foreground">{module.description || 'No description available.'}</p>
               </div>
 
-              {lesson.has_download && (
+              {module.has_download && (
                 <div>
                   <h3 className="font-semibold mb-3">Downloadable Resources</h3>
                   <div className="space-y-2">
                     <Button variant="outline" className="w-full justify-start">
                       <Download className="w-4 h-4 mr-3" />
-                      Lesson Notes.pdf
+                      Module Notes.pdf
                     </Button>
                     <Button variant="outline" className="w-full justify-start">
                       <Download className="w-4 h-4 mr-3" />
@@ -142,25 +142,25 @@ export default function Lesson() {
             </div>
           )}
 
-          {activeTab === 'quiz' && lesson.has_quiz && (
+          {activeTab === 'quiz' && module.has_quiz && (
             <div className="space-y-6">
-              <h2 className="font-display text-xl font-semibold">Lesson Quiz</h2>
+              <h2 className="font-display text-xl font-semibold">Module Quiz</h2>
               <p className="text-muted-foreground">Quiz functionality coming soon.</p>
             </div>
           )}
 
-          {activeTab === 'homework' && lesson.has_homework && (
+          {activeTab === 'homework' && module.has_homework && (
             <div className="space-y-6">
               <h2 className="font-display text-xl font-semibold">Homework Assignment</h2>
               <div className="bg-secondary/30 p-4 rounded-lg space-y-4">
                 <p className="text-muted-foreground">
-                  Practice the techniques learned in this lesson and document your progress.
+                  Practice the techniques learned in this module and document your progress.
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground">
                   <li>Complete 3 practice sessions</li>
                   <li>Take before and after photos</li>
                   <li>Note any challenges faced</li>
-                  <li>Record questions for next lesson</li>
+                  <li>Record questions for next module</li>
                 </ul>
               </div>
 

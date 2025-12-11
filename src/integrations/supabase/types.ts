@@ -105,28 +105,43 @@ export type Database = {
           course_id: string
           created_at: string
           description: string | null
+          duration: string | null
+          has_download: boolean
+          has_homework: boolean
+          has_quiz: boolean
           id: string
           order_index: number
           title: string
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           course_id: string
           created_at?: string
           description?: string | null
+          duration?: string | null
+          has_download?: boolean
+          has_homework?: boolean
+          has_quiz?: boolean
           id?: string
           order_index?: number
           title: string
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           course_id?: string
           created_at?: string
           description?: string | null
+          duration?: string | null
+          has_download?: boolean
+          has_homework?: boolean
+          has_quiz?: boolean
           id?: string
           order_index?: number
           title?: string
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: [
           {

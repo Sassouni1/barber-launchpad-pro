@@ -1,7 +1,6 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useCourses } from '@/hooks/useCourses';
-import { Progress } from '@/components/ui/progress';
-import { ChevronDown, BookOpen, CheckCircle2, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2 } from 'lucide-react';
+import { useCourses, type Module } from '@/hooks/useCourses';
+import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -9,29 +8,18 @@ import { Button } from '@/components/ui/button';
 
 export default function Courses() {
   const { data: courses = [], isLoading } = useCourses();
-  const [expandedModules, setExpandedModules] = useState<string[]>([]);
-  const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [selectedModule, setSelectedModule] = useState<string | null>(null);
 
-  const toggleModule = (moduleId: string) => {
-    setExpandedModules(prev => 
-      prev.includes(moduleId) 
-        ? prev.filter(id => id !== moduleId)
-        : [...prev, moduleId]
-    );
-  };
-
-  // Find selected lesson data
-  const findLesson = () => {
+  // Find selected module data
+  const findModule = (): { module: Module; courseName: string } | null => {
     for (const course of courses) {
-      for (const module of course.modules || []) {
-        const lesson = (module.lessons || []).find(l => l.id === selectedLesson);
-        if (lesson) return { lesson, module, course };
-      }
+      const module = (course.modules || []).find(m => m.id === selectedModule);
+      if (module) return { module, courseName: course.title };
     }
     return null;
   };
 
-  const lessonData = findLesson();
+  const moduleData = findModule();
 
   if (isLoading) {
     return (
@@ -64,12 +52,12 @@ export default function Courses() {
   return (
     <DashboardLayout>
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
-        {/* Left Panel - Module Tabs */}
+        {/* Left Panel - Courses & Modules */}
         <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
           <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
             <div>
               <h1 className="font-display text-xl font-bold gold-text">Course Library</h1>
-              <p className="text-muted-foreground text-sm mt-1">Select a lesson to continue</p>
+              <p className="text-muted-foreground text-sm mt-1">Select a module to continue</p>
             </div>
             <Link to="/admin/courses">
               <Button variant="outline" size="sm" className="gap-2">
@@ -91,103 +79,65 @@ export default function Courses() {
                 </div>
 
                 {/* Modules */}
-                {(course.modules || []).map((module) => {
-                  const isExpanded = expandedModules.includes(module.id);
-                  const lessons = module.lessons || [];
-                  
-                  return (
-                    <div key={module.id} className="space-y-1">
-                      {/* Module Header */}
+                <div className="space-y-1 pl-2">
+                  {(course.modules || []).map((module) => {
+                    const isSelected = selectedModule === module.id;
+
+                    return (
                       <button
-                        onClick={() => toggleModule(module.id)}
+                        key={module.id}
+                        onClick={() => setSelectedModule(module.id)}
                         className={cn(
-                          'w-full p-3 rounded-lg flex items-center gap-3 transition-all duration-200',
-                          'bg-secondary/30 hover:bg-secondary/50 border border-border/30',
-                          isExpanded && 'bg-secondary/50 border-primary/30'
+                          'w-full p-3 rounded-lg flex items-center gap-3 transition-all duration-200 text-left',
+                          'hover:bg-secondary/30',
+                          isSelected && 'bg-primary/10 border border-primary/40'
                         )}
                       >
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-secondary text-muted-foreground">
-                          <BookOpen className="w-4 h-4" />
+                        <div className={cn(
+                          'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border',
+                          isSelected
+                            ? 'bg-primary/20 border-primary text-primary'
+                            : 'bg-secondary border-border text-foreground'
+                        )}>
+                          <Play className="w-4 h-4 ml-0.5" />
                         </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <h3 className="font-medium text-sm truncate">{module.title}</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {lessons.length} lessons
-                          </p>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">{module.title}</h4>
+                          {module.description && (
+                            <p className="text-xs text-muted-foreground truncate">{module.description}</p>
+                          )}
                         </div>
-                        <ChevronDown className={cn(
-                          'w-4 h-4 text-muted-foreground transition-transform duration-200',
-                          isExpanded && 'rotate-180'
-                        )} />
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {module.duration && (
+                            <span className="text-xs text-muted-foreground">{module.duration}</span>
+                          )}
+                          {module.has_quiz && (
+                            <span className="px-1.5 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-medium">
+                              Quiz
+                            </span>
+                          )}
+                        </div>
                       </button>
-
-                      {/* Lessons */}
-                      {isExpanded && (
-                        <div className="pl-2 space-y-1 animate-fade-in">
-                          {lessons.map((lesson) => {
-                            const isSelected = selectedLesson === lesson.id;
-
-                            return (
-                              <button
-                                key={lesson.id}
-                                onClick={() => setSelectedLesson(lesson.id)}
-                                className={cn(
-                                  'w-full p-3 rounded-lg flex items-center gap-3 transition-all duration-200 text-left',
-                                  'hover:bg-secondary/30',
-                                  isSelected && 'bg-primary/10 border border-primary/40'
-                                )}
-                              >
-                                <div className={cn(
-                                  'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 border',
-                                  isSelected
-                                    ? 'bg-primary/20 border-primary text-primary'
-                                    : 'bg-secondary border-border text-foreground'
-                                )}>
-                                  <Play className="w-3 h-3 ml-0.5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm truncate">{lesson.title}</h4>
-                                  {lesson.description && (
-                                    <p className="text-xs text-muted-foreground truncate">{lesson.description}</p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5 flex-shrink-0">
-                                  {lesson.duration && (
-                                    <span className="text-xs text-muted-foreground">{lesson.duration}</span>
-                                  )}
-                                  {lesson.has_quiz && (
-                                    <span className="px-1.5 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-medium">
-                                      Quiz
-                                    </span>
-                                  )}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right Panel - Lesson Content */}
+        {/* Right Panel - Module Content */}
         <div className="flex-1 overflow-y-auto">
-          {lessonData ? (
+          {moduleData ? (
             <div className="glass-card rounded-xl overflow-hidden h-full flex flex-col">
-              {/* Lesson Header */}
+              {/* Module Header */}
               <div className="p-6 border-b border-border/30">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                  <span>{lessonData.course.title}</span>
-                  <span>•</span>
-                  <span>{lessonData.module.title}</span>
+                  <span>{moduleData.courseName}</span>
                 </div>
-                <h1 className="font-display text-2xl font-bold gold-text">{lessonData.lesson.title}</h1>
-                {lessonData.lesson.description && (
-                  <p className="text-muted-foreground mt-1">{lessonData.lesson.description}</p>
+                <h1 className="font-display text-2xl font-bold gold-text">{moduleData.module.title}</h1>
+                {moduleData.module.description && (
+                  <p className="text-muted-foreground mt-1">{moduleData.module.description}</p>
                 )}
               </div>
 
@@ -198,21 +148,21 @@ export default function Courses() {
                   <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4 border border-primary/40 hover:bg-primary/30 transition-colors cursor-pointer group">
                     <Play className="w-8 h-8 text-primary ml-1 group-hover:scale-110 transition-transform" />
                   </div>
-                  {lessonData.lesson.duration && (
+                  {moduleData.module.duration && (
                     <p className="text-muted-foreground text-sm">
                       <Clock className="w-4 h-4 inline mr-1" />
-                      {lessonData.lesson.duration}
+                      {moduleData.module.duration}
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Lesson Resources */}
+              {/* Module Resources */}
               <div className="flex-1 p-6 space-y-4">
-                <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Lesson Resources</h3>
+                <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Module Resources</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {lessonData.lesson.has_download && (
+                  {moduleData.module.has_download && (
                     <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
                       <FileText className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
                       <h4 className="font-medium text-sm">Downloads</h4>
@@ -220,7 +170,7 @@ export default function Courses() {
                     </div>
                   )}
                   
-                  {lessonData.lesson.has_quiz && (
+                  {moduleData.module.has_quiz && (
                     <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
                       <HelpCircle className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
                       <h4 className="font-medium text-sm">Quiz</h4>
@@ -228,7 +178,7 @@ export default function Courses() {
                     </div>
                   )}
                   
-                  {lessonData.lesson.has_homework && (
+                  {moduleData.module.has_homework && (
                     <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors cursor-pointer group">
                       <ClipboardList className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
                       <h4 className="font-medium text-sm">Homework</h4>
@@ -238,7 +188,7 @@ export default function Courses() {
                 </div>
 
                 <button className="w-full mt-4 py-3 px-4 rounded-lg gold-gradient text-primary-foreground font-semibold hover:opacity-90 transition-opacity">
-                  Mark Lesson as Complete
+                  Mark Module as Complete
                 </button>
               </div>
             </div>
@@ -246,8 +196,8 @@ export default function Courses() {
             <div className="glass-card rounded-xl h-full flex items-center justify-center">
               <div className="text-center">
                 <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-2">Select a Lesson</h3>
-                <p className="text-muted-foreground">Choose a lesson from the left panel to view its content</p>
+                <h3 className="font-semibold text-lg mb-2">Select a Module</h3>
+                <p className="text-muted-foreground">Choose a module from the left panel to view its content</p>
               </div>
             </div>
           )}

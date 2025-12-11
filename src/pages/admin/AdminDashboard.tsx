@@ -5,14 +5,14 @@ import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2 } from 'luci
 export default function AdminDashboard() {
   const { data: courses = [], isLoading } = useCourses();
 
-  const totalLessons = courses.reduce(
-    (acc, c) => acc + (c.modules || []).reduce((m, mod) => m + (mod.lessons || []).length, 0),
+  const totalModules = courses.reduce(
+    (acc, c) => acc + (c.modules || []).length,
     0
   );
 
   const stats = [
     { icon: Users, label: 'Active Members', value: '—', change: 'Coming soon', color: 'text-primary' },
-    { icon: BookOpen, label: 'Total Lessons', value: totalLessons, change: `${courses.length} courses`, color: 'text-primary' },
+    { icon: BookOpen, label: 'Total Modules', value: totalModules, change: `${courses.length} courses`, color: 'text-primary' },
     { icon: Ticket, label: 'Invite Codes', value: '—', change: 'Coming soon', color: 'text-foreground' },
     { icon: TrendingUp, label: 'Avg Progress', value: '—', change: 'Coming soon', color: 'text-primary' },
   ];
@@ -60,7 +60,6 @@ export default function AdminDashboard() {
           {courses.length > 0 ? (
             <div className="space-y-4">
               {courses.map((course) => {
-                const lessonCount = (course.modules || []).reduce((m, mod) => m + (mod.lessons || []).length, 0);
                 const moduleCount = (course.modules || []).length;
 
                 return (
@@ -71,7 +70,7 @@ export default function AdminDashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{course.title}</div>
                       <div className="text-sm text-muted-foreground">
-                        {moduleCount} modules • {lessonCount} lessons
+                        {moduleCount} modules
                       </div>
                     </div>
                   </div>

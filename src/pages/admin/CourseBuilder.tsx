@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -33,12 +32,8 @@ import {
   useCreateModule,
   useUpdateModule,
   useDeleteModule,
-  useCreateLesson,
-  useUpdateLesson,
-  useDeleteLesson,
   type CourseWithModules,
   type Module,
-  type Lesson,
 } from '@/hooks/useCourses';
 import {
   AlertDialog,
@@ -59,30 +54,22 @@ export default function CourseBuilder() {
   const createModule = useCreateModule();
   const updateModule = useUpdateModule();
   const deleteModule = useDeleteModule();
-  const createLesson = useCreateLesson();
-  const updateLesson = useUpdateLesson();
-  const deleteLesson = useDeleteLesson();
 
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
-  const [expandedModule, setExpandedModule] = useState<string | null>(null);
 
   // Dialog states
   const [showCourseDialog, setShowCourseDialog] = useState(false);
   const [showModuleDialog, setShowModuleDialog] = useState(false);
-  const [showLessonDialog, setShowLessonDialog] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseWithModules | null>(null);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
-  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
 
   // Delete confirmation
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module' | 'lesson'; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module'; id: string; name: string } | null>(null);
 
   // Form states
   const [courseForm, setCourseForm] = useState({ title: '', description: '' });
-  const [moduleForm, setModuleForm] = useState({ title: '', description: '' });
-  const [lessonForm, setLessonForm] = useState({
+  const [moduleForm, setModuleForm] = useState({
     title: '',
     description: '',
     video_url: '',
@@ -119,13 +106,21 @@ export default function CourseBuilder() {
   const openNewModule = (courseId: string) => {
     setSelectedCourseId(courseId);
     setEditingModule(null);
-    setModuleForm({ title: '', description: '' });
+    setModuleForm({ title: '', description: '', video_url: '', duration: '', has_download: false, has_quiz: false, has_homework: false });
     setShowModuleDialog(true);
   };
 
   const openEditModule = (module: Module) => {
     setEditingModule(module);
-    setModuleForm({ title: module.title, description: module.description || '' });
+    setModuleForm({
+      title: module.title,
+      description: module.description || '',
+      video_url: module.video_url || '',
+      duration: module.duration || '',
+      has_download: module.has_download ?? false,
+      has_quiz: module.has_quiz ?? false,
+      has_homework: module.has_homework ?? false,
+    });
     setShowModuleDialog(true);
   };
 
@@ -140,49 +135,14 @@ export default function CourseBuilder() {
     setShowModuleDialog(false);
   };
 
-  // Lesson handlers
-  const openNewLesson = (moduleId: string) => {
-    setSelectedModuleId(moduleId);
-    setEditingLesson(null);
-    setLessonForm({ title: '', description: '', video_url: '', duration: '', has_download: false, has_quiz: false, has_homework: false });
-    setShowLessonDialog(true);
-  };
-
-  const openEditLesson = (lesson: Lesson) => {
-    setEditingLesson(lesson);
-    setLessonForm({
-      title: lesson.title,
-      description: lesson.description || '',
-      video_url: lesson.video_url || '',
-      duration: lesson.duration || '',
-      has_download: lesson.has_download,
-      has_quiz: lesson.has_quiz,
-      has_homework: lesson.has_homework,
-    });
-    setShowLessonDialog(true);
-  };
-
-  const handleSaveLesson = async () => {
-    if (editingLesson) {
-      await updateLesson.mutateAsync({ id: editingLesson.id, ...lessonForm });
-    } else if (selectedModuleId) {
-      const module = courses?.flatMap((c) => c.modules).find((m) => m.id === selectedModuleId);
-      const maxOrder = module?.lessons.reduce((max, l) => Math.max(max, l.order_index), -1) ?? -1;
-      await createLesson.mutateAsync({ module_id: selectedModuleId, ...lessonForm, order_index: maxOrder + 1 });
-    }
-    setShowLessonDialog(false);
-  };
-
   // Delete handlers
   const handleDelete = async () => {
     if (!deleteTarget) return;
     
     if (deleteTarget.type === 'course') {
       await deleteCourse.mutateAsync(deleteTarget.id);
-    } else if (deleteTarget.type === 'module') {
-      await deleteModule.mutateAsync(deleteTarget.id);
     } else {
-      await deleteLesson.mutateAsync(deleteTarget.id);
+      await deleteModule.mutateAsync(deleteTarget.id);
     }
     setDeleteTarget(null);
   };
@@ -284,113 +244,54 @@ export default function CourseBuilder() {
               {expandedCourse === course.id && (
                 <div className="border-t border-border/30">
                   {course.modules.map((module) => (
-                    <div key={module.id} className="border-b border-border/20 last:border-b-0">
-                      <button
-                        onClick={() => setExpandedModule(expandedModule === module.id ? null : module.id)}
-                        className="w-full px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors"
-                      >
-                        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
-                        <div className="flex-1 text-left">
-                          <h3 className="font-medium">{module.title}</h3>
-                          <p className="text-xs text-muted-foreground">{module.lessons.length} lessons</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditModule(module);
-                            }}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteTarget({ type: 'module', id: module.id, name: module.title });
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                          {expandedModule === module.id ? (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <div
+                      key={module.id}
+                      className="px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors border-b border-border/20 last:border-b-0"
+                    >
+                      <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{module.title}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Video className="w-3 h-3" />
+                            {module.duration || 'No duration'}
+                          </span>
+                          {module.has_download && (
+                            <span className="text-xs text-primary flex items-center gap-1">
+                              <FileText className="w-3 h-3" />
+                              Files
+                            </span>
+                          )}
+                          {module.has_quiz && (
+                            <span className="text-xs text-primary flex items-center gap-1">
+                              <HelpCircle className="w-3 h-3" />
+                              Quiz
+                            </span>
+                          )}
+                          {module.has_homework && (
+                            <span className="text-xs text-primary flex items-center gap-1">
+                              <ClipboardList className="w-3 h-3" />
+                              Homework
+                            </span>
                           )}
                         </div>
-                      </button>
-
-                      {/* Lessons */}
-                      {expandedModule === module.id && (
-                        <div className="px-6 pb-4 space-y-2 ml-12">
-                          {module.lessons.map((lesson) => (
-                            <div
-                              key={lesson.id}
-                              className="flex items-center gap-3 p-3 rounded-lg bg-secondary/20 hover:bg-secondary/30 transition-colors"
-                            >
-                              <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm truncate">{lesson.title}</div>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <Video className="w-3 h-3" />
-                                    {lesson.duration || 'No duration'}
-                                  </span>
-                                  {lesson.has_download && (
-                                    <span className="text-xs text-primary flex items-center gap-1">
-                                      <FileText className="w-3 h-3" />
-                                      Files
-                                    </span>
-                                  )}
-                                  {lesson.has_quiz && (
-                                    <span className="text-xs text-primary flex items-center gap-1">
-                                      <HelpCircle className="w-3 h-3" />
-                                      Quiz
-                                    </span>
-                                  )}
-                                  {lesson.has_homework && (
-                                    <span className="text-xs text-primary flex items-center gap-1">
-                                      <ClipboardList className="w-3 h-3" />
-                                      Homework
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => openEditLesson(lesson)}
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => setDeleteTarget({ type: 'lesson', id: lesson.id, name: lesson.title })}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ))}
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full mt-2"
-                            onClick={() => openNewLesson(module.id)}
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Lesson
-                          </Button>
-                        </div>
-                      )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEditModule(module)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget({ type: 'module', id: module.id, name: module.title })}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
 
@@ -440,7 +341,7 @@ export default function CourseBuilder() {
               disabled={!courseForm.title || createCourse.isPending || updateCourse.isPending}
             >
               {createCourse.isPending || updateCourse.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : null}
               {editingCourse ? 'Save Changes' : 'Create Course'}
             </Button>
@@ -450,7 +351,7 @@ export default function CourseBuilder() {
 
       {/* Module Dialog */}
       <Dialog open={showModuleDialog} onOpenChange={setShowModuleDialog}>
-        <DialogContent className="glass-card border-border/50">
+        <DialogContent className="glass-card border-border/50 max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">
               {editingModule ? 'Edit Module' : 'New Module'}
@@ -462,7 +363,7 @@ export default function CourseBuilder() {
               <Input
                 value={moduleForm.title}
                 onChange={(e) => setModuleForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="e.g., Getting Started"
+                placeholder="e.g., Introduction to Hair Systems"
                 className="bg-secondary/50"
               />
             </div>
@@ -471,8 +372,47 @@ export default function CourseBuilder() {
               <Textarea
                 value={moduleForm.description}
                 onChange={(e) => setModuleForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Module overview"
+                placeholder="Module description..."
                 className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Video URL</Label>
+              <Input
+                value={moduleForm.video_url}
+                onChange={(e) => setModuleForm((f) => ({ ...f, video_url: e.target.value }))}
+                placeholder="https://..."
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Duration</Label>
+              <Input
+                value={moduleForm.duration}
+                onChange={(e) => setModuleForm((f) => ({ ...f, duration: e.target.value }))}
+                placeholder="e.g., 15:30"
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Downloadable Files</Label>
+              <Switch
+                checked={moduleForm.has_download}
+                onCheckedChange={(checked) => setModuleForm((f) => ({ ...f, has_download: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Quiz</Label>
+              <Switch
+                checked={moduleForm.has_quiz}
+                onCheckedChange={(checked) => setModuleForm((f) => ({ ...f, has_quiz: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Homework</Label>
+              <Switch
+                checked={moduleForm.has_homework}
+                onCheckedChange={(checked) => setModuleForm((f) => ({ ...f, has_homework: checked }))}
               />
             </div>
             <Button
@@ -481,109 +421,9 @@ export default function CourseBuilder() {
               disabled={!moduleForm.title || createModule.isPending || updateModule.isPending}
             >
               {createModule.isPending || updateModule.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : null}
               {editingModule ? 'Save Changes' : 'Create Module'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Lesson Dialog */}
-      <Dialog open={showLessonDialog} onOpenChange={setShowLessonDialog}>
-        <DialogContent className="glass-card border-border/50 max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl">
-              {editingLesson ? 'Edit Lesson' : 'New Lesson'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Lesson Title</Label>
-                <Input
-                  value={lessonForm.title}
-                  onChange={(e) => setLessonForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g., Introduction to Techniques"
-                  className="bg-secondary/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Duration</Label>
-                <Input
-                  value={lessonForm.duration}
-                  onChange={(e) => setLessonForm((f) => ({ ...f, duration: e.target.value }))}
-                  placeholder="e.g., 15:30"
-                  className="bg-secondary/50"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Video URL</Label>
-              <Input
-                value={lessonForm.video_url}
-                onChange={(e) => setLessonForm((f) => ({ ...f, video_url: e.target.value }))}
-                placeholder="Vimeo or YouTube URL"
-                className="bg-secondary/50"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={lessonForm.description}
-                onChange={(e) => setLessonForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="What will students learn in this lesson?"
-                className="bg-secondary/50"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <Label>Optional Content</Label>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/30">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary" />
-                    <span className="text-sm">Downloads</span>
-                  </div>
-                  <Switch
-                    checked={lessonForm.has_download}
-                    onCheckedChange={(v) => setLessonForm((f) => ({ ...f, has_download: v }))}
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/30">
-                  <div className="flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4 text-primary" />
-                    <span className="text-sm">Quiz</span>
-                  </div>
-                  <Switch
-                    checked={lessonForm.has_quiz}
-                    onCheckedChange={(v) => setLessonForm((f) => ({ ...f, has_quiz: v }))}
-                  />
-                </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/30">
-                  <div className="flex items-center gap-2">
-                    <ClipboardList className="w-4 h-4 text-primary" />
-                    <span className="text-sm">Homework</span>
-                  </div>
-                  <Switch
-                    checked={lessonForm.has_homework}
-                    onCheckedChange={(v) => setLessonForm((f) => ({ ...f, has_homework: v }))}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Button
-              className="w-full gold-gradient text-primary-foreground"
-              onClick={handleSaveLesson}
-              disabled={!lessonForm.title || createLesson.isPending || updateLesson.isPending}
-            >
-              {createLesson.isPending || updateLesson.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              {editingLesson ? 'Save Changes' : 'Create Lesson'}
             </Button>
           </div>
         </DialogContent>
@@ -596,15 +436,13 @@ export default function CourseBuilder() {
             <AlertDialogTitle>Delete {deleteTarget?.type}?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{deleteTarget?.name}"? This action cannot be undone.
-              {deleteTarget?.type === 'course' && ' All modules and lessons within this course will also be deleted.'}
-              {deleteTarget?.type === 'module' && ' All lessons within this module will also be deleted.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>

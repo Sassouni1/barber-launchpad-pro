@@ -15,24 +15,21 @@ export function ContinueLearning() {
     );
   }
 
-  // Find the first lesson from any course
-  const firstLesson = courses
+  // Find the first module from any course
+  const firstModule = courses
     .flatMap((course) =>
-      (course.modules || []).flatMap((module) =>
-        (module.lessons || []).map((lesson) => ({
-          ...lesson,
-          courseName: course.title,
-          moduleName: module.title,
-        }))
-      )
+      (course.modules || []).map((module) => ({
+        ...module,
+        courseName: course.title,
+      }))
     )[0];
 
-  if (!firstLesson) {
+  if (!firstModule) {
     return (
       <div className="glass-card cyber-corners p-6 rounded-xl animate-fade-up" style={{ animationDelay: '0.2s' }}>
         <div className="text-center py-8">
           <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-semibold text-lg mb-2">No Lessons Available</h3>
+          <h3 className="font-semibold text-lg mb-2">No Modules Available</h3>
           <p className="text-muted-foreground mb-4">Create courses in the Admin panel to get started</p>
           <Button onClick={() => navigate('/admin/courses')} variant="outline">
             Go to Admin
@@ -56,27 +53,27 @@ export function ContinueLearning() {
       </div>
 
       <div className="space-y-4">
-        {/* Module label */}
+        {/* Course label */}
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-primary" />
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">{firstLesson.moduleName}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">{firstModule.courseName}</p>
         </div>
         
         {/* Title */}
-        <h3 className="font-display text-2xl font-bold tracking-tight">{firstLesson.title}</h3>
-        {firstLesson.description && (
-          <p className="text-muted-foreground leading-relaxed">{firstLesson.description}</p>
+        <h3 className="font-display text-2xl font-bold tracking-tight">{firstModule.title}</h3>
+        {firstModule.description && (
+          <p className="text-muted-foreground leading-relaxed">{firstModule.description}</p>
         )}
 
         {/* Meta info */}
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {firstLesson.duration && (
+          {firstModule.duration && (
             <span className="flex items-center gap-1.5 px-2 py-1 bg-secondary/50 rounded-md border border-border/30">
               <Clock className="w-4 h-4 text-primary" />
-              {firstLesson.duration}
+              {firstModule.duration}
             </span>
           )}
-          {firstLesson.has_download && (
+          {firstModule.has_download && (
             <span className="flex items-center gap-1.5 px-2 py-1 bg-secondary/50 rounded-md border border-border/30">
               <FileText className="w-4 h-4 text-primary" />
               Resources
@@ -90,7 +87,7 @@ export function ContinueLearning() {
           className="w-full h-12 gold-gradient text-primary-foreground font-semibold text-base hover:opacity-90 transition-all group gold-glow"
         >
           <Play className="w-5 h-5 mr-2" />
-          Start Lesson
+          Start Module
           <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
         </Button>
       </div>

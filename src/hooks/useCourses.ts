@@ -5,10 +5,9 @@ import { toast } from 'sonner';
 
 export type Course = Tables<'courses'>;
 export type Module = Tables<'modules'>;
-export type Lesson = Tables<'lessons'>;
 
 export type CourseWithModules = Course & {
-  modules: (Module & { lessons: Lesson[] })[];
+  modules: Module[];
 };
 
 export function useCourses() {
@@ -29,22 +28,10 @@ export function useCourses() {
 
       if (modulesError) throw modulesError;
 
-      const { data: lessons, error: lessonsError } = await supabase
-        .from('lessons')
-        .select('*')
-        .order('order_index');
-
-      if (lessonsError) throw lessonsError;
-
       // Combine data
       const coursesWithModules: CourseWithModules[] = courses.map((course) => ({
         ...course,
-        modules: modules
-          .filter((m) => m.course_id === course.id)
-          .map((module) => ({
-            ...module,
-            lessons: lessons.filter((l) => l.module_id === module.id),
-          })),
+        modules: modules.filter((m) => m.course_id === course.id),
       }));
 
       return coursesWithModules;
@@ -162,63 +149,6 @@ export function useDeleteModule() {
     },
     onError: (error) => {
       toast.error('Failed to delete module: ' + error.message);
-    },
-  });
-}
-
-// Lesson mutations
-export function useCreateLesson() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (lesson: TablesInsert<'lessons'>) => {
-      const { data, error } = await supabase.from('lessons').insert(lesson).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
-      toast.success('Lesson created successfully');
-    },
-    onError: (error) => {
-      toast.error('Failed to create lesson: ' + error.message);
-    },
-  });
-}
-
-export function useUpdateLesson() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: TablesUpdate<'lessons'> & { id: string }) => {
-      const { data, error } = await supabase.from('lessons').update(updates).eq('id', id).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
-      toast.success('Lesson updated successfully');
-    },
-    onError: (error) => {
-      toast.error('Failed to update lesson: ' + error.message);
-    },
-  });
-}
-
-export function useDeleteLesson() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('lessons').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
-      toast.success('Lesson deleted successfully');
-    },
-    onError: (error) => {
-      toast.error('Failed to delete lesson: ' + error.message);
     },
   });
 }
