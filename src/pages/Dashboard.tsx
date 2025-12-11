@@ -11,8 +11,8 @@ export default function Dashboard() {
         <WelcomeHero />
         
         <div className="space-y-6">
-          <ProgressOverview />
           <TodoList />
+          <ProgressOverview />
           <ContinueLearning />
         </div>
       </div>
