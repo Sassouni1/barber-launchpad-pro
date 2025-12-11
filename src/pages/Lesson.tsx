@@ -27,6 +27,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getVimeoEmbedUrl } from '@/lib/utils';
 
 export default function Lesson() {
   const navigate = useNavigate();
@@ -159,9 +160,7 @@ export default function Lesson() {
           <div className="aspect-video bg-black relative">
             {module.video_url ? (
               <iframe
-                src={module.video_url.includes('vimeo.com') 
-                  ? module.video_url.replace('vimeo.com/', 'player.vimeo.com/video/').replace('https://www.', 'https://') + '?autoplay=0&title=0&byline=0&portrait=0'
-                  : module.video_url}
+                src={getVimeoEmbedUrl(module.video_url)}
                 className="absolute inset-0 w-full h-full"
                 allow="autoplay; fullscreen; picture-in-picture"
                 allowFullScreen
