@@ -170,42 +170,88 @@ export function TopViewHeadSVGContent({
         </g>
       )}
 
-      {/* TEMPLE THINNING - Full Top Recession */}
+      {/* FULL TOP RECESSION - Norwood 6-7 horseshoe pattern */}
       {thinningPattern === "temples" && (
         <g>
-          {/* Large central bald area covering most of top */}
+          {/* Single clean bald scalp area */}
           <ellipse 
             cx="150" 
-            cy="150" 
-            rx="80" 
-            ry="100" 
-            fill="url(#thinningGrad)" 
+            cy="155" 
+            rx="75" 
+            ry="95" 
+            fill="#f0dcc8"
           />
-          {/* Solid scalp showing through */}
+          
+          {/* Subtle scalp shine highlight */}
           <ellipse 
-            cx="150" 
+            cx="140" 
             cy="130" 
-            rx="70" 
-            ry="75" 
-            fill="#f5e6d3"
-            opacity="0.85"
+            rx="40" 
+            ry="30" 
+            fill="#f8ebe0"
+            opacity="0.6"
           />
-          <ellipse 
-            cx="150" 
-            cy="180" 
-            rx="60" 
-            ry="50" 
-            fill="#f5e6d3"
-            opacity="0.7"
+          
+          {/* HORSESHOE HAIR - Left side */}
+          <path
+            d="M 58,135 
+               C 52,165 52,210 60,250
+               C 70,285 100,310 150,315
+               L 150,295
+               C 110,290 88,270 80,245
+               C 72,215 73,180 78,150
+               C 82,130 75,115 58,135"
+            fill={hairColor}
           />
-          {/* Sparse remaining hairs on sides */}
-          <g stroke={hairColor} strokeWidth="0.6" opacity="0.25">
-            <line x1="78" y1="100" x2="76" y2="115" />
-            <line x1="222" y1="100" x2="224" y2="115" />
-            <line x1="70" y1="160" x2="68" y2="175" />
-            <line x1="230" y1="160" x2="232" y2="175" />
-            <line x1="75" y1="220" x2="73" y2="235" />
-            <line x1="225" y1="220" x2="227" y2="235" />
+          
+          {/* HORSESHOE HAIR - Right side */}
+          <path
+            d="M 242,135
+               C 248,165 248,210 240,250
+               C 230,285 200,310 150,315
+               L 150,295
+               C 190,290 212,270 220,245
+               C 228,215 227,180 222,150
+               C 218,130 225,115 242,135"
+            fill={hairColor}
+          />
+          
+          {/* HORSESHOE HAIR - Back connection */}
+          <path
+            d="M 80,255
+               C 100,285 130,300 150,302
+               C 170,300 200,285 220,255
+               L 210,270
+               C 190,290 170,300 150,302
+               C 130,300 110,290 90,270
+               Z"
+            fill={hairColor}
+          />
+          
+          {/* Hair texture on left side */}
+          <g stroke={lighterHair} strokeWidth="0.8" opacity="0.4" fill="none">
+            <path d="M 65,160 Q 68,180 70,200" />
+            <path d="M 70,175 Q 72,195 75,215" />
+            <path d="M 68,200 Q 72,220 78,240" />
+            <path d="M 73,220 Q 80,245 90,265" />
+            <path d="M 80,250 Q 95,275 115,290" />
+            <path d="M 100,270 Q 120,288 140,298" />
+          </g>
+          
+          {/* Hair texture on right side */}
+          <g stroke={lighterHair} strokeWidth="0.8" opacity="0.4" fill="none">
+            <path d="M 235,160 Q 232,180 230,200" />
+            <path d="M 230,175 Q 228,195 225,215" />
+            <path d="M 232,200 Q 228,220 222,240" />
+            <path d="M 227,220 Q 220,245 210,265" />
+            <path d="M 220,250 Q 205,275 185,290" />
+            <path d="M 200,270 Q 180,288 160,298" />
+          </g>
+          
+          {/* Hair texture on back */}
+          <g stroke={lighterHair} strokeWidth="0.7" opacity="0.35" fill="none">
+            <path d="M 120,285 Q 135,295 150,298" />
+            <path d="M 180,285 Q 165,295 150,298" />
           </g>
         </g>
       )}
