@@ -36,18 +36,9 @@ export function TopViewHeadSVGContent({
           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
         </radialGradient>
 
-        {/* Dense hair strand pattern */}
-        <pattern id="hairStrands" x="0" y="0" width="6" height="8" patternUnits="userSpaceOnUse">
-          <line x1="1" y1="0" x2="0.5" y2="8" stroke="rgba(0,0,0,0.25)" strokeWidth="0.8" />
-          <line x1="3" y1="0" x2="2.5" y2="8" stroke="rgba(0,0,0,0.2)" strokeWidth="0.6" />
-          <line x1="5" y1="0" x2="4.5" y2="8" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
-        </pattern>
-
-        {/* Finer hair texture */}
-        <pattern id="hairTextureFine" x="0" y="0" width="3" height="5" patternUnits="userSpaceOnUse">
-          <line x1="0.5" y1="0" x2="0.3" y2="5" stroke="rgba(255,255,255,0.12)" strokeWidth="0.4" />
-          <line x1="1.5" y1="0" x2="1.3" y2="5" stroke="rgba(0,0,0,0.1)" strokeWidth="0.3" />
-          <line x1="2.5" y1="0" x2="2.3" y2="5" stroke="rgba(255,255,255,0.08)" strokeWidth="0.3" />
+        <pattern id="hairTexture" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
+          <line x1="2" y1="0" x2="2" y2="4" stroke="rgba(0,0,0,0.08)" strokeWidth="0.5" />
         </pattern>
       </defs>
 
@@ -78,7 +69,7 @@ export function TopViewHeadSVGContent({
         fill="url(#hairDepth)"
       />
 
-      {/* Hair strand pattern overlay */}
+      {/* Hair texture overlay */}
       <path
         d="
           M 150,60
@@ -89,108 +80,52 @@ export function TopViewHeadSVGContent({
           C 248,200 250,165 242,135
           C 230,90 195,62 150,60
         "
-        fill="url(#hairStrands)"
+        fill="url(#hairTexture)"
+        opacity="0.4"
       />
 
-      {/* Fine texture overlay */}
-      <path
-        d="
-          M 150,60
-          C 105,62 70,90 58,135
-          C 50,165 52,200 60,245
-          C 70,280 100,305 150,310
-          C 200,305 230,280 240,245
-          C 248,200 250,165 242,135
-          C 230,90 195,62 150,60
-        "
-        fill="url(#hairTextureFine)"
-      />
-
-      {/* Dense visible hair strands - Front section */}
-      <g stroke={hairColor} strokeWidth="1" opacity="0.35" fill="none">
-        <path d="M 150,65 Q 148,85 146,105" />
-        <path d="M 145,66 Q 142,86 139,106" />
-        <path d="M 155,66 Q 158,86 161,106" />
-        <path d="M 140,68 Q 135,88 130,108" />
-        <path d="M 160,68 Q 165,88 170,108" />
-        <path d="M 135,70 Q 128,90 122,112" />
-        <path d="M 165,70 Q 172,90 178,112" />
-        <path d="M 130,73 Q 120,95 112,118" />
-        <path d="M 170,73 Q 180,95 188,118" />
-        <path d="M 125,77 Q 112,100 102,125" />
-        <path d="M 175,77 Q 188,100 198,125" />
-        <path d="M 120,82 Q 105,108 94,135" />
-        <path d="M 180,82 Q 195,108 206,135" />
-        <path d="M 115,88 Q 98,115 86,145" />
-        <path d="M 185,88 Q 202,115 214,145" />
-        <path d="M 110,95 Q 92,125 80,158" />
-        <path d="M 190,95 Q 208,125 220,158" />
+      {/* Dense hair strand lines */}
+      <g stroke={hairColor} strokeWidth="0.6" opacity="0.2" fill="none">
+        {/* Top section radiating from crown */}
+        <path d="M 150,70 Q 148,100 145,130" />
+        <path d="M 140,72 Q 135,100 130,130" />
+        <path d="M 160,72 Q 165,100 170,130" />
+        <path d="M 130,75 Q 120,100 115,135" />
+        <path d="M 170,75 Q 180,100 185,135" />
+        <path d="M 120,80 Q 108,110 100,145" />
+        <path d="M 180,80 Q 192,110 200,145" />
+        <path d="M 110,88 Q 95,120 88,160" />
+        <path d="M 190,88 Q 205,120 212,160" />
+        
+        {/* Middle section */}
+        <path d="M 85,140 Q 80,180 82,220" />
+        <path d="M 215,140 Q 220,180 218,220" />
+        <path d="M 95,130 Q 88,170 90,210" />
+        <path d="M 205,130 Q 212,170 210,210" />
+        
+        {/* Lower section curving toward back */}
+        <path d="M 100,200 Q 105,240 120,270" />
+        <path d="M 200,200 Q 195,240 180,270" />
+        <path d="M 120,220 Q 128,255 140,285" />
+        <path d="M 180,220 Q 172,255 160,285" />
+        <path d="M 140,240 Q 145,270 150,295" />
+        <path d="M 160,240 Q 155,270 150,295" />
       </g>
 
-      {/* Dense visible hair strands - Middle section */}
-      <g stroke={hairColor} strokeWidth="0.9" opacity="0.3" fill="none">
-        <path d="M 78,130 Q 72,160 70,190" />
-        <path d="M 222,130 Q 228,160 230,190" />
-        <path d="M 82,140 Q 75,170 73,200" />
-        <path d="M 218,140 Q 225,170 227,200" />
-        <path d="M 86,150 Q 78,180 76,210" />
-        <path d="M 214,150 Q 222,180 224,210" />
-        <path d="M 75,170 Q 70,200 72,230" />
-        <path d="M 225,170 Q 230,200 228,230" />
-        <path d="M 72,190 Q 68,220 74,250" />
-        <path d="M 228,190 Q 232,220 226,250" />
-      </g>
-
-      {/* Dense visible hair strands - Back/Crown section */}
-      <g stroke={hairColor} strokeWidth="0.9" opacity="0.3" fill="none">
-        <path d="M 80,220 Q 88,250 105,275" />
-        <path d="M 220,220 Q 212,250 195,275" />
-        <path d="M 90,230 Q 100,258 118,282" />
-        <path d="M 210,230 Q 200,258 182,282" />
-        <path d="M 100,240 Q 112,265 130,288" />
-        <path d="M 200,240 Q 188,265 170,288" />
-        <path d="M 115,250 Q 125,272 140,292" />
-        <path d="M 185,250 Q 175,272 160,292" />
-        <path d="M 130,258 Q 138,278 148,296" />
-        <path d="M 170,258 Q 162,278 152,296" />
-        <path d="M 145,262 Q 148,280 150,298" />
-        <path d="M 155,262 Q 152,280 150,298" />
-      </g>
-
-      {/* Lighter highlight strands */}
-      <g stroke={lighterHair} strokeWidth="0.7" opacity="0.25" fill="none">
-        <path d="M 148,68 Q 145,90 142,112" />
-        <path d="M 152,68 Q 155,90 158,112" />
-        <path d="M 138,72 Q 130,95 124,118" />
-        <path d="M 162,72 Q 170,95 176,118" />
-        <path d="M 128,80 Q 115,105 105,132" />
-        <path d="M 172,80 Q 185,105 195,132" />
-        <path d="M 118,90 Q 102,118 90,148" />
-        <path d="M 182,90 Q 198,118 210,148" />
-        <path d="M 85,155 Q 78,185 80,215" />
-        <path d="M 215,155 Q 222,185 220,215" />
-        <path d="M 95,235 Q 105,262 125,285" />
-        <path d="M 205,235 Q 195,262 175,285" />
-      </g>
-
-      {/* Extra fine detail strands for realism */}
-      <g stroke={hairColor} strokeWidth="0.5" opacity="0.2" fill="none">
-        <path d="M 147,70 Q 144,92 140,115" />
-        <path d="M 153,70 Q 156,92 160,115" />
-        <path d="M 143,72 Q 138,94 133,117" />
-        <path d="M 157,72 Q 162,94 167,117" />
-        <path d="M 133,78 Q 123,102 115,128" />
-        <path d="M 167,78 Q 177,102 185,128" />
-        <path d="M 123,86 Q 110,112 100,140" />
-        <path d="M 177,86 Q 190,112 200,140" />
-        <path d="M 112,96 Q 96,125 85,156" />
-        <path d="M 188,96 Q 204,125 215,156" />
-        <path d="M 80,165 Q 74,195 78,225" />
-        <path d="M 220,165 Q 226,195 222,225" />
-        <path d="M 85,240 Q 98,268 120,290" />
-        <path d="M 215,240 Q 202,268 180,290" />
-        <path d="M 138,255 Q 144,276 149,294" />
-        <path d="M 162,255 Q 156,276 151,294" />
+      {/* Additional fine hair texture */}
+      <g stroke={lighterHair} strokeWidth="0.4" opacity="0.15" fill="none">
+        <path d="M 145,75 Q 142,105 138,140" />
+        <path d="M 155,75 Q 158,105 162,140" />
+        <path d="M 125,85 Q 115,115 108,150" />
+        <path d="M 175,85 Q 185,115 192,150" />
+        <path d="M 105,110 Q 92,145 88,185" />
+        <path d="M 195,110 Q 208,145 212,185" />
+        <path d="M 92,165 Q 88,200 95,240" />
+        <path d="M 208,165 Q 212,200 205,240" />
+        <path d="M 110,230 Q 120,260 135,285" />
+        <path d="M 190,230 Q 180,260 165,285" />
+        <path d="M 135,250 Q 142,275 148,298" />
+        <path d="M 165,250 Q 158,275 152,298" />
       </g>
 
 
