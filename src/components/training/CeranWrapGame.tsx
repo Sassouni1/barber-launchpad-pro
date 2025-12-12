@@ -271,8 +271,8 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
           <div className="relative flex justify-center">
             <svg
               ref={svgRef}
-              viewBox="0 0 300 280"
-              className="w-[320px] h-[300px] md:w-[500px] md:h-[470px] lg:w-[550px] lg:h-[520px] cursor-crosshair touch-none"
+              viewBox="0 0 300 360"
+              className="w-[320px] h-[384px] md:w-[500px] md:h-[600px] lg:w-[550px] lg:h-[660px] cursor-crosshair touch-none"
               onMouseDown={handleStart}
               onMouseMove={handleMove}
               onMouseUp={handleEnd}
@@ -304,18 +304,18 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
               {/* Ceran wrap layer */}
               <ellipse
                 cx="150"
-                cy="140"
-                rx="100"
-                ry="115"
+                cy="180"
+                rx="95"
+                ry="130"
                 fill="url(#wrapShine)"
                 stroke="rgba(255,255,255,0.3)"
                 strokeWidth="1"
               />
               <ellipse
                 cx="150"
-                cy="140"
-                rx="100"
-                ry="115"
+                cy="180"
+                rx="95"
+                ry="130"
                 fill="url(#wrapTexture)"
               />
 
