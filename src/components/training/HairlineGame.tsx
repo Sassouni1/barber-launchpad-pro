@@ -19,8 +19,8 @@ const faceShapes = [
     name: 'Oval Face', 
     description: 'Classic oval shape - aim for a natural rounded hairline',
     guidePoints: [
-      { x: 95, y: 55 }, { x: 120, y: 60 }, { x: 150, y: 63 }, 
-      { x: 180, y: 60 }, { x: 205, y: 55 }
+      { x: 95, y: 66 }, { x: 120, y: 72 }, { x: 150, y: 75 }, 
+      { x: 180, y: 72 }, { x: 205, y: 66 }
     ]
   },
   { 
@@ -28,8 +28,8 @@ const faceShapes = [
     name: 'Square Face', 
     description: 'Angular jawline - soften with a slightly rounded hairline',
     guidePoints: [
-      { x: 95, y: 53 }, { x: 118, y: 58 }, { x: 150, y: 61 }, 
-      { x: 182, y: 58 }, { x: 205, y: 53 }
+      { x: 95, y: 64 }, { x: 118, y: 70 }, { x: 150, y: 73 }, 
+      { x: 182, y: 70 }, { x: 205, y: 64 }
     ]
   },
   { 
@@ -37,8 +37,8 @@ const faceShapes = [
     name: 'Round Face', 
     description: 'Full cheeks - create height with a slightly higher hairline',
     guidePoints: [
-      { x: 95, y: 57 }, { x: 120, y: 62 }, { x: 150, y: 65 }, 
-      { x: 180, y: 62 }, { x: 205, y: 57 }
+      { x: 95, y: 68 }, { x: 120, y: 74 }, { x: 150, y: 78 }, 
+      { x: 180, y: 74 }, { x: 205, y: 68 }
     ]
   },
   { 
@@ -46,8 +46,8 @@ const faceShapes = [
     name: 'Heart Face', 
     description: 'Wide forehead - balance with a natural widow\'s peak',
     guidePoints: [
-      { x: 95, y: 52 }, { x: 118, y: 57 }, { x: 150, y: 60 }, 
-      { x: 182, y: 57 }, { x: 205, y: 52 }
+      { x: 95, y: 62 }, { x: 118, y: 68 }, { x: 150, y: 72 }, 
+      { x: 182, y: 68 }, { x: 205, y: 62 }
     ]
   },
 ];
