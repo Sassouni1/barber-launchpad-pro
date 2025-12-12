@@ -340,7 +340,7 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
           <svg 
             ref={svgRef}
             viewBox="0 0 300 350" 
-            className="w-80 h-[22rem] md:w-[400px] md:h-[460px] cursor-crosshair touch-none"
+            className="w-[320px] h-[380px] md:w-[550px] md:h-[640px] lg:w-[600px] lg:h-[700px] cursor-crosshair touch-none"
             style={{ 
               backfaceVisibility: 'hidden',
             }}
