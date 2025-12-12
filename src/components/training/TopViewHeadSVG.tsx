@@ -92,12 +92,6 @@ export function TopViewHeadSVGContent({
         opacity="0.3"
       />
 
-      {/* Natural hair whorl at crown */}
-      <g opacity="0.25">
-        <circle cx="150" cy="230" r="18" fill="none" stroke="#1a1108" strokeWidth="1.5" />
-        <circle cx="150" cy="230" r="12" fill="none" stroke="#1a1108" strokeWidth="1" />
-        <circle cx="150" cy="230" r="6" fill="none" stroke="#1a1108" strokeWidth="0.5" />
-      </g>
 
       {/* CROWN THINNING */}
       {thinningPattern === "crown" && (
