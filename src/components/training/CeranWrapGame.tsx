@@ -15,7 +15,7 @@ interface CeranWrapGameProps {
   onBack: () => void;
 }
 
-type ThinningPattern = 'crown' | 'temples' | 'diffuse' | 'frontal';
+type ThinningPattern = 'crown' | 'temples' | 'diffuse' | 'frontal' | 'fullTop';
 
 interface Round {
   pattern: ThinningPattern;
@@ -72,6 +72,20 @@ const rounds: Round[] = [
       { x: 190, y: 95 }, { x: 200, y: 80 }, { x: 210, y: 65 },
       { x: 180, y: 55 }, { x: 150, y: 50 }, { x: 120, y: 55 },
       { x: 90, y: 65 },
+    ],
+  },
+  {
+    pattern: 'fullTop',
+    name: 'Full Top Balding',
+    description: 'Trace the extensive bald area covering the entire top of the scalp (horseshoe pattern)',
+    guidePoints: [
+      // Large oval covering entire top from front hairline to crown
+      { x: 80, y: 75 }, { x: 100, y: 60 }, { x: 130, y: 52 }, { x: 150, y: 50 },
+      { x: 170, y: 52 }, { x: 200, y: 60 }, { x: 220, y: 75 },
+      { x: 230, y: 110 }, { x: 235, y: 150 }, { x: 232, y: 195 },
+      { x: 220, y: 235 }, { x: 195, y: 265 }, { x: 150, y: 280 },
+      { x: 105, y: 265 }, { x: 80, y: 235 }, { x: 68, y: 195 },
+      { x: 65, y: 150 }, { x: 70, y: 110 }, { x: 80, y: 75 },
     ],
   },
 ];

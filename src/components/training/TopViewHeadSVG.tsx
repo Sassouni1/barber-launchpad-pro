@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 
 interface TopViewHeadSVGProps {
   hairColor?: string;
-  thinningPattern?: "crown" | "temples" | "diffuse" | "frontal";
+  thinningPattern?: "crown" | "temples" | "diffuse" | "frontal" | "fullTop";
   className?: string;
 }
 
@@ -227,6 +227,48 @@ export function TopViewHeadSVGContent({
             <line x1="140" y1="68" x2="138" y2="82" />
             <line x1="160" y1="68" x2="162" y2="82" />
             <line x1="175" y1="72" x2="177" y2="85" />
+          </g>
+        </g>
+      )}
+
+      {/* FULL TOP BALDING (Norwood 6-7) */}
+      {thinningPattern === "fullTop" && (
+        <g>
+          {/* Large bald area covering most of the top */}
+          <ellipse 
+            cx="150" 
+            cy="165" 
+            rx="85" 
+            ry="115" 
+            fill="url(#thinningGrad)" 
+          />
+          {/* Additional coverage to blend with remaining horseshoe hair */}
+          <ellipse 
+            cx="150" 
+            cy="120" 
+            rx="75" 
+            ry="70" 
+            fill="#f5e6d3"
+            opacity="0.85"
+          />
+          <ellipse 
+            cx="150" 
+            cy="200" 
+            rx="70" 
+            ry="55" 
+            fill="#f5e6d3"
+            opacity="0.75"
+          />
+          {/* Sparse remaining hairs */}
+          <g stroke={hairColor} strokeWidth="0.6" opacity="0.25">
+            <line x1="90" y1="80" x2="88" y2="95" />
+            <line x1="210" y1="80" x2="212" y2="95" />
+            <line x1="75" y1="150" x2="72" y2="165" />
+            <line x1="225" y1="150" x2="228" y2="165" />
+            <line x1="80" y1="220" x2="78" y2="235" />
+            <line x1="220" y1="220" x2="222" y2="235" />
+            <line x1="100" y1="270" x2="102" y2="285" />
+            <line x1="200" y1="270" x2="198" y2="285" />
           </g>
         </g>
       )}
