@@ -9,60 +9,95 @@ export function TopViewHeadSVG({
   thinningPattern = 'crown',
   className 
 }: TopViewHeadSVGProps) {
-  // Define thinning areas based on pattern
+  // Define thinning areas based on pattern - realistic Norwood patterns
   const getThinningArea = () => {
     switch (thinningPattern) {
       case 'crown':
+        // Small circular bald spot at the crown/vertex area
         return (
           <ellipse 
             cx="150" 
-            cy="160" 
-            rx="35" 
-            ry="40" 
+            cy="175" 
+            rx="25" 
+            ry="28" 
             fill="#e8c4a0" 
-            opacity="0.9"
+            opacity="0.95"
           />
         );
       case 'temples':
+        // M-shaped recession - receding temples with widow's peak preserved
         return (
           <>
-            {/* Left temple recession */}
+            {/* Left temple deep recession */}
             <path 
-              d="M 80 80 Q 95 100 85 130 Q 75 115 80 80" 
+              d="M 70 70 
+                 Q 75 55 100 52 
+                 Q 110 70 105 95 
+                 Q 90 100 80 90 
+                 Q 70 80 70 70" 
               fill="#e8c4a0" 
-              opacity="0.9"
+              opacity="0.95"
             />
-            {/* Right temple recession */}
+            {/* Right temple deep recession */}
             <path 
-              d="M 220 80 Q 205 100 215 130 Q 225 115 220 80" 
+              d="M 230 70 
+                 Q 225 55 200 52 
+                 Q 190 70 195 95 
+                 Q 210 100 220 90 
+                 Q 230 80 230 70" 
               fill="#e8c4a0" 
-              opacity="0.9"
-            />
-            {/* Frontal recession connecting */}
-            <path 
-              d="M 100 75 Q 150 60 200 75 Q 150 85 100 75" 
-              fill="#e8c4a0" 
-              opacity="0.9"
+              opacity="0.95"
             />
           </>
         );
       case 'diffuse':
+        // Crown AND temple - combination pattern (Norwood 4-5)
         return (
-          <ellipse 
-            cx="150" 
-            cy="130" 
-            rx="55" 
-            ry="65" 
-            fill="#e8c4a0" 
-            opacity="0.85"
-          />
+          <>
+            {/* Left temple recession */}
+            <path 
+              d="M 70 65 
+                 Q 80 50 110 50 
+                 Q 120 75 110 100 
+                 Q 85 105 75 85 
+                 Q 68 75 70 65" 
+              fill="#e8c4a0" 
+              opacity="0.95"
+            />
+            {/* Right temple recession */}
+            <path 
+              d="M 230 65 
+                 Q 220 50 190 50 
+                 Q 180 75 190 100 
+                 Q 215 105 225 85 
+                 Q 232 75 230 65" 
+              fill="#e8c4a0" 
+              opacity="0.95"
+            />
+            {/* Crown spot */}
+            <ellipse 
+              cx="150" 
+              cy="170" 
+              rx="30" 
+              ry="32" 
+              fill="#e8c4a0" 
+              opacity="0.95"
+            />
+          </>
         );
       case 'frontal':
+        // Full top baldness - only horseshoe of hair remains on sides/back
         return (
           <path 
-            d="M 90 70 Q 100 90 110 100 Q 150 110 190 100 Q 200 90 210 70 Q 150 50 90 70" 
+            d="M 75 75 
+               Q 80 55 150 50 
+               Q 220 55 225 75 
+               Q 230 130 220 180 
+               Q 200 200 150 205 
+               Q 100 200 80 180 
+               Q 70 130 75 75" 
             fill="#e8c4a0" 
-            opacity="0.9"
+            opacity="0.95"
           />
         );
       default:
