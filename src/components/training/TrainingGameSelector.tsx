@@ -1,9 +1,9 @@
 import { Card } from '@/components/ui/card';
-import { Palette, PenTool } from 'lucide-react';
+import { Palette, PenTool, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TrainingGameSelectorProps {
-  onSelectGame: (game: 'color-match' | 'hairline') => void;
+  onSelectGame: (game: 'color-match' | 'hairline' | 'ceran-wrap') => void;
 }
 
 const games = [
@@ -18,6 +18,12 @@ const games = [
     title: 'Hairline Drawing',
     description: 'Practice drawing natural-looking hairlines on different face shapes',
     icon: PenTool,
+  },
+  {
+    id: 'ceran-wrap' as const,
+    title: 'Template Tracing',
+    description: 'Practice tracing thinning areas on ceran wrap like real templating',
+    icon: Circle,
   },
 ];
 
