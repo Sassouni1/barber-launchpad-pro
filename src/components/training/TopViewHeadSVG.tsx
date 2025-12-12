@@ -170,30 +170,42 @@ export function TopViewHeadSVGContent({
         </g>
       )}
 
-      {/* TEMPLE THINNING */}
+      {/* TEMPLE THINNING - Full Top Recession */}
       {thinningPattern === "temples" && (
         <g>
+          {/* Large central bald area covering most of top */}
           <ellipse 
-            cx="85" 
-            cy="110" 
-            rx="35" 
-            ry="45" 
-            fill="url(#thinningGrad)"
-            transform="rotate(-15 85 110)"
+            cx="150" 
+            cy="150" 
+            rx="80" 
+            ry="100" 
+            fill="url(#thinningGrad)" 
+          />
+          {/* Solid scalp showing through */}
+          <ellipse 
+            cx="150" 
+            cy="130" 
+            rx="70" 
+            ry="75" 
+            fill="#f5e6d3"
+            opacity="0.85"
           />
           <ellipse 
-            cx="215" 
-            cy="110" 
-            rx="35" 
-            ry="45" 
-            fill="url(#thinningGrad)"
-            transform="rotate(15 215 110)"
+            cx="150" 
+            cy="180" 
+            rx="60" 
+            ry="50" 
+            fill="#f5e6d3"
+            opacity="0.7"
           />
-          <g stroke={hairColor} strokeWidth="0.7" opacity="0.35">
+          {/* Sparse remaining hairs on sides */}
+          <g stroke={hairColor} strokeWidth="0.6" opacity="0.25">
             <line x1="78" y1="100" x2="76" y2="115" />
-            <line x1="88" y1="108" x2="85" y2="122" />
             <line x1="222" y1="100" x2="224" y2="115" />
-            <line x1="212" y1="108" x2="215" y2="122" />
+            <line x1="70" y1="160" x2="68" y2="175" />
+            <line x1="230" y1="160" x2="232" y2="175" />
+            <line x1="75" y1="220" x2="73" y2="235" />
+            <line x1="225" y1="220" x2="227" y2="235" />
           </g>
         </g>
       )}
