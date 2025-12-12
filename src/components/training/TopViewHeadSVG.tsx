@@ -253,6 +253,75 @@ export function TopViewHeadSVGContent({
             <path d="M 120,285 Q 135,295 150,298" />
             <path d="M 180,285 Q 165,295 150,298" />
           </g>
+          
+          {/* FADING TRANSITION - Diffuse edge along horseshoe inner boundary */}
+          {/* Left side fade */}
+          <g stroke={hairColor} fill="none">
+            <path d="M 82,145 Q 90,160 88,175" strokeWidth="1.2" opacity="0.5" />
+            <path d="M 85,155 Q 95,175 93,195" strokeWidth="1" opacity="0.4" />
+            <path d="M 88,170 Q 100,195 98,215" strokeWidth="0.8" opacity="0.3" />
+            <path d="M 90,185 Q 105,210 103,230" strokeWidth="0.6" opacity="0.2" />
+            <path d="M 95,210 Q 110,235 115,255" strokeWidth="0.5" opacity="0.15" />
+          </g>
+          {/* Right side fade */}
+          <g stroke={hairColor} fill="none">
+            <path d="M 218,145 Q 210,160 212,175" strokeWidth="1.2" opacity="0.5" />
+            <path d="M 215,155 Q 205,175 207,195" strokeWidth="1" opacity="0.4" />
+            <path d="M 212,170 Q 200,195 202,215" strokeWidth="0.8" opacity="0.3" />
+            <path d="M 210,185 Q 195,210 197,230" strokeWidth="0.6" opacity="0.2" />
+            <path d="M 205,210 Q 190,235 185,255" strokeWidth="0.5" opacity="0.15" />
+          </g>
+          
+          {/* RANDOM SURVIVOR HAIRS - Scattered across bald area */}
+          {/* Single survivor strands with varying opacity */}
+          <g stroke={hairColor} strokeWidth="0.5" fill="none">
+            <path d="M 130,120 Q 128,128 131,135" opacity="0.35" />
+            <path d="M 165,115 Q 168,125 165,132" opacity="0.28" />
+            <path d="M 145,140 Q 143,150 146,158" opacity="0.22" />
+            <path d="M 175,145 Q 178,155 175,163" opacity="0.32" />
+            <path d="M 120,165 Q 118,175 121,182" opacity="0.25" />
+            <path d="M 185,170 Q 188,180 185,188" opacity="0.2" />
+            <path d="M 155,185 Q 153,195 156,202" opacity="0.18" />
+            <path d="M 138,200 Q 135,210 138,218" opacity="0.22" />
+            <path d="M 168,195 Q 172,205 169,213" opacity="0.15" />
+          </g>
+          
+          {/* ISLAND CLUSTERS - Groups of surviving follicles */}
+          {/* Crown cluster */}
+          <g stroke={hairColor} strokeWidth="0.6" opacity="0.3" fill="none">
+            <path d="M 148,175 Q 146,183 149,190" />
+            <path d="M 152,173 Q 155,182 152,189" />
+            <path d="M 145,178 Q 142,186 145,193" />
+            <path d="M 156,177 Q 159,185 156,192" />
+          </g>
+          {/* Mid-left cluster */}
+          <g stroke={hairColor} strokeWidth="0.5" opacity="0.25" fill="none">
+            <path d="M 115,145 Q 112,152 115,158" />
+            <path d="M 120,143 Q 118,151 121,157" />
+            <path d="M 117,148 Q 114,156 117,162" />
+          </g>
+          {/* Front-right cluster */}
+          <g stroke={hairColor} strokeWidth="0.5" opacity="0.28" fill="none">
+            <path d="M 178,125 Q 180,133 177,140" />
+            <path d="M 182,128 Q 185,136 182,143" />
+            <path d="M 175,130 Q 172,138 175,145" />
+          </g>
+          
+          {/* VELLUS (PEACH FUZZ) HAIRS - Very fine miniaturized follicles */}
+          <g stroke={hairColor} strokeWidth="0.3" fill="none">
+            <path d="M 135,110 Q 134,115 136,120" opacity="0.1" />
+            <path d="M 158,108 Q 160,114 158,119" opacity="0.08" />
+            <path d="M 142,130 Q 140,136 143,141" opacity="0.12" />
+            <path d="M 162,135 Q 165,141 162,146" opacity="0.09" />
+            <path d="M 128,155 Q 126,161 129,166" opacity="0.11" />
+            <path d="M 178,158 Q 181,164 178,169" opacity="0.08" />
+            <path d="M 150,165 Q 148,171 151,176" opacity="0.1" />
+            <path d="M 140,180 Q 138,186 141,191" opacity="0.07" />
+            <path d="M 165,178 Q 168,184 165,189" opacity="0.09" />
+            <path d="M 130,195 Q 128,201 131,206" opacity="0.08" />
+            <path d="M 172,192 Q 175,198 172,203" opacity="0.1" />
+            <path d="M 155,208 Q 153,214 156,219" opacity="0.06" />
+          </g>
         </g>
       )}
 
