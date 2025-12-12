@@ -4,46 +4,43 @@ interface TopViewHeadSVGProps {
   className?: string;
 }
 
+// Anatomical head shape - wider at temples, narrower at back (occiput)
+const HEAD_PATH = "M 150 40 C 80 40 50 100 50 150 C 50 200 80 240 150 250 C 220 240 250 200 250 150 C 250 100 220 40 150 40 Z";
+
 export function TopViewHeadSVG({ 
   hairColor = '#2a1810', 
   thinningPattern = 'crown',
   className 
 }: TopViewHeadSVGProps) {
-  // Get the hair shape based on pattern - hair is drawn ON TOP of scalp
+  // Get the hair shape based on pattern - hair extends to back edge
   const getHairShape = () => {
     switch (thinningPattern) {
       case 'frontal':
-        // Horseshoe of hair - only sides and back have hair
+        // Horseshoe of hair - only sides and back have hair, front is bald
         return (
           <path 
-            d="M 55 140 
-               Q 55 220 150 235 
-               Q 245 220 245 140
-               Q 245 60 150 50
-               Q 55 60 55 140
-               M 80 130
-               Q 80 60 150 55
-               Q 220 60 220 130
-               Q 220 180 150 190
-               Q 80 180 80 130"
+            d="M 60 150 
+               C 60 200 90 240 150 250 
+               C 210 240 240 200 240 150
+               C 240 110 220 70 180 55
+               L 170 75
+               C 160 90 140 90 130 75
+               L 120 55
+               C 80 70 60 110 60 150
+               Z"
             fill={hairColor}
-            fillRule="evenodd"
           />
         );
       case 'crown':
-        // Full hair with circular hole at crown
+        // Full hair with small irregular spot at back-crown area
         return (
           <path 
-            d="M 55 140 
-               Q 55 220 150 235 
-               Q 245 220 245 140
-               Q 245 60 150 50
-               Q 55 60 55 140
-               M 150 200
-               Q 180 200 180 170
-               Q 180 145 150 145
-               Q 120 145 120 170
-               Q 120 200 150 200"
+            d="M 150 40 C 80 40 50 100 50 150 C 50 200 80 240 150 250 C 220 240 250 200 250 150 C 250 100 220 40 150 40 Z
+               M 150 190
+               Q 170 188 172 205
+               Q 170 220 150 218
+               Q 130 216 132 205
+               Q 134 192 150 190"
             fill={hairColor}
             fillRule="evenodd"
           />
@@ -52,40 +49,45 @@ export function TopViewHeadSVG({
         // Hair with M-shaped front (temple recession)
         return (
           <path 
-            d="M 55 140 
-               Q 55 220 150 235 
-               Q 245 220 245 140
-               L 245 100
-               Q 245 70 220 55
-               L 200 70
-               Q 180 85 150 55
-               Q 120 85 100 70
-               L 80 55
-               Q 55 70 55 100
+            d="M 60 150 
+               C 60 200 90 240 150 250 
+               C 210 240 240 200 240 150
+               C 240 100 220 50 150 40
+               C 80 50 60 100 60 150
+               M 90 80
+               Q 110 100 130 70
+               Q 150 50 170 70
+               Q 190 100 210 80
+               L 210 65
+               Q 180 45 150 45
+               Q 120 45 90 65
                Z"
             fill={hairColor}
+            fillRule="evenodd"
           />
         );
       case 'diffuse':
         // Crown hole + temple recession combined
         return (
           <path 
-            d="M 55 140 
-               Q 55 220 150 235 
-               Q 245 220 245 140
-               L 245 100
-               Q 245 70 220 55
-               L 200 70
-               Q 180 85 150 55
-               Q 120 85 100 70
-               L 80 55
-               Q 55 70 55 100
+            d="M 60 150 
+               C 60 200 90 240 150 250 
+               C 210 240 240 200 240 150
+               C 240 100 220 50 150 40
+               C 80 50 60 100 60 150
+               M 90 80
+               Q 110 100 130 70
+               Q 150 50 170 70
+               Q 190 100 210 80
+               L 210 65
+               Q 180 45 150 45
+               Q 120 45 90 65
                Z
-               M 150 195
-               Q 185 195 185 165
-               Q 185 135 150 135
-               Q 115 135 115 165
-               Q 115 195 150 195"
+               M 150 185
+               Q 168 183 170 200
+               Q 168 215 150 213
+               Q 132 211 134 200
+               Q 136 187 150 185"
             fill={hairColor}
             fillRule="evenodd"
           />
@@ -153,16 +155,13 @@ export function TopViewHeadSVG({
         opacity="0.5"
       />
 
-      {/* BASE: Full scalp (skin color) - this is always visible where there's no hair */}
-      <ellipse 
-        cx="150" 
-        cy="140" 
-        rx="95" 
-        ry="110" 
+      {/* BASE: Anatomical head shape (skin) */}
+      <path 
+        d={HEAD_PATH}
         fill="url(#scalpGradient)"
       />
 
-      {/* HAIR: Drawn on top of scalp - shape changes per pattern */}
+      {/* HAIR: Drawn on top of scalp - extends to back edge */}
       {getHairShape()}
 
       {/* Nose indicator (showing "front" direction) */}
