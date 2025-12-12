@@ -30,11 +30,11 @@ const rounds: Round[] = [
     name: 'Crown Thinning',
     description: 'Trace the circular thinning area at the crown (back/top of head)',
     guidePoints: [
-      { x: 125, y: 235 }, { x: 135, y: 225 }, { x: 150, y: 220 },
-      { x: 165, y: 225 }, { x: 175, y: 235 }, { x: 180, y: 250 },
-      { x: 177, y: 268 }, { x: 167, y: 280 }, { x: 150, y: 285 },
-      { x: 133, y: 280 }, { x: 123, y: 268 }, { x: 120, y: 250 },
-      { x: 125, y: 235 },
+      { x: 125, y: 212 }, { x: 135, y: 202 }, { x: 150, y: 197 },
+      { x: 165, y: 202 }, { x: 175, y: 212 }, { x: 180, y: 227 },
+      { x: 177, y: 245 }, { x: 167, y: 257 }, { x: 150, y: 262 },
+      { x: 133, y: 257 }, { x: 123, y: 245 }, { x: 120, y: 227 },
+      { x: 125, y: 212 },
     ],
   },
   {
