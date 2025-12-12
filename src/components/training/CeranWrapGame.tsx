@@ -39,15 +39,16 @@ const rounds: Round[] = [
   },
   {
     pattern: 'temples',
-    name: 'Temple Recession',
-    description: 'Trace the M-shaped recession at the temples and front hairline',
+    name: 'Full Top Recession',
+    description: 'Trace the large bald area covering the entire top of the scalp',
     guidePoints: [
-      // Left temple
-      { x: 80, y: 75 }, { x: 90, y: 90 }, { x: 85, y: 110 }, { x: 80, y: 125 },
-      // Front hairline 
-      { x: 100, y: 80 }, { x: 130, y: 70 }, { x: 150, y: 65 }, { x: 170, y: 70 }, { x: 200, y: 80 },
-      // Right temple
-      { x: 220, y: 75 }, { x: 210, y: 90 }, { x: 215, y: 110 }, { x: 220, y: 125 },
+      // Large oval covering entire top
+      { x: 85, y: 70 }, { x: 110, y: 55 }, { x: 150, y: 50 },
+      { x: 190, y: 55 }, { x: 215, y: 70 }, { x: 225, y: 100 },
+      { x: 228, y: 140 }, { x: 225, y: 180 }, { x: 210, y: 215 },
+      { x: 180, y: 240 }, { x: 150, y: 248 }, { x: 120, y: 240 },
+      { x: 90, y: 215 }, { x: 75, y: 180 }, { x: 72, y: 140 },
+      { x: 75, y: 100 }, { x: 85, y: 70 },
     ],
   },
   {
