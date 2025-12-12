@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ColorMatchGame } from '@/components/training/ColorMatchGame';
 import { HairlineGame } from '@/components/training/HairlineGame';
+import { CeranWrapGame } from '@/components/training/CeranWrapGame';
 import { TrainingGameSelector } from '@/components/training/TrainingGameSelector';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
-type GameType = 'color-match' | 'hairline' | null;
+type GameType = 'color-match' | 'hairline' | 'ceran-wrap' | null;
 
 export default function Training() {
   const [selectedGame, setSelectedGame] = useState<GameType>(null);
@@ -43,6 +44,10 @@ export default function Training() {
 
         {selectedGame === 'hairline' && (
           <HairlineGame onBack={handleBack} />
+        )}
+
+        {selectedGame === 'ceran-wrap' && (
+          <CeranWrapGame onBack={handleBack} />
         )}
       </div>
     </DashboardLayout>
