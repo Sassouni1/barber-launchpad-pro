@@ -32,62 +32,56 @@ export function TopViewHeadSVG({
           />
         );
       case 'crown':
-        // Full hair with small irregular spot at back-crown area
+        // Full hair with forehead showing at front, hair to back edge, small crown spot
         return (
           <path 
-            d="M 150 40 C 80 40 50 100 50 150 C 50 200 80 240 150 250 C 220 240 250 200 250 150 C 250 100 220 40 150 40 Z
-               M 150 190
-               Q 170 188 172 205
-               Q 170 220 150 218
-               Q 130 216 132 205
-               Q 134 192 150 190"
+            d="M 150 75 
+               C 90 80 60 110 55 150 
+               C 50 200 80 240 150 250 
+               C 220 240 250 200 245 150 
+               C 240 110 210 80 150 75 
+               Z
+               M 150 195
+               Q 165 193 167 207
+               Q 165 218 150 216
+               Q 135 214 137 207
+               Q 139 195 150 195"
             fill={hairColor}
             fillRule="evenodd"
           />
         );
       case 'temples':
-        // Hair with M-shaped front (temple recession)
+        // Hair with M-shaped front (temple recession), forehead showing
         return (
           <path 
-            d="M 60 150 
-               C 60 200 90 240 150 250 
-               C 210 240 240 200 240 150
-               C 240 100 220 50 150 40
-               C 80 50 60 100 60 150
-               M 90 80
-               Q 110 100 130 70
-               Q 150 50 170 70
-               Q 190 100 210 80
-               L 210 65
-               Q 180 45 150 45
-               Q 120 45 90 65
+            d="M 120 80 
+               C 100 85 70 110 60 150 
+               C 55 200 85 240 150 250 
+               C 215 240 245 200 240 150
+               C 230 110 200 85 180 80
+               L 170 95
+               C 160 105 140 105 130 95
                Z"
             fill={hairColor}
-            fillRule="evenodd"
           />
         );
       case 'diffuse':
-        // Crown hole + temple recession combined
+        // Temple recession + crown hole combined
         return (
           <path 
-            d="M 60 150 
-               C 60 200 90 240 150 250 
-               C 210 240 240 200 240 150
-               C 240 100 220 50 150 40
-               C 80 50 60 100 60 150
-               M 90 80
-               Q 110 100 130 70
-               Q 150 50 170 70
-               Q 190 100 210 80
-               L 210 65
-               Q 180 45 150 45
-               Q 120 45 90 65
+            d="M 120 80 
+               C 100 85 70 110 60 150 
+               C 55 200 85 240 150 250 
+               C 215 240 245 200 240 150
+               C 230 110 200 85 180 80
+               L 170 95
+               C 160 105 140 105 130 95
                Z
-               M 150 185
-               Q 168 183 170 200
-               Q 168 215 150 213
-               Q 132 211 134 200
-               Q 136 187 150 185"
+               M 150 195
+               Q 165 193 167 207
+               Q 165 218 150 216
+               Q 135 214 137 207
+               Q 139 195 150 195"
             fill={hairColor}
             fillRule="evenodd"
           />
