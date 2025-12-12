@@ -1,184 +1,193 @@
+import React from "react";
+
 interface TopViewHeadSVGProps {
   hairColor?: string;
-  thinningPattern?: 'crown' | 'temples' | 'diffuse' | 'frontal';
+  thinningPattern?: "crown" | "temples" | "diffuse" | "frontal";
   className?: string;
 }
 
-export function TopViewHeadSVG({ 
-  hairColor = '#2a1810', 
-  thinningPattern = 'crown',
-  className 
+export function TopViewHeadSVG({
+  hairColor = "#2a1810",
+  thinningPattern = "crown",
+  className
 }: TopViewHeadSVGProps) {
-  // Get the hair shape based on pattern - hair is drawn ON TOP of scalp
-  const getHairShape = () => {
-    switch (thinningPattern) {
-      case 'frontal':
-        // Horseshoe of hair - only sides and back have hair
-        return (
-          <path 
-            d="M 55 140 
-               Q 55 220 150 235 
-               Q 245 220 245 140
-               Q 245 60 150 50
-               Q 55 60 55 140
-               M 80 130
-               Q 80 60 150 55
-               Q 220 60 220 130
-               Q 220 180 150 190
-               Q 80 180 80 130"
-            fill={hairColor}
-            fillRule="evenodd"
-          />
-        );
-      case 'crown':
-        // Full hair with circular hole at crown
-        return (
-          <path 
-            d="M 55 140 
-               Q 55 220 150 235 
-               Q 245 220 245 140
-               Q 245 60 150 50
-               Q 55 60 55 140
-               M 150 200
-               Q 180 200 180 170
-               Q 180 145 150 145
-               Q 120 145 120 170
-               Q 120 200 150 200"
-            fill={hairColor}
-            fillRule="evenodd"
-          />
-        );
-      case 'temples':
-        // Hair with M-shaped front (temple recession)
-        return (
-          <path 
-            d="M 55 140 
-               Q 55 220 150 235 
-               Q 245 220 245 140
-               L 245 100
-               Q 245 70 220 55
-               L 200 70
-               Q 180 85 150 55
-               Q 120 85 100 70
-               L 80 55
-               Q 55 70 55 100
-               Z"
-            fill={hairColor}
-          />
-        );
-      case 'diffuse':
-        // Crown hole + temple recession combined
-        return (
-          <path 
-            d="M 55 140 
-               Q 55 220 150 235 
-               Q 245 220 245 140
-               L 245 100
-               Q 245 70 220 55
-               L 200 70
-               Q 180 85 150 55
-               Q 120 85 100 70
-               L 80 55
-               Q 55 70 55 100
-               Z
-               M 150 195
-               Q 185 195 185 165
-               Q 185 135 150 135
-               Q 115 135 115 165
-               Q 115 195 150 195"
-            fill={hairColor}
-            fillRule="evenodd"
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
-    <svg 
-      viewBox="0 0 300 280" 
+    <svg
+      viewBox="0 0 300 280"
       className={className}
-      style={{ overflow: 'visible' }}
+      style={{ overflow: "visible" }}
+      xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
         {/* Scalp gradient */}
-        <radialGradient id="scalpGradient" cx="50%" cy="40%" r="60%">
-          <stop offset="0%" stopColor="#f0d5b8" />
-          <stop offset="100%" stopColor="#d4a574" />
+        <radialGradient id="scalpGradient" cx="50%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#f3d7bb" />
+          <stop offset="100%" stopColor="#d2a074" />
         </radialGradient>
 
-        {/* Ear gradient */}
-        <linearGradient id="earGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e8c4a0" />
-          <stop offset="100%" stopColor="#d4a574" />
-        </linearGradient>
+        {/* Hair gradient */}
+        <radialGradient id="hairGradient" cx="50%" cy="40%" r="70%">
+          <stop offset="0%" stopColor={hairColor} />
+          <stop offset="70%" stopColor={hairColor} />
+          <stop offset="100%" stopColor="#3d261c" />
+        </radialGradient>
+
+        {/* Density fade for thinning */}
+        <radialGradient id="fadeThinning" cx="50%" cy="50%" r="55%">
+          <stop offset="0%" stopColor="#f3d7bb" stopOpacity="1" />
+          <stop offset="70%" stopColor="#f3d7bb" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+
+        {/* Mask to keep thinning inside the hair mass */}
+        <mask id="hairMask">
+          <rect width="300" height="280" fill="black" />
+
+          <path
+            d="
+              M 150 55
+              C 95 60 65 95 60 140
+              C 55 190 80 225 150 235
+              C 220 225 245 190 240 140
+              C 235 95 205 60 150 55
+            "
+            fill="white"
+          />
+        </mask>
       </defs>
 
-      {/* Left ear */}
-      <ellipse 
-        cx="35" 
-        cy="150" 
-        rx="18" 
-        ry="28" 
-        fill="url(#earGradient)"
-        stroke="#c9a07a"
-        strokeWidth="1"
-      />
-      <ellipse 
-        cx="38" 
-        cy="150" 
-        rx="10" 
-        ry="18" 
-        fill="#d4a574"
-        opacity="0.5"
-      />
+      {/* ----------------- EARS ----------------- */}
+      <ellipse cx="50" cy="145" rx="22" ry="32" fill="url(#scalpGradient)" />
+      <ellipse cx="250" cy="145" rx="22" ry="32" fill="url(#scalpGradient)" />
 
-      {/* Right ear */}
-      <ellipse 
-        cx="265" 
-        cy="150" 
-        rx="18" 
-        ry="28" 
-        fill="url(#earGradient)"
-        stroke="#c9a07a"
-        strokeWidth="1"
-      />
-      <ellipse 
-        cx="262" 
-        cy="150" 
-        rx="10" 
-        ry="18" 
-        fill="#d4a574"
-        opacity="0.5"
-      />
-
-      {/* BASE: Full scalp (skin color) - this is always visible where there's no hair */}
-      <ellipse 
-        cx="150" 
-        cy="140" 
-        rx="95" 
-        ry="110" 
+      {/* ----------------- SCALP SHAPE ----------------- */}
+      <path
+        d="
+          M 150 30
+          C 80 35 45 85 40 135
+          C 35 185 60 235 150 245
+          C 240 235 265 185 260 135
+          C 255 85 220 35 150 30
+        "
         fill="url(#scalpGradient)"
       />
 
-      {/* HAIR: Drawn on top of scalp - shape changes per pattern */}
-      {getHairShape()}
-
-      {/* Nose indicator (showing "front" direction) */}
-      <path 
-        d="M 145 45 L 150 30 L 155 45"
-        fill="#d4a574"
-        stroke="#c9a07a"
-        strokeWidth="1"
+      {/* ----------------- HAIR MASS ----------------- */}
+      <path
+        d="
+          M 150 55
+          C 95 60 65 95 60 140
+          C 55 190 80 225 150 235
+          C 220 225 245 190 240 140
+          C 235 95 205 60 150 55
+        "
+        fill="url(#hairGradient)"
       />
-      <text 
-        x="150" 
-        y="22" 
-        textAnchor="middle" 
-        fontSize="10" 
-        fill="currentColor"
-        opacity="0.5"
+
+      {/* ----------------- NATURAL HAIRLINE ----------------- */}
+      {thinningPattern !== "frontal" && (
+        <path
+          d="
+            M 95 130
+            C 115 105 135 93 147 90
+            L 150 87
+            L 153 90
+            C 165 93 185 105 205 130
+          "
+          stroke="#e9c8a8"
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          opacity="0.7"
+        />
+      )}
+
+      {/* ----------------- FRONTAL / HORSESHOE LOSS ----------------- */}
+      {thinningPattern === "frontal" && (
+        <path
+          d="
+            M 105 150
+            C 125 120 140 108 150 108
+            C 160 108 175 120 195 150
+            C 197 165 197 175 190 185
+            C 170 170 150 165 150 165
+            C 130 165 110 170 100 185
+            C 98 175 100 160 105 150
+          "
+          fill="url(#fadeThinning)"
+          mask="url(#hairMask)"
+          opacity="0.9"
+        />
+      )}
+
+      {/* ----------------- CROWN THINNING ----------------- */}
+      {thinningPattern === "crown" && (
+        <path
+          d="
+            M 150 165
+            C 138 160 126 170 123 185
+            C 118 202 132 218 150 220
+            C 168 222 185 210 188 195
+            C 192 180 180 167 165 165
+            Z
+          "
+          fill="url(#fadeThinning)"
+          mask="url(#hairMask)"
+          opacity="0.9"
+        />
+      )}
+
+      {/* ----------------- TEMPLES THINNING ----------------- */}
+      {thinningPattern === "temples" && (
+        <>
+          {/* Left temple */}
+          <path
+            d="
+              M 95 130
+              C 90 115 100 102 118 95
+              C 130 92 140 97 147 108
+              C 132 118 115 125 95 130
+            "
+            fill="url(#fadeThinning)"
+            mask="url(#hairMask)"
+            opacity="0.9"
+          />
+
+          {/* Right temple */}
+          <path
+            d="
+              M 205 130
+              C 210 115 198 102 182 95
+              C 170 92 160 97 153 108
+              C 168 118 185 125 205 130
+            "
+            fill="url(#fadeThinning)"
+            mask="url(#hairMask)"
+            opacity="0.9"
+          />
+        </>
+      )}
+
+      {/* ----------------- DIFFUSE THINNING ----------------- */}
+      {thinningPattern === "diffuse" && (
+        <circle
+          cx="150"
+          cy="150"
+          r="95"
+          fill="url(#fadeThinning)"
+          opacity="0.55"
+          mask="url(#hairMask)"
+        />
+      )}
+
+      {/* ----------------- FRONT LABEL ----------------- */}
+      <path d="M 145 45 L 150 28 L 155 45" fill="#d2a074" />
+      <text
+        x="150"
+        y="20"
+        textAnchor="middle"
+        fontSize="11"
+        opacity="0.55"
       >
         FRONT
       </text>
