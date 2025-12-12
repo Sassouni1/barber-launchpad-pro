@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
 import confetti from 'canvas-confetti';
 
@@ -82,6 +82,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showWrap, setShowWrap] = useState(true);
   const [scores, setScores] = useState<number[]>([]);
   const [isGameComplete, setIsGameComplete] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -301,23 +302,29 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 </pattern>
               </defs>
               
-              {/* Ceran wrap layer */}
-              <ellipse
-                cx="150"
-                cy="180"
-                rx="95"
-                ry="130"
-                fill="url(#wrapShine)"
-                stroke="rgba(255,255,255,0.3)"
-                strokeWidth="1"
-              />
-              <ellipse
-                cx="150"
-                cy="180"
-                rx="95"
-                ry="130"
-                fill="url(#wrapTexture)"
-              />
+              {/* Ceran wrap layer - toggleable */}
+              {showWrap && (
+                <>
+                  <ellipse
+                    cx="150"
+                    cy="180"
+                    rx="95"
+                    ry="130"
+                    fill="url(#wrapShine)"
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth="1"
+                    className="transition-opacity duration-300"
+                  />
+                  <ellipse
+                    cx="150"
+                    cy="180"
+                    rx="95"
+                    ry="130"
+                    fill="url(#wrapTexture)"
+                    className="transition-opacity duration-300"
+                  />
+                </>
+              )}
 
               {/* Guide points */}
               {showGuide && round.guidePoints.map((point, i) => (
@@ -384,6 +391,15 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
           >
             <Eraser className="w-4 h-4" />
             Clear
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={() => setShowWrap(!showWrap)}
+            className="flex-1 gap-2"
+          >
+            <Layers className="w-4 h-4" />
+            {showWrap ? 'Remove Wrap' : 'Add Wrap'}
           </Button>
           
           <Button
