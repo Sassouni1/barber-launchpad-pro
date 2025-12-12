@@ -55,14 +55,6 @@ export function TopViewHeadSVGContent({
       <ellipse cx="55" cy="180" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
       <ellipse cx="245" cy="180" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
       
-      {/* Eyes */}
-      <ellipse cx="120" cy="140" rx="8" ry="10" fill="#2d2d2d" opacity="0.7" />
-      <ellipse cx="180" cy="140" rx="8" ry="10" fill="#2d2d2d" opacity="0.7" />
-      
-      {/* Nose */}
-      <ellipse cx="150" cy="165" rx="12" ry="18" fill="#d4baa0" opacity="0.6" />
-      <ellipse cx="150" cy="173" rx="10" ry="8" fill="#c9ae94" opacity="0.5" />
-      
       {/* Base hair mass */}
       <path
         d="
@@ -89,8 +81,52 @@ export function TopViewHeadSVGContent({
           C 230,90 195,62 150,60
         "
         fill="url(#hairTexture)"
-        opacity="0.3"
+        opacity="0.4"
       />
+
+      {/* Dense hair strand lines */}
+      <g stroke={hairColor} strokeWidth="0.6" opacity="0.2" fill="none">
+        {/* Top section radiating from crown */}
+        <path d="M 150,70 Q 148,100 145,130" />
+        <path d="M 140,72 Q 135,100 130,130" />
+        <path d="M 160,72 Q 165,100 170,130" />
+        <path d="M 130,75 Q 120,100 115,135" />
+        <path d="M 170,75 Q 180,100 185,135" />
+        <path d="M 120,80 Q 108,110 100,145" />
+        <path d="M 180,80 Q 192,110 200,145" />
+        <path d="M 110,88 Q 95,120 88,160" />
+        <path d="M 190,88 Q 205,120 212,160" />
+        
+        {/* Middle section */}
+        <path d="M 85,140 Q 80,180 82,220" />
+        <path d="M 215,140 Q 220,180 218,220" />
+        <path d="M 95,130 Q 88,170 90,210" />
+        <path d="M 205,130 Q 212,170 210,210" />
+        
+        {/* Lower section curving toward back */}
+        <path d="M 100,200 Q 105,240 120,270" />
+        <path d="M 200,200 Q 195,240 180,270" />
+        <path d="M 120,220 Q 128,255 140,285" />
+        <path d="M 180,220 Q 172,255 160,285" />
+        <path d="M 140,240 Q 145,270 150,295" />
+        <path d="M 160,240 Q 155,270 150,295" />
+      </g>
+
+      {/* Additional fine hair texture */}
+      <g stroke={lighterHair} strokeWidth="0.4" opacity="0.15" fill="none">
+        <path d="M 145,75 Q 142,105 138,140" />
+        <path d="M 155,75 Q 158,105 162,140" />
+        <path d="M 125,85 Q 115,115 108,150" />
+        <path d="M 175,85 Q 185,115 192,150" />
+        <path d="M 105,110 Q 92,145 88,185" />
+        <path d="M 195,110 Q 208,145 212,185" />
+        <path d="M 92,165 Q 88,200 95,240" />
+        <path d="M 208,165 Q 212,200 205,240" />
+        <path d="M 110,230 Q 120,260 135,285" />
+        <path d="M 190,230 Q 180,260 165,285" />
+        <path d="M 135,250 Q 142,275 148,298" />
+        <path d="M 165,250 Q 158,275 152,298" />
+      </g>
 
 
       {/* CROWN THINNING */}
