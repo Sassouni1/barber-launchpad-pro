@@ -205,15 +205,16 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
 
   const getGuidePathFromPoints = (points: Point[]): string => {
     if (points.length < 3) return '';
-    // Create a smooth curve using cubic bezier - starts at first point, curves through middle, ends at last
+    // Create a smooth curve using cubic bezier - curves DOWN (natural hairline)
     const first = points[0];
-    const mid = points[Math.floor(points.length / 2)];
     const last = points[points.length - 1];
-    // Control points for a smooth symmetric arc
-    const cp1x = first.x + (mid.x - first.x) * 0.5;
-    const cp1y = mid.y;
-    const cp2x = last.x - (last.x - mid.x) * 0.5;
-    const cp2y = mid.y;
+    // Average y of endpoints, then push control points DOWN to create downward curve
+    const baseY = (first.y + last.y) / 2;
+    const curveAmount = 8; // How much the curve dips down
+    const cp1x = first.x + (last.x - first.x) * 0.33;
+    const cp1y = baseY + curveAmount;
+    const cp2x = first.x + (last.x - first.x) * 0.66;
+    const cp2y = baseY + curveAmount;
     return `M ${first.x} ${first.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${last.x} ${last.y}`;
   };
 
