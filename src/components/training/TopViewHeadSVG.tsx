@@ -576,23 +576,6 @@ export function TopViewHeadSVGContent({
             ry="115" 
             fill="url(#thinningGrad)" 
           />
-          {/* Additional coverage to blend with remaining horseshoe hair */}
-          <ellipse 
-            cx="150" 
-            cy="120" 
-            rx="75" 
-            ry="70" 
-            fill="#f5e6d3"
-            opacity="0.85"
-          />
-          <ellipse 
-            cx="150" 
-            cy="200" 
-            rx="70" 
-            ry="55" 
-            fill="#f5e6d3"
-            opacity="0.75"
-          />
           {/* FADE ZONE - Left side horseshoe boundary */}
           <g stroke={hairColor} fill="none">
             <path d="M 68,82 Q 72,92 69,100" strokeWidth="0.55" opacity="0.26" />
