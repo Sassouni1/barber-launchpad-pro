@@ -580,8 +580,8 @@ export function TopViewHeadSVGContent({
           <ellipse 
             cx="150" 
             cy="165" 
-            rx="78" 
-            ry="108" 
+            rx="85" 
+            ry="115" 
             fill="url(#fullTopGrad)"
           />
           {/* FADE ZONE - Left side horseshoe boundary */}
