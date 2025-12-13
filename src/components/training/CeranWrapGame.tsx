@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil } from 'lucide-react';
+import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil, ZoomIn, ZoomOut } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
 import confetti from 'canvas-confetti';
 
@@ -17,6 +17,7 @@ interface CeranWrapGameProps {
 
 type ThinningPattern = 'crown' | 'temples' | 'diffuse' | 'frontal' | 'fullTop';
 type TapeMode = 'none' | 'vertical' | 'horizontal' | 'complete';
+type DrawMode = 'draw' | 'erase';
 
 interface Round {
   pattern: ThinningPattern;
@@ -125,6 +126,8 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [verticalTapes, setVerticalTapes] = useState<number[]>([]);
   const [horizontalTapes, setHorizontalTapes] = useState<number[]>([]);
   const [eyebrowsRaised, setEyebrowsRaised] = useState(false);
+  const [drawMode, setDrawMode] = useState<DrawMode>('draw');
+  const [isZoomed, setIsZoomed] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const round = rounds[currentRound];
@@ -176,6 +179,21 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     }
   }, [tapeMode, getCoordinates]);
 
+  const eraseNearPoint = useCallback((point: Point) => {
+    const eraseRadius = 15;
+    setStrokes(prevStrokes => {
+      return prevStrokes.map(stroke => {
+        // Filter out points that are near the erase point
+        return stroke.filter(p => {
+          const distance = Math.sqrt(
+            Math.pow(p.x - point.x, 2) + Math.pow(p.y - point.y, 2)
+          );
+          return distance > eraseRadius;
+        });
+      }).filter(stroke => stroke.length > 1); // Remove strokes with less than 2 points
+    });
+  }, []);
+
   const handleStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     
@@ -187,20 +205,32 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     
     const point = getCoordinates(e);
     if (point) {
-      setIsDrawing(true);
-      setCurrentStroke([point]);
+      if (drawMode === 'erase') {
+        eraseNearPoint(point);
+      } else {
+        setIsDrawing(true);
+        setCurrentStroke([point]);
+      }
     }
-  }, [getCoordinates, tapeMode, handleTapeClick]);
+  }, [getCoordinates, tapeMode, handleTapeClick, drawMode, eraseNearPoint]);
 
   const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing) return;
     e.preventDefault();
     
     const point = getCoordinates(e);
-    if (point) {
-      setCurrentStroke(prev => [...prev, point]);
+    if (!point) return;
+    
+    if (drawMode === 'erase') {
+      const isPressed = 'touches' in e ? e.touches.length > 0 : e.buttons === 1;
+      if (isPressed) {
+        eraseNearPoint(point);
+      }
+      return;
     }
-  }, [isDrawing, getCoordinates]);
+    
+    if (!isDrawing) return;
+    setCurrentStroke(prev => [...prev, point]);
+  }, [isDrawing, getCoordinates, drawMode, eraseNearPoint]);
 
   const handleEnd = useCallback(() => {
     if (isDrawing && currentStroke.length > 0) {
@@ -363,13 +393,15 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             {round.description}
           </p>
 
-          <div className="relative flex justify-center">
+          <div className="relative flex justify-center overflow-hidden">
             <svg
               ref={svgRef}
-              viewBox="0 0 300 360"
-              className={`w-[320px] h-[384px] md:w-[500px] md:h-[600px] lg:w-[550px] lg:h-[660px] touch-none ${
+              viewBox={round.pattern === 'frontal' && isZoomed ? "50 100 200 180" : "0 0 300 360"}
+              className={`w-[320px] h-[384px] md:w-[500px] md:h-[600px] lg:w-[550px] lg:h-[660px] touch-none transition-all duration-300 ${
                 tapeMode === 'vertical' || tapeMode === 'horizontal'
                   ? 'cursor-cell'
+                  : drawMode === 'erase'
+                  ? 'cursor-pointer'
                   : 'cursor-crosshair'
               }`}
             >
@@ -547,13 +579,35 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
           </Button>
 
           <Button
-            variant={tapeMode === 'none' ? 'default' : 'outline'}
-            onClick={() => setTapeMode('none')}
+            variant={drawMode === 'draw' && tapeMode === 'none' ? 'default' : 'outline'}
+            onClick={() => { setDrawMode('draw'); setTapeMode('none'); }}
             className="flex-1 gap-2"
           >
             <Pencil className="w-4 h-4" />
             Draw
           </Button>
+
+          {round.pattern === 'frontal' && (
+            <>
+              <Button
+                variant={drawMode === 'erase' ? 'default' : 'outline'}
+                onClick={() => { setDrawMode('erase'); setTapeMode('none'); }}
+                className="flex-1 gap-2"
+              >
+                <Eraser className="w-4 h-4" />
+                Erase
+              </Button>
+
+              <Button
+                variant={isZoomed ? 'default' : 'outline'}
+                onClick={() => setIsZoomed(!isZoomed)}
+                className="flex-1 gap-2"
+              >
+                {isZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
+                {isZoomed ? 'Zoom Out' : 'Zoom In'}
+              </Button>
+            </>
+          )}
 
           {round.pattern === 'frontal' && (
             <Button
