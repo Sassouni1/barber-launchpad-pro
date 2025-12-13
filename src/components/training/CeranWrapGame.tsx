@@ -180,6 +180,9 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const handleStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     
+    // If in edit mode, don't start drawing
+    if (editMode) return;
+    
     // If in tape mode, handle tape placement instead of drawing
     if (tapeMode === 'vertical' || tapeMode === 'horizontal') {
       handleTapeClick(e);
@@ -191,7 +194,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
       setIsDrawing(true);
       setCurrentStroke([point]);
     }
-  }, [getCoordinates, tapeMode, handleTapeClick]);
+  }, [getCoordinates, tapeMode, handleTapeClick, editMode]);
 
   const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing) return;
