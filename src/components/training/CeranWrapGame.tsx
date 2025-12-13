@@ -124,6 +124,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [tapeMode, setTapeMode] = useState<TapeMode>('none');
   const [verticalTapes, setVerticalTapes] = useState<number[]>([]);
   const [horizontalTapes, setHorizontalTapes] = useState<number[]>([]);
+  const [eyebrowsRaised, setEyebrowsRaised] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const round = rounds[currentRound];
@@ -377,6 +378,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 <TopViewHeadSVG 
                   thinningPattern={round.pattern}
                   className="w-full h-full"
+                  eyebrowsRaised={round.pattern === 'frontal' ? eyebrowsRaised : false}
                 />
               </g>
 
@@ -552,6 +554,16 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             <Pencil className="w-4 h-4" />
             Draw
           </Button>
+
+          {round.pattern === 'frontal' && (
+            <Button
+              variant={eyebrowsRaised ? 'default' : 'outline'}
+              onClick={() => setEyebrowsRaised(!eyebrowsRaised)}
+              className="flex-1 gap-2"
+            >
+              {eyebrowsRaised ? 'Lower Brows' : 'Lift Eyebrows'}
+            </Button>
+          )}
 
           <Button
             variant={tapeMode !== 'none' ? 'default' : 'outline'}
