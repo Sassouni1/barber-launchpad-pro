@@ -529,7 +529,29 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 fill="rgba(0,0,0,0.001)"
                 pointerEvents="all"
                 onMouseDown={(e) => {
-                  if (draggingPointIndex === null) handleStart(e);
+                  if (editMode) {
+                    const point = getCoordinates(e);
+                    if (!point) return;
+
+                    // Find nearest guide point to grab
+                    let closestIndex = -1;
+                    let minDist = Infinity;
+                    editableGuidePoints.forEach((gp, idx) => {
+                      const dx = gp.x - point.x;
+                      const dy = gp.y - point.y;
+                      const dist = Math.sqrt(dx * dx + dy * dy);
+                      if (dist < minDist) {
+                        minDist = dist;
+                        closestIndex = idx;
+                      }
+                    });
+
+                    if (closestIndex !== -1 && minDist <= 18) {
+                      setDraggingPointIndex(closestIndex);
+                    }
+                  } else {
+                    handleStart(e);
+                  }
                 }}
                 onMouseMove={(e) => {
                   if (draggingPointIndex !== null && editMode) {
@@ -557,7 +579,28 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                   handleEnd();
                 }}
                 onTouchStart={(e) => {
-                  if (draggingPointIndex === null) handleStart(e);
+                  if (editMode) {
+                    const point = getCoordinates(e);
+                    if (!point) return;
+
+                    let closestIndex = -1;
+                    let minDist = Infinity;
+                    editableGuidePoints.forEach((gp, idx) => {
+                      const dx = gp.x - point.x;
+                      const dy = gp.y - point.y;
+                      const dist = Math.sqrt(dx * dx + dy * dy);
+                      if (dist < minDist) {
+                        minDist = dist;
+                        closestIndex = idx;
+                      }
+                    });
+
+                    if (closestIndex !== -1 && minDist <= 18) {
+                      setDraggingPointIndex(closestIndex);
+                    }
+                  } else {
+                    handleStart(e);
+                  }
                 }}
                 onTouchMove={(e) => {
                   if (draggingPointIndex !== null && editMode) {
