@@ -228,24 +228,44 @@ export function TopViewHeadSVGContent({
             fill={hairColor}
           />
           
-          {/* Hair texture on left side */}
-          <g stroke={lighterHair} strokeWidth="0.8" opacity="0.4" fill="none">
-            <path d="M 65,160 Q 68,180 70,200" />
-            <path d="M 70,175 Q 72,195 75,215" />
-            <path d="M 68,200 Q 72,220 78,240" />
-            <path d="M 73,220 Q 80,245 90,265" />
-            <path d="M 80,250 Q 95,275 115,290" />
-            <path d="M 100,270 Q 120,288 140,298" />
+          {/* Hair texture on left side - scattered */}
+          <g stroke={lighterHair} fill="none">
+            <path d="M 63,158 Q 66,168 68,178" strokeWidth="0.7" opacity="0.35" />
+            <path d="M 68,162 Q 71,174 72,184" strokeWidth="0.6" opacity="0.32" />
+            <path d="M 72,170 Q 74,182 76,192" strokeWidth="0.75" opacity="0.38" />
+            <path d="M 66,178 Q 69,191 71,203" strokeWidth="0.65" opacity="0.34" />
+            <path d="M 71,185 Q 73,198 75,210" strokeWidth="0.7" opacity="0.36" />
+            <path d="M 75,193 Q 77,207 79,220" strokeWidth="0.6" opacity="0.30" />
+            <path d="M 69,202 Q 72,217 76,232" strokeWidth="0.75" opacity="0.38" />
+            <path d="M 74,215 Q 78,232 82,248" strokeWidth="0.65" opacity="0.33" />
+            <path d="M 78,228 Q 83,246 88,262" strokeWidth="0.7" opacity="0.35" />
+            <path d="M 82,245 Q 90,265 100,280" strokeWidth="0.6" opacity="0.31" />
+            <path d="M 88,258 Q 98,276 110,288" strokeWidth="0.7" opacity="0.36" />
+            <path d="M 95,268 Q 108,283 122,293" strokeWidth="0.65" opacity="0.33" />
+            <path d="M 104,275 Q 118,288 134,296" strokeWidth="0.6" opacity="0.30" />
+            <path d="M 67,168 Q 70,180 72,191" strokeWidth="0.55" opacity="0.28" />
+            <path d="M 76,205 Q 79,221 83,236" strokeWidth="0.7" opacity="0.37" />
+            <path d="M 85,252 Q 94,270 106,284" strokeWidth="0.65" opacity="0.34" />
           </g>
           
-          {/* Hair texture on right side */}
-          <g stroke={lighterHair} strokeWidth="0.8" opacity="0.4" fill="none">
-            <path d="M 235,160 Q 232,180 230,200" />
-            <path d="M 230,175 Q 228,195 225,215" />
-            <path d="M 232,200 Q 228,220 222,240" />
-            <path d="M 227,220 Q 220,245 210,265" />
-            <path d="M 220,250 Q 205,275 185,290" />
-            <path d="M 200,270 Q 180,288 160,298" />
+          {/* Hair texture on right side - scattered */}
+          <g stroke={lighterHair} fill="none">
+            <path d="M 237,158 Q 234,168 232,178" strokeWidth="0.7" opacity="0.35" />
+            <path d="M 232,162 Q 229,174 228,184" strokeWidth="0.6" opacity="0.32" />
+            <path d="M 228,170 Q 226,182 224,192" strokeWidth="0.75" opacity="0.38" />
+            <path d="M 234,178 Q 231,191 229,203" strokeWidth="0.65" opacity="0.34" />
+            <path d="M 229,185 Q 227,198 225,210" strokeWidth="0.7" opacity="0.36" />
+            <path d="M 225,193 Q 223,207 221,220" strokeWidth="0.6" opacity="0.30" />
+            <path d="M 231,202 Q 228,217 224,232" strokeWidth="0.75" opacity="0.38" />
+            <path d="M 226,215 Q 222,232 218,248" strokeWidth="0.65" opacity="0.33" />
+            <path d="M 222,228 Q 217,246 212,262" strokeWidth="0.7" opacity="0.35" />
+            <path d="M 218,245 Q 210,265 200,280" strokeWidth="0.6" opacity="0.31" />
+            <path d="M 212,258 Q 202,276 190,288" strokeWidth="0.7" opacity="0.36" />
+            <path d="M 205,268 Q 192,283 178,293" strokeWidth="0.65" opacity="0.33" />
+            <path d="M 196,275 Q 182,288 166,296" strokeWidth="0.6" opacity="0.30" />
+            <path d="M 233,168 Q 230,180 228,191" strokeWidth="0.55" opacity="0.28" />
+            <path d="M 224,205 Q 221,221 217,236" strokeWidth="0.7" opacity="0.37" />
+            <path d="M 215,252 Q 206,270 194,284" strokeWidth="0.65" opacity="0.34" />
           </g>
           
           {/* Hair texture on back */}
