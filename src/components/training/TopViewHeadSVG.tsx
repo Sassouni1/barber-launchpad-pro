@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import frontalThinningImg from '@/assets/frontal-thinning.png';
+import frontalThinningNormal from '@/assets/frontal-thinning-normal.png';
+import frontalThinningRaised from '@/assets/frontal-thinning-raised.png';
 
 interface TopViewHeadSVGProps {
   hairColor?: string;
   thinningPattern?: "crown" | "temples" | "diffuse" | "frontal" | "fullTop";
   className?: string;
+  eyebrowsRaised?: boolean;
 }
 
 // SVG-only component for use inside other SVGs
 export function TopViewHeadSVGContent({
   hairColor = "#2a1810",
   thinningPattern = "crown",
+  eyebrowsRaised = false,
 }: Omit<TopViewHeadSVGProps, 'className'>) {
   const lighterHair = `${hairColor}dd`;
+  const frontalImage = eyebrowsRaised ? frontalThinningRaised : frontalThinningNormal;
   
   return (
     <g>
@@ -87,7 +91,7 @@ export function TopViewHeadSVGContent({
       {/* Base hair mass - use PNG for frontal pattern */}
       {thinningPattern === "frontal" ? (
         <image
-          href={frontalThinningImg}
+          href={frontalImage}
           x="25"
           y="45"
           width="250"
@@ -889,12 +893,14 @@ export function TopViewHeadSVGWithWrap({
 export function TopViewHeadSVG({
   hairColor = "#2a1810",
   thinningPattern = "crown",
-  className
+  className,
+  eyebrowsRaised = false
 }: TopViewHeadSVGProps) {
   return (
     <TopViewHeadSVGContent 
       hairColor={hairColor} 
-      thinningPattern={thinningPattern} 
+      thinningPattern={thinningPattern}
+      eyebrowsRaised={eyebrowsRaised}
     />
   );
 }
