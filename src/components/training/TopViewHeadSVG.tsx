@@ -36,6 +36,10 @@ export function TopViewHeadSVGContent({
           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
         </radialGradient>
 
+        <filter id="fullTopFade" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="12" />
+        </filter>
+
         <pattern id="hairTexture" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
           <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
           <line x1="2" y1="0" x2="2" y2="4" stroke="rgba(0,0,0,0.08)" strokeWidth="0.5" />
@@ -568,13 +572,14 @@ export function TopViewHeadSVGContent({
       {/* FULL TOP BALDING (Norwood 6-7) */}
       {thinningPattern === "fullTop" && (
         <g>
-          {/* Large bald area covering most of the top */}
+          {/* Large bald area covering most of the top - solid with blur for fade effect */}
           <ellipse 
             cx="150" 
             cy="165" 
-            rx="85" 
-            ry="115" 
-            fill="url(#thinningGrad)" 
+            rx="78" 
+            ry="108" 
+            fill="#f5e6d3"
+            filter="url(#fullTopFade)"
           />
           {/* FADE ZONE - Left side horseshoe boundary */}
           <g stroke={hairColor} fill="none">
