@@ -523,26 +523,26 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             {showWrap ? 'Remove Wrap' : 'Add Wrap'}
           </Button>
 
-          {tapeMode !== 'none' ? (
-            <Button
-              variant="default"
-              onClick={() => setTapeMode('none')}
-              className="flex-1 gap-2"
-            >
-              <Pencil className="w-4 h-4" />
-              Draw
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              onClick={handleAddTape}
-              className="flex-1 gap-2"
-              disabled={!showWrap}
-            >
-              <Grid3X3 className="w-4 h-4" />
-              Add Tape
-            </Button>
-          )}
+          <Button
+            variant={tapeMode === 'none' ? 'default' : 'outline'}
+            onClick={() => setTapeMode('none')}
+            className="flex-1 gap-2"
+          >
+            <Pencil className="w-4 h-4" />
+            Draw
+          </Button>
+
+          <Button
+            variant={tapeMode !== 'none' ? 'default' : 'outline'}
+            onClick={handleAddTape}
+            className="flex-1 gap-2"
+            disabled={!showWrap}
+          >
+            <Grid3X3 className="w-4 h-4" />
+            {tapeMode === 'none' && 'Tape'}
+            {tapeMode === 'vertical' && 'V-Tape'}
+            {tapeMode === 'horizontal' && 'H-Tape'}
+          </Button>
 
           {(verticalTapes.length > 0 || horizontalTapes.length > 0) && (
             <Button
@@ -550,7 +550,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
               onClick={clearTape}
               className="flex-1 gap-2 text-xs"
             >
-              Clear Tape
+              Clear
             </Button>
           )}
           
