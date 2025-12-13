@@ -150,8 +150,9 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     }
     
     const viewBox = svg.viewBox.baseVal;
-    const x = ((clientX - rect.left) / rect.width) * viewBox.width;
-    const y = ((clientY - rect.top) / rect.height) * viewBox.height;
+    // Add viewBox origin offset to properly map coordinates when zoomed
+    const x = ((clientX - rect.left) / rect.width) * viewBox.width + viewBox.x;
+    const y = ((clientY - rect.top) / rect.height) * viewBox.height + viewBox.y;
     
     return { x, y };
   }, []);
