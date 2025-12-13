@@ -125,18 +125,8 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [verticalTapes, setVerticalTapes] = useState<number[]>([]);
   const [horizontalTapes, setHorizontalTapes] = useState<number[]>([]);
   const svgRef = useRef<SVGSVGElement>(null);
-  
-  // Draggable guide points state
-  const [editableGuidePoints, setEditableGuidePoints] = useState<Point[]>(rounds[0].guidePoints);
-  const [draggingPointIndex, setDraggingPointIndex] = useState<number | null>(null);
-  const [editMode, setEditMode] = useState(false);
 
   const round = rounds[currentRound];
-  
-  // Update editable points when round changes
-  useEffect(() => {
-    setEditableGuidePoints(rounds[currentRound].guidePoints);
-  }, [currentRound]);
 
   const getCoordinates = useCallback((e: React.MouseEvent | React.TouchEvent): Point | null => {
     if (!svgRef.current) return null;
@@ -188,9 +178,6 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const handleStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     
-    // If in edit mode, don't start drawing
-    if (editMode) return;
-    
     // If in tape mode, handle tape placement instead of drawing
     if (tapeMode === 'vertical' || tapeMode === 'horizontal') {
       handleTapeClick(e);
@@ -202,7 +189,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
       setIsDrawing(true);
       setCurrentStroke([point]);
     }
-  }, [getCoordinates, tapeMode, handleTapeClick, editMode]);
+  }, [getCoordinates, tapeMode, handleTapeClick]);
 
   const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing) return;
@@ -463,38 +450,25 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 />
               ))}
 
-              {/* Editable guide points - draggable when in edit mode */}
-              {showGuide && editableGuidePoints.map((point, i) => (
+              {/* Guide points */}
+              {showGuide && round.guidePoints.map((point, i) => (
                 <circle
                   key={i}
                   cx={point.x}
                   cy={point.y}
-                  r={editMode ? 8 : 4}
-                  fill={editMode ? "rgba(255, 165, 0, 0.9)" : "rgba(34, 197, 94, 0.8)"}
+                  r={4}
+                  fill="rgba(34, 197, 94, 0.8)"
                   stroke="white"
-                  strokeWidth={editMode ? 2 : 1}
-                  style={{ cursor: editMode ? 'grab' : 'default' }}
-                  onMouseDown={(e) => {
-                    if (editMode) {
-                      e.stopPropagation();
-                      setDraggingPointIndex(i);
-                    }
-                  }}
-                  onTouchStart={(e) => {
-                    if (editMode) {
-                      e.stopPropagation();
-                      setDraggingPointIndex(i);
-                    }
-                  }}
+                  strokeWidth={1}
                 />
               ))}
 
               {/* Guide line connecting points */}
               {showGuide && (
                 <path
-                  d={`M ${editableGuidePoints.map(p => `${p.x},${p.y}`).join(' L ')}`}
+                  d={`M ${round.guidePoints.map(p => `${p.x},${p.y}`).join(' L ')}`}
                   fill="none"
-                  stroke={editMode ? "rgba(255, 165, 0, 0.6)" : "rgba(34, 197, 94, 0.6)"}
+                  stroke="rgba(34, 197, 94, 0.6)"
                   strokeWidth="3"
                   strokeDasharray="8,4"
                 />
@@ -536,102 +510,14 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 height="360"
                 fill="rgba(0,0,0,0.001)"
                 pointerEvents="all"
-                onMouseDown={(e) => {
-                  if (editMode) {
-                    const point = getCoordinates(e);
-                    if (!point) return;
-
-                    // Find nearest guide point to grab
-                    let closestIndex = -1;
-                    let minDist = Infinity;
-                    editableGuidePoints.forEach((gp, idx) => {
-                      const dx = gp.x - point.x;
-                      const dy = gp.y - point.y;
-                      const dist = Math.sqrt(dx * dx + dy * dy);
-                      if (dist < minDist) {
-                        minDist = dist;
-                        closestIndex = idx;
-                      }
-                    });
-
-                    if (closestIndex !== -1 && minDist <= 18) {
-                      setDraggingPointIndex(closestIndex);
-                    }
-                  } else {
-                    handleStart(e);
-                  }
-                }}
-                onMouseMove={(e) => {
-                  if (draggingPointIndex !== null && editMode) {
-                    const point = getCoordinates(e);
-                    if (point) {
-                      setEditableGuidePoints(prev => {
-                        const next = [...prev];
-                        next[draggingPointIndex] = { x: Math.round(point.x), y: Math.round(point.y) };
-                        return next;
-                      });
-                    }
-                  } else {
-                    handleMove(e);
-                  }
-                }}
-                onMouseUp={() => {
-                  if (draggingPointIndex !== null) {
-                    setDraggingPointIndex(null);
-                  } else {
-                    handleEnd();
-                  }
-                }}
-                onMouseLeave={() => {
-                  setDraggingPointIndex(null);
-                  handleEnd();
-                }}
-                onTouchStart={(e) => {
-                  if (editMode) {
-                    const point = getCoordinates(e);
-                    if (!point) return;
-
-                    let closestIndex = -1;
-                    let minDist = Infinity;
-                    editableGuidePoints.forEach((gp, idx) => {
-                      const dx = gp.x - point.x;
-                      const dy = gp.y - point.y;
-                      const dist = Math.sqrt(dx * dx + dy * dy);
-                      if (dist < minDist) {
-                        minDist = dist;
-                        closestIndex = idx;
-                      }
-                    });
-
-                    if (closestIndex !== -1 && minDist <= 18) {
-                      setDraggingPointIndex(closestIndex);
-                    }
-                  } else {
-                    handleStart(e);
-                  }
-                }}
-                onTouchMove={(e) => {
-                  if (draggingPointIndex !== null && editMode) {
-                    const point = getCoordinates(e);
-                    if (point) {
-                      setEditableGuidePoints(prev => {
-                        const next = [...prev];
-                        next[draggingPointIndex] = { x: Math.round(point.x), y: Math.round(point.y) };
-                        return next;
-                      });
-                    }
-                  } else {
-                    handleMove(e);
-                  }
-                }}
-                onTouchEnd={() => {
-                  if (draggingPointIndex !== null) {
-                    setDraggingPointIndex(null);
-                  } else {
-                    handleEnd();
-                  }
-                }}
-                style={{ cursor: editMode ? 'default' : (tapeMode === 'vertical' || tapeMode === 'horizontal' ? 'cell' : 'crosshair') }}
+                onMouseDown={handleStart}
+                onMouseMove={handleMove}
+                onMouseUp={handleEnd}
+                onMouseLeave={handleEnd}
+                onTouchStart={handleStart}
+                onTouchMove={handleMove}
+                onTouchEnd={handleEnd}
+                style={{ cursor: tapeMode === 'vertical' || tapeMode === 'horizontal' ? 'cell' : 'crosshair' }}
               />
             </svg>
           </div>
@@ -698,34 +584,6 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             {showGuide ? 'Hide' : 'Guide'}
           </Button>
 
-          {/* Edit Mode - for dragging guide points */}
-          {showGuide && (
-            <Button
-              variant={editMode ? 'default' : 'outline'}
-              onClick={() => setEditMode(!editMode)}
-              className="flex-1 gap-2 text-xs"
-            >
-              {editMode ? 'Editing...' : 'Edit Points'}
-            </Button>
-          )}
-
-          {/* Copy coordinates to clipboard */}
-          {editMode && (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const coordsStr = editableGuidePoints
-                  .map(p => `{ x: ${p.x}, y: ${p.y} }`)
-                  .join(',\n      ');
-                navigator.clipboard.writeText(coordsStr);
-                console.log('Guide Points:\n', coordsStr);
-                alert('Coordinates copied to clipboard and logged to console!');
-              }}
-              className="flex-1 gap-2 text-xs"
-            >
-              Copy Coords
-            </Button>
-          )}
 
           {!showGuide ? (
             <Button 
