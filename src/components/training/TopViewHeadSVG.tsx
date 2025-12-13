@@ -44,11 +44,20 @@ export function TopViewHeadSVGContent({
           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
         </radialGradient>
 
+        {/* Softer scalp gradient just for temples pattern */}
         <radialGradient id="templesGrad" cx="50%" cy="45%">
           <stop offset="0%" stopColor="#f5e6d3" stopOpacity="1" />
           <stop offset="55%" stopColor="#f0dcc8" stopOpacity="1" />
-          <stop offset="75%" stopColor="#e8d4be" stopOpacity="0.8" />
-          <stop offset="88%" stopColor="#d4baa0" stopOpacity="0.4" />
+          <stop offset="80%" stopColor="#e8d4be" stopOpacity="0.85" />
+          <stop offset="90%" stopColor="#d4baa0" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+        </radialGradient>
+
+        {/* Very subtle ring to soften scalp-to-hair edge on temples */}
+        <radialGradient id="templesBlendGrad" cx="50%" cy="45%">
+          <stop offset="78%" stopColor="transparent" stopOpacity="0" />
+          <stop offset="88%" stopColor={hairColor} stopOpacity="0.22" />
+          <stop offset="94%" stopColor={hairColor} stopOpacity="0.12" />
           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
         </radialGradient>
 
@@ -242,6 +251,16 @@ export function TopViewHeadSVGContent({
                C 130,300 110,290 90,270
                Z"
             fill={hairColor}
+          />
+
+          {/* Subtle edge blend ring to soften hairline transition */}
+          <ellipse
+            cx="150"
+            cy="155"
+            rx="82"
+            ry="102"
+            fill="url(#templesBlendGrad)"
+            opacity="0.8"
           />
           
           {/* Hair texture on left side - scattered */}
