@@ -70,9 +70,9 @@ export function TopViewHeadSVGContent({
       {/* HEAD OUTLINE */}
       <ellipse 
         cx="150" 
-        cy="170" 
+        cy="180" 
         rx="95" 
-        ry="110" 
+        ry="130" 
         fill="url(#scalpGrad)"
       />
 
