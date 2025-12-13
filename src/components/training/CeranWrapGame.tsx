@@ -388,13 +388,14 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
               {verticalTapes.map((x, i) => (
                 <rect
                   key={`v-${i}`}
-                  x={x - 10}
+                  x={x - 12}
                   y={60}
-                  width={20}
+                  width={24}
                   height={220}
-                  fill="rgba(255,255,255,0.1)"
-                  stroke="rgba(255,255,255,0.3)"
-                  strokeWidth="0.5"
+                  fill="rgba(255,255,255,0.25)"
+                  stroke="rgba(255,255,255,0.5)"
+                  strokeWidth="1"
+                  rx="2"
                 />
               ))}
 
@@ -403,12 +404,13 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 <rect
                   key={`h-${i}`}
                   x={50}
-                  y={y - 10}
+                  y={y - 12}
                   width={200}
-                  height={20}
-                  fill="rgba(255,255,255,0.1)"
-                  stroke="rgba(255,255,255,0.3)"
-                  strokeWidth="0.5"
+                  height={24}
+                  fill="rgba(255,255,255,0.25)"
+                  stroke="rgba(255,255,255,0.5)"
+                  strokeWidth="1"
+                  rx="2"
                 />
               ))}
 
