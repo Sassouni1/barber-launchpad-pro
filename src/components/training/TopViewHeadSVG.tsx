@@ -44,6 +44,14 @@ export function TopViewHeadSVGContent({
           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
         </radialGradient>
 
+        <radialGradient id="templesGrad" cx="50%" cy="45%">
+          <stop offset="0%" stopColor="#f5e6d3" stopOpacity="1" />
+          <stop offset="55%" stopColor="#f0dcc8" stopOpacity="1" />
+          <stop offset="75%" stopColor="#e8d4be" stopOpacity="0.8" />
+          <stop offset="88%" stopColor="#d4baa0" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+        </radialGradient>
+
         <pattern id="hairTexture" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
           <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" />
           <line x1="2" y1="0" x2="2" y2="4" stroke="rgba(0,0,0,0.08)" strokeWidth="0.5" />
@@ -187,7 +195,7 @@ export function TopViewHeadSVGContent({
             cy="155" 
             rx="75" 
             ry="95" 
-            fill="#f0dcc8"
+            fill="url(#templesGrad)"
           />
           
           {/* Subtle scalp shine highlight */}
