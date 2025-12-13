@@ -69,6 +69,8 @@ const rounds: Round[] = [
     name: 'Frontal Thinning',
     description: 'Trace the M-shaped receding hairline at the temples',
     guidePoints: [
+      // Left side bottom extension (5 new points)
+      { x: 65, y: 300 }, { x: 68, y: 285 }, { x: 70, y: 270 }, { x: 72, y: 255 }, { x: 74, y: 248 },
       // M-shaped hairline - start left temple
       { x: 75, y: 240 }, { x: 80, y: 225 },
       // Left corner going up to peak
@@ -86,6 +88,8 @@ const rounds: Round[] = [
       // Right corner going down
       { x: 200, y: 205 }, { x: 212, y: 215 },
       { x: 220, y: 225 }, { x: 225, y: 240 },
+      // Right side bottom extension (5 new points)
+      { x: 226, y: 248 }, { x: 228, y: 255 }, { x: 230, y: 270 }, { x: 232, y: 285 }, { x: 235, y: 300 },
     ],
   },
   {
