@@ -198,23 +198,27 @@ export function TopViewHeadSVGContent({
       {/* FULL TOP RECESSION - Norwood 6-7 horseshoe pattern */}
       {thinningPattern === "temples" && (
         <g>
-          {/* Single clean bald scalp area */}
-          <ellipse 
-            cx="150" 
-            cy="155" 
-            rx="75" 
-            ry="95" 
+          {/* Organic irregular bald scalp area */}
+          <path 
+            d="M 150,62
+               C 102,68 84,88 79,118
+               C 71,155 68,190 74,222
+               C 81,248 98,252 118,254
+               C 138,256 162,255 182,252
+               C 206,248 221,240 226,214
+               C 232,180 229,142 221,108
+               C 214,80 196,66 150,62"
             fill="url(#templesGrad)"
           />
           
-          {/* Subtle scalp shine highlight */}
+          {/* Subtle matte scalp highlight */}
           <ellipse 
-            cx="140" 
-            cy="130" 
-            rx="40" 
-            ry="30" 
-            fill="#f8ebe0"
-            opacity="0.6"
+            cx="138" 
+            cy="135" 
+            rx="28" 
+            ry="20" 
+            fill="#efe0d0"
+            opacity="0.25"
           />
           
           {/* HORSESHOE HAIR - Left side */}
