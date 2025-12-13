@@ -227,6 +227,11 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
       setStrokes([]);
       setCurrentStroke([]);
       setShowGuide(false);
+      // Reset tape state for next round
+      setTapeMode('none');
+      setVerticalTapes([]);
+      setHorizontalTapes([]);
+      setShowWrap(true);
     } else {
       setIsGameComplete(true);
     }
@@ -403,8 +408,8 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                   y={60}
                   width={24}
                   height={220}
-                  fill="rgba(255,255,255,0.25)"
-                  stroke="rgba(255,255,255,0.5)"
+                  fill="rgba(255,255,255,0.05)"
+                  stroke="rgba(255,255,255,0.3)"
                   strokeWidth="1"
                   rx="2"
                 />
@@ -418,8 +423,8 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                   y={y - 12}
                   width={200}
                   height={24}
-                  fill="rgba(255,255,255,0.25)"
-                  stroke="rgba(255,255,255,0.5)"
+                  fill="rgba(255,255,255,0.05)"
+                  stroke="rgba(255,255,255,0.3)"
                   strokeWidth="1"
                   rx="2"
                 />
