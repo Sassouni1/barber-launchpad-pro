@@ -317,14 +317,14 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 </pattern>
               </defs>
               
-              {/* Ceran wrap layer - toggleable */}
+              {/* Ceran wrap layer - toggleable - matches shorter head shape */}
               {showWrap && (
                 <>
                   <ellipse
                     cx="150"
-                    cy="180"
-                    rx="95"
-                    ry="130"
+                    cy="170"
+                    rx="100"
+                    ry="110"
                     fill="url(#wrapShine)"
                     stroke="rgba(255,255,255,0.3)"
                     strokeWidth="1"
@@ -332,9 +332,9 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                   />
                   <ellipse
                     cx="150"
-                    cy="180"
-                    rx="95"
-                    ry="130"
+                    cy="170"
+                    rx="100"
+                    ry="110"
                     fill="url(#wrapTexture)"
                     className="transition-opacity duration-300"
                   />
