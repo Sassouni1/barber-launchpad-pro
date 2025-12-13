@@ -180,7 +180,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   }, [tapeMode, getCoordinates]);
 
   const eraseNearPoint = useCallback((point: Point) => {
-    const eraseRadius = 20;
+    const eraseRadius = 6;
     setStrokes(prevStrokes => {
       return prevStrokes.map(stroke => {
         // Split stroke at erased points - remove points near the eraser
