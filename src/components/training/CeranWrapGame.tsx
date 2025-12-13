@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3 } from 'lucide-react';
+import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
 import confetti from 'canvas-confetti';
 
@@ -523,18 +523,26 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             {showWrap ? 'Remove Wrap' : 'Add Wrap'}
           </Button>
 
-          <Button
-            variant="outline"
-            onClick={handleAddTape}
-            className="flex-1 gap-2"
-            disabled={!showWrap || tapeMode === 'complete'}
-          >
-            <Grid3X3 className="w-4 h-4" />
-            {tapeMode === 'none' && 'Add Tape'}
-            {tapeMode === 'vertical' && 'Vertical...'}
-            {tapeMode === 'horizontal' && 'Horizontal...'}
-            {tapeMode === 'complete' && 'Tape Done'}
-          </Button>
+          {tapeMode !== 'none' ? (
+            <Button
+              variant="default"
+              onClick={() => setTapeMode('none')}
+              className="flex-1 gap-2"
+            >
+              <Pencil className="w-4 h-4" />
+              Draw
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handleAddTape}
+              className="flex-1 gap-2"
+              disabled={!showWrap}
+            >
+              <Grid3X3 className="w-4 h-4" />
+              Add Tape
+            </Button>
+          )}
 
           {(verticalTapes.length > 0 || horizontalTapes.length > 0) && (
             <Button
