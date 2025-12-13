@@ -482,7 +482,8 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 y="0"
                 width="300"
                 height="360"
-                fill="transparent"
+                fill="rgba(0,0,0,0.001)"
+                pointerEvents="all"
                 onMouseDown={handleStart}
                 onMouseMove={handleMove}
                 onMouseUp={handleEnd}
