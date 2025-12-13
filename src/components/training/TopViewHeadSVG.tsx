@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import frontalThinningImg from '@/assets/frontal-thinning.png';
 
 interface TopViewHeadSVGProps {
   hairColor?: string;
@@ -80,45 +81,16 @@ export function TopViewHeadSVGContent({
       <ellipse cx="50" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
       <ellipse cx="250" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
       
-      {/* Base hair mass - M-shaped for frontal pattern */}
+      {/* Base hair mass - use PNG for frontal pattern */}
       {thinningPattern === "frontal" ? (
-        <>
-          {/* M-shaped hairline: smooth rounded curves with temple recession */}
-          <path
-            d="
-              M 50,95
-              C 48,130 48,170 52,210
-              C 58,250 95,275 150,280
-              C 205,275 242,250 248,210
-              C 252,170 252,130 250,95
-              C 248,85 235,78 215,82
-              C 195,88 175,105 165,115
-              C 158,105 154,90 150,80
-              C 146,90 142,105 135,115
-              C 125,105 105,88 85,82
-              C 65,78 52,85 50,95
-            "
-            fill="url(#hairDepth)"
-          />
-          {/* Hair texture overlay for frontal */}
-          <path
-            d="
-              M 50,95
-              C 48,130 48,170 52,210
-              C 58,250 95,275 150,280
-              C 205,275 242,250 248,210
-              C 252,170 252,130 250,95
-              C 248,85 235,78 215,82
-              C 195,88 175,105 165,115
-              C 158,105 154,90 150,80
-              C 146,90 142,105 135,115
-              C 125,105 105,88 85,82
-              C 65,78 52,85 50,95
-            "
-            fill="url(#hairTexture)"
-            opacity="0.4"
-          />
-        </>
+        <image
+          href={frontalThinningImg}
+          x="20"
+          y="40"
+          width="260"
+          height="260"
+          preserveAspectRatio="xMidYMid slice"
+        />
       ) : (
         <>
           <path
