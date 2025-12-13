@@ -4,7 +4,6 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
-import { FrontalThinningHeadSVG } from './FrontalThinningHeadSVG';
 import confetti from 'canvas-confetti';
 
 interface Point {
@@ -358,14 +357,10 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             >
               {/* Head SVG content (non-interactive, clicks pass through to SVG root) */}
               <g pointerEvents="none">
-                {round.pattern === 'frontal' ? (
-                  <FrontalThinningHeadSVG className="w-full h-full" />
-                ) : (
-                  <TopViewHeadSVG 
-                    thinningPattern={round.pattern}
-                    className="w-full h-full"
-                  />
-                )}
+                <TopViewHeadSVG 
+                  thinningPattern={round.pattern}
+                  className="w-full h-full"
+                />
               </g>
 
               {/* Ceran wrap overlay */}

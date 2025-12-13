@@ -585,21 +585,68 @@ export function TopViewHeadSVGContent({
         </g>
       )}
 
-      {/* FRONTAL THINNING */}
+      {/* FRONTAL THINNING - M-shaped recession from aerial view */}
       {thinningPattern === "frontal" && (
         <g>
-          <ellipse 
-            cx="150" 
-            cy="90" 
-            rx="70" 
-            ry="45" 
+          {/* Left temple recession - scalp exposed */}
+          <path
+            d="M 80,68
+               C 85,62 100,55 115,58
+               C 125,60 130,68 130,75
+               C 130,85 120,95 105,98
+               C 88,101 75,95 72,85
+               C 69,75 73,68 80,68"
             fill="url(#thinningGrad)"
           />
-          <g stroke={hairColor} strokeWidth="0.7" opacity="0.3">
-            <line x1="125" y1="72" x2="123" y2="85" />
-            <line x1="140" y1="68" x2="138" y2="82" />
-            <line x1="160" y1="68" x2="162" y2="82" />
-            <line x1="175" y1="72" x2="177" y2="85" />
+          
+          {/* Right temple recession - scalp exposed */}
+          <path
+            d="M 220,68
+               C 215,62 200,55 185,58
+               C 175,60 170,68 170,75
+               C 170,85 180,95 195,98
+               C 212,101 225,95 228,85
+               C 231,75 227,68 220,68"
+            fill="url(#thinningGrad)"
+          />
+          
+          {/* Center widow's peak area - where hair extends forward */}
+          {/* This stays as hair, we just show the recession on sides */}
+          
+          {/* Sparse hairs in left temple recession */}
+          <g stroke={hairColor} strokeWidth="0.6" opacity="0.25">
+            <line x1="88" y1="70" x2="86" y2="82" />
+            <line x1="98" y1="68" x2="96" y2="80" />
+            <line x1="108" y1="72" x2="106" y2="84" />
+            <line x1="95" y1="80" x2="93" y2="92" />
+            <line x1="105" y1="82" x2="103" y2="94" />
+            <line x1="85" y1="78" x2="83" y2="90" />
+            <line x1="100" y1="75" x2="98" y2="87" />
+            <line x1="92" y1="85" x2="90" y2="97" />
+          </g>
+          
+          {/* Sparse hairs in right temple recession */}
+          <g stroke={hairColor} strokeWidth="0.6" opacity="0.25">
+            <line x1="212" y1="70" x2="214" y2="82" />
+            <line x1="202" y1="68" x2="204" y2="80" />
+            <line x1="192" y1="72" x2="194" y2="84" />
+            <line x1="205" y1="80" x2="207" y2="92" />
+            <line x1="195" y1="82" x2="197" y2="94" />
+            <line x1="215" y1="78" x2="217" y2="90" />
+            <line x1="200" y1="75" x2="202" y2="87" />
+            <line x1="208" y1="85" x2="210" y2="97" />
+          </g>
+          
+          {/* Transition zone at hairline - irregular edge */}
+          <g stroke={hairColor} strokeWidth="0.5" opacity="0.35">
+            {/* Left side transition */}
+            <line x1="75" y1="75" x2="73" y2="88" />
+            <line x1="118" y1="62" x2="116" y2="74" />
+            <line x1="125" y1="68" x2="123" y2="80" />
+            {/* Right side transition */}
+            <line x1="225" y1="75" x2="227" y2="88" />
+            <line x1="182" y1="62" x2="184" y2="74" />
+            <line x1="175" y1="68" x2="177" y2="80" />
           </g>
         </g>
       )}
