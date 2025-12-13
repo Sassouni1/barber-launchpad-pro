@@ -68,27 +68,30 @@ export function TopViewHeadSVGContent({
         </pattern>
       </defs>
 
-      {/* HEAD OUTLINE - rounder, shorter back */}
-      <ellipse 
-        cx="150" 
-        cy="170" 
-        rx="100" 
-        ry="110" 
-        fill="url(#scalpGrad)"
-      />
-
-      {/* Ears */}
-      <ellipse cx="50" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
-      <ellipse cx="250" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
+      {/* HEAD OUTLINE - rounder, shorter back (hide for frontal since PNG has its own) */}
+      {thinningPattern !== "frontal" && (
+        <>
+          <ellipse 
+            cx="150" 
+            cy="170" 
+            rx="100" 
+            ry="110" 
+            fill="url(#scalpGrad)"
+          />
+          {/* Ears */}
+          <ellipse cx="50" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
+          <ellipse cx="250" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
+        </>
+      )}
       
       {/* Base hair mass - use PNG for frontal pattern */}
       {thinningPattern === "frontal" ? (
         <image
           href={frontalThinningImg}
-          x="50"
-          y="65"
-          width="200"
-          height="220"
+          x="25"
+          y="45"
+          width="250"
+          height="270"
           preserveAspectRatio="xMidYMin meet"
         />
       ) : (
