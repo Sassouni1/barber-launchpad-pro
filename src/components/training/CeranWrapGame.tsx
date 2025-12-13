@@ -694,6 +694,10 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
               <Button
                 variant={isAdjustingGuide ? 'default' : 'outline'}
                 onClick={() => {
+                  if (isAdjustingGuide) {
+                    // Log the adjusted coordinates when done
+                    console.log('ADJUSTED FRONTAL GUIDE POINTS:', JSON.stringify(adjustedFrontalGuide, null, 2));
+                  }
                   setIsAdjustingGuide(!isAdjustingGuide);
                   if (!isAdjustingGuide) {
                     setDrawMode('draw');
