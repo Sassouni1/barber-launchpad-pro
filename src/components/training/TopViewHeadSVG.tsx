@@ -593,16 +593,64 @@ export function TopViewHeadSVGContent({
             fill="#f5e6d3"
             opacity="0.75"
           />
-          {/* Sparse remaining hairs */}
-          <g stroke={hairColor} strokeWidth="0.6" opacity="0.25">
-            <line x1="90" y1="80" x2="88" y2="95" />
-            <line x1="210" y1="80" x2="212" y2="95" />
-            <line x1="75" y1="150" x2="72" y2="165" />
-            <line x1="225" y1="150" x2="228" y2="165" />
-            <line x1="80" y1="220" x2="78" y2="235" />
-            <line x1="220" y1="220" x2="222" y2="235" />
-            <line x1="100" y1="270" x2="102" y2="285" />
-            <line x1="200" y1="270" x2="198" y2="285" />
+          {/* FADE ZONE - Left side horseshoe boundary */}
+          <g stroke={hairColor} fill="none">
+            <path d="M 68,82 Q 72,92 69,100" strokeWidth="0.55" opacity="0.26" />
+            <path d="M 72,95 Q 76,106 73,114" strokeWidth="0.5" opacity="0.22" />
+            <path d="M 66,108 Q 70,120 67,128" strokeWidth="0.6" opacity="0.28" />
+            <path d="M 70,122 Q 74,134 71,142" strokeWidth="0.45" opacity="0.2" />
+            <path d="M 64,138 Q 68,151 65,159" strokeWidth="0.55" opacity="0.25" />
+            <path d="M 68,155 Q 72,168 69,176" strokeWidth="0.5" opacity="0.23" />
+            <path d="M 62,172 Q 66,186 63,194" strokeWidth="0.6" opacity="0.27" />
+            <path d="M 66,190 Q 70,204 67,212" strokeWidth="0.45" opacity="0.21" />
+            <path d="M 64,208 Q 68,222 65,230" strokeWidth="0.55" opacity="0.26" />
+            <path d="M 68,226 Q 72,240 69,248" strokeWidth="0.5" opacity="0.22" />
+            <path d="M 66,244 Q 70,258 67,266" strokeWidth="0.6" opacity="0.28" />
+            <path d="M 74,88 Q 78,99 75,107" strokeWidth="0.4" opacity="0.18" />
+            <path d="M 78,115 Q 82,127 79,135" strokeWidth="0.5" opacity="0.24" />
+            <path d="M 76,148 Q 80,161 77,169" strokeWidth="0.45" opacity="0.2" />
+            <path d="M 74,182 Q 78,196 75,204" strokeWidth="0.55" opacity="0.26" />
+            <path d="M 78,218 Q 82,232 79,240" strokeWidth="0.5" opacity="0.22" />
+            <path d="M 72,252 Q 76,266 73,274" strokeWidth="0.45" opacity="0.19" />
+          </g>
+          
+          {/* FADE ZONE - Right side horseshoe boundary */}
+          <g stroke={hairColor} fill="none">
+            <path d="M 232,82 Q 228,92 231,100" strokeWidth="0.55" opacity="0.26" />
+            <path d="M 228,95 Q 224,106 227,114" strokeWidth="0.5" opacity="0.22" />
+            <path d="M 234,108 Q 230,120 233,128" strokeWidth="0.6" opacity="0.28" />
+            <path d="M 230,122 Q 226,134 229,142" strokeWidth="0.45" opacity="0.2" />
+            <path d="M 236,138 Q 232,151 235,159" strokeWidth="0.55" opacity="0.25" />
+            <path d="M 232,155 Q 228,168 231,176" strokeWidth="0.5" opacity="0.23" />
+            <path d="M 238,172 Q 234,186 237,194" strokeWidth="0.6" opacity="0.27" />
+            <path d="M 234,190 Q 230,204 233,212" strokeWidth="0.45" opacity="0.21" />
+            <path d="M 236,208 Q 232,222 235,230" strokeWidth="0.55" opacity="0.26" />
+            <path d="M 232,226 Q 228,240 231,248" strokeWidth="0.5" opacity="0.22" />
+            <path d="M 234,244 Q 230,258 233,266" strokeWidth="0.6" opacity="0.28" />
+            <path d="M 226,88 Q 222,99 225,107" strokeWidth="0.4" opacity="0.18" />
+            <path d="M 222,115 Q 218,127 221,135" strokeWidth="0.5" opacity="0.24" />
+            <path d="M 224,148 Q 220,161 223,169" strokeWidth="0.45" opacity="0.2" />
+            <path d="M 226,182 Q 222,196 225,204" strokeWidth="0.55" opacity="0.26" />
+            <path d="M 222,218 Q 218,232 221,240" strokeWidth="0.5" opacity="0.22" />
+            <path d="M 228,252 Q 224,266 227,274" strokeWidth="0.45" opacity="0.19" />
+          </g>
+          
+          {/* FADE ZONE - Back horseshoe boundary */}
+          <g stroke={hairColor} fill="none">
+            <path d="M 85,262 Q 92,270 88,278" strokeWidth="0.5" opacity="0.24" />
+            <path d="M 98,268 Q 106,276 102,284" strokeWidth="0.55" opacity="0.26" />
+            <path d="M 112,272 Q 120,280 116,288" strokeWidth="0.45" opacity="0.2" />
+            <path d="M 128,275 Q 135,283 131,291" strokeWidth="0.5" opacity="0.22" />
+            <path d="M 144,276 Q 150,284 146,292" strokeWidth="0.55" opacity="0.25" />
+            <path d="M 158,276 Q 152,284 156,292" strokeWidth="0.5" opacity="0.23" />
+            <path d="M 172,275 Q 165,283 169,291" strokeWidth="0.45" opacity="0.2" />
+            <path d="M 188,272 Q 180,280 184,288" strokeWidth="0.55" opacity="0.26" />
+            <path d="M 202,268 Q 194,276 198,284" strokeWidth="0.5" opacity="0.22" />
+            <path d="M 215,262 Q 208,270 212,278" strokeWidth="0.45" opacity="0.19" />
+            <path d="M 92,258 Q 99,266 95,274" strokeWidth="0.4" opacity="0.18" />
+            <path d="M 135,270 Q 142,278 138,286" strokeWidth="0.5" opacity="0.24" />
+            <path d="M 165,270 Q 158,278 162,286" strokeWidth="0.5" opacity="0.24" />
+            <path d="M 208,258 Q 201,266 205,274" strokeWidth="0.4" opacity="0.18" />
           </g>
         </g>
       )}
