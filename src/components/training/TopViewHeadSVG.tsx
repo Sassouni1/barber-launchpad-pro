@@ -85,11 +85,11 @@ export function TopViewHeadSVGContent({
       {thinningPattern === "frontal" ? (
         <image
           href={frontalThinningImg}
-          x="20"
-          y="40"
-          width="260"
-          height="260"
-          preserveAspectRatio="xMidYMid slice"
+          x="50"
+          y="65"
+          width="200"
+          height="220"
+          preserveAspectRatio="xMidYMin meet"
         />
       ) : (
         <>
