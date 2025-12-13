@@ -69,27 +69,31 @@ const rounds: Round[] = [
     name: 'Frontal Thinning',
     description: 'Trace the M-shaped receding hairline at the temples',
     guidePoints: [
-      // Left side bottom extension (5 new points)
-      { x: 65, y: 300 }, { x: 68, y: 285 }, { x: 70, y: 270 }, { x: 72, y: 255 }, { x: 74, y: 248 },
-      // M-shaped hairline - start left temple
-      { x: 75, y: 240 }, { x: 80, y: 225 },
-      // Left corner going up to peak
-      { x: 88, y: 215 }, { x: 100, y: 205 }, { x: 115, y: 195 },
-      // Left peak
-      { x: 125, y: 192 }, { x: 132, y: 195 },
-      // Going down to center valley
-      { x: 140, y: 210 }, { x: 148, y: 225 },
-      // Center dip
-      { x: 150, y: 230 }, { x: 152, y: 225 },
-      // Going up to right peak
-      { x: 160, y: 210 }, { x: 168, y: 195 },
-      // Right peak
-      { x: 175, y: 192 }, { x: 185, y: 195 },
-      // Right corner going down
-      { x: 200, y: 205 }, { x: 212, y: 215 },
-      { x: 220, y: 225 }, { x: 225, y: 240 },
-      // Right side bottom extension (5 new points)
-      { x: 226, y: 248 }, { x: 228, y: 255 }, { x: 230, y: 270 }, { x: 232, y: 285 }, { x: 235, y: 300 },
+      { x: 219, y: 210 },
+      { x: 205, y: 216 },
+      { x: 185, y: 218 },
+      { x: 157, y: 218 },
+      { x: 134, y: 218 },
+      { x: 107, y: 211 },
+      { x: 81, y: 197 },
+      { x: 76, y: 197 },
+      { x: 79, y: 181 },
+      { x: 82, y: 166 },
+      { x: 98, y: 160 },
+      { x: 108, y: 163 },
+      { x: 119, y: 179 },
+      { x: 133, y: 196 },
+      { x: 152, y: 205 },
+      { x: 173, y: 198 },
+      { x: 186, y: 179 },
+      { x: 196, y: 165 },
+      { x: 209, y: 158 },
+      { x: 223, y: 177 },
+      { x: 230, y: 195 },
+      { x: 227, y: 212 },
+      { x: 215, y: 213 },
+      { x: 208, y: 215 },
+      { x: 207, y: 213 },
     ],
   },
   {
