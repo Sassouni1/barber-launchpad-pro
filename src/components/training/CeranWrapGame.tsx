@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers } from 'lucide-react';
+import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3 } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
 import confetti from 'canvas-confetti';
 
@@ -16,6 +16,7 @@ interface CeranWrapGameProps {
 }
 
 type ThinningPattern = 'crown' | 'temples' | 'diffuse' | 'frontal' | 'fullTop';
+type TapeMode = 'none' | 'vertical' | 'horizontal' | 'complete';
 
 interface Round {
   pattern: ThinningPattern;
@@ -100,6 +101,9 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [showWrap, setShowWrap] = useState(true);
   const [scores, setScores] = useState<number[]>([]);
   const [isGameComplete, setIsGameComplete] = useState(false);
+  const [tapeMode, setTapeMode] = useState<TapeMode>('none');
+  const [verticalTapes, setVerticalTapes] = useState<number[]>([]);
+  const [horizontalTapes, setHorizontalTapes] = useState<number[]>([]);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const round = rounds[currentRound];
@@ -128,14 +132,34 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     return { x, y };
   }, []);
 
+  const handleTapeClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const point = getCoordinates(e);
+    if (!point) return;
+
+    if (tapeMode === 'vertical') {
+      // Add vertical tape at clicked X position
+      setVerticalTapes(prev => [...prev, point.x]);
+    } else if (tapeMode === 'horizontal') {
+      // Add horizontal tape at clicked Y position
+      setHorizontalTapes(prev => [...prev, point.y]);
+    }
+  }, [tapeMode, getCoordinates]);
+
   const handleStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
+    
+    // If in tape mode, handle tape placement instead of drawing
+    if (tapeMode === 'vertical' || tapeMode === 'horizontal') {
+      handleTapeClick(e);
+      return;
+    }
+    
     const point = getCoordinates(e);
     if (point) {
       setIsDrawing(true);
       setCurrentStroke([point]);
     }
-  }, [getCoordinates]);
+  }, [getCoordinates, tapeMode, handleTapeClick]);
 
   const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing) return;
@@ -205,6 +229,25 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     setScores([]);
     setShowGuide(false);
     setIsGameComplete(false);
+    setTapeMode('none');
+    setVerticalTapes([]);
+    setHorizontalTapes([]);
+  };
+
+  const handleAddTape = () => {
+    if (tapeMode === 'none') {
+      setTapeMode('vertical');
+    } else if (tapeMode === 'vertical') {
+      setTapeMode('horizontal');
+    } else if (tapeMode === 'horizontal') {
+      setTapeMode('complete');
+    }
+  };
+
+  const clearTape = () => {
+    setVerticalTapes([]);
+    setHorizontalTapes([]);
+    setTapeMode('none');
   };
 
   useEffect(() => {
@@ -341,7 +384,34 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 </>
               )}
 
-              {/* Guide points */}
+              {/* Vertical tape strips - clear tape on top of wrap */}
+              {verticalTapes.map((x, i) => (
+                <rect
+                  key={`v-${i}`}
+                  x={x - 10}
+                  y={60}
+                  width={20}
+                  height={220}
+                  fill="rgba(255,255,255,0.1)"
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth="0.5"
+                />
+              ))}
+
+              {/* Horizontal tape strips - clear tape on top of wrap */}
+              {horizontalTapes.map((y, i) => (
+                <rect
+                  key={`h-${i}`}
+                  x={50}
+                  y={y - 10}
+                  width={200}
+                  height={20}
+                  fill="rgba(255,255,255,0.1)"
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth="0.5"
+                />
+              ))}
+
               {showGuide && round.guidePoints.map((point, i) => (
                 <circle
                   key={i}
@@ -416,6 +486,29 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             <Layers className="w-4 h-4" />
             {showWrap ? 'Remove Wrap' : 'Add Wrap'}
           </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleAddTape}
+            className="flex-1 gap-2"
+            disabled={!showWrap || tapeMode === 'complete'}
+          >
+            <Grid3X3 className="w-4 h-4" />
+            {tapeMode === 'none' && 'Add Tape'}
+            {tapeMode === 'vertical' && 'Vertical...'}
+            {tapeMode === 'horizontal' && 'Horizontal...'}
+            {tapeMode === 'complete' && 'Tape Done'}
+          </Button>
+
+          {(verticalTapes.length > 0 || horizontalTapes.length > 0) && (
+            <Button
+              variant="ghost"
+              onClick={clearTape}
+              className="flex-1 gap-2 text-xs"
+            >
+              Clear Tape
+            </Button>
+          )}
           
           <Button
             variant="outline"
