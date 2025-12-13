@@ -67,29 +67,29 @@ export function TopViewHeadSVGContent({
         </pattern>
       </defs>
 
-      {/* HEAD OUTLINE */}
+      {/* HEAD OUTLINE - rounder, shorter back */}
       <ellipse 
         cx="150" 
-        cy="180" 
-        rx="95" 
-        ry="130" 
+        cy="170" 
+        rx="100" 
+        ry="110" 
         fill="url(#scalpGrad)"
       />
 
       {/* Ears */}
-      <ellipse cx="55" cy="180" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
-      <ellipse cx="245" cy="180" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
+      <ellipse cx="50" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
+      <ellipse cx="250" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
       
       {/* Base hair mass */}
       <path
         d="
-          M 150,60
-          C 105,62 70,90 58,135
-          C 50,165 52,200 60,245
-          C 70,280 100,305 150,310
-          C 200,305 230,280 240,245
-          C 248,200 250,165 242,135
-          C 230,90 195,62 150,60
+          M 150,65
+          C 100,68 60,95 50,140
+          C 45,170 48,200 58,235
+          C 70,265 105,280 150,282
+          C 195,280 230,265 242,235
+          C 252,200 255,170 250,140
+          C 240,95 200,68 150,65
         "
         fill="url(#hairDepth)"
       />
@@ -97,13 +97,13 @@ export function TopViewHeadSVGContent({
       {/* Hair texture overlay */}
       <path
         d="
-          M 150,60
-          C 105,62 70,90 58,135
-          C 50,165 52,200 60,245
-          C 70,280 100,305 150,310
-          C 200,305 230,280 240,245
-          C 248,200 250,165 242,135
-          C 230,90 195,62 150,60
+          M 150,65
+          C 100,68 60,95 50,140
+          C 45,170 48,200 58,235
+          C 70,265 105,280 150,282
+          C 195,280 230,265 242,235
+          C 252,200 255,170 250,140
+          C 240,95 200,68 150,65
         "
         fill="url(#hairTexture)"
         opacity="0.4"
@@ -607,12 +607,16 @@ export function TopViewHeadSVGContent({
       {/* FULL TOP BALDING (Norwood 6-7) */}
       {thinningPattern === "fullTop" && (
         <g>
-          {/* Large bald area covering most of the top with gradient fade */}
-          <ellipse 
-            cx="150" 
-            cy="165" 
-            rx="85" 
-            ry="115" 
+          {/* Large bald area covering most of the top - organic shape extending further back */}
+          <path
+            d="M 150,68
+               C 95,75 72,100 65,140
+               C 58,180 60,210 68,235
+               C 78,258 100,265 130,267
+               C 150,268 170,267 190,265
+               C 220,260 242,250 248,225
+               C 255,195 255,160 248,130
+               C 238,95 205,72 150,68"
             fill="url(#fullTopGrad)"
           />
           {/* FADE ZONE - Left side horseshoe boundary */}
