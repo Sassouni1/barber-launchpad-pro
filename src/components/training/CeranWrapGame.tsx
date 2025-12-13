@@ -346,13 +346,6 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                   ? 'cursor-cell'
                   : 'cursor-crosshair'
               }`}
-              onMouseDown={handleStart}
-              onMouseMove={handleMove}
-              onMouseUp={handleEnd}
-              onMouseLeave={handleEnd}
-              onTouchStart={handleStart}
-              onTouchMove={handleMove}
-              onTouchEnd={handleEnd}
             >
               {/* Head SVG content (non-interactive, clicks pass through to SVG root) */}
               <g pointerEvents="none">
@@ -482,6 +475,23 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                   strokeLinejoin="round"
                 />
               )}
+
+              {/* Transparent overlay to capture all pointer events */}
+              <rect
+                x="0"
+                y="0"
+                width="300"
+                height="360"
+                fill="transparent"
+                onMouseDown={handleStart}
+                onMouseMove={handleMove}
+                onMouseUp={handleEnd}
+                onMouseLeave={handleEnd}
+                onTouchStart={handleStart}
+                onTouchMove={handleMove}
+                onTouchEnd={handleEnd}
+                style={{ cursor: tapeMode === 'vertical' || tapeMode === 'horizontal' ? 'cell' : 'crosshair' }}
+              />
             </svg>
           </div>
         </Card>
