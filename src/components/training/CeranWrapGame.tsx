@@ -148,13 +148,17 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
       clientX = e.clientX;
       clientY = e.clientY;
     }
+
+    // Use SVG coordinate transformation to correctly map screen -> SVG coords,
+    // this automatically respects viewBox, zoom, and any transforms.
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const cursorPt = pt.matrixTransform(ctm.inverse());
     
-    const viewBox = svg.viewBox.baseVal;
-    // Add viewBox origin offset to properly map coordinates when zoomed
-    const x = ((clientX - rect.left) / rect.width) * viewBox.width + viewBox.x;
-    const y = ((clientY - rect.top) / rect.height) * viewBox.height + viewBox.y;
-    
-    return { x, y };
+    return { x: cursorPt.x, y: cursorPt.y };
   }, []);
 
   const handleTapeClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
