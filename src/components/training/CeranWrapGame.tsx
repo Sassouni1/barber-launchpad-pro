@@ -133,15 +133,25 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   }, []);
 
   const handleTapeClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    console.log('[CeranWrapGame] handleTapeClick, tapeMode:', tapeMode);
     const point = getCoordinates(e);
+    console.log('[CeranWrapGame] click point:', point);
     if (!point) return;
 
     if (tapeMode === 'vertical') {
-      // Add vertical tape at clicked X position
-      setVerticalTapes(prev => [...prev, point.x]);
+      console.log('[CeranWrapGame] adding vertical tape at x=', point.x);
+      setVerticalTapes(prev => {
+        const next = [...prev, point.x];
+        console.log('[CeranWrapGame] verticalTapes now:', next);
+        return next;
+      });
     } else if (tapeMode === 'horizontal') {
-      // Add horizontal tape at clicked Y position
-      setHorizontalTapes(prev => [...prev, point.y]);
+      console.log('[CeranWrapGame] adding horizontal tape at y=', point.y);
+      setHorizontalTapes(prev => {
+        const next = [...prev, point.y];
+        console.log('[CeranWrapGame] horizontalTapes now:', next);
+        return next;
+      });
     }
   }, [tapeMode, getCoordinates]);
 
@@ -331,7 +341,11 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             <svg
               ref={svgRef}
               viewBox="0 0 300 360"
-              className="w-[320px] h-[384px] md:w-[500px] md:h-[600px] lg:w-[550px] lg:h-[660px] cursor-crosshair touch-none"
+              className={`w-[320px] h-[384px] md:w-[500px] md:h-[600px] lg:w-[550px] lg:h-[660px] touch-none ${
+                tapeMode === 'vertical' || tapeMode === 'horizontal'
+                  ? 'cursor-cell'
+                  : 'cursor-crosshair'
+              }`}
               onMouseDown={handleStart}
               onMouseMove={handleMove}
               onMouseUp={handleEnd}
