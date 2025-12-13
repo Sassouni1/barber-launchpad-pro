@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil, ZoomIn, ZoomOut, Move } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
 import confetti from 'canvas-confetti';
 
@@ -128,15 +128,18 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [eyebrowsRaised, setEyebrowsRaised] = useState(false);
   const [drawMode, setDrawMode] = useState<DrawMode>('draw');
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isAdjustingGuide, setIsAdjustingGuide] = useState(false);
+  const [adjustedFrontalGuide, setAdjustedFrontalGuide] = useState<Point[]>(rounds[3].guidePoints);
+  const [draggingPointIndex, setDraggingPointIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const round = rounds[currentRound];
+  const currentGuidePoints = round.pattern === 'frontal' ? adjustedFrontalGuide : round.guidePoints;
 
   const getCoordinates = useCallback((e: React.MouseEvent | React.TouchEvent): Point | null => {
     if (!svgRef.current) return null;
     
     const svg = svgRef.current;
-    const rect = svg.getBoundingClientRect();
     
     let clientX: number, clientY: number;
     
@@ -214,8 +217,35 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     });
   }, []);
 
+  const handleGuidePointDragStart = useCallback((e: React.MouseEvent | React.TouchEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingPointIndex(index);
+  }, []);
+
+  const handleGuidePointDrag = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (draggingPointIndex === null || !isAdjustingGuide) return;
+    e.preventDefault();
+    
+    const point = getCoordinates(e);
+    if (point) {
+      setAdjustedFrontalGuide(prev => {
+        const newPoints = [...prev];
+        newPoints[draggingPointIndex] = point;
+        return newPoints;
+      });
+    }
+  }, [draggingPointIndex, isAdjustingGuide, getCoordinates]);
+
+  const handleGuidePointDragEnd = useCallback(() => {
+    setDraggingPointIndex(null);
+  }, []);
+
   const handleStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
+    
+    // If adjusting guide, don't draw
+    if (isAdjustingGuide) return;
     
     // If in tape mode, handle tape placement instead of drawing
     if (tapeMode === 'vertical' || tapeMode === 'horizontal') {
@@ -232,7 +262,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
         setCurrentStroke([point]);
       }
     }
-  }, [getCoordinates, tapeMode, handleTapeClick, drawMode, eraseNearPoint]);
+  }, [getCoordinates, tapeMode, handleTapeClick, drawMode, eraseNearPoint, isAdjustingGuide]);
 
   const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -269,10 +299,9 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     const allPoints = strokes.flat();
     if (allPoints.length === 0) return 0;
 
-    const guidePoints = round.guidePoints;
     let coveredPoints = 0;
 
-    guidePoints.forEach(guidePoint => {
+    currentGuidePoints.forEach(guidePoint => {
       const isNearby = allPoints.some(drawnPoint => {
         const distance = Math.sqrt(
           Math.pow(drawnPoint.x - guidePoint.x, 2) + 
@@ -283,7 +312,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
       if (isNearby) coveredPoints++;
     });
 
-    return Math.round((coveredPoints / guidePoints.length) * 100);
+    return Math.round((coveredPoints / currentGuidePoints.length) * 100);
   };
 
   const handleSubmit = () => {
@@ -504,27 +533,32 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 />
               ))}
 
-              {/* Guide points */}
-              {showGuide && round.guidePoints.map((point, i) => (
+              {/* Guide points - draggable when adjusting */}
+              {(showGuide || isAdjustingGuide) && currentGuidePoints.map((point, i) => (
                 <circle
                   key={i}
                   cx={point.x}
                   cy={point.y}
-                  r={4}
-                  fill="rgba(34, 197, 94, 0.8)"
+                  r={isAdjustingGuide ? 8 : 4}
+                  fill={isAdjustingGuide ? "rgba(59, 130, 246, 0.8)" : "rgba(34, 197, 94, 0.8)"}
                   stroke="white"
-                  strokeWidth={1}
+                  strokeWidth={isAdjustingGuide ? 2 : 1}
+                  style={{ cursor: isAdjustingGuide ? 'grab' : 'default' }}
+                  pointerEvents={isAdjustingGuide ? 'all' : 'none'}
+                  onMouseDown={(e) => isAdjustingGuide && handleGuidePointDragStart(e, i)}
+                  onTouchStart={(e) => isAdjustingGuide && handleGuidePointDragStart(e, i)}
                 />
               ))}
 
               {/* Guide line connecting points */}
-              {showGuide && (
+              {(showGuide || isAdjustingGuide) && (
                 <path
-                  d={`M ${round.guidePoints.map(p => `${p.x},${p.y}`).join(' L ')}`}
+                  d={`M ${currentGuidePoints.map(p => `${p.x},${p.y}`).join(' L ')}`}
                   fill="none"
-                  stroke="rgba(34, 197, 94, 0.6)"
+                  stroke={isAdjustingGuide ? "rgba(59, 130, 246, 0.6)" : "rgba(34, 197, 94, 0.6)"}
                   strokeWidth="3"
                   strokeDasharray="8,4"
+                  pointerEvents="none"
                 />
               )}
 
@@ -563,7 +597,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 width="300"
                 height="360"
                 fill="rgba(0,0,0,0.001)"
-                pointerEvents="all"
+                pointerEvents={isAdjustingGuide ? 'none' : 'all'}
                 onMouseDown={handleStart}
                 onMouseMove={handleMove}
                 onMouseUp={handleEnd}
@@ -571,8 +605,26 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 onTouchStart={handleStart}
                 onTouchMove={handleMove}
                 onTouchEnd={handleEnd}
-                style={{ cursor: tapeMode === 'vertical' || tapeMode === 'horizontal' ? 'cell' : drawMode === 'erase' ? 'pointer' : 'crosshair' }}
+                style={{ cursor: isAdjustingGuide ? 'default' : tapeMode === 'vertical' || tapeMode === 'horizontal' ? 'cell' : drawMode === 'erase' ? 'pointer' : 'crosshair' }}
               />
+              
+              {/* Overlay for guide point dragging */}
+              {isAdjustingGuide && draggingPointIndex !== null && (
+                <rect
+                  x="0"
+                  y="0"
+                  width="300"
+                  height="360"
+                  fill="transparent"
+                  pointerEvents="all"
+                  onMouseMove={handleGuidePointDrag}
+                  onMouseUp={handleGuidePointDragEnd}
+                  onMouseLeave={handleGuidePointDragEnd}
+                  onTouchMove={handleGuidePointDrag}
+                  onTouchEnd={handleGuidePointDragEnd}
+                  style={{ cursor: 'grabbing' }}
+                />
+              )}
             </svg>
           </div>
         </Card>
@@ -630,13 +682,30 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
           )}
 
           {round.pattern === 'frontal' && (
-            <Button
-              variant={eyebrowsRaised ? 'default' : 'outline'}
-              onClick={() => setEyebrowsRaised(!eyebrowsRaised)}
-              className="flex-1 gap-2"
-            >
-              {eyebrowsRaised ? 'Lower Brows' : 'Lift Eyebrows'}
-            </Button>
+            <>
+              <Button
+                variant={eyebrowsRaised ? 'default' : 'outline'}
+                onClick={() => setEyebrowsRaised(!eyebrowsRaised)}
+                className="flex-1 gap-2"
+              >
+                {eyebrowsRaised ? 'Lower Brows' : 'Lift Eyebrows'}
+              </Button>
+
+              <Button
+                variant={isAdjustingGuide ? 'default' : 'outline'}
+                onClick={() => {
+                  setIsAdjustingGuide(!isAdjustingGuide);
+                  if (!isAdjustingGuide) {
+                    setDrawMode('draw');
+                    setTapeMode('none');
+                  }
+                }}
+                className="flex-1 gap-2"
+              >
+                <Move className="w-4 h-4" />
+                {isAdjustingGuide ? 'Done' : 'Adjust Guide'}
+              </Button>
+            </>
           )}
 
           <Button
