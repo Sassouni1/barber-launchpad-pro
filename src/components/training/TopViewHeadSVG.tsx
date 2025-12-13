@@ -80,38 +80,56 @@ export function TopViewHeadSVGContent({
       <ellipse cx="50" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
       <ellipse cx="250" cy="170" rx="8" ry="25" fill="#d4baa0" opacity="0.8" />
       
-      {/* Base hair mass - heart-top shape for frontal pattern */}
+      {/* Base hair mass - M-shaped for frontal pattern */}
       {thinningPattern === "frontal" ? (
         <>
-          {/* Heart-top hairline: gentle widow's peak with two smooth temple recessions */}
+          {/* M-shaped hairline with deep temple recession and pronounced widow's peak */}
           <path
             d="
-              M 150,62
-              Q 135,60 120,80
-              Q 100,105 85,130
-              C 65,160 55,195 58,235
-              C 62,265 100,282 150,284
-              C 200,282 238,265 242,235
-              C 245,195 235,160 215,130
-              Q 200,105 180,80
-              Q 165,60 150,62
-              Z
+              M 50,140
+              C 45,170 48,200 58,235
+              C 70,265 105,280 150,282
+              C 195,280 230,265 242,235
+              C 252,200 255,170 250,140
+              C 245,115 235,95 222,82
+              Q 215,76 205,74
+              Q 195,73 185,76
+              Q 175,80 168,90
+              Q 162,98 158,108
+              Q 155,95 152,85
+              Q 150,78 150,72
+              Q 150,78 148,85
+              Q 145,95 142,108
+              Q 138,98 132,90
+              Q 125,80 115,76
+              Q 105,73 95,74
+              Q 85,76 78,82
+              C 65,95 55,115 50,140
             "
             fill="url(#hairDepth)"
           />
           {/* Hair texture overlay for frontal */}
           <path
             d="
-              M 150,62
-              Q 135,60 120,80
-              Q 100,105 85,130
-              C 65,160 55,195 58,235
-              C 62,265 100,282 150,284
-              C 200,282 238,265 242,235
-              C 245,195 235,160 215,130
-              Q 200,105 180,80
-              Q 165,60 150,62
-              Z
+              M 50,140
+              C 45,170 48,200 58,235
+              C 70,265 105,280 150,282
+              C 195,280 230,265 242,235
+              C 252,200 255,170 250,140
+              C 245,115 235,95 222,82
+              Q 215,76 205,74
+              Q 195,73 185,76
+              Q 175,80 168,90
+              Q 162,98 158,108
+              Q 155,95 152,85
+              Q 150,78 150,72
+              Q 150,78 148,85
+              Q 145,95 142,108
+              Q 138,98 132,90
+              Q 125,80 115,76
+              Q 105,73 95,74
+              Q 85,76 78,82
+              C 65,95 55,115 50,140
             "
             fill="url(#hairTexture)"
             opacity="0.4"
