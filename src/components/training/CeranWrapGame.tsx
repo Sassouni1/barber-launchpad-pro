@@ -236,7 +236,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     if (!point) return;
     
     if (drawMode === 'erase') {
-      const isPressed = 'touches' in e ? e.touches.length > 0 : e.buttons === 1;
+      const isPressed = 'touches' in e ? e.touches.length > 0 : (e as React.MouseEvent).buttons === 1;
       if (isPressed) {
         eraseNearPoint(point);
       }
@@ -566,7 +566,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                 onTouchStart={handleStart}
                 onTouchMove={handleMove}
                 onTouchEnd={handleEnd}
-                style={{ cursor: tapeMode === 'vertical' || tapeMode === 'horizontal' ? 'cell' : 'crosshair' }}
+                style={{ cursor: tapeMode === 'vertical' || tapeMode === 'horizontal' ? 'cell' : drawMode === 'erase' ? 'pointer' : 'crosshair' }}
               />
             </svg>
           </div>
