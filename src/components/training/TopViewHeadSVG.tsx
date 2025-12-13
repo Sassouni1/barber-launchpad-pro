@@ -198,16 +198,16 @@ export function TopViewHeadSVGContent({
       {/* FULL TOP RECESSION - Norwood 6-7 horseshoe pattern */}
       {thinningPattern === "temples" && (
         <g>
-          {/* Organic irregular bald scalp area */}
+          {/* Organic irregular bald scalp area - extends further back */}
           <path 
-            d="M 150,62
-               C 102,68 84,88 79,118
-               C 71,155 68,190 74,222
-               C 81,248 98,252 118,254
-               C 138,256 162,255 182,252
-               C 206,248 221,240 226,214
-               C 232,180 229,142 221,108
-               C 214,80 196,66 150,62"
+            d="M 150,68
+               C 100,75 78,100 72,135
+               C 65,175 63,210 70,240
+               C 78,260 98,268 125,270
+               C 145,271 165,270 185,268
+               C 210,262 225,250 230,225
+               C 238,185 235,145 228,115
+               C 218,85 195,72 150,68"
             fill="url(#templesGrad)"
           />
           
@@ -221,38 +221,38 @@ export function TopViewHeadSVGContent({
             opacity="0.25"
           />
           
-          {/* HORSESHOE HAIR - Left side */}
+          {/* HORSESHOE HAIR - Left side - adjusted for shorter head */}
           <path
-            d="M 58,135 
-               C 52,165 52,210 60,250
-               C 70,285 100,310 150,315
-               L 150,295
-               C 110,290 88,270 80,245
-               C 72,215 73,180 78,150
-               C 82,130 75,115 58,135"
+            d="M 50,140 
+               C 45,170 48,200 58,235
+               C 70,265 105,280 150,282
+               L 150,268
+               C 110,266 85,255 75,235
+               C 68,210 68,180 72,155
+               C 76,140 68,130 50,140"
             fill={hairColor}
           />
           
-          {/* HORSESHOE HAIR - Right side */}
+          {/* HORSESHOE HAIR - Right side - adjusted for shorter head */}
           <path
-            d="M 242,135
-               C 248,165 248,210 240,250
-               C 230,285 200,310 150,315
-               L 150,295
-               C 190,290 212,270 220,245
-               C 228,215 227,180 222,150
-               C 218,130 225,115 242,135"
+            d="M 250,140
+               C 255,170 252,200 242,235
+               C 230,265 195,280 150,282
+               L 150,268
+               C 190,266 215,255 225,235
+               C 232,210 232,180 228,155
+               C 224,140 232,130 250,140"
             fill={hairColor}
           />
           
-          {/* HORSESHOE HAIR - Back connection */}
+          {/* HORSESHOE HAIR - Back connection - adjusted for shorter head */}
           <path
-            d="M 80,255
-               C 100,285 130,300 150,302
-               C 170,300 200,285 220,255
-               L 210,270
-               C 190,290 170,300 150,302
-               C 130,300 110,290 90,270
+            d="M 72,242
+               C 95,270 125,280 150,282
+               C 175,280 205,270 228,242
+               L 218,255
+               C 195,272 172,278 150,278
+               C 128,278 105,272 82,255
                Z"
             fill={hairColor}
           />
