@@ -48,8 +48,8 @@ export function TopViewHeadSVGContent({
         <radialGradient id="templesGrad" cx="50%" cy="45%">
           <stop offset="0%" stopColor="#f5e6d3" stopOpacity="1" />
           <stop offset="55%" stopColor="#f0dcc8" stopOpacity="1" />
-          <stop offset="80%" stopColor="#e8d4be" stopOpacity="0.85" />
-          <stop offset="90%" stopColor="#d4baa0" stopOpacity="0.5" />
+          <stop offset="75%" stopColor="#e8d4be" stopOpacity="0.8" />
+          <stop offset="88%" stopColor="#d4baa0" stopOpacity="0.4" />
           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
         </radialGradient>
 
