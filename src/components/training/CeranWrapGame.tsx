@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
+import { FrontalThinningHeadSVG } from './FrontalThinningHeadSVG';
 import confetti from 'canvas-confetti';
 
 interface Point {
@@ -67,13 +68,16 @@ const rounds: Round[] = [
   {
     pattern: 'frontal',
     name: 'Frontal Thinning',
-    description: 'Trace the thinning area at the front portion of the scalp',
+    description: 'Trace the M-shaped receding hairline at the temples',
     guidePoints: [
-      { x: 90, y: 65 }, { x: 100, y: 80 }, { x: 110, y: 95 },
-      { x: 130, y: 105 }, { x: 150, y: 108 }, { x: 170, y: 105 },
-      { x: 190, y: 95 }, { x: 200, y: 80 }, { x: 210, y: 65 },
-      { x: 180, y: 55 }, { x: 150, y: 50 }, { x: 120, y: 55 },
-      { x: 90, y: 65 },
+      // M-shaped hairline - left recession
+      { x: 70, y: 165 }, { x: 68, y: 130 }, { x: 72, y: 100 },
+      { x: 85, y: 75 }, { x: 105, y: 60 }, { x: 125, y: 65 },
+      // Peak center
+      { x: 140, y: 85 }, { x: 150, y: 90 }, { x: 160, y: 85 },
+      // Right recession
+      { x: 175, y: 65 }, { x: 195, y: 60 }, { x: 215, y: 75 },
+      { x: 228, y: 100 }, { x: 232, y: 130 }, { x: 230, y: 165 },
     ],
   },
   {
@@ -354,10 +358,14 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             >
               {/* Head SVG content (non-interactive, clicks pass through to SVG root) */}
               <g pointerEvents="none">
-                <TopViewHeadSVG 
-                  thinningPattern={round.pattern}
-                  className="w-full h-full"
-                />
+                {round.pattern === 'frontal' ? (
+                  <FrontalThinningHeadSVG className="w-full h-full" />
+                ) : (
+                  <TopViewHeadSVG 
+                    thinningPattern={round.pattern}
+                    className="w-full h-full"
+                  />
+                )}
               </g>
 
               {/* Ceran wrap overlay */}
