@@ -354,11 +354,13 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
               onTouchMove={handleMove}
               onTouchEnd={handleEnd}
             >
-              {/* Head SVG content */}
-              <TopViewHeadSVG 
-                thinningPattern={round.pattern}
-                className="w-full h-full"
-              />
+              {/* Head SVG content (non-interactive, clicks pass through to SVG root) */}
+              <g pointerEvents="none">
+                <TopViewHeadSVG 
+                  thinningPattern={round.pattern}
+                  className="w-full h-full"
+                />
+              </g>
 
               {/* Ceran wrap overlay */}
               <defs>
@@ -386,6 +388,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                     stroke="rgba(255,255,255,0.3)"
                     strokeWidth="1"
                     className="transition-opacity duration-300"
+                    pointerEvents="none"
                   />
                   <ellipse
                     cx="150"
@@ -394,6 +397,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
                     ry="110"
                     fill="url(#wrapTexture)"
                     className="transition-opacity duration-300"
+                    pointerEvents="none"
                   />
                 </>
               )}
