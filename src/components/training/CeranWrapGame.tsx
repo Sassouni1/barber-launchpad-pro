@@ -110,6 +110,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [isAdjustingGuide, setIsAdjustingGuide] = useState(false);
   const [adjustedFrontalGuide, setAdjustedFrontalGuide] = useState<Point[]>(rounds[2].guidePoints);
   const [adjustedTemplesGuide, setAdjustedTemplesGuide] = useState<Point[]>(rounds[1].guidePoints);
+  const [adjustedCrownGuide, setAdjustedCrownGuide] = useState<Point[]>(rounds[0].guidePoints);
   const [draggingPointIndex, setDraggingPointIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -117,6 +118,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const currentGuidePoints = 
     round.pattern === 'frontal' ? adjustedFrontalGuide : 
     round.pattern === 'temples' ? adjustedTemplesGuide : 
+    round.pattern === 'crown' ? adjustedCrownGuide :
     round.guidePoints;
 
   const getCoordinates = useCallback((e: React.MouseEvent | React.TouchEvent): Point | null => {
@@ -221,6 +223,12 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
         });
       } else if (pattern === 'temples') {
         setAdjustedTemplesGuide(prev => {
+          const newPoints = [...prev];
+          newPoints[draggingPointIndex] = point;
+          return newPoints;
+        });
+      } else if (pattern === 'crown') {
+        setAdjustedCrownGuide(prev => {
           const newPoints = [...prev];
           newPoints[draggingPointIndex] = point;
           return newPoints;
@@ -725,13 +733,16 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             </>
           )}
 
-          {isAdmin && isAdminModeActive && (round.pattern === 'frontal' || round.pattern === 'temples') && (
+          {isAdmin && isAdminModeActive && (round.pattern === 'frontal' || round.pattern === 'temples' || round.pattern === 'crown') && (
             <Button
               variant={isAdjustingGuide ? 'default' : 'outline'}
               onClick={() => {
                 if (isAdjustingGuide) {
                   // Log the adjusted coordinates when done
-                  const adjustedGuide = round.pattern === 'frontal' ? adjustedFrontalGuide : adjustedTemplesGuide;
+                  const adjustedGuide = 
+                    round.pattern === 'frontal' ? adjustedFrontalGuide : 
+                    round.pattern === 'temples' ? adjustedTemplesGuide : 
+                    adjustedCrownGuide;
                   console.log(`ADJUSTED ${round.pattern.toUpperCase()} GUIDE POINTS:`, JSON.stringify(adjustedGuide, null, 2));
                 }
                 setIsAdjustingGuide(!isAdjustingGuide);
