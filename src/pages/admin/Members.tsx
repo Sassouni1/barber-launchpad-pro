@@ -20,6 +20,10 @@ import {
   TrendingUp,
   ChevronRight,
   Search,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  ListTodo,
 } from 'lucide-react';
 import {
   Table,
@@ -69,6 +73,18 @@ function QuizBadge({ average }: { average: number }) {
   return <Badge variant="secondary">No attempts</Badge>;
 }
 
+function BehindBadge({ behind }: { behind: number }) {
+  if (behind === 0) {
+    return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">On Track</Badge>;
+  }
+  return (
+    <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+      <AlertTriangle className="w-3 h-3 mr-1" />
+      {behind} behind
+    </Badge>
+  );
+}
+
 function MemberDetailPanel({ member, onClose }: { member: MemberStats; onClose: () => void }) {
   const { data: detail, isLoading } = useAdminMemberDetail(member.id);
 
@@ -90,14 +106,18 @@ function MemberDetailPanel({ member, onClose }: { member: MemberStats; onClose: 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         <div className="p-4 rounded-lg bg-secondary/30">
-          <p className="text-sm text-muted-foreground">Quiz Average</p>
+          <p className="text-sm text-muted-foreground">Quiz Avg</p>
           <p className="text-2xl font-bold">{member.quizAverage}%</p>
         </div>
         <div className="p-4 rounded-lg bg-secondary/30">
-          <p className="text-sm text-muted-foreground">Lessons Completed</p>
+          <p className="text-sm text-muted-foreground">Lessons</p>
           <p className="text-2xl font-bold">{member.lessonsCompleted}/{member.totalLessons}</p>
+        </div>
+        <div className="p-4 rounded-lg bg-secondary/30">
+          <p className="text-sm text-muted-foreground">Tasks</p>
+          <p className="text-2xl font-bold">{member.dynamicTodosCompleted}/{member.dynamicTodosTotal}</p>
         </div>
       </div>
 
@@ -105,12 +125,55 @@ function MemberDetailPanel({ member, onClose }: { member: MemberStats; onClose: 
         <p className="text-muted-foreground text-center py-4">Loading details...</p>
       ) : (
         <>
+          {/* Dynamic Todo Status */}
+          <div>
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <ListTodo className="w-4 h-4" /> Task List Progress
+            </h4>
+            {detail?.dynamicTodoStatus && detail.dynamicTodoStatus.length > 0 ? (
+              <div className="space-y-2">
+                {detail.dynamicTodoStatus.map((status) => (
+                  <div 
+                    key={status.listId} 
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      status.isBehind ? 'bg-red-500/10 border border-red-500/30' : 'bg-secondary/20'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {status.isComplete ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      ) : status.isBehind ? (
+                        <AlertTriangle className="w-4 h-4 text-red-400" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <div>
+                        <p className="font-medium text-sm">{status.listTitle}</p>
+                        {status.dueDays && (
+                          <p className="text-xs text-muted-foreground">
+                            Due within {status.dueDays} days
+                            {status.isBehind && <span className="text-red-400 ml-1">({status.daysOverdue} days overdue)</span>}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Badge variant={status.isComplete ? 'default' : 'secondary'}>
+                      {status.completedItems}/{status.totalItems}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No task lists configured</p>
+            )}
+          </div>
+
           <div>
             <h4 className="font-semibold mb-3 flex items-center gap-2">
               <GraduationCap className="w-4 h-4" /> Quiz History
             </h4>
             {detail?.quizAttempts && detail.quizAttempts.length > 0 ? (
-              <ScrollArea className="h-48">
+              <ScrollArea className="h-36">
                 <div className="space-y-2">
                   {detail.quizAttempts.map((attempt, i) => (
                     <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20">
@@ -137,7 +200,7 @@ function MemberDetailPanel({ member, onClose }: { member: MemberStats; onClose: 
               <BookOpen className="w-4 h-4" /> Completed Lessons
             </h4>
             {detail?.completedLessons && detail.completedLessons.length > 0 ? (
-              <ScrollArea className="h-48">
+              <ScrollArea className="h-36">
                 <div className="space-y-2">
                   {detail.completedLessons.map((lesson, i) => (
                     <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20">
@@ -177,6 +240,9 @@ export default function Members() {
     m.email?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  // Sort to show members behind first
+  const sortedMembers = [...filteredMembers].sort((a, b) => b.dynamicTodosBehind - a.dynamicTodosBehind);
+
   return (
     <DashboardLayout isAdmin>
       <div className="max-w-7xl mx-auto space-y-8">
@@ -184,7 +250,7 @@ export default function Members() {
           <div>
             <h1 className="font-display text-4xl font-bold mb-2">Members</h1>
             <p className="text-muted-foreground text-lg">
-              View member progress, quiz scores, and course completion.
+              View member progress, quiz scores, and task completion.
             </p>
           </div>
           <div className="flex gap-2">
@@ -246,7 +312,7 @@ export default function Members() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-fade-up" style={{ animationDelay: '0.1s' }}>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 animate-fade-up" style={{ animationDelay: '0.1s' }}>
           <StatCard 
             title="Total Members" 
             value={statsLoading ? '...' : stats?.totalMembers || 0} 
@@ -263,10 +329,16 @@ export default function Members() {
             icon={BookOpen}
           />
           <StatCard 
-            title="Lesson Completions" 
+            title="Lesson Done" 
             value={statsLoading ? '...' : stats?.totalCompletions || 0} 
             icon={TrendingUp}
-            subtitle="Across all members"
+            subtitle="All members"
+          />
+          <StatCard 
+            title="Tasks Done" 
+            value={statsLoading ? '...' : stats?.totalDynamicCompletions || 0} 
+            icon={ListTodo}
+            subtitle="All members"
           />
         </div>
 
@@ -287,7 +359,7 @@ export default function Members() {
             <div className="p-12 text-center">
               <p className="text-muted-foreground">Loading members...</p>
             </div>
-          ) : filteredMembers.length === 0 ? (
+          ) : sortedMembers.length === 0 ? (
             <div className="p-12 text-center">
               <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="font-semibold text-xl mb-2">No Members Found</h3>
@@ -302,13 +374,15 @@ export default function Members() {
                   <TableHead>Member</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead>Quiz Avg</TableHead>
-                  <TableHead>Progress</TableHead>
+                  <TableHead>Lessons</TableHead>
+                  <TableHead>Tasks</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Last Active</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMembers.map((member) => (
+                {sortedMembers.map((member) => (
                   <TableRow 
                     key={member.id} 
                     className="cursor-pointer hover:bg-secondary/30"
@@ -338,12 +412,26 @@ export default function Members() {
                       <div className="flex items-center gap-2">
                         <Progress 
                           value={member.totalLessons > 0 ? (member.lessonsCompleted / member.totalLessons) * 100 : 0} 
-                          className="w-20 h-2"
+                          className="w-16 h-2"
                         />
                         <span className="text-sm text-muted-foreground">
                           {member.lessonsCompleted}/{member.totalLessons}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={member.dynamicTodosTotal > 0 ? (member.dynamicTodosCompleted / member.dynamicTodosTotal) * 100 : 0} 
+                          className="w-16 h-2"
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {member.dynamicTodosCompleted}/{member.dynamicTodosTotal}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <BehindBadge behind={member.dynamicTodosBehind} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {member.lastActive 
@@ -363,7 +451,7 @@ export default function Members() {
 
         {/* Member Detail Dialog */}
         <Dialog open={!!selectedMember} onOpenChange={(open) => !open && setSelectedMember(null)}>
-          <DialogContent className="glass-card border-border/50 max-w-lg">
+          <DialogContent className="glass-card border-border/50 max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Member Details</DialogTitle>
             </DialogHeader>

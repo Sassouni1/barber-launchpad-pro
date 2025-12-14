@@ -1,5 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { differenceInDays } from 'date-fns';
+
+export interface DynamicTodoStatus {
+  listId: string;
+  listTitle: string;
+  dueDays: number | null;
+  completedItems: number;
+  totalItems: number;
+  isComplete: boolean;
+  isBehind: boolean;
+  daysOverdue: number;
+}
 
 export interface MemberStats {
   id: string;
@@ -12,6 +24,10 @@ export interface MemberStats {
   lessonsCompleted: number;
   totalLessons: number;
   lastActive: string | null;
+  dynamicTodosCompleted: number;
+  dynamicTodosTotal: number;
+  dynamicTodosBehind: number;
+  dynamicTodoStatus: DynamicTodoStatus[];
 }
 
 export interface MemberDetail {
@@ -27,6 +43,7 @@ export interface MemberDetail {
     lesson_title: string;
     completed_at: string;
   }[];
+  dynamicTodoStatus: DynamicTodoStatus[];
 }
 
 export function useAdminMembers() {
@@ -61,10 +78,42 @@ export function useAdminMembers() {
         .from('lessons')
         .select('*', { count: 'exact', head: true });
 
+      // Fetch dynamic todo lists with items
+      const { data: dynamicLists, error: listsError } = await supabase
+        .from('dynamic_todo_lists')
+        .select('*')
+        .order('order_index');
+
+      if (listsError) throw listsError;
+
+      const { data: dynamicItems, error: itemsError } = await supabase
+        .from('dynamic_todo_items')
+        .select('*');
+
+      if (itemsError) throw itemsError;
+
+      // Fetch all dynamic todo progress
+      const { data: dynamicProgress, error: dynamicProgressError } = await supabase
+        .from('user_dynamic_todo_progress')
+        .select('*')
+        .eq('completed', true);
+
+      if (dynamicProgressError) throw dynamicProgressError;
+
+      // Build items per list
+      const itemsByList: Record<string, string[]> = {};
+      dynamicItems?.forEach(item => {
+        if (!itemsByList[item.list_id]) itemsByList[item.list_id] = [];
+        itemsByList[item.list_id].push(item.id);
+      });
+
+      const totalDynamicItems = dynamicItems?.length || 0;
+
       // Aggregate stats per member
       const memberStats: MemberStats[] = profiles.map((profile) => {
         const memberQuizzes = quizAttempts?.filter(q => q.user_id === profile.id) || [];
         const memberProgress = userProgress?.filter(p => p.user_id === profile.id) || [];
+        const memberDynamicProgress = dynamicProgress?.filter(p => p.user_id === profile.id) || [];
 
         // Calculate quiz average
         let quizAverage = 0;
@@ -75,10 +124,45 @@ export function useAdminMembers() {
           quizAverage = Math.round(totalPercentage / memberQuizzes.length);
         }
 
+        // Calculate dynamic todo status per list
+        const completedItemIds = new Set(memberDynamicProgress.map(p => p.item_id));
+        const memberJoinDate = new Date(profile.created_at);
+        const today = new Date();
+        const daysSinceJoin = differenceInDays(today, memberJoinDate);
+
+        let dynamicTodosBehind = 0;
+        const dynamicTodoStatus: DynamicTodoStatus[] = (dynamicLists || []).map(list => {
+          const listItems = itemsByList[list.id] || [];
+          const completedItems = listItems.filter(id => completedItemIds.has(id)).length;
+          const isComplete = completedItems >= listItems.length && listItems.length > 0;
+          const dueDays = (list as any).due_days as number | null;
+          
+          let isBehind = false;
+          let daysOverdue = 0;
+          
+          if (dueDays && !isComplete && daysSinceJoin > dueDays) {
+            isBehind = true;
+            daysOverdue = daysSinceJoin - dueDays;
+            dynamicTodosBehind++;
+          }
+
+          return {
+            listId: list.id,
+            listTitle: list.title,
+            dueDays,
+            completedItems,
+            totalItems: listItems.length,
+            isComplete,
+            isBehind,
+            daysOverdue,
+          };
+        });
+
         // Find last active date
         const allDates = [
           ...memberQuizzes.map(q => q.completed_at),
           ...memberProgress.map(p => p.completed_at).filter(Boolean),
+          ...memberDynamicProgress.map(p => p.completed_at).filter(Boolean),
         ];
         const lastActive = allDates.length > 0
           ? allDates.sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0]
@@ -95,6 +179,10 @@ export function useAdminMembers() {
           lessonsCompleted: memberProgress.length,
           totalLessons: totalLessons || 0,
           lastActive,
+          dynamicTodosCompleted: memberDynamicProgress.length,
+          dynamicTodosTotal: totalDynamicItems,
+          dynamicTodosBehind,
+          dynamicTodoStatus,
         };
       });
 
@@ -108,6 +196,13 @@ export function useAdminMemberDetail(userId: string | null) {
     queryKey: ['admin-member-detail', userId],
     queryFn: async () => {
       if (!userId) return null;
+
+      // Fetch user profile for join date
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('id', userId)
+        .maybeSingle();
 
       // Fetch quiz attempts with module info
       const { data: quizAttempts, error: quizError } = await supabase
@@ -128,6 +223,59 @@ export function useAdminMemberDetail(userId: string | null) {
 
       if (progressError) throw progressError;
 
+      // Fetch dynamic todo lists and progress
+      const { data: dynamicLists } = await supabase
+        .from('dynamic_todo_lists')
+        .select('*')
+        .order('order_index');
+
+      const { data: dynamicItems } = await supabase
+        .from('dynamic_todo_items')
+        .select('*');
+
+      const { data: dynamicProgress } = await supabase
+        .from('user_dynamic_todo_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('completed', true);
+
+      // Build items per list
+      const itemsByList: Record<string, string[]> = {};
+      dynamicItems?.forEach(item => {
+        if (!itemsByList[item.list_id]) itemsByList[item.list_id] = [];
+        itemsByList[item.list_id].push(item.id);
+      });
+
+      const completedItemIds = new Set(dynamicProgress?.map(p => p.item_id) || []);
+      const memberJoinDate = profile?.created_at ? new Date(profile.created_at) : new Date();
+      const daysSinceJoin = differenceInDays(new Date(), memberJoinDate);
+
+      const dynamicTodoStatus: DynamicTodoStatus[] = (dynamicLists || []).map(list => {
+        const listItems = itemsByList[list.id] || [];
+        const completedItems = listItems.filter(id => completedItemIds.has(id)).length;
+        const isComplete = completedItems >= listItems.length && listItems.length > 0;
+        const dueDays = (list as any).due_days as number | null;
+
+        let isBehind = false;
+        let daysOverdue = 0;
+
+        if (dueDays && !isComplete && daysSinceJoin > dueDays) {
+          isBehind = true;
+          daysOverdue = daysSinceJoin - dueDays;
+        }
+
+        return {
+          listId: list.id,
+          listTitle: list.title,
+          dueDays,
+          completedItems,
+          totalItems: listItems.length,
+          isComplete,
+          isBehind,
+          daysOverdue,
+        };
+      });
+
       return {
         quizAttempts: quizAttempts?.map(q => ({
           module_id: q.module_id,
@@ -141,6 +289,7 @@ export function useAdminMemberDetail(userId: string | null) {
           lesson_title: (p.lessons as any)?.title || 'Unknown Lesson',
           completed_at: p.completed_at,
         })) || [],
+        dynamicTodoStatus,
       } as MemberDetail;
     },
     enabled: !!userId,
@@ -179,11 +328,23 @@ export function useAdminStats() {
         .select('*', { count: 'exact', head: true })
         .eq('completed', true);
 
+      // Get dynamic todo stats
+      const { count: totalDynamicItems } = await supabase
+        .from('dynamic_todo_items')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: totalDynamicCompletions } = await supabase
+        .from('user_dynamic_todo_progress')
+        .select('*', { count: 'exact', head: true })
+        .eq('completed', true);
+
       return {
         totalMembers: totalMembers || 0,
         avgQuizScore,
         totalLessons: totalLessons || 0,
         totalCompletions: totalCompletions || 0,
+        totalDynamicItems: totalDynamicItems || 0,
+        totalDynamicCompletions: totalDynamicCompletions || 0,
       };
     },
   });
