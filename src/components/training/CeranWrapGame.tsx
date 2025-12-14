@@ -353,12 +353,12 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   };
 
   const handleAddTape = () => {
-    if (tapeMode === 'none') {
+    if (tapeMode === 'none' || tapeMode === 'complete') {
       setTapeMode('vertical');
     } else if (tapeMode === 'vertical') {
       setTapeMode('horizontal');
     } else if (tapeMode === 'horizontal') {
-      setTapeMode('complete');
+      setTapeMode('vertical');
     }
   };
 
@@ -748,9 +748,9 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             disabled={!showWrap}
           >
             <Grid3X3 className="w-4 h-4" />
-            {tapeMode === 'none' && 'V-Tape'}
+            {(tapeMode === 'none' || tapeMode === 'complete') && 'V-Tape'}
             {tapeMode === 'vertical' && 'H-Tape'}
-            {tapeMode === 'horizontal' && 'Done'}
+            {tapeMode === 'horizontal' && 'V-Tape'}
           </Button>
 
           {(verticalTapes.length > 0 || horizontalTapes.length > 0) && (
