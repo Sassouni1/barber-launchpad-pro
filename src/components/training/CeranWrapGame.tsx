@@ -54,18 +54,6 @@ const rounds: Round[] = [
     ],
   },
   {
-    pattern: 'diffuse',
-    name: 'Diffuse Thinning',
-    description: 'Trace the larger general thinning area across the top of the scalp',
-    guidePoints: [
-      { x: 95, y: 70 }, { x: 120, y: 55 }, { x: 150, y: 50 },
-      { x: 180, y: 55 }, { x: 205, y: 70 }, { x: 210, y: 100 },
-      { x: 208, y: 140 }, { x: 200, y: 175 }, { x: 175, y: 195 },
-      { x: 150, y: 200 }, { x: 125, y: 195 }, { x: 100, y: 175 },
-      { x: 92, y: 140 }, { x: 90, y: 100 }, { x: 95, y: 70 },
-    ],
-  },
-  {
     pattern: 'frontal',
     name: 'Frontal Thinning',
     description: 'Trace the M-shaped receding hairline at the temples',
@@ -118,7 +106,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [drawMode, setDrawMode] = useState<DrawMode>('draw');
   const [isZoomed, setIsZoomed] = useState(false);
   const [isAdjustingGuide, setIsAdjustingGuide] = useState(false);
-  const [adjustedFrontalGuide, setAdjustedFrontalGuide] = useState<Point[]>(rounds[3].guidePoints);
+  const [adjustedFrontalGuide, setAdjustedFrontalGuide] = useState<Point[]>(rounds[2].guidePoints);
   const [draggingPointIndex, setDraggingPointIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
