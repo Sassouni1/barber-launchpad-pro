@@ -1,7 +1,7 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses, type Module } from '@/hooks/useCourses';
-import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,30 @@ export default function Courses() {
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollMore, setCanScrollMore] = useState(false);
+
+  // Check if there's more content to scroll
+  useEffect(() => {
+    const checkScroll = () => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        const hasMoreContent = container.scrollHeight > container.clientHeight;
+        const notAtBottom = container.scrollTop + container.clientHeight < container.scrollHeight - 20;
+        setCanScrollMore(hasMoreContent && notAtBottom);
+      }
+    };
+
+    checkScroll();
+    const container = scrollContainerRef.current;
+    container?.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    
+    return () => {
+      container?.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [courses]);
 
   const goToLesson = (moduleId: string, tab?: string) => {
     const url = tab ? `/courses/lesson/${moduleId}?tab=${tab}` : `/courses/lesson/${moduleId}`;
@@ -79,7 +103,11 @@ export default function Courses() {
             )}
           </div>
           
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+          <div className="relative flex-1">
+            <div 
+              ref={scrollContainerRef}
+              className="absolute inset-0 overflow-y-auto space-y-3 pr-2 scrollbar-thin"
+            >
             {courses.map((course) => (
               <div key={course.id} className="space-y-2">
                 {/* Course Title */}
@@ -101,10 +129,10 @@ export default function Courses() {
                         onClick={() => setSelectedModule(module.id)}
                         className={cn(
                           'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
-                          'border-2 hover:border-primary/30 hover:bg-secondary/20',
+                          'border hover:border-primary/40 hover:bg-secondary/20',
                           isSelected 
-                            ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/50 shadow-lg shadow-primary/5' 
-                            : 'border-border/30 bg-secondary/10'
+                            ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/60 shadow-lg shadow-primary/20' 
+                            : 'border-border/50 bg-secondary/10 shadow-md shadow-black/20'
                         )}
                       >
                         <div className={cn(
@@ -160,6 +188,16 @@ export default function Courses() {
                 </div>
               </div>
             ))}
+            </div>
+            
+            {/* Scroll indicator */}
+            {canScrollMore && (
+              <div className="absolute bottom-0 left-0 right-2 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none flex items-end justify-center pb-2">
+                <div className="flex flex-col items-center animate-bounce">
+                  <ChevronDown className="w-5 h-5 text-primary" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
