@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil, ZoomIn, ZoomOut, Move, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
+import { useAuth } from '@/hooks/useAuth';
 import confetti from 'canvas-confetti';
 
 interface Point {
@@ -88,6 +89,7 @@ const rounds: Round[] = [
 ];
 
 export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
+  const { isAdmin } = useAuth();
   const [currentRound, setCurrentRound] = useState(0);
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
@@ -723,7 +725,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             </>
           )}
 
-          {(round.pattern === 'frontal' || round.pattern === 'temples') && (
+          {isAdmin && (round.pattern === 'frontal' || round.pattern === 'temples') && (
             <Button
               variant={isAdjustingGuide ? 'default' : 'outline'}
               onClick={() => {
