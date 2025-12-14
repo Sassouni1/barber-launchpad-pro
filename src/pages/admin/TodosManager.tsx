@@ -64,7 +64,7 @@ export default function TodosManager() {
   const [showDynamicItemDialog, setShowDynamicItemDialog] = useState(false);
   const [editingDynamicList, setEditingDynamicList] = useState<DynamicTodoList | null>(null);
   const [selectedDynamicListId, setSelectedDynamicListId] = useState<string | null>(null);
-  const [dynamicListForm, setDynamicListForm] = useState({ title: '' });
+  const [dynamicListForm, setDynamicListForm] = useState({ title: '', due_days: '' });
   const [dynamicItemForm, setDynamicItemForm] = useState({ title: '' });
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'dynamic-list' | 'dynamic-item'; id: string; name: string } | null>(null);
 
@@ -151,22 +151,23 @@ export default function TodosManager() {
   // Dynamic list handlers
   const openNewDynamicList = () => {
     setEditingDynamicList(null);
-    setDynamicListForm({ title: '' });
+    setDynamicListForm({ title: '', due_days: '' });
     setShowDynamicListDialog(true);
   };
 
   const openEditDynamicList = (list: DynamicTodoList) => {
     setEditingDynamicList(list);
-    setDynamicListForm({ title: list.title });
+    setDynamicListForm({ title: list.title, due_days: list.due_days?.toString() || '' });
     setShowDynamicListDialog(true);
   };
 
   const handleSaveDynamicList = async () => {
+    const dueDays = dynamicListForm.due_days ? parseInt(dynamicListForm.due_days) : null;
     if (editingDynamicList) {
-      await updateDynamicList.mutateAsync({ id: editingDynamicList.id, title: dynamicListForm.title });
+      await updateDynamicList.mutateAsync({ id: editingDynamicList.id, title: dynamicListForm.title, due_days: dueDays });
     } else {
       const maxOrder = dynamicLists?.reduce((max, l) => Math.max(max, l.order_index), -1) ?? -1;
-      await createDynamicList.mutateAsync({ title: dynamicListForm.title, order_index: maxOrder + 1 });
+      await createDynamicList.mutateAsync({ title: dynamicListForm.title, order_index: maxOrder + 1, due_days: dueDays });
     }
     setShowDynamicListDialog(false);
   };
@@ -452,7 +453,10 @@ export default function TodosManager() {
                   <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
                   <div className="flex-1 text-left">
                     <h3 className="font-display text-xl font-semibold">{list.title}</h3>
-                    <p className="text-sm text-muted-foreground">{list.items.length} items</p>
+                    <p className="text-sm text-muted-foreground">
+                      {list.items.length} items
+                      {list.due_days && <span className="ml-2">• Due within {list.due_days} days</span>}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -533,10 +537,24 @@ export default function TodosManager() {
               <Label>List Title</Label>
               <Input
                 value={dynamicListForm.title}
-                onChange={(e) => setDynamicListForm({ title: e.target.value })}
+                onChange={(e) => setDynamicListForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="e.g., Week 1 Tasks"
                 className="bg-secondary/50"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Due Within (days from signup)</Label>
+              <Input
+                type="number"
+                value={dynamicListForm.due_days}
+                onChange={(e) => setDynamicListForm(prev => ({ ...prev, due_days: e.target.value }))}
+                placeholder="e.g., 7 for one week"
+                className="bg-secondary/50"
+                min="1"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty for no deadline. Members who haven't completed this list within this timeframe will show as behind.
+              </p>
             </div>
             <Button
               className="w-full gold-gradient text-primary-foreground"

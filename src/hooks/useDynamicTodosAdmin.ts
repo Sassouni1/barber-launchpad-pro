@@ -12,6 +12,7 @@ export interface DynamicTodoList {
   id: string;
   title: string;
   order_index: number;
+  due_days: number | null;
   items: DynamicTodoItem[];
 }
 
@@ -35,6 +36,7 @@ export const useDynamicTodoLists = () => {
 
       const listsWithItems: DynamicTodoList[] = lists.map((list) => ({
         ...list,
+        due_days: (list as any).due_days ?? null,
         items: items.filter((item) => item.list_id === list.id),
       }));
 
@@ -47,7 +49,7 @@ export const useCreateDynamicList = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { title: string; order_index: number }) => {
+    mutationFn: async (data: { title: string; order_index: number; due_days?: number | null }) => {
       const { data: result, error } = await supabase
         .from("dynamic_todo_lists")
         .insert(data)
@@ -68,7 +70,7 @@ export const useUpdateDynamicList = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; title: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; title: string; due_days?: number | null }) => {
       const { error } = await supabase
         .from("dynamic_todo_lists")
         .update(data)
