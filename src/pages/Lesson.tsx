@@ -234,10 +234,12 @@ export default function Lesson() {
         <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.3s' }}>
           {activeTab === 'video' && (
             <div className="space-y-6">
-              <div>
-                <h2 className="font-display text-xl font-semibold mb-2">About This Module</h2>
-                <p className="text-muted-foreground">{module.description || 'No description available.'}</p>
-              </div>
+              {module.description && (
+                <div>
+                  <h2 className="font-display text-xl font-semibold mb-2">About This Module</h2>
+                  <p className="text-muted-foreground">{module.description}</p>
+                </div>
+              )}
 
               {module.has_download && files.length > 0 && (
                 <div>
@@ -260,8 +262,17 @@ export default function Lesson() {
                 </div>
               )}
 
-              <div className="flex gap-3">
-                <Button className="flex-1 gold-gradient text-primary-foreground font-semibold">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {module.has_quiz && (
+                  <Button 
+                    className="flex-1 gold-gradient text-primary-foreground font-semibold"
+                    onClick={() => setActiveTab('quiz')}
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Start Quiz
+                  </Button>
+                )}
+                <Button className={`flex-1 ${!module.has_quiz ? 'gold-gradient text-primary-foreground' : ''}`} variant={module.has_quiz ? 'outline' : 'default'}>
                   <CheckCircle2 className="w-4 h-4 mr-2" />
                   Mark as Complete
                 </Button>
