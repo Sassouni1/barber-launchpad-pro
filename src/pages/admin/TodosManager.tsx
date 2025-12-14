@@ -243,7 +243,7 @@ export default function TodosManager() {
 
   if (isLoading || dynamicLoading) {
     return (
-      <DashboardLayout isAdmin>
+      <DashboardLayout isAdminView>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -252,7 +252,7 @@ export default function TodosManager() {
   }
 
   return (
-    <DashboardLayout isAdmin>
+    <DashboardLayout isAdminView>
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div>

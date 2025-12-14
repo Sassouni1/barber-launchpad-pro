@@ -19,7 +19,7 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <DashboardLayout isAdmin>
+      <DashboardLayout isAdminView>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <DashboardLayout isAdmin>
+    <DashboardLayout isAdminView>
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="animate-fade-up">
           <h1 className="font-display text-4xl font-bold mb-2">Admin Dashboard</h1>
