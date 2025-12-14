@@ -433,36 +433,38 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
         <Card className="glass-card p-4 flex-1">
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-2">
-                {hasCompletedAll && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => navigateToRound(currentRound - 1)}
-                    disabled={currentRound === 0}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  Round {currentRound + 1} of {rounds.length}
-                </span>
-                {hasCompletedAll && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => navigateToRound(currentRound + 1)}
-                    disabled={currentRound === rounds.length - 1}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <span className="text-sm text-muted-foreground">
+                Round {currentRound + 1} of {rounds.length}
+              </span>
               <span className="text-sm font-medium">{round.name}</span>
             </div>
             <Progress value={((currentRound) / rounds.length) * 100} className="h-2" />
+            
+            {hasCompletedAll && (
+              <div className="flex justify-center items-center gap-4 mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => navigateToRound(currentRound - 1)}
+                  disabled={currentRound === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Prev
+                </Button>
+                <span className="text-xs text-muted-foreground">Practice Mode</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => navigateToRound(currentRound + 1)}
+                  disabled={currentRound === rounds.length - 1}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
           <p className="text-sm text-muted-foreground mb-4 text-center">
