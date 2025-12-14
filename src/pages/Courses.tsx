@@ -8,6 +8,21 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
+// Custom hook for lg breakpoint (1024px)
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsDesktop(mql.matches);
+    mql.addEventListener('change', onChange);
+    setIsDesktop(mql.matches);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return isDesktop;
+}
+
 export default function Courses() {
   const { data: courses = [], isLoading } = useCourses();
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
@@ -15,6 +30,7 @@ export default function Courses() {
   const { isAdmin } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollMore, setCanScrollMore] = useState(false);
+  const isDesktop = useIsDesktop();
 
   // Check if there's more content to scroll
   useEffect(() => {
@@ -225,10 +241,8 @@ export default function Courses() {
           ))}
         </div>
 
-        {/* Only render Sheet on mobile */}
-        <div className="lg:hidden">
-          <MobileModuleSheet />
-        </div>
+        {/* Only render Sheet on mobile - must be conditional, not CSS hidden (portal) */}
+        {!isDesktop && <MobileModuleSheet />}
       </div>
 
       {/* Desktop View */}
