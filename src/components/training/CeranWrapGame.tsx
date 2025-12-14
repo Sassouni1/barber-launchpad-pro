@@ -97,20 +97,6 @@ const rounds: Round[] = [
       { x: 206.36, y: 137.27 },
     ],
   },
-  {
-    pattern: 'fullTop',
-    name: 'Full Top Balding',
-    description: 'Trace the extensive bald area covering the entire top of the scalp (horseshoe pattern)',
-    guidePoints: [
-      // Large oval covering entire top from front hairline to crown
-      { x: 80, y: 75 }, { x: 100, y: 60 }, { x: 130, y: 52 }, { x: 150, y: 50 },
-      { x: 170, y: 52 }, { x: 200, y: 60 }, { x: 220, y: 75 },
-      { x: 230, y: 110 }, { x: 235, y: 150 }, { x: 232, y: 195 },
-      { x: 220, y: 235 }, { x: 195, y: 265 }, { x: 150, y: 280 },
-      { x: 105, y: 265 }, { x: 80, y: 235 }, { x: 68, y: 195 },
-      { x: 65, y: 150 }, { x: 70, y: 110 }, { x: 80, y: 75 },
-    ],
-  },
 ];
 
 export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
