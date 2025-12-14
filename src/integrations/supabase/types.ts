@@ -649,6 +649,55 @@ export type Database = {
           },
         ]
       }
+      user_quiz_responses: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          selected_answer_id: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          id?: string
+          is_correct: boolean
+          question_id: string
+          selected_answer_id: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          selected_answer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_quiz_responses_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "user_quiz_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_quiz_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_quiz_responses_selected_answer_id_fkey"
+            columns: ["selected_answer_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_answers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -235,16 +235,24 @@ export function useSubmitQuiz() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Calculate score
+      // Calculate score and prepare responses
+      const responses: { questionId: string; selectedAnswerId: string; isCorrect: boolean }[] = [];
       let score = 0;
+      
       for (const answer of data.answers) {
         const question = data.questions.find(q => q.id === answer.questionId);
         const correctAnswer = question?.answers?.find(a => a.is_correct);
-        if (correctAnswer?.id === answer.selectedAnswerId) {
-          score++;
-        }
+        const isCorrect = correctAnswer?.id === answer.selectedAnswerId;
+        if (isCorrect) score++;
+        
+        responses.push({
+          questionId: answer.questionId,
+          selectedAnswerId: answer.selectedAnswerId,
+          isCorrect,
+        });
       }
 
+      // Insert the quiz attempt
       const { data: attempt, error } = await supabase
         .from('user_quiz_attempts')
         .insert({
@@ -257,6 +265,24 @@ export function useSubmitQuiz() {
         .single();
 
       if (error) throw error;
+
+      // Insert individual responses for tracking
+      const responsesToInsert = responses.map(r => ({
+        attempt_id: attempt.id,
+        question_id: r.questionId,
+        selected_answer_id: r.selectedAnswerId,
+        is_correct: r.isCorrect,
+      }));
+
+      const { error: responsesError } = await supabase
+        .from('user_quiz_responses')
+        .insert(responsesToInsert);
+
+      if (responsesError) {
+        console.error('Failed to save quiz responses:', responsesError);
+        // Don't throw - the attempt was saved successfully
+      }
+
       return { ...attempt, score, total: data.questions.length };
     },
     onSuccess: (data) => {
