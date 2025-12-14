@@ -272,7 +272,7 @@ export default function Members() {
   const sortedMembers = [...filteredMembers].sort((a, b) => b.dynamicTodosBehind - a.dynamicTodosBehind);
 
   return (
-    <DashboardLayout isAdmin>
+    <DashboardLayout isAdminView>
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex items-center justify-between animate-fade-up">
           <div>

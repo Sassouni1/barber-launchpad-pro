@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Cpu,
   Target,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -20,6 +21,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavItemProps {
   to: string;
@@ -54,12 +56,13 @@ function NavItem({ to, icon: Icon, label, collapsed }: NavItemProps) {
 }
 
 interface SidebarProps {
-  isAdmin?: boolean;
+  isAdminView?: boolean;
 }
 
-export function Sidebar({ isAdmin = false }: SidebarProps) {
+export function Sidebar({ isAdminView = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const { isAdmin: userIsAdmin } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -88,7 +91,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/admin/products', icon: Package, label: 'Products Manager' },
   ];
 
-  const links = isAdmin ? adminLinks : memberLinks;
+  const links = isAdminView ? adminLinks : memberLinks;
 
   return (
     <aside 
@@ -136,6 +139,25 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
         {links.map((link) => (
           <NavItem key={link.to} {...link} collapsed={collapsed} />
         ))}
+        
+        {/* Switch view link for admins */}
+        {userIsAdmin && (
+          isAdminView ? (
+            <NavItem 
+              to="/dashboard" 
+              icon={ArrowLeftRight} 
+              label="Member View" 
+              collapsed={collapsed} 
+            />
+          ) : (
+            <NavItem 
+              to="/admin" 
+              icon={ArrowLeftRight} 
+              label="Admin Panel" 
+              collapsed={collapsed} 
+            />
+          )
+        )}
       </nav>
 
       {/* Footer */}
