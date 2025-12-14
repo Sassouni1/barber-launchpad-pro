@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 export default function Auth() {
@@ -15,7 +15,6 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Redirect if already logged in
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
@@ -41,7 +40,7 @@ export default function Auth() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success('Logged in successfully');
-        navigate('/');
+        navigate('/dashboard');
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -51,68 +50,6 @@ export default function Auth() {
         if (error) throw error;
         toast.success('Account created! You can now log in.');
         setIsLogin(true);
-      }
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const becomeAdmin = async () => {
-    setLoading(true);
-    try {
-      // First check if logged in
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        // Quick signup and login
-        if (!email || !password) {
-          toast.error('Enter email and password first');
-          setLoading(false);
-          return;
-        }
-        
-        // Try signup
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/` },
-        });
-        
-        if (signUpError && !signUpError.message.includes('already registered')) {
-          throw signUpError;
-        }
-        
-        // Login
-        const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-        if (loginError) throw loginError;
-        
-        // Add admin role
-        const { error: roleError } = await supabase.from('user_roles').insert({
-          user_id: data.user.id,
-          role: 'admin',
-        });
-        
-        if (roleError && !roleError.message.includes('duplicate')) {
-          throw roleError;
-        }
-        
-        toast.success('You are now an admin!');
-        navigate('/admin/course-builder');
-      } else {
-        // Already logged in, just add role
-        const { error: roleError } = await supabase.from('user_roles').insert({
-          user_id: user.id,
-          role: 'admin',
-        });
-        
-        if (roleError && !roleError.message.includes('duplicate')) {
-          throw roleError;
-        }
-        
-        toast.success('You are now an admin!');
-        navigate('/admin/course-builder');
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -164,17 +101,6 @@ export default function Auth() {
           <Button type="submit" className="w-full gold-gradient text-primary-foreground" disabled={loading}>
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {isLogin ? 'Sign In' : 'Sign Up'}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={becomeAdmin}
-            disabled={loading}
-          >
-            <Shield className="w-4 h-4 mr-2" />
-            Sign Up & Become Admin
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">

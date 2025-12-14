@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface NavItemProps {
   to: string;
@@ -57,6 +59,17 @@ interface SidebarProps {
 
 export function Sidebar({ isAdmin = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success('Signed out successfully');
+      navigate('/auth');
+    } catch (error: any) {
+      toast.error('Error signing out');
+    }
+  };
 
   const memberLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -65,8 +78,6 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/todos', icon: ListTodo, label: 'To-Do Lists' },
     { to: '/order-hair-system', icon: Scissors, label: 'Order Hair System' },
     { to: '/products', icon: Package, label: 'Products' },
-    { to: '/settings', icon: Settings, label: 'Settings' },
-    { to: '/admin/courses', icon: FileEdit, label: 'Admin' },
   ];
 
   const adminLinks = [
@@ -75,7 +86,6 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
     { to: '/admin/courses', icon: FileEdit, label: 'Course Builder' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos Manager' },
     { to: '/admin/products', icon: Package, label: 'Products Manager' },
-    { to: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
 
   const links = isAdmin ? adminLinks : memberLinks;
@@ -139,10 +149,13 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
           {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
         </Button>
         
-        <button className={cn(
-          'flex items-center gap-3 px-4 py-3 rounded-lg w-full transition-all duration-300',
-          'text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/30'
-        )}>
+        <button 
+          onClick={handleSignOut}
+          className={cn(
+            'flex items-center gap-3 px-4 py-3 rounded-lg w-full transition-all duration-300',
+            'text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/30'
+          )}
+        >
           <LogOut className="w-5 h-5" />
           {!collapsed && <span className="font-medium text-sm">Sign Out</span>}
         </button>
