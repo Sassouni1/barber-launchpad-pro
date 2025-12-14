@@ -107,11 +107,15 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const [isAdjustingGuide, setIsAdjustingGuide] = useState(false);
   const [adjustedFrontalGuide, setAdjustedFrontalGuide] = useState<Point[]>(rounds[2].guidePoints);
+  const [adjustedTemplesGuide, setAdjustedTemplesGuide] = useState<Point[]>(rounds[1].guidePoints);
   const [draggingPointIndex, setDraggingPointIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const round = rounds[currentRound];
-  const currentGuidePoints = round.pattern === 'frontal' ? adjustedFrontalGuide : round.guidePoints;
+  const currentGuidePoints = 
+    round.pattern === 'frontal' ? adjustedFrontalGuide : 
+    round.pattern === 'temples' ? adjustedTemplesGuide : 
+    round.guidePoints;
 
   const getCoordinates = useCallback((e: React.MouseEvent | React.TouchEvent): Point | null => {
     if (!svgRef.current) return null;
@@ -206,13 +210,22 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     
     const point = getCoordinates(e);
     if (point) {
-      setAdjustedFrontalGuide(prev => {
-        const newPoints = [...prev];
-        newPoints[draggingPointIndex] = point;
-        return newPoints;
-      });
+      const pattern = rounds[currentRound].pattern;
+      if (pattern === 'frontal') {
+        setAdjustedFrontalGuide(prev => {
+          const newPoints = [...prev];
+          newPoints[draggingPointIndex] = point;
+          return newPoints;
+        });
+      } else if (pattern === 'temples') {
+        setAdjustedTemplesGuide(prev => {
+          const newPoints = [...prev];
+          newPoints[draggingPointIndex] = point;
+          return newPoints;
+        });
+      }
     }
-  }, [draggingPointIndex, isAdjustingGuide, getCoordinates]);
+  }, [draggingPointIndex, isAdjustingGuide, getCoordinates, currentRound]);
 
   const handleGuidePointDragEnd = useCallback(() => {
     setDraggingPointIndex(null);
@@ -707,26 +720,29 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
               >
                 {eyebrowsRaised ? 'Lower Brows' : 'Lift Eyebrows'}
               </Button>
-
-              <Button
-                variant={isAdjustingGuide ? 'default' : 'outline'}
-                onClick={() => {
-                  if (isAdjustingGuide) {
-                    // Log the adjusted coordinates when done
-                    console.log('ADJUSTED FRONTAL GUIDE POINTS:', JSON.stringify(adjustedFrontalGuide, null, 2));
-                  }
-                  setIsAdjustingGuide(!isAdjustingGuide);
-                  if (!isAdjustingGuide) {
-                    setDrawMode('draw');
-                    setTapeMode('none');
-                  }
-                }}
-                className="flex-1 gap-2"
-              >
-                <Move className="w-4 h-4" />
-                {isAdjustingGuide ? 'Done' : 'Adjust Guide'}
-              </Button>
             </>
+          )}
+
+          {(round.pattern === 'frontal' || round.pattern === 'temples') && (
+            <Button
+              variant={isAdjustingGuide ? 'default' : 'outline'}
+              onClick={() => {
+                if (isAdjustingGuide) {
+                  // Log the adjusted coordinates when done
+                  const adjustedGuide = round.pattern === 'frontal' ? adjustedFrontalGuide : adjustedTemplesGuide;
+                  console.log(`ADJUSTED ${round.pattern.toUpperCase()} GUIDE POINTS:`, JSON.stringify(adjustedGuide, null, 2));
+                }
+                setIsAdjustingGuide(!isAdjustingGuide);
+                if (!isAdjustingGuide) {
+                  setDrawMode('draw');
+                  setTapeMode('none');
+                }
+              }}
+              className="flex-1 gap-2"
+            >
+              <Move className="w-4 h-4" />
+              {isAdjustingGuide ? 'Done' : 'Adjust Guide'}
+            </Button>
           )}
 
           <Button
