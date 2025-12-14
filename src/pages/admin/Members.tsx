@@ -24,6 +24,8 @@ import {
   CheckCircle2,
   Clock,
   ListTodo,
+  Shield,
+  ShieldOff,
 } from 'lucide-react';
 import {
   Table,
@@ -36,9 +38,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAdminMembers, useAdminMemberDetail, useAdminStats, MemberStats } from '@/hooks/useAdminMembers';
+import { useToggleAdminRole } from '@/hooks/useAdminRoles';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 
 function StatCard({ title, value, icon: Icon, subtitle }: { 
   title: string; 
@@ -87,6 +91,11 @@ function BehindBadge({ behind }: { behind: number }) {
 
 function MemberDetailPanel({ member, onClose }: { member: MemberStats; onClose: () => void }) {
   const { data: detail, isLoading } = useAdminMemberDetail(member.id);
+  const toggleAdminRole = useToggleAdminRole();
+
+  const handleToggleAdmin = () => {
+    toggleAdminRole.mutate({ userId: member.id, makeAdmin: !member.isAdmin });
+  };
 
   return (
     <div className="space-y-6">
@@ -97,13 +106,32 @@ function MemberDetailPanel({ member, onClose }: { member: MemberStats; onClose: 
             {member.full_name?.charAt(0) || member.email?.charAt(0) || '?'}
           </AvatarFallback>
         </Avatar>
-        <div>
-          <h3 className="font-display text-xl font-semibold">{member.full_name || 'No Name'}</h3>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-display text-xl font-semibold">{member.full_name || 'No Name'}</h3>
+            {member.isAdmin && <Badge className="bg-primary/20 text-primary border-primary/30">Admin</Badge>}
+          </div>
           <p className="text-muted-foreground">{member.email}</p>
           <p className="text-xs text-muted-foreground mt-1">
             Joined {format(new Date(member.created_at), 'MMM d, yyyy')}
           </p>
         </div>
+      </div>
+
+      {/* Admin Toggle */}
+      <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 border border-border/50">
+        <div className="flex items-center gap-3">
+          {member.isAdmin ? <Shield className="w-5 h-5 text-primary" /> : <ShieldOff className="w-5 h-5 text-muted-foreground" />}
+          <div>
+            <p className="font-medium">Admin Access</p>
+            <p className="text-sm text-muted-foreground">Allow access to admin panel</p>
+          </div>
+        </div>
+        <Switch 
+          checked={member.isAdmin} 
+          onCheckedChange={handleToggleAdmin}
+          disabled={toggleAdminRole.isPending}
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -397,7 +425,10 @@ export default function Members() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{member.full_name || 'No Name'}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{member.full_name || 'No Name'}</p>
+                            {member.isAdmin && <Badge variant="outline" className="text-xs py-0">Admin</Badge>}
+                          </div>
                           <p className="text-sm text-muted-foreground">{member.email}</p>
                         </div>
                       </div>

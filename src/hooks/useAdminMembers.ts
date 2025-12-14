@@ -28,6 +28,7 @@ export interface MemberStats {
   dynamicTodosTotal: number;
   dynamicTodosBehind: number;
   dynamicTodoStatus: DynamicTodoStatus[];
+  isAdmin: boolean;
 }
 
 export interface MemberDetail {
@@ -57,6 +58,16 @@ export function useAdminMembers() {
         .order('created_at', { ascending: false });
 
       if (profilesError) throw profilesError;
+
+      // Fetch admin roles
+      const { data: adminRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+
+      if (rolesError) throw rolesError;
+
+      const adminUserIds = new Set(adminRoles?.map(r => r.user_id) || []);
 
       // Fetch all quiz attempts
       const { data: quizAttempts, error: quizError } = await supabase
@@ -183,6 +194,7 @@ export function useAdminMembers() {
           dynamicTodosTotal: totalDynamicItems,
           dynamicTodosBehind,
           dynamicTodoStatus,
+          isAdmin: adminUserIds.has(profile.id),
         };
       });
 

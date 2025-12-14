@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Lesson from "./pages/Lesson";
@@ -19,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import OrderHairSystem from "./pages/OrderHairSystem";
 import Products from "./pages/Products";
 import Training from "./pages/Training";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -31,20 +31,23 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/auth" replace />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/courses/lesson/:lessonId" element={<Lesson />} />
-          <Route path="/todos" element={<Todos />} />
-          <Route path="/order-hair-system" element={<OrderHairSystem />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/training" element={<Training />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/members" element={<Members />} />
-          <Route path="/admin/courses" element={<CourseBuilder />} />
-          <Route path="/admin/todos" element={<TodosManager />} />
           
-          <Route path="/admin/products" element={<ProductsManager />} />
+          {/* Protected Member Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
+          <Route path="/courses/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
+          <Route path="/todos" element={<ProtectedRoute><Todos /></ProtectedRoute>} />
+          <Route path="/order-hair-system" element={<ProtectedRoute><OrderHairSystem /></ProtectedRoute>} />
+          <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+          <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
+          
+          {/* Protected Admin Routes */}
+          <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/members" element={<ProtectedRoute requireAdmin><Members /></ProtectedRoute>} />
+          <Route path="/admin/courses" element={<ProtectedRoute requireAdmin><CourseBuilder /></ProtectedRoute>} />
+          <Route path="/admin/todos" element={<ProtectedRoute requireAdmin><TodosManager /></ProtectedRoute>} />
+          <Route path="/admin/products" element={<ProtectedRoute requireAdmin><ProductsManager /></ProtectedRoute>} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
