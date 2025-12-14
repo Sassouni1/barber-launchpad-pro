@@ -107,15 +107,8 @@ export default function Courses() {
         {moduleData && (
           <div className="flex flex-col h-full">
             <SheetHeader className="p-4 border-b border-border/30">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">{moduleData.courseName}</p>
-                  <SheetTitle className="text-lg font-bold gold-text text-left">{moduleData.module.title}</SheetTitle>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedModule(null)}>
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
+112:               <p className="text-xs text-muted-foreground">{moduleData.courseName}</p>
+113:               <SheetTitle className="text-lg font-bold gold-text text-left">{moduleData.module.title}</SheetTitle>
             </SheetHeader>
 
             {/* Video Preview */}
