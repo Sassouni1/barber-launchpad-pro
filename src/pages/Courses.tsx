@@ -1,11 +1,12 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses, type Module } from '@/hooks/useCourses';
-import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown } from 'lucide-react';
+import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function Courses() {
   const { data: courses = [], isLoading } = useCourses();
@@ -83,9 +84,152 @@ export default function Courses() {
     );
   }
 
+  // Mobile Module Detail Sheet
+  const MobileModuleSheet = () => (
+    <Sheet open={!!selectedModule} onOpenChange={(open) => !open && setSelectedModule(null)}>
+      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0">
+        {moduleData && (
+          <div className="flex flex-col h-full">
+            <SheetHeader className="p-4 border-b border-border/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">{moduleData.courseName}</p>
+                  <SheetTitle className="text-lg font-bold gold-text text-left">{moduleData.module.title}</SheetTitle>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedModule(null)}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            </SheetHeader>
+
+            {/* Video Preview */}
+            <div className="relative aspect-video bg-black">
+              {moduleData.module.video_url ? (
+                <iframe
+                  src={getVimeoEmbedUrl(moduleData.module.video_url)}
+                  className="absolute inset-0 w-full h-full"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  title={moduleData.module.title}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                  <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border border-primary/40">
+                    <Play className="w-6 h-6 text-primary ml-1" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+              {moduleData.module.description && (
+                <p className="text-sm text-muted-foreground">{moduleData.module.description}</p>
+              )}
+              
+              <Button 
+                className="w-full gold-gradient text-primary-foreground font-semibold py-5"
+                onClick={() => goToLesson(moduleData.module.id)}
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Start Lesson
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+
+              {(moduleData.module.has_quiz || moduleData.module.has_homework) && (
+                <div className="flex gap-2">
+                  {moduleData.module.has_quiz && (
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => goToLesson(moduleData.module.id, 'quiz')}
+                    >
+                      <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
+                      Quiz
+                    </Button>
+                  )}
+                  {moduleData.module.has_homework && (
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => goToLesson(moduleData.module.id, 'homework')}
+                    >
+                      <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
+                      Homework
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+
   return (
     <DashboardLayout>
-      <div className="flex gap-6 h-[calc(100vh-8rem)]">
+      {/* Mobile View */}
+      <div className="lg:hidden flex flex-col h-[calc(100vh-8rem)]">
+        <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-lg font-bold gold-text">Course Library</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">Tap a module to start</p>
+          </div>
+          {isAdmin && (
+            <Link to="/admin/courses">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs px-2">
+                <Settings className="w-3.5 h-3.5" />
+                Edit
+              </Button>
+            </Link>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-3 pb-4">
+          {courses.map((course) => (
+            <div key={course.id} className="space-y-2">
+              <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50">
+                <h2 className="font-semibold text-sm">{course.title}</h2>
+              </div>
+
+              <div className="space-y-2 pl-2">
+                {(course.modules || []).map((module, index) => (
+                  <button
+                    key={module.id}
+                    onClick={() => setSelectedModule(module.id)}
+                    className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-border bg-secondary/10 shadow-md shadow-black/20 active:scale-[0.98]"
+                  >
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-secondary border border-border text-muted-foreground">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm truncate">{module.title}</h4>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {module.duration && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            {module.duration}
+                          </span>
+                        )}
+                        {module.has_quiz && <HelpCircle className="w-3 h-3 text-amber-400" />}
+                        {module.has_homework && <ClipboardList className="w-3 h-3 text-green-400" />}
+                        {module.has_download && <FileText className="w-3 h-3 text-blue-400" />}
+                      </div>
+                    </div>
+                    <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <MobileModuleSheet />
+      </div>
+
+      {/* Desktop View */}
+      <div className="hidden lg:flex gap-6 h-[calc(100vh-8rem)]">
         {/* Left Panel - Courses & Modules */}
         <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
           <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
