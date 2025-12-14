@@ -112,7 +112,33 @@ export const useDynamicTodos = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onMutate: async ({ itemId, completed }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["dynamic-todos", user?.id] });
+
+      // Snapshot previous value
+      const previousLists = queryClient.getQueryData<DynamicTodoList[]>(["dynamic-todos", user?.id]);
+
+      // Optimistically update the cache
+      queryClient.setQueryData<DynamicTodoList[]>(["dynamic-todos", user?.id], (old) => {
+        if (!old) return old;
+        return old.map((list) => ({
+          ...list,
+          items: list.items.map((item) =>
+            item.id === itemId ? { ...item, completed } : item
+          ),
+        }));
+      });
+
+      return { previousLists };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousLists) {
+        queryClient.setQueryData(["dynamic-todos", user?.id], context.previousLists);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["dynamic-todos"] });
     },
   });
