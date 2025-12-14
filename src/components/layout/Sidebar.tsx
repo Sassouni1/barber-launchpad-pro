@@ -144,7 +144,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
         ))}
         
         {/* Switch view link for admins */}
-        {userIsAdmin && (
+        {userIsAdmin && isAdminModeActive && (
           isAdminView ? (
             <NavItem 
               to="/dashboard" 
