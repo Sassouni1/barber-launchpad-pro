@@ -108,7 +108,9 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [showWrap, setShowWrap] = useState(true);
   const [scores, setScores] = useState<number[]>([]);
   const [isGameComplete, setIsGameComplete] = useState(false);
-  const [hasCompletedAll, setHasCompletedAll] = useState(false);
+  const [hasCompletedAll, setHasCompletedAll] = useState(() => {
+    return localStorage.getItem('ceranWrapGameCompleted') === 'true';
+  });
   const [tapeMode, setTapeMode] = useState<TapeMode>('none');
   const [verticalTapes, setVerticalTapes] = useState<number[]>([]);
   const [horizontalTapes, setHorizontalTapes] = useState<number[]>([]);
@@ -321,6 +323,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
       setShowWrap(true);
     } else {
       setHasCompletedAll(true);
+      localStorage.setItem('ceranWrapGameCompleted', 'true');
       setIsGameComplete(true);
     }
   };
