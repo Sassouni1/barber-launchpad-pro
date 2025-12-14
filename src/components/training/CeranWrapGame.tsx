@@ -748,9 +748,9 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             disabled={!showWrap}
           >
             <Grid3X3 className="w-4 h-4" />
-            {tapeMode === 'none' && 'Tape'}
-            {tapeMode === 'vertical' && 'V-Tape'}
-            {tapeMode === 'horizontal' && 'H-Tape'}
+            {tapeMode === 'none' && 'V-Tape'}
+            {tapeMode === 'vertical' && 'H-Tape'}
+            {tapeMode === 'horizontal' && 'Done'}
           </Button>
 
           {(verticalTapes.length > 0 || horizontalTapes.length > 0) && (
