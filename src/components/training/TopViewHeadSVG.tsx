@@ -222,16 +222,12 @@ export function TopViewHeadSVGContent({
       {/* FULL TOP RECESSION - Norwood 6-7 horseshoe pattern */}
       {thinningPattern === "temples" && (
         <g>
-          {/* Organic irregular bald scalp area - extends further back */}
-          <path 
-            d="M 150,68
-               C 100,75 78,100 72,135
-               C 65,175 63,210 70,240
-               C 78,260 98,268 125,270
-               C 145,271 165,270 185,268
-               C 210,262 225,250 230,225
-               C 238,185 235,145 228,115
-               C 218,85 195,72 150,68"
+          {/* Organic irregular bald scalp area - smoother, more oval shape */}
+          <ellipse 
+            cx="150" 
+            cy="165" 
+            rx="85" 
+            ry="105" 
             fill="url(#templesGrad)"
           />
           
@@ -250,10 +246,10 @@ export function TopViewHeadSVGContent({
             d="M 50,140 
                C 45,170 48,200 58,235
                C 68,258 95,275 150,280
-               L 150,265
-               C 105,262 78,248 70,228
-               C 62,205 62,175 68,150
-               C 72,135 62,128 50,140"
+               L 150,268
+               C 100,265 75,250 68,228
+               C 60,200 60,170 66,145
+               C 70,130 58,125 50,140"
             fill={hairColor}
           />
           
@@ -262,10 +258,10 @@ export function TopViewHeadSVGContent({
             d="M 250,140
                C 255,170 252,200 242,235
                C 232,258 205,275 150,280
-               L 150,265
-               C 195,262 222,248 230,228
-               C 238,205 238,175 232,150
-               C 228,135 238,128 250,140"
+               L 150,268
+               C 200,265 225,250 232,228
+               C 240,200 240,170 234,145
+               C 230,130 242,125 250,140"
             fill={hairColor}
           />
           
@@ -281,14 +277,26 @@ export function TopViewHeadSVGContent({
             fill={hairColor}
           />
 
-          {/* Subtle edge blend ring to soften hairline transition */}
+          {/* Soft feathered edge blend - multiple layers for natural transition */}
           <ellipse
             cx="150"
-            cy="155"
-            rx="82"
-            ry="102"
-            fill="url(#templesBlendGrad)"
-            opacity="0.8"
+            cy="165"
+            rx="88"
+            ry="108"
+            fill="none"
+            stroke={hairColor}
+            strokeWidth="8"
+            opacity="0.08"
+          />
+          <ellipse
+            cx="150"
+            cy="165"
+            rx="86"
+            ry="106"
+            fill="none"
+            stroke={hairColor}
+            strokeWidth="5"
+            opacity="0.12"
           />
           
           {/* Hair texture on left side - scattered */}
