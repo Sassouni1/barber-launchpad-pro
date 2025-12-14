@@ -2,10 +2,16 @@ import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+const ADMIN_MODE_KEY = 'adminModeActive';
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminModeActive, setIsAdminModeActive] = useState(() => {
+    const stored = localStorage.getItem(ADMIN_MODE_KEY);
+    return stored === null ? true : stored === 'true';
+  });
 
   useEffect(() => {
     // Get initial session
@@ -44,6 +50,14 @@ export function useAuth() {
     setLoading(false);
   };
 
+  const toggleAdminMode = () => {
+    setIsAdminModeActive(prev => {
+      const newValue = !prev;
+      localStorage.setItem(ADMIN_MODE_KEY, String(newValue));
+      return newValue;
+    });
+  };
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
@@ -69,6 +83,8 @@ export function useAuth() {
     user,
     loading,
     isAdmin,
+    isAdminModeActive,
+    toggleAdminMode,
     signIn,
     signUp,
     signOut,

@@ -89,7 +89,7 @@ const rounds: Round[] = [
 ];
 
 export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isAdminModeActive } = useAuth();
   const [currentRound, setCurrentRound] = useState(0);
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
@@ -725,7 +725,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             </>
           )}
 
-          {isAdmin && (round.pattern === 'frontal' || round.pattern === 'temples') && (
+          {isAdmin && isAdminModeActive && (round.pattern === 'frontal' || round.pattern === 'temples') && (
             <Button
               variant={isAdjustingGuide ? 'default' : 'outline'}
               onClick={() => {

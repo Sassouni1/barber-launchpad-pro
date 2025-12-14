@@ -14,6 +14,8 @@ import {
   Cpu,
   Target,
   ArrowLeftRight,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -22,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { Switch } from '@/components/ui/switch';
 
 interface NavItemProps {
   to: string;
@@ -62,7 +65,7 @@ interface SidebarProps {
 export function Sidebar({ isAdminView = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  const { isAdmin: userIsAdmin } = useAuth();
+  const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -162,6 +165,41 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border space-y-2 relative z-10">
+        {/* Admin Mode Toggle */}
+        {userIsAdmin && !collapsed && (
+          <div className="flex items-center justify-between px-4 py-2 rounded-lg bg-primary/5 border border-primary/20">
+            <div className="flex items-center gap-2">
+              {isAdminModeActive ? (
+                <Eye className="w-4 h-4 text-primary" />
+              ) : (
+                <EyeOff className="w-4 h-4 text-muted-foreground" />
+              )}
+              <span className="text-xs font-medium">
+                {isAdminModeActive ? 'Admin Mode' : 'User Mode'}
+              </span>
+            </div>
+            <Switch 
+              checked={isAdminModeActive} 
+              onCheckedChange={toggleAdminMode}
+              className="scale-75"
+            />
+          </div>
+        )}
+        {userIsAdmin && collapsed && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleAdminMode}
+            className={cn(
+              "w-full justify-center",
+              isAdminModeActive ? "text-primary" : "text-muted-foreground"
+            )}
+            title={isAdminModeActive ? 'Admin Mode ON' : 'User Mode'}
+          >
+            {isAdminModeActive ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+          </Button>
+        )}
+        
         <Button
           variant="ghost"
           size="sm"
