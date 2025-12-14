@@ -71,7 +71,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     try {
       await supabase.auth.signOut();
       toast.success('Signed out successfully');
-      navigate('/auth');
+      navigate('/login');
     } catch (error: any) {
       toast.error('Error signing out');
     }

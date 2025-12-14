@@ -54,7 +54,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     try {
       await supabase.auth.signOut();
       toast.success('Signed out successfully');
-      navigate('/auth');
+      navigate('/login');
     } catch (error: any) {
       toast.error('Error signing out');
     }
