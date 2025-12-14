@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X3, Pencil, ZoomIn, ZoomOut, Move, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TopViewHeadSVG } from './TopViewHeadSVG';
 import confetti from 'canvas-confetti';
 
@@ -108,6 +108,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const [showWrap, setShowWrap] = useState(true);
   const [scores, setScores] = useState<number[]>([]);
   const [isGameComplete, setIsGameComplete] = useState(false);
+  const [hasCompletedAll, setHasCompletedAll] = useState(false);
   const [tapeMode, setTapeMode] = useState<TapeMode>('none');
   const [verticalTapes, setVerticalTapes] = useState<number[]>([]);
   const [horizontalTapes, setHorizontalTapes] = useState<number[]>([]);
@@ -319,8 +320,21 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
       setHorizontalTapes([]);
       setShowWrap(true);
     } else {
+      setHasCompletedAll(true);
       setIsGameComplete(true);
     }
+  };
+
+  const navigateToRound = (roundIndex: number) => {
+    if (!hasCompletedAll || roundIndex < 0 || roundIndex >= rounds.length) return;
+    setCurrentRound(roundIndex);
+    setStrokes([]);
+    setCurrentStroke([]);
+    setShowGuide(false);
+    setTapeMode('none');
+    setVerticalTapes([]);
+    setHorizontalTapes([]);
+    setShowWrap(true);
   };
 
   const restartGame = () => {
@@ -416,9 +430,33 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
         <Card className="glass-card p-4 flex-1">
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-muted-foreground">
-                Round {currentRound + 1} of {rounds.length}
-              </span>
+              <div className="flex items-center gap-2">
+                {hasCompletedAll && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => navigateToRound(currentRound - 1)}
+                    disabled={currentRound === 0}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                <span className="text-sm text-muted-foreground">
+                  Round {currentRound + 1} of {rounds.length}
+                </span>
+                {hasCompletedAll && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => navigateToRound(currentRound + 1)}
+                    disabled={currentRound === rounds.length - 1}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               <span className="text-sm font-medium">{round.name}</span>
             </div>
             <Progress value={((currentRound) / rounds.length) * 100} className="h-2" />
