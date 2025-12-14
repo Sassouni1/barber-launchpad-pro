@@ -129,10 +129,10 @@ export default function Courses() {
                         onClick={() => setSelectedModule(module.id)}
                         className={cn(
                           'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
-                          'border hover:border-primary/40 hover:bg-secondary/20',
+                          'border-2 hover:border-primary/50 hover:bg-secondary/20',
                           isSelected 
-                            ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/60 shadow-lg shadow-primary/20' 
-                            : 'border-border/50 bg-secondary/10 shadow-md shadow-black/20'
+                            ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20' 
+                            : 'border-border bg-secondary/10 shadow-md shadow-black/20'
                         )}
                       >
                         <div className={cn(
