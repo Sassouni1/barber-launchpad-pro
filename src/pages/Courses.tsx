@@ -84,9 +84,9 @@ export default function Courses() {
     );
   }
 
-  // Mobile Module Detail Sheet
+  // Mobile Module Detail Sheet - only shows on mobile (lg:hidden via CSS media query)
   const MobileModuleSheet = () => (
-    <Sheet open={!!selectedModule} onOpenChange={(open) => !open && setSelectedModule(null)}>
+    <Sheet open={!!selectedModule} onOpenChange={(open) => !open && setSelectedModule(null)} modal={false}>
       <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0">
         {moduleData && (
           <div className="flex flex-col h-full">
@@ -225,7 +225,10 @@ export default function Courses() {
           ))}
         </div>
 
-        <MobileModuleSheet />
+        {/* Only render Sheet on mobile */}
+        <div className="lg:hidden">
+          <MobileModuleSheet />
+        </div>
       </div>
 
       {/* Desktop View */}
