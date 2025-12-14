@@ -1,8 +1,22 @@
+import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const STORAGE_KEY = 'welcome-hero-collapsed';
 
 export function WelcomeHero() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === 'true';
+  });
   
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, String(isCollapsed));
+  }, [isCollapsed]);
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -11,6 +25,27 @@ export function WelcomeHero() {
   };
 
   const displayName = user?.email?.split('@')[0] || 'there';
+
+  // Collapsed mobile view
+  if (isMobile && isCollapsed) {
+    return (
+      <button
+        onClick={() => setIsCollapsed(false)}
+        className="w-full flex items-center justify-between glass-card p-3 rounded-xl animate-fade-up"
+      >
+        <div className="flex items-center gap-2">
+          <div className="relative flex items-center justify-center w-2 h-2">
+            <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75" />
+            <div className="relative w-1.5 h-1.5 bg-primary rounded-full" />
+          </div>
+          <span className="text-sm font-medium">
+            {getGreeting()}, <span className="gold-text">{displayName}</span>
+          </span>
+        </div>
+        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+      </button>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden glass-card cyber-corners p-4 md:p-8 rounded-xl animate-fade-up spotlight-pulse">
@@ -22,15 +57,25 @@ export function WelcomeHero() {
       <div className="hidden md:block absolute inset-0 cyber-grid opacity-20" />
       
       <div className="relative z-10">
-        {/* Status indicator - simplified on mobile */}
-        <div className="flex items-center gap-2 mb-2 md:mb-4">
-          <div className="relative flex items-center justify-center w-2 h-2 md:w-3 md:h-3">
-            <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75" />
-            <div className="relative w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full" />
+        {/* Status indicator with collapse button on mobile */}
+        <div className="flex items-center justify-between mb-2 md:mb-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex items-center justify-center w-2 h-2 md:w-3 md:h-3">
+              <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75" />
+              <div className="relative w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full" />
+            </div>
+            <span className="text-[10px] md:text-xs font-semibold uppercase tracking-cyber text-primary">
+              Online
+            </span>
           </div>
-          <span className="text-[10px] md:text-xs font-semibold uppercase tracking-cyber text-primary">
-            Online
-          </span>
+          {isMobile && (
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronUp className="w-4 h-4" />
+            </button>
+          )}
         </div>
         
         <h1 className="font-display text-2xl md:text-5xl font-bold mb-1 md:mb-4 tracking-tight">
