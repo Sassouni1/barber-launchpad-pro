@@ -81,7 +81,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/courses', icon: BookOpen, label: 'Courses' },
     { to: '/training', icon: Target, label: 'Training' },
-    { to: '/todos', icon: ListTodo, label: 'To-Do Lists' },
+    // { to: '/todos', icon: ListTodo, label: 'To-Do Lists' },
     { to: '/order-hair-system', icon: Scissors, label: 'Order Hair System' },
     { to: '/products', icon: Package, label: 'Products' },
   ];
