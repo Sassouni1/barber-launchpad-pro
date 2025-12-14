@@ -13,7 +13,8 @@ import Members from "./pages/admin/Members";
 import CourseBuilder from "./pages/admin/CourseBuilder";
 import TodosManager from "./pages/admin/TodosManager";
 import ProductsManager from "./pages/admin/ProductsManager";
-import Auth from "./pages/Auth";
+import Login from "./pages/Login";
+import CreateAccount from "./pages/CreateAccount";
 import NotFound from "./pages/NotFound";
 import OrderHairSystem from "./pages/OrderHairSystem";
 import Products from "./pages/Products";
@@ -31,8 +32,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
-            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/create" element={<CreateAccount />} />
+            <Route path="/auth" element={<Navigate to="/login" replace />} />
             
             {/* Protected Member Routes */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
