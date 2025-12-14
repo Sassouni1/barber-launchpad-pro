@@ -5,11 +5,13 @@ import { useState } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Courses() {
   const { data: courses = [], isLoading } = useCourses();
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
   const goToLesson = (moduleId: string, tab?: string) => {
     const url = tab ? `/courses/lesson/${moduleId}?tab=${tab}` : `/courses/lesson/${moduleId}`;
@@ -43,13 +45,15 @@ export default function Courses() {
         <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] gap-4">
           <BookOpen className="w-16 h-16 text-muted-foreground" />
           <h2 className="text-xl font-semibold">No Courses Yet</h2>
-          <p className="text-muted-foreground">Create your first course in the Admin panel</p>
-          <Link to="/admin/courses">
-            <Button className="gap-2">
-              <Settings className="w-4 h-4" />
-              Go to Admin
-            </Button>
-          </Link>
+          <p className="text-muted-foreground">Courses will appear here once available</p>
+          {isAdmin && (
+            <Link to="/admin/courses">
+              <Button className="gap-2">
+                <Settings className="w-4 h-4" />
+                Go to Admin
+              </Button>
+            </Link>
+          )}
         </div>
       </DashboardLayout>
     );
@@ -65,12 +69,14 @@ export default function Courses() {
               <h1 className="font-display text-xl font-bold gold-text">Course Library</h1>
               <p className="text-muted-foreground text-sm mt-1">Select a module to continue</p>
             </div>
-            <Link to="/admin/courses">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Settings className="w-4 h-4" />
-                Edit Courses
-              </Button>
-            </Link>
+            {isAdmin && (
+              <Link to="/admin/courses">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Settings className="w-4 h-4" />
+                  Edit Courses
+                </Button>
+              </Link>
+            )}
           </div>
           
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
