@@ -206,7 +206,7 @@ export default function Courses() {
                 {(course.modules || []).map((module, index) => (
                   <button
                     key={module.id}
-                    onClick={() => setSelectedModule(module.id)}
+                    onClick={() => navigate(`/courses/lesson/${module.id}`)}
                     className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-border bg-secondary/10 shadow-md shadow-black/20 active:scale-[0.98]"
                   >
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-secondary border border-border text-muted-foreground">
