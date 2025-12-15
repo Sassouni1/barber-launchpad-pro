@@ -23,14 +23,24 @@ function useIsDesktop() {
   return isDesktop;
 }
 
-export default function Courses() {
-  const { data: courses = [], isLoading } = useCourses();
+interface CoursesProps {
+  courseType?: 'hair-system' | 'business';
+}
+
+export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
+  const { data: allCourses = [], isLoading } = useCourses();
+  // Filter courses by category
+  const courses = allCourses.filter(course => 
+    (course as any).category === courseType
+  );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isDesktop = useIsDesktop();
+
+  const pageTitle = courseType === 'hair-system' ? 'Hair System Training' : 'Business Mastery';
 
   // Check if there's more content to scroll
   useEffect(() => {
@@ -55,7 +65,7 @@ export default function Courses() {
   }, [courses]);
 
   const goToLesson = (moduleId: string, tab?: string) => {
-    const url = tab ? `/courses/lesson/${moduleId}?tab=${tab}` : `/courses/lesson/${moduleId}`;
+    const url = tab ? `/courses/${courseType}/lesson/${moduleId}?tab=${tab}` : `/courses/${courseType}/lesson/${moduleId}`;
     navigate(url);
   };
 
@@ -182,7 +192,7 @@ export default function Courses() {
       <div className="lg:hidden flex flex-col h-[calc(100vh-8rem)]">
         <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
           <div>
-            <h1 className="font-display text-lg font-bold gold-text">Course Library</h1>
+            <h1 className="font-display text-lg font-bold gold-text">{pageTitle}</h1>
             <p className="text-muted-foreground text-xs mt-0.5">Tap a module to start</p>
           </div>
           {isAdmin && (
@@ -206,7 +216,7 @@ export default function Courses() {
                 {(course.modules || []).map((module, index) => (
                   <button
                     key={module.id}
-                    onClick={() => navigate(`/courses/lesson/${module.id}`)}
+                    onClick={() => navigate(`/courses/${courseType}/lesson/${module.id}`)}
                     className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-border bg-secondary/10 shadow-md shadow-black/20 active:scale-[0.98]"
                   >
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-secondary border border-border text-muted-foreground">
@@ -244,7 +254,7 @@ export default function Courses() {
         <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
           <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
             <div>
-              <h1 className="font-display text-xl font-bold gold-text">Course Library</h1>
+              <h1 className="font-display text-xl font-bold gold-text">{pageTitle}</h1>
               <p className="text-muted-foreground text-sm mt-1">Select a module to continue</p>
             </div>
             {isAdmin && (

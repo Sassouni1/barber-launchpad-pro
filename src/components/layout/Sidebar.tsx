@@ -11,11 +11,14 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Cpu,
   Target,
   ArrowLeftRight,
   Eye,
   EyeOff,
+  GraduationCap,
+  Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -25,6 +28,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { Switch } from '@/components/ui/switch';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface NavItemProps {
   to: string;
@@ -54,6 +62,74 @@ function NavItem({ to, icon: Icon, label, collapsed }: NavItemProps) {
       {isActive && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 gold-gradient rounded-r-full" />
       )}
+    </NavLink>
+  );
+}
+
+interface ExpandableNavItemProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  collapsed: boolean;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+function ExpandableNavItem({ icon: Icon, label, collapsed, children, defaultOpen = false }: ExpandableNavItemProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const location = useLocation();
+  const isChildActive = location.pathname.includes('/courses');
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger
+        className={cn(
+          'flex items-center justify-between w-full px-4 py-3 rounded-lg transition-all duration-300 group relative',
+          isChildActive 
+            ? 'bg-primary/10 text-primary border border-primary/30 gold-glow-subtle' 
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent'
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <Icon className={cn('w-5 h-5 flex-shrink-0 transition-all', isChildActive && 'text-primary')} />
+          {!collapsed && (
+            <span className="font-medium text-sm">{label}</span>
+          )}
+        </div>
+        {!collapsed && (
+          <ChevronDown className={cn(
+            'w-4 h-4 transition-transform duration-200',
+            isOpen && 'rotate-180'
+          )} />
+        )}
+        {isChildActive && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 gold-gradient rounded-r-full" />
+        )}
+      </CollapsibleTrigger>
+      {!collapsed && (
+        <CollapsibleContent className="pl-4 mt-1 space-y-1">
+          {children}
+        </CollapsibleContent>
+      )}
+    </Collapsible>
+  );
+}
+
+function SubNavItem({ to, icon: Icon, label }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string }) {
+  const location = useLocation();
+  const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
+
+  return (
+    <NavLink
+      to={to}
+      className={cn(
+        'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-300 group relative',
+        isActive 
+          ? 'bg-primary/10 text-primary border border-primary/30' 
+          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent'
+      )}
+    >
+      <Icon className={cn('w-4 h-4 flex-shrink-0 transition-all', isActive && 'text-primary')} />
+      <span className="font-medium text-sm">{label}</span>
     </NavLink>
   );
 }
@@ -139,9 +215,22 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
         <div className="text-xs text-muted-foreground uppercase tracking-wider px-4 mb-3">
           {!collapsed && 'Navigation'}
         </div>
-        {links.map((link) => (
-          <NavItem key={link.to} {...link} collapsed={collapsed} />
-        ))}
+        {isAdminView ? (
+          links.map((link) => (
+            <NavItem key={link.to} {...link} collapsed={collapsed} />
+          ))
+        ) : (
+          <>
+            <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
+            <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
+              <SubNavItem to="/courses/hair-system" icon={GraduationCap} label="Hair System Training" />
+              <SubNavItem to="/courses/business" icon={Briefcase} label="Business Mastery" />
+            </ExpandableNavItem>
+            <NavItem to="/training" icon={Target} label="Training Games" collapsed={collapsed} />
+            <NavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" collapsed={collapsed} />
+            <NavItem to="/products" icon={Package} label="Products" collapsed={collapsed} />
+          </>
+        )}
         
         {/* Switch view link for admins */}
         {userIsAdmin && isAdminModeActive && (
