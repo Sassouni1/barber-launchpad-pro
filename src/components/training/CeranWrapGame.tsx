@@ -90,12 +90,14 @@ const rounds: Round[] = [
 
 export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const { isAdmin, isAdminModeActive } = useAuth();
+  const canToggleGuide = isAdmin && isAdminModeActive;
   const [currentRound, setCurrentRound] = useState(0);
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showWrap, setShowWrap] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [scores, setScores] = useState<number[]>([]);
   const [isGameComplete, setIsGameComplete] = useState(false);
   const [hasCompletedAll, setHasCompletedAll] = useState(() => {
@@ -319,6 +321,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     const score = calculateScore();
     setScores(prev => [...prev, score]);
     setShowGuide(true);
+    setIsSubmitted(true);
   };
 
   const handleNextRound = () => {
@@ -327,6 +330,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
       setStrokes([]);
       setCurrentStroke([]);
       setShowGuide(false);
+      setIsSubmitted(false);
       // Reset tape state for next round
       setTapeMode('none');
       setVerticalTapes([]);
@@ -357,6 +361,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
     setCurrentStroke([]);
     setScores([]);
     setShowGuide(false);
+    setIsSubmitted(false);
     setIsGameComplete(false);
     setTapeMode('none');
     setVerticalTapes([]);
@@ -780,17 +785,31 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
             </Button>
           )}
           
-          <Button
-            variant="outline"
-            onClick={() => setShowGuide(!showGuide)}
-            className="flex-1 gap-2"
-          >
-            {showGuide ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            {showGuide ? 'Hide' : 'Guide'}
-          </Button>
+          {/* Only show guide toggle for admins before submission */}
+          {canToggleGuide && !isSubmitted && (
+            <Button
+              variant="outline"
+              onClick={() => setShowGuide(!showGuide)}
+              className="flex-1 gap-2"
+            >
+              {showGuide ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showGuide ? 'Hide' : 'Guide'}
+            </Button>
+          )}
 
+          {/* After submission, allow toggling the guide for everyone */}
+          {isSubmitted && (
+            <Button
+              variant="outline"
+              onClick={() => setShowGuide(!showGuide)}
+              className="flex-1 gap-2"
+            >
+              {showGuide ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showGuide ? 'Hide' : 'Guide'}
+            </Button>
+          )}
 
-          {!showGuide ? (
+          {!isSubmitted ? (
             <Button 
               onClick={handleSubmit}
               className="flex-1 gap-2"

@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { RotateCcw, ArrowRight, Trophy, Eraser, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Point {
   x: number;
@@ -57,6 +58,7 @@ interface HairlineGameProps {
 }
 
 export function HairlineGame({ onBack }: HairlineGameProps) {
+  const { isAdmin, isAdminModeActive } = useAuth();
   const [currentRound, setCurrentRound] = useState(0);
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
@@ -68,6 +70,9 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
   const [showGuide, setShowGuide] = useState(false);
   const [rotation, setRotation] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
+  
+  // Only admins in admin mode can toggle guide before submitting
+  const canToggleGuide = isAdmin && isAdminModeActive;
 
   const round = faceShapes[currentRound];
   const progress = (currentRound / faceShapes.length) * 100;
@@ -280,13 +285,15 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
         {/* Control buttons at top */}
         {!isSubmitted && (
           <div className="flex flex-wrap justify-center gap-3 mb-4">
-            <Button
-              variant={showGuide ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowGuide(!showGuide)}
-            >
-              {showGuide ? 'Hide Guide' : 'Show Guide'}
-            </Button>
+            {canToggleGuide && (
+              <Button
+                variant={showGuide ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowGuide(!showGuide)}
+              >
+                {showGuide ? 'Hide Guide' : 'Show Guide'}
+              </Button>
+            )}
             <Button
               variant={eyebrowsLifted ? "default" : "outline"}
               size="sm"
