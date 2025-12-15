@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import OrderHairSystem from "./pages/OrderHairSystem";
 import Products from "./pages/Products";
 import Training from "./pages/Training";
+import Agreement from "./pages/Agreement";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/create" element={<CreateAccount />} />
+            <Route path="/agreement" element={<ProtectedRoute skipAgreementCheck><Agreement /></ProtectedRoute>} />
             <Route path="/auth" element={<Navigate to="/login" replace />} />
             
             {/* Protected Member Routes */}
