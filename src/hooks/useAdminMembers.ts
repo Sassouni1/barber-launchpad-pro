@@ -29,6 +29,7 @@ export interface MemberStats {
   dynamicTodosBehind: number;
   dynamicTodoStatus: DynamicTodoStatus[];
   isAdmin: boolean;
+  skipAgreement: boolean;
 }
 
 export interface MemberDetail {
@@ -195,6 +196,7 @@ export function useAdminMembers() {
           dynamicTodosBehind,
           dynamicTodoStatus,
           isAdmin: adminUserIds.has(profile.id),
+          skipAgreement: !!profile.skip_agreement,
         };
       });
 

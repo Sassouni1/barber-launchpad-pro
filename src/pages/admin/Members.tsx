@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ import {
   ListTodo,
   Shield,
   ShieldOff,
+  FileSignature,
 } from 'lucide-react';
 import {
   Table,
@@ -89,12 +91,26 @@ function BehindBadge({ behind }: { behind: number }) {
   );
 }
 
-function MemberDetailPanel({ member, onClose }: { member: MemberStats; onClose: () => void }) {
+function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; onClose: () => void; refetch: () => void }) {
   const { data: detail, isLoading } = useAdminMemberDetail(member.id);
   const toggleAdminRole = useToggleAdminRole();
+  const [updatingSkip, setUpdatingSkip] = useState(false);
 
   const handleToggleAdmin = () => {
     toggleAdminRole.mutate({ userId: member.id, makeAdmin: !member.isAdmin });
+  };
+
+  const handleToggleSkipAgreement = async () => {
+    setUpdatingSkip(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ skip_agreement: !member.skipAgreement })
+      .eq('id', member.id);
+    
+    if (!error) {
+      refetch();
+    }
+    setUpdatingSkip(false);
   };
 
   return (
@@ -131,6 +147,22 @@ function MemberDetailPanel({ member, onClose }: { member: MemberStats; onClose: 
           checked={member.isAdmin} 
           onCheckedChange={handleToggleAdmin}
           disabled={toggleAdminRole.isPending}
+        />
+      </div>
+
+      {/* Skip Agreement Toggle */}
+      <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 border border-border/50">
+        <div className="flex items-center gap-3">
+          <FileSignature className={`w-5 h-5 ${member.skipAgreement ? 'text-primary' : 'text-muted-foreground'}`} />
+          <div>
+            <p className="font-medium">Skip Agreement</p>
+            <p className="text-sm text-muted-foreground">Bypass the agreement signing requirement</p>
+          </div>
+        </div>
+        <Switch 
+          checked={member.skipAgreement} 
+          onCheckedChange={handleToggleSkipAgreement}
+          disabled={updatingSkip}
         />
       </div>
 
@@ -260,7 +292,7 @@ export default function Members() {
   const [selectedMember, setSelectedMember] = useState<MemberStats | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: members, isLoading: membersLoading } = useAdminMembers();
+  const { data: members, isLoading: membersLoading, refetch: refetchMembers } = useAdminMembers();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
 
   const filteredMembers = members?.filter(m => 
@@ -487,7 +519,7 @@ export default function Members() {
               <DialogTitle className="font-display text-2xl">Member Details</DialogTitle>
             </DialogHeader>
             {selectedMember && (
-              <MemberDetailPanel member={selectedMember} onClose={() => setSelectedMember(null)} />
+              <MemberDetailPanel member={selectedMember} onClose={() => setSelectedMember(null)} refetch={refetchMembers} />
             )}
           </DialogContent>
         </Dialog>
