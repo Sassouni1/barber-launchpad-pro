@@ -24,7 +24,7 @@ export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCh
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!hasSignedAgreement && !skipAgreementCheck) {
+  if (!hasSignedAgreement && !skipAgreementCheck && !isAdmin) {
     return <Navigate to="/agreement" replace />;
   }
 
