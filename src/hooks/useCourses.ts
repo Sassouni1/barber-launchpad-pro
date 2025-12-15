@@ -10,22 +10,23 @@ export type CourseWithModules = Course & {
   modules: Module[];
 };
 
-export function useCourses() {
+export function useCourses(options?: { includeUnpublished?: boolean }) {
   return useQuery({
-    queryKey: ['courses'],
+    queryKey: ['courses', options?.includeUnpublished],
     queryFn: async () => {
-      const { data: courses, error: coursesError } = await supabase
-        .from('courses')
-        .select('*')
-        .order('order_index');
+      let coursesQuery = supabase.from('courses').select('*').order('order_index');
+      let modulesQuery = supabase.from('modules').select('*').order('order_index');
 
+      // Filter unpublished content unless explicitly including it (admin view)
+      if (!options?.includeUnpublished) {
+        coursesQuery = coursesQuery.eq('is_published', true);
+        modulesQuery = modulesQuery.eq('is_published', true);
+      }
+
+      const { data: courses, error: coursesError } = await coursesQuery;
       if (coursesError) throw coursesError;
 
-      const { data: modules, error: modulesError } = await supabase
-        .from('modules')
-        .select('*')
-        .order('order_index');
-
+      const { data: modules, error: modulesError } = await modulesQuery;
       if (modulesError) throw modulesError;
 
       // Combine data
