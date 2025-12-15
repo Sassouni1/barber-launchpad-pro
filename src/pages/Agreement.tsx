@@ -72,8 +72,19 @@ export default function Agreement() {
       {/* Agreement Content */}
       <div className="flex-1 py-8 px-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
-          <ScrollArea className="h-[calc(100vh-520px)] min-h-[300px] rounded-lg border border-border/50 bg-card/50 p-6 md:p-8">
-            <div className="space-y-6 text-foreground/90 leading-relaxed pr-4">
+          <div className="relative">
+            {/* Scroll indicator */}
+            <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 text-xs text-muted-foreground bg-card/90 backdrop-blur-sm px-2 py-1 rounded-full border border-border/50 animate-pulse">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+              Scroll to read
+            </div>
+            {/* Bottom fade overlay */}
+            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/80 to-transparent pointer-events-none rounded-b-lg z-10" />
+            
+            <ScrollArea className="h-[calc(100vh-520px)] min-h-[300px] rounded-lg border border-border/50 bg-card/50 p-6 md:p-8">
+              <div className="space-y-6 text-foreground/90 leading-relaxed pr-4">
               <p className="text-muted-foreground italic">
                 This Agreement ("Agreement") is entered into as of {today}, by and between Sassouni Digital Media, 
                 also known as "Barber Launch" (the "Service Provider"), and {user?.email || 'Client'} (the "Client").
@@ -213,8 +224,9 @@ export default function Agreement() {
                   <p className="text-muted-foreground italic">Digitally signed</p>
                 </div>
               </section>
-            </div>
-          </ScrollArea>
+              </div>
+            </ScrollArea>
+          </div>
 
           {/* Client Signature Section */}
           <div className="mt-6 p-6 rounded-lg border border-border/50 bg-card/50 space-y-4">
