@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { Canvas as FabricCanvas } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Eraser } from 'lucide-react';
@@ -7,7 +7,8 @@ interface SignaturePadProps {
   onSignatureChange: (hasSignature: boolean, signatureData: string | null) => void;
 }
 
-export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
+export const SignaturePad = forwardRef<HTMLDivElement, SignaturePadProps>(
+  ({ onSignatureChange }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -75,4 +76,6 @@ export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
       </p>
     </div>
   );
-}
+});
+
+SignaturePad.displayName = 'SignaturePad';
