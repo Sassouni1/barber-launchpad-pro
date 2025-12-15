@@ -235,7 +235,7 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
 
       {/* Agreement Dialog */}
       <Dialog open={showAgreement} onOpenChange={setShowAgreement}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="font-display text-2xl flex items-center justify-between">
               <span>Signed Agreement</span>
@@ -245,14 +245,14 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
               </Button>
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-1 h-[calc(90vh-140px)] pr-4">
+          <div className="flex-1 overflow-y-auto pr-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
             <div ref={agreementRef} className="space-y-6 text-sm pb-6">
               <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}>
                 SERVICE AGREEMENT
               </h1>
               <p className="text-muted-foreground italic">
                 This Agreement ("Agreement") is entered into as of {agreementData?.signedAt ? format(new Date(agreementData.signedAt), 'MMMM d, yyyy') : 'N/A'}, by and between Sassouni Digital Media, 
-                also known as "Barber Launch" (the "Service Provider"), and {member.email || 'Client'} (the "Client").
+                also known as "Barber Launch" (the "Service Provider"), and {member.full_name || member.email || 'Client'} (the "Client").
               </p>
 
               <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>1. SERVICES</h2>
@@ -298,7 +298,7 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
                 )}
               </div>
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 
