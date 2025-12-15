@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -10,90 +9,8 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCheck = false }: ProtectedRouteProps) {
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
+  const { user, loading, isAdmin, hasSignedAgreement } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.user) {
-          setIsAuthenticated(false);
-          setLoading(false);
-          return;
-        }
-
-        setIsAuthenticated(true);
-
-        // Check agreement status
-        if (!skipAgreementCheck) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('agreement_signed_at, skip_agreement')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          setHasSignedAgreement(!!profile?.agreement_signed_at || !!profile?.skip_agreement);
-        } else {
-          setHasSignedAgreement(true);
-        }
-
-        if (requireAdmin) {
-          const { data: roles } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .eq('role', 'admin')
-            .single();
-
-          setIsAdmin(!!roles);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setIsAdmin(false);
-        setHasSignedAgreement(false);
-      } else if (session?.user) {
-        setIsAuthenticated(true);
-        
-        // Check agreement on auth state change
-        if (!skipAgreementCheck) {
-          supabase
-            .from('profiles')
-            .select('agreement_signed_at, skip_agreement')
-            .eq('id', session.user.id)
-            .maybeSingle()
-            .then(({ data }) => setHasSignedAgreement(!!data?.agreement_signed_at || !!data?.skip_agreement));
-        }
-        
-        if (requireAdmin) {
-          supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .eq('role', 'admin')
-            .single()
-            .then(({ data }) => setIsAdmin(!!data));
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [requireAdmin, skipAgreementCheck]);
 
   if (loading) {
     return (
@@ -103,7 +20,7 @@ export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCh
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
