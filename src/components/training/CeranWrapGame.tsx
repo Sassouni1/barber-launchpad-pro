@@ -781,7 +781,7 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
               onClick={clearTape}
               className="flex-1 gap-2 text-xs"
             >
-              Clear
+              Clear Tape
             </Button>
           )}
           
