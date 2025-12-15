@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,23 +6,34 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Logo } from '@/components/ui/Logo';
+import { SignaturePad } from '@/components/agreement/SignaturePad';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 export default function Agreement() {
   const [agreed, setAgreed] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const handleSignatureChange = useCallback((hasSig: boolean, data: string | null) => {
+    setHasSignature(hasSig);
+    setSignatureData(data);
+  }, []);
+
   const handleSign = async () => {
-    if (!user) return;
+    if (!user || !hasSignature) return;
     
     setSigning(true);
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ agreement_signed_at: new Date().toISOString() })
+        .update({ 
+          agreement_signed_at: new Date().toISOString(),
+          signature_data: signatureData
+        })
         .eq('id', user.id);
 
       if (error) throw error;
@@ -43,6 +54,8 @@ export default function Agreement() {
     day: 'numeric'
   });
 
+  const canSign = agreed && hasSignature;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -59,10 +72,10 @@ export default function Agreement() {
       </div>
 
       {/* Agreement Content */}
-      <div className="flex-1 py-8 px-6">
+      <div className="flex-1 py-8 px-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
-          <ScrollArea className="h-[calc(100vh-380px)] rounded-lg border border-border/50 bg-card/50 p-6 md:p-8">
-            <div className="space-y-6 text-foreground/90 leading-relaxed">
+          <ScrollArea className="h-[calc(100vh-520px)] min-h-[300px] rounded-lg border border-border/50 bg-card/50 p-6 md:p-8">
+            <div className="space-y-6 text-foreground/90 leading-relaxed pr-4">
               <p className="text-muted-foreground italic">
                 This Agreement ("Agreement") is entered into as of {today}, by and between Sassouni Digital Media, 
                 also known as "Barber Launch" (the "Service Provider"), and {user?.email || 'Client'} (the "Client").
@@ -80,14 +93,14 @@ export default function Agreement() {
 
               <section className="space-y-3">
                 <h2 className="text-lg font-semibold gold-text">Included Services</h2>
-                <p>Barber Launch will provide the following services, depending on the Client's selected package:</p>
+                <p>Barber Launch will provide the following services, depending on the Client{"'"}s selected package:</p>
                 <ul className="list-disc pl-6 space-y-1">
                   <li>Instruction and guidance on how to perform hair systems</li>
-                  <li>Website creation and setup for the Client's hair systems business</li>
+                  <li>Website creation and setup for the Client{"'"}s hair systems business</li>
                   <li>Facebook and/or Instagram ad setup and publishing, as instructed in the program</li>
                   <li>CRM setup, including automated email and text message follow-up</li>
                   <li>Client acquisition systems and support</li>
-                  <li>Hair system kit, if included in the Client's selected package</li>
+                  <li>Hair system kit, if included in the Client{"'"}s selected package</li>
                 </ul>
                 <p className="text-muted-foreground text-sm">
                   Specific deliverables may vary based on the package purchased.
@@ -137,7 +150,7 @@ export default function Agreement() {
                   <p>Client must provide proof of all of the following:</p>
                   <ul className="list-disc pl-6 space-y-1">
                     <li>Completion of at least two (2) paid hair system installs</li>
-                    <li>Promotional poster hung and visibly displayed at the Client's place of business</li>
+                    <li>Promotional poster hung and visibly displayed at the Client{"'"}s place of business</li>
                     <li>Facebook and/or Instagram ads launched and published as instructed, with a minimum ad spend of $600</li>
                     <li>At least fifty (50) leads contacted by phone</li>
                     <li>Completion of all required quizzes</li>
@@ -196,47 +209,51 @@ export default function Agreement() {
               <section className="space-y-4 pt-4 border-t border-border/50">
                 <h2 className="text-lg font-semibold gold-text">Signatures</h2>
                 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <p className="font-medium">Service Provider:</p>
-                    <p className="text-muted-foreground">Sassouni Digital Media (Barber Launch)</p>
-                    <p className="text-muted-foreground">Digitally signed</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <p className="font-medium">Client:</p>
-                    <p className="text-muted-foreground">{user?.email || 'Client'}</p>
-                    <p className="text-muted-foreground">Date: {today}</p>
-                  </div>
+                <div className="space-y-2">
+                  <p className="font-medium">Service Provider:</p>
+                  <p className="text-muted-foreground">Sassouni Digital Media (Barber Launch)</p>
+                  <p className="text-muted-foreground italic">Digitally signed</p>
                 </div>
               </section>
             </div>
           </ScrollArea>
+
+          {/* Client Signature Section */}
+          <div className="mt-6 p-6 rounded-lg border border-border/50 bg-card/50 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-foreground">Client Signature</p>
+                <p className="text-sm text-muted-foreground">{user?.email || 'Client'} • {today}</p>
+              </div>
+            </div>
+            
+            <SignaturePad onSignatureChange={handleSignatureChange} />
+
+            <div className="flex items-center gap-3 pt-2">
+              <Checkbox
+                id="agree"
+                checked={agreed}
+                onCheckedChange={(checked) => setAgreed(checked === true)}
+                className="border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+              <label
+                htmlFor="agree"
+                className="text-sm text-foreground/80 cursor-pointer select-none"
+              >
+                I have read and agree to the Barber Launch Service Agreement
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Sign Section */}
+      {/* Sign Button */}
       <div className="py-6 px-6 border-t border-border/50 bg-card/30">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Checkbox
-              id="agree"
-              checked={agreed}
-              onCheckedChange={(checked) => setAgreed(checked === true)}
-              className="border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-            />
-            <label
-              htmlFor="agree"
-              className="text-sm text-foreground/80 cursor-pointer select-none"
-            >
-              I have read and agree to the Barber Launch Service Agreement
-            </label>
-          </div>
-          
+        <div className="max-w-4xl mx-auto flex justify-end">
           <Button
             onClick={handleSign}
-            disabled={!agreed || signing}
-            className="min-w-[160px]"
+            disabled={!canSign || signing}
+            className="min-w-[180px]"
           >
             {signing ? (
               <>
