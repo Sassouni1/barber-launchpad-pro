@@ -245,8 +245,8 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
               </Button>
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-1 pr-4">
-            <div ref={agreementRef} className="space-y-6 text-sm">
+          <ScrollArea className="flex-1 h-[calc(90vh-140px)] pr-4">
+            <div ref={agreementRef} className="space-y-6 text-sm pb-6">
               <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}>
                 SERVICE AGREEMENT
               </h1>

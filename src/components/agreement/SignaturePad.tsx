@@ -7,6 +7,60 @@ interface SignaturePadProps {
   onSignatureChange: (hasSignature: boolean, signatureData: string | null) => void;
 }
 
+// Convert signature to white background with black strokes for storage/download
+function convertToCleanSignature(canvas: FabricCanvas): string {
+  // Create an offscreen canvas
+  const offscreen = document.createElement('canvas');
+  offscreen.width = canvas.getWidth();
+  offscreen.height = canvas.getHeight();
+  const ctx = offscreen.getContext('2d');
+  if (!ctx) return canvas.toDataURL({ format: 'png', multiplier: 1 });
+  
+  // Fill with white background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+  
+  // Get the original canvas data
+  const originalCanvas = canvas.toCanvasElement();
+  const originalCtx = originalCanvas.getContext('2d');
+  if (!originalCtx) return canvas.toDataURL({ format: 'png', multiplier: 1 });
+  
+  // Get image data and convert gold to black
+  const imageData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+  const data = imageData.data;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+    
+    // Check if pixel is part of the dark background (#1a1a1a)
+    if (r < 50 && g < 50 && b < 50) {
+      // Make it transparent (will show white background)
+      data[i + 3] = 0;
+    } else if (a > 0) {
+      // Convert any visible stroke to black
+      data[i] = 0;
+      data[i + 1] = 0;
+      data[i + 2] = 0;
+      data[i + 3] = 255;
+    }
+  }
+  
+  // Put modified image data onto offscreen canvas
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = originalCanvas.width;
+  tempCanvas.height = originalCanvas.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  if (tempCtx) {
+    tempCtx.putImageData(imageData, 0, 0);
+    ctx.drawImage(tempCanvas, 0, 0);
+  }
+  
+  return offscreen.toDataURL('image/png');
+}
+
 export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,8 +87,9 @@ export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
     canvas.freeDrawingBrush = brush;
 
     canvas.on('path:created', () => {
-      const dataUrl = canvas.toDataURL({ format: 'png', multiplier: 1 });
-      onSignatureChange(true, dataUrl);
+      // Export with white background and black signature for storage
+      const cleanDataUrl = convertToCleanSignature(canvas);
+      onSignatureChange(true, cleanDataUrl);
     });
 
     setFabricCanvas(canvas);
