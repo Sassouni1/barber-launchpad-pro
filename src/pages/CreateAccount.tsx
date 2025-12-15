@@ -10,6 +10,8 @@ import { Logo } from '@/components/ui/Logo';
 
 export default function CreateAccount() {
   const [loading, setLoading] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -54,6 +56,9 @@ export default function CreateAccount() {
         password,
         options: {
           emailRedirectTo: redirectUrl,
+          data: {
+            full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          },
         },
       });
 
@@ -92,6 +97,32 @@ export default function CreateAccount() {
 
         <form onSubmit={handleSignUp} className="space-y-6">
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First name"
+                  required
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  required
+                  className="mt-1"
+                />
+              </div>
+            </div>
             <div>
               <Label htmlFor="email">Email</Label>
               <Input

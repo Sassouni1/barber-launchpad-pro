@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const STORAGE_KEY = 'welcome-hero-collapsed';
 
@@ -11,6 +13,19 @@ export function WelcomeHero() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored === 'true';
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user?.id)
+        .single();
+      return data;
+    },
+    enabled: !!user?.id,
   });
   
   useEffect(() => {
@@ -24,7 +39,7 @@ export function WelcomeHero() {
     return 'Good evening';
   };
 
-  const displayName = user?.email?.split('@')[0] || 'there';
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'there';
 
   // Collapsed mobile view
   if (isMobile && isCollapsed) {
