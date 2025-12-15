@@ -1,5 +1,5 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
-import { Canvas as FabricCanvas } from 'fabric';
+import { useEffect, useRef, useState } from 'react';
+import { Canvas as FabricCanvas, PencilBrush } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Eraser } from 'lucide-react';
 
@@ -7,8 +7,7 @@ interface SignaturePadProps {
   onSignatureChange: (hasSignature: boolean, signatureData: string | null) => void;
 }
 
-export const SignaturePad = forwardRef<HTMLDivElement, SignaturePadProps>(
-  ({ onSignatureChange }, ref) => {
+export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -27,8 +26,11 @@ export const SignaturePad = forwardRef<HTMLDivElement, SignaturePadProps>(
       isDrawingMode: true,
     });
 
-    canvas.freeDrawingBrush.color = '#d4af37';
-    canvas.freeDrawingBrush.width = 2;
+    // Create and set the brush explicitly for Fabric.js v6
+    const brush = new PencilBrush(canvas);
+    brush.color = '#d4af37';
+    brush.width = 2;
+    canvas.freeDrawingBrush = brush;
 
     canvas.on('path:created', () => {
       const dataUrl = canvas.toDataURL({ format: 'png', multiplier: 1 });
@@ -76,6 +78,4 @@ export const SignaturePad = forwardRef<HTMLDivElement, SignaturePadProps>(
       </p>
     </div>
   );
-});
-
-SignaturePad.displayName = 'SignaturePad';
+}
