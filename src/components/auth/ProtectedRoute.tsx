@@ -6,12 +6,14 @@ import { Loader2 } from 'lucide-react';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  skipAgreementCheck?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCheck = false }: ProtectedRouteProps) {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -26,6 +28,19 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
         }
 
         setIsAuthenticated(true);
+
+        // Check agreement status
+        if (!skipAgreementCheck) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('agreement_signed_at')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          setHasSignedAgreement(!!profile?.agreement_signed_at);
+        } else {
+          setHasSignedAgreement(true);
+        }
 
         if (requireAdmin) {
           const { data: roles } = await supabase
@@ -51,8 +66,20 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
       if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setIsAdmin(false);
+        setHasSignedAgreement(false);
       } else if (session?.user) {
         setIsAuthenticated(true);
+        
+        // Check agreement on auth state change
+        if (!skipAgreementCheck) {
+          supabase
+            .from('profiles')
+            .select('agreement_signed_at')
+            .eq('id', session.user.id)
+            .maybeSingle()
+            .then(({ data }) => setHasSignedAgreement(!!data?.agreement_signed_at));
+        }
+        
         if (requireAdmin) {
           supabase
             .from('user_roles')
@@ -66,7 +93,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     });
 
     return () => subscription.unsubscribe();
-  }, [requireAdmin]);
+  }, [requireAdmin, skipAgreementCheck]);
 
   if (loading) {
     return (
@@ -78,6 +105,10 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!hasSignedAgreement && !skipAgreementCheck) {
+    return <Navigate to="/agreement" replace />;
   }
 
   if (requireAdmin && !isAdmin) {
