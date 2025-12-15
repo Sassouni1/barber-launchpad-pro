@@ -22,15 +22,17 @@ import {
   Plus,
   Edit2,
   Trash2,
-  GripVertical,
   Video,
   FileText,
   HelpCircle,
   ClipboardList,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Loader2,
   Upload,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { ModuleFilesManager } from '@/components/admin/ModuleFilesManager';
 import { QuizManager } from '@/components/admin/QuizManager';
@@ -166,6 +168,43 @@ export default function CourseBuilder() {
     setDeleteTarget(null);
   };
 
+  // Reorder handlers
+  const handleReorderCourse = async (courseId: string, direction: 'up' | 'down') => {
+    if (!courses) return;
+    const sortedCourses = [...courses].sort((a, b) => a.order_index - b.order_index);
+    const currentIndex = sortedCourses.findIndex((c) => c.id === courseId);
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    if (swapIndex < 0 || swapIndex >= sortedCourses.length) return;
+    
+    const currentCourse = sortedCourses[currentIndex];
+    const swapCourse = sortedCourses[swapIndex];
+    
+    await Promise.all([
+      updateCourse.mutateAsync({ id: currentCourse.id, order_index: swapCourse.order_index }),
+      updateCourse.mutateAsync({ id: swapCourse.id, order_index: currentCourse.order_index }),
+    ]);
+  };
+
+  const handleReorderModule = async (courseId: string, moduleId: string, direction: 'up' | 'down') => {
+    const course = courses?.find((c) => c.id === courseId);
+    if (!course) return;
+    
+    const sortedModules = [...course.modules].sort((a, b) => a.order_index - b.order_index);
+    const currentIndex = sortedModules.findIndex((m) => m.id === moduleId);
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    if (swapIndex < 0 || swapIndex >= sortedModules.length) return;
+    
+    const currentModule = sortedModules[currentIndex];
+    const swapModule = sortedModules[swapIndex];
+    
+    await Promise.all([
+      updateModule.mutateAsync({ id: currentModule.id, order_index: swapModule.order_index }),
+      updateModule.mutateAsync({ id: swapModule.id, order_index: currentModule.order_index }),
+    ]);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout isAdminView>
@@ -213,61 +252,106 @@ export default function CourseBuilder() {
 
         {/* Courses list */}
         <div className="space-y-4">
-          {courses?.map((course, courseIndex) => (
+          {[...(courses || [])].sort((a, b) => a.order_index - b.order_index).map((course, courseIndex) => (
             <div
               key={course.id}
               className="glass-card rounded-2xl overflow-hidden animate-fade-up"
               style={{ animationDelay: `${courseIndex * 0.1}s` }}
             >
-              {/* Course Header */}
-              <button
-                onClick={() => setExpandedCourse(expandedCourse === course.id ? null : course.id)}
-                className="w-full p-6 flex items-center gap-4 hover:bg-secondary/20 transition-colors"
-              >
-                <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
-                <div className="flex-1 text-left">
-                  <h2 className="font-display text-xl font-semibold">{course.title}</h2>
-                  <p className="text-sm text-muted-foreground">{course.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
+              <div className="w-full p-6 flex items-center gap-4">
+                <div className="flex flex-col gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-6 w-6"
+                    disabled={courseIndex === 0}
                     onClick={(e) => {
                       e.stopPropagation();
-                      openEditCourse(course);
+                      handleReorderCourse(course.id, 'up');
                     }}
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <ArrowUp className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive hover:text-destructive"
+                    className="h-6 w-6"
+                    disabled={courseIndex === (courses?.length ?? 0) - 1}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setDeleteTarget({ type: 'course', id: course.id, name: course.title });
+                      handleReorderCourse(course.id, 'down');
                     }}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <ArrowDown className="w-4 h-4" />
                   </Button>
-                  {expandedCourse === course.id ? (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  )}
                 </div>
-              </button>
+                <button
+                  onClick={() => setExpandedCourse(expandedCourse === course.id ? null : course.id)}
+                  className="flex-1 flex items-center gap-4 hover:bg-secondary/20 transition-colors rounded-lg p-2 -m-2"
+                >
+                  <div className="flex-1 text-left">
+                    <h2 className="font-display text-xl font-semibold">{course.title}</h2>
+                    <p className="text-sm text-muted-foreground">{course.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditCourse(course);
+                      }}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget({ type: 'course', id: course.id, name: course.title });
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                    {expandedCourse === course.id ? (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
+              </div>
 
               {/* Modules */}
               {expandedCourse === course.id && (
                 <div className="border-t border-border/30">
-                  {course.modules.map((module) => (
+                  {[...course.modules].sort((a, b) => a.order_index - b.order_index).map((module, moduleIndex) => (
                     <div
                       key={module.id}
                       className="px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors border-b border-border/20 last:border-b-0"
                     >
-                      <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
+                      <div className="flex flex-col gap-0.5 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          disabled={moduleIndex === 0}
+                          onClick={() => handleReorderModule(course.id, module.id, 'up')}
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          disabled={moduleIndex === course.modules.length - 1}
+                          onClick={() => handleReorderModule(course.id, module.id, 'down')}
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </Button>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">{module.title}</div>
                         <div className="flex items-center gap-2 mt-1">
