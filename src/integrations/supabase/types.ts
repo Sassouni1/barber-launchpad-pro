@@ -21,6 +21,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_published: boolean
           order_index: number
           title: string
           updated_at: string
@@ -31,6 +32,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_published?: boolean
           order_index?: number
           title: string
           updated_at?: string
@@ -41,6 +43,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_published?: boolean
           order_index?: number
           title?: string
           updated_at?: string
@@ -286,6 +289,7 @@ export type Database = {
           has_homework: boolean
           has_quiz: boolean
           id: string
+          is_published: boolean
           order_index: number
           title: string
           updated_at: string
@@ -300,6 +304,7 @@ export type Database = {
           has_homework?: boolean
           has_quiz?: boolean
           id?: string
+          is_published?: boolean
           order_index?: number
           title: string
           updated_at?: string
@@ -314,6 +319,7 @@ export type Database = {
           has_homework?: boolean
           has_quiz?: boolean
           id?: string
+          is_published?: boolean
           order_index?: number
           title?: string
           updated_at?: string
