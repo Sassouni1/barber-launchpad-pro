@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        setLoading(true); // Reset loading when new session detected to prevent race condition
         // Defer Supabase calls with setTimeout to prevent deadlock
         setTimeout(() => {
           checkUserStatus(session.user.id);
