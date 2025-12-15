@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,8 @@ import {
   Shield,
   ShieldOff,
   FileSignature,
+  Download,
+  FileText,
 } from 'lucide-react';
 import {
   Table,
@@ -95,6 +97,10 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
   const { data: detail, isLoading } = useAdminMemberDetail(member.id);
   const toggleAdminRole = useToggleAdminRole();
   const [updatingSkip, setUpdatingSkip] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [agreementData, setAgreementData] = useState<{ signedAt: string | null; signatureData: string | null } | null>(null);
+  const [loadingAgreement, setLoadingAgreement] = useState(false);
+  const agreementRef = useRef<HTMLDivElement>(null);
 
   const handleToggleAdmin = () => {
     toggleAdminRole.mutate({ userId: member.id, makeAdmin: !member.isAdmin });
@@ -111,6 +117,56 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
       refetch();
     }
     setUpdatingSkip(false);
+  };
+
+  const handleViewAgreement = async () => {
+    setLoadingAgreement(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('agreement_signed_at, signature_data')
+      .eq('id', member.id)
+      .single();
+    
+    if (!error && data) {
+      setAgreementData({
+        signedAt: data.agreement_signed_at,
+        signatureData: data.signature_data,
+      });
+      setShowAgreement(true);
+    }
+    setLoadingAgreement(false);
+  };
+
+  const handleDownloadAgreement = () => {
+    if (!agreementRef.current) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Agreement - ${member.full_name || member.email}</title>
+          <style>
+            body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; }
+            h1 { text-align: center; margin-bottom: 30px; }
+            h2 { margin-top: 24px; margin-bottom: 12px; }
+            p { line-height: 1.6; margin-bottom: 12px; }
+            ul { margin-left: 20px; }
+            li { margin-bottom: 8px; }
+            .signature-section { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 20px; }
+            .signature-img { max-width: 300px; border: 1px solid #ddd; padding: 10px; background: #fafafa; }
+            .meta { color: #666; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          ${agreementRef.current.innerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   return (
@@ -165,6 +221,86 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
           disabled={updatingSkip}
         />
       </div>
+
+      {/* View Agreement Button */}
+      <Button 
+        variant="outline" 
+        className="w-full" 
+        onClick={handleViewAgreement}
+        disabled={loadingAgreement}
+      >
+        <FileText className="w-4 h-4 mr-2" />
+        {loadingAgreement ? 'Loading...' : 'View Signed Agreement'}
+      </Button>
+
+      {/* Agreement Dialog */}
+      <Dialog open={showAgreement} onOpenChange={setShowAgreement}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="font-display text-2xl flex items-center justify-between">
+              <span>Signed Agreement</span>
+              <Button variant="outline" size="sm" onClick={handleDownloadAgreement}>
+                <Download className="w-4 h-4 mr-2" />
+                Print / Download
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 pr-4">
+            <div ref={agreementRef} className="space-y-6 text-sm">
+              <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                SERVICE AGREEMENT
+              </h1>
+              <p className="text-muted-foreground italic">
+                This Agreement ("Agreement") is entered into as of {agreementData?.signedAt ? format(new Date(agreementData.signedAt), 'MMMM d, yyyy') : 'N/A'}, by and between Sassouni Digital Media, 
+                also known as "Barber Launch" (the "Service Provider"), and {member.email || 'Client'} (the "Client").
+              </p>
+
+              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>1. SERVICES</h2>
+              <p>The Service Provider agrees to provide the Client with access to educational and support services related to hair system installation and client management (the "Services").</p>
+
+              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>2. PAYMENT TERMS</h2>
+              <p>The Client agrees to pay the agreed-upon fees for the Services as specified in the payment plan selected at the time of enrollment.</p>
+
+              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>3. REFUND POLICY</h2>
+              <p><strong>No Refunds:</strong> All payments made for the Services are non-refundable. Once payment is made, the Client is not entitled to any refund, regardless of circumstances.</p>
+
+              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>4. CLIENT RESPONSIBILITIES</h2>
+              <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                <li>Complete all required training modules and coursework</li>
+                <li>Attend scheduled sessions and meetings</li>
+                <li>Maintain professional conduct at all times</li>
+                <li>Not share access credentials or course materials with third parties</li>
+              </ul>
+
+              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>5. INTELLECTUAL PROPERTY</h2>
+              <p>All materials provided are the intellectual property of the Service Provider. Unauthorized reproduction, distribution, or sharing is prohibited.</p>
+
+              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>6. LIMITATION OF LIABILITY</h2>
+              <p>The Service Provider shall not be liable for any indirect, incidental, or consequential damages arising from the use of Services.</p>
+
+              <div className="signature-section" style={{ marginTop: '32px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+                <h2 style={{ fontWeight: 'bold' }}>CLIENT SIGNATURE</h2>
+                {agreementData?.signatureData ? (
+                  <div>
+                    <img 
+                      src={agreementData.signatureData} 
+                      alt="Client Signature" 
+                      className="signature-img"
+                      style={{ maxWidth: '300px', border: '1px solid #ddd', padding: '10px', background: '#fafafa' }}
+                    />
+                    <p className="meta" style={{ marginTop: '8px', color: '#666' }}>
+                      Signed by: {member.full_name || member.email}<br />
+                      Date: {agreementData.signedAt ? format(new Date(agreementData.signedAt), 'MMMM d, yyyy \'at\' h:mm a') : 'N/A'}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">No signature on file</p>
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-3 gap-3">
         <div className="p-4 rounded-lg bg-secondary/30">
