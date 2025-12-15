@@ -33,6 +33,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { useCourses } from '@/hooks/useCourses';
 
 interface NavItemProps {
   to: string;
@@ -142,6 +143,13 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode } = useAuth();
+  
+  // Fetch courses to determine which categories have published content
+  const { data: courses = [] } = useCourses();
+  
+  // Check if categories have any published courses
+  const hasHairSystemCourses = courses.some(course => (course as any).category === 'hair-system');
+  const hasBusinessCourses = courses.some(course => (course as any).category === 'business');
 
   const handleSignOut = async () => {
     try {
@@ -223,8 +231,12 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           <>
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
             <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
-              <SubNavItem to="/courses/hair-system" icon={GraduationCap} label="Hair System Training" />
-              <SubNavItem to="/courses/business" icon={Briefcase} label="Business Mastery" />
+              {hasHairSystemCourses && (
+                <SubNavItem to="/courses/hair-system" icon={GraduationCap} label="Hair System Training" />
+              )}
+              {hasBusinessCourses && (
+                <SubNavItem to="/courses/business" icon={Briefcase} label="Business Mastery" />
+              )}
             </ExpandableNavItem>
             <NavItem to="/training" icon={Target} label="Training Games" collapsed={collapsed} />
             <NavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" collapsed={collapsed} />
