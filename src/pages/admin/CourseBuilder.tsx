@@ -12,6 +12,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Plus,
   Edit2,
   Trash2,
@@ -75,7 +82,7 @@ export default function CourseBuilder() {
   const [quizManagerModule, setQuizManagerModule] = useState<{ id: string; name: string } | null>(null);
 
   // Form states
-  const [courseForm, setCourseForm] = useState({ title: '', description: '' });
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', category: 'hair-system' as 'hair-system' | 'business' });
   const [moduleForm, setModuleForm] = useState({
     title: '',
     description: '',
@@ -89,15 +96,20 @@ export default function CourseBuilder() {
   // Course handlers
   const openNewCourse = () => {
     setEditingCourse(null);
-    setCourseForm({ title: '', description: '' });
+    setCourseForm({ title: '', description: '', category: 'hair-system' });
     setShowCourseDialog(true);
   };
 
   const openEditCourse = (course: CourseWithModules) => {
     setEditingCourse(course);
-    setCourseForm({ title: course.title, description: course.description || '' });
+    setCourseForm({ 
+      title: course.title, 
+      description: course.description || '',
+      category: ((course as any).category || 'hair-system') as 'hair-system' | 'business'
+    });
     setShowCourseDialog(true);
   };
+
 
   const handleSaveCourse = async () => {
     if (editingCourse) {
@@ -363,6 +375,21 @@ export default function CourseBuilder() {
                 placeholder="What will students learn?"
                 className="bg-secondary/50"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select
+                value={courseForm.category}
+                onValueChange={(value: 'hair-system' | 'business') => setCourseForm((f) => ({ ...f, category: value }))}
+              >
+                <SelectTrigger className="bg-secondary/50">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hair-system">Hair System Training</SelectItem>
+                  <SelectItem value="business">Business Mastery</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button
               className="w-full gold-gradient text-primary-foreground"
