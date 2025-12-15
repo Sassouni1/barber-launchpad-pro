@@ -33,11 +33,11 @@ export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCh
         if (!skipAgreementCheck) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('agreement_signed_at')
+            .select('agreement_signed_at, skip_agreement')
             .eq('id', session.user.id)
             .maybeSingle();
 
-          setHasSignedAgreement(!!profile?.agreement_signed_at);
+          setHasSignedAgreement(!!profile?.agreement_signed_at || !!profile?.skip_agreement);
         } else {
           setHasSignedAgreement(true);
         }
@@ -74,10 +74,10 @@ export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCh
         if (!skipAgreementCheck) {
           supabase
             .from('profiles')
-            .select('agreement_signed_at')
+            .select('agreement_signed_at, skip_agreement')
             .eq('id', session.user.id)
             .maybeSingle()
-            .then(({ data }) => setHasSignedAgreement(!!data?.agreement_signed_at));
+            .then(({ data }) => setHasSignedAgreement(!!data?.agreement_signed_at || !!data?.skip_agreement));
         }
         
         if (requireAdmin) {

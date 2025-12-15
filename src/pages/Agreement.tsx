@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Logo } from '@/components/ui/Logo';
 import { SignaturePad } from '@/components/agreement/SignaturePad';
@@ -11,7 +10,6 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 export default function Agreement() {
-  const [agreed, setAgreed] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
@@ -54,7 +52,7 @@ export default function Agreement() {
     day: 'numeric'
   });
 
-  const canSign = agreed && hasSignature;
+  const canSign = hasSignature;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -228,21 +226,6 @@ export default function Agreement() {
             </div>
             
             <SignaturePad onSignatureChange={handleSignatureChange} />
-
-            <div className="flex items-center gap-3 pt-2">
-              <Checkbox
-                id="agree"
-                checked={agreed}
-                onCheckedChange={(checked) => setAgreed(checked === true)}
-                className="border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-              />
-              <label
-                htmlFor="agree"
-                className="text-sm text-foreground/80 cursor-pointer select-none"
-              >
-                I have read and agree to the Barber Launch Service Agreement
-              </label>
-            </div>
           </div>
         </div>
       </div>

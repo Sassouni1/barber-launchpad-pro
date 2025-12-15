@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN skip_agreement boolean DEFAULT false;
