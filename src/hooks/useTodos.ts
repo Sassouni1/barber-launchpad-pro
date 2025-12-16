@@ -8,6 +8,7 @@ export interface Subtask {
   title: string;
   order_index: number;
   created_at: string;
+  module_id: string | null;
 }
 
 export interface Todo {
@@ -17,6 +18,7 @@ export interface Todo {
   type: 'course' | 'daily' | 'weekly';
   week_number: number | null;
   course_id: string | null;
+  module_id: string | null;
   order_index: number;
   created_at: string;
   updated_at: string;
@@ -191,7 +193,7 @@ export function useCreateSubtask() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (subtask: { todo_id: string; title: string; order_index: number }) => {
+    mutationFn: async (subtask: { todo_id: string; title: string; order_index: number; module_id?: string | null }) => {
       const { data, error } = await supabase
         .from('todo_subtasks')
         .insert(subtask)
