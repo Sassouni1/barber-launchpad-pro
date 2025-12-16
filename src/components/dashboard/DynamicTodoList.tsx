@@ -133,7 +133,7 @@ export const DynamicTodoList = () => {
                   </label>
                   {item.module_id && (
                     <Link
-                      to={`/lesson/${item.module_id}`}
+                      to={`/courses/lesson/${item.module_id}`}
                       className="text-xs text-primary underline flex items-center gap-1 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
