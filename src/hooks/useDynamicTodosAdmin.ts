@@ -131,6 +131,25 @@ export const useCreateDynamicItem = () => {
   });
 };
 
+export const useUpdateDynamicItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string; title: string; module_id?: string | null }) => {
+      const { error } = await supabase
+        .from("dynamic_todo_items")
+        .update(data)
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dynamic-todos"] });
+      queryClient.invalidateQueries({ queryKey: ["dynamic-todos"] });
+    },
+  });
+};
+
 export const useDeleteDynamicItem = () => {
   const queryClient = useQueryClient();
 
