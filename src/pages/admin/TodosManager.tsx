@@ -14,8 +14,10 @@ import {
   useUpdateDynamicList,
   useDeleteDynamicList,
   useCreateDynamicItem,
+  useUpdateDynamicItem,
   useDeleteDynamicItem,
   type DynamicTodoList,
+  type DynamicTodoItem,
 } from '@/hooks/useDynamicTodosAdmin';
 import {
   AlertDialog,
@@ -32,7 +34,7 @@ import { SelectGroup, SelectLabel } from '@/components/ui/select';
 
 export default function TodosManager() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
-  const { data: courses = [] } = useCourses();
+  const { data: courses = [] } = useCourses({ includeUnpublished: true });
   const createTodo = useCreateTodo();
   const updateTodo = useUpdateTodo();
   const deleteTodo = useDeleteTodo();
@@ -45,6 +47,7 @@ export default function TodosManager() {
   const updateDynamicList = useUpdateDynamicList();
   const deleteDynamicList = useDeleteDynamicList();
   const createDynamicItem = useCreateDynamicItem();
+  const updateDynamicItem = useUpdateDynamicItem();
   const deleteDynamicItem = useDeleteDynamicItem();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -67,6 +70,7 @@ export default function TodosManager() {
   const [selectedDynamicListId, setSelectedDynamicListId] = useState<string | null>(null);
   const [dynamicListForm, setDynamicListForm] = useState({ title: '', due_days: '' });
   const [dynamicItemForm, setDynamicItemForm] = useState({ title: '', module_id: '' });
+  const [editingDynamicItem, setEditingDynamicItem] = useState<DynamicTodoItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'dynamic-list' | 'dynamic-item'; id: string; name: string } | null>(null);
 
   const resetForm = () => {
@@ -175,12 +179,26 @@ export default function TodosManager() {
 
   const openNewDynamicItem = (listId: string) => {
     setSelectedDynamicListId(listId);
+    setEditingDynamicItem(null);
     setDynamicItemForm({ title: '', module_id: '' });
     setShowDynamicItemDialog(true);
   };
 
+  const openEditDynamicItem = (item: DynamicTodoItem) => {
+    setSelectedDynamicListId(item.list_id);
+    setEditingDynamicItem(item);
+    setDynamicItemForm({ title: item.title, module_id: item.module_id || '' });
+    setShowDynamicItemDialog(true);
+  };
+
   const handleSaveDynamicItem = async () => {
-    if (selectedDynamicListId) {
+    if (editingDynamicItem) {
+      await updateDynamicItem.mutateAsync({
+        id: editingDynamicItem.id,
+        title: dynamicItemForm.title,
+        module_id: dynamicItemForm.module_id || null,
+      });
+    } else if (selectedDynamicListId) {
       const list = dynamicLists?.find((l) => l.id === selectedDynamicListId);
       const maxOrder = list?.items.reduce((max, i) => Math.max(max, i.order_index), -1) ?? -1;
       await createDynamicItem.mutateAsync({
@@ -191,6 +209,7 @@ export default function TodosManager() {
       });
     }
     setShowDynamicItemDialog(false);
+    setEditingDynamicItem(null);
   };
 
   const handleDeleteDynamic = async () => {
@@ -492,40 +511,48 @@ export default function TodosManager() {
 
                 {expandedDynamicList === list.id && (
                   <div className="border-t border-border/30">
-                    {list.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors border-b border-border/20 last:border-b-0"
-                      >
-                        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{item.title}</div>
-                          {item.module_id && (
-                            <div className="flex items-center gap-1 text-xs text-primary">
-                              <Play className="w-3 h-3" />
-                              <span>Linked to lesson</span>
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget({ type: 'dynamic-item', id: item.id, name: item.title })}
+                      {list.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors border-b border-border/20 last:border-b-0"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{item.title}</div>
+                            {item.module_id && (
+                              <div className="flex items-center gap-1 text-xs text-primary">
+                                <Play className="w-3 h-3" />
+                                <span>Linked to lesson</span>
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => openEditDynamicItem(item)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget({ type: 'dynamic-item', id: item.id, name: item.title })}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      <div className="p-4 ml-8">
+                        <Button variant="outline" size="sm" onClick={() => openNewDynamicItem(list.id)}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Item
                         </Button>
                       </div>
-                    ))}
-
-                    <div className="p-4 ml-8">
-                      <Button variant="outline" size="sm" onClick={() => openNewDynamicItem(list.id)}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Item
-                      </Button>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             ))}
           </div>
@@ -579,10 +606,15 @@ export default function TodosManager() {
       </Dialog>
 
       {/* Dynamic Item Dialog */}
-      <Dialog open={showDynamicItemDialog} onOpenChange={setShowDynamicItemDialog}>
+      <Dialog open={showDynamicItemDialog} onOpenChange={(open) => {
+        setShowDynamicItemDialog(open);
+        if (!open) setEditingDynamicItem(null);
+      }}>
         <DialogContent className="glass-card border-border/50">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">New Item</DialogTitle>
+            <DialogTitle className="font-display text-2xl">
+              {editingDynamicItem ? 'Edit Item' : 'New Item'}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
@@ -607,10 +639,14 @@ export default function TodosManager() {
                   <SelectItem value="none">No lesson link</SelectItem>
                   {courses.map(course => (
                     <SelectGroup key={course.id}>
-                      <SelectLabel className="text-xs text-muted-foreground">{course.title}</SelectLabel>
+                      <SelectLabel className="text-xs text-muted-foreground">
+                        {course.title}
+                        {!course.is_published && <span className="ml-1 text-amber-500">(unpublished)</span>}
+                      </SelectLabel>
                       {course.modules?.map(module => (
                         <SelectItem key={module.id} value={module.id}>
                           {module.title}
+                          {!module.is_published && <span className="ml-1 text-amber-500">(unpublished)</span>}
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -624,10 +660,10 @@ export default function TodosManager() {
             <Button
               className="w-full gold-gradient text-primary-foreground"
               onClick={handleSaveDynamicItem}
-              disabled={!dynamicItemForm.title || createDynamicItem.isPending}
+              disabled={!dynamicItemForm.title || createDynamicItem.isPending || updateDynamicItem.isPending}
             >
-              {createDynamicItem.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Add Item
+              {(createDynamicItem.isPending || updateDynamicItem.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {editingDynamicItem ? 'Save Changes' : 'Add Item'}
             </Button>
           </div>
         </DialogContent>
