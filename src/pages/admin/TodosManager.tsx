@@ -27,7 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, X, Sparkles, ChevronDown, ChevronRight, GripVertical, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Sparkles, ChevronDown, ChevronRight, GripVertical, Loader2, Play } from 'lucide-react';
+import { SelectGroup, SelectLabel } from '@/components/ui/select';
 
 export default function TodosManager() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
@@ -65,7 +66,7 @@ export default function TodosManager() {
   const [editingDynamicList, setEditingDynamicList] = useState<DynamicTodoList | null>(null);
   const [selectedDynamicListId, setSelectedDynamicListId] = useState<string | null>(null);
   const [dynamicListForm, setDynamicListForm] = useState({ title: '', due_days: '' });
-  const [dynamicItemForm, setDynamicItemForm] = useState({ title: '' });
+  const [dynamicItemForm, setDynamicItemForm] = useState({ title: '', module_id: '' });
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'dynamic-list' | 'dynamic-item'; id: string; name: string } | null>(null);
 
   const resetForm = () => {
@@ -174,7 +175,7 @@ export default function TodosManager() {
 
   const openNewDynamicItem = (listId: string) => {
     setSelectedDynamicListId(listId);
-    setDynamicItemForm({ title: '' });
+    setDynamicItemForm({ title: '', module_id: '' });
     setShowDynamicItemDialog(true);
   };
 
@@ -186,6 +187,7 @@ export default function TodosManager() {
         list_id: selectedDynamicListId,
         title: dynamicItemForm.title,
         order_index: maxOrder + 1,
+        module_id: dynamicItemForm.module_id || null,
       });
     }
     setShowDynamicItemDialog(false);
@@ -498,6 +500,12 @@ export default function TodosManager() {
                         <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">{item.title}</div>
+                          {item.module_id && (
+                            <div className="flex items-center gap-1 text-xs text-primary">
+                              <Play className="w-3 h-3" />
+                              <span>Linked to lesson</span>
+                            </div>
+                          )}
                         </div>
                         <Button
                           variant="ghost"
@@ -581,10 +589,37 @@ export default function TodosManager() {
               <Label>Item Title</Label>
               <Input
                 value={dynamicItemForm.title}
-                onChange={(e) => setDynamicItemForm({ title: e.target.value })}
+                onChange={(e) => setDynamicItemForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="e.g., Complete introduction video"
                 className="bg-secondary/50"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Link to Lesson (optional)</Label>
+              <Select
+                value={dynamicItemForm.module_id || "none"}
+                onValueChange={(v) => setDynamicItemForm(prev => ({ ...prev, module_id: v === "none" ? "" : v }))}
+              >
+                <SelectTrigger className="bg-secondary/50">
+                  <SelectValue placeholder="Select a lesson" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No lesson link</SelectItem>
+                  {courses.map(course => (
+                    <SelectGroup key={course.id}>
+                      <SelectLabel className="text-xs text-muted-foreground">{course.title}</SelectLabel>
+                      {course.modules?.map(module => (
+                        <SelectItem key={module.id} value={module.id}>
+                          {module.title}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Members will see a "Watch lesson" link next to this item
+              </p>
             </div>
             <Button
               className="w-full gold-gradient text-primary-foreground"
