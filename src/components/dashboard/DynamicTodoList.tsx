@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useDynamicTodos } from "@/hooks/useDynamicTodos";
-import { Sparkles, PartyPopper, CheckCircle2 } from "lucide-react";
+import { Sparkles, PartyPopper, CheckCircle2, Play } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export const DynamicTodoList = () => {
@@ -119,16 +120,28 @@ export const DynamicTodoList = () => {
                   onCheckedChange={() => handleToggle(item.id, item.completed || false)}
                   className="h-4 w-4"
                 />
-                <label
-                  htmlFor={item.id}
-                  className={`text-sm cursor-pointer flex-1 ${
-                    item.completed
-                      ? "line-through text-muted-foreground"
-                      : "text-foreground"
-                  }`}
-                >
-                  {item.title}
-                </label>
+                <div className="flex-1 min-w-0">
+                  <label
+                    htmlFor={item.id}
+                    className={`text-sm cursor-pointer block ${
+                      item.completed
+                        ? "line-through text-muted-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {item.title}
+                  </label>
+                  {item.module_id && (
+                    <Link
+                      to={`/lesson/${item.module_id}`}
+                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Play className="w-3 h-3" />
+                      Watch lesson
+                    </Link>
+                  )}
+                </div>
               </div>
             ))}
           </div>

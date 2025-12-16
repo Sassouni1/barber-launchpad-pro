@@ -55,6 +55,7 @@ export type Database = {
           created_at: string
           id: string
           list_id: string
+          module_id: string | null
           order_index: number
           title: string
         }
@@ -62,6 +63,7 @@ export type Database = {
           created_at?: string
           id?: string
           list_id: string
+          module_id?: string | null
           order_index?: number
           title: string
         }
@@ -69,6 +71,7 @@ export type Database = {
           created_at?: string
           id?: string
           list_id?: string
+          module_id?: string | null
           order_index?: number
           title?: string
         }
@@ -78,6 +81,13 @@ export type Database = {
             columns: ["list_id"]
             isOneToOne: false
             referencedRelation: "dynamic_todo_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dynamic_todo_items_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
             referencedColumns: ["id"]
           },
         ]

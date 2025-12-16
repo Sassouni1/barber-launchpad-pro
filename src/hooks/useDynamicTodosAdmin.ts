@@ -6,6 +6,7 @@ export interface DynamicTodoItem {
   list_id: string;
   title: string;
   order_index: number;
+  module_id: string | null;
 }
 
 export interface DynamicTodoList {
@@ -112,6 +113,7 @@ export const useCreateDynamicItem = () => {
       list_id: string;
       title: string;
       order_index: number;
+      module_id?: string | null;
     }) => {
       const { data: result, error } = await supabase
         .from("dynamic_todo_items")

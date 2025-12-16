@@ -8,6 +8,7 @@ interface DynamicTodoItem {
   title: string;
   order_index: number;
   completed?: boolean;
+  module_id: string | null;
 }
 
 interface DynamicTodoList {
