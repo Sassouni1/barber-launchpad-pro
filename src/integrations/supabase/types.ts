@@ -497,6 +497,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          module_id: string | null
           order_index: number
           title: string
           todo_id: string
@@ -504,6 +505,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          module_id?: string | null
           order_index?: number
           title: string
           todo_id: string
@@ -511,11 +513,19 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          module_id?: string | null
           order_index?: number
           title?: string
           todo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "todo_subtasks_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "todo_subtasks_todo_id_fkey"
             columns: ["todo_id"]
@@ -531,6 +541,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          module_id: string | null
           order_index: number
           title: string
           type: string
@@ -542,6 +553,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          module_id?: string | null
           order_index?: number
           title: string
           type?: string
@@ -553,6 +565,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          module_id?: string | null
           order_index?: number
           title?: string
           type?: string
@@ -565,6 +578,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todos_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
             referencedColumns: ["id"]
           },
         ]

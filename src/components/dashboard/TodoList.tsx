@@ -1,5 +1,7 @@
+import { Link } from 'react-router-dom';
 import { useTodosWithSubtasks } from '@/hooks/useTodos';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Play } from 'lucide-react';
 
 export function TodoList() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
@@ -41,9 +43,20 @@ export function TodoList() {
             {groupedTodos.daily.map(todo => (
               <div key={todo.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
                 <Checkbox id={todo.id} />
-                <label htmlFor={todo.id} className="text-sm font-medium cursor-pointer">
-                  {todo.title}
-                </label>
+                <div className="flex-1 flex items-center gap-2">
+                  <label htmlFor={todo.id} className="text-sm font-medium cursor-pointer">
+                    {todo.title}
+                  </label>
+                  {todo.module_id && (
+                    <Link
+                      to={`/courses/lesson/${todo.module_id}`}
+                      className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                    >
+                      <Play className="w-3 h-3" />
+                      Watch lesson
+                    </Link>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -61,18 +74,40 @@ export function TodoList() {
               <div key={todo.id} className="p-3 bg-background/50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <Checkbox id={todo.id} />
-                  <label htmlFor={todo.id} className="text-sm font-medium cursor-pointer">
-                    {todo.title}
-                  </label>
+                  <div className="flex-1 flex items-center gap-2">
+                    <label htmlFor={todo.id} className="text-sm font-medium cursor-pointer">
+                      {todo.title}
+                    </label>
+                    {todo.module_id && (
+                      <Link
+                        to={`/courses/lesson/${todo.module_id}`}
+                        className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                      >
+                        <Play className="w-3 h-3" />
+                        Watch lesson
+                      </Link>
+                    )}
+                  </div>
                 </div>
                 {todo.subtasks && todo.subtasks.length > 0 && (
                   <div className="ml-8 mt-2 space-y-1.5">
                     {todo.subtasks.map((subtask, index) => (
                       <div key={subtask.id} className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Checkbox id={subtask.id} className="h-3.5 w-3.5" />
-                        <label htmlFor={subtask.id} className="cursor-pointer">
-                          {index + 1}. {subtask.title}
-                        </label>
+                        <div className="flex-1 flex items-center gap-2">
+                          <label htmlFor={subtask.id} className="cursor-pointer">
+                            {index + 1}. {subtask.title}
+                          </label>
+                          {subtask.module_id && (
+                            <Link
+                              to={`/courses/lesson/${subtask.module_id}`}
+                              className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                            >
+                              <Play className="w-3 h-3" />
+                              Watch
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

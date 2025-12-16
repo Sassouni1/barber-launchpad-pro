@@ -58,9 +58,10 @@ export default function TodosManager() {
     type: 'course' as 'course' | 'daily' | 'weekly',
     week_number: 1,
     course_id: '',
+    module_id: '',
   });
-  const [subtaskInputs, setSubtaskInputs] = useState<string[]>([]);
-  const [newSubtaskInput, setNewSubtaskInput] = useState('');
+  const [subtaskInputs, setSubtaskInputs] = useState<{ title: string; module_id: string }[]>([]);
+  const [newSubtaskInput, setNewSubtaskInput] = useState({ title: '', module_id: '' });
 
   // Dynamic todos state
   const [expandedDynamicList, setExpandedDynamicList] = useState<string | null>(null);
@@ -74,10 +75,10 @@ export default function TodosManager() {
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'dynamic-list' | 'dynamic-item'; id: string; name: string } | null>(null);
 
   const resetForm = () => {
-    setFormData({ title: '', description: '', type: 'course', week_number: 1, course_id: '' });
+    setFormData({ title: '', description: '', type: 'course', week_number: 1, course_id: '', module_id: '' });
     setEditingTodo(null);
     setSubtaskInputs([]);
-    setNewSubtaskInput('');
+    setNewSubtaskInput({ title: '', module_id: '' });
   };
 
   const handleOpenDialog = (todo?: Todo) => {
@@ -89,8 +90,9 @@ export default function TodosManager() {
         type: todo.type,
         week_number: todo.week_number || 1,
         course_id: todo.course_id || '',
+        module_id: todo.module_id || '',
       });
-      setSubtaskInputs(todo.subtasks?.map(s => s.title) || []);
+      setSubtaskInputs(todo.subtasks?.map(s => ({ title: s.title, module_id: s.module_id || '' })) || []);
     } else {
       resetForm();
     }
@@ -98,9 +100,9 @@ export default function TodosManager() {
   };
 
   const handleAddSubtask = () => {
-    if (newSubtaskInput.trim()) {
-      setSubtaskInputs([...subtaskInputs, newSubtaskInput.trim()]);
-      setNewSubtaskInput('');
+    if (newSubtaskInput.title.trim()) {
+      setSubtaskInputs([...subtaskInputs, { title: newSubtaskInput.title.trim(), module_id: newSubtaskInput.module_id }]);
+      setNewSubtaskInput({ title: '', module_id: '' });
     }
   };
 
@@ -116,6 +118,7 @@ export default function TodosManager() {
       type: formData.type,
       week_number: formData.type === 'course' ? formData.week_number : null,
       course_id: formData.type === 'course' && formData.course_id ? formData.course_id : null,
+      module_id: formData.module_id || null,
       order_index: 0,
     };
 
@@ -124,18 +127,19 @@ export default function TodosManager() {
       
       const existingSubtasks = editingTodo.subtasks || [];
       for (const existing of existingSubtasks) {
-        if (!subtaskInputs.includes(existing.title)) {
+        if (!subtaskInputs.some(s => s.title === existing.title)) {
           await deleteSubtask.mutateAsync({ id: existing.id, todoId: editingTodo.id });
         }
       }
       
       const existingTitles = existingSubtasks.map(s => s.title);
       for (let i = 0; i < subtaskInputs.length; i++) {
-        if (!existingTitles.includes(subtaskInputs[i])) {
+        if (!existingTitles.includes(subtaskInputs[i].title)) {
           await createSubtask.mutateAsync({
             todo_id: editingTodo.id,
-            title: subtaskInputs[i],
+            title: subtaskInputs[i].title,
             order_index: i,
+            module_id: subtaskInputs[i].module_id || null,
           });
         }
       }
@@ -144,8 +148,9 @@ export default function TodosManager() {
       for (let i = 0; i < subtaskInputs.length; i++) {
         await createSubtask.mutateAsync({
           todo_id: newTodo.id,
-          title: subtaskInputs[i],
+          title: subtaskInputs[i].title,
           order_index: i,
+          module_id: subtaskInputs[i].module_id || null,
         });
       }
     }
@@ -348,6 +353,38 @@ export default function TodosManager() {
                   </>
                 )}
 
+                {/* Link to Lesson for daily/weekly tasks */}
+                {(formData.type === 'daily' || formData.type === 'weekly') && (
+                  <div className="space-y-2">
+                    <Label>Link to Lesson (optional)</Label>
+                    <Select
+                      value={formData.module_id || "none"}
+                      onValueChange={v => setFormData(p => ({ ...p, module_id: v === "none" ? "" : v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a lesson" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No lesson link</SelectItem>
+                        {courses.map(course => (
+                          <SelectGroup key={course.id}>
+                            <SelectLabel className="text-xs text-muted-foreground">
+                              {course.title}
+                              {!course.is_published && <span className="ml-1 text-amber-500">(unpublished)</span>}
+                            </SelectLabel>
+                            {course.modules?.map(module => (
+                              <SelectItem key={module.id} value={module.id}>
+                                {module.title}
+                                {!module.is_published && <span className="ml-1 text-amber-500">(unpublished)</span>}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Subtasks</label>
                   {subtaskInputs.length > 0 && (
@@ -355,7 +392,12 @@ export default function TodosManager() {
                       {subtaskInputs.map((subtask, index) => (
                         <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
                           <span className="text-sm text-primary font-medium">{index + 1}.</span>
-                          <span className="flex-1 text-sm">{subtask}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm">{subtask.title}</span>
+                            {subtask.module_id && (
+                              <span className="text-xs text-primary ml-2">(linked to lesson)</span>
+                            )}
+                          </div>
                           <Button
                             type="button"
                             size="icon"
@@ -369,21 +411,48 @@ export default function TodosManager() {
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add a subtask..."
-                      value={newSubtaskInput}
-                      onChange={e => setNewSubtaskInput(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddSubtask();
-                        }
-                      }}
-                    />
-                    <Button type="button" variant="outline" onClick={handleAddSubtask}>
-                      <Plus className="w-4 h-4" />
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add a subtask..."
+                        value={newSubtaskInput.title}
+                        onChange={e => setNewSubtaskInput(p => ({ ...p, title: e.target.value }))}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddSubtask();
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="outline" onClick={handleAddSubtask}>
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Select
+                      value={newSubtaskInput.module_id || "none"}
+                      onValueChange={v => setNewSubtaskInput(p => ({ ...p, module_id: v === "none" ? "" : v }))}
+                    >
+                      <SelectTrigger className="text-sm">
+                        <SelectValue placeholder="Link subtask to lesson (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No lesson link</SelectItem>
+                        {courses.map(course => (
+                          <SelectGroup key={course.id}>
+                            <SelectLabel className="text-xs text-muted-foreground">
+                              {course.title}
+                              {!course.is_published && <span className="ml-1 text-amber-500">(unpublished)</span>}
+                            </SelectLabel>
+                            {course.modules?.map(module => (
+                              <SelectItem key={module.id} value={module.id}>
+                                {module.title}
+                                {!module.is_published && <span className="ml-1 text-amber-500">(unpublished)</span>}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
