@@ -40,15 +40,11 @@ export default function Todos() {
         {/* Daily/Weekly Tasks - Only show after dynamic todos complete */}
         <div className="animate-fade-up" style={{ animationDelay: '0.3s' }}>
           {!isLoading && totalLists > 0 && !allListsCompleted ? (
-            <div className="glass-card p-8 rounded-2xl text-center">
-              <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-semibold text-lg mb-2">Daily & Weekly Tasks Locked</h3>
-              <p className="text-muted-foreground text-sm">
-                Complete all {totalLists} dynamic to-do lists to unlock daily and weekly tasks.
+            <div className="border border-border/30 bg-muted/20 p-6 rounded-xl text-center opacity-50">
+              <Lock className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
+              <p className="text-muted-foreground/80 text-sm">
+                Complete dynamic lists to unlock daily & weekly tasks
               </p>
-              <div className="mt-4 text-sm text-primary font-medium">
-                {completedListsCount} of {totalLists} lists completed
-              </div>
             </div>
           ) : (
             <TodoList />
