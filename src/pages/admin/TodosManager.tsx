@@ -16,6 +16,8 @@ import {
   useCreateDynamicItem,
   useUpdateDynamicItem,
   useDeleteDynamicItem,
+  useReorderDynamicLists,
+  useReorderDynamicItems,
   type DynamicTodoList,
   type DynamicTodoItem,
 } from '@/hooks/useDynamicTodosAdmin';
@@ -31,6 +33,161 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, X, Sparkles, ChevronDown, ChevronRight, GripVertical, Loader2, Play } from 'lucide-react';
 import { SelectGroup, SelectLabel } from '@/components/ui/select';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable List Component
+function SortableList({ list, children, isExpanded, onToggle, onEdit, onDelete }: {
+  list: DynamicTodoList;
+  children: React.ReactNode;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: list.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="glass-card rounded-2xl overflow-hidden animate-fade-up"
+    >
+      <div className="w-full p-6 flex items-center gap-4 hover:bg-secondary/20 transition-colors">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <button onClick={onToggle} className="flex-1 text-left">
+          <h3 className="font-display text-xl font-semibold">{list.title}</h3>
+          <p className="text-sm text-muted-foreground">
+            {list.items.length} items
+            {list.due_days && <span className="ml-2">• Due within {list.due_days} days</span>}
+          </p>
+        </button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          <button onClick={onToggle}>
+            {isExpanded ? (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+        </div>
+      </div>
+      {isExpanded && children}
+    </div>
+  );
+}
+
+// Sortable Item Component
+function SortableItem({ item, onEdit, onDelete }: {
+  item: DynamicTodoItem;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors border-b border-border/20 last:border-b-0 bg-background/30"
+    >
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing ml-4">
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm truncate">{item.title}</div>
+        {item.module_id && (
+          <div className="flex items-center gap-1 text-xs text-primary">
+            <Play className="w-3 h-3" />
+            <span>Linked to lesson</span>
+          </div>
+        )}
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        onClick={onEdit}
+      >
+        <Pencil className="w-4 h-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 text-destructive hover:text-destructive"
+        onClick={onDelete}
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
 
 export default function TodosManager() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
@@ -49,6 +206,20 @@ export default function TodosManager() {
   const createDynamicItem = useCreateDynamicItem();
   const updateDynamicItem = useUpdateDynamicItem();
   const deleteDynamicItem = useDeleteDynamicItem();
+  const reorderLists = useReorderDynamicLists();
+  const reorderItems = useReorderDynamicItems();
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -73,6 +244,45 @@ export default function TodosManager() {
   const [dynamicItemForm, setDynamicItemForm] = useState({ title: '', module_id: '' });
   const [editingDynamicItem, setEditingDynamicItem] = useState<DynamicTodoItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'dynamic-list' | 'dynamic-item'; id: string; name: string } | null>(null);
+
+  // Handle list reorder
+  const handleListDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !dynamicLists) return;
+
+    const oldIndex = dynamicLists.findIndex((l) => l.id === active.id);
+    const newIndex = dynamicLists.findIndex((l) => l.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reordered = arrayMove(dynamicLists, oldIndex, newIndex);
+      const updates = reordered.map((list, index) => ({
+        id: list.id,
+        order_index: index,
+      }));
+      reorderLists.mutate(updates);
+    }
+  };
+
+  // Handle item reorder within a list
+  const handleItemDragEnd = (listId: string) => (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !dynamicLists) return;
+
+    const list = dynamicLists.find((l) => l.id === listId);
+    if (!list) return;
+
+    const oldIndex = list.items.findIndex((i) => i.id === active.id);
+    const newIndex = list.items.findIndex((i) => i.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reordered = arrayMove(list.items, oldIndex, newIndex);
+      const updates = reordered.map((item, index) => ({
+        id: item.id,
+        order_index: index,
+      }));
+      reorderItems.mutate(updates);
+    }
+  };
 
   const resetForm = () => {
     setFormData({ title: '', description: '', type: 'course', week_number: 1, course_id: '', module_id: '' });
@@ -529,90 +739,45 @@ export default function TodosManager() {
             </div>
           )}
 
-          <div className="space-y-4">
-            {dynamicLists?.map((list, listIndex) => (
-              <div
-                key={list.id}
-                className="glass-card rounded-2xl overflow-hidden animate-fade-up"
-                style={{ animationDelay: `${listIndex * 0.1}s` }}
-              >
-                <button
-                  onClick={() => setExpandedDynamicList(expandedDynamicList === list.id ? null : list.id)}
-                  className="w-full p-6 flex items-center gap-4 hover:bg-secondary/20 transition-colors"
-                >
-                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
-                  <div className="flex-1 text-left">
-                    <h3 className="font-display text-xl font-semibold">{list.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {list.items.length} items
-                      {list.due_days && <span className="ml-2">• Due within {list.due_days} days</span>}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditDynamicList(list);
-                      }}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteTarget({ type: 'dynamic-list', id: list.id, name: list.title });
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    {expandedDynamicList === list.id ? (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </div>
-                </button>
-
-                {expandedDynamicList === list.id && (
-                  <div className="border-t border-border/30">
-                      {list.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="px-6 py-4 flex items-center gap-4 hover:bg-secondary/10 transition-colors border-b border-border/20 last:border-b-0"
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleListDragEnd}
+          >
+            <SortableContext
+              items={dynamicLists?.map((l) => l.id) || []}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-4">
+                {dynamicLists?.map((list) => (
+                  <SortableList
+                    key={list.id}
+                    list={list}
+                    isExpanded={expandedDynamicList === list.id}
+                    onToggle={() => setExpandedDynamicList(expandedDynamicList === list.id ? null : list.id)}
+                    onEdit={() => openEditDynamicList(list)}
+                    onDelete={() => setDeleteTarget({ type: 'dynamic-list', id: list.id, name: list.title })}
+                  >
+                    <div className="border-t border-border/30">
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleItemDragEnd(list.id)}
+                      >
+                        <SortableContext
+                          items={list.items.map((i) => i.id)}
+                          strategy={verticalListSortingStrategy}
                         >
-                          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab ml-4" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{item.title}</div>
-                            {item.module_id && (
-                              <div className="flex items-center gap-1 text-xs text-primary">
-                                <Play className="w-3 h-3" />
-                                <span>Linked to lesson</span>
-                              </div>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => openEditDynamicItem(item)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteTarget({ type: 'dynamic-item', id: item.id, name: item.title })}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
+                          {list.items.map((item) => (
+                            <SortableItem
+                              key={item.id}
+                              item={item}
+                              onEdit={() => openEditDynamicItem(item)}
+                              onDelete={() => setDeleteTarget({ type: 'dynamic-item', id: item.id, name: item.title })}
+                            />
+                          ))}
+                        </SortableContext>
+                      </DndContext>
 
                       <div className="p-4 ml-8">
                         <Button variant="outline" size="sm" onClick={() => openNewDynamicItem(list.id)}>
@@ -621,10 +786,11 @@ export default function TodosManager() {
                         </Button>
                       </div>
                     </div>
-                  )}
+                  </SortableList>
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
         </div>
       </div>
 

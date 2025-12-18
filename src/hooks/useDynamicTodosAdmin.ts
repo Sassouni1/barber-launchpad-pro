@@ -168,3 +168,49 @@ export const useDeleteDynamicItem = () => {
     },
   });
 };
+
+export const useReorderDynamicLists = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (lists: { id: string; order_index: number }[]) => {
+      const updates = lists.map(({ id, order_index }) =>
+        supabase
+          .from("dynamic_todo_lists")
+          .update({ order_index })
+          .eq("id", id)
+      );
+
+      const results = await Promise.all(updates);
+      const error = results.find((r) => r.error)?.error;
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dynamic-todos"] });
+      queryClient.invalidateQueries({ queryKey: ["dynamic-todos"] });
+    },
+  });
+};
+
+export const useReorderDynamicItems = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (items: { id: string; order_index: number }[]) => {
+      const updates = items.map(({ id, order_index }) =>
+        supabase
+          .from("dynamic_todo_items")
+          .update({ order_index })
+          .eq("id", id)
+      );
+
+      const results = await Promise.all(updates);
+      const error = results.find((r) => r.error)?.error;
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dynamic-todos"] });
+      queryClient.invalidateQueries({ queryKey: ["dynamic-todos"] });
+    },
+  });
+};
