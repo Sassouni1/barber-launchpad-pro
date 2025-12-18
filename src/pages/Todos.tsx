@@ -1,7 +1,12 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Calendar, Target, TrendingUp, ListTodo } from 'lucide-react';
+import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
+import { TodoList } from '@/components/dashboard/TodoList';
+import { useDynamicTodos } from '@/hooks/useDynamicTodos';
+import { Calendar, Target, TrendingUp, Lock } from 'lucide-react';
 
 export default function Todos() {
+  const { allListsCompleted, completedListsCount, totalLists, isLoading } = useDynamicTodos();
+
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-8">
@@ -15,7 +20,7 @@ export default function Todos() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 animate-fade-up" style={{ animationDelay: '0.1s' }}>
           {[
-            { icon: Target, label: 'Total Completed', value: '0/0', color: 'text-primary' },
+            { icon: Target, label: 'Lists Completed', value: `${completedListsCount}/${totalLists}`, color: 'text-primary' },
             { icon: Calendar, label: 'Course Tasks Done', value: 0, color: 'text-primary' },
             { icon: TrendingUp, label: 'Personal Goals Done', value: 0, color: 'text-foreground' },
           ].map((stat) => (
@@ -27,13 +32,27 @@ export default function Todos() {
           ))}
         </div>
 
-        {/* Empty State */}
-        <div className="glass-card p-12 rounded-2xl text-center animate-fade-up" style={{ animationDelay: '0.2s' }}>
-          <ListTodo className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="font-semibold text-xl mb-2">No Goals Yet</h3>
-          <p className="text-muted-foreground">
-            Your todo lists will appear here once you start tracking goals.
-          </p>
+        {/* Dynamic Todo List */}
+        <div className="animate-fade-up" style={{ animationDelay: '0.2s' }}>
+          <DynamicTodoList />
+        </div>
+
+        {/* Daily/Weekly Tasks - Only show after dynamic todos complete */}
+        <div className="animate-fade-up" style={{ animationDelay: '0.3s' }}>
+          {!isLoading && totalLists > 0 && !allListsCompleted ? (
+            <div className="glass-card p-8 rounded-2xl text-center">
+              <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="font-semibold text-lg mb-2">Daily & Weekly Tasks Locked</h3>
+              <p className="text-muted-foreground text-sm">
+                Complete all {totalLists} dynamic to-do lists to unlock daily and weekly tasks.
+              </p>
+              <div className="mt-4 text-sm text-primary font-medium">
+                {completedListsCount} of {totalLists} lists completed
+              </div>
+            </div>
+          ) : (
+            <TodoList />
+          )}
         </div>
       </div>
     </DashboardLayout>
