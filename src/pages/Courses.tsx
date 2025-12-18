@@ -368,7 +368,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         {/* Right Panel - Module Content */}
         <div className="flex-1 overflow-y-auto">
           {moduleData ? (
-            <div className="glass-card rounded-xl overflow-hidden h-full flex flex-col">
+            <div className="glass-card rounded-xl overflow-hidden">
               {/* Module Header */}
               <div className="p-6 border-b border-border/30">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
@@ -409,7 +409,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               </div>
 
               {/* Actions */}
-              <div className="flex-1 p-6 space-y-4">
+              <div className="p-6 space-y-4">
                 <Button 
                   className="w-full gold-gradient text-primary-foreground font-semibold py-6 text-lg"
                   onClick={() => goToLesson(moduleData.module.id)}
