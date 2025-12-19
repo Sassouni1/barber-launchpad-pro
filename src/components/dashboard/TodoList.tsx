@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useTodosWithSubtasks } from '@/hooks/useTodos';
+import { useDynamicTodos } from '@/hooks/useDynamicTodos';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Play } from 'lucide-react';
 
 export function TodoList() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
+  const { allListsCompleted, totalLists, isLoading: dynamicLoading } = useDynamicTodos();
 
   const groupedTodos = {
     course: todos.filter(t => t.type === 'course'),
@@ -17,7 +19,9 @@ export function TodoList() {
     todos: groupedTodos.course.filter(t => t.week_number === week),
   }));
 
-  if (isLoading) {
+  const showDailyWeekly = totalLists === 0 || allListsCompleted;
+
+  if (isLoading || dynamicLoading) {
     return (
       <div className="glass-card p-6 rounded-xl">
         <div className="animate-pulse space-y-3">
@@ -33,40 +37,43 @@ export function TodoList() {
     <div className="glass-card p-6 rounded-xl space-y-6">
       <h2 className="font-display text-xl font-semibold">Your To-Do List</h2>
 
-      {/* Daily Tasks */}
-      <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">Daily</h3>
-        {groupedTodos.daily.length === 0 ? (
-          <p className="text-sm text-muted-foreground/60">No daily tasks</p>
-        ) : (
-          <div className="space-y-2">
-            {groupedTodos.daily.map(todo => (
-              <div key={todo.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
-                <Checkbox id={todo.id} />
-                <div className="flex-1 flex items-center gap-2">
-                  <label htmlFor={todo.id} className="text-sm font-medium cursor-pointer">
-                    {todo.title}
-                  </label>
-                  {todo.module_id && (
-                    <Link
-                      to={`/courses/lesson/${todo.module_id}`}
-                      className="text-xs text-primary underline flex items-center gap-1 shrink-0"
-                    >
-                      <Play className="w-3 h-3" />
-                      Watch lesson
-                    </Link>
-                  )}
+      {/* Daily Tasks - Only show after dynamic todos complete */}
+      {showDailyWeekly && (
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Daily</h3>
+          {groupedTodos.daily.length === 0 ? (
+            <p className="text-sm text-muted-foreground/60">No daily tasks</p>
+          ) : (
+            <div className="space-y-2">
+              {groupedTodos.daily.map(todo => (
+                <div key={todo.id} className="flex items-center gap-3 p-3 bg-background/50 rounded-lg">
+                  <Checkbox id={todo.id} />
+                  <div className="flex-1 flex items-center gap-2">
+                    <label htmlFor={todo.id} className="text-sm font-medium cursor-pointer">
+                      {todo.title}
+                    </label>
+                    {todo.module_id && (
+                      <Link
+                        to={`/courses/lesson/${todo.module_id}`}
+                        className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                      >
+                        <Play className="w-3 h-3" />
+                        Watch lesson
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Weekly Tasks */}
-      <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">Weekly</h3>
-        {groupedTodos.weekly.length === 0 ? (
+      {/* Weekly Tasks - Only show after dynamic todos complete */}
+      {showDailyWeekly && (
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Weekly</h3>
+          {groupedTodos.weekly.length === 0 ? (
           <p className="text-sm text-muted-foreground/60">No weekly tasks</p>
         ) : (
           <div className="space-y-2">
@@ -116,8 +123,8 @@ export function TodoList() {
             ))}
           </div>
         )}
-      </div>
-
+        </div>
+      )}
       {/* Course Tasks by Week */}
       {weekGroups.map(({ week, todos }) => 
         todos.length > 0 && (
