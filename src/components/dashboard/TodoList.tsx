@@ -1,12 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useTodosWithSubtasks } from '@/hooks/useTodos';
-import { useDynamicTodos } from '@/hooks/useDynamicTodos';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Play, Lock } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 export function TodoList() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
-  const { allListsCompleted, totalLists, isLoading: dynamicLoading } = useDynamicTodos();
 
   const groupedTodos = {
     course: todos.filter(t => t.type === 'course'),
@@ -19,9 +17,7 @@ export function TodoList() {
     todos: groupedTodos.course.filter(t => t.week_number === week),
   }));
 
-  const showDailyWeekly = totalLists === 0 || allListsCompleted;
-
-  if (isLoading || dynamicLoading) {
+  if (isLoading) {
     return (
       <div className="glass-card p-6 rounded-xl">
         <div className="animate-pulse space-y-3">
@@ -38,14 +34,9 @@ export function TodoList() {
       <h2 className="font-display text-xl font-semibold">Your To-Do List</h2>
 
       {/* Daily Tasks */}
-      <div className={!showDailyWeekly ? 'opacity-40' : ''}>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-          Daily
-          {!showDailyWeekly && <Lock className="w-3 h-3" />}
-        </h3>
-        {!showDailyWeekly ? (
-          <p className="text-sm text-muted-foreground/60">Complete dynamic lists first</p>
-        ) : groupedTodos.daily.length === 0 ? (
+      <div>
+        <h3 className="text-sm font-medium text-muted-foreground mb-2">Daily</h3>
+        {groupedTodos.daily.length === 0 ? (
           <p className="text-sm text-muted-foreground/60">No daily tasks</p>
         ) : (
           <div className="space-y-2">
@@ -73,14 +64,9 @@ export function TodoList() {
       </div>
 
       {/* Weekly Tasks */}
-      <div className={!showDailyWeekly ? 'opacity-40' : ''}>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-          Weekly
-          {!showDailyWeekly && <Lock className="w-3 h-3" />}
-        </h3>
-        {!showDailyWeekly ? (
-          <p className="text-sm text-muted-foreground/60">Complete dynamic lists first</p>
-        ) : groupedTodos.weekly.length === 0 ? (
+      <div>
+        <h3 className="text-sm font-medium text-muted-foreground mb-2">Weekly</h3>
+        {groupedTodos.weekly.length === 0 ? (
           <p className="text-sm text-muted-foreground/60">No weekly tasks</p>
         ) : (
           <div className="space-y-2">
