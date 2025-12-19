@@ -41,11 +41,11 @@ export function TodoList() {
       <div>
         <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
           Daily
-          {isLocked && <Lock className="w-3.5 h-3.5" />}
+          {isLocked && <Lock className="w-3.5 h-3.5 text-primary" />}
         </h3>
 
         {isLocked ? (
-          <p className="text-sm text-muted-foreground/60">Complete your dynamic to-do lists to unlock daily tasks.</p>
+          <p className="text-sm text-foreground/70">Complete your dynamic to-do lists to unlock daily tasks.</p>
         ) : groupedTodos.daily.length === 0 ? (
           <p className="text-sm text-muted-foreground/60">No daily tasks</p>
         ) : (
@@ -77,11 +77,11 @@ export function TodoList() {
       <div>
         <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
           Weekly
-          {isLocked && <Lock className="w-3.5 h-3.5" />}
+          {isLocked && <Lock className="w-3.5 h-3.5 text-primary" />}
         </h3>
 
         {isLocked ? (
-          <p className="text-sm text-muted-foreground/60">Complete your dynamic to-do lists to unlock weekly tasks.</p>
+          <p className="text-sm text-foreground/70">Complete your dynamic to-do lists to unlock weekly tasks.</p>
         ) : groupedTodos.weekly.length === 0 ? (
           <p className="text-sm text-muted-foreground/60">No weekly tasks</p>
         ) : (
