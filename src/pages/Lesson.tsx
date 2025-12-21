@@ -254,6 +254,11 @@ export default function Lesson() {
                   return !imageExtensions.includes(ext) && !videoExtensions.includes(ext);
                 });
 
+                const getDownloadUrl = (fileUrl: string, fileName: string) => {
+                  const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+                  return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+                };
+
                 const FileCard = ({ file, isImage, isVideo }: { file: typeof files[0]; isImage: boolean; isVideo: boolean }) => (
                   <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[140px] max-w-[160px] flex-shrink-0">
                     {isImage ? (
@@ -278,10 +283,7 @@ export default function Lesson() {
                         {file.file_name}
                       </p>
                       <a
-                        href={file.file_url}
-                        download={file.file_name}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={getDownloadUrl(file.file_url, file.file_name)}
                         className="flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
                       >
                         <Download className="w-3.5 h-3.5" />
