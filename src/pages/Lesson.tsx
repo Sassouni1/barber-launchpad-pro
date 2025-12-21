@@ -26,6 +26,7 @@ import {
   Image as ImageIcon,
   Trophy,
   RotateCcw,
+  Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
@@ -241,51 +242,110 @@ export default function Lesson() {
                 </div>
               )}
 
-              {module.has_download && files.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-3">Downloadable Resources</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {files.map((file) => {
-                      const isImage = file.file_type && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(file.file_type.toLowerCase());
-                      return (
-                        <div
-                          key={file.id}
-                          className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden"
-                        >
-                          {isImage ? (
-                            <div className="aspect-square bg-black/20 relative">
-                              <img 
-                                src={file.file_url} 
-                                alt={file.file_name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="aspect-square bg-secondary/50 flex items-center justify-center">
-                              <FileText className="w-10 h-10 text-muted-foreground" />
-                            </div>
-                          )}
-                          <div className="p-3 space-y-2">
-                            <p className="text-xs font-medium truncate" title={file.file_name}>
-                              {file.file_name}
-                            </p>
-                            <a
-                              href={file.file_url}
-                              download={file.file_name}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-                            >
-                              <Download className="w-4 h-4" />
-                              Save
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })}
+              {module.has_download && files.length > 0 && (() => {
+                const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+                const videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv'];
+                
+                const images = files.filter(f => f.file_type && imageExtensions.includes(f.file_type.toLowerCase()));
+                const videos = files.filter(f => f.file_type && videoExtensions.includes(f.file_type.toLowerCase()));
+                const others = files.filter(f => {
+                  if (!f.file_type) return true;
+                  const ext = f.file_type.toLowerCase();
+                  return !imageExtensions.includes(ext) && !videoExtensions.includes(ext);
+                });
+
+                const FileCard = ({ file, isImage, isVideo }: { file: typeof files[0]; isImage: boolean; isVideo: boolean }) => (
+                  <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[140px] max-w-[160px] flex-shrink-0">
+                    {isImage ? (
+                      <div className="aspect-square bg-black/20 relative">
+                        <img 
+                          src={file.file_url} 
+                          alt={file.file_name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : isVideo ? (
+                      <div className="aspect-square bg-secondary/50 flex items-center justify-center">
+                        <Video className="w-10 h-10 text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-secondary/50 flex items-center justify-center">
+                        <FileText className="w-10 h-10 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="p-2 space-y-2">
+                      <p className="text-xs font-medium truncate" title={file.file_name}>
+                        {file.file_name}
+                      </p>
+                      <a
+                        href={file.file_url}
+                        download={file.file_name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Save
+                      </a>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold">Downloadable Resources</h3>
+                      <span className="text-xs text-muted-foreground">{files.length} file{files.length !== 1 ? 's' : ''}</span>
+                    </div>
+
+                    {images.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <ImageIcon className="w-4 h-4" />
+                          <span>Images ({images.length})</span>
+                        </div>
+                        <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
+                          {images.map((file) => (
+                            <FileCard key={file.id} file={file} isImage={true} isVideo={false} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {videos.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Video className="w-4 h-4" />
+                          <span>Videos ({videos.length})</span>
+                        </div>
+                        <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
+                          {videos.map((file) => (
+                            <FileCard key={file.id} file={file} isImage={false} isVideo={true} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {others.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <FileText className="w-4 h-4" />
+                          <span>Other Files ({others.length})</span>
+                        </div>
+                        <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
+                          {others.map((file) => (
+                            <FileCard key={file.id} file={file} isImage={false} isVideo={false} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground text-center">
+                      Tip: Swipe to see more • Tap Save to download
+                    </p>
+                  </div>
+                );
+              })()}
 
               <div className="flex flex-col sm:flex-row gap-3">
                 {module.has_quiz && (
