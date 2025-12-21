@@ -244,20 +244,45 @@ export default function Lesson() {
               {module.has_download && files.length > 0 && (
                 <div>
                   <h3 className="font-semibold mb-3">Downloadable Resources</h3>
-                  <div className="space-y-2">
-                    {files.map((file) => (
-                      <a
-                        key={file.id}
-                        href={file.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30 hover:border-primary/30 transition-colors"
-                      >
-                        <FileText className="w-5 h-5 text-primary" />
-                        <span className="flex-1">{file.file_name}</span>
-                        <Download className="w-4 h-4 text-muted-foreground" />
-                      </a>
-                    ))}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {files.map((file) => {
+                      const isImage = file.file_type && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(file.file_type.toLowerCase());
+                      return (
+                        <div
+                          key={file.id}
+                          className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden"
+                        >
+                          {isImage ? (
+                            <div className="aspect-square bg-black/20 relative">
+                              <img 
+                                src={file.file_url} 
+                                alt={file.file_name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="aspect-square bg-secondary/50 flex items-center justify-center">
+                              <FileText className="w-10 h-10 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="p-3 space-y-2">
+                            <p className="text-xs font-medium truncate" title={file.file_name}>
+                              {file.file_name}
+                            </p>
+                            <a
+                              href={file.file_url}
+                              download={file.file_name}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                            >
+                              <Download className="w-4 h-4" />
+                              Save
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
