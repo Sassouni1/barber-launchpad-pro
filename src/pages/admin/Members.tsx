@@ -108,15 +108,18 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
 
   const handleToggleSkipAgreement = async () => {
     setUpdatingSkip(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ skip_agreement: !member.skipAgreement })
-      .eq('id', member.id);
-    
-    if (!error) {
-      refetch();
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ skip_agreement: !member.skipAgreement })
+        .eq('id', member.id);
+      
+      if (!error) {
+        await refetch();
+      }
+    } finally {
+      setUpdatingSkip(false);
     }
-    setUpdatingSkip(false);
   };
 
   const handleViewAgreement = async () => {
@@ -655,7 +658,11 @@ export default function Members() {
               <DialogTitle className="font-display text-2xl">Member Details</DialogTitle>
             </DialogHeader>
             {selectedMember && (
-              <MemberDetailPanel member={selectedMember} onClose={() => setSelectedMember(null)} refetch={refetchMembers} />
+              <MemberDetailPanel 
+                member={members?.find(m => m.id === selectedMember.id) || selectedMember} 
+                onClose={() => setSelectedMember(null)} 
+                refetch={refetchMembers} 
+              />
             )}
           </DialogContent>
         </Dialog>
