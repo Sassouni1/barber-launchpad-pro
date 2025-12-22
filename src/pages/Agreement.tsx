@@ -14,7 +14,7 @@ export default function Agreement() {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUserStatus } = useAuth();
 
   const handleSignatureChange = useCallback((hasSig: boolean, data: string | null) => {
     setHasSignature(hasSig);
@@ -36,6 +36,9 @@ export default function Agreement() {
 
       if (error) throw error;
 
+      // Refresh auth context to update hasSignedAgreement state
+      await refreshUserStatus();
+      
       toast.success('Agreement signed successfully!');
       navigate('/dashboard');
     } catch (error) {

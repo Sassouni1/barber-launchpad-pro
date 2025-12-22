@@ -11,6 +11,7 @@ interface AuthContextType {
   hasSignedAgreement: boolean;
   isAdminModeActive: boolean;
   toggleAdminMode: () => void;
+  refreshUserStatus: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -109,6 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  const refreshUserStatus = async () => {
+    if (user) {
+      await checkUserStatus(user.id);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -117,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasSignedAgreement,
       isAdminModeActive,
       toggleAdminMode,
+      refreshUserStatus,
       signIn,
       signUp,
       signOut,
