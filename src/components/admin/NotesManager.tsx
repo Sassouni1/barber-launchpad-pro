@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -11,24 +12,36 @@ interface NotesManagerProps {
 }
 
 export function NotesManager({ moduleId, initialContent }: NotesManagerProps) {
+  const queryClient = useQueryClient();
   const [content, setContent] = useState(initialContent || "");
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const lastInitialRef = useRef(initialContent || "");
 
   useEffect(() => {
-    setContent(initialContent || "");
-  }, [moduleId]); // Only reset when switching to a different module
+    const next = initialContent || "";
+    setContent((current) => (current === lastInitialRef.current ? next : current));
+    lastInitialRef.current = next;
+  }, [initialContent, moduleId]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("modules")
         .update({ notes_content: content || null })
-        .eq("id", moduleId);
+        .eq("id", moduleId)
+        .select("id")
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("You don't have permission to update this module.");
+
+      lastInitialRef.current = content || "";
+
+      await queryClient.invalidateQueries({ queryKey: ["courses"] });
 
       toast({
         title: "Notes saved",
@@ -47,21 +60,21 @@ export function NotesManager({ moduleId, initialContent }: NotesManagerProps) {
   };
 
   const insertText = (before: string, after: string = "") => {
-    const textarea = document.querySelector("textarea");
+    const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? 0;
     const selectedText = content.substring(start, end);
     const newText = content.substring(0, start) + before + selectedText + after + content.substring(end);
     setContent(newText);
   };
 
   const insertAtLineStart = (prefix: string) => {
-    const textarea = document.querySelector("textarea");
+    const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const start = textarea.selectionStart;
+    const start = textarea.selectionStart ?? 0;
     const lineStart = content.lastIndexOf("\n", start - 1) + 1;
     const newText = content.substring(0, lineStart) + prefix + content.substring(lineStart);
     setContent(newText);
@@ -210,6 +223,7 @@ export function NotesManager({ moduleId, initialContent }: NotesManagerProps) {
         </div>
       ) : (
         <Textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={`**Key Takeaways**
