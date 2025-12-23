@@ -18,7 +18,7 @@ export function NotesManager({ moduleId, initialContent }: NotesManagerProps) {
 
   useEffect(() => {
     setContent(initialContent || "");
-  }, [initialContent]);
+  }, [moduleId]); // Only reset when switching to a different module
 
   const handleSave = async () => {
     setIsSaving(true);
