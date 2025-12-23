@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Lesson from "./pages/Lesson";
+import LessonLegacyRedirect from "./pages/LessonLegacyRedirect";
 import Todos from "./pages/Todos";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Members from "./pages/admin/Members";
@@ -46,10 +47,10 @@ const App = () => (
             <Route path="/courses/business" element={<ProtectedRoute><Courses courseType="business" /></ProtectedRoute>} />
             <Route path="/courses/:courseType/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
             <Route path="/courses/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
+            <Route path="/lesson/:lessonId" element={<ProtectedRoute><LessonLegacyRedirect /></ProtectedRoute>} />
             <Route path="/todos" element={<ProtectedRoute><Todos /></ProtectedRoute>} />
             <Route path="/order-hair-system" element={<ProtectedRoute><OrderHairSystem /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-            <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
             
             {/* Protected Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
