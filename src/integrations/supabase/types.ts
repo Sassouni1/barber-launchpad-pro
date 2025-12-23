@@ -370,6 +370,7 @@ export type Database = {
           has_quiz: boolean
           id: string
           is_published: boolean
+          notes_content: string | null
           order_index: number
           title: string
           updated_at: string
@@ -385,6 +386,7 @@ export type Database = {
           has_quiz?: boolean
           id?: string
           is_published?: boolean
+          notes_content?: string | null
           order_index?: number
           title: string
           updated_at?: string
@@ -400,6 +402,7 @@ export type Database = {
           has_quiz?: boolean
           id?: string
           is_published?: boolean
+          notes_content?: string | null
           order_index?: number
           title?: string
           updated_at?: string

@@ -3,7 +3,6 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses } from '@/hooks/useCourses';
 import { useModuleFiles } from '@/hooks/useModuleFiles';
-import { useModuleNotes } from '@/hooks/useModuleNotes';
 import { useQuizQuestions, useQuizAttempts, useSubmitQuiz, type QuizQuestion } from '@/hooks/useQuiz';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useHomeworkSubmission, useSubmitHomework, useDeleteHomeworkFile } from '@/hooks/useHomework';
@@ -34,6 +33,90 @@ import {
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 
+// Helper function to render markdown-style notes content
+const renderNotesContent = (content: string) => {
+  const renderInlineLinks = (text: string) => {
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts: (string | JSX.Element)[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      parts.push(
+        <a
+          key={match.index}
+          href={match[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          {match[1]}
+        </a>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
+  const lines = content.split("\n");
+  const elements: JSX.Element[] = [];
+
+  lines.forEach((line, index) => {
+    // Bold section headers: **text**
+    if (line.match(/^\*\*(.+)\*\*$/)) {
+      const title = line.replace(/^\*\*(.+)\*\*$/, "$1");
+      elements.push(
+        <h4 key={index} className="font-semibold text-foreground mt-4 first:mt-0 mb-2">
+          {title}
+        </h4>
+      );
+    }
+    // Checklist: - [ ] or - [x]
+    else if (line.match(/^- \[([ x])\] /)) {
+      const isChecked = line.includes("[x]");
+      const text = line.replace(/^- \[[ x]\] /, "");
+      elements.push(
+        <div key={index} className="flex items-start gap-2 text-muted-foreground ml-2">
+          <span className="mt-0.5">{isChecked ? "☑" : "☐"}</span>
+          <span>{renderInlineLinks(text)}</span>
+        </div>
+      );
+    }
+    // Bullet points: - text
+    else if (line.match(/^- /)) {
+      const text = line.replace(/^- /, "");
+      elements.push(
+        <div key={index} className="flex items-start gap-2 text-muted-foreground ml-2">
+          <span className="mt-1">•</span>
+          <span>{renderInlineLinks(text)}</span>
+        </div>
+      );
+    }
+    // Empty lines
+    else if (line.trim() === "") {
+      elements.push(<div key={index} className="h-2" />);
+    }
+    // Regular text
+    else {
+      elements.push(
+        <p key={index} className="text-muted-foreground">
+          {renderInlineLinks(line)}
+        </p>
+      );
+    }
+  });
+
+  return elements;
+};
+
 export default function Lesson() {
   const navigate = useNavigate();
   const { lessonId } = useParams();
@@ -62,7 +145,6 @@ export default function Lesson() {
 
   // Hooks for module content
   const { data: files = [] } = useModuleFiles(module?.id);
-  const { data: notes = [] } = useModuleNotes(module?.id);
   const { data: questions = [] } = useQuizQuestions(module?.id);
   const { data: attempts = [] } = useQuizAttempts(module?.id);
   const { data: existingSubmission } = useHomeworkSubmission(module?.id);
@@ -461,42 +543,14 @@ export default function Lesson() {
         )}
 
         {/* Notes Section - only show if there are notes */}
-        {notes.length > 0 && (
+        {module.notes_content && (
           <div className="glass-card p-4 md:p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.4s' }}>
             <div className="flex items-center gap-2 mb-4">
               <StickyNote className="w-5 h-5 text-primary" />
               <h2 className="font-display text-lg md:text-xl font-semibold">Notes</h2>
             </div>
-            <div className="prose prose-invert prose-sm max-w-none space-y-4">
-              {notes.map((section) => (
-                <div key={section.id}>
-                  <p className="text-muted-foreground leading-relaxed">
-                    <strong className="text-foreground">{section.title}:</strong>
-                  </p>
-                  {section.items.length > 0 && (
-                    <ul className="space-y-2 text-muted-foreground">
-                      {section.items.map((item) => (
-                        <li key={item.id}>
-                          {item.content}
-                          {item.link_url && (
-                            <>
-                              {' '}
-                              <a 
-                                href={item.link_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline"
-                              >
-                                {item.link_text || 'Learn more'}
-                              </a>
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
+            <div className="prose prose-invert prose-sm max-w-none">
+              {renderNotesContent(module.notes_content)}
             </div>
           </div>
         )}
