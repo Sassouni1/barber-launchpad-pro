@@ -3,7 +3,7 @@ import { useCourses, type Module } from '@/hooks/useCourses';
 import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -12,6 +12,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // Custom hook for lg breakpoint (1024px)
 function useIsDesktop() {
@@ -28,8 +35,16 @@ function useIsDesktop() {
   return isDesktop;
 }
 
-export default function Courses() {
+interface CoursesProps {
+  courseType?: 'hair-system' | 'business';
+}
+
+export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const { data: allCourses = [], isLoading } = useCourses();
+  // For desktop: filter by courseType prop
+  const courses = allCourses.filter(course => 
+    (course as any).category === courseType
+  );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -38,7 +53,9 @@ export default function Courses() {
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isDesktop = useIsDesktop();
 
-  // Group courses by category
+  const pageTitle = courseType === 'hair-system' ? 'Hair System Training' : 'Business Mastery';
+
+  // Group courses by category (for mobile only)
   const courseCategories = [
     { id: 'hair-system', title: 'Hair System Training', courses: allCourses.filter(c => (c as any).category === 'hair-system') },
     { id: 'business', title: 'Business Mastery', courses: allCourses.filter(c => (c as any).category === 'business') },
@@ -64,32 +81,18 @@ export default function Courses() {
       container?.removeEventListener('scroll', checkScroll);
       window.removeEventListener('resize', checkScroll);
     };
-  }, [allCourses]);
+  }, [courses]);
 
   const goToLesson = (moduleId: string, categoryId: string, tab?: string) => {
     const url = tab ? `/courses/${categoryId}/lesson/${moduleId}?tab=${tab}` : `/courses/${categoryId}/lesson/${moduleId}`;
     navigate(url);
   };
 
-  // Find the category for a given module
-  const findCategoryForModule = (moduleId: string): string => {
-    for (const category of courseCategories) {
-      for (const course of category.courses) {
-        if ((course.modules || []).some(m => m.id === moduleId)) {
-          return category.id;
-        }
-      }
-    }
-    return 'hair-system';
-  };
-
-  // Find selected module data
-  const findModule = (): { module: Module; courseName: string; categoryId: string } | null => {
-    for (const category of courseCategories) {
-      for (const course of category.courses) {
-        const module = (course.modules || []).find(m => m.id === selectedModule);
-        if (module) return { module, courseName: course.title, categoryId: category.id };
-      }
+  // Find selected module data (for desktop - uses courseType)
+  const findModule = (): { module: Module; courseName: string } | null => {
+    for (const course of courses) {
+      const module = (course.modules || []).find(m => m.id === selectedModule);
+      if (module) return { module, courseName: course.title };
     }
     return null;
   };
@@ -164,7 +167,7 @@ export default function Courses() {
               
               <Button 
                 className="w-full gold-gradient text-primary-foreground font-semibold py-5"
-                onClick={() => goToLesson(moduleData.module.id, moduleData.categoryId)}
+                onClick={() => goToLesson(moduleData.module.id, courseType)}
               >
                 <Play className="w-5 h-5 mr-2" />
                 Start Lesson
@@ -177,7 +180,7 @@ export default function Courses() {
                     <Button 
                       variant="outline" 
                       className="flex-1"
-                      onClick={() => goToLesson(moduleData.module.id, moduleData.categoryId, 'quiz')}
+                      onClick={() => goToLesson(moduleData.module.id, courseType, 'quiz')}
                     >
                       <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
                       Quiz
@@ -187,7 +190,7 @@ export default function Courses() {
                     <Button 
                       variant="outline" 
                       className="flex-1"
-                      onClick={() => goToLesson(moduleData.module.id, moduleData.categoryId, 'homework')}
+                      onClick={() => goToLesson(moduleData.module.id, courseType, 'homework')}
                     >
                       <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
                       Homework
@@ -293,19 +296,31 @@ export default function Courses() {
       <div className="hidden lg:flex gap-6 h-[calc(100vh-8rem)]">
         {/* Left Panel - Courses & Modules */}
         <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
-          <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-xl font-bold gold-text">Choose Your Module</h1>
-              <p className="text-muted-foreground text-sm mt-1">Click a course to expand</p>
+          <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="font-display text-xl font-bold gold-text">{pageTitle}</h1>
+                <p className="text-muted-foreground text-sm mt-1">Select a module to continue</p>
+              </div>
+              {isAdmin && (
+                <Link to="/admin/courses">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Settings className="w-4 h-4" />
+                    Edit Courses
+                  </Button>
+                </Link>
+              )}
             </div>
-            {isAdmin && (
-              <Link to="/admin/courses">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Settings className="w-4 h-4" />
-                  Edit Courses
-                </Button>
-              </Link>
-            )}
+            
+            <Select value={courseType} onValueChange={(value) => navigate(`/courses/${value}`)}>
+              <SelectTrigger className="w-full bg-secondary/50 border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="hair-system">Hair System Training</SelectItem>
+                <SelectItem value="business">Business Mastery</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="relative flex-1">
@@ -313,108 +328,85 @@ export default function Courses() {
               ref={scrollContainerRef}
               className="absolute inset-0 overflow-y-auto space-y-3 pr-2 scrollbar-thin"
             >
-              {courseCategories.map((category) => (
-                <Collapsible
-                  key={category.id}
-                  open={expandedCourse === category.id}
-                  onOpenChange={(open) => setExpandedCourse(open ? category.id : null)}
-                >
-                  <CollapsibleTrigger className="w-full">
-                    <div className="glass-card rounded-xl p-4 flex items-center justify-between transition-all hover:border-primary/50 border-2 border-transparent">
-                      <div className="text-left">
-                        <h2 className="font-display font-bold text-base gold-text">{category.title}</h2>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {category.courses.reduce((acc, c) => acc + (c.modules?.length || 0), 0)} modules
-                        </p>
-                      </div>
-                      <ChevronDown className={cn(
-                        "w-5 h-5 text-primary transition-transform duration-200",
-                        expandedCourse === category.id && "rotate-180"
-                      )} />
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-3 mt-3">
-                    {category.courses.map((course) => (
-                      <div key={course.id} className="space-y-2">
-                        {category.courses.length > 1 && (
-                          <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50">
-                            <h3 className="font-semibold text-sm">{course.title}</h3>
-                            {course.description && (
-                              <p className="text-xs text-muted-foreground mt-1">{course.description}</p>
-                            )}
-                          </div>
-                        )}
-                        <div className="space-y-2 pl-2">
-                          {(course.modules || []).map((module, index) => {
-                            const isSelected = selectedModule === module.id;
+              {courses.map((course) => (
+                <div key={course.id} className="space-y-2">
+                  {/* Course Title */}
+                  <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50">
+                    <h2 className="font-semibold text-sm">{course.title}</h2>
+                    {course.description && (
+                      <p className="text-xs text-muted-foreground mt-1">{course.description}</p>
+                    )}
+                  </div>
 
-                            return (
-                              <button
-                                key={module.id}
-                                onClick={() => setSelectedModule(module.id)}
-                                className={cn(
-                                  'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
-                                  'border-2 hover:border-primary/50 hover:bg-secondary/20',
-                                  isSelected 
-                                    ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20' 
-                                    : 'border-border bg-secondary/10 shadow-md shadow-black/20'
-                                )}
-                              >
-                                <div className={cn(
-                                  'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
-                                  isSelected
-                                    ? 'gold-gradient text-primary-foreground shadow-md'
-                                    : 'bg-secondary border border-border text-muted-foreground'
-                                )}>
-                                  {index + 1}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className={cn(
-                                    "font-semibold text-sm mb-1",
-                                    isSelected && "text-primary"
-                                  )}>{module.title}</h4>
-                                  {module.description && (
-                                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
-                                  )}
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {module.duration && (
-                                      <span className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
-                                        <Clock className="w-3 h-3" />
-                                        {module.duration}
-                                      </span>
-                                    )}
-                                    {module.has_download && (
-                                      <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                                        <FileText className="w-3 h-3" />
-                                        Files
-                                      </span>
-                                    )}
-                                    {module.has_quiz && (
-                                      <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                        <HelpCircle className="w-3 h-3" />
-                                        Quiz
-                                      </span>
-                                    )}
-                                    {module.has_homework && (
-                                      <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                                        <ClipboardList className="w-3 h-3" />
-                                        Homework
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <Play className={cn(
-                                  "w-5 h-5 flex-shrink-0 transition-transform",
-                                  isSelected ? "text-primary scale-110" : "text-muted-foreground"
-                                )} />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
+                  {/* Modules */}
+                  <div className="space-y-2 pl-2">
+                    {(course.modules || []).map((module, index) => {
+                      const isSelected = selectedModule === module.id;
+
+                      return (
+                        <button
+                          key={module.id}
+                          onClick={() => setSelectedModule(module.id)}
+                          className={cn(
+                            'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
+                            'border-2 hover:border-primary/50 hover:bg-secondary/20',
+                            isSelected 
+                              ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20' 
+                              : 'border-border bg-secondary/10 shadow-md shadow-black/20'
+                          )}
+                        >
+                          <div className={cn(
+                            'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
+                            isSelected
+                              ? 'gold-gradient text-primary-foreground shadow-md'
+                              : 'bg-secondary border border-border text-muted-foreground'
+                          )}>
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={cn(
+                              "font-semibold text-sm mb-1",
+                              isSelected && "text-primary"
+                            )}>{module.title}</h4>
+                            {module.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
+                            )}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {module.duration && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
+                                  <Clock className="w-3 h-3" />
+                                  {module.duration}
+                                </span>
+                              )}
+                              {module.has_download && (
+                                <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                  <FileText className="w-3 h-3" />
+                                  Files
+                                </span>
+                              )}
+                              {module.has_quiz && (
+                                <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                                  <HelpCircle className="w-3 h-3" />
+                                  Quiz
+                                </span>
+                              )}
+                              {module.has_homework && (
+                                <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                                  <ClipboardList className="w-3 h-3" />
+                                  Homework
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Play className={cn(
+                            "w-5 h-5 flex-shrink-0 transition-transform",
+                            isSelected ? "text-primary scale-110" : "text-muted-foreground"
+                          )} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
             
@@ -476,7 +468,7 @@ export default function Courses() {
               <div className="p-6 space-y-4">
                 <Button 
                   className="w-full gold-gradient text-primary-foreground font-semibold py-6 text-lg"
-                  onClick={() => goToLesson(moduleData.module.id, moduleData.categoryId)}
+                  onClick={() => goToLesson(moduleData.module.id, courseType)}
                 >
                   <Play className="w-5 h-5 mr-2" />
                   Start Lesson
@@ -489,7 +481,7 @@ export default function Courses() {
                       <Button 
                         variant="outline" 
                         className="flex-1"
-                        onClick={() => goToLesson(moduleData.module.id, moduleData.categoryId, 'quiz')}
+                        onClick={() => goToLesson(moduleData.module.id, courseType, 'quiz')}
                       >
                         <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
                         Take Quiz
@@ -499,7 +491,7 @@ export default function Courses() {
                       <Button 
                         variant="outline" 
                         className="flex-1"
-                        onClick={() => goToLesson(moduleData.module.id, moduleData.categoryId, 'homework')}
+                        onClick={() => goToLesson(moduleData.module.id, courseType, 'homework')}
                       >
                         <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
                         Homework
