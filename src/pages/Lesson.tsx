@@ -244,9 +244,118 @@ export default function Lesson() {
           </div>
         )}
 
+        {/* Mobile: Resources section */}
+        {isMobile && module.has_download && files.length > 0 && (() => {
+          const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+          const videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv'];
+          
+          const images = files.filter(f => f.file_type && imageExtensions.includes(f.file_type.toLowerCase()));
+          const videos = files.filter(f => f.file_type && videoExtensions.includes(f.file_type.toLowerCase()));
+          const others = files.filter(f => {
+            if (!f.file_type) return true;
+            const ext = f.file_type.toLowerCase();
+            return !imageExtensions.includes(ext) && !videoExtensions.includes(ext);
+          });
+
+          const getDownloadUrl = (fileUrl: string, fileName: string) => {
+            const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+            return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+          };
+
+          const MobileFileCard = ({ file, isImage, isVideo }: { file: typeof files[0]; isImage: boolean; isVideo: boolean }) => (
+            <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[120px] max-w-[140px] flex-shrink-0">
+              {isImage ? (
+                <div className="aspect-square bg-black/20 relative">
+                  <img 
+                    src={file.file_url} 
+                    alt={file.file_name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : isVideo ? (
+                <div className="aspect-square bg-secondary/50 flex items-center justify-center">
+                  <Video className="w-8 h-8 text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="aspect-square bg-secondary/50 flex items-center justify-center">
+                  <FileText className="w-8 h-8 text-muted-foreground" />
+                </div>
+              )}
+              <div className="p-2 space-y-1">
+                <p className="text-xs font-medium truncate" title={file.file_name}>
+                  {file.file_name}
+                </p>
+                <a
+                  href={getDownloadUrl(file.file_url, file.file_name)}
+                  download={file.file_name}
+                  className="flex items-center justify-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Download className="w-3 h-3" />
+                  Save
+                </a>
+              </div>
+            </div>
+          );
+
+          return (
+            <div className="glass-card p-4 rounded-2xl space-y-3 animate-fade-up" style={{ animationDelay: '0.2s' }}>
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg font-semibold">Resources</h2>
+              </div>
+
+              {images.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Images ({images.length})</span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
+                    {images.map((file) => (
+                      <MobileFileCard key={file.id} file={file} isImage={true} isVideo={false} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {videos.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Video className="w-4 h-4" />
+                    <span>Videos ({videos.length})</span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
+                    {videos.map((file) => (
+                      <MobileFileCard key={file.id} file={file} isImage={false} isVideo={true} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {others.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="w-4 h-4" />
+                    <span>Other Files ({others.length})</span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
+                    {others.map((file) => (
+                      <MobileFileCard key={file.id} file={file} isImage={false} isVideo={false} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground text-center">
+                Swipe to see more • Tap Save to download
+              </p>
+            </div>
+          );
+        })()}
+
         {/* Mobile: Quiz header with Next Lesson button */}
         {isMobile && module.has_quiz && (
-          <div className="flex items-center justify-between animate-fade-up" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center justify-between animate-fade-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-primary" />
               <h2 className="font-display text-lg font-semibold">Quiz</h2>
