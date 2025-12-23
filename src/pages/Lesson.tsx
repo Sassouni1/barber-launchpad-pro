@@ -310,7 +310,10 @@ export default function Lesson() {
                     <ImageIcon className="w-4 h-4" />
                     <span>Images ({images.length})</span>
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }}>
+                  <div
+                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin touch-pan-x"
+                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
+                  >
                     {images.map((file) => (
                       <MobileFileCard key={file.id} file={file} isImage={true} isVideo={false} />
                     ))}
@@ -324,7 +327,10 @@ export default function Lesson() {
                     <Video className="w-4 h-4" />
                     <span>Videos ({videos.length})</span>
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }}>
+                  <div
+                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin touch-pan-x"
+                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
+                  >
                     {videos.map((file) => (
                       <MobileFileCard key={file.id} file={file} isImage={false} isVideo={true} />
                     ))}
@@ -338,7 +344,10 @@ export default function Lesson() {
                     <FileText className="w-4 h-4" />
                     <span>Other Files ({others.length})</span>
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain' }}>
+                  <div
+                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin touch-pan-x"
+                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
+                  >
                     {others.map((file) => (
                       <MobileFileCard key={file.id} file={file} isImage={false} isVideo={false} />
                     ))}
