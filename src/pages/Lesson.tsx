@@ -28,6 +28,7 @@ import {
   Trophy,
   RotateCcw,
   Video,
+  StickyNote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
@@ -457,8 +458,35 @@ export default function Lesson() {
           </div>
         )}
 
+        {/* Notes Section */}
+        <div className="glass-card p-4 md:p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.4s' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <StickyNote className="w-5 h-5 text-primary" />
+            <h2 className="font-display text-lg md:text-xl font-semibold">Notes</h2>
+          </div>
+          <div className="prose prose-invert prose-sm max-w-none space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Key Takeaways:</strong>
+            </p>
+            <ul className="space-y-2 text-muted-foreground">
+              <li>Always start with a consultation to understand the client's needs and expectations.</li>
+              <li>Measure the head accurately - use the template provided in the resources section.</li>
+              <li>Match the hair color using the color ring - natural lighting is essential.</li>
+              <li>Document everything with photos before, during, and after the application.</li>
+            </ul>
+            <p className="text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Pro Tips:</strong>
+            </p>
+            <ul className="space-y-2 text-muted-foreground">
+              <li>Keep extra adhesive on hand for touch-ups.</li>
+              <li>Schedule follow-up appointments 2-3 weeks after initial application.</li>
+              <li>Build a relationship with your supplier for consistent quality.</li>
+            </ul>
+          </div>
+        </div>
+
         {isMobile && nextModule && (
-          <div className="animate-fade-up" style={{ animationDelay: '0.4s' }}>
+          <div className="animate-fade-up" style={{ animationDelay: '0.5s' }}>
             <Button 
               className="w-full gold-gradient text-primary-foreground font-semibold"
               onClick={() => navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
