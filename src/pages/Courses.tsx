@@ -35,6 +35,21 @@ function useIsTabletOrDesktop() {
   return isTabletOrDesktop;
 }
 
+// Custom hook for lg breakpoint (1024px) - desktop only
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsDesktop(mql.matches);
+    mql.addEventListener('change', onChange);
+    setIsDesktop(mql.matches);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return isDesktop;
+}
+
 interface CoursesProps {
   courseType?: 'hair-system' | 'business';
 }
@@ -52,6 +67,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isTabletOrDesktop = useIsTabletOrDesktop();
+  const isDesktop = useIsDesktop();
 
   const pageTitle = courseType === 'hair-system' ? 'Hair System Training' : 'Business Mastery';
 
@@ -292,10 +308,10 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         {!isTabletOrDesktop && <MobileModuleSheet />}
       </div>
 
-      {/* Desktop View */}
+      {/* Tablet & Desktop View */}
       <div className="hidden md:flex gap-6 h-[calc(100vh-8rem)] overflow-hidden">
         {/* Left Panel - Courses & Modules */}
-        <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
+        <div className={cn("flex-shrink-0 overflow-hidden flex flex-col", isDesktop ? "w-96" : "w-full")}>
           <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -346,7 +362,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       return (
                         <button
                           key={module.id}
-                          onClick={() => setSelectedModule(module.id)}
+                          onClick={() => isDesktop ? setSelectedModule(module.id) : navigate(`/courses/${courseType}/lesson/${module.id}`)}
                           className={cn(
                             'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
                             'border-2 hover:border-primary/50 hover:bg-secondary/20',
@@ -421,7 +437,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
           </div>
         </div>
 
-        {/* Right Panel - Module Content */}
+        {/* Right Panel - Module Content (Desktop only) */}
+        {isDesktop && (
         <div className="flex-1 min-w-0 overflow-y-auto">
           {moduleData ? (
             <div className="glass-card rounded-xl overflow-hidden">
@@ -511,6 +528,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
             </div>
           )}
         </div>
+        )}
       </div>
     </DashboardLayout>
   );
