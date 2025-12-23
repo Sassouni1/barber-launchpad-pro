@@ -20,19 +20,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Custom hook for lg breakpoint (1024px)
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+// Custom hook for md breakpoint (768px) - tablet and above
+function useIsTabletOrDesktop() {
+  const [isTabletOrDesktop, setIsTabletOrDesktop] = useState<boolean>(false);
 
   useEffect(() => {
-    const mql = window.matchMedia('(min-width: 1024px)');
-    const onChange = () => setIsDesktop(mql.matches);
+    const mql = window.matchMedia('(min-width: 768px)');
+    const onChange = () => setIsTabletOrDesktop(mql.matches);
     mql.addEventListener('change', onChange);
-    setIsDesktop(mql.matches);
+    setIsTabletOrDesktop(mql.matches);
     return () => mql.removeEventListener('change', onChange);
   }, []);
 
-  return isDesktop;
+  return isTabletOrDesktop;
 }
 
 interface CoursesProps {
@@ -51,7 +51,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const { isAdmin } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollMore, setCanScrollMore] = useState(false);
-  const isDesktop = useIsDesktop();
+  const isTabletOrDesktop = useIsTabletOrDesktop();
 
   const pageTitle = courseType === 'hair-system' ? 'Hair System Training' : 'Business Mastery';
 
@@ -208,7 +208,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   return (
     <DashboardLayout>
       {/* Mobile View */}
-      <div className="lg:hidden flex flex-col h-[calc(100vh-8rem)]">
+      <div className="md:hidden flex flex-col h-[calc(100vh-8rem)]">
         <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
           <div>
             <h1 className="font-display text-lg font-bold gold-text">Choose Your Module</h1>
@@ -289,11 +289,11 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         </div>
 
         {/* Only render Sheet on mobile - must be conditional, not CSS hidden (portal) */}
-        {!isDesktop && <MobileModuleSheet />}
+        {!isTabletOrDesktop && <MobileModuleSheet />}
       </div>
 
       {/* Desktop View */}
-      <div className="hidden lg:flex gap-6 h-[calc(100vh-8rem)]">
+      <div className="hidden md:flex gap-6 h-[calc(100vh-8rem)]">
         {/* Left Panel - Courses & Modules */}
         <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
           <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
