@@ -190,30 +190,6 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
     <DashboardLayout>
       {/* Mobile View */}
       <div className="lg:hidden flex flex-col h-[calc(100vh-8rem)]">
-        {/* Course Type Tabs */}
-        <div className="flex gap-2 mb-3">
-          <Button
-            variant={courseType === 'hair-system' ? 'default' : 'outline'}
-            className={cn(
-              'flex-1 text-sm',
-              courseType === 'hair-system' && 'gold-gradient text-primary-foreground'
-            )}
-            onClick={() => navigate('/courses/hair-system')}
-          >
-            Hair System
-          </Button>
-          <Button
-            variant={courseType === 'business' ? 'default' : 'outline'}
-            className={cn(
-              'flex-1 text-sm',
-              courseType === 'business' && 'gold-gradient text-primary-foreground'
-            )}
-            onClick={() => navigate('/courses/business')}
-          >
-            Business Mastery
-          </Button>
-        </div>
-
         <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
           <div>
             <h1 className="font-display text-lg font-bold gold-text">{pageTitle}</h1>
