@@ -50,7 +50,7 @@ export default function Lesson() {
 
   // Find the module and get all modules for navigation
   const allModules = courses.flatMap((c) => 
-    (c.modules || []).map((m) => ({ ...m, courseName: c.title, courseId: c.id }))
+    (c.modules || []).map((m) => ({ ...m, courseName: c.title, courseId: c.id, courseCategory: c.category }))
   );
   const currentModuleIndex = allModules.findIndex((m) => m.id === lessonId);
   const module = allModules[currentModuleIndex];
@@ -250,7 +250,7 @@ export default function Lesson() {
             {nextModule && (
               <Button 
                 size="sm"
-                onClick={() => navigate(`/lesson/${nextModule.id}`)}
+                onClick={() => navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
               >
                 Next Lesson
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -342,12 +342,11 @@ export default function Lesson() {
           </div>
         )}
 
-        {/* Mobile: Bottom Next Lesson button */}
         {isMobile && nextModule && (
           <div className="animate-fade-up" style={{ animationDelay: '0.4s' }}>
             <Button 
               className="w-full gold-gradient text-primary-foreground font-semibold"
-              onClick={() => navigate(`/lesson/${nextModule.id}`)}
+              onClick={() => navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
             >
               Next Lesson
               <ArrowRight className="w-4 h-4 ml-2" />
