@@ -193,7 +193,7 @@ export default function Lesson() {
 
         {/* Tabs - Hide on mobile since we show inline content */}
         {!isMobile && (
-          <div className="flex gap-2 animate-fade-up" style={{ animationDelay: '0.2s' }}>
+          <div className="flex flex-wrap items-center gap-2 animate-fade-up" style={{ animationDelay: '0.2s' }}>
             {files.length > 0 && (
               <Button
                 variant={activeTab === 'video' ? 'default' : 'secondary'}
@@ -230,6 +230,19 @@ export default function Lesson() {
                 {existingSubmission && (
                   <CheckCircle2 className="w-4 h-4 ml-2 text-green-400" />
                 )}
+              </Button>
+            )}
+
+            <div className="flex-1" />
+
+            {nextModule && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
+                className="whitespace-nowrap"
+              >
+                Next Lesson
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             )}
           </div>
