@@ -293,7 +293,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
       </div>
 
       {/* Desktop View */}
-      <div className="hidden md:flex gap-6 h-[calc(100vh-8rem)]">
+      <div className="hidden md:flex gap-6 h-[calc(100vh-8rem)] overflow-hidden">
         {/* Left Panel - Courses & Modules */}
         <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
           <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
@@ -422,7 +422,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         </div>
 
         {/* Right Panel - Module Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-w-0 overflow-y-auto">
           {moduleData ? (
             <div className="glass-card rounded-xl overflow-hidden">
               {/* Module Header */}
