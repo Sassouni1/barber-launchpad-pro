@@ -473,7 +473,7 @@ export default function Lesson() {
                   );
                 })()}
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col lg:flex-row gap-3">
                   {module.has_quiz && (
                     <Button 
                       className="flex-1 gold-gradient text-primary-foreground font-semibold"
