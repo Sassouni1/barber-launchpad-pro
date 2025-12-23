@@ -164,10 +164,10 @@ export default function Lesson() {
           </div>
         </div>
 
-        {/* Video Player */}
-        <div className="glass-card rounded-2xl overflow-hidden animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          <div className="aspect-video max-h-[50vh] bg-black relative">
-            {module.video_url ? (
+        {/* Video Player - only show if video exists */}
+        {module.video_url && (
+          <div className="glass-card rounded-2xl overflow-hidden animate-fade-up" style={{ animationDelay: '0.1s' }}>
+            <div className="aspect-video max-h-[50vh] bg-black relative">
               <iframe
                 src={getVimeoEmbedUrl(module.video_url)}
                 className="absolute inset-0 w-full h-full"
@@ -175,21 +175,9 @@ export default function Lesson() {
                 allowFullScreen
                 title={module.title}
               />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center z-10">
-                  <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto mb-4">
-                    <Play className="w-8 h-8 text-primary-foreground ml-1" />
-                  </div>
-                  <p className="text-muted-foreground">No video available</p>
-                  {module.duration && (
-                    <p className="text-sm text-muted-foreground mt-1">{module.duration}</p>
-                  )}
-                </div>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tabs - Hide on mobile since we show inline content */}
         {!isMobile && (
