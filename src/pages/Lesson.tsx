@@ -232,14 +232,10 @@ export default function Lesson() {
                 )}
               </Button>
             )}
-
-            <div className="flex-1" />
-
             {nextModule && (
               <Button
                 variant="outline"
                 onClick={() => navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
-                className="whitespace-nowrap"
               >
                 Next Lesson
                 <ArrowRight className="w-4 h-4 ml-2" />
