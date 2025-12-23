@@ -35,9 +35,11 @@ import {
   ArrowDown,
   Eye,
   EyeOff,
+  StickyNote,
 } from 'lucide-react';
 import { ModuleFilesManager } from '@/components/admin/ModuleFilesManager';
 import { QuizManager } from '@/components/admin/QuizManager';
+import { NotesManager } from '@/components/admin/NotesManager';
 import {
   useCourses,
   useCreateCourse,
@@ -84,6 +86,7 @@ export default function CourseBuilder() {
   // Files/Quiz manager
   const [filesManagerModule, setFilesManagerModule] = useState<{ id: string; name: string } | null>(null);
   const [quizManagerModule, setQuizManagerModule] = useState<{ id: string; name: string } | null>(null);
+  const [notesManagerModule, setNotesManagerModule] = useState<{ id: string; name: string } | null>(null);
 
   // Form states
   const [courseForm, setCourseForm] = useState({ title: '', description: '', category: 'hair-system' as 'hair-system' | 'business', is_published: true });
@@ -423,6 +426,15 @@ export default function CourseBuilder() {
                         </Button>
                       )}
                       <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => setNotesManagerModule({ id: module.id, name: module.title })}
+                      >
+                        <StickyNote className="w-3 h-3 mr-1" />
+                        Notes
+                      </Button>
+                      <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
@@ -650,6 +662,18 @@ export default function CourseBuilder() {
           onOpenChange={(open) => !open && setQuizManagerModule(null)}
         />
       )}
+
+      {/* Notes Manager */}
+      <Dialog open={!!notesManagerModule} onOpenChange={(open) => !open && setNotesManagerModule(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto glass-card border-border/50">
+          <DialogHeader>
+            <DialogTitle>Manage Notes: {notesManagerModule?.name}</DialogTitle>
+          </DialogHeader>
+          {notesManagerModule && (
+            <NotesManager moduleId={notesManagerModule.id} />
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

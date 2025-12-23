@@ -289,6 +289,76 @@ export type Database = {
           },
         ]
       }
+      module_note_items: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          link_text: string | null
+          link_url: string | null
+          note_section_id: string
+          order_index: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          link_text?: string | null
+          link_url?: string | null
+          note_section_id: string
+          order_index?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          link_text?: string | null
+          link_url?: string | null
+          note_section_id?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_note_items_note_section_id_fkey"
+            columns: ["note_section_id"]
+            isOneToOne: false
+            referencedRelation: "module_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_notes: {
+        Row: {
+          created_at: string
+          id: string
+          module_id: string
+          order_index: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module_id: string
+          order_index?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module_id?: string
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_notes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modules: {
         Row: {
           course_id: string
