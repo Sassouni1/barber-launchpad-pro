@@ -670,7 +670,12 @@ export default function CourseBuilder() {
             <DialogTitle>Manage Notes: {notesManagerModule?.name}</DialogTitle>
           </DialogHeader>
           {notesManagerModule && (
-            <NotesManager moduleId={notesManagerModule.id} />
+            <NotesManager 
+              moduleId={notesManagerModule.id} 
+              initialContent={
+                courses?.flatMap(c => c.modules).find(m => m.id === notesManagerModule.id)?.notes_content
+              }
+            />
           )}
         </DialogContent>
       </Dialog>
