@@ -490,7 +490,7 @@ export default function Lesson() {
                   <Button 
                     variant="outline" 
                     className="flex-1"
-                    onClick={() => nextModule && navigate(`/lesson/${nextModule.id}`)}
+                    onClick={() => nextModule && navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
                     disabled={!nextModule}
                   >
                     Next Lesson
