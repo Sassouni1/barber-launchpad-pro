@@ -473,23 +473,18 @@ export default function Lesson() {
                   );
                 })()}
 
-                <div className="flex flex-col lg:flex-row gap-3">
+                <div className="flex flex-col gap-3">
                   {module.has_quiz && (
                     <Button 
-                      className="flex-1 gold-gradient text-primary-foreground font-semibold"
+                      className="gold-gradient text-primary-foreground font-semibold"
                       onClick={() => setActiveTab('quiz')}
                     >
                       <HelpCircle className="w-4 h-4 mr-2" />
                       Start Quiz
                     </Button>
                   )}
-                  <Button className={`flex-1 ${!module.has_quiz ? 'gold-gradient text-primary-foreground' : ''}`} variant={module.has_quiz ? 'outline' : 'default'}>
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Mark as Complete
-                  </Button>
                   <Button 
                     variant="outline" 
-                    className="flex-1"
                     onClick={() => nextModule && navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
                     disabled={!nextModule}
                   >
