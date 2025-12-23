@@ -7,6 +7,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 // Custom hook for lg breakpoint (1024px)
 function useIsDesktop() {
@@ -190,19 +197,31 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
     <DashboardLayout>
       {/* Mobile View */}
       <div className="lg:hidden flex flex-col h-[calc(100vh-8rem)]">
-        <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-lg font-bold gold-text">{pageTitle}</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">Tap a module to start</p>
+        <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-lg font-bold gold-text">{pageTitle}</h1>
+              <p className="text-muted-foreground text-xs mt-0.5">Tap a module to start</p>
+            </div>
+            {isAdmin && (
+              <Link to="/admin/courses">
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs px-2">
+                  <Settings className="w-3.5 h-3.5" />
+                  Edit
+                </Button>
+              </Link>
+            )}
           </div>
-          {isAdmin && (
-            <Link to="/admin/courses">
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs px-2">
-                <Settings className="w-3.5 h-3.5" />
-                Edit
-              </Button>
-            </Link>
-          )}
+          
+          <Select value={courseType} onValueChange={(value) => navigate(`/courses/${value}`)}>
+            <SelectTrigger className="w-full bg-secondary/50 border-border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="hair-system">Hair System Training</SelectItem>
+              <SelectItem value="business">Business Mastery</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-3 pb-4">
@@ -252,19 +271,31 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
       <div className="hidden lg:flex gap-6 h-[calc(100vh-8rem)]">
         {/* Left Panel - Courses & Modules */}
         <div className="w-96 flex-shrink-0 overflow-hidden flex flex-col">
-          <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-xl font-bold gold-text">{pageTitle}</h1>
-              <p className="text-muted-foreground text-sm mt-1">Select a module to continue</p>
+          <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="font-display text-xl font-bold gold-text">{pageTitle}</h1>
+                <p className="text-muted-foreground text-sm mt-1">Select a module to continue</p>
+              </div>
+              {isAdmin && (
+                <Link to="/admin/courses">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Settings className="w-4 h-4" />
+                    Edit Courses
+                  </Button>
+                </Link>
+              )}
             </div>
-            {isAdmin && (
-              <Link to="/admin/courses">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Settings className="w-4 h-4" />
-                  Edit Courses
-                </Button>
-              </Link>
-            )}
+            
+            <Select value={courseType} onValueChange={(value) => navigate(`/courses/${value}`)}>
+              <SelectTrigger className="w-full bg-secondary/50 border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="hair-system">Hair System Training</SelectItem>
+                <SelectItem value="business">Business Mastery</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="relative flex-1">
