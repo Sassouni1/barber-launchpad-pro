@@ -156,7 +156,9 @@ export default function Lesson() {
   // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [quizScore, setQuizScore] = useState<{ score: number; total: number } | null>(null);
+  const [incorrectQuestions, setIncorrectQuestions] = useState<Set<string>>(new Set());
 
   // Homework state
   const [textResponse, setTextResponse] = useState(existingSubmission?.text_response || '');
@@ -196,6 +198,17 @@ export default function Lesson() {
       selectedAnswerId,
     }));
 
+    // Calculate which questions were wrong
+    const wrongQuestions = new Set<string>();
+    for (const answer of answers) {
+      const question = questions.find(q => q.id === answer.questionId);
+      const correctAnswer = question?.answers?.find(a => a.is_correct);
+      if (correctAnswer?.id !== answer.selectedAnswerId) {
+        wrongQuestions.add(answer.questionId);
+      }
+    }
+    setIncorrectQuestions(wrongQuestions);
+
     const result = await submitQuiz.mutateAsync({
       moduleId: module.id,
       answers,
@@ -210,7 +223,9 @@ export default function Lesson() {
   const resetQuiz = () => {
     setQuizAnswers({});
     setShowResults(false);
+    setShowReview(false);
     setQuizScore(null);
+    setIncorrectQuestions(new Set());
   };
 
   const handleHomeworkSubmit = async () => {
@@ -469,23 +484,92 @@ export default function Lesson() {
                   <p className="text-muted-foreground text-sm">No quiz questions available yet.</p>
                 </div>
               ) : showResults && quizScore ? (
-                <div className="text-center py-6">
-                  <Trophy className="w-12 h-12 mx-auto mb-3 text-primary" />
-                  <h2 className="font-display text-2xl font-bold mb-2">
-                    {quizScore.score} / {quizScore.total}
-                  </h2>
-                  <p className="text-muted-foreground mb-3 text-sm">
-                    {Math.round((quizScore.score / quizScore.total) * 100)}% Correct
-                  </p>
-                  <Progress 
-                    value={(quizScore.score / quizScore.total) * 100} 
-                    className="w-48 mx-auto mb-4"
-                  />
-                  <Button onClick={resetQuiz} variant="outline" size="sm">
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Try Again
-                  </Button>
-                </div>
+                showReview ? (
+                  // Mobile Review Mode
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-display text-lg font-semibold">Quiz Review</h3>
+                      <Button variant="outline" size="sm" onClick={() => setShowReview(false)}>
+                        Back to Results
+                      </Button>
+                    </div>
+                    {questions.filter(q => incorrectQuestions.has(q.id)).map((question, index) => {
+                      const selectedAnswerId = quizAnswers[question.id];
+                      const correctAnswer = question.answers?.find(a => a.is_correct);
+                      return (
+                        <div key={question.id} className="p-3 rounded-xl bg-destructive/10 border border-destructive/30">
+                          <div className="flex items-start gap-2 mb-3">
+                            <span className="w-6 h-6 rounded-full bg-destructive flex items-center justify-center text-xs font-bold text-destructive-foreground flex-shrink-0">
+                              ✗
+                            </span>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{question.question_text}</p>
+                              {question.question_image_url && (
+                                <img
+                                  src={question.question_image_url}
+                                  alt="Question"
+                                  className="mt-2 w-full rounded-lg border border-border/30"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-2 ml-8">
+                            {question.answers?.map((answer) => {
+                              const isSelected = answer.id === selectedAnswerId;
+                              const isCorrect = answer.is_correct;
+                              return (
+                                <div
+                                  key={answer.id}
+                                  className={`flex items-center space-x-2 p-2 rounded-lg text-sm ${
+                                    isCorrect 
+                                      ? 'bg-green-500/20 border border-green-500/50' 
+                                      : isSelected 
+                                        ? 'bg-destructive/20 border border-destructive/50 line-through opacity-70' 
+                                        : 'opacity-50'
+                                  }`}
+                                >
+                                  <span>{isCorrect ? '✓' : isSelected ? '✗' : '○'}</span>
+                                  <span>{answer.answer_text}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <Button onClick={resetQuiz} variant="outline" size="sm" className="w-full">
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Try Again
+                    </Button>
+                  </div>
+                ) : (
+                  // Mobile Results Summary
+                  <div className="text-center py-6">
+                    <Trophy className="w-12 h-12 mx-auto mb-3 text-primary" />
+                    <h2 className="font-display text-2xl font-bold mb-2">
+                      {quizScore.score} / {quizScore.total}
+                    </h2>
+                    <p className="text-muted-foreground mb-3 text-sm">
+                      {Math.round((quizScore.score / quizScore.total) * 100)}% Correct
+                    </p>
+                    <Progress 
+                      value={(quizScore.score / quizScore.total) * 100} 
+                      className="w-48 mx-auto mb-4"
+                    />
+                    <div className="flex flex-col gap-2">
+                      {incorrectQuestions.size > 0 && (
+                        <Button onClick={() => setShowReview(true)} variant="secondary" size="sm">
+                          <HelpCircle className="w-4 h-4 mr-2" />
+                          See Wrong Answers ({incorrectQuestions.size})
+                        </Button>
+                      )}
+                      <Button onClick={resetQuiz} variant="outline" size="sm">
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Try Again
+                      </Button>
+                    </div>
+                  </div>
+                )
               ) : (
                 <div className="space-y-4">
                   {questions.map((question, index) => (
@@ -716,23 +800,92 @@ export default function Lesson() {
                     <p className="text-muted-foreground">No quiz questions available yet.</p>
                   </div>
                 ) : showResults && quizScore ? (
-                  <div className="text-center py-8">
-                    <Trophy className="w-16 h-16 mx-auto mb-4 text-primary" />
-                    <h2 className="font-display text-3xl font-bold mb-2">
-                      {quizScore.score} / {quizScore.total}
-                    </h2>
-                    <p className="text-muted-foreground mb-4">
-                      {Math.round((quizScore.score / quizScore.total) * 100)}% Correct
-                    </p>
-                    <Progress 
-                      value={(quizScore.score / quizScore.total) * 100} 
-                      className="w-64 mx-auto mb-6"
-                    />
-                    <Button onClick={resetQuiz} variant="outline">
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Try Again
-                    </Button>
-                  </div>
+                  showReview ? (
+                    // Desktop Review Mode
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h2 className="font-display text-xl font-semibold">Quiz Review - Wrong Answers</h2>
+                        <Button variant="outline" onClick={() => setShowReview(false)}>
+                          Back to Results
+                        </Button>
+                      </div>
+                      {questions.filter(q => incorrectQuestions.has(q.id)).map((question, index) => {
+                        const selectedAnswerId = quizAnswers[question.id];
+                        const correctAnswer = question.answers?.find(a => a.is_correct);
+                        return (
+                          <div key={question.id} className="p-4 rounded-xl bg-destructive/10 border border-destructive/30">
+                            <div className="flex items-start gap-3 mb-4">
+                              <span className="w-8 h-8 rounded-full bg-destructive flex items-center justify-center text-sm font-bold text-destructive-foreground flex-shrink-0">
+                                ✗
+                              </span>
+                              <div className="flex-1">
+                                <p className="font-medium">{question.question_text}</p>
+                                {question.question_image_url && (
+                                  <img
+                                    src={question.question_image_url}
+                                    alt="Question"
+                                    className="mt-3 max-w-md rounded-lg border border-border/30"
+                                  />
+                                )}
+                              </div>
+                            </div>
+                            <div className="space-y-2 ml-11">
+                              {question.answers?.map((answer) => {
+                                const isSelected = answer.id === selectedAnswerId;
+                                const isCorrect = answer.is_correct;
+                                return (
+                                  <div
+                                    key={answer.id}
+                                    className={`flex items-center space-x-3 p-3 rounded-lg ${
+                                      isCorrect 
+                                        ? 'bg-green-500/20 border border-green-500/50' 
+                                        : isSelected 
+                                          ? 'bg-destructive/20 border border-destructive/50 line-through opacity-70' 
+                                          : 'opacity-50'
+                                    }`}
+                                  >
+                                    <span className="text-lg">{isCorrect ? '✓' : isSelected ? '✗' : '○'}</span>
+                                    <span>{answer.answer_text}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <Button onClick={resetQuiz} variant="outline" className="w-full">
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : (
+                    // Desktop Results Summary
+                    <div className="text-center py-8">
+                      <Trophy className="w-16 h-16 mx-auto mb-4 text-primary" />
+                      <h2 className="font-display text-3xl font-bold mb-2">
+                        {quizScore.score} / {quizScore.total}
+                      </h2>
+                      <p className="text-muted-foreground mb-4">
+                        {Math.round((quizScore.score / quizScore.total) * 100)}% Correct
+                      </p>
+                      <Progress 
+                        value={(quizScore.score / quizScore.total) * 100} 
+                        className="w-64 mx-auto mb-6"
+                      />
+                      <div className="flex flex-col items-center gap-3">
+                        {incorrectQuestions.size > 0 && (
+                          <Button onClick={() => setShowReview(true)} variant="secondary">
+                            <HelpCircle className="w-4 h-4 mr-2" />
+                            See Wrong Answers ({incorrectQuestions.size})
+                          </Button>
+                        )}
+                        <Button onClick={resetQuiz} variant="outline">
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Try Again
+                        </Button>
+                      </div>
+                    </div>
+                  )
                 ) : (
                   <>
                     <h2 className="font-display text-xl font-semibold">Module Quiz</h2>
