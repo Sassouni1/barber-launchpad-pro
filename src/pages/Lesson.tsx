@@ -265,7 +265,7 @@ export default function Lesson() {
         </div>
 
         {/* Video Player - only show if video exists */}
-        {module.video_url && (
+        {module.video_url?.trim() && (
           <div className="glass-card rounded-2xl overflow-hidden animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="aspect-video max-h-[50vh] bg-black relative">
               <iframe
