@@ -176,6 +176,15 @@ export default function CourseBuilder() {
     setDeleteTarget(null);
   };
 
+  // Toggle visibility handlers
+  const handleToggleCourseVisibility = async (courseId: string, currentlyPublished: boolean) => {
+    await updateCourse.mutateAsync({ id: courseId, is_published: !currentlyPublished });
+  };
+
+  const handleToggleModuleVisibility = async (moduleId: string, currentlyPublished: boolean) => {
+    await updateModule.mutateAsync({ id: moduleId, is_published: !currentlyPublished });
+  };
+
   // Reorder handlers
   const handleReorderCourse = async (courseId: string, direction: 'up' | 'down') => {
     if (!courses) return;
@@ -313,6 +322,21 @@ export default function CourseBuilder() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      title={(course as any).is_published ? "Hide course" : "Show course"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleCourseVisibility(course.id, (course as any).is_published ?? true);
+                      }}
+                    >
+                      {(course as any).is_published ? (
+                        <Eye className="w-4 h-4" />
+                      ) : (
+                        <EyeOff className="w-4 h-4 text-amber-400" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
                         openEditCourse(course);
@@ -433,6 +457,19 @@ export default function CourseBuilder() {
                       >
                         <StickyNote className="w-3 h-3 mr-1" />
                         Notes
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={(module as any).is_published ? "Hide lesson" : "Show lesson"}
+                        onClick={() => handleToggleModuleVisibility(module.id, (module as any).is_published ?? true)}
+                      >
+                        {(module as any).is_published ? (
+                          <Eye className="w-4 h-4" />
+                        ) : (
+                          <EyeOff className="w-4 h-4 text-amber-400" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
