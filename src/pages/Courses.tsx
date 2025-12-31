@@ -357,7 +357,16 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       return (
                         <button
                           key={module.id}
-                          onClick={() => isDesktop ? setSelectedModule(module.id) : navigate(`/courses/${courseType}/lesson/${module.id}`)}
+                          onClick={() => {
+                            // If no video, go directly to lesson; otherwise show preview (desktop) or navigate (mobile/tablet)
+                            if (!module.video_url?.trim()) {
+                              navigate(`/courses/${courseType}/lesson/${module.id}`);
+                            } else if (isDesktop) {
+                              setSelectedModule(module.id);
+                            } else {
+                              navigate(`/courses/${courseType}/lesson/${module.id}`);
+                            }
+                          }}
                           className={cn(
                             'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
                             'border-2 hover:border-primary/50 hover:bg-secondary/20',
