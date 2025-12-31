@@ -399,8 +399,8 @@ export default function Lesson() {
                     <span>Images ({images.length})</span>
                   </div>
                   <div
-                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin touch-pan-x"
-                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
+                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin"
+                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
                   >
                     {images.map((file) => (
                       <MobileFileCard key={file.id} file={file} isImage={true} isVideo={false} />
@@ -416,8 +416,8 @@ export default function Lesson() {
                     <span>Videos ({videos.length})</span>
                   </div>
                   <div
-                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin touch-pan-x"
-                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
+                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin"
+                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
                   >
                     {videos.map((file) => (
                       <MobileFileCard key={file.id} file={file} isImage={false} isVideo={true} />
@@ -433,8 +433,8 @@ export default function Lesson() {
                     <span>Other Files ({others.length})</span>
                   </div>
                   <div
-                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin touch-pan-x"
-                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorX: 'contain', touchAction: 'pan-x' }}
+                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin"
+                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
                   >
                     {others.map((file) => (
                       <MobileFileCard key={file.id} file={file} isImage={false} isVideo={false} />
