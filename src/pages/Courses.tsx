@@ -434,11 +434,20 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
 
         {/* Right Panel - Module Content (Desktop only) */}
         {isDesktop && (
-        <div className="flex-1 min-w-0 overflow-y-auto">
+        <div className={cn(
+          "flex-1 min-w-0 overflow-y-auto",
+          !moduleData?.module.video_url?.trim() && "flex items-center justify-center"
+        )}>
           {moduleData ? (
-            <div className="glass-card rounded-xl overflow-hidden">
+            <div className={cn(
+              "glass-card rounded-xl overflow-hidden w-full",
+              !moduleData.module.video_url?.trim() && "max-w-lg"
+            )}>
               {/* Module Header */}
-              <div className="p-6 border-b border-border/30">
+              <div className={cn(
+                "p-6",
+                moduleData.module.video_url?.trim() && "border-b border-border/30"
+              )}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                   <span>{moduleData.courseName}</span>
                 </div>
@@ -460,7 +469,6 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   />
                 </div>
               )}
-
 
               {/* Actions */}
               <div className="p-6 space-y-4">
