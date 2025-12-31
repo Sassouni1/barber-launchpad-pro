@@ -156,9 +156,9 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               <SheetTitle className="text-lg font-bold gold-text text-left">{moduleData.module.title}</SheetTitle>
             </SheetHeader>
 
-            {/* Video Preview */}
-            <div className="relative aspect-video bg-black">
-              {moduleData.module.video_url ? (
+            {/* Video Preview - only show if video exists */}
+            {moduleData.module.video_url?.trim() && (
+              <div className="relative aspect-video bg-black">
                 <iframe
                   src={getVimeoEmbedUrl(moduleData.module.video_url)}
                   className="absolute inset-0 w-full h-full"
@@ -166,14 +166,9 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   allowFullScreen
                   title={moduleData.module.title}
                 />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                  <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border border-primary/40">
-                    <Play className="w-6 h-6 text-primary ml-1" />
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+
 
             {/* Actions */}
             <div className="flex-1 p-4 space-y-3 overflow-y-auto">
@@ -453,9 +448,9 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                 )}
               </div>
 
-              {/* Video Player */}
-              <div className="relative aspect-video bg-black border-b border-border/30">
-                {moduleData.module.video_url ? (
+              {/* Video Player - only show if video exists */}
+              {moduleData.module.video_url?.trim() && (
+                <div className="relative aspect-video bg-black border-b border-border/30">
                   <iframe
                     src={getVimeoEmbedUrl(moduleData.module.video_url)}
                     className="absolute inset-0 w-full h-full"
@@ -463,23 +458,9 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                     allowFullScreen
                     title={moduleData.module.title}
                   />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                    <div className="absolute inset-0 cyber-grid opacity-30" />
-                    <div className="relative z-10 text-center">
-                      <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4 border border-primary/40">
-                        <Play className="w-8 h-8 text-primary ml-1" />
-                      </div>
-                      {moduleData.module.duration && (
-                        <p className="text-muted-foreground text-sm">
-                          <Clock className="w-4 h-4 inline mr-1" />
-                          {moduleData.module.duration}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
+
 
               {/* Actions */}
               <div className="p-6 space-y-4">
