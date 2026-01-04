@@ -9,19 +9,22 @@ const corsHeaders = {
 
 // Text configuration for positioning
 const NAME_CONFIG = {
-  yPercent: 0.52,       // 52% from top (centered on certificate)
+  yPercent: 0.39,       // 39% from top (right after "Presented to" line)
   maxWidthPercent: 0.7, // Max 70% of image width
-  baseFontSize: 120,    // Starting font size
+  baseFontSize: 100,    // Starting font size
   minFontSize: 48,      // Minimum font size
-  color: '#D4AF37',     // Gold color
+  color: '#C9A227',     // Warm gold matching template
 };
 
 const DATE_CONFIG = {
   xPercent: 0.175,      // 17.5% from left
   yPercent: 0.815,      // 81.5% from top
   fontSize: 28,
-  color: '#D4AF37',     // Gold color
+  color: '#C9A227',     // Warm gold matching template
 };
+
+// Google Font URL for Pinyon Script (elegant script font)
+const SCRIPT_FONT_URL = 'https://fonts.gstatic.com/s/pinyonscript/v22/6xKpdSJbL9-e9LuoeQiDRQR8WOXaPw.ttf';
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -60,6 +63,15 @@ serve(async (req) => {
     const templateBytes = await templateResponse.arrayBuffer();
     console.log('Template loaded:', { sizeKB: Math.round(templateBytes.byteLength / 1024) });
 
+    // Fetch the script font
+    console.log('Fetching script font...');
+    const fontResponse = await fetch(SCRIPT_FONT_URL);
+    if (!fontResponse.ok) {
+      throw new Error(`Failed to fetch font: ${fontResponse.status}`);
+    }
+    const fontData = await fontResponse.arrayBuffer();
+    console.log('Font loaded:', { sizeKB: Math.round(fontData.byteLength / 1024) });
+
     // Load template into canvas
     console.log('Loading template into canvas...');
     const templateImage = await loadImage(new Uint8Array(templateBytes));
@@ -70,6 +82,10 @@ serve(async (req) => {
     // Create canvas at exact template dimensions
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
+
+    // Register the script font
+    canvas.loadFont(new Uint8Array(fontData), { family: 'PinyonScript' });
+    console.log('Font registered: PinyonScript');
 
     // Draw the template (preserves all pixels exactly)
     ctx.drawImage(templateImage, 0, 0);
@@ -83,7 +99,7 @@ serve(async (req) => {
       day: 'numeric'
     });
 
-    // Draw the name (centered, gold, script-style)
+    // Draw the name (centered, gold, script font)
     ctx.fillStyle = NAME_CONFIG.color;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -92,12 +108,12 @@ serve(async (req) => {
     const maxWidth = width * NAME_CONFIG.maxWidthPercent;
     let fontSize = NAME_CONFIG.baseFontSize;
     
-    // Use italic serif to simulate script font (canvas has limited built-in font support)
-    ctx.font = `italic bold ${fontSize}px Georgia`;
+    // Use the loaded script font
+    ctx.font = `${fontSize}px PinyonScript`;
     
     while (ctx.measureText(certificateName).width > maxWidth && fontSize > NAME_CONFIG.minFontSize) {
       fontSize -= 4;
-      ctx.font = `italic bold ${fontSize}px Georgia`;
+      ctx.font = `${fontSize}px PinyonScript`;
     }
     
     console.log('Name font size:', fontSize);
