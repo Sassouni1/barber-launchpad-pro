@@ -32,14 +32,25 @@ interface CertificationSectionProps {
 }
 
 export function CertificationSection({ courseId }: CertificationSectionProps) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
 
-  const { isAdmin, isAdminModeActive } = useAuthContext();
+  const { isAdmin, isAdminModeActive, toggleAdminMode } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
   const isDebugMode = searchParams.get('certDebug') === '1';
+
+  const toggleCertDebug = () => {
+    const next = new URLSearchParams(searchParams);
+    if (isDebugMode) {
+      next.delete('certDebug');
+    } else {
+      next.set('certDebug', '1');
+    }
+    setSearchParams(next, { replace: true });
+    setDebugInfo(null);
+  };
 
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
   const { data: existingCertification, isLoading: isLoadingCertification } = useUserCertification(courseId);
@@ -64,6 +75,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   };
 
   const handleSubmitCertification = async (name: string) => {
+    setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId,
       certificateName: name,
@@ -134,6 +146,15 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={toggleCertDebug}
+              >
+                {isDebugMode ? 'Debug ON' : 'Debug OFF'}
+              </Button>
+
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -199,6 +220,18 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 onClick={() => window.open(existingCertification.certificate_url!, '_blank')}
               >
                 Download Certificate
+              </Button>
+            </div>
+          )}
+
+          {/* Admin helpers */}
+          {isAdmin && !isAdminModeActive && (
+            <div className="mt-4 p-4 rounded-lg bg-secondary/30 border border-border flex items-center justify-between gap-3">
+              <div className="text-sm text-muted-foreground">
+                Admin controls are hidden (Admin Mode is OFF).
+              </div>
+              <Button variant="outline" size="sm" onClick={toggleAdminMode}>
+                Enable Admin Mode
               </Button>
             </div>
           )}
