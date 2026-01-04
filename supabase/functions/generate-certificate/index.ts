@@ -132,7 +132,8 @@ serve(async (req) => {
 
     // Draw name with auto-sizing
     ctx.fillStyle = layout.name_color || DEFAULT_NAME_CONFIG.color;
-    ctx.textAlign = 'center';
+    // Use LEFT align and manually center - DO NOT rely on textAlign='center'
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     
     let fontSize = layout.name_font_size || DEFAULT_NAME_CONFIG.baseFontSize;
@@ -147,27 +148,33 @@ serve(async (req) => {
     
     // Measure final text width
     const measuredTextWidth = ctx.measureText(certificateName).width;
-    const textLeftEdge = nameX - measuredTextWidth / 2;
-    const textRightEdge = nameX + measuredTextWidth / 2;
+    
+    // MANUAL CENTERING: Calculate where to start drawing so text is centered on nameX
+    const drawX = nameX - measuredTextWidth / 2;
+    const textLeftEdge = drawX;
+    const textRightEdge = drawX + measuredTextWidth;
     const imageCenterX = width / 2;
 
     // PIXEL DEBUG LOGGING (always log)
     console.log('=== PIXEL DEBUG START ===');
     console.log(`Template dimensions: ${width} x ${height}`);
     console.log(`Image center X: ${imageCenterX}`);
-    console.log(`layout.name_x (anchor): ${nameX}`);
+    console.log(`layout.name_x (target center): ${nameX}`);
     console.log(`layout.name_y: ${nameY}`);
     console.log(`Measured text width: ${Math.round(measuredTextWidth)}px`);
-    console.log(`Text LEFT edge (anchor - width/2): ${Math.round(textLeftEdge)}`);
-    console.log(`Text RIGHT edge (anchor + width/2): ${Math.round(textRightEdge)}`);
+    console.log(`drawX (start position): ${Math.round(drawX)}`);
+    console.log(`Text LEFT edge: ${Math.round(textLeftEdge)}`);
+    console.log(`Text RIGHT edge: ${Math.round(textRightEdge)}`);
+    console.log(`Text CENTER: ${Math.round((textLeftEdge + textRightEdge) / 2)}`);
     console.log(`Font size used: ${fontSize}px`);
-    console.log(`Offset from image center: ${nameX - imageCenterX}px`);
+    console.log(`textAlign: LEFT (manual centering)`);
     console.log('=== PIXEL DEBUG END ===');
     
     console.log('Name font:', { family: fontFamily, size: fontSize });
     
-    ctx.fillText(certificateName, nameX, nameY);
-    console.log('Name drawn at:', { x: nameX, y: nameY });
+    // Draw at calculated position (left-aligned at drawX centers text on nameX)
+    ctx.fillText(certificateName, drawX, nameY);
+    console.log('Name drawn at:', { x: drawX, y: nameY });
 
     // Draw date - ALSO use custom font
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
@@ -180,16 +187,31 @@ serve(async (req) => {
     console.log('Date font:', { family: fontFamily, size: dateFontSize });
     console.log('Date drawn at:', { x: dateX, y: dateY });
 
-    // DEBUG MODE: Draw visual guide lines and labels
+    // DEBUG MODE: Draw visual guide lines, labels, and watermark
     if (debug) {
-      console.log('DEBUG MODE: Drawing guide lines and labels');
+      console.log('DEBUG MODE: Drawing guide lines, labels, and watermark');
       
-      const lineWidth = 3;
-      const labelFontSize = 24;
-      ctx.font = `${labelFontSize}px sans-serif`;
+      const generatedAt = new Date().toISOString();
+      
+      // Draw DEBUG MODE watermark at top
+      ctx.save();
+      ctx.font = 'bold 80px sans-serif';
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText('DEBUG MODE', width / 2, 20);
+      
+      ctx.font = '30px sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.fillText(`Generated: ${generatedAt}`, width / 2, 110);
+      ctx.restore();
+      
+      const lineWidth = 4;
+      const labelFontSize = 36;
+      ctx.font = `bold ${labelFontSize}px sans-serif`;
       ctx.textBaseline = 'top';
       
-      // Helper to draw vertical line with label
+      // Helper to draw vertical line with large, always-visible label
       const drawVerticalLine = (x: number, color: string, label: string, labelY: number) => {
         ctx.strokeStyle = color;
         ctx.lineWidth = lineWidth;
@@ -198,15 +220,32 @@ serve(async (req) => {
         ctx.lineTo(x, height);
         ctx.stroke();
         
-        // Draw label background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        const labelWidth = ctx.measureText(label).width + 10;
-        ctx.fillRect(x + 5, labelY, labelWidth, labelFontSize + 8);
+        // Calculate label width and clamp position
+        const labelWidth = ctx.measureText(label).width + 20;
+        let labelX = x + 10;
+        
+        // If label would go off right edge, draw it to the left of the line
+        if (labelX + labelWidth > width - 10) {
+          labelX = x - labelWidth - 10;
+        }
+        // If that would go off left edge, clamp to left edge
+        if (labelX < 10) {
+          labelX = 10;
+        }
+        
+        // Draw label background (solid black for visibility)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillRect(labelX, labelY, labelWidth, labelFontSize + 16);
+        
+        // Draw border around label
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(labelX, labelY, labelWidth, labelFontSize + 16);
         
         // Draw label text
-        ctx.fillStyle = color;
+        ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'left';
-        ctx.fillText(label, x + 10, labelY + 4);
+        ctx.fillText(label, labelX + 10, labelY + 8);
       };
       
       // Helper to draw horizontal line with label
@@ -219,49 +258,57 @@ serve(async (req) => {
         ctx.stroke();
         
         // Draw label background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        const labelWidth = ctx.measureText(label).width + 10;
-        ctx.fillRect(labelX, y + 5, labelWidth, labelFontSize + 8);
+        const labelWidth = ctx.measureText(label).width + 20;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillRect(labelX, y + 10, labelWidth, labelFontSize + 16);
+        
+        // Draw border
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(labelX, y + 10, labelWidth, labelFontSize + 16);
         
         // Draw label text
-        ctx.fillStyle = color;
+        ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'left';
-        ctx.fillText(label, labelX + 5, y + 9);
+        ctx.fillText(label, labelX + 10, y + 18);
       };
 
-      // Vertical guide lines
-      drawVerticalLine(0, '#FF0000', `x=0 (left edge)`, 50);
-      drawVerticalLine(imageCenterX, '#0066FF', `x=${imageCenterX} (IMAGE CENTER)`, 100);
-      drawVerticalLine(nameX, '#00FF00', `x=${nameX} (name_x anchor)`, 150);
-      drawVerticalLine(textLeftEdge, '#FFFF00', `x=${Math.round(textLeftEdge)} (text left)`, 200);
-      drawVerticalLine(textRightEdge, '#FF00FF', `x=${Math.round(textRightEdge)} (text right)`, 250);
-      drawVerticalLine(width, '#FF6600', `x=${width} (right edge)`, 300);
+      // Vertical guide lines with distinct colors and positions
+      drawVerticalLine(imageCenterX, '#0066FF', `IMAGE CENTER x=${imageCenterX}`, 180);
+      drawVerticalLine(nameX, '#00FF00', `name_x=${nameX}`, 240);
+      drawVerticalLine(textLeftEdge, '#FFFF00', `TEXT LEFT x=${Math.round(textLeftEdge)}`, 300);
+      drawVerticalLine(textRightEdge, '#FF00FF', `TEXT RIGHT x=${Math.round(textRightEdge)}`, 360);
       
       // Horizontal guide lines
-      drawHorizontalLine(nameY, '#00FFFF', `y=${nameY} (name_y)`, 50);
-      drawHorizontalLine(dateY, '#00FFFF', `y=${dateY} (date_y)`, 50);
+      drawHorizontalLine(nameY, '#00FFFF', `name_y=${nameY}`, 50);
+      drawHorizontalLine(dateY, '#FFA500', `date_y=${dateY}`, 50);
       
-      // Draw info box at top
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-      ctx.fillRect(20, 350, 600, 220);
+      // Draw large info box
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+      ctx.fillRect(20, 420, 700, 340);
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(20, 420, 700, 340);
       
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = `20px sans-serif`;
+      ctx.font = 'bold 28px sans-serif';
       ctx.textAlign = 'left';
       
       const infoLines = [
-        `Template: ${width} x ${height}`,
+        `Template: ${width} x ${height} px`,
         `Image Center X: ${imageCenterX}`,
-        `name_x (anchor): ${nameX}`,
+        `name_x (target center): ${nameX}`,
         `name_y: ${nameY}`,
-        `Measured Text Width: ${Math.round(measuredTextWidth)}px`,
-        `Text spans: ${Math.round(textLeftEdge)} to ${Math.round(textRightEdge)}`,
+        `Measured Text Width: ${Math.round(measuredTextWidth)} px`,
+        `drawX (start): ${Math.round(drawX)}`,
+        `Text spans: ${Math.round(textLeftEdge)} → ${Math.round(textRightEdge)}`,
+        `Text center: ${Math.round((textLeftEdge + textRightEdge) / 2)}`,
         `Font Size: ${fontSize}px`,
-        `Offset from center: ${nameX - imageCenterX}px`,
+        `textAlign: LEFT (manual center)`,
       ];
       
       infoLines.forEach((line, i) => {
-        ctx.fillText(line, 35, 370 + i * 26);
+        ctx.fillText(line, 40, 455 + i * 32);
       });
     }
 
@@ -334,11 +381,13 @@ serve(async (req) => {
         imageCenterX,
         nameAnchorX: nameX,
         nameAnchorY: nameY,
+        drawX: Math.round(drawX),
         measuredTextWidth: Math.round(measuredTextWidth),
         textLeftEdge: Math.round(textLeftEdge),
         textRightEdge: Math.round(textRightEdge),
+        textCenter: Math.round((textLeftEdge + textRightEdge) / 2),
         fontSizeUsed: fontSize,
-        offsetFromCenter: nameX - imageCenterX,
+        textAlign: 'left (manual centering)',
       };
     }
 
