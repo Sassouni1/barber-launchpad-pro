@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizProgressList } from './QuizProgressList';
@@ -31,11 +32,14 @@ interface CertificationSectionProps {
 }
 
 export function CertificationSection({ courseId }: CertificationSectionProps) {
+  const [searchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
 
   const { isAdmin, isAdminModeActive } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
+  const isDebugMode = searchParams.get('certDebug') === '1';
 
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
   const { data: existingCertification, isLoading: isLoadingCertification } = useUserCertification(courseId);
@@ -63,9 +67,13 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     const result = await issueCertification.mutateAsync({
       courseId,
       certificateName: name,
+      debug: isDebugMode,
     });
     if (result?.certificateUrl) {
       setGeneratedCertificateUrl(result.certificateUrl);
+    }
+    if (result?.debug) {
+      setDebugInfo(result.debug);
     }
   };
 
@@ -238,6 +246,14 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                   Regenerating...
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Debug Info Panel */}
+          {isDebugMode && debugInfo && (
+            <div className="mt-4 p-4 rounded-lg bg-black/80 border border-yellow-500/50 font-mono text-xs text-green-400 overflow-x-auto">
+              <div className="text-yellow-400 mb-2 font-bold">DEBUG INFO (certDebug=1)</div>
+              <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
             </div>
           )}
         </div>

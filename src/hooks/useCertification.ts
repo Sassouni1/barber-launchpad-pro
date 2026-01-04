@@ -241,11 +241,8 @@ export function useIssueCertification() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ courseId, certificateName }: { courseId: string; certificateName: string }) => {
+    mutationFn: async ({ courseId, certificateName, debug = false }: { courseId: string; certificateName: string; debug?: boolean }) => {
       if (!user?.id) throw new Error('Not authenticated');
-
-      // Debug mode disabled for normal use
-      const debugMode = false;
 
       try {
         // Call edge function to generate certificate
@@ -254,7 +251,7 @@ export function useIssueCertification() {
             userId: user.id,
             courseId,
             certificateName,
-            debug: debugMode,
+            debug,
           },
         });
 
