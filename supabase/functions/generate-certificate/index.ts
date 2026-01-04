@@ -7,20 +7,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Default configuration (used only if no AI-detected layout exists)
+// Default configuration
 const DEFAULT_NAME_CONFIG = {
   baseFontSize: 72,
   minFontSize: 48,
-  color: '#C9A227',
+  color: '#CEA77C',
 };
 
 const DEFAULT_DATE_CONFIG = {
   fontSize: 24,
-  color: '#C9A227',
+  color: '#CEA77C',
 };
 
-// Font for certificate name
-const FONT_URL = 'https://fonts.gstatic.com/s/unifrakturmaguntia/v20/WWXPlieVYwiGNomYU-ciRLRvEmGZZ.woff2';
+// TTF font URL (OFL license Old English font)
+const FONT_URL = 'https://github.com/AltspaceVR/UnifrakturMaguntia/raw/refs/heads/master/UnifrakturMaguntia-Book.ttf';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -42,149 +42,24 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    // Try to get AI-detected layout from database
+    // Get stored layout from database (use maybeSingle to handle missing gracefully)
     console.log('Checking for stored layout...');
-    const { data: storedLayout, error: layoutError } = await supabase
+    const { data: layout, error: layoutError } = await supabase
       .from('certificate_layouts')
       .select('*')
       .eq('course_id', courseId)
-      .single();
+      .maybeSingle();
 
-    let layout = storedLayout;
-
-    // If no layout exists, call AI to analyze the template
-    if (!layout || layoutError) {
-      console.log('No stored layout found, calling AI to analyze template...');
-      
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('LOVABLE_API_KEY is not configured');
-      }
-
-      // Get template URL
-      const templatePath = 'template/certificate-template.png';
-      const { data: templateUrlData } = supabase.storage
-        .from('certificates')
-        .getPublicUrl(templatePath);
-
-      if (!templateUrlData?.publicUrl) {
-        throw new Error('Could not get template URL');
-      }
-
-      console.log('Calling AI vision to analyze template...');
-      
-      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: `Analyze this certificate template image. I need EXACT pixel coordinates for placing:
-1. The recipient's NAME - in the blank area designated for the name
-2. The DATE - in the date field area
-
-Return ONLY a JSON object with these exact fields:
-{
-  "name_x": <center X coordinate in pixels for name>,
-  "name_y": <Y coordinate in pixels for name>,
-  "name_max_width": <max width in pixels for name>,
-  "date_x": <X coordinate in pixels for date>,
-  "date_y": <Y coordinate in pixels for date>
-}
-
-Be precise - look for blank lines, underscores, or designated areas for text placement.`
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: templateUrlData.publicUrl
-                  }
-                }
-              ]
-            }
-          ]
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error('AI API error:', aiResponse.status, errorText);
-        throw new Error(`AI analysis failed: ${aiResponse.status}`);
-      }
-
-      const aiData = await aiResponse.json();
-      const content = aiData.choices?.[0]?.message?.content;
-
-      if (!content) {
-        throw new Error('No response from AI');
-      }
-
-      console.log('AI response:', content);
-
-      // Parse JSON from AI response
-      let detectedLayout;
-      try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          detectedLayout = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON in response');
-        }
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', content);
-        throw new Error('Failed to parse AI layout detection');
-      }
-
-      console.log('AI detected layout:', detectedLayout);
-
-      // Store the detected layout for future use
-      const { error: insertError } = await supabase
-        .from('certificate_layouts')
-        .upsert({
-          course_id: courseId,
-          name_x: Math.round(detectedLayout.name_x),
-          name_y: Math.round(detectedLayout.name_y),
-          name_max_width: Math.round(detectedLayout.name_max_width),
-          date_x: Math.round(detectedLayout.date_x),
-          date_y: Math.round(detectedLayout.date_y),
-          name_font_size: DEFAULT_NAME_CONFIG.baseFontSize,
-          name_min_font_size: DEFAULT_NAME_CONFIG.minFontSize,
-          name_color: DEFAULT_NAME_CONFIG.color,
-          date_font_size: DEFAULT_DATE_CONFIG.fontSize,
-          date_color: DEFAULT_DATE_CONFIG.color,
-        }, {
-          onConflict: 'course_id'
-        });
-
-      if (insertError) {
-        console.warn('Failed to store layout, continuing anyway:', insertError);
-      } else {
-        console.log('Stored AI-detected layout for future use');
-      }
-
-      layout = {
-        name_x: Math.round(detectedLayout.name_x),
-        name_y: Math.round(detectedLayout.name_y),
-        name_max_width: Math.round(detectedLayout.name_max_width),
-        date_x: Math.round(detectedLayout.date_x),
-        date_y: Math.round(detectedLayout.date_y),
-        name_font_size: DEFAULT_NAME_CONFIG.baseFontSize,
-        name_min_font_size: DEFAULT_NAME_CONFIG.minFontSize,
-        name_color: DEFAULT_NAME_CONFIG.color,
-        date_font_size: DEFAULT_DATE_CONFIG.fontSize,
-        date_color: DEFAULT_DATE_CONFIG.color,
-      };
-    } else {
-      console.log('Using stored layout:', layout);
+    if (layoutError) {
+      console.error('Layout fetch error:', layoutError);
+      throw new Error('Failed to fetch certificate layout');
     }
+
+    if (!layout) {
+      throw new Error('No certificate layout configured for this course. Please configure coordinates in admin.');
+    }
+
+    console.log('Using stored layout:', layout);
 
     // Fetch the certificate template
     console.log('Fetching template...');
@@ -210,18 +85,27 @@ Be precise - look for blank lines, underscores, or designated areas for text pla
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Try to load custom font
+    // Load custom TTF font
     let fontFamily = 'serif';
     try {
+      console.log('Loading font from:', FONT_URL);
       const fontResponse = await fetch(FONT_URL);
+      console.log('Font response:', { 
+        status: fontResponse.status, 
+        contentType: fontResponse.headers.get('content-type'),
+      });
+      
       if (fontResponse.ok) {
         const fontData = await fontResponse.arrayBuffer();
-        canvas.loadFont(new Uint8Array(fontData), { family: 'UnifrakturMaguntia' });
-        fontFamily = 'UnifrakturMaguntia';
-        console.log('Custom font loaded');
+        console.log('Font bytes loaded:', fontData.byteLength);
+        canvas.loadFont(new Uint8Array(fontData), { family: 'OldEnglish' });
+        fontFamily = 'OldEnglish';
+        console.log('Custom font loaded successfully: OldEnglish');
+      } else {
+        console.warn('Font fetch failed:', fontResponse.status);
       }
     } catch (fontError) {
-      console.warn('Font loading failed, using fallback:', fontError);
+      console.warn('Font loading failed, using fallback serif:', fontError);
     }
 
     // Draw template
@@ -236,7 +120,7 @@ Be precise - look for blank lines, underscores, or designated areas for text pla
       day: 'numeric'
     });
 
-    // Use AI-detected coordinates (exact pixels, not percentages!)
+    // Use stored coordinates
     const nameX = layout.name_x;
     const nameY = layout.name_y;
     const nameMaxWidth = layout.name_max_width;
@@ -263,18 +147,20 @@ Be precise - look for blank lines, underscores, or designated areas for text pla
     console.log('Name font:', { family: fontFamily, size: fontSize });
     
     ctx.fillText(certificateName, nameX, nameY);
-    console.log('Name drawn at exact pixel:', { x: nameX, y: nameY });
+    console.log('Name drawn at:', { x: nameX, y: nameY });
 
-    // Draw date
-    ctx.font = `${layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize}px Georgia`;
+    // Draw date - ALSO use custom font
+    const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
+    ctx.font = `${dateFontSize}px ${fontFamily}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = layout.date_color || DEFAULT_DATE_CONFIG.color;
     
     ctx.fillText(formattedDate, dateX, dateY);
-    console.log('Date drawn at exact pixel:', { x: dateX, y: dateY });
+    console.log('Date font:', { family: fontFamily, size: dateFontSize });
+    console.log('Date drawn at:', { x: dateX, y: dateY });
 
-    // Export as high-quality PNG
+    // Export as PNG
     console.log('Exporting PNG...');
     const pngData = canvas.toBuffer('image/png');
     console.log('PNG exported:', { sizeKB: Math.round(pngData.length / 1024) });
@@ -332,14 +218,7 @@ Be precise - look for blank lines, underscores, or designated areas for text pla
         certificateUrl,
         dimensions: { width, height },
         fontUsed: fontFamily,
-        layoutUsed: {
-          nameX,
-          nameY,
-          dateX,
-          dateY,
-          source: storedLayout ? 'database' : 'ai-detected'
-        },
-        message: 'Certificate generated with AI-detected coordinates'
+        layoutUsed: { nameX, nameY, dateX, dateY },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
