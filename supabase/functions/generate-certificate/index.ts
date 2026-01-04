@@ -1,236 +1,138 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Image, decode } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
+import { createCanvas, loadImage } from "https://deno.land/x/canvas@v1.4.2/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Canonical template path
-const TEMPLATE_PATH = 'template/certificate-template.png';
-
-// Text positioning (these are approximate - adjust based on your template)
+// Text configuration for positioning
 const NAME_CONFIG = {
-  y: 0.42, // Percentage from top (42% down)
-  maxWidth: 0.7, // Max width as percentage of image width
-  color: 0xD4AF37FF, // Gold color (RGBA)
-  baseFontSize: 72,
-  minFontSize: 36,
+  yPercent: 0.42,       // 42% from top
+  maxWidthPercent: 0.7, // Max 70% of image width
+  baseFontSize: 120,    // Starting font size
+  minFontSize: 48,      // Minimum font size
+  color: '#D4AF37',     // Gold color
 };
 
 const DATE_CONFIG = {
-  x: 0.175, // Percentage from left (17.5%)
-  y: 0.815, // Percentage from top (81.5%)
-  color: 0xD4AF37FF, // Gold color
-  fontSize: 20,
+  xPercent: 0.175,      // 17.5% from left
+  yPercent: 0.815,      // 81.5% from top
+  fontSize: 28,
+  color: '#D4AF37',     // Gold color
 };
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { userId, courseId, certificateName } = await req.json();
-
+    
     console.log('Generating certificate for:', { userId, courseId, certificateName });
 
     if (!userId || !courseId || !certificateName) {
       throw new Error('Missing required fields: userId, courseId, or certificateName');
     }
 
+    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
-      global: {
-        headers: {
-          Authorization: `Bearer ${supabaseServiceKey}`,
-          apikey: supabaseServiceKey,
-        },
-      },
     });
 
-    // Fetch the template image
+    // Fetch the certificate template
     console.log('Fetching template...');
-    const candidatePaths = [
-      TEMPLATE_PATH,
-      'template/certificate-template.jpg',
-      'template/certificate-template.jpeg',
-    ];
-
-    let templateResp: Response | null = null;
-    let chosenPath: string | null = null;
-
-    for (const path of candidatePaths) {
-      const url = supabase.storage.from('certificates').getPublicUrl(path).data.publicUrl;
-      const r = await fetch(url);
-      console.log('Template fetch', { path, status: r.status });
-      if (r.ok) {
-        templateResp = r;
-        chosenPath = path;
-        break;
-      }
-    }
-
-    if (!templateResp || !chosenPath) {
-      throw new Error('Certificate template not found. Please upload it from Admin Dashboard first.');
-    }
-
-    const templateArrayBuffer = await templateResp.arrayBuffer();
-    const templateBytes = new Uint8Array(templateArrayBuffer);
-    console.log('Template loaded:', { 
-      chosenPath, 
-      sizeKB: Math.round(templateBytes.length / 1024)
-    });
-
-    // Decode the template image
-    console.log('Decoding template image...');
-    const image = await decode(templateBytes);
+    const templatePath = 'template/certificate-template.png';
+    const templateUrl = `${supabaseUrl}/storage/v1/object/public/certificates/${templatePath}`;
     
-    if (!(image instanceof Image)) {
-      throw new Error('Failed to decode template as Image');
+    const templateResponse = await fetch(templateUrl);
+    console.log('Template fetch:', { path: templatePath, status: templateResponse.status });
+    
+    if (!templateResponse.ok) {
+      throw new Error(`Failed to fetch template: ${templateResponse.status}`);
     }
+    
+    const templateBytes = await templateResponse.arrayBuffer();
+    console.log('Template loaded:', { sizeKB: Math.round(templateBytes.byteLength / 1024) });
 
-    console.log('Image decoded:', { width: image.width, height: image.height });
+    // Load template into canvas
+    console.log('Loading template into canvas...');
+    const templateImage = await loadImage(new Uint8Array(templateBytes));
+    const width = templateImage.width();
+    const height = templateImage.height();
+    console.log('Template dimensions:', { width, height });
+
+    // Create canvas at exact template dimensions
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // Draw the template (preserves all pixels exactly)
+    ctx.drawImage(templateImage, 0, 0);
+    console.log('Template drawn to canvas');
 
     // Format the date
-    const currentDate = new Date().toLocaleDateString('en-US', {
+    const currentDate = new Date();
+    const formattedDate = currentDate.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
 
-    // Since imagescript doesn't have built-in text rendering with custom fonts,
-    // we'll use a simpler approach: create the certificate without text overlay
-    // and rely on the AI for now, but with stricter instructions
+    // Draw the name (centered, gold, script-style)
+    ctx.fillStyle = NAME_CONFIG.color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     
-    // For a production solution, we would need to:
-    // 1. Use a different library that supports TTF fonts
-    // 2. Or pre-render text as images and composite them
-    // 3. Or use a service like Cloudinary or imgix
+    // Auto-size font to fit
+    const maxWidth = width * NAME_CONFIG.maxWidthPercent;
+    let fontSize = NAME_CONFIG.baseFontSize;
     
-    // For now, let's use the Lovable AI with very strict instructions
-    // to minimize quality loss and prevent artifacts
+    // Use italic serif to simulate script font (canvas has limited built-in font support)
+    ctx.font = `italic bold ${fontSize}px Georgia`;
     
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-    
-    // Convert to base64 for AI
-    let binary = '';
-    const chunkSize = 0x8000;
-    for (let i = 0; i < templateBytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...templateBytes.subarray(i, i + chunkSize));
+    while (ctx.measureText(certificateName).width > maxWidth && fontSize > NAME_CONFIG.minFontSize) {
+      fontSize -= 4;
+      ctx.font = `italic bold ${fontSize}px Georgia`;
     }
-    const templateBase64 = btoa(binary);
-    const templateBase64Url = `data:image/png;base64,${templateBase64}`;
-
-    console.log('Using AI to add text (strict mode)...');
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `CRITICAL: You are a TEXT OVERLAY tool only. Your job is to add text to this certificate.
-
-ABSOLUTE REQUIREMENTS:
-1. OUTPUT THE EXACT SAME IMAGE with ONLY text added
-2. DO NOT change ANY colors, gradients, or backgrounds
-3. DO NOT add any visual effects, shadows, or modifications
-4. PRESERVE the exact resolution and quality
-5. The background is dark brown/maroon - DO NOT add any purple, blue, or other colors
-
-TEXT TO ADD:
-
-NAME: "${certificateName}"
-- Position: Centered horizontally, in the empty space below "This Certificate is Proudly Presented to"
-- Color: GOLD (#D4AF37 or #C4A35A) - matching the existing gold elements
-- Font: Elegant script/cursive style similar to the title
-- Size: ${certificateName.length > 20 ? 'Medium (long name)' : 'Large'}
-
-DATE: "${currentDate}"
-- Position: Bottom left, above the "DATE" label
-- Color: Same gold as name
-- Font: Simple serif
-- Size: Small
-
-WARNINGS:
-- If you change the background color, you have FAILED
-- If you reduce the resolution, you have FAILED  
-- If you add any colors other than gold text, you have FAILED
-- The ONLY change should be adding gold text`
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: templateBase64Url
-                }
-              }
-            ]
-          }
-        ],
-        modalities: ['image', 'text']
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again in a moment.');
-      }
-      if (aiResponse.status === 402) {
-        throw new Error('AI service payment required. Please check your account.');
-      }
-      throw new Error(`AI service error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    console.log('AI response received');
-
-    const generatedImageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    if (!generatedImageUrl) {
-      console.error('No image in AI response:', JSON.stringify(aiData).substring(0, 500));
-      throw new Error('Failed to generate certificate image');
-    }
-
-    console.log('Certificate image generated');
-
-    // Convert base64 to blob
-    let imageBlob: Blob;
-    const outputContentType = 'image/png';
     
-    if (generatedImageUrl.startsWith('data:')) {
-      const base64Data = generatedImageUrl.split(',')[1];
-      const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-      imageBlob = new Blob([binaryData], { type: outputContentType });
-      console.log('Generated image size:', Math.round(binaryData.length / 1024), 'KB');
-    } else {
-      const imageResponse = await fetch(generatedImageUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      imageBlob = new Blob([new Uint8Array(imageBuffer)], { type: outputContentType });
-    }
+    console.log('Name font size:', fontSize);
+    
+    // Draw name at center
+    const nameX = width / 2;
+    const nameY = height * NAME_CONFIG.yPercent;
+    ctx.fillText(certificateName, nameX, nameY);
+    console.log('Name drawn at:', { x: nameX, y: nameY });
 
-    // Upload to storage
+    // Draw the date (bottom-left, gold)
+    ctx.font = `${DATE_CONFIG.fontSize}px Georgia`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = DATE_CONFIG.color;
+    
+    const dateX = width * DATE_CONFIG.xPercent;
+    const dateY = height * DATE_CONFIG.yPercent;
+    ctx.fillText(formattedDate, dateX, dateY);
+    console.log('Date drawn at:', { x: dateX, y: dateY });
+
+    // Export as PNG (lossless, full quality)
+    console.log('Exporting PNG...');
+    const pngData = canvas.toBuffer('image/png');
+    console.log('PNG exported:', { sizeKB: Math.round(pngData.length / 1024) });
+
+    // Upload to Supabase Storage
     const timestamp = Date.now();
     const fileName = `${userId}/${courseId}/${timestamp}.png`;
-
+    
+    console.log('Uploading to storage:', fileName);
     const { error: uploadError } = await supabase.storage
       .from('certificates')
-      .upload(fileName, imageBlob, {
-        contentType: outputContentType,
+      .upload(fileName, pngData, {
+        contentType: 'image/png',
         upsert: true,
       });
 
@@ -239,20 +141,22 @@ WARNINGS:
       throw new Error(`Failed to upload certificate: ${uploadError.message}`);
     }
 
-    const { data: { publicUrl } } = supabase.storage
+    // Get public URL
+    const { data: urlData } = supabase.storage
       .from('certificates')
       .getPublicUrl(fileName);
+    
+    const certificateUrl = urlData.publicUrl;
+    console.log('Certificate uploaded to:', certificateUrl);
 
-    console.log('Certificate uploaded to:', publicUrl);
-
-    // Save to database
-    const { data: certification, error: dbError } = await supabase
+    // Save certification record
+    const { data: certData, error: certError } = await supabase
       .from('certifications')
       .upsert({
         user_id: userId,
         course_id: courseId,
         certificate_name: certificateName,
-        certificate_url: publicUrl,
+        certificate_url: certificateUrl,
         issued_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id,course_id',
@@ -260,34 +164,33 @@ WARNINGS:
       .select()
       .single();
 
-    if (dbError) {
-      console.error('Database error:', dbError);
-      throw new Error(`Failed to save certification: ${dbError.message}`);
+    if (certError) {
+      console.error('Certification save error:', certError);
+      throw new Error(`Failed to save certification: ${certError.message}`);
     }
 
-    console.log('Certification saved:', certification);
+    console.log('Certification saved:', certData);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        certificateUrl: publicUrl,
-        certification,
+      JSON.stringify({ 
+        success: true, 
+        certificateUrl,
+        dimensions: { width, height },
+        message: 'Certificate generated with canvas rendering'
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error generating certificate:', errorMessage);
+    console.error('Error generating certificate:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: errorMessage,
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: 'Certificate generation failed'
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
