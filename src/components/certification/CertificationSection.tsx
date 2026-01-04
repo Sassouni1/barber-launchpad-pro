@@ -28,25 +28,9 @@ interface CertificationSectionProps {
   courseId: string;
 }
 
-interface DebugInfo {
-  templateWidth: number;
-  templateHeight: number;
-  imageCenterX: number;
-  nameAnchorX: number;
-  nameAnchorY: number;
-  drawX: number;
-  measuredTextWidth: number;
-  textLeftEdge: number;
-  textRightEdge: number;
-  textCenter: number;
-  fontSizeUsed: number;
-  textAlign: string;
-}
-
 export function CertificationSection({ courseId }: CertificationSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
   const { data: existingCertification, isLoading: isLoadingCertification } = useUserCertification(courseId);
@@ -65,7 +49,6 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
   const handleGetCertified = () => {
     setGeneratedCertificateUrl(null);
-    setDebugInfo(null);
     setIsModalOpen(true);
   };
 
@@ -76,9 +59,6 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     });
     if (result?.certificateUrl) {
       setGeneratedCertificateUrl(result.certificateUrl);
-    }
-    if (result?.debug) {
-      setDebugInfo(result.debug);
     }
   };
 
@@ -247,7 +227,6 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
         onSubmit={handleSubmitCertification}
         certificateUrl={generatedCertificateUrl}
         isGenerating={issueCertification.isPending}
-        debugInfo={debugInfo}
       />
     </>
   );
