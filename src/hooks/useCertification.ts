@@ -109,9 +109,7 @@ export function useCertificationEligibility(courseId: string | undefined) {
       };
     },
     enabled: !!user?.id && !!courseId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 seconds
   });
 }
 
@@ -136,9 +134,7 @@ export function useCertificationPhotos(courseId: string | undefined) {
       return data as CertificationPhoto[];
     },
     enabled: !!user?.id && !!courseId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 seconds
   });
 
   const uploadPhotoMutation = useMutation({
@@ -235,9 +231,7 @@ export function useUserCertification(courseId: string | undefined) {
       return data as Certification | null;
     },
     enabled: !!user?.id && !!courseId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 seconds
   });
 }
 
