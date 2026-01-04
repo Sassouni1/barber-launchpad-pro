@@ -9,22 +9,22 @@ const corsHeaders = {
 
 // Text configuration for positioning
 const NAME_CONFIG = {
-  yPercent: 0.39,       // 39% from top (right after "Presented to" line)
-  maxWidthPercent: 0.7, // Max 70% of image width
-  baseFontSize: 100,    // Starting font size
-  minFontSize: 48,      // Minimum font size
-  color: '#C9A227',     // Warm gold matching template
+  yPercent: 0.28,         // 28% from top (center of blank area after "Presented to")
+  maxWidthPercent: 0.7,   // Max 70% of image width
+  baseFontSize: 72,       // Starting font size
+  minFontSize: 48,        // Minimum font size
+  color: '#C9A227',       // Warm gold matching template
 };
 
 const DATE_CONFIG = {
-  xPercent: 0.175,      // 17.5% from left
-  yPercent: 0.815,      // 81.5% from top
-  fontSize: 28,
-  color: '#C9A227',     // Warm gold matching template
+  xPercent: 0.12,         // 12% from left (under DATE label)
+  yPercent: 0.80,         // 80% from top
+  fontSize: 24,
+  color: '#C9A227',       // Warm gold matching template
 };
 
-// Google Font URL for Pinyon Script (elegant script font)
-const SCRIPT_FONT_URL = 'https://fonts.gstatic.com/s/pinyonscript/v22/6xKpdSJbL9-e9LuoeQiDRQR8WOXaPw.ttf';
+// Olde English / Blackletter font to match certificate title style
+const FONT_URL = 'https://fonts.gstatic.com/s/unifrakturmaguntia/v20/WWXPlieVYwiGNomYU-ciRLRvEmK7oaVemGZc.ttf';
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -63,139 +63,246 @@ serve(async (req) => {
     const templateBytes = await templateResponse.arrayBuffer();
     console.log('Template loaded:', { sizeKB: Math.round(templateBytes.byteLength / 1024) });
 
-    // Fetch the script font
-    console.log('Fetching script font...');
-    const fontResponse = await fetch(SCRIPT_FONT_URL);
-    if (!fontResponse.ok) {
-      throw new Error(`Failed to fetch font: ${fontResponse.status}`);
-    }
-    const fontData = await fontResponse.arrayBuffer();
-    console.log('Font loaded:', { sizeKB: Math.round(fontData.byteLength / 1024) });
-
-    // Load template into canvas
-    console.log('Loading template into canvas...');
-    const templateImage = await loadImage(new Uint8Array(templateBytes));
-    const width = templateImage.width();
-    const height = templateImage.height();
-    console.log('Template dimensions:', { width, height });
-
-    // Create canvas at exact template dimensions
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
-
-    // Register the script font
-    canvas.loadFont(new Uint8Array(fontData), { family: 'PinyonScript' });
-    console.log('Font registered: PinyonScript');
-
-    // Draw the template (preserves all pixels exactly)
-    ctx.drawImage(templateImage, 0, 0);
-    console.log('Template drawn to canvas');
-
-    // Format the date
-    const currentDate = new Date();
-    const formattedDate = currentDate.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-
-    // Draw the name (centered, gold, script font)
-    ctx.fillStyle = NAME_CONFIG.color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    // Fetch the Olde English font with fallback
+    console.log('Fetching Olde English font...');
+    let fontFamily = 'serif'; // Default fallback
+    let fontLoaded = false;
     
-    // Auto-size font to fit
-    const maxWidth = width * NAME_CONFIG.maxWidthPercent;
-    let fontSize = NAME_CONFIG.baseFontSize;
-    
-    // Use the loaded script font
-    ctx.font = `${fontSize}px PinyonScript`;
-    
-    while (ctx.measureText(certificateName).width > maxWidth && fontSize > NAME_CONFIG.minFontSize) {
-      fontSize -= 4;
-      ctx.font = `${fontSize}px PinyonScript`;
-    }
-    
-    console.log('Name font size:', fontSize);
-    
-    // Draw name at center
-    const nameX = width / 2;
-    const nameY = height * NAME_CONFIG.yPercent;
-    ctx.fillText(certificateName, nameX, nameY);
-    console.log('Name drawn at:', { x: nameX, y: nameY });
+    try {
+      const fontResponse = await fetch(FONT_URL);
+      if (fontResponse.ok) {
+        const fontData = await fontResponse.arrayBuffer();
+        console.log('Font downloaded:', { sizeKB: Math.round(fontData.byteLength / 1024) });
+        
+        // Load template into canvas first so we can register font
+        const templateImage = await loadImage(new Uint8Array(templateBytes));
+        const width = templateImage.width();
+        const height = templateImage.height();
+        console.log('Template dimensions:', { width, height });
 
-    // Draw the date (bottom-left, gold)
-    ctx.font = `${DATE_CONFIG.fontSize}px Georgia`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = DATE_CONFIG.color;
-    
-    const dateX = width * DATE_CONFIG.xPercent;
-    const dateY = height * DATE_CONFIG.yPercent;
-    ctx.fillText(formattedDate, dateX, dateY);
-    console.log('Date drawn at:', { x: dateX, y: dateY });
+        // Create canvas at exact template dimensions
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
 
-    // Export as PNG (lossless, full quality)
-    console.log('Exporting PNG...');
-    const pngData = canvas.toBuffer('image/png');
-    console.log('PNG exported:', { sizeKB: Math.round(pngData.length / 1024) });
+        // Register the custom font
+        canvas.loadFont(new Uint8Array(fontData), { family: 'UnifrakturMaguntia' });
+        fontFamily = 'UnifrakturMaguntia';
+        fontLoaded = true;
+        console.log('Custom font registered: UnifrakturMaguntia');
 
-    // Upload to Supabase Storage
-    const timestamp = Date.now();
-    const fileName = `${userId}/${courseId}/${timestamp}.png`;
-    
-    console.log('Uploading to storage:', fileName);
-    const { error: uploadError } = await supabase.storage
-      .from('certificates')
-      .upload(fileName, pngData, {
-        contentType: 'image/png',
-        upsert: true,
+        // Draw the template (preserves all pixels exactly)
+        ctx.drawImage(templateImage, 0, 0);
+        console.log('Template drawn to canvas');
+
+        // Format the date
+        const currentDate = new Date();
+        const formattedDate = currentDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        // Draw the name (centered, gold, Olde English font)
+        ctx.fillStyle = NAME_CONFIG.color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Auto-size font to fit
+        const maxWidth = width * NAME_CONFIG.maxWidthPercent;
+        let fontSize = NAME_CONFIG.baseFontSize;
+        
+        ctx.font = `${fontSize}px ${fontFamily}`;
+        
+        while (ctx.measureText(certificateName).width > maxWidth && fontSize > NAME_CONFIG.minFontSize) {
+          fontSize -= 4;
+          ctx.font = `${fontSize}px ${fontFamily}`;
+        }
+        
+        console.log('Name font:', { family: fontFamily, size: fontSize });
+        
+        // Draw name at center
+        const nameX = width / 2;
+        const nameY = height * NAME_CONFIG.yPercent;
+        ctx.fillText(certificateName, nameX, nameY);
+        console.log('Name drawn at:', { x: nameX, y: nameY, percent: NAME_CONFIG.yPercent });
+
+        // Draw the date (bottom-left area, gold)
+        ctx.font = `${DATE_CONFIG.fontSize}px Georgia`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = DATE_CONFIG.color;
+        
+        const dateX = width * DATE_CONFIG.xPercent;
+        const dateY = height * DATE_CONFIG.yPercent;
+        ctx.fillText(formattedDate, dateX, dateY);
+        console.log('Date drawn at:', { x: dateX, y: dateY });
+
+        // Export as PNG (lossless, full quality)
+        console.log('Exporting PNG...');
+        const pngData = canvas.toBuffer('image/png');
+        console.log('PNG exported:', { sizeKB: Math.round(pngData.length / 1024) });
+
+        // Upload to Supabase Storage
+        const timestamp = Date.now();
+        const fileName = `${userId}/${courseId}/${timestamp}.png`;
+        
+        console.log('Uploading to storage:', fileName);
+        const { error: uploadError } = await supabase.storage
+          .from('certificates')
+          .upload(fileName, pngData, {
+            contentType: 'image/png',
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(`Failed to upload certificate: ${uploadError.message}`);
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('certificates')
+          .getPublicUrl(fileName);
+        
+        const certificateUrl = urlData.publicUrl;
+        console.log('Certificate uploaded to:', certificateUrl);
+
+        // Save certification record
+        const { data: certData, error: certError } = await supabase
+          .from('certifications')
+          .upsert({
+            user_id: userId,
+            course_id: courseId,
+            certificate_name: certificateName,
+            certificate_url: certificateUrl,
+            issued_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id,course_id',
+          })
+          .select()
+          .single();
+
+        if (certError) {
+          console.error('Certification save error:', certError);
+          throw new Error(`Failed to save certification: ${certError.message}`);
+        }
+
+        console.log('Certification saved:', certData);
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            certificateUrl,
+            dimensions: { width, height },
+            fontUsed: fontFamily,
+            message: 'Certificate generated with Olde English font'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        console.warn('Font fetch failed:', fontResponse.status);
+        throw new Error('Font fetch failed');
+      }
+    } catch (fontError) {
+      console.warn('Font loading failed, using fallback serif:', fontError);
+      
+      // Fallback: use serif font
+      const templateImage = await loadImage(new Uint8Array(templateBytes));
+      const width = templateImage.width();
+      const height = templateImage.height();
+      
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext('2d');
+      
+      ctx.drawImage(templateImage, 0, 0);
+      
+      const currentDate = new Date();
+      const formattedDate = currentDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw new Error(`Failed to upload certificate: ${uploadError.message}`);
+      // Draw name with fallback font
+      ctx.fillStyle = NAME_CONFIG.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const maxWidth = width * NAME_CONFIG.maxWidthPercent;
+      let fontSize = NAME_CONFIG.baseFontSize;
+      
+      ctx.font = `bold ${fontSize}px serif`;
+      
+      while (ctx.measureText(certificateName).width > maxWidth && fontSize > NAME_CONFIG.minFontSize) {
+        fontSize -= 4;
+        ctx.font = `bold ${fontSize}px serif`;
+      }
+      
+      const nameX = width / 2;
+      const nameY = height * NAME_CONFIG.yPercent;
+      ctx.fillText(certificateName, nameX, nameY);
+
+      // Draw date
+      ctx.font = `${DATE_CONFIG.fontSize}px Georgia`;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = DATE_CONFIG.color;
+      
+      const dateX = width * DATE_CONFIG.xPercent;
+      const dateY = height * DATE_CONFIG.yPercent;
+      ctx.fillText(formattedDate, dateX, dateY);
+
+      // Export and upload
+      const pngData = canvas.toBuffer('image/png');
+      
+      const timestamp = Date.now();
+      const fileName = `${userId}/${courseId}/${timestamp}.png`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('certificates')
+        .upload(fileName, pngData, {
+          contentType: 'image/png',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw new Error(`Failed to upload certificate: ${uploadError.message}`);
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('certificates')
+        .getPublicUrl(fileName);
+      
+      const certificateUrl = urlData.publicUrl;
+
+      const { data: certData, error: certError } = await supabase
+        .from('certifications')
+        .upsert({
+          user_id: userId,
+          course_id: courseId,
+          certificate_name: certificateName,
+          certificate_url: certificateUrl,
+          issued_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,course_id',
+        })
+        .select()
+        .single();
+
+      if (certError) {
+        throw new Error(`Failed to save certification: ${certError.message}`);
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          certificateUrl,
+          dimensions: { width, height },
+          fontUsed: 'serif (fallback)',
+          message: 'Certificate generated with fallback font'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('certificates')
-      .getPublicUrl(fileName);
-    
-    const certificateUrl = urlData.publicUrl;
-    console.log('Certificate uploaded to:', certificateUrl);
-
-    // Save certification record
-    const { data: certData, error: certError } = await supabase
-      .from('certifications')
-      .upsert({
-        user_id: userId,
-        course_id: courseId,
-        certificate_name: certificateName,
-        certificate_url: certificateUrl,
-        issued_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id,course_id',
-      })
-      .select()
-      .single();
-
-    if (certError) {
-      console.error('Certification save error:', certError);
-      throw new Error(`Failed to save certification: ${certError.message}`);
-    }
-
-    console.log('Certification saved:', certData);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        certificateUrl,
-        dimensions: { width, height },
-        message: 'Certificate generated with canvas rendering'
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
 
   } catch (error) {
     console.error('Error generating certificate:', error);
