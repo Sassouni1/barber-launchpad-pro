@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      certificate_layouts: {
+        Row: {
+          course_id: string
+          created_at: string
+          date_color: string
+          date_font_size: number
+          date_x: number
+          date_y: number
+          id: string
+          name_color: string
+          name_font_size: number
+          name_max_width: number
+          name_min_font_size: number
+          name_x: number
+          name_y: number
+          template_path: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          date_color?: string
+          date_font_size?: number
+          date_x?: number
+          date_y?: number
+          id?: string
+          name_color?: string
+          name_font_size?: number
+          name_max_width?: number
+          name_min_font_size?: number
+          name_x?: number
+          name_y?: number
+          template_path?: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          date_color?: string
+          date_font_size?: number
+          date_x?: number
+          date_y?: number
+          id?: string
+          name_color?: string
+          name_font_size?: number
+          name_max_width?: number
+          name_min_font_size?: number
+          name_x?: number
+          name_y?: number
+          template_path?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       certification_photos: {
         Row: {
           course_id: string
