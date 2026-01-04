@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // Certificate template hosted in storage
-const TEMPLATE_URL = 'https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/template/certificate-template.jpg';
+const TEMPLATE_PATH = 'template/certificate-template.jpg';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,6 +27,23 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Download the template image from storage and convert to base64
+    console.log('Downloading template from storage...');
+    const { data: templateData, error: downloadError } = await supabase.storage
+      .from('certificates')
+      .download(TEMPLATE_PATH);
+
+    if (downloadError || !templateData) {
+      console.error('Failed to download template:', downloadError);
+      throw new Error('Failed to download certificate template from storage');
+    }
+
+    // Convert blob to base64
+    const arrayBuffer = await templateData.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const templateBase64Url = `data:image/jpeg;base64,${base64}`;
+    console.log('Template converted to base64, length:', base64.length);
 
     // Format the current date
     const currentDate = new Date().toLocaleDateString('en-US', {
@@ -79,7 +96,7 @@ DO NOT modify any other elements on the certificate. The template already has th
               {
                 type: 'image_url',
                 image_url: {
-                  url: TEMPLATE_URL
+                  url: templateBase64Url
                 }
               }
             ]
