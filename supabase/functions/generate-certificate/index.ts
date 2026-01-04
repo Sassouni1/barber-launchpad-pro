@@ -6,8 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Certificate template hosted in storage
+const TEMPLATE_URL = 'https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/template/certificate-template.png';
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,116 +23,110 @@ serve(async (req) => {
       throw new Error('Missing required fields: userId, courseId, or certificateName');
     }
 
-    // Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the certificate template from storage or use base64 embedded template
-    // For now, we'll generate a simple certificate using canvas
-    
-    // Create certificate image using canvas (Deno compatible approach)
-    // We'll use a simple SVG-based approach that can be converted to PNG
-    
+    // Format the current date
     const currentDate = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
 
-    // Create SVG certificate
-    const svgContent = `
-      <svg width="1200" height="850" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#D4AF37;stop-opacity:1" />
-            <stop offset="50%" style="stop-color:#F4D03F;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#D4AF37;stop-opacity:1" />
-          </linearGradient>
-          <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
-          </linearGradient>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&amp;family=Playfair+Display:wght@400;700&amp;display=swap');
-          </style>
-        </defs>
-        
-        <!-- Background -->
-        <rect width="1200" height="850" fill="url(#bgGradient)"/>
-        
-        <!-- Decorative border -->
-        <rect x="20" y="20" width="1160" height="810" fill="none" stroke="url(#goldGradient)" stroke-width="3"/>
-        <rect x="35" y="35" width="1130" height="780" fill="none" stroke="url(#goldGradient)" stroke-width="1"/>
-        
-        <!-- Corner decorations -->
-        <circle cx="50" cy="50" r="8" fill="url(#goldGradient)"/>
-        <circle cx="1150" cy="50" r="8" fill="url(#goldGradient)"/>
-        <circle cx="50" cy="800" r="8" fill="url(#goldGradient)"/>
-        <circle cx="1150" cy="800" r="8" fill="url(#goldGradient)"/>
-        
-        <!-- Certificate title -->
-        <text x="600" y="120" text-anchor="middle" font-family="Playfair Display, serif" font-size="48" font-weight="700" fill="url(#goldGradient)">
-          CERTIFICATE
-        </text>
-        <text x="600" y="170" text-anchor="middle" font-family="Playfair Display, serif" font-size="28" fill="#C9A962">
-          OF ACHIEVEMENT
-        </text>
-        
-        <!-- Decorative line -->
-        <line x1="300" y1="200" x2="900" y2="200" stroke="url(#goldGradient)" stroke-width="2"/>
-        
-        <!-- Presented to text -->
-        <text x="600" y="280" text-anchor="middle" font-family="Playfair Display, serif" font-size="22" fill="#888888">
-          This Certificate is Proudly Presented to
-        </text>
-        
-        <!-- Name -->
-        <text x="600" y="380" text-anchor="middle" font-family="Dancing Script, cursive" font-size="72" font-weight="700" fill="url(#goldGradient)">
-          ${certificateName}
-        </text>
-        
-        <!-- Decorative flourish under name -->
-        <path d="M400 410 Q600 450 800 410" fill="none" stroke="url(#goldGradient)" stroke-width="2"/>
-        
-        <!-- Achievement text -->
-        <text x="600" y="490" text-anchor="middle" font-family="Playfair Display, serif" font-size="20" fill="#cccccc">
-          For successfully completing the
-        </text>
-        <text x="600" y="540" text-anchor="middle" font-family="Playfair Display, serif" font-size="32" font-weight="700" fill="url(#goldGradient)">
-          Hair System Mastery Training
-        </text>
-        <text x="600" y="590" text-anchor="middle" font-family="Playfair Display, serif" font-size="20" fill="#cccccc">
-          demonstrating exceptional skill and knowledge in hair system application
-        </text>
-        
-        <!-- Date -->
-        <text x="600" y="680" text-anchor="middle" font-family="Playfair Display, serif" font-size="18" fill="#888888">
-          Issued on ${currentDate}
-        </text>
-        
-        <!-- Seal/Badge -->
-        <circle cx="600" cy="760" r="35" fill="none" stroke="url(#goldGradient)" stroke-width="3"/>
-        <text x="600" y="768" text-anchor="middle" font-family="Playfair Display, serif" font-size="14" font-weight="700" fill="url(#goldGradient)">
-          CERTIFIED
-        </text>
-      </svg>
-    `;
+    console.log('Using AI to edit certificate template with name:', certificateName, 'and date:', currentDate);
 
-    // Convert SVG to PNG using a simple approach
-    // For production, you might want to use a proper image generation service
-    // For now, we'll store the SVG and reference it
+    // Use Lovable AI to edit the certificate template with the user's name and date
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Edit this certificate template image by adding text in these exact positions:
 
-    // Generate a unique filename
+1. Add the name "${certificateName}" in OLDE ENGLISH / BLACKLETTER gothic font style. The name should be:
+   - Placed in the large blank white/cream area below where it says "This Certificate is Proudly Presented to"
+   - Horizontally centered
+   - Large and prominent (like a formal certificate name)
+   - Dark brown or black color to contrast with the background
+
+2. Add the date "${currentDate}" in the DATE field:
+   - Located at the bottom left of the certificate where it says "DATE"
+   - Use a simple, elegant font
+   - Smaller size appropriate for a date field
+
+Keep all other elements of the certificate exactly as they are. The certificate has a vintage/elegant design with gold accents and decorative borders.`
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: TEMPLATE_URL
+                }
+              }
+            ]
+          }
+        ],
+        modalities: ['image', 'text']
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('AI API error:', aiResponse.status, errorText);
+      
+      if (aiResponse.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a moment.');
+      }
+      if (aiResponse.status === 402) {
+        throw new Error('AI service payment required. Please check your account.');
+      }
+      throw new Error(`AI service error: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
+    console.log('AI response received');
+
+    // Extract the generated image from the response
+    const generatedImageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    if (!generatedImageUrl) {
+      console.error('No image in AI response:', JSON.stringify(aiData));
+      throw new Error('Failed to generate certificate image');
+    }
+
+    console.log('Certificate image generated successfully');
+
+    // Convert base64 to blob if it's a data URL
+    let imageBlob: Blob;
+    if (generatedImageUrl.startsWith('data:')) {
+      const base64Data = generatedImageUrl.split(',')[1];
+      const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      imageBlob = new Blob([binaryData], { type: 'image/png' });
+    } else {
+      // Fetch the image if it's a URL
+      const imageResponse = await fetch(generatedImageUrl);
+      imageBlob = await imageResponse.blob();
+    }
+
+    // Generate unique filename
     const timestamp = Date.now();
-    const fileName = `${userId}/${courseId}/${timestamp}.svg`;
+    const fileName = `${userId}/${courseId}/${timestamp}.png`;
 
-    // Upload SVG to storage
-    const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+    // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from('certificates')
-      .upload(fileName, svgBlob, {
-        contentType: 'image/svg+xml',
+      .upload(fileName, imageBlob, {
+        contentType: 'image/png',
         upsert: true,
       });
 
