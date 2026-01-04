@@ -19,11 +19,11 @@ export function CertificateTemplateUploader() {
       const response = await fetch(certificateTemplate);
       const blob = await response.blob();
 
-      // Upload to Supabase storage
+      // Upload to Supabase storage with consistent path (PNG for quality)
       const { error: uploadError } = await supabase.storage
         .from('certificates')
-        .upload('template/certificate-template.jpg', blob, {
-          contentType: 'image/jpeg',
+        .upload('template/certificate-template.png', blob, {
+          contentType: 'image/png',
           upsert: true,
         });
 

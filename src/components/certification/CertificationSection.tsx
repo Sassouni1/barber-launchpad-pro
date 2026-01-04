@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, CheckCircle, Loader2 } from 'lucide-react';
+import { Award, CheckCircle, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizProgressList } from './QuizProgressList';
 import { PhotoUploader } from './PhotoUploader';
@@ -9,8 +9,20 @@ import {
   useCertificationPhotos,
   useUserCertification,
   useIssueCertification,
+  useResetCertification,
 } from '@/hooks/useCertification';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface CertificationSectionProps {
   courseId: string;
@@ -31,6 +43,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     isDeleting,
   } = useCertificationPhotos(courseId);
   const issueCertification = useIssueCertification();
+  const resetCertification = useResetCertification();
 
   const isLoading = isLoadingEligibility || isLoadingCertification || isLoadingPhotos;
 
@@ -49,20 +62,60 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     }
   };
 
+  const handleResetCertification = async () => {
+    await resetCertification.mutateAsync(courseId);
+  };
+
   // If user already has a certification, show it
   if (existingCertification) {
     return (
       <div className="glass-card rounded-xl p-6 mt-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full gold-gradient flex items-center justify-center">
-            <Award className="w-6 h-6 text-primary-foreground" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full gold-gradient flex items-center justify-center">
+              <Award className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h3 className="font-display text-xl font-bold gold-text">Certified!</h3>
+              <p className="text-sm text-muted-foreground">
+                Issued on {new Date(existingCertification.issued_at).toLocaleDateString()}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-display text-xl font-bold gold-text">Certified!</h3>
-            <p className="text-sm text-muted-foreground">
-              Issued on {new Date(existingCertification.issued_at).toLocaleDateString()}
-            </p>
-          </div>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-muted-foreground">
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset Certification?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will delete your current certificate and uploaded photos. You'll need to re-upload your work photos and generate a new certificate. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleResetCertification}
+                  disabled={resetCertification.isPending}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {resetCertification.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Resetting...
+                    </>
+                  ) : (
+                    'Reset Certification'
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         {existingCertification.certificate_url && (

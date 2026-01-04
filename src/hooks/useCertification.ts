@@ -262,13 +262,49 @@ export function useIssueCertification() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['certification'] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['certification', variables.courseId] });
+      queryClient.invalidateQueries({ queryKey: ['certification-eligibility', variables.courseId] });
+      queryClient.invalidateQueries({ queryKey: ['certification-photos', variables.courseId] });
       toast.success('Certificate generated successfully!');
     },
     onError: (error) => {
       console.error('Certificate generation error:', error);
       toast.error('Failed to generate certificate');
+    },
+  });
+}
+
+// Hook to reset certification
+export function useResetCertification() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (courseId: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+
+      // Call edge function to reset certification
+      const { data, error } = await supabase.functions.invoke('reset-certification', {
+        body: {
+          userId: user.id,
+          courseId,
+        },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, courseId) => {
+      // Invalidate all related queries for immediate UI update
+      queryClient.invalidateQueries({ queryKey: ['certification', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['certification-eligibility', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['certification-photos', courseId] });
+      toast.success('Certification reset successfully');
+    },
+    onError: (error) => {
+      console.error('Reset certification error:', error);
+      toast.error('Failed to reset certification');
     },
   });
 }

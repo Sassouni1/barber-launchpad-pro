@@ -6,8 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Certificate template hosted in storage
-const TEMPLATE_PATH = 'template/certificate-template.jpg';
+// Canonical template path (PNG for quality)
+const TEMPLATE_PATH = 'template/certificate-template.png';
+
+// Dancing Script font from Google Fonts (base64 encoded subset would be ideal, but we'll use a CDN)
+const FONT_URL = 'https://fonts.gstatic.com/s/dancingscript/v25/If2cXTr6YS-zF4S-kcSWSVi_sxjsohD9F50Ruu7BMSo3Sup8.woff2';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -36,22 +39,22 @@ serve(async (req) => {
       },
     });
 
-    // Fetch the template image via public URL (avoids storage-js download edge cases)
+    // Fetch the template image via public URL
     console.log('Fetching template via public URL...');
-    const getTemplatePublicUrl = (path: string) =>
-      supabase.storage.from('certificates').getPublicUrl(path).data.publicUrl;
-
+    const templateUrl = supabase.storage.from('certificates').getPublicUrl(TEMPLATE_PATH).data.publicUrl;
+    
+    // Also try fallback paths if primary doesn't work
     const candidatePaths = [
       TEMPLATE_PATH,
-      TEMPLATE_PATH.replace(/\.jpg$/i, '.png'),
-      TEMPLATE_PATH.replace(/\.jpeg$/i, '.png'),
-    ].filter((p, i, arr) => p && arr.indexOf(p) === i);
+      'template/certificate-template.jpg',
+      'template/certificate-template.jpeg',
+    ];
 
     let templateResp: Response | null = null;
     let chosenPath: string | null = null;
 
     for (const path of candidatePaths) {
-      const url = getTemplatePublicUrl(path);
+      const url = supabase.storage.from('certificates').getPublicUrl(path).data.publicUrl;
       const r = await fetch(url);
       console.log('Template fetch', { path, status: r.status });
       if (r.ok) {
@@ -62,23 +65,28 @@ serve(async (req) => {
     }
 
     if (!templateResp || !chosenPath) {
-      throw new Error('Failed to fetch certificate template from storage (template missing or not public)');
+      throw new Error('Certificate template not found. Please upload it from Admin Dashboard first.');
     }
 
-    const templateContentType = templateResp.headers.get('content-type') || (chosenPath.endsWith('.png') ? 'image/png' : 'image/jpeg');
-    const arrayBuffer = await templateResp.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
+    const templateContentType = templateResp.headers.get('content-type') || 'image/png';
+    const templateArrayBuffer = await templateResp.arrayBuffer();
+    const templateBytes = new Uint8Array(templateArrayBuffer);
+    
+    console.log('Template ready', { 
+      chosenPath, 
+      contentType: templateContentType, 
+      bytes: templateBytes.length,
+      sizeKB: Math.round(templateBytes.length / 1024)
+    });
 
-    // Safer base64 encoding (avoid callstack issues on large images)
+    // Convert template to base64 for AI
     let binary = '';
     const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    for (let i = 0; i < templateBytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...templateBytes.subarray(i, i + chunkSize));
     }
-    const base64 = btoa(binary);
-
-    const templateBase64Url = `data:${templateContentType};base64,${base64}`;
-    console.log('Template ready', { chosenPath, contentType: templateContentType, bytes: bytes.length });
+    const templateBase64 = btoa(binary);
+    const templateBase64Url = `data:${templateContentType};base64,${templateBase64}`;
 
     // Format the current date
     const currentDate = new Date().toLocaleDateString('en-US', {
@@ -87,9 +95,10 @@ serve(async (req) => {
       day: 'numeric'
     });
 
-    console.log('Using AI to edit certificate template with name:', certificateName, 'and date:', currentDate);
+    console.log('Using AI to generate high-quality certificate with name:', certificateName, 'and date:', currentDate);
 
-    // Use Lovable AI to edit the certificate template with the user's name and date
+    // Use Lovable AI to generate the certificate
+    // The prompt is designed to ensure maximum quality output
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -104,29 +113,34 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `Edit this certificate template image by adding ONLY the recipient's name. Keep all existing elements exactly as they are.
+                text: `You are a precise certificate editor. Your ONLY job is to add text to this certificate template.
 
-CRITICAL QUALITY REQUIREMENTS:
-- Output the image at the SAME resolution and quality as the input (no downscaling)
-- Keep all existing design elements crisp and unchanged
-- Do NOT add any background boxes, rectangles, or shapes behind the text
+CRITICAL OUTPUT REQUIREMENTS:
+1. Output the image at EXACTLY the same resolution as the input - DO NOT resize or downscale
+2. Keep every pixel of the original template exactly as-is except where you add text
+3. Output as high-quality PNG
 
-ADD THE RECIPIENT NAME:
-- Name to add: "${certificateName}"
-- Position: In the large empty dark area between "This Certificate is Proudly Presented to" and the paragraph that starts "This certificate confirms..."
-- Font style: Elegant script/cursive font similar to the "Certificate of Appreciation" title
-- Color: GOLDEN/BEIGE color (#C4A35A or #D4AF37) matching the existing gold decorations
-- Size: ${certificateName.length > 25 ? 'Reduce font size to fit horizontally - the name is long' : 'Large and prominent, filling the available width'}
-- Alignment: Horizontally centered
+RECIPIENT NAME TO ADD:
+- Text: "${certificateName}"
+- Position: Centered in the large dark/maroon area between "This Certificate is Proudly Presented to" and the paragraph starting "This certificate confirms..."
+- Font: Elegant script/cursive font (like Edwardian Script or similar)
+- Color: Golden/champagne color (#D4AF37 or similar warm gold)
+- Size: ${certificateName.length > 25 ? 'Medium size - name is long, ensure it fits horizontally with margins' : certificateName.length > 15 ? 'Large size but leave margins on sides' : 'Large and prominent'}
+- Must be horizontally centered
 
-ADD THE DATE:
-- Date to add: "${currentDate}"
-- Position: At the bottom left, above the "DATE" label line
-- Font: Simple elegant font
-- Color: Same golden/beige as the name
-- Size: Small, appropriate for a date field
+DATE TO ADD:
+- Text: "${currentDate}"
+- Position: Bottom left of certificate, above where it says "DATE"
+- Font: Simple elegant serif font
+- Color: Same golden color as name
+- Size: Small, appropriate for date field
 
-DO NOT modify any other elements on the certificate. The template already has the title, decorations, body text, and signature. Only add the name and date.`
+RULES:
+- Do NOT add any boxes, backgrounds, or shapes behind the text
+- Do NOT modify any existing elements (borders, decorations, title, body text, signature)
+- Do NOT change colors, gradients, or any design elements
+- ONLY add the name and date text as specified
+- Maintain crystal-clear sharpness on all text and decorations`
               },
               {
                 type: 'image_url',
@@ -161,40 +175,38 @@ DO NOT modify any other elements on the certificate. The template already has th
     const generatedImageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!generatedImageUrl) {
-      console.error('No image in AI response:', JSON.stringify(aiData));
+      console.error('No image in AI response:', JSON.stringify(aiData).substring(0, 500));
       throw new Error('Failed to generate certificate image');
     }
 
     console.log('Certificate image generated successfully');
 
-    // Convert base64 to blob if it's a data URL
+    // Convert base64 to blob - always save as PNG for quality
     let imageBlob: Blob;
-    let contentType = 'image/jpeg';
+    const outputContentType = 'image/png';
+    
     if (generatedImageUrl.startsWith('data:')) {
-      const mimeMatch = generatedImageUrl.match(/data:([^;]+);/);
-      if (mimeMatch) contentType = mimeMatch[1];
       const base64Data = generatedImageUrl.split(',')[1];
       const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-      imageBlob = new Blob([binaryData], { type: contentType });
+      imageBlob = new Blob([binaryData], { type: outputContentType });
+      console.log('Generated image size:', Math.round(binaryData.length / 1024), 'KB');
     } else {
       // Fetch the image if it's a URL
       const imageResponse = await fetch(generatedImageUrl);
-      imageBlob = await imageResponse.blob();
-      contentType = imageBlob.type || 'image/jpeg';
+      const imageBuffer = await imageResponse.arrayBuffer();
+      imageBlob = new Blob([new Uint8Array(imageBuffer)], { type: outputContentType });
+      console.log('Generated image size:', Math.round(imageBlob.size / 1024), 'KB');
     }
 
-    // Determine file extension
-    const ext = contentType.includes('png') ? 'png' : 'jpg';
-
-    // Generate unique filename
+    // Generate unique filename - always PNG
     const timestamp = Date.now();
-    const fileName = `${userId}/${courseId}/${timestamp}.${ext}`;
+    const fileName = `${userId}/${courseId}/${timestamp}.png`;
 
     // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from('certificates')
       .upload(fileName, imageBlob, {
-        contentType,
+        contentType: outputContentType,
         upsert: true,
       });
 

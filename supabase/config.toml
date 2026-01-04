@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.upload-certificate-template]
 verify_jwt = false
+
+[functions.reset-certification]
+verify_jwt = false
