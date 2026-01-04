@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { CertificationSection } from '@/components/certification/CertificationSection';
 
 // Custom hook for md breakpoint (768px) - tablet and above
 function useIsTabletOrDesktop() {
@@ -294,12 +295,21 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                     </div>
                   </div>
                 ))}
+                
+                {/* Certification Section for hair-system courses on mobile */}
+                {expandedCourse === 'hair-system' && (
+                  <div className="pl-2">
+                    {courseCategories.find(c => c.id === 'hair-system')?.courses[0]?.id && (
+                      <CertificationSection 
+                        courseId={courseCategories.find(c => c.id === 'hair-system')?.courses[0]?.id || ''} 
+                      />
+                    )}
+                  </div>
+                )}
               </CollapsibleContent>
             </Collapsible>
           ))}
         </div>
-
-        {/* Only render Sheet on mobile - must be conditional, not CSS hidden (portal) */}
         {!isTabletOrDesktop && <MobileModuleSheet />}
       </div>
 
@@ -428,6 +438,11 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   </div>
                 </div>
               ))}
+              
+              {/* Certification Section for hair-system on desktop left panel */}
+              {courseType === 'hair-system' && courses[0]?.id && (
+                <CertificationSection courseId={courses[0].id} />
+              )}
             </div>
             
             {/* Scroll indicator */}
