@@ -130,9 +130,9 @@ serve(async (req) => {
 
     console.log('Using pixel coordinates:', { nameX, nameY, nameMaxWidth, dateX, dateY });
 
-    // Draw name with auto-sizing
+    // Draw name with auto-sizing - MANUAL CENTERING (don't trust textAlign='center')
     ctx.fillStyle = layout.name_color || DEFAULT_NAME_CONFIG.color;
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';  // Always use left - we center manually
     ctx.textBaseline = 'middle';
     
     let fontSize = layout.name_font_size || DEFAULT_NAME_CONFIG.baseFontSize;
@@ -147,27 +147,33 @@ serve(async (req) => {
     
     // Measure final text width
     const measuredTextWidth = ctx.measureText(certificateName).width;
-    const textLeftEdge = nameX - measuredTextWidth / 2;
-    const textRightEdge = nameX + measuredTextWidth / 2;
     const imageCenterX = width / 2;
+    
+    // MANUAL CENTERING: Calculate the left X so text is centered on nameX
+    const centeredLeftX = nameX - (measuredTextWidth / 2);
+    
+    // Safety margins to prevent text touching edges
+    const safeMargin = 40;
+    const finalLeftX = Math.max(safeMargin, Math.min(centeredLeftX, width - measuredTextWidth - safeMargin));
+    const finalRightX = finalLeftX + measuredTextWidth;
 
     // PIXEL DEBUG LOGGING (always log)
-    console.log('=== PIXEL DEBUG START ===');
+    console.log('=== MANUAL CENTERING DEBUG ===');
     console.log(`Template dimensions: ${width} x ${height}`);
     console.log(`Image center X: ${imageCenterX}`);
-    console.log(`layout.name_x (anchor): ${nameX}`);
-    console.log(`layout.name_y: ${nameY}`);
+    console.log(`Anchor point (name_x): ${nameX}`);
     console.log(`Measured text width: ${Math.round(measuredTextWidth)}px`);
-    console.log(`Text LEFT edge (anchor - width/2): ${Math.round(textLeftEdge)}`);
-    console.log(`Text RIGHT edge (anchor + width/2): ${Math.round(textRightEdge)}`);
+    console.log(`Calculated centered left X: ${Math.round(centeredLeftX)}`);
+    console.log(`Final left X (with safety): ${Math.round(finalLeftX)}`);
+    console.log(`Text spans: ${Math.round(finalLeftX)} to ${Math.round(finalRightX)}`);
     console.log(`Font size used: ${fontSize}px`);
-    console.log(`Offset from image center: ${nameX - imageCenterX}px`);
-    console.log('=== PIXEL DEBUG END ===');
+    console.log('=== MANUAL CENTERING END ===');
     
     console.log('Name font:', { family: fontFamily, size: fontSize });
     
-    ctx.fillText(certificateName, nameX, nameY);
-    console.log('Name drawn at:', { x: nameX, y: nameY });
+    // Draw at the manually calculated left position
+    ctx.fillText(certificateName, finalLeftX, nameY);
+    console.log('Name drawn at:', { x: Math.round(finalLeftX), y: nameY });
 
     // Draw date - ALSO use custom font
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
@@ -229,12 +235,12 @@ serve(async (req) => {
         ctx.fillText(label, labelX + 5, y + 9);
       };
 
-      // Vertical guide lines
+      // Vertical guide lines - use actual draw positions
       drawVerticalLine(0, '#FF0000', `x=0 (left edge)`, 50);
       drawVerticalLine(imageCenterX, '#0066FF', `x=${imageCenterX} (IMAGE CENTER)`, 100);
       drawVerticalLine(nameX, '#00FF00', `x=${nameX} (name_x anchor)`, 150);
-      drawVerticalLine(textLeftEdge, '#FFFF00', `x=${Math.round(textLeftEdge)} (text left)`, 200);
-      drawVerticalLine(textRightEdge, '#FF00FF', `x=${Math.round(textRightEdge)} (text right)`, 250);
+      drawVerticalLine(finalLeftX, '#FFFF00', `x=${Math.round(finalLeftX)} (DRAW left)`, 200);
+      drawVerticalLine(finalRightX, '#FF00FF', `x=${Math.round(finalRightX)} (DRAW right)`, 250);
       drawVerticalLine(width, '#FF6600', `x=${width} (right edge)`, 300);
       
       // Horizontal guide lines
@@ -253,11 +259,11 @@ serve(async (req) => {
         `Template: ${width} x ${height}`,
         `Image Center X: ${imageCenterX}`,
         `name_x (anchor): ${nameX}`,
-        `name_y: ${nameY}`,
         `Measured Text Width: ${Math.round(measuredTextWidth)}px`,
-        `Text spans: ${Math.round(textLeftEdge)} to ${Math.round(textRightEdge)}`,
+        `Centered left X: ${Math.round(centeredLeftX)}`,
+        `Final draw X: ${Math.round(finalLeftX)}`,
+        `Text spans: ${Math.round(finalLeftX)} to ${Math.round(finalRightX)}`,
         `Font Size: ${fontSize}px`,
-        `Offset from center: ${nameX - imageCenterX}px`,
       ];
       
       infoLines.forEach((line, i) => {
@@ -335,10 +341,10 @@ serve(async (req) => {
         nameAnchorX: nameX,
         nameAnchorY: nameY,
         measuredTextWidth: Math.round(measuredTextWidth),
-        textLeftEdge: Math.round(textLeftEdge),
-        textRightEdge: Math.round(textRightEdge),
+        centeredLeftX: Math.round(centeredLeftX),
+        finalDrawX: Math.round(finalLeftX),
+        finalRightX: Math.round(finalRightX),
         fontSizeUsed: fontSize,
-        offsetFromCenter: nameX - imageCenterX,
       };
     }
 
