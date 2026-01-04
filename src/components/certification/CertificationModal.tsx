@@ -23,7 +23,7 @@ export function CertificationModal({
   certificateUrl,
   isGenerating,
 }: CertificationModalProps) {
-  const [step, setStep] = useState<Step>('analyzing');
+  const [step, setStep] = useState<Step>('name-entry');
   const [progress, setProgress] = useState(0);
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
