@@ -152,49 +152,70 @@ serve(async (req) => {
     
     // Try to use actualBoundingBox metrics for true "ink" bounds
     // These give the actual painted pixels, not the advance width
+    // With textAlign='left' and draw position x0:
+    //   inkLeft  = x0 - bboxLeft
+    //   inkRight = x0 + bboxRight
+    //   inkCenter = x0 + (bboxRight - bboxLeft) / 2
+    // To center ink on nameX: x0 = nameX - (bboxRight - bboxLeft) / 2
     const bboxLeft = textMetrics.actualBoundingBoxLeft ?? 0;
     const bboxRight = textMetrics.actualBoundingBoxRight ?? advanceWidth;
-    const inkWidth = bboxLeft + bboxRight;
     const hasBboxMetrics = textMetrics.actualBoundingBoxLeft !== undefined;
     
-    // Calculate centered position using ink bounds if available
-    // The ink center should align with nameX
-    let finalLeftX: number;
-    if (hasBboxMetrics && inkWidth > 0) {
-      // Center the ink bounds on nameX
-      // leftX + bboxLeft + (inkWidth / 2) = nameX
-      // leftX = nameX - bboxLeft - (inkWidth / 2)
-      finalLeftX = nameX - bboxLeft - (inkWidth / 2);
+    // Calculate draw position (x0) to center the INK on nameX
+    let drawX: number;
+    if (hasBboxMetrics) {
+      // CORRECT FORMULA: center the ink bounds on nameX
+      drawX = nameX - (bboxRight - bboxLeft) / 2;
     } else {
       // Fallback: center using advance width
-      finalLeftX = nameX - (advanceWidth / 2);
+      drawX = nameX - advanceWidth / 2;
     }
     
-    // Safety margins
+    // Safety margins - clamp so ink stays within margins
     const safeMargin = 40;
-    const clampedLeftX = Math.max(safeMargin, Math.min(finalLeftX, width - advanceWidth - safeMargin));
-    const finalRightX = clampedLeftX + advanceWidth;
+    let clampedDrawX: number;
+    let minDrawX: number;
+    let maxDrawX: number;
+    
+    if (hasBboxMetrics) {
+      // Clamp based on ink bounds
+      minDrawX = safeMargin + bboxLeft;  // so inkLeft >= safeMargin
+      maxDrawX = width - safeMargin - bboxRight;  // so inkRight <= width - safeMargin
+      clampedDrawX = Math.max(minDrawX, Math.min(drawX, maxDrawX));
+    } else {
+      // Fallback clamp using advance width
+      minDrawX = safeMargin;
+      maxDrawX = width - safeMargin - advanceWidth;
+      clampedDrawX = Math.max(minDrawX, Math.min(drawX, maxDrawX));
+    }
+    
+    // Calculate actual ink positions after clamping
+    const inkLeft = clampedDrawX - bboxLeft;
+    const inkRight = clampedDrawX + bboxRight;
+    const inkCenter = (inkLeft + inkRight) / 2;
+    const centerDelta = inkCenter - nameX;  // Should be ~0 if centered correctly
 
     // Debug logging
-    console.log('=== INK-BOUNDS CENTERING DEBUG ===');
+    console.log('=== CENTERING DEBUG ===');
     console.log(`Template: ${width} x ${height}`);
     console.log(`Image center X: ${imageCenterX}`);
     console.log(`Anchor (name_x): ${nameX}`);
     console.log(`Advance width: ${Math.round(advanceWidth)}px`);
     console.log(`BBox available: ${hasBboxMetrics}`);
     console.log(`BBox left: ${Math.round(bboxLeft)}, right: ${Math.round(bboxRight)}`);
-    console.log(`Ink width: ${Math.round(inkWidth)}px`);
-    console.log(`Calculated left X: ${Math.round(finalLeftX)}`);
-    console.log(`Clamped left X: ${Math.round(clampedLeftX)}`);
-    console.log(`Text spans: ${Math.round(clampedLeftX)} to ${Math.round(finalRightX)}`);
+    console.log(`Draw X (unclamped): ${Math.round(drawX)}`);
+    console.log(`Clamp bounds: [${Math.round(minDrawX)}, ${Math.round(maxDrawX)}]`);
+    console.log(`Draw X (clamped): ${Math.round(clampedDrawX)}`);
+    console.log(`Ink spans: ${Math.round(inkLeft)} to ${Math.round(inkRight)}`);
+    console.log(`Ink center: ${Math.round(inkCenter)} (delta from anchor: ${Math.round(centerDelta)})`);
     console.log(`Font size: ${fontSize}px`);
-    console.log('=== INK-BOUNDS CENTERING END ===');
+    console.log('=== CENTERING DEBUG END ===');
     
     console.log('Name font:', { family: fontFamily, size: fontSize });
     
     // Draw at the calculated position
-    ctx.fillText(certificateName, clampedLeftX, nameY);
-    console.log('Name drawn at:', { x: Math.round(clampedLeftX), y: nameY });
+    ctx.fillText(certificateName, clampedDrawX, nameY);
+    console.log('Name drawn at:', { x: Math.round(clampedDrawX), y: nameY });
 
     // Draw date - ALSO use custom font
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
@@ -259,10 +280,11 @@ serve(async (req) => {
       // Vertical guide lines
       drawVerticalLine(0, '#FF0000', `x=0 (left edge)`, 50);
       drawVerticalLine(imageCenterX, '#0066FF', `x=${imageCenterX} (IMAGE CENTER)`, 100);
-      drawVerticalLine(nameX, '#00FF00', `x=${nameX} (name_x anchor)`, 150);
-      drawVerticalLine(clampedLeftX, '#FFFF00', `x=${Math.round(clampedLeftX)} (DRAW left)`, 200);
-      drawVerticalLine(finalRightX, '#FF00FF', `x=${Math.round(finalRightX)} (DRAW right)`, 250);
-      drawVerticalLine(width, '#FF6600', `x=${width} (right edge)`, 300);
+      drawVerticalLine(nameX, '#00FF00', `x=${nameX} (name_x anchor - TARGET)`, 150);
+      drawVerticalLine(inkLeft, '#FFFF00', `x=${Math.round(inkLeft)} (INK left)`, 200);
+      drawVerticalLine(inkCenter, '#00FFAA', `x=${Math.round(inkCenter)} (INK center)`, 250);
+      drawVerticalLine(inkRight, '#FF00FF', `x=${Math.round(inkRight)} (INK right)`, 300);
+      drawVerticalLine(width, '#FF6600', `x=${width} (right edge)`, 350);
       
       // Horizontal guide lines
       drawHorizontalLine(nameY, '#00FFFF', `y=${nameY} (name_y)`, 50);
@@ -270,7 +292,7 @@ serve(async (req) => {
       
       // Draw info box
       ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-      ctx.fillRect(20, 350, 650, 280);
+      ctx.fillRect(20, 400, 700, 320);
       
       ctx.fillStyle = '#FFFFFF';
       ctx.font = `20px sans-serif`;
@@ -278,19 +300,19 @@ serve(async (req) => {
       
       const infoLines = [
         `Template: ${width} x ${height}`,
-        `Image Center X: ${imageCenterX}`,
         `name_x (anchor): ${nameX}`,
         `Advance Width: ${Math.round(advanceWidth)}px`,
-        `BBox Available: ${hasBboxMetrics}`,
         `BBox Left/Right: ${Math.round(bboxLeft)} / ${Math.round(bboxRight)}`,
-        `Ink Width: ${Math.round(inkWidth)}px`,
-        `Final Draw X: ${Math.round(clampedLeftX)}`,
-        `Text spans: ${Math.round(clampedLeftX)} to ${Math.round(finalRightX)}`,
+        `Draw X: ${Math.round(clampedDrawX)}`,
+        `INK Left: ${Math.round(inkLeft)}`,
+        `INK Right: ${Math.round(inkRight)}`,
+        `INK Center: ${Math.round(inkCenter)}`,
+        `CENTER DELTA: ${Math.round(centerDelta)}px (should be ~0)`,
         `Font Size: ${fontSize}px`,
       ];
       
       infoLines.forEach((line, i) => {
-        ctx.fillText(line, 35, 370 + i * 26);
+        ctx.fillText(line, 35, 420 + i * 28);
       });
     }
 
@@ -360,16 +382,17 @@ serve(async (req) => {
       response.debug = {
         templateWidth: width,
         templateHeight: height,
-        imageCenterX,
         nameAnchorX: nameX,
         nameAnchorY: nameY,
         advanceWidth: Math.round(advanceWidth),
         hasBboxMetrics,
         bboxLeft: Math.round(bboxLeft),
         bboxRight: Math.round(bboxRight),
-        inkWidth: Math.round(inkWidth),
-        finalDrawX: Math.round(clampedLeftX),
-        finalRightX: Math.round(finalRightX),
+        drawX: Math.round(clampedDrawX),
+        inkLeft: Math.round(inkLeft),
+        inkRight: Math.round(inkRight),
+        inkCenter: Math.round(inkCenter),
+        centerDelta: Math.round(centerDelta),
         fontSizeUsed: fontSize,
       };
     }
