@@ -111,17 +111,20 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     setIsModalOpen(true);
   };
 
-  const handleNudgePosition = async (direction: 'left' | 'right' | 'center') => {
+  const handleNudgePosition = async (direction: 'left' | 'right' | 'center' | 'up' | 'down') => {
     if (!layout) return;
     
-    let newX: number;
+    let updates: { name_x?: number; name_y?: number } = {};
+    
     if (direction === 'center') {
-      newX = 684; // Template center (1368 / 2)
-    } else {
-      newX = direction === 'left' ? layout.name_x - nudgeAmount : layout.name_x + nudgeAmount;
+      updates.name_x = 684; // Template center (1368 / 2)
+    } else if (direction === 'left' || direction === 'right') {
+      updates.name_x = direction === 'left' ? layout.name_x - nudgeAmount : layout.name_x + nudgeAmount;
+    } else if (direction === 'up' || direction === 'down') {
+      updates.name_y = direction === 'up' ? layout.name_y - nudgeAmount : layout.name_y + nudgeAmount;
     }
     
-    await updateLayout.mutateAsync({ courseId, updates: { name_x: newX } });
+    await updateLayout.mutateAsync({ courseId, updates });
     
     // Auto-regenerate if user has a certificate
     if (existingCertification) {
@@ -253,19 +256,25 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           {/* Admin Position Controls */}
           {showAdminControls && layout && (
             <div className="mt-4 p-4 rounded-lg bg-secondary/30 border border-border space-y-3">
+              {/* Nudge amount input */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Nudge:</span>
+                <input
+                  type="number"
+                  value={nudgeAmount}
+                  onChange={(e) => setNudgeAmount(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-16 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                  min={1}
+                />
+                <span className="text-xs text-muted-foreground">px</span>
+              </div>
+              
+              {/* X Position Controls */}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <span className="text-sm font-medium text-muted-foreground">
-                  Name Position: X = {layout.name_x}px
+                  X = {layout.name_x}px
                 </span>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={nudgeAmount}
-                    onChange={(e) => setNudgeAmount(Math.max(1, Number(e.target.value) || 1))}
-                    className="w-16 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
-                    min={1}
-                  />
-                  <span className="text-xs text-muted-foreground">px</span>
                   <Button
                     variant="outline"
                     size="sm"
@@ -281,7 +290,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                     onClick={() => handleNudgePosition('center')}
                     disabled={updateLayout.isPending || issueCertification.isPending}
                   >
-                    <RotateCw className="w-4 h-4 mr-1" />
+                    <RotateCw className="w-4 h-4" />
                     Center
                   </Button>
                   <Button
@@ -292,6 +301,33 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                   >
                     {nudgeAmount}px
                     <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Y Position Controls */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Y = {layout.name_y}px
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleNudgePosition('up')}
+                    disabled={updateLayout.isPending || issueCertification.isPending}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1 rotate-90" />
+                    {nudgeAmount}px
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleNudgePosition('down')}
+                    disabled={updateLayout.isPending || issueCertification.isPending}
+                  >
+                    {nudgeAmount}px
+                    <ChevronRight className="w-4 h-4 ml-1 rotate-90" />
                   </Button>
                 </div>
               </div>
