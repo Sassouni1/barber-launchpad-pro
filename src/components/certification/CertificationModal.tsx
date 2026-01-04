@@ -163,6 +163,11 @@ export function CertificationModal({
                   </>
                 )}
               </Button>
+              {(isSubmitting || isGenerating) && (
+                <p className="text-xs text-center text-muted-foreground">
+                  This may take a few seconds. Please don't close this window.
+                </p>
+              )}
             </div>
           )}
 

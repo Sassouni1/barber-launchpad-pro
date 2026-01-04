@@ -244,28 +244,58 @@ export function useIssueCertification() {
     mutationFn: async ({ courseId, certificateName }: { courseId: string; certificateName: string }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Call edge function to generate certificate
-      const { data, error } = await supabase.functions.invoke('generate-certificate', {
-        body: {
-          userId: user.id,
-          courseId,
-          certificateName,
-        },
-      });
+      try {
+        // Call edge function to generate certificate
+        const { data, error } = await supabase.functions.invoke('generate-certificate', {
+          body: {
+            userId: user.id,
+            courseId,
+            certificateName,
+          },
+        });
 
-      if (error) throw error;
-      return data;
+        if (error) throw error;
+        return data;
+      } catch (networkError) {
+        console.log('Network error occurred, checking if certificate was created...', networkError);
+        
+        // Wait a moment for the database to sync
+        await new Promise(r => setTimeout(r, 2000));
+        
+        // Check if certification was actually created despite network error
+        const { data: existing } = await supabase
+          .from('certifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('course_id', courseId)
+          .maybeSingle();
+        
+        if (existing?.certificate_url) {
+          // Success! Certificate was created before connection dropped
+          console.log('Certificate was created successfully, recovered from timeout');
+          return { certificateUrl: existing.certificate_url, recovered: true };
+        }
+        
+        // Re-throw if no certificate found
+        throw networkError;
+      }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['certification', variables.courseId] });
       queryClient.invalidateQueries({ queryKey: ['certification-eligibility', variables.courseId] });
       queryClient.invalidateQueries({ queryKey: ['certification-photos', variables.courseId] });
-      toast.success('Certificate generated successfully!');
+      if (data?.recovered) {
+        toast.success('Certificate generated successfully!');
+      } else {
+        toast.success('Certificate generated successfully!');
+      }
     },
     onError: (error) => {
       console.error('Certificate generation error:', error);
-      toast.error('Failed to generate certificate');
+      toast.error('Failed to generate certificate. Please try again.');
     },
+    retry: 1,
+    retryDelay: 2000,
   });
 }
 
