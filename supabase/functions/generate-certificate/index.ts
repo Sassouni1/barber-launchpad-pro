@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // Certificate template hosted in storage
-const TEMPLATE_URL = 'https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/template/certificate-template.png';
+const TEMPLATE_URL = 'https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/template/certificate-template.jpg';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -52,28 +52,29 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `Edit this certificate template image by adding text DIRECTLY onto the image with NO background boxes or rectangles.
+                text: `Edit this certificate template image by adding ONLY the recipient's name. Keep all existing elements exactly as they are.
 
-QUALITY REQUIREMENTS (CRITICAL):
-- Preserve the ORIGINAL image resolution and aspect ratio (no resizing / no downscaling)
-- Keep the design crisp and sharp (no blur, no compression artifacts)
-- Do not change or redraw any existing design elements
+CRITICAL QUALITY REQUIREMENTS:
+- Output the image at the SAME resolution and quality as the input (no downscaling)
+- Keep all existing design elements crisp and unchanged
+- Do NOT add any background boxes, rectangles, or shapes behind the text
 
-1. Add the name "${certificateName}" in OLDE ENGLISH / BLACKLETTER gothic font style:
-   - Place it in the dark area below "This Certificate is Proudly Presented to"
-   - IMPORTANT: DO NOT add any background box, rectangle, or white area behind the text
-   - Render the text DIRECTLY on the dark certificate background
-   - Use a GOLDEN/BEIGE color (like #C4A35A or #D4AF37) that matches the gold decorative borders and accents
-   - Horizontally centered
-   - Large and prominent size
+ADD THE RECIPIENT NAME:
+- Name to add: "${certificateName}"
+- Position: In the large empty dark area between "This Certificate is Proudly Presented to" and the paragraph that starts "This certificate confirms..."
+- Font style: Elegant script/cursive font similar to the "Certificate of Appreciation" title
+- Color: GOLDEN/BEIGE color (#C4A35A or #D4AF37) matching the existing gold decorations
+- Size: ${certificateName.length > 25 ? 'Reduce font size to fit horizontally - the name is long' : 'Large and prominent, filling the available width'}
+- Alignment: Horizontally centered
 
-2. Add the date "${currentDate}" at the bottom left where it says "DATE":
-   - Use the same GOLDEN/BEIGE color as the name
-   - NO background box or rectangle
-   - Simple, elegant font
-   - Smaller size appropriate for a date field
+ADD THE DATE:
+- Date to add: "${currentDate}"
+- Position: At the bottom left, above the "DATE" label line
+- Font: Simple elegant font
+- Color: Same golden/beige as the name
+- Size: Small, appropriate for a date field
 
-Keep all other elements of the certificate exactly as they are.`
+DO NOT modify any other elements on the certificate. The template already has the title, decorations, body text, and signature. Only add the name and date.`
               },
               {
                 type: 'image_url',
@@ -116,25 +117,32 @@ Keep all other elements of the certificate exactly as they are.`
 
     // Convert base64 to blob if it's a data URL
     let imageBlob: Blob;
+    let contentType = 'image/jpeg';
     if (generatedImageUrl.startsWith('data:')) {
+      const mimeMatch = generatedImageUrl.match(/data:([^;]+);/);
+      if (mimeMatch) contentType = mimeMatch[1];
       const base64Data = generatedImageUrl.split(',')[1];
       const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-      imageBlob = new Blob([binaryData], { type: 'image/png' });
+      imageBlob = new Blob([binaryData], { type: contentType });
     } else {
       // Fetch the image if it's a URL
       const imageResponse = await fetch(generatedImageUrl);
       imageBlob = await imageResponse.blob();
+      contentType = imageBlob.type || 'image/jpeg';
     }
+
+    // Determine file extension
+    const ext = contentType.includes('png') ? 'png' : 'jpg';
 
     // Generate unique filename
     const timestamp = Date.now();
-    const fileName = `${userId}/${courseId}/${timestamp}.png`;
+    const fileName = `${userId}/${courseId}/${timestamp}.${ext}`;
 
     // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from('certificates')
       .upload(fileName, imageBlob, {
-        contentType: 'image/png',
+        contentType,
         upsert: true,
       });
 

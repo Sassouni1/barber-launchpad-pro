@@ -3,7 +3,7 @@ import { Upload, Check, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import certificateTemplate from '@/assets/certificate-template.png';
+import certificateTemplate from '@/assets/certificate-template.jpg';
 
 export function CertificateTemplateUploader() {
   const [isUploading, setIsUploading] = useState(false);
@@ -22,8 +22,8 @@ export function CertificateTemplateUploader() {
       // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('certificates')
-        .upload('template/certificate-template.png', blob, {
-          contentType: 'image/png',
+        .upload('template/certificate-template.jpg', blob, {
+          contentType: 'image/jpeg',
           upsert: true,
         });
 
