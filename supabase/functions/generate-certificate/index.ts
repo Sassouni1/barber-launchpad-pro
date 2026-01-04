@@ -130,9 +130,9 @@ serve(async (req) => {
 
     console.log('Using pixel coordinates:', { nameX, nameY, nameMaxWidth, dateX, dateY });
 
-    // Draw name with auto-sizing - INK-BOUNDS CENTERING
+    // Draw name with auto-sizing - LET CANVAS CENTER IT
     ctx.fillStyle = layout.name_color || DEFAULT_NAME_CONFIG.color;
-    ctx.textAlign = 'left';  // Always use left - we center manually
+    ctx.textAlign = 'center';  // Canvas handles centering
     ctx.textBaseline = 'middle';
     
     let fontSize = layout.name_font_size || DEFAULT_NAME_CONFIG.baseFontSize;
@@ -140,84 +140,19 @@ serve(async (req) => {
     
     ctx.font = `${fontSize}px ${fontFamily}`;
     
+    // Auto-size font to fit within max width
     while (ctx.measureText(certificateName).width > nameMaxWidth && fontSize > minFontSize) {
       fontSize -= 4;
       ctx.font = `${fontSize}px ${fontFamily}`;
     }
     
-    // Measure text with both advance width and ink bounds
-    const textMetrics = ctx.measureText(certificateName);
-    const advanceWidth = textMetrics.width;
-    const imageCenterX = width / 2;
-    
-    // Try to use actualBoundingBox metrics for true "ink" bounds
-    // These give the actual painted pixels, not the advance width
-    // With textAlign='left' and draw position x0:
-    //   inkLeft  = x0 - bboxLeft
-    //   inkRight = x0 + bboxRight
-    //   inkCenter = x0 + (bboxRight - bboxLeft) / 2
-    // To center ink on nameX: x0 = nameX - (bboxRight - bboxLeft) / 2
-    const bboxLeft = textMetrics.actualBoundingBoxLeft ?? 0;
-    const bboxRight = textMetrics.actualBoundingBoxRight ?? advanceWidth;
-    const hasBboxMetrics = textMetrics.actualBoundingBoxLeft !== undefined;
-    
-    // Calculate draw position (x0) to center the INK on nameX
-    let drawX: number;
-    if (hasBboxMetrics) {
-      // CORRECT FORMULA: center the ink bounds on nameX
-      drawX = nameX - (bboxRight - bboxLeft) / 2;
-    } else {
-      // Fallback: center using advance width
-      drawX = nameX - advanceWidth / 2;
-    }
-    
-    // Safety margins - clamp so ink stays within margins
-    const safeMargin = 40;
-    let clampedDrawX: number;
-    let minDrawX: number;
-    let maxDrawX: number;
-    
-    if (hasBboxMetrics) {
-      // Clamp based on ink bounds
-      minDrawX = safeMargin + bboxLeft;  // so inkLeft >= safeMargin
-      maxDrawX = width - safeMargin - bboxRight;  // so inkRight <= width - safeMargin
-      clampedDrawX = Math.max(minDrawX, Math.min(drawX, maxDrawX));
-    } else {
-      // Fallback clamp using advance width
-      minDrawX = safeMargin;
-      maxDrawX = width - safeMargin - advanceWidth;
-      clampedDrawX = Math.max(minDrawX, Math.min(drawX, maxDrawX));
-    }
-    
-    // Calculate actual ink positions after clamping
-    const inkLeft = clampedDrawX - bboxLeft;
-    const inkRight = clampedDrawX + bboxRight;
-    const inkCenter = (inkLeft + inkRight) / 2;
-    const centerDelta = inkCenter - nameX;  // Should be ~0 if centered correctly
-
-    // Debug logging
-    console.log('=== CENTERING DEBUG ===');
-    console.log(`Template: ${width} x ${height}`);
-    console.log(`Image center X: ${imageCenterX}`);
-    console.log(`Anchor (name_x): ${nameX}`);
-    console.log(`Advance width: ${Math.round(advanceWidth)}px`);
-    console.log(`BBox available: ${hasBboxMetrics}`);
-    console.log(`BBox left: ${Math.round(bboxLeft)}, right: ${Math.round(bboxRight)}`);
-    console.log(`Draw X (unclamped): ${Math.round(drawX)}`);
-    console.log(`Clamp bounds: [${Math.round(minDrawX)}, ${Math.round(maxDrawX)}]`);
-    console.log(`Draw X (clamped): ${Math.round(clampedDrawX)}`);
-    console.log(`Ink spans: ${Math.round(inkLeft)} to ${Math.round(inkRight)}`);
-    console.log(`Ink center: ${Math.round(inkCenter)} (delta from anchor: ${Math.round(centerDelta)})`);
-    console.log(`Font size: ${fontSize}px`);
-    console.log('=== CENTERING DEBUG END ===');
-    
     console.log('Name font:', { family: fontFamily, size: fontSize });
     
-    // Draw at the calculated position
-    ctx.fillText(certificateName, clampedDrawX, nameY);
-    console.log('Name drawn at:', { x: Math.round(clampedDrawX), y: nameY });
+    // Draw name centered at nameX (Canvas handles centering with textAlign='center')
+    ctx.fillText(certificateName, nameX, nameY);
+    console.log('Name drawn at:', { x: nameX, y: nameY, textAlign: 'center' });
 
-    // Draw date - ALSO use custom font
+    // Draw date
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
     ctx.font = `${dateFontSize}px ${fontFamily}`;
     ctx.textAlign = 'left';
@@ -228,92 +163,25 @@ serve(async (req) => {
     console.log('Date font:', { family: fontFamily, size: dateFontSize });
     console.log('Date drawn at:', { x: dateX, y: dateY });
 
-    // DEBUG MODE: Draw visual guide lines and labels
+    // DEBUG MODE: Draw ONE vertical line at name_x
     if (debug) {
-      console.log('DEBUG MODE: Drawing guide lines and labels');
+      console.log('DEBUG MODE: Drawing reference line at name_x');
       
-      const lineWidth = 3;
-      const labelFontSize = 24;
-      ctx.font = `${labelFontSize}px sans-serif`;
-      ctx.textBaseline = 'top';
+      // Draw bright green vertical line at nameX
+      ctx.strokeStyle = '#00FF00';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(nameX, 0);
+      ctx.lineTo(nameX, height);
+      ctx.stroke();
       
-      // Helper to draw vertical line with label
-      const drawVerticalLine = (x: number, color: string, label: string, labelY: number) => {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-        
-        // Draw label background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        const labelWidth = ctx.measureText(label).width + 10;
-        ctx.fillRect(x + 5, labelY, labelWidth, labelFontSize + 8);
-        
-        // Draw label text
-        ctx.fillStyle = color;
-        ctx.textAlign = 'left';
-        ctx.fillText(label, x + 10, labelY + 4);
-      };
-      
-      // Helper to draw horizontal line with label
-      const drawHorizontalLine = (y: number, color: string, label: string, labelX: number) => {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-        
-        // Draw label background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        const labelWidth = ctx.measureText(label).width + 10;
-        ctx.fillRect(labelX, y + 5, labelWidth, labelFontSize + 8);
-        
-        // Draw label text
-        ctx.fillStyle = color;
-        ctx.textAlign = 'left';
-        ctx.fillText(label, labelX + 5, y + 9);
-      };
-
-      // Vertical guide lines
-      drawVerticalLine(0, '#FF0000', `x=0 (left edge)`, 50);
-      drawVerticalLine(imageCenterX, '#0066FF', `x=${imageCenterX} (IMAGE CENTER)`, 100);
-      drawVerticalLine(nameX, '#00FF00', `x=${nameX} (name_x anchor - TARGET)`, 150);
-      drawVerticalLine(inkLeft, '#FFFF00', `x=${Math.round(inkLeft)} (INK left)`, 200);
-      drawVerticalLine(inkCenter, '#00FFAA', `x=${Math.round(inkCenter)} (INK center)`, 250);
-      drawVerticalLine(inkRight, '#FF00FF', `x=${Math.round(inkRight)} (INK right)`, 300);
-      drawVerticalLine(width, '#FF6600', `x=${width} (right edge)`, 350);
-      
-      // Horizontal guide lines
-      drawHorizontalLine(nameY, '#00FFFF', `y=${nameY} (name_y)`, 50);
-      drawHorizontalLine(dateY, '#00FFFF', `y=${dateY} (date_y)`, 50);
-      
-      // Draw info box
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-      ctx.fillRect(20, 400, 700, 320);
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = `20px sans-serif`;
+      // Draw label
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(nameX + 10, nameY - 60, 200, 40);
+      ctx.fillStyle = '#00FF00';
+      ctx.font = '24px sans-serif';
       ctx.textAlign = 'left';
-      
-      const infoLines = [
-        `Template: ${width} x ${height}`,
-        `name_x (anchor): ${nameX}`,
-        `Advance Width: ${Math.round(advanceWidth)}px`,
-        `BBox Left/Right: ${Math.round(bboxLeft)} / ${Math.round(bboxRight)}`,
-        `Draw X: ${Math.round(clampedDrawX)}`,
-        `INK Left: ${Math.round(inkLeft)}`,
-        `INK Right: ${Math.round(inkRight)}`,
-        `INK Center: ${Math.round(inkCenter)}`,
-        `CENTER DELTA: ${Math.round(centerDelta)}px (should be ~0)`,
-        `Font Size: ${fontSize}px`,
-      ];
-      
-      infoLines.forEach((line, i) => {
-        ctx.fillText(line, 35, 420 + i * 28);
-      });
+      ctx.fillText(`name_x = ${nameX}`, nameX + 20, nameY - 35);
     }
 
     // Export as PNG
@@ -382,18 +250,10 @@ serve(async (req) => {
       response.debug = {
         templateWidth: width,
         templateHeight: height,
-        nameAnchorX: nameX,
-        nameAnchorY: nameY,
-        advanceWidth: Math.round(advanceWidth),
-        hasBboxMetrics,
-        bboxLeft: Math.round(bboxLeft),
-        bboxRight: Math.round(bboxRight),
-        drawX: Math.round(clampedDrawX),
-        inkLeft: Math.round(inkLeft),
-        inkRight: Math.round(inkRight),
-        inkCenter: Math.round(inkCenter),
-        centerDelta: Math.round(centerDelta),
+        nameX,
+        nameY,
         fontSizeUsed: fontSize,
+        textAlign: 'center',
       };
     }
 
