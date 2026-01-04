@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         display: ['Playfair Display', 'serif'],
+        certificate: ['Dancing Script', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",
