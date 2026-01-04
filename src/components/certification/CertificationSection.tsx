@@ -189,6 +189,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 Regenerate
               </Button>
 
+              {showAdminControls && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="text-muted-foreground">
@@ -222,6 +223,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              )}
             </div>
           </div>
 
