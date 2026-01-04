@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, CheckCircle, Loader2, RotateCcw } from 'lucide-react';
+import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizProgressList } from './QuizProgressList';
 import { PhotoUploader } from './PhotoUploader';
@@ -66,76 +66,119 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     await resetCertification.mutateAsync(courseId);
   };
 
+  const handleRegenerateCertification = () => {
+    setGeneratedCertificateUrl(null);
+    setIsModalOpen(true);
+  };
+
+  // Cache-busted certificate URL
+  const getCertificateUrlWithCacheBuster = (url: string) => {
+    const timestamp = Date.now();
+    return `${url}?v=${timestamp}`;
+  };
+
   // If user already has a certification, show it
   if (existingCertification) {
+    const certificateUrlWithCache = existingCertification.certificate_url 
+      ? getCertificateUrlWithCacheBuster(existingCertification.certificate_url)
+      : null;
+
     return (
-      <div className="glass-card rounded-xl p-6 mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full gold-gradient flex items-center justify-center">
-              <Award className="w-6 h-6 text-primary-foreground" />
+      <>
+        <div className="glass-card rounded-xl p-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full gold-gradient flex items-center justify-center">
+                <Award className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h3 className="font-display text-xl font-bold gold-text">Certified!</h3>
+                <p className="text-sm text-muted-foreground">
+                  Issued on {new Date(existingCertification.issued_at).toLocaleDateString()}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-display text-xl font-bold gold-text">Certified!</h3>
-              <p className="text-sm text-muted-foreground">
-                Issued on {new Date(existingCertification.issued_at).toLocaleDateString()}
-              </p>
+            
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-muted-foreground"
+                onClick={handleRegenerateCertification}
+                disabled={issueCertification.isPending}
+              >
+                {issueCertification.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Regenerate
+              </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-muted-foreground">
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset Certification?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete your current certificate and uploaded photos. You'll need to re-upload your work photos and generate a new certificate. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleResetCertification}
+                      disabled={resetCertification.isPending}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {resetCertification.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Resetting...
+                        </>
+                      ) : (
+                        'Reset Certification'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
-          
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-muted-foreground">
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
+
+          {certificateUrlWithCache && (
+            <div className="space-y-4">
+              <div className="rounded-lg overflow-hidden border border-primary/30">
+                <img
+                  src={certificateUrlWithCache}
+                  alt="Your Certificate"
+                  className="w-full"
+                />
+              </div>
+              <Button
+                className="w-full gold-gradient"
+                onClick={() => window.open(existingCertification.certificate_url!, '_blank')}
+              >
+                Download Certificate
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reset Certification?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will delete your current certificate and uploaded photos. You'll need to re-upload your work photos and generate a new certificate. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleResetCertification}
-                  disabled={resetCertification.isPending}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {resetCertification.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Resetting...
-                    </>
-                  ) : (
-                    'Reset Certification'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            </div>
+          )}
         </div>
 
-        {existingCertification.certificate_url && (
-          <div className="space-y-4">
-            <div className="rounded-lg overflow-hidden border border-primary/30">
-              <img
-                src={existingCertification.certificate_url}
-                alt="Your Certificate"
-                className="w-full"
-              />
-            </div>
-            <Button
-              className="w-full gold-gradient"
-              onClick={() => window.open(existingCertification.certificate_url!, '_blank')}
-            >
-              Download Certificate
-            </Button>
-          </div>
-        )}
-      </div>
+        <CertificationModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleSubmitCertification}
+          certificateUrl={generatedCertificateUrl}
+          isGenerating={issueCertification.isPending}
+          defaultName={existingCertification.certificate_name}
+        />
+      </>
     );
   }
 
