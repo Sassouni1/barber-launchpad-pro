@@ -19,8 +19,8 @@ const DEFAULT_DATE_CONFIG = {
   color: '#CEA77C',
 };
 
-// TTF font URL (OFL license Old English font)
-const FONT_URL = 'https://github.com/AltspaceVR/UnifrakturMaguntia/raw/refs/heads/master/UnifrakturMaguntia-Book.ttf';
+// Font will be fetched from Supabase storage (uploaded by admin)
+const FONT_PATH = 'fonts/OldeEnglish.ttf';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -85,11 +85,12 @@ serve(async (req) => {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Load custom TTF font
+    // Load custom TTF font from Supabase storage
     let fontFamily = 'serif';
     try {
-      console.log('Loading font from:', FONT_URL);
-      const fontResponse = await fetch(FONT_URL);
+      const fontUrl = `${supabaseUrl}/storage/v1/object/public/certificates/${FONT_PATH}`;
+      console.log('Loading font from:', fontUrl);
+      const fontResponse = await fetch(fontUrl);
       console.log('Font response:', { 
         status: fontResponse.status, 
         contentType: fontResponse.headers.get('content-type'),

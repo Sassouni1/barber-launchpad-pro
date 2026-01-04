@@ -2,6 +2,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses } from '@/hooks/useCourses';
 import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2 } from 'lucide-react';
 import { CertificateTemplateUploader } from '@/components/admin/CertificateTemplateUploader';
+import { FontUploader } from '@/components/admin/FontUploader';
 export default function AdminDashboard() {
   const { data: courses = [], isLoading } = useCourses();
 
@@ -88,7 +89,10 @@ export default function AdminDashboard() {
         {/* Certificate Template Uploader */}
         <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.5s' }}>
           <h2 className="font-display text-xl font-semibold mb-4">Certificate Settings</h2>
-          <CertificateTemplateUploader />
+          <div className="grid gap-4 md:grid-cols-2">
+            <CertificateTemplateUploader />
+            <FontUploader />
+          </div>
         </div>
       </div>
     </DashboardLayout>
