@@ -38,7 +38,7 @@ export function CertificationModal({
     }
 
     if (step === 'analyzing') {
-      const duration = 120000; // 2 minutes
+      const duration = 2000; // 2 seconds for testing
       const interval = 100;
       const increment = (interval / duration) * 100;
 
