@@ -26,24 +26,59 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+      global: {
+        headers: {
+          Authorization: `Bearer ${supabaseServiceKey}`,
+          apikey: supabaseServiceKey,
+        },
+      },
+    });
 
-    // Download the template image from storage and convert to base64
-    console.log('Downloading template from storage...');
-    const { data: templateData, error: downloadError } = await supabase.storage
-      .from('certificates')
-      .download(TEMPLATE_PATH);
+    // Fetch the template image via public URL (avoids storage-js download edge cases)
+    console.log('Fetching template via public URL...');
+    const getTemplatePublicUrl = (path: string) =>
+      supabase.storage.from('certificates').getPublicUrl(path).data.publicUrl;
 
-    if (downloadError || !templateData) {
-      console.error('Failed to download template:', downloadError);
-      throw new Error('Failed to download certificate template from storage');
+    const candidatePaths = [
+      TEMPLATE_PATH,
+      TEMPLATE_PATH.replace(/\.jpg$/i, '.png'),
+      TEMPLATE_PATH.replace(/\.jpeg$/i, '.png'),
+    ].filter((p, i, arr) => p && arr.indexOf(p) === i);
+
+    let templateResp: Response | null = null;
+    let chosenPath: string | null = null;
+
+    for (const path of candidatePaths) {
+      const url = getTemplatePublicUrl(path);
+      const r = await fetch(url);
+      console.log('Template fetch', { path, status: r.status });
+      if (r.ok) {
+        templateResp = r;
+        chosenPath = path;
+        break;
+      }
     }
 
-    // Convert blob to base64
-    const arrayBuffer = await templateData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-    const templateBase64Url = `data:image/jpeg;base64,${base64}`;
-    console.log('Template converted to base64, length:', base64.length);
+    if (!templateResp || !chosenPath) {
+      throw new Error('Failed to fetch certificate template from storage (template missing or not public)');
+    }
+
+    const templateContentType = templateResp.headers.get('content-type') || (chosenPath.endsWith('.png') ? 'image/png' : 'image/jpeg');
+    const arrayBuffer = await templateResp.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+
+    // Safer base64 encoding (avoid callstack issues on large images)
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64 = btoa(binary);
+
+    const templateBase64Url = `data:${templateContentType};base64,${base64}`;
+    console.log('Template ready', { chosenPath, contentType: templateContentType, bytes: bytes.length });
 
     // Format the current date
     const currentDate = new Date().toLocaleDateString('en-US', {
