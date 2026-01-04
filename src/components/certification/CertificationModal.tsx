@@ -12,6 +12,7 @@ interface CertificationModalProps {
   onSubmit: (name: string) => Promise<void>;
   certificateUrl?: string | null;
   isGenerating: boolean;
+  defaultName?: string;
 }
 
 type Step = 'analyzing' | 'name-entry' | 'complete';
@@ -22,11 +23,19 @@ export function CertificationModal({
   onSubmit,
   certificateUrl,
   isGenerating,
+  defaultName,
 }: CertificationModalProps) {
   const [step, setStep] = useState<Step>('name-entry');
   const [progress, setProgress] = useState(0);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(defaultName || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset name when defaultName changes or modal opens
+  useEffect(() => {
+    if (isOpen && defaultName) {
+      setName(defaultName);
+    }
+  }, [isOpen, defaultName]);
 
   // Analysis animation - 2 minutes
   useEffect(() => {
