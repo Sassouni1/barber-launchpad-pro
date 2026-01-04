@@ -52,20 +52,23 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `Edit this certificate template image by adding text in these exact positions:
+              text: `Edit this certificate template image by adding text DIRECTLY onto the image with NO background boxes or rectangles:
 
-1. Add the name "${certificateName}" in OLDE ENGLISH / BLACKLETTER gothic font style. The name should be:
-   - Placed in the large blank white/cream area below where it says "This Certificate is Proudly Presented to"
+1. Add the name "${certificateName}" in OLDE ENGLISH / BLACKLETTER gothic font style:
+   - Place it in the dark area below "This Certificate is Proudly Presented to"
+   - IMPORTANT: DO NOT add any background box, rectangle, or white area behind the text
+   - The text should be rendered DIRECTLY on the dark certificate background
+   - Use a GOLDEN/BEIGE color (like #C4A35A or #D4AF37) that matches the gold decorative borders and accents on the certificate
    - Horizontally centered
-   - Large and prominent (like a formal certificate name)
-   - Dark brown or black color to contrast with the background
+   - Large and prominent size
 
-2. Add the date "${currentDate}" in the DATE field:
-   - Located at the bottom left of the certificate where it says "DATE"
-   - Use a simple, elegant font
+2. Add the date "${currentDate}" at the bottom left where the DATE field is:
+   - Use the same GOLDEN/BEIGE color as the name
+   - NO background box or rectangle
+   - Simple, elegant font
    - Smaller size appropriate for a date field
 
-Keep all other elements of the certificate exactly as they are. The certificate has a vintage/elegant design with gold accents and decorative borders.`
+CRITICAL: The certificate has a dark charcoal/black background. All text you add must be golden/beige colored with NO white boxes, NO background rectangles, NO fill behind the text. The text should blend seamlessly with the existing gold decorative elements.`
               },
               {
                 type: 'image_url',
