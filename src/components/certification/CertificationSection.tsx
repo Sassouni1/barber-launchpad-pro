@@ -116,8 +116,8 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           </div>
         </div>
 
-        {/* Requirements */}
-        <div className="grid gap-4 md:grid-cols-2">
+        {/* Requirements - Stacked layout */}
+        <div className="space-y-4">
           {/* Quiz Progress */}
           <div className="p-4 rounded-lg bg-secondary/20 border border-border">
             <QuizProgressList quizProgress={eligibility?.quizProgress || []} />
