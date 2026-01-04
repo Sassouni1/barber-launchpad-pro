@@ -6,12 +6,28 @@ import { Progress } from '@/components/ui/progress';
 import { Download, Loader2, Award, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface DebugInfo {
+  templateWidth: number;
+  templateHeight: number;
+  imageCenterX: number;
+  nameAnchorX: number;
+  nameAnchorY: number;
+  drawX: number;
+  measuredTextWidth: number;
+  textLeftEdge: number;
+  textRightEdge: number;
+  textCenter: number;
+  fontSizeUsed: number;
+  textAlign: string;
+}
+
 interface CertificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (name: string) => Promise<void>;
   certificateUrl?: string | null;
   isGenerating: boolean;
+  debugInfo?: DebugInfo | null;
 }
 
 type Step = 'analyzing' | 'name-entry' | 'complete';
@@ -22,6 +38,7 @@ export function CertificationModal({
   onSubmit,
   certificateUrl,
   isGenerating,
+  debugInfo,
 }: CertificationModalProps) {
   const [step, setStep] = useState<Step>('name-entry');
   const [progress, setProgress] = useState(0);
@@ -175,12 +192,31 @@ export function CertificationModal({
             <div className="space-y-4">
               <div className="relative rounded-lg overflow-hidden border border-primary/30 shadow-lg">
                 <img
-                  src={certificateUrl}
+                  src={`${certificateUrl}?v=${Date.now()}`}
                   alt="Your Certificate"
                   className="w-full"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
               </div>
+              
+              {/* Debug Info Panel */}
+              {debugInfo && (
+                <div className="bg-secondary/50 rounded-lg p-3 border border-border">
+                  <p className="text-xs font-mono font-bold text-primary mb-2">DEBUG INFO:</p>
+                  <pre className="text-xs font-mono text-muted-foreground overflow-x-auto">
+{`Template: ${debugInfo.templateWidth} x ${debugInfo.templateHeight}
+Image Center X: ${debugInfo.imageCenterX}
+name_x (target): ${debugInfo.nameAnchorX}
+drawX (start): ${debugInfo.drawX}
+Text Width: ${debugInfo.measuredTextWidth}px
+Text spans: ${debugInfo.textLeftEdge} → ${debugInfo.textRightEdge}
+Text Center: ${debugInfo.textCenter}
+Font Size: ${debugInfo.fontSizeUsed}px
+textAlign: ${debugInfo.textAlign}`}
+                  </pre>
+                </div>
+              )}
+              
               <div className="flex gap-3">
                 <Button
                   className="flex-1 gold-gradient"

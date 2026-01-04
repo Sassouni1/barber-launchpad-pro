@@ -260,6 +260,12 @@ export function useIssueCertification() {
         });
 
         if (error) throw error;
+        
+        // Log debug info if present
+        if (data?.debug) {
+          console.log('🔧 DEBUG INFO FROM SERVER:', data.debug);
+        }
+        
         return data;
       } catch (networkError) {
         console.log('Network error occurred, checking if certificate was created...', networkError);
