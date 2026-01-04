@@ -46,13 +46,22 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
   const toggleCertDebug = () => {
     const next = new URLSearchParams(searchParams);
-    if (isDebugMode) {
-      next.delete('certDebug');
-    } else {
+    const nextIsDebug = !isDebugMode;
+
+    if (nextIsDebug) {
       next.set('certDebug', '1');
+    } else {
+      next.delete('certDebug');
     }
+
     setSearchParams(next, { replace: true });
     setDebugInfo(null);
+
+    // Immediately regenerate so the green name_x line is visible on the image.
+    if (existingCertification) {
+      setGeneratedCertificateUrl(null);
+      void handleSubmitCertification(existingCertification.certificate_name, nextIsDebug);
+    }
   };
 
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
@@ -77,12 +86,12 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     setIsModalOpen(true);
   };
 
-  const handleSubmitCertification = async (name: string) => {
+  const handleSubmitCertification = async (name: string, debugOverride?: boolean) => {
     setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId,
       certificateName: name,
-      debug: isDebugMode,
+      debug: debugOverride ?? isDebugMode,
     });
     if (result?.certificateUrl) {
       setGeneratedCertificateUrl(result.certificateUrl);
@@ -123,13 +132,15 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   // Cache-busted certificate URL
   const getCertificateUrlWithCacheBuster = (url: string) => {
     const timestamp = Date.now();
-    return `${url}?v=${timestamp}`;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}v=${timestamp}`;
   };
 
   // If user already has a certification, show it
   if (existingCertification) {
-    const certificateUrlWithCache = existingCertification.certificate_url 
-      ? getCertificateUrlWithCacheBuster(existingCertification.certificate_url)
+    const baseCertificateUrl = generatedCertificateUrl || existingCertification.certificate_url;
+    const certificateUrlWithCache = baseCertificateUrl
+      ? getCertificateUrlWithCacheBuster(baseCertificateUrl)
       : null;
 
     return (
@@ -220,7 +231,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
               </div>
               <Button
                 className="w-full gold-gradient"
-                onClick={() => window.open(existingCertification.certificate_url!, '_blank')}
+                onClick={() => window.open(baseCertificateUrl!, '_blank')}
               >
                 Download Certificate
               </Button>
