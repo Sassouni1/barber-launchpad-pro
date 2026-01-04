@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // Text configuration for positioning
 const NAME_CONFIG = {
-  yPercent: 0.42,       // 42% from top
+  yPercent: 0.52,       // 52% from top (centered on certificate)
   maxWidthPercent: 0.7, // Max 70% of image width
   baseFontSize: 120,    // Starting font size
   minFontSize: 48,      // Minimum font size
