@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw } from 'lucide-react';
+import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizProgressList } from './QuizProgressList';
 import { PhotoUploader } from './PhotoUploader';
@@ -11,6 +11,8 @@ import {
   useIssueCertification,
   useResetCertification,
 } from '@/hooks/useCertification';
+import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -32,8 +34,13 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
 
+  const { isAdmin, isAdminModeActive } = useAuthContext();
+  const showAdminControls = isAdmin && isAdminModeActive;
+
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
   const { data: existingCertification, isLoading: isLoadingCertification } = useUserCertification(courseId);
+  const { data: layout } = useCertificateLayout(courseId);
+  const updateLayout = useUpdateCertificateLayout();
   const {
     photos,
     isLoading: isLoadingPhotos,
@@ -69,6 +76,25 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   const handleRegenerateCertification = () => {
     setGeneratedCertificateUrl(null);
     setIsModalOpen(true);
+  };
+
+  const handleNudgePosition = async (direction: 'left' | 'right' | 'center') => {
+    if (!layout) return;
+    
+    let newX: number;
+    if (direction === 'center') {
+      newX = 684; // Template center (1368 / 2)
+    } else {
+      const nudgeAmount = 20;
+      newX = direction === 'left' ? layout.name_x - nudgeAmount : layout.name_x + nudgeAmount;
+    }
+    
+    await updateLayout.mutateAsync({ courseId, updates: { name_x: newX } });
+    
+    // Auto-regenerate if user has a certificate
+    if (existingCertification) {
+      handleSubmitCertification(existingCertification.certificate_name);
+    }
   };
 
   // Cache-busted certificate URL
@@ -166,6 +192,52 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
               >
                 Download Certificate
               </Button>
+            </div>
+          )}
+
+          {/* Admin Position Controls */}
+          {showAdminControls && layout && (
+            <div className="mt-4 p-4 rounded-lg bg-secondary/30 border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Name Position: X = {layout.name_x}px
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleNudgePosition('left')}
+                    disabled={updateLayout.isPending || issueCertification.isPending}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    20px
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleNudgePosition('center')}
+                    disabled={updateLayout.isPending || issueCertification.isPending}
+                  >
+                    <RotateCw className="w-4 h-4 mr-1" />
+                    Center
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleNudgePosition('right')}
+                    disabled={updateLayout.isPending || issueCertification.isPending}
+                  >
+                    20px
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+              {(updateLayout.isPending || issueCertification.isPending) && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Regenerating...
+                </div>
+              )}
             </div>
           )}
         </div>
