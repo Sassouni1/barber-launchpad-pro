@@ -39,7 +39,10 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
   const { isAdmin, isAdminModeActive, toggleAdminMode } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
-  const isDebugMode = searchParams.get('certDebug') === '1';
+
+  // Treat any truthy certDebug value as enabled (handles accidental "1." etc.)
+  const certDebugValue = searchParams.get('certDebug');
+  const isDebugMode = !!certDebugValue && certDebugValue !== '0' && certDebugValue !== 'false';
 
   const toggleCertDebug = () => {
     const next = new URLSearchParams(searchParams);
