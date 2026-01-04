@@ -163,14 +163,16 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={toggleCertDebug}
-              >
-                {isDebugMode ? 'Debug ON' : 'Debug OFF'}
-              </Button>
+              {showAdminControls && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={toggleCertDebug}
+                >
+                  {isDebugMode ? 'Debug ON' : 'Debug OFF'}
+                </Button>
+              )}
 
               <Button 
                 variant="outline" 
@@ -257,17 +259,6 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
             </div>
           )}
 
-          {/* Admin helpers */}
-          {isAdmin && !isAdminModeActive && (
-            <div className="mt-4 p-4 rounded-lg bg-secondary/30 border border-border flex items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">
-                Admin controls are hidden (Admin Mode is OFF).
-              </div>
-              <Button variant="outline" size="sm" onClick={toggleAdminMode}>
-                Enable Admin Mode
-              </Button>
-            </div>
-          )}
 
           {/* Admin Position Controls */}
           {showAdminControls && layout && (
