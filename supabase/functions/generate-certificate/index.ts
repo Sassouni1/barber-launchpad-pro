@@ -28,9 +28,9 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, courseId, certificateName } = await req.json();
+    const { userId, courseId, certificateName, debug = false } = await req.json();
     
-    console.log('Generating certificate for:', { userId, courseId, certificateName });
+    console.log('Generating certificate for:', { userId, courseId, certificateName, debug });
 
     if (!userId || !courseId || !certificateName) {
       throw new Error('Missing required fields: userId, courseId, or certificateName');
@@ -145,6 +145,25 @@ serve(async (req) => {
       ctx.font = `${fontSize}px ${fontFamily}`;
     }
     
+    // Measure final text width
+    const measuredTextWidth = ctx.measureText(certificateName).width;
+    const textLeftEdge = nameX - measuredTextWidth / 2;
+    const textRightEdge = nameX + measuredTextWidth / 2;
+    const imageCenterX = width / 2;
+
+    // PIXEL DEBUG LOGGING (always log)
+    console.log('=== PIXEL DEBUG START ===');
+    console.log(`Template dimensions: ${width} x ${height}`);
+    console.log(`Image center X: ${imageCenterX}`);
+    console.log(`layout.name_x (anchor): ${nameX}`);
+    console.log(`layout.name_y: ${nameY}`);
+    console.log(`Measured text width: ${Math.round(measuredTextWidth)}px`);
+    console.log(`Text LEFT edge (anchor - width/2): ${Math.round(textLeftEdge)}`);
+    console.log(`Text RIGHT edge (anchor + width/2): ${Math.round(textRightEdge)}`);
+    console.log(`Font size used: ${fontSize}px`);
+    console.log(`Offset from image center: ${nameX - imageCenterX}px`);
+    console.log('=== PIXEL DEBUG END ===');
+    
     console.log('Name font:', { family: fontFamily, size: fontSize });
     
     ctx.fillText(certificateName, nameX, nameY);
@@ -160,6 +179,91 @@ serve(async (req) => {
     ctx.fillText(formattedDate, dateX, dateY);
     console.log('Date font:', { family: fontFamily, size: dateFontSize });
     console.log('Date drawn at:', { x: dateX, y: dateY });
+
+    // DEBUG MODE: Draw visual guide lines and labels
+    if (debug) {
+      console.log('DEBUG MODE: Drawing guide lines and labels');
+      
+      const lineWidth = 3;
+      const labelFontSize = 24;
+      ctx.font = `${labelFontSize}px sans-serif`;
+      ctx.textBaseline = 'top';
+      
+      // Helper to draw vertical line with label
+      const drawVerticalLine = (x: number, color: string, label: string, labelY: number) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+        
+        // Draw label background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        const labelWidth = ctx.measureText(label).width + 10;
+        ctx.fillRect(x + 5, labelY, labelWidth, labelFontSize + 8);
+        
+        // Draw label text
+        ctx.fillStyle = color;
+        ctx.textAlign = 'left';
+        ctx.fillText(label, x + 10, labelY + 4);
+      };
+      
+      // Helper to draw horizontal line with label
+      const drawHorizontalLine = (y: number, color: string, label: string, labelX: number) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+        
+        // Draw label background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        const labelWidth = ctx.measureText(label).width + 10;
+        ctx.fillRect(labelX, y + 5, labelWidth, labelFontSize + 8);
+        
+        // Draw label text
+        ctx.fillStyle = color;
+        ctx.textAlign = 'left';
+        ctx.fillText(label, labelX + 5, y + 9);
+      };
+
+      // Vertical guide lines
+      drawVerticalLine(0, '#FF0000', `x=0 (left edge)`, 50);
+      drawVerticalLine(imageCenterX, '#0066FF', `x=${imageCenterX} (IMAGE CENTER)`, 100);
+      drawVerticalLine(nameX, '#00FF00', `x=${nameX} (name_x anchor)`, 150);
+      drawVerticalLine(textLeftEdge, '#FFFF00', `x=${Math.round(textLeftEdge)} (text left)`, 200);
+      drawVerticalLine(textRightEdge, '#FF00FF', `x=${Math.round(textRightEdge)} (text right)`, 250);
+      drawVerticalLine(width, '#FF6600', `x=${width} (right edge)`, 300);
+      
+      // Horizontal guide lines
+      drawHorizontalLine(nameY, '#00FFFF', `y=${nameY} (name_y)`, 50);
+      drawHorizontalLine(dateY, '#00FFFF', `y=${dateY} (date_y)`, 50);
+      
+      // Draw info box at top
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      ctx.fillRect(20, 350, 600, 220);
+      
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `20px sans-serif`;
+      ctx.textAlign = 'left';
+      
+      const infoLines = [
+        `Template: ${width} x ${height}`,
+        `Image Center X: ${imageCenterX}`,
+        `name_x (anchor): ${nameX}`,
+        `name_y: ${nameY}`,
+        `Measured Text Width: ${Math.round(measuredTextWidth)}px`,
+        `Text spans: ${Math.round(textLeftEdge)} to ${Math.round(textRightEdge)}`,
+        `Font Size: ${fontSize}px`,
+        `Offset from center: ${nameX - imageCenterX}px`,
+      ];
+      
+      infoLines.forEach((line, i) => {
+        ctx.fillText(line, 35, 370 + i * 26);
+      });
+    }
 
     // Export as PNG
     console.log('Exporting PNG...');
@@ -213,14 +317,33 @@ serve(async (req) => {
 
     console.log('Certification saved:', certData);
 
+    // Build response
+    const response: Record<string, unknown> = { 
+      success: true, 
+      certificateUrl,
+      dimensions: { width, height },
+      fontUsed: fontFamily,
+      layoutUsed: { nameX, nameY, dateX, dateY },
+    };
+
+    // Include debug info in response if debug mode
+    if (debug) {
+      response.debug = {
+        templateWidth: width,
+        templateHeight: height,
+        imageCenterX,
+        nameAnchorX: nameX,
+        nameAnchorY: nameY,
+        measuredTextWidth: Math.round(measuredTextWidth),
+        textLeftEdge: Math.round(textLeftEdge),
+        textRightEdge: Math.round(textRightEdge),
+        fontSizeUsed: fontSize,
+        offsetFromCenter: nameX - imageCenterX,
+      };
+    }
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        certificateUrl,
-        dimensions: { width, height },
-        fontUsed: fontFamily,
-        layoutUsed: { nameX, nameY, dateX, dateY },
-      }),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
