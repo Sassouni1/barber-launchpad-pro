@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
+  const [nudgeAmount, setNudgeAmount] = useState(20);
 
   const { isAdmin, isAdminModeActive, toggleAdminMode } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
@@ -117,7 +118,6 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     if (direction === 'center') {
       newX = 684; // Template center (1368 / 2)
     } else {
-      const nudgeAmount = 20;
       newX = direction === 'left' ? layout.name_x - nudgeAmount : layout.name_x + nudgeAmount;
     }
     
@@ -253,11 +253,19 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           {/* Admin Position Controls */}
           {showAdminControls && layout && (
             <div className="mt-4 p-4 rounded-lg bg-secondary/30 border border-border space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <span className="text-sm font-medium text-muted-foreground">
                   Name Position: X = {layout.name_x}px
                 </span>
                 <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={nudgeAmount}
+                    onChange={(e) => setNudgeAmount(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-16 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                    min={1}
+                  />
+                  <span className="text-xs text-muted-foreground">px</span>
                   <Button
                     variant="outline"
                     size="sm"
@@ -265,7 +273,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                     disabled={updateLayout.isPending || issueCertification.isPending}
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" />
-                    20px
+                    {nudgeAmount}px
                   </Button>
                   <Button
                     variant="outline"
@@ -282,7 +290,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                     onClick={() => handleNudgePosition('right')}
                     disabled={updateLayout.isPending || issueCertification.isPending}
                   >
-                    20px
+                    {nudgeAmount}px
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
