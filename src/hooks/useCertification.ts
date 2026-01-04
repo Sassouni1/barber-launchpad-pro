@@ -66,11 +66,11 @@ export function useCertificationEligibility(courseId: string | undefined) {
       const quizProgress: QuizProgress[] = modulesWithQuiz.map(module => {
         const moduleAttempts = attempts?.filter(a => a.module_id === module.id) || [];
         const bestAttempt = moduleAttempts.reduce((best, current) => {
-          const currentScore = current.total_questions > 0 
-            ? (current.score / current.total_questions) * 100 
+          const currentScore = current.total_questions > 0
+            ? (current.score / current.total_questions) * 100
             : 0;
-          const bestScore = best?.total_questions > 0 
-            ? (best.score / best.total_questions) * 100 
+          const bestScore = best?.total_questions > 0
+            ? (best.score / best.total_questions) * 100
             : 0;
           return currentScore > bestScore ? current : best;
         }, moduleAttempts[0]);
@@ -109,6 +109,9 @@ export function useCertificationEligibility(courseId: string | undefined) {
       };
     },
     enabled: !!user?.id && !!courseId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -133,6 +136,9 @@ export function useCertificationPhotos(courseId: string | undefined) {
       return data as CertificationPhoto[];
     },
     enabled: !!user?.id && !!courseId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   const uploadPhotoMutation = useMutation({
@@ -229,6 +235,9 @@ export function useUserCertification(courseId: string | undefined) {
       return data as Certification | null;
     },
     enabled: !!user?.id && !!courseId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
 

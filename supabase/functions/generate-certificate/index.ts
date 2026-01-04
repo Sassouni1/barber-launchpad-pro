@@ -52,23 +52,28 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-              text: `Edit this certificate template image by adding text DIRECTLY onto the image with NO background boxes or rectangles:
+                text: `Edit this certificate template image by adding text DIRECTLY onto the image with NO background boxes or rectangles.
+
+QUALITY REQUIREMENTS (CRITICAL):
+- Preserve the ORIGINAL image resolution and aspect ratio (no resizing / no downscaling)
+- Keep the design crisp and sharp (no blur, no compression artifacts)
+- Do not change or redraw any existing design elements
 
 1. Add the name "${certificateName}" in OLDE ENGLISH / BLACKLETTER gothic font style:
    - Place it in the dark area below "This Certificate is Proudly Presented to"
    - IMPORTANT: DO NOT add any background box, rectangle, or white area behind the text
-   - The text should be rendered DIRECTLY on the dark certificate background
-   - Use a GOLDEN/BEIGE color (like #C4A35A or #D4AF37) that matches the gold decorative borders and accents on the certificate
+   - Render the text DIRECTLY on the dark certificate background
+   - Use a GOLDEN/BEIGE color (like #C4A35A or #D4AF37) that matches the gold decorative borders and accents
    - Horizontally centered
    - Large and prominent size
 
-2. Add the date "${currentDate}" at the bottom left where the DATE field is:
+2. Add the date "${currentDate}" at the bottom left where it says "DATE":
    - Use the same GOLDEN/BEIGE color as the name
    - NO background box or rectangle
    - Simple, elegant font
    - Smaller size appropriate for a date field
 
-CRITICAL: The certificate has a dark charcoal/black background. All text you add must be golden/beige colored with NO white boxes, NO background rectangles, NO fill behind the text. The text should blend seamlessly with the existing gold decorative elements.`
+Keep all other elements of the certificate exactly as they are.`
               },
               {
                 type: 'image_url',
