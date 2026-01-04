@@ -244,13 +244,9 @@ export function useIssueCertification() {
     mutationFn: async ({ courseId, certificateName }: { courseId: string; certificateName: string }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Check for debug mode via URL param
-      const urlParams = new URLSearchParams(window.location.search);
-      const debugMode = urlParams.get('certDebug') === '1';
-      
-      if (debugMode) {
-        console.log('🔧 DEBUG MODE ENABLED - Certificate will include pixel guide lines');
-      }
+      // TEMPORARY: Force debug mode ON to see pixel guide lines
+      const debugMode = true;
+      console.log('🔧 DEBUG MODE ENABLED - Certificate will include pixel guide lines');
 
       try {
         // Call edge function to generate certificate
