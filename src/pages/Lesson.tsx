@@ -46,11 +46,11 @@ const CopyableText = ({ text }: { text: string }) => {
   };
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-secondary/50 border border-border/50 rounded text-sm font-mono">
-      <span>{text}</span>
+    <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-secondary/50 border border-border/50 rounded text-sm">
+      <span className="whitespace-pre-line">{text}</span>
       <button
         onClick={handleCopy}
-        className="p-0.5 hover:bg-primary/20 rounded transition-colors"
+        className="p-0.5 hover:bg-primary/20 rounded transition-colors flex-shrink-0 self-start mt-0.5"
         title="Copy to clipboard"
       >
         {copied ? (
@@ -65,9 +65,23 @@ const CopyableText = ({ text }: { text: string }) => {
 
 // Helper function to render markdown-style notes content
 const renderNotesContent = (content: string) => {
+  // Pre-process: Extract all {copy:...} blocks (including multi-line) and replace with placeholders
+  const copyBlocks = new Map<string, string>();
+  let blockIndex = 0;
+  const processedContent = content.replace(/\{copy:([\s\S]*?)\}/g, (match, text) => {
+    const placeholder = `__COPY_BLOCK_${blockIndex}__`;
+    copyBlocks.set(placeholder, text);
+    blockIndex++;
+    return placeholder;
+  });
+
   const renderInlineElements = (text: string, keyPrefix: string = '') => {
-    // Combined regex for links and copyable text
-    const combinedRegex = /\[([^\]]+)\]\(([^)]+)\)|\{copy:([^}]+)\}/g;
+    // Check for copy block placeholders first
+    const placeholderRegex = /__COPY_BLOCK_(\d+)__/g;
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    
+    // Combined pattern to find both placeholders and links
+    const combinedRegex = /__COPY_BLOCK_\d+__|\[([^\]]+)\]\(([^)]+)\)/g;
     const parts: (string | JSX.Element)[] = [];
     let lastIndex = 0;
     let match;
@@ -77,7 +91,15 @@ const renderNotesContent = (content: string) => {
         parts.push(text.substring(lastIndex, match.index));
       }
       
-      if (match[1] && match[2]) {
+      if (match[0].startsWith('__COPY_BLOCK_')) {
+        // It's a copy block placeholder
+        const copyText = copyBlocks.get(match[0]);
+        if (copyText) {
+          parts.push(
+            <CopyableText key={`${keyPrefix}-copy-${match.index}`} text={copyText} />
+          );
+        }
+      } else if (match[1] && match[2]) {
         // Link: [text](url)
         parts.push(
           <a
@@ -89,11 +111,6 @@ const renderNotesContent = (content: string) => {
           >
             {match[1]}
           </a>
-        );
-      } else if (match[3]) {
-        // Copyable text: {copy:text}
-        parts.push(
-          <CopyableText key={`${keyPrefix}-copy-${match.index}`} text={match[3]} />
         );
       }
       
@@ -107,7 +124,7 @@ const renderNotesContent = (content: string) => {
     return parts.length > 0 ? parts : text;
   };
 
-  const lines = content.split("\n");
+  const lines = processedContent.split("\n");
   const elements: JSX.Element[] = [];
 
   lines.forEach((line, index) => {
@@ -145,13 +162,24 @@ const renderNotesContent = (content: string) => {
     else if (line.trim() === "") {
       elements.push(<div key={index} className="h-2" />);
     }
-    // Regular text
-    else {
+    // Regular text (skip placeholder-only lines as they're handled inline)
+    else if (!line.match(/^__COPY_BLOCK_\d+__$/)) {
       elements.push(
         <p key={index} className="text-muted-foreground">
           {renderInlineElements(line, `line-${index}`)}
         </p>
       );
+    }
+    // Standalone copy blocks (on their own line)
+    else {
+      const copyText = copyBlocks.get(line);
+      if (copyText) {
+        elements.push(
+          <div key={index} className="my-2">
+            <CopyableText text={copyText} />
+          </div>
+        );
+      }
     }
   });
 
