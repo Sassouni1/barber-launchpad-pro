@@ -337,22 +337,28 @@ export default function Lesson() {
           const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
           const videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv'];
           
-          const images = files.filter(f => f.file_type && imageExtensions.includes(f.file_type.toLowerCase()));
-          const videos = files.filter(f => f.file_type && videoExtensions.includes(f.file_type.toLowerCase()));
+          const mediaFiles = files.filter(f => {
+            if (!f.file_type) return false;
+            const ext = f.file_type.toLowerCase();
+            return imageExtensions.includes(ext) || videoExtensions.includes(ext);
+          });
           const others = files.filter(f => {
             if (!f.file_type) return true;
             const ext = f.file_type.toLowerCase();
             return !imageExtensions.includes(ext) && !videoExtensions.includes(ext);
           });
 
+          const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
+          const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
+
           const getDownloadUrl = (fileUrl: string, fileName: string) => {
             const baseUrl = import.meta.env.VITE_SUPABASE_URL;
             return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
           };
 
-          const MobileFileCard = ({ file, isImage, isVideo }: { file: typeof files[0]; isImage: boolean; isVideo: boolean }) => (
+          const MobileFileCard = ({ file }: { file: typeof files[0] }) => (
             <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[120px] max-w-[140px] flex-shrink-0">
-              {isImage ? (
+              {isImage(file.file_type) ? (
                 <div className="aspect-square bg-black/20 relative">
                   <img 
                     src={file.file_url} 
@@ -360,9 +366,18 @@ export default function Lesson() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-              ) : isVideo ? (
-                <div className="aspect-square bg-secondary/50 flex items-center justify-center">
-                  <Video className="w-8 h-8 text-muted-foreground" />
+              ) : isVideo(file.file_type) ? (
+                <div className="aspect-square bg-black/40 relative overflow-hidden">
+                  <video 
+                    src={file.file_url}
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <Video className="w-8 h-8 text-white" />
+                  </div>
                 </div>
               ) : (
                 <div className="aspect-square bg-secondary/50 flex items-center justify-center">
@@ -392,35 +407,18 @@ export default function Lesson() {
                 <h2 className="font-display text-lg font-semibold">Resources</h2>
               </div>
 
-              {images.length > 0 && (
+              {mediaFiles.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ImageIcon className="w-4 h-4" />
-                    <span>Images ({images.length})</span>
+                    <span>Media ({mediaFiles.length})</span>
                   </div>
                   <div
                     className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin"
                     style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
                   >
-                    {images.map((file) => (
-                      <MobileFileCard key={file.id} file={file} isImage={true} isVideo={false} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {videos.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Video className="w-4 h-4" />
-                    <span>Videos ({videos.length})</span>
-                  </div>
-                  <div
-                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin"
-                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
-                  >
-                    {videos.map((file) => (
-                      <MobileFileCard key={file.id} file={file} isImage={false} isVideo={true} />
+                    {mediaFiles.map((file) => (
+                      <MobileFileCard key={file.id} file={file} />
                     ))}
                   </div>
                 </div>
@@ -437,7 +435,7 @@ export default function Lesson() {
                     style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
                   >
                     {others.map((file) => (
-                      <MobileFileCard key={file.id} file={file} isImage={false} isVideo={false} />
+                      <MobileFileCard key={file.id} file={file} />
                     ))}
                   </div>
                 </div>
@@ -667,22 +665,28 @@ export default function Lesson() {
                   const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
                   const videoExtensions = ['mp4', 'mov', 'avi', 'webm', 'mkv'];
                   
-                  const images = files.filter(f => f.file_type && imageExtensions.includes(f.file_type.toLowerCase()));
-                  const videos = files.filter(f => f.file_type && videoExtensions.includes(f.file_type.toLowerCase()));
+                  const mediaFiles = files.filter(f => {
+                    if (!f.file_type) return false;
+                    const ext = f.file_type.toLowerCase();
+                    return imageExtensions.includes(ext) || videoExtensions.includes(ext);
+                  });
                   const others = files.filter(f => {
                     if (!f.file_type) return true;
                     const ext = f.file_type.toLowerCase();
                     return !imageExtensions.includes(ext) && !videoExtensions.includes(ext);
                   });
 
+                  const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
+                  const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
+
                   const getDownloadUrl = (fileUrl: string, fileName: string) => {
                     const baseUrl = import.meta.env.VITE_SUPABASE_URL;
                     return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
                   };
 
-                  const FileCard = ({ file, isImage, isVideo }: { file: typeof files[0]; isImage: boolean; isVideo: boolean }) => (
+                  const FileCard = ({ file }: { file: typeof files[0] }) => (
                     <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[140px] max-w-[160px] flex-shrink-0">
-                      {isImage ? (
+                      {isImage(file.file_type) ? (
                         <div className="aspect-square bg-black/20 relative">
                           <img 
                             src={file.file_url} 
@@ -690,9 +694,18 @@ export default function Lesson() {
                             className="w-full h-full object-cover"
                           />
                         </div>
-                      ) : isVideo ? (
-                        <div className="aspect-square bg-secondary/50 flex items-center justify-center">
-                          <Video className="w-10 h-10 text-muted-foreground" />
+                      ) : isVideo(file.file_type) ? (
+                        <div className="aspect-square bg-black/40 relative overflow-hidden">
+                          <video 
+                            src={file.file_url}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <Video className="w-10 h-10 text-white" />
+                          </div>
                         </div>
                       ) : (
                         <div className="aspect-square bg-secondary/50 flex items-center justify-center">
@@ -721,29 +734,15 @@ export default function Lesson() {
                         <span className="text-xs text-muted-foreground">{files.length} file{files.length !== 1 ? 's' : ''}</span>
                       </div>
 
-                      {images.length > 0 && (
+                      {mediaFiles.length > 0 && (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <ImageIcon className="w-4 h-4" />
-                            <span>Images ({images.length})</span>
+                            <span>Media ({mediaFiles.length})</span>
                           </div>
                           <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
-                            {images.map((file) => (
-                              <FileCard key={file.id} file={file} isImage={true} isVideo={false} />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {videos.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Video className="w-4 h-4" />
-                            <span>Videos ({videos.length})</span>
-                          </div>
-                          <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
-                            {videos.map((file) => (
-                              <FileCard key={file.id} file={file} isImage={false} isVideo={true} />
+                            {mediaFiles.map((file) => (
+                              <FileCard key={file.id} file={file} />
                             ))}
                           </div>
                         </div>
@@ -757,7 +756,7 @@ export default function Lesson() {
                           </div>
                           <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
                             {others.map((file) => (
-                              <FileCard key={file.id} file={file} isImage={false} isVideo={false} />
+                              <FileCard key={file.id} file={file} />
                             ))}
                           </div>
                         </div>
