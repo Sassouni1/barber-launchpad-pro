@@ -459,7 +459,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         {/* Right Panel - Module Content (Desktop only) */}
         {isDesktop && (
         <div className={cn(
-          "w-[400px] flex-shrink-0 overflow-y-auto",
+          "flex-1 min-w-0 overflow-y-auto",
           !moduleData?.module.video_url?.trim() && "flex items-center justify-center"
         )}>
           {moduleData ? (
@@ -532,12 +532,10 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               </div>
             </div>
           ) : (
-          <div className="glass-card rounded-xl h-full w-full flex items-center justify-center">
-            <div className="text-center">
-              <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Select a Module</h3>
-              <p className="text-muted-foreground">Choose a module from the left panel to view its content</p>
-            </div>
+          <div className="glass-card rounded-xl p-8 max-w-sm text-center">
+            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-semibold text-lg mb-2">Select a Module</h3>
+            <p className="text-muted-foreground text-sm">Choose a module from the left panel to view its content</p>
           </div>
           )}
         </div>
