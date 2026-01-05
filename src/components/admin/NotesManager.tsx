@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Bold, List, CheckSquare, Link, Eye, Edit } from "lucide-react";
+import { Bold, List, CheckSquare, Link, Eye, Edit, Copy } from "lucide-react";
 
 interface NotesManagerProps {
   moduleId: string;
@@ -205,6 +205,15 @@ export function NotesManager({ moduleId, initialContent }: NotesManagerProps) {
         >
           <Link className="h-4 w-4" />
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => insertText("{copy:", "}")}
+          title="Copyable Text"
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
         <div className="flex-1" />
         <Button
           type="button"
@@ -242,6 +251,7 @@ export function NotesManager({ moduleId, initialContent }: NotesManagerProps) {
         <p><strong>- text</strong> = Bullet point</p>
         <p><strong>- [ ] text</strong> = Unchecked item | <strong>- [x] text</strong> = Checked item</p>
         <p><strong>[text](url)</strong> = Link</p>
+        <p><strong>{"{copy:text}"}</strong> = Copyable text with copy button</p>
       </div>
 
       <Button onClick={handleSave} disabled={isSaving} className="w-full">

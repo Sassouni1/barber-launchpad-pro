@@ -29,33 +29,74 @@ import {
   RotateCcw,
   Video,
   StickyNote,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 
+// Copyable text component
+const CopyableText = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-secondary/50 border border-border/50 rounded text-sm font-mono">
+      <span>{text}</span>
+      <button
+        onClick={handleCopy}
+        className="p-0.5 hover:bg-primary/20 rounded transition-colors"
+        title="Copy to clipboard"
+      >
+        {copied ? (
+          <Check className="w-3.5 h-3.5 text-green-500" />
+        ) : (
+          <Copy className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+        )}
+      </button>
+    </span>
+  );
+};
+
 // Helper function to render markdown-style notes content
 const renderNotesContent = (content: string) => {
-  const renderInlineLinks = (text: string) => {
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const renderInlineElements = (text: string, keyPrefix: string = '') => {
+    // Combined regex for links and copyable text
+    const combinedRegex = /\[([^\]]+)\]\(([^)]+)\)|\{copy:([^}]+)\}/g;
     const parts: (string | JSX.Element)[] = [];
     let lastIndex = 0;
     let match;
 
-    while ((match = linkRegex.exec(text)) !== null) {
+    while ((match = combinedRegex.exec(text)) !== null) {
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
-      parts.push(
-        <a
-          key={match.index}
-          href={match[2]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:underline"
-        >
-          {match[1]}
-        </a>
-      );
+      
+      if (match[1] && match[2]) {
+        // Link: [text](url)
+        parts.push(
+          <a
+            key={`${keyPrefix}-link-${match.index}`}
+            href={match[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            {match[1]}
+          </a>
+        );
+      } else if (match[3]) {
+        // Copyable text: {copy:text}
+        parts.push(
+          <CopyableText key={`${keyPrefix}-copy-${match.index}`} text={match[3]} />
+        );
+      }
+      
       lastIndex = match.index + match[0].length;
     }
 
@@ -86,7 +127,7 @@ const renderNotesContent = (content: string) => {
       elements.push(
         <div key={index} className="flex items-start gap-2 text-muted-foreground ml-2">
           <span className="mt-0.5">{isChecked ? "☑" : "☐"}</span>
-          <span>{renderInlineLinks(text)}</span>
+          <span>{renderInlineElements(text, `line-${index}`)}</span>
         </div>
       );
     }
@@ -96,7 +137,7 @@ const renderNotesContent = (content: string) => {
       elements.push(
         <div key={index} className="flex items-start gap-2 text-muted-foreground ml-2">
           <span className="mt-1">•</span>
-          <span>{renderInlineLinks(text)}</span>
+          <span>{renderInlineElements(text, `line-${index}`)}</span>
         </div>
       );
     }
@@ -108,7 +149,7 @@ const renderNotesContent = (content: string) => {
     else {
       elements.push(
         <p key={index} className="text-muted-foreground">
-          {renderInlineLinks(line)}
+          {renderInlineElements(line, `line-${index}`)}
         </p>
       );
     }
