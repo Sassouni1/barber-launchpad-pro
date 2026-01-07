@@ -124,20 +124,23 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
 
   const handleViewAgreement = async () => {
     setLoadingAgreement(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('agreement_signed_at, signature_data')
-      .eq('id', member.id)
-      .single();
-    
-    if (!error && data) {
-      setAgreementData({
-        signedAt: data.agreement_signed_at,
-        signatureData: data.signature_data,
-      });
-      setShowAgreement(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('agreement_signed_at, signature_data')
+        .eq('id', member.id)
+        .single();
+
+      if (!error && data) {
+        setAgreementData({
+          signedAt: data.agreement_signed_at,
+          signatureData: data.signature_data,
+        });
+        setShowAgreement(true);
+      }
+    } finally {
+      setLoadingAgreement(false);
     }
-    setLoadingAgreement(false);
   };
 
   const handleDownloadAgreement = () => {
