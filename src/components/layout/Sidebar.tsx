@@ -243,7 +243,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <NavItem to="/training" icon={Target} label="Training Games" collapsed={collapsed} />
             <NavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" collapsed={collapsed} />
             <NavItem to="/products" icon={Package} label="Products" collapsed={collapsed} />
-            <ExpandableNavItem icon={Phone} label="Calls" collapsed={collapsed}>
+            <ExpandableNavItem icon={Phone} label="Barber Launch Calls" collapsed={collapsed}>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule Call 1 on 1" />
             </ExpandableNavItem>
           </>
