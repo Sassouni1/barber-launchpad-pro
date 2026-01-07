@@ -27,7 +27,7 @@ export function useToggleAdminRole() {
     },
     onSuccess: (_, { makeAdmin }) => {
       toast.success(makeAdmin ? 'User is now an admin' : 'Admin role removed');
-      queryClient.invalidateQueries({ queryKey: ['adminMembers'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-members'] });
     },
     onError: (error: any) => {
       toast.error(`Failed to update role: ${error.message}`);
