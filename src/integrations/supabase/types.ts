@@ -523,6 +523,7 @@ export type Database = {
           has_homework: boolean
           has_quiz: boolean
           id: string
+          is_certification_requirement: boolean
           is_published: boolean
           notes_content: string | null
           order_index: number
@@ -539,6 +540,7 @@ export type Database = {
           has_homework?: boolean
           has_quiz?: boolean
           id?: string
+          is_certification_requirement?: boolean
           is_published?: boolean
           notes_content?: string | null
           order_index?: number
@@ -555,6 +557,7 @@ export type Database = {
           has_homework?: boolean
           has_quiz?: boolean
           id?: string
+          is_certification_requirement?: boolean
           is_published?: boolean
           notes_content?: string | null
           order_index?: number
