@@ -34,17 +34,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return stored === null ? true : stored === 'true';
   });
   const [isAgreementRequired, setIsAgreementRequired] = useState(true);
+  const [agreementSettingLoaded, setAgreementSettingLoaded] = useState(false);
 
   // Fetch global agreement setting
   useEffect(() => {
     const fetchAgreementSetting = async () => {
-      const { data } = await supabase
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'agreement_required')
-        .maybeSingle();
-      const value = data?.value as unknown as AgreementSetting | undefined;
-      setIsAgreementRequired(value?.enabled ?? true);
+      try {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'agreement_required')
+          .maybeSingle();
+        const value = data?.value as unknown as AgreementSetting | undefined;
+        setIsAgreementRequired(value?.enabled ?? true);
+      } finally {
+        setAgreementSettingLoaded(true);
+      }
     };
 
     fetchAgreementSetting();
@@ -162,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user,
-      loading,
+      loading: loading || !agreementSettingLoaded,
       isAdmin,
       hasSignedAgreement,
       isAdminModeActive,
