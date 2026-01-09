@@ -1040,6 +1040,36 @@ export type Database = {
           },
         ]
       }
+      user_training_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          game_type: string
+          id: string
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          game_type: string
+          id?: string
+          score?: number | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          game_type?: string
+          id?: string
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -6,6 +6,7 @@ import { RotateCcw, ArrowRight, Trophy, Eraser, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
 import { useAuth } from '@/hooks/useAuth';
+import { useMarkGameComplete } from '@/hooks/useTrainingProgress';
 
 interface Point {
   x: number;
@@ -70,6 +71,17 @@ export function HairlineGame({ onBack }: HairlineGameProps) {
   const [showGuide, setShowGuide] = useState(false);
   const [rotation, setRotation] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
+  const markGameComplete = useMarkGameComplete();
+
+  // Save progress when game completes with passing score
+  useEffect(() => {
+    if (gameComplete) {
+      const avgScore = Math.round(score / faceShapes.length);
+      if (avgScore >= 60) {
+        markGameComplete.mutate({ gameType: 'hairline', score: avgScore });
+      }
+    }
+  }, [gameComplete, score]);
   
   // Only admins in admin mode can toggle guide before submitting
   const canToggleGuide = isAdmin && isAdminModeActive;

@@ -6,6 +6,7 @@ import { ArrowLeft, Eraser, Eye, EyeOff, Send, Trophy, RotateCcw, Layers, Grid3X
 import { TopViewHeadSVG } from './TopViewHeadSVG';
 import { useAuth } from '@/hooks/useAuth';
 import confetti from 'canvas-confetti';
+import { useMarkGameComplete } from '@/hooks/useTrainingProgress';
 
 interface Point {
   x: number;
@@ -91,6 +92,7 @@ const rounds: Round[] = [
 export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
   const { isAdmin, isAdminModeActive } = useAuth();
   const canToggleGuide = isAdmin && isAdminModeActive;
+  const markGameComplete = useMarkGameComplete();
   const [currentRound, setCurrentRound] = useState(0);
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
@@ -391,8 +393,16 @@ export function CeranWrapGame({ onBack }: CeranWrapGameProps) {
         spread: 70,
         origin: { y: 0.6 }
       });
+      
+      // Save progress with average score
+      const averageScore = scores.length > 0 
+        ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) 
+        : 0;
+      if (averageScore >= 50) {
+        markGameComplete.mutate({ gameType: 'ceran-wrap', score: averageScore });
+      }
     }
-  }, [isGameComplete]);
+  }, [isGameComplete, scores]);
 
   const averageScore = scores.length > 0 
     ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) 

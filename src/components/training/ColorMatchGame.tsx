@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
 import { BaldingHeadSVG } from './BaldingHeadSVG';
 import { HairSwatch } from './HairSwatch';
+import { useMarkGameComplete } from '@/hooks/useTrainingProgress';
 
 // Hair color swatches with their hex colors based on real hair system codes
 const hairSwatches = [
@@ -48,6 +49,17 @@ export function ColorMatchGame() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
+  const markGameComplete = useMarkGameComplete();
+
+  // Save progress when game completes with passing score
+  useEffect(() => {
+    if (gameComplete) {
+      const percentage = Math.round((score / rounds.length) * 100);
+      if (percentage >= 60) {
+        markGameComplete.mutate({ gameType: 'color-match', score: percentage });
+      }
+    }
+  }, [gameComplete, score]);
 
   const round = rounds[currentRound];
   const progress = ((currentRound) / rounds.length) * 100;
