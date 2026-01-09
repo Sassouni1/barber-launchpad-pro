@@ -433,7 +433,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
               ) : photoUploadModule ? (
                 <Link to={`/courses/${photoUploadModule.courseCategory}/lesson/${photoUploadModule.id}`}>
                   <Button variant="outline" size="sm" className="gap-1.5">
-                    Upload
+                    Learn more
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
                 </Link>
