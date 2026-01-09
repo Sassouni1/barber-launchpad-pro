@@ -1,10 +1,16 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses } from '@/hooks/useCourses';
-import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2 } from 'lucide-react';
+import { useAgreementRequired, useToggleAgreementRequired } from '@/hooks/useAppSettings';
+import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2, Settings } from 'lucide-react';
 import { CertificateTemplateUploader } from '@/components/admin/CertificateTemplateUploader';
 import { FontUploader } from '@/components/admin/FontUploader';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 export default function AdminDashboard() {
   const { data: courses = [], isLoading } = useCourses();
+  const { data: agreementRequired = true, isLoading: isLoadingSettings } = useAgreementRequired();
+  const toggleAgreement = useToggleAgreementRequired();
 
   const totalModules = courses.reduce(
     (acc, c) => acc + (c.modules || []).length,
@@ -17,6 +23,17 @@ export default function AdminDashboard() {
     { icon: Ticket, label: 'Invite Codes', value: '—', change: 'Coming soon', color: 'text-foreground' },
     { icon: TrendingUp, label: 'Avg Progress', value: '—', change: 'Coming soon', color: 'text-primary' },
   ];
+
+  const handleAgreementToggle = (checked: boolean) => {
+    toggleAgreement.mutate(checked, {
+      onSuccess: () => {
+        toast.success(checked ? 'Agreement requirement enabled' : 'Agreement requirement disabled');
+      },
+      onError: () => {
+        toast.error('Failed to update setting');
+      },
+    });
+  };
 
   if (isLoading) {
     return (
@@ -86,8 +103,34 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Certificate Template Uploader */}
+        {/* App Settings */}
         <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.5s' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="w-5 h-5 text-primary" />
+            <h2 className="font-display text-xl font-semibold">App Settings</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/30">
+              <div className="space-y-1">
+                <Label htmlFor="agreement-toggle" className="text-base font-medium">
+                  Require Agreement Signing
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  When enabled, new users must sign the service agreement before accessing the app.
+                </p>
+              </div>
+              <Switch
+                id="agreement-toggle"
+                checked={agreementRequired}
+                onCheckedChange={handleAgreementToggle}
+                disabled={isLoadingSettings || toggleAgreement.isPending}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Certificate Template Uploader */}
+        <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.6s' }}>
           <h2 className="font-display text-xl font-semibold mb-4">Certificate Settings</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <CertificateTemplateUploader />

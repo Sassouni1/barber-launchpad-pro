@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+interface AgreementSetting {
+  enabled: boolean;
+}
+
 const ADMIN_MODE_KEY = 'adminModeActive';
 
 interface AuthContextType {
@@ -10,6 +14,7 @@ interface AuthContextType {
   isAdmin: boolean;
   hasSignedAgreement: boolean;
   isAdminModeActive: boolean;
+  isAgreementRequired: boolean;
   toggleAdminMode: () => void;
   refreshUserStatus: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -28,6 +33,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem(ADMIN_MODE_KEY);
     return stored === null ? true : stored === 'true';
   });
+  const [isAgreementRequired, setIsAgreementRequired] = useState(true);
+
+  // Fetch global agreement setting
+  useEffect(() => {
+    const fetchAgreementSetting = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'agreement_required')
+        .maybeSingle();
+      const value = data?.value as unknown as AgreementSetting | undefined;
+      setIsAgreementRequired(value?.enabled ?? true);
+    };
+
+    fetchAgreementSetting();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel('app_settings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'app_settings',
+          filter: 'key=eq.agreement_required',
+        },
+        (payload) => {
+          const value = payload.new.value as unknown as AgreementSetting | undefined;
+          setIsAgreementRequired(value?.enabled ?? true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const checkUserStatus = async (userId: string) => {
     // Check admin role and agreement status in parallel
@@ -123,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin,
       hasSignedAgreement,
       isAdminModeActive,
+      isAgreementRequired,
       toggleAdminMode,
       refreshUserStatus,
       signIn,

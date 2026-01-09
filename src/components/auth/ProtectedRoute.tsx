@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCheck = false }: ProtectedRouteProps) {
-  const { user, loading, isAdmin, hasSignedAgreement } = useAuth();
+  const { user, loading, isAdmin, hasSignedAgreement, isAgreementRequired } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -24,7 +24,7 @@ export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCh
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!hasSignedAgreement && !skipAgreementCheck && !isAdmin) {
+  if (isAgreementRequired && !hasSignedAgreement && !skipAgreementCheck && !isAdmin) {
     return <Navigate to="/agreement" replace />;
   }
 
