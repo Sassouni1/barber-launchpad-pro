@@ -104,17 +104,32 @@ function useAllLessonsCompleted() {
   });
 }
 
-// Hook to check training games completion (placeholder - could track quiz attempts as training)
+// Hook to check training games completion
 function useTrainingGamesCompleted() {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['training-games-completed', user?.id],
     queryFn: async () => {
-      // For now, we'll consider this complete if user has visited training page
-      // In future, this could track specific game completions
-      // Currently just returning true as placeholder
-      return { completed: true };
+      if (!user?.id) return { completed: false, completedCount: 0, totalCount: 3 };
+
+      const { data, error } = await supabase
+        .from('user_training_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('completed', true);
+
+      if (error) throw error;
+
+      const requiredGames = ['color-match', 'hairline', 'ceran-wrap'];
+      const completedGames = data?.map(p => p.game_type) || [];
+      const completedCount = requiredGames.filter(g => completedGames.includes(g)).length;
+      
+      return { 
+        completed: completedCount >= 3, 
+        completedCount, 
+        totalCount: 3 
+      };
     },
     enabled: !!user?.id,
     staleTime: 30000,
@@ -290,6 +305,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     {
       label: 'Training games',
       completed: trainingGamesDone,
+      detail: trainingGames ? `${trainingGames.completedCount}/${trainingGames.totalCount}` : undefined,
     },
     {
       label: 'Submit work photos',
