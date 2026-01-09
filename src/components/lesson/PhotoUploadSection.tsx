@@ -36,6 +36,9 @@ export function PhotoUploadSection({ courseId }: PhotoUploadSectionProps) {
         </div>
 
         <div className="p-4 rounded-lg bg-secondary/20 border border-border space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Send a picture of you doing a hair system template on yourself, loved one, or client. Show a picture of it cut out and on the person's head showing that it fit.
+          </p>
           <h3 className="font-semibold text-sm">Instructions:</h3>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
