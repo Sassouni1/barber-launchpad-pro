@@ -236,7 +236,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-3 pb-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 pb-4">
           {courseCategories.map((category) => (
             <Collapsible
               key={category.id}
@@ -347,7 +347,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
           <div className="relative flex-1">
             <div 
               ref={scrollContainerRef}
-              className="absolute inset-0 overflow-y-auto space-y-3 pr-2 scrollbar-thin"
+              className="absolute inset-0 overflow-y-auto overflow-x-hidden space-y-3 pr-2 scrollbar-thin"
             >
               {courses.map((course) => (
                 <div key={course.id} className="space-y-2">

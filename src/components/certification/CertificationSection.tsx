@@ -148,21 +148,21 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
     return (
       <>
-        <div className="glass-card rounded-xl p-6 mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full gold-gradient flex items-center justify-center">
+        <div className="glass-card rounded-xl p-6 mt-6 overflow-hidden">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-full gold-gradient flex items-center justify-center flex-shrink-0">
                 <Award className="w-6 h-6 text-primary-foreground" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-display text-xl font-bold gold-text">Certified!</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground truncate">
                   Issued on {new Date(existingCertification.issued_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
               {showAdminControls && (
                 <Button
                   variant="outline"
@@ -182,9 +182,9 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 disabled={issueCertification.isPending}
               >
                 {issueCertification.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <RefreshCw className="w-4 h-4 mr-1" />
                 )}
                 Regenerate
               </Button>
@@ -193,7 +193,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="text-muted-foreground">
-                    <RotateCcw className="w-4 h-4 mr-2" />
+                    <RotateCcw className="w-4 h-4 mr-1" />
                     Reset
                   </Button>
                 </AlertDialogTrigger>
@@ -213,7 +213,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                     >
                       {resetCertification.isPending ? (
                         <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                           Resetting...
                         </>
                       ) : (
@@ -420,18 +420,18 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
         </div>
 
         {/* Status & Action */}
-        <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/10 border border-border">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-secondary/10 border border-border">
+          <div className="flex items-center gap-3 min-w-0">
             {eligibility?.isEligible ? (
               <>
-                <CheckCircle className="w-5 h-5 text-green-400" />
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
                 <span className="text-sm font-medium text-green-400">
                   You're eligible for certification!
                 </span>
               </>
             ) : (
               <>
-                <Award className="w-5 h-5 text-muted-foreground" />
+                <Award className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                 <span className="text-sm text-muted-foreground">
                   Complete all requirements to get certified
                 </span>
@@ -440,7 +440,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           </div>
           <Button
             className={cn(
-              "transition-all",
+              "transition-all w-full sm:w-auto",
               eligibility?.isEligible ? "gold-gradient" : ""
             )}
             disabled={!eligibility?.isEligible}
