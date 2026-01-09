@@ -21,6 +21,7 @@ import {
   Briefcase,
   CalendarCheck,
   Phone,
+  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -36,6 +37,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useCourses } from '@/hooks/useCourses';
+import { Level1CertModal } from '@/components/certification/Level1CertModal';
 
 interface NavItemProps {
   to: string;
@@ -143,6 +145,7 @@ interface SidebarProps {
 
 export function Sidebar({ isAdminView = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const navigate = useNavigate();
   const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode } = useAuth();
   
@@ -246,6 +249,20 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <ExpandableNavItem icon={Phone} label="Barber Launch Calls" collapsed={collapsed}>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule Call 1 on 1" />
             </ExpandableNavItem>
+            
+            {/* Level 1 Cert Button */}
+            <button
+              onClick={() => setIsCertModalOpen(true)}
+              className={cn(
+                'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 group relative w-full',
+                'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent'
+              )}
+            >
+              <Award className="w-5 h-5 flex-shrink-0 transition-all" />
+              {!collapsed && (
+                <span className="font-medium text-sm">Level 1 Cert</span>
+              )}
+            </button>
           </>
         )}
         
@@ -326,6 +343,12 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           {!collapsed && <span className="font-medium text-sm">Sign Out</span>}
         </button>
       </div>
+      
+      {/* Level 1 Cert Modal */}
+      <Level1CertModal 
+        isOpen={isCertModalOpen} 
+        onClose={() => setIsCertModalOpen(false)} 
+      />
     </aside>
   );
 }
