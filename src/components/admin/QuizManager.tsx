@@ -49,7 +49,8 @@ interface QuizManagerProps {
 type AnswerInput = { id?: string; answer_text: string; is_correct: boolean };
 
 export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizManagerProps) {
-  const { data: questions = [], isLoading } = useQuizQuestions(moduleId);
+  // Admin view - include correct answers so admins can see/edit them
+  const { data: questions = [], isLoading } = useQuizQuestions(moduleId, true);
   const createQuestion = useCreateQuizQuestion();
   const updateQuestion = useUpdateQuizQuestion();
   const deleteQuestion = useDeleteQuizQuestion();
