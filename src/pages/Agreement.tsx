@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,7 +14,14 @@ export default function Agreement() {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
   const navigate = useNavigate();
-  const { user, refreshUserStatus } = useAuth();
+  const { user, refreshUserStatus, isAgreementRequired, hasSignedAgreement, isAdmin } = useAuth();
+
+  // Redirect away if agreement is not required, already signed, or user is admin
+  useEffect(() => {
+    if (!isAgreementRequired || hasSignedAgreement || isAdmin) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAgreementRequired, hasSignedAgreement, isAdmin, navigate]);
 
   const handleSignatureChange = useCallback((hasSig: boolean, data: string | null) => {
     setHasSignature(hasSig);
