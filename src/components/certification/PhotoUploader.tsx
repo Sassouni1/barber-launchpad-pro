@@ -49,7 +49,7 @@ export function PhotoUploader({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-sm">Work Photos</h4>
+        <h4 className="font-semibold text-sm">Upload Photo of Hair System Template</h4>
         <span className={cn(
           "text-sm font-medium px-2 py-0.5 rounded-full",
           photos.length > 0 
@@ -89,7 +89,7 @@ export function PhotoUploader({
           {isUploading ? 'Uploading...' : 'Drop images here or click to upload'}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          Upload photos of your completed hair system work
+          Upload a photo of your hair system template
         </p>
       </div>
 
@@ -121,7 +121,7 @@ export function PhotoUploader({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Upload at least one photo of your hair system work to qualify for certification.
+        Upload at least one photo of your hair system template to qualify for certification.
       </p>
     </div>
   );
