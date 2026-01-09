@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
+import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -8,6 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -15,7 +26,10 @@ import {
   useCertificationPhotos,
   useUserCertification,
   useIssueCertification,
+  useResetCertification,
 } from '@/hooks/useCertification';
+import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { PhotoUploader } from './PhotoUploader';
 import { QuizProgressList } from './QuizProgressList';
@@ -111,6 +125,12 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [showQuizDetails, setShowQuizDetails] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
+  const [nudgeAmount, setNudgeAmount] = useState(20);
+  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
+
+  const { isAdmin, isAdminModeActive } = useAuthContext();
+  const showAdminControls = isAdmin && isAdminModeActive;
 
   // Get the hair-system course ID
   const { data: hairSystemCourse } = useQuery({
@@ -143,7 +163,10 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     isDeleting,
   } = useCertificationPhotos(courseId);
   const { data: existingCertification, isLoading: isLoadingCert } = useUserCertification(courseId);
+  const { data: layout } = useCertificateLayout(courseId);
+  const updateLayout = useUpdateCertificateLayout();
   const issueCertification = useIssueCertification();
+  const resetCertification = useResetCertification();
 
   const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingCert;
 
@@ -161,20 +184,63 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     setIsCertModalOpen(true);
   };
 
-  const handleSubmitCertification = async (name: string) => {
+  const handleSubmitCertification = async (name: string, debugOverride?: boolean) => {
+    setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId: courseId!,
       certificateName: name,
-      debug: false,
+      debug: debugOverride ?? isDebugMode,
     });
     if (result?.certificateUrl) {
       setGeneratedCertificateUrl(result.certificateUrl);
+    }
+    if (result?.debug) {
+      setDebugInfo(result.debug);
     }
   };
 
   const handleRegenerateCertification = () => {
     setGeneratedCertificateUrl(null);
     setIsCertModalOpen(true);
+  };
+
+  const handleResetCertification = async () => {
+    if (!courseId) return;
+    await resetCertification.mutateAsync(courseId);
+    setGeneratedCertificateUrl(null);
+    setDebugInfo(null);
+  };
+
+  const handleNudgePosition = async (direction: 'left' | 'right' | 'center' | 'up' | 'down') => {
+    if (!layout || !courseId) return;
+    
+    let updates: { name_x?: number; name_y?: number } = {};
+    
+    if (direction === 'center') {
+      updates.name_x = 684; // Template center (1368 / 2)
+    } else if (direction === 'left' || direction === 'right') {
+      updates.name_x = direction === 'left' ? layout.name_x - nudgeAmount : layout.name_x + nudgeAmount;
+    } else if (direction === 'up' || direction === 'down') {
+      updates.name_y = direction === 'up' ? layout.name_y - nudgeAmount : layout.name_y + nudgeAmount;
+    }
+    
+    await updateLayout.mutateAsync({ courseId, updates });
+    
+    // Auto-regenerate if user has a certificate
+    if (existingCertification) {
+      handleSubmitCertification(existingCertification.certificate_name);
+    }
+  };
+
+  const toggleDebugMode = () => {
+    const nextIsDebug = !isDebugMode;
+    setIsDebugMode(nextIsDebug);
+    setDebugInfo(null);
+    
+    if (existingCertification) {
+      setGeneratedCertificateUrl(null);
+      handleSubmitCertification(existingCertification.certificate_name, nextIsDebug);
+    }
   };
 
   const handleDownload = async () => {
@@ -290,6 +356,153 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                     Regenerate
                   </Button>
                 </div>
+
+                {/* Admin Controls */}
+                {showAdminControls && (
+                  <div className="space-y-3">
+                    {/* Admin Action Buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-muted-foreground"
+                        onClick={toggleDebugMode}
+                      >
+                        {isDebugMode ? 'Debug ON' : 'Debug OFF'}
+                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-muted-foreground">
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Reset
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reset Certification?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will delete your current certificate and uploaded photos. You'll need to re-upload your work photos and generate a new certificate. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleResetCertification}
+                              disabled={resetCertification.isPending}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {resetCertification.isPending ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Resetting...
+                                </>
+                              ) : (
+                                'Reset Certification'
+                              )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+
+                    {/* Position Controls */}
+                    {layout && (
+                      <div className="p-3 rounded-lg bg-secondary/30 border border-border space-y-3">
+                        {/* Nudge amount input */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Nudge:</span>
+                          <input
+                            type="number"
+                            value={nudgeAmount}
+                            onChange={(e) => setNudgeAmount(Math.max(1, Number(e.target.value) || 1))}
+                            className="w-16 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                            min={1}
+                          />
+                          <span className="text-xs text-muted-foreground">px</span>
+                        </div>
+                        
+                        {/* X Position Controls */}
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            X = {layout.name_x}px
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleNudgePosition('left')}
+                              disabled={updateLayout.isPending || issueCertification.isPending}
+                            >
+                              <ChevronLeft className="w-4 h-4 mr-1" />
+                              {nudgeAmount}px
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleNudgePosition('center')}
+                              disabled={updateLayout.isPending || issueCertification.isPending}
+                            >
+                              <RotateCw className="w-4 h-4" />
+                              Center
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleNudgePosition('right')}
+                              disabled={updateLayout.isPending || issueCertification.isPending}
+                            >
+                              {nudgeAmount}px
+                              <ChevronRight className="w-4 h-4 ml-1" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {/* Y Position Controls */}
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Y = {layout.name_y}px
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleNudgePosition('up')}
+                              disabled={updateLayout.isPending || issueCertification.isPending}
+                            >
+                              <ChevronLeft className="w-4 h-4 mr-1 rotate-90" />
+                              {nudgeAmount}px
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleNudgePosition('down')}
+                              disabled={updateLayout.isPending || issueCertification.isPending}
+                            >
+                              {nudgeAmount}px
+                              <ChevronRight className="w-4 h-4 ml-1 rotate-90" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {(updateLayout.isPending || issueCertification.isPending) && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Regenerating...
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Debug Info Panel */}
+                    {isDebugMode && debugInfo && (
+                      <div className="p-3 rounded-lg bg-black/80 border border-yellow-500/50 font-mono text-xs text-green-400 overflow-x-auto">
+                        <div className="text-yellow-400 mb-2 font-bold">DEBUG INFO</div>
+                        <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               // Show requirements checklist
