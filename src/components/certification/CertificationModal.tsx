@@ -101,7 +101,7 @@ export function CertificationModal({
   const currentMessage = analysisMessages[Math.floor((progress / 100) * (analysisMessages.length - 1))];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && step === 'complete' && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
