@@ -1,6 +1,6 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses, type Module } from '@/hooks/useCourses';
-import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X } from 'lucide-react';
+import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -276,7 +276,12 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                             {index + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm truncate">{module.title}</h4>
+                            <h4 className="font-semibold text-sm truncate flex items-center gap-1.5">
+                              {module.title}
+                              {(module as any).is_certification_requirement && (
+                                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                              )}
+                            </h4>
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {module.duration && (
                                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -395,9 +400,14 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className={cn(
-                              "font-semibold text-sm mb-1",
+                              "font-semibold text-sm mb-1 flex items-center gap-1.5",
                               isSelected && "text-primary"
-                            )}>{module.title}</h4>
+                            )}>
+                              {module.title}
+                              {(module as any).is_certification_requirement && (
+                                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                              )}
+                            </h4>
                             {module.description && (
                               <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
                             )}

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
+import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 
 // Copyable text component
 const CopyableText = ({ text }: { text: string }) => {
@@ -336,8 +337,8 @@ export default function Lesson() {
           </div>
         </div>
 
-        {/* Video Player - only show if video exists */}
-        {module.video_url?.trim() && (
+        {/* Video Player - only show if video exists and not a certification requirement lesson */}
+        {module.video_url?.trim() && !(module as any).is_certification_requirement && (
           <div className="glass-card rounded-2xl overflow-hidden animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="aspect-video max-h-[50vh] bg-black relative">
               <iframe
@@ -348,6 +349,13 @@ export default function Lesson() {
                 title={module.title}
               />
             </div>
+          </div>
+        )}
+
+        {/* Photo Upload Section for certification requirement modules */}
+        {(module as any).is_certification_requirement && (
+          <div className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
+            <PhotoUploadSection courseId={module.courseId} />
           </div>
         )}
 

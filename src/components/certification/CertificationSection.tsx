@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw, Camera, Star, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizProgressList } from './QuizProgressList';
-import { PhotoUploader } from './PhotoUploader';
 import { CertificationModal } from './CertificationModal';
 import {
   useCertificationEligibility,
@@ -12,6 +11,7 @@ import {
   useIssueCertification,
   useResetCertification,
 } from '@/hooks/useCertification';
+import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -68,6 +68,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
   const { data: existingCertification, isLoading: isLoadingCertification } = useUserCertification(courseId);
   const { data: layout } = useCertificateLayout(courseId);
+  const { data: courses = [] } = useCourses();
   const updateLayout = useUpdateCertificateLayout();
   const {
     photos,
@@ -79,6 +80,11 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   } = useCertificationPhotos(courseId);
   const issueCertification = useIssueCertification();
   const resetCertification = useResetCertification();
+
+  // Find the photo upload module (has is_certification_requirement = true)
+  const photoUploadModule = courses
+    .flatMap(c => (c.modules || []).map(m => ({ ...m, courseCategory: (c as any).category })))
+    .find(m => (m as any).is_certification_requirement);
 
   const isLoading = isLoadingEligibility || isLoadingCertification || isLoadingPhotos;
 
@@ -407,15 +413,32 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
             <QuizProgressList quizProgress={eligibility?.quizProgress || []} />
           </div>
 
-          {/* Photo Upload */}
+          {/* Photo Requirement Status */}
           <div className="p-4 rounded-lg bg-secondary/20 border border-border">
-            <PhotoUploader
-              photos={photos}
-              onUpload={uploadPhoto}
-              onDelete={deletePhoto}
-              isUploading={isUploading}
-              isDeleting={isDeleting}
-            />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Camera className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                    Template Photo
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {eligibility?.hasPhotos ? 'Photo uploaded' : 'Upload required'}
+                  </p>
+                </div>
+              </div>
+              {eligibility?.hasPhotos ? (
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              ) : photoUploadModule ? (
+                <Link to={`/courses/${photoUploadModule.courseCategory}/lesson/${photoUploadModule.id}`}>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Upload
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </Link>
+              ) : null}
+            </div>
           </div>
         </div>
 
