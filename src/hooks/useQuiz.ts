@@ -244,6 +244,14 @@ export function useQuizAttempts(moduleId: string | undefined) {
   });
 }
 
+export interface QuizSubmitResult {
+  attemptId: string;
+  score: number;
+  total: number;
+  correctAnswers: Record<string, string>; // questionId -> correctAnswerId
+  module_id: string;
+}
+
 export function useSubmitQuiz() {
   const queryClient = useQueryClient();
 
@@ -251,60 +259,28 @@ export function useSubmitQuiz() {
     mutationFn: async (data: {
       moduleId: string;
       answers: { questionId: string; selectedAnswerId: string }[];
-      questions: QuizQuestion[];
-    }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+    }): Promise<QuizSubmitResult> => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-      // Calculate score and prepare responses
-      const responses: { questionId: string; selectedAnswerId: string; isCorrect: boolean }[] = [];
-      let score = 0;
-      
-      for (const answer of data.answers) {
-        const question = data.questions.find(q => q.id === answer.questionId);
-        const correctAnswer = question?.answers?.find(a => a.is_correct);
-        const isCorrect = correctAnswer?.id === answer.selectedAnswerId;
-        if (isCorrect) score++;
-        
-        responses.push({
-          questionId: answer.questionId,
-          selectedAnswerId: answer.selectedAnswerId,
-          isCorrect,
-        });
-      }
-
-      // Insert the quiz attempt
-      const { data: attempt, error } = await supabase
-        .from('user_quiz_attempts')
-        .insert({
-          user_id: user.id,
-          module_id: data.moduleId,
-          score,
-          total_questions: data.questions.length,
-        })
-        .select()
-        .single();
+      // Call the server-side verification edge function
+      const { data: result, error } = await supabase.functions.invoke('verify-quiz', {
+        body: {
+          moduleId: data.moduleId,
+          answers: data.answers,
+        },
+      });
 
       if (error) throw error;
+      if (result.error) throw new Error(result.error);
 
-      // Insert individual responses for tracking
-      const responsesToInsert = responses.map(r => ({
-        attempt_id: attempt.id,
-        question_id: r.questionId,
-        selected_answer_id: r.selectedAnswerId,
-        is_correct: r.isCorrect,
-      }));
-
-      const { error: responsesError } = await supabase
-        .from('user_quiz_responses')
-        .insert(responsesToInsert);
-
-      if (responsesError) {
-        console.error('Failed to save quiz responses:', responsesError);
-        // Don't throw - the attempt was saved successfully
-      }
-
-      return { ...attempt, score, total: data.questions.length };
+      return {
+        attemptId: result.attemptId,
+        score: result.score,
+        total: result.total,
+        correctAnswers: result.correctAnswers,
+        module_id: data.moduleId,
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quiz-attempts', data.module_id] });

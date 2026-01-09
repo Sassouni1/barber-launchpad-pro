@@ -227,6 +227,7 @@ export default function Lesson() {
   const [showResults, setShowResults] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [quizScore, setQuizScore] = useState<{ score: number; total: number } | null>(null);
+  const [correctAnswersMap, setCorrectAnswersMap] = useState<Record<string, string>>({});
   const [incorrectQuestions, setIncorrectQuestions] = useState<Set<string>>(new Set());
 
   // Homework state
@@ -267,22 +268,23 @@ export default function Lesson() {
       selectedAnswerId,
     }));
 
-    // Calculate which questions were wrong
+    const result = await submitQuiz.mutateAsync({
+      moduleId: module.id,
+      answers,
+    });
+
+    // Store the correct answers from the server for review
+    setCorrectAnswersMap(result.correctAnswers);
+
+    // Calculate which questions were wrong using server-returned correct answers
     const wrongQuestions = new Set<string>();
     for (const answer of answers) {
-      const question = questions.find(q => q.id === answer.questionId);
-      const correctAnswer = question?.answers?.find(a => a.is_correct);
-      if (correctAnswer?.id !== answer.selectedAnswerId) {
+      const correctAnswerId = result.correctAnswers[answer.questionId];
+      if (correctAnswerId !== answer.selectedAnswerId) {
         wrongQuestions.add(answer.questionId);
       }
     }
     setIncorrectQuestions(wrongQuestions);
-
-    const result = await submitQuiz.mutateAsync({
-      moduleId: module.id,
-      answers,
-      questions,
-    });
 
     setQuizScore({ score: result.score, total: result.total });
     setShowResults(true);
@@ -295,6 +297,7 @@ export default function Lesson() {
     setShowReview(false);
     setQuizScore(null);
     setIncorrectQuestions(new Set());
+    setCorrectAnswersMap({});
   };
 
   const handleHomeworkSubmit = async () => {
@@ -879,7 +882,7 @@ export default function Lesson() {
                       </div>
                       {questions.filter(q => incorrectQuestions.has(q.id)).map((question, index) => {
                         const selectedAnswerId = quizAnswers[question.id];
-                        const correctAnswer = question.answers?.find(a => a.is_correct);
+                        const correctAnswerId = correctAnswersMap[question.id];
                         return (
                           <div key={question.id} className="p-4 rounded-xl bg-destructive/10 border border-destructive/30">
                             <div className="flex items-start gap-3 mb-4">
@@ -900,7 +903,7 @@ export default function Lesson() {
                             <div className="space-y-2 ml-11">
                               {question.answers?.map((answer) => {
                                 const isSelected = answer.id === selectedAnswerId;
-                                const isCorrect = answer.is_correct;
+                                const isCorrect = answer.id === correctAnswerId;
                                 return (
                                   <div
                                     key={answer.id}

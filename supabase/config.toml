@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.upload-font]
 verify_jwt = false
+
+[functions.verify-quiz]
+verify_jwt = false
