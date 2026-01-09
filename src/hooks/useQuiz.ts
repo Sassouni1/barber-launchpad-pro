@@ -28,9 +28,9 @@ export interface QuizAttempt {
   completed_at: string;
 }
 
-export function useQuizQuestions(moduleId: string | undefined) {
+export function useQuizQuestions(moduleId: string | undefined, includeCorrectAnswers = false) {
   return useQuery({
-    queryKey: ['quiz-questions', moduleId],
+    queryKey: ['quiz-questions', moduleId, includeCorrectAnswers],
     queryFn: async () => {
       if (!moduleId) return [];
       const { data: questions, error } = await supabase
@@ -41,19 +41,40 @@ export function useQuizQuestions(moduleId: string | undefined) {
       if (error) throw error;
 
       // Fetch answers for all questions
+      // Use the secure view for regular users (hides is_correct)
+      // Use the full table for admins who need to see correct answers
       const questionIds = questions.map(q => q.id);
-      const { data: answers, error: answersError } = await supabase
-        .from('quiz_answers')
-        .select('*')
-        .in('question_id', questionIds)
-        .order('order_index');
-      if (answersError) throw answersError;
+      
+      if (includeCorrectAnswers) {
+        // Admin view - includes is_correct field
+        const { data: answers, error: answersError } = await supabase
+          .from('quiz_answers')
+          .select('*')
+          .in('question_id', questionIds)
+          .order('order_index');
+        if (answersError) throw answersError;
 
-      // Combine questions with their answers
-      return questions.map(q => ({
-        ...q,
-        answers: answers.filter(a => a.question_id === q.id),
-      })) as QuizQuestion[];
+        return questions.map(q => ({
+          ...q,
+          answers: answers.filter(a => a.question_id === q.id),
+        })) as QuizQuestion[];
+      } else {
+        // User view - uses secure view that excludes is_correct
+        const { data: answers, error: answersError } = await supabase
+          .from('quiz_answer_options' as any)
+          .select('*')
+          .in('question_id', questionIds)
+          .order('order_index');
+        if (answersError) throw answersError;
+
+        // Map answers without is_correct field (default to false for type safety)
+        return questions.map(q => ({
+          ...q,
+          answers: answers
+            .filter((a: any) => a.question_id === q.id)
+            .map((a: any) => ({ ...a, is_correct: false })),
+        })) as QuizQuestion[];
+      }
     },
     enabled: !!moduleId,
   });
