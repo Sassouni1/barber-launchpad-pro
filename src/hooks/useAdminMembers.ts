@@ -127,11 +127,12 @@ export function useAdminMembers() {
         const memberProgress = userProgress?.filter(p => p.user_id === profile.id) || [];
         const memberDynamicProgress = dynamicProgress?.filter(p => p.user_id === profile.id) || [];
 
-        // Calculate quiz average
+        // Calculate quiz average (cap at 100% to handle legacy data issues)
         let quizAverage = 0;
         if (memberQuizzes.length > 0) {
           const totalPercentage = memberQuizzes.reduce((sum, q) => {
-            return sum + (q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0);
+            const pct = q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0;
+            return sum + Math.min(pct, 100);
           }, 0);
           quizAverage = Math.round(totalPercentage / memberQuizzes.length);
         }
@@ -327,7 +328,8 @@ export function useAdminStats() {
       let avgQuizScore = 0;
       if (quizAttempts && quizAttempts.length > 0) {
         const totalPercentage = quizAttempts.reduce((sum, q) => {
-          return sum + (q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0);
+          const pct = q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0;
+          return sum + Math.min(pct, 100);
         }, 0);
         avgQuizScore = Math.round(totalPercentage / quizAttempts.length);
       }

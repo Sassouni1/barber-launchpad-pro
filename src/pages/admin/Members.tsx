@@ -71,12 +71,13 @@ function StatCard({ title, value, icon: Icon, subtitle }: {
 }
 
 function QuizBadge({ average }: { average: number }) {
-  if (average >= 80) {
-    return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{average}%</Badge>;
-  } else if (average >= 60) {
-    return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{average}%</Badge>;
-  } else if (average > 0) {
-    return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{average}%</Badge>;
+  const cappedAverage = Math.min(average, 100); // Cap at 100% to handle legacy data
+  if (cappedAverage >= 80) {
+    return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{cappedAverage}%</Badge>;
+  } else if (cappedAverage >= 60) {
+    return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{cappedAverage}%</Badge>;
+  } else if (cappedAverage > 0) {
+    return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{cappedAverage}%</Badge>;
   }
   return <Badge variant="secondary">No attempts</Badge>;
 }
@@ -385,8 +386,8 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
                           {format(new Date(attempt.completed_at), 'MMM d, yyyy h:mm a')}
                         </p>
                       </div>
-                      <Badge variant={attempt.score / attempt.total_questions >= 0.8 ? 'default' : 'secondary'}>
-                        {attempt.score}/{attempt.total_questions}
+                      <Badge variant={Math.min(attempt.score / attempt.total_questions, 1) >= 0.8 ? 'default' : 'secondary'}>
+                        {Math.min(attempt.score, attempt.total_questions)}/{attempt.total_questions}
                       </Badge>
                     </div>
                   ))}
