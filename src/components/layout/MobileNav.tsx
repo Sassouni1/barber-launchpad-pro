@@ -10,6 +10,7 @@ import {
   ArrowLeftRight,
   Users,
   FileEdit,
+  Phone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,9 +64,11 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
 
   const memberLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
     { to: '/training', icon: Target, label: 'Games' },
     { to: '/order-hair-system', icon: Scissors, label: 'Order Hair' },
     { to: '/products', icon: Package, label: 'Products' },
+    { to: '/schedule-call', icon: Phone, label: '1 on 1 Call' },
   ];
 
   const adminLinks = [
@@ -82,15 +85,9 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     <div className="md:hidden bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
       {/* Navigation Grid */}
       <div className="grid grid-cols-3 gap-2 mb-2">
-        {!isAdminView && (
-          <>
-            <NavButton to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-            <NavButton to="/courses/hair-system" icon={BookOpen} label="Courses" />
-            {memberLinks.map((link) => (
-              <NavButton key={link.to} {...link} />
-            ))}
-          </>
-        )}
+        {!isAdminView && memberLinks.map((link) => (
+          <NavButton key={link.to} {...link} />
+        ))}
         {isAdminView && adminLinks.map((link) => (
           <NavButton key={link.to} {...link} />
         ))}
