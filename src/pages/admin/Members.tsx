@@ -277,7 +277,7 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
                         <li>Structured training modules</li>
                       </ul>
                       <p style={{ marginTop: '8px' }}>All Training is educational only and delivered digitally.</p>
-                      <p>No live services, coaching, results, outcomes, or ongoing support are guaranteed unless separately stated in writing.</p>
+                      <p>No live services, coaching, results, outcomes, or ongoing support are guaranteed.</p>
 
                       <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>2. DELIVERY & FULFILLMENT</h2>
                       <p>The Client acknowledges and agrees that:</p>
