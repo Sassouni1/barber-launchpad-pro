@@ -255,9 +255,130 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
           <div className="flex-1 overflow-y-auto pr-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
             <div ref={agreementRef} className="space-y-6 text-sm pb-6">
               {(() => {
-                // Special case for Rosario - Invasion Digital Media
+                // Special case for Rosario - completely different agreement
                 const isRosario = member.id === '76bc69e3-1ace-452b-b20e-e6cb707c0341';
-                const companyName = isRosario ? 'Invasion Digital Media' : 'Sassouni Digital Media, also known as "Barber Launch"';
+                
+                if (isRosario) {
+                  return (
+                    <>
+                      <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                        TRAINING SERVICES AGREEMENT
+                      </h1>
+                      <p className="text-muted-foreground italic">
+                        This Agreement ("Agreement") is entered into as of January 20, 2026, by and between Invasion Digital Media ("Service Provider") and Rosario Gamez ("Client").
+                      </p>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>1. TRAINING PROVIDED</h2>
+                      <p>The Service Provider agrees to provide the Client with digital training content related to hair system installation and business education (the "Training").</p>
+                      <p style={{ marginTop: '8px' }}>The Training consists of:</p>
+                      <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                        <li>Pre-recorded educational videos</li>
+                        <li>Digital instructional materials</li>
+                        <li>Structured training modules</li>
+                      </ul>
+                      <p style={{ marginTop: '8px' }}>All Training is educational only and delivered digitally.</p>
+                      <p>No live services, coaching, results, outcomes, or ongoing support are guaranteed unless separately stated in writing.</p>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>2. DELIVERY & FULFILLMENT</h2>
+                      <p>The Client acknowledges and agrees that:</p>
+                      <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                        <li>Fulfillment occurs immediately upon being granted access to the Training content.</li>
+                        <li>Access to the Training constitutes full and complete delivery of the product.</li>
+                        <li>The Training is considered delivered whether or not the Client views, completes, or uses the content.</li>
+                        <li>Lack of participation, failure to complete modules, or dissatisfaction with the Training does not constitute non-delivery.</li>
+                      </ul>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>3. PAYMENT TERMS</h2>
+                      <p>The Client agrees to pay the total Training fee selected at enrollment, which may include:</p>
+                      <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                        <li>A one-time payment, or</li>
+                        <li>A multi-payment installment plan</li>
+                      </ul>
+                      <p style={{ marginTop: '8px' }}>By enrolling, the Client authorizes all charges according to the selected payment schedule.</p>
+                      <p>All payments are made in exchange for access to digital training, not performance, results, or outcomes.</p>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>4. REFUND POLICY</h2>
+                      <p>Due to the digital nature of the Training:</p>
+                      <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                        <li>All sales are final once access to the Training is granted</li>
+                        <li>No refunds will be issued after access is provided, regardless of usage, satisfaction, or results</li>
+                        <li>A refund may only be considered if Training access was never provided.</li>
+                      </ul>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>5. ACCESS RESTRICTIONS</h2>
+                      <p>The Client agrees that:</p>
+                      <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                        <li>Training access is personal and non-transferable</li>
+                        <li>Sharing login credentials or Training materials is prohibited</li>
+                        <li>Violation may result in immediate termination of access without refund.</li>
+                      </ul>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>6. INTELLECTUAL PROPERTY</h2>
+                      <p>All Training materials, videos, documents, and instructional methods are the exclusive intellectual property of the Service Provider.</p>
+                      <p>Unauthorized reproduction, distribution, resale, or sharing is strictly prohibited.</p>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>7. CHARGEBACKS & PAYMENT DISPUTES</h2>
+                      <p>The Client acknowledges that:</p>
+                      <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                        <li>Initiating a chargeback or payment dispute after receiving Training access constitutes a breach of this Agreement</li>
+                        <li>The Service Provider may submit this Agreement, access records, and delivery logs as evidence in any dispute</li>
+                        <li>Chargeback fees incurred due to a dispute may be recoverable where legally permitted</li>
+                      </ul>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>8. LIMITATION OF LIABILITY</h2>
+                      <p>The Training is provided for educational purposes only.</p>
+                      <p>The Service Provider makes no guarantees regarding income, skill mastery, business success, or results.</p>
+                      <p>The Service Provider shall not be liable for indirect, incidental, or consequential damages.</p>
+
+                      <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>9. ELECTRONIC ACCEPTANCE</h2>
+                      <p>By accepting electronically, the Client confirms that they:</p>
+                      <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                        <li>Have read and understood this Agreement</li>
+                        <li>Agree to all terms</li>
+                        <li>Consent to electronic signature under the E-SIGN Act (15 U.S.C. § 7001 et seq.)</li>
+                      </ul>
+
+                      <div className="signature-section" style={{ marginTop: '32px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+                        <h2 style={{ fontWeight: 'bold' }}>CLIENT ACCEPTANCE</h2>
+                        {agreementData?.signedAt ? (
+                          <div>
+                            {agreementData.signatureData && agreementData.signatureData.startsWith('data:image') ? (
+                              <img 
+                                src={agreementData.signatureData} 
+                                alt="Client Signature" 
+                                className="signature-img"
+                                style={{ maxWidth: '300px', border: '1px solid #ddd', padding: '10px', background: '#fafafa' }}
+                              />
+                            ) : (
+                              <div style={{ marginTop: '8px' }}>
+                                <p style={{ fontSize: '14px', marginBottom: '12px', fontStyle: 'italic' }}>
+                                  By accepting electronically, the undersigned agrees to be bound by all terms and conditions set forth in this agreement.
+                                </p>
+                                <p style={{ fontSize: '16px', marginBottom: '4px' }}>
+                                  <strong>Name:</strong> Rosario Gamez
+                                </p>
+                                <p style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '16px' }}>☑</span> <em>I have read, understand, and agree to the terms of this agreement.</em>
+                                </p>
+                                <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+                                  Electronic acceptance pursuant to the Electronic Signatures in Global and National Commerce Act (E-SIGN Act), 15 U.S.C. § 7001 et seq.
+                                </p>
+                              </div>
+                            )}
+                            <p className="meta" style={{ marginTop: '8px', color: '#666' }}>
+                              Date: January 20, 2026
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground italic">No acceptance on file</p>
+                        )}
+                      </div>
+                    </>
+                  );
+                }
+                
+                // Standard agreement for all other members
+                const companyName = 'Sassouni Digital Media, also known as "Barber Launch"';
                 
                 return (
                   <>
@@ -267,68 +388,68 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
                     <p className="text-muted-foreground italic">
                       This Agreement ("Agreement") is entered into as of {agreementData?.signedAt ? format(new Date(agreementData.signedAt), 'MMMM d, yyyy') : 'N/A'}, by and between {companyName} (the "Service Provider"), and {member.full_name || member.email || 'Client'} (the "Client").
                     </p>
+
+                    <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>1. SERVICES</h2>
+                    <p>The Service Provider agrees to provide the Client with access to educational and support services related to hair system installation and client management (the "Services").</p>
+
+                    <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>2. PAYMENT TERMS</h2>
+                    <p>The Client agrees to pay the agreed-upon fees for the Services as specified in the payment plan selected at the time of enrollment.</p>
+
+                    <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>3. REFUND POLICY</h2>
+                    <p><strong>No Refunds:</strong> All payments made for the Services are non-refundable. Once payment is made, the Client is not entitled to any refund, regardless of circumstances.</p>
+
+                    <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>4. CLIENT RESPONSIBILITIES</h2>
+                    <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
+                      <li>Complete all required training modules and coursework</li>
+                      <li>Attend scheduled sessions and meetings</li>
+                      <li>Maintain professional conduct at all times</li>
+                      <li>Not share access credentials or course materials with third parties</li>
+                    </ul>
+
+                    <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>5. INTELLECTUAL PROPERTY</h2>
+                    <p>All materials provided are the intellectual property of the Service Provider. Unauthorized reproduction, distribution, or sharing is prohibited.</p>
+
+                    <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>6. LIMITATION OF LIABILITY</h2>
+                    <p>The Service Provider shall not be liable for any indirect, incidental, or consequential damages arising from the use of Services.</p>
+
+                    <div className="signature-section" style={{ marginTop: '32px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+                      <h2 style={{ fontWeight: 'bold' }}>CLIENT ACCEPTANCE</h2>
+                      {agreementData?.signedAt ? (
+                        <div>
+                          {agreementData.signatureData && agreementData.signatureData.startsWith('data:image') ? (
+                            <img 
+                              src={agreementData.signatureData} 
+                              alt="Client Signature" 
+                              className="signature-img"
+                              style={{ maxWidth: '300px', border: '1px solid #ddd', padding: '10px', background: '#fafafa' }}
+                            />
+                          ) : (
+                            <div style={{ marginTop: '8px' }}>
+                              <p style={{ fontSize: '14px', marginBottom: '12px', fontStyle: 'italic' }}>
+                                By accepting electronically, the undersigned agrees to be bound by all terms and conditions set forth in this agreement.
+                              </p>
+                              <p style={{ fontSize: '16px', marginBottom: '4px' }}>
+                                <strong>Name:</strong> {member.full_name || member.email}
+                              </p>
+                              <p style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '16px' }}>☑</span> <em>I have read, understand, and agree to the terms of this agreement.</em>
+                              </p>
+                              <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+                                Electronic acceptance pursuant to the Electronic Signatures in Global and National Commerce Act (E-SIGN Act), 15 U.S.C. § 7001 et seq.
+                              </p>
+                            </div>
+                          )}
+                          <p className="meta" style={{ marginTop: '8px', color: '#666' }}>
+                            Date: {format(new Date(agreementData.signedAt), 'MMMM d, yyyy \'at\' h:mm a')}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground italic">No acceptance on file</p>
+                      )}
+                    </div>
                   </>
                 );
               })()}
-
-              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>1. SERVICES</h2>
-              <p>The Service Provider agrees to provide the Client with access to educational and support services related to hair system installation and client management (the "Services").</p>
-
-              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>2. PAYMENT TERMS</h2>
-              <p>The Client agrees to pay the agreed-upon fees for the Services as specified in the payment plan selected at the time of enrollment.</p>
-
-              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>3. REFUND POLICY</h2>
-              <p><strong>No Refunds:</strong> All payments made for the Services are non-refundable. Once payment is made, the Client is not entitled to any refund, regardless of circumstances.</p>
-
-              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>4. CLIENT RESPONSIBILITIES</h2>
-              <ul style={{ marginLeft: '20px', listStyleType: 'disc' }}>
-                <li>Complete all required training modules and coursework</li>
-                <li>Attend scheduled sessions and meetings</li>
-                <li>Maintain professional conduct at all times</li>
-                <li>Not share access credentials or course materials with third parties</li>
-              </ul>
-
-              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>5. INTELLECTUAL PROPERTY</h2>
-              <p>All materials provided are the intellectual property of the Service Provider. Unauthorized reproduction, distribution, or sharing is prohibited.</p>
-
-              <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>6. LIMITATION OF LIABILITY</h2>
-              <p>The Service Provider shall not be liable for any indirect, incidental, or consequential damages arising from the use of Services.</p>
-
-              <div className="signature-section" style={{ marginTop: '32px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
-                <h2 style={{ fontWeight: 'bold' }}>CLIENT ACCEPTANCE</h2>
-                {agreementData?.signedAt ? (
-                  <div>
-                    {agreementData.signatureData && agreementData.signatureData.startsWith('data:image') ? (
-                      <img 
-                        src={agreementData.signatureData} 
-                        alt="Client Signature" 
-                        className="signature-img"
-                        style={{ maxWidth: '300px', border: '1px solid #ddd', padding: '10px', background: '#fafafa' }}
-                      />
-                    ) : (
-                      <div style={{ marginTop: '8px' }}>
-                        <p style={{ fontSize: '14px', marginBottom: '12px', fontStyle: 'italic' }}>
-                          By accepting electronically, the undersigned agrees to be bound by all terms and conditions set forth in this agreement.
-                        </p>
-                        <p style={{ fontSize: '16px', marginBottom: '4px' }}>
-                          <strong>Name:</strong> {member.full_name || member.email}
-                        </p>
-                        <p style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '16px' }}>☑</span> <em>I have read, understand, and agree to the terms of this agreement.</em>
-                        </p>
-                        <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
-                          Electronic acceptance pursuant to the Electronic Signatures in Global and National Commerce Act (E-SIGN Act), 15 U.S.C. § 7001 et seq.
-                        </p>
-                      </div>
-                    )}
-                    <p className="meta" style={{ marginTop: '8px', color: '#666' }}>
-                      Date: {format(new Date(agreementData.signedAt), 'MMMM d, yyyy \'at\' h:mm a')}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground italic">No acceptance on file</p>
-                )}
-              </div>
             </div>
           </div>
         </DialogContent>
