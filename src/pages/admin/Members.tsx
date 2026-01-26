@@ -298,11 +298,17 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
                       />
                     ) : (
                       <div style={{ marginTop: '8px' }}>
-                        <p style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>
-                          {member.full_name || member.email}
+                        <p style={{ fontSize: '14px', marginBottom: '12px', fontStyle: 'italic' }}>
+                          By accepting electronically, the undersigned agrees to be bound by all terms and conditions set forth in this agreement.
                         </p>
-                        <p style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '18px' }}>☑</span> Accepted electronically
+                        <p style={{ fontSize: '16px', marginBottom: '4px' }}>
+                          <strong>Name:</strong> {member.full_name || member.email}
+                        </p>
+                        <p style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '16px' }}>☑</span> <em>I have read, understand, and agree to the terms of this agreement.</em>
+                        </p>
+                        <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+                          Electronic acceptance pursuant to the Electronic Signatures in Global and National Commerce Act (E-SIGN Act), 15 U.S.C. § 7001 et seq.
                         </p>
                       </div>
                     )}
