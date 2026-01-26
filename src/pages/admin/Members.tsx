@@ -297,8 +297,8 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
                         style={{ maxWidth: '300px', border: '1px solid #ddd', padding: '10px', background: '#fafafa' }}
                       />
                     ) : (
-                      <div style={{ padding: '16px', border: '1px solid #ddd', background: '#fafafa', maxWidth: '400px' }}>
-                        <p style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
+                      <div style={{ marginTop: '8px' }}>
+                        <p style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>
                           {member.full_name || member.email}
                         </p>
                         <p style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
