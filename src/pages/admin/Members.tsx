@@ -254,13 +254,22 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
             <div ref={agreementRef} className="space-y-6 text-sm pb-6">
-              <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}>
-                SERVICE AGREEMENT
-              </h1>
-              <p className="text-muted-foreground italic">
-                This Agreement ("Agreement") is entered into as of {agreementData?.signedAt ? format(new Date(agreementData.signedAt), 'MMMM d, yyyy') : 'N/A'}, by and between Sassouni Digital Media, 
-                also known as "Barber Launch" (the "Service Provider"), and {member.full_name || member.email || 'Client'} (the "Client").
-              </p>
+              {(() => {
+                // Special case for Rosario - Invasion Digital Media
+                const isRosario = member.id === '76bc69e3-1ace-452b-b20e-e6cb707c0341';
+                const companyName = isRosario ? 'Invasion Digital Media' : 'Sassouni Digital Media, also known as "Barber Launch"';
+                
+                return (
+                  <>
+                    <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                      SERVICE AGREEMENT
+                    </h1>
+                    <p className="text-muted-foreground italic">
+                      This Agreement ("Agreement") is entered into as of {agreementData?.signedAt ? format(new Date(agreementData.signedAt), 'MMMM d, yyyy') : 'N/A'}, by and between {companyName} (the "Service Provider"), and {member.full_name || member.email || 'Client'} (the "Client").
+                    </p>
+                  </>
+                );
+              })()}
 
               <h2 style={{ fontWeight: 'bold', marginTop: '16px' }}>1. SERVICES</h2>
               <p>The Service Provider agrees to provide the Client with access to educational and support services related to hair system installation and client management (the "Services").</p>
