@@ -286,22 +286,32 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
               <p>The Service Provider shall not be liable for any indirect, incidental, or consequential damages arising from the use of Services.</p>
 
               <div className="signature-section" style={{ marginTop: '32px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
-                <h2 style={{ fontWeight: 'bold' }}>CLIENT SIGNATURE</h2>
-                {agreementData?.signatureData ? (
+                <h2 style={{ fontWeight: 'bold' }}>CLIENT ACCEPTANCE</h2>
+                {agreementData?.signedAt ? (
                   <div>
-                    <img 
-                      src={agreementData.signatureData} 
-                      alt="Client Signature" 
-                      className="signature-img"
-                      style={{ maxWidth: '300px', border: '1px solid #ddd', padding: '10px', background: '#fafafa' }}
-                    />
+                    {agreementData.signatureData && agreementData.signatureData.startsWith('data:image') ? (
+                      <img 
+                        src={agreementData.signatureData} 
+                        alt="Client Signature" 
+                        className="signature-img"
+                        style={{ maxWidth: '300px', border: '1px solid #ddd', padding: '10px', background: '#fafafa' }}
+                      />
+                    ) : (
+                      <div style={{ padding: '16px', border: '1px solid #ddd', background: '#fafafa', maxWidth: '400px' }}>
+                        <p style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
+                          {member.full_name || member.email}
+                        </p>
+                        <p style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '18px' }}>☑</span> Accepted electronically
+                        </p>
+                      </div>
+                    )}
                     <p className="meta" style={{ marginTop: '8px', color: '#666' }}>
-                      Signed by: {member.full_name || member.email}<br />
-                      Date: {agreementData.signedAt ? format(new Date(agreementData.signedAt), 'MMMM d, yyyy \'at\' h:mm a') : 'N/A'}
+                      Date: {format(new Date(agreementData.signedAt), 'MMMM d, yyyy \'at\' h:mm a')}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground italic">No signature on file</p>
+                  <p className="text-muted-foreground italic">No acceptance on file</p>
                 )}
               </div>
             </div>
