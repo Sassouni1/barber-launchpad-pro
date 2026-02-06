@@ -14,7 +14,7 @@ import {
   ChevronDown,
   Cpu,
   Target,
-  ArrowLeftRight,
+  ArrowLeftRight, // kept for potential future use
   Eye,
   EyeOff,
   GraduationCap,
@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/collapsible';
 import { useCourses } from '@/hooks/useCourses';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
+import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
 
 interface NavItemProps {
   to: string;
@@ -266,23 +267,9 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           </>
         )}
         
-        {/* Switch view link for admins */}
+        {/* View Switcher for admins */}
         {userIsAdmin && isAdminModeActive && (
-          isAdminView ? (
-            <NavItem 
-              to="/dashboard" 
-              icon={ArrowLeftRight} 
-              label="Member View" 
-              collapsed={collapsed} 
-            />
-          ) : (
-            <NavItem 
-              to="/admin" 
-              icon={ArrowLeftRight} 
-              label="Admin Panel" 
-              collapsed={collapsed} 
-            />
-          )
+          <ViewSwitcher collapsed={collapsed} isAdminView={isAdminView} />
         )}
       </nav>
 
