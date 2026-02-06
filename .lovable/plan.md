@@ -1,27 +1,38 @@
 
 
-## Fix: Remove signOut and Use Direct Session Replacement
+## Fix: Wrong OTP Type in verifyOtp Call
 
-The current code calls `signOut()` before `verifyOtp()`, which triggers `onAuthStateChange` with a null user, causing `ProtectedRoute` to redirect to `/login` and unmount everything before `verifyOtp` ever runs.
+### Root Cause
 
-### The Fix (ViewSwitcher.tsx only)
+The edge function generates a token using `generateLink({ type: 'magiclink' })`, but the frontend calls `verifyOtp({ token_hash, type: 'email' })`. The type parameter must match the generation type. Using `'email'` causes verifyOtp to silently fail (the error is caught and should show a toast, but the dialog closing at the same time makes it easy to miss).
 
-In `handleImpersonate`, make two small changes:
+### The Fix (ViewSwitcher.tsx, single line change)
 
-1. **Remove** the `await supabase.auth.signOut()` line entirely -- `verifyOtp()` already replaces the current session automatically
-2. **Replace** `navigate('/dashboard')` with `window.location.href = '/dashboard'` to force a full page reload, ensuring all cached state (React Query, AuthContext) resets cleanly with the new user
+Change `type: 'email'` to `type: 'magiclink'` in the `verifyOtp` call:
+
+```typescript
+// Before (broken):
+const { error: otpError } = await supabase.auth.verifyOtp({
+  token_hash: data.token_hash,
+  type: 'email',       // <-- wrong type
+});
+
+// After (fixed):
+const { error: otpError } = await supabase.auth.verifyOtp({
+  token_hash: data.token_hash,
+  type: 'magiclink',   // <-- matches generateLink type
+});
+```
+
+Also move the toast and dialog close to AFTER the verifyOtp succeeds, so if it fails the error toast is visible while the dialog is still open.
 
 ### Technical Detail
 
 ```text
-Before (broken):
-  signOut() -> AuthContext detects null user -> ProtectedRoute redirects to /login
-  -> verifyOtp() never completes
-
-After (fixed):
-  verifyOtp(token_hash) -> session replaced in-place
-  -> window.location.href forces full reload -> app boots with new user session
+Edge function: generateLink({ type: 'magiclink' })  -->  token_hash
+Frontend:      verifyOtp({ token_hash, type: 'magiclink' })  -->  session established
+               window.location.href = '/dashboard'  -->  full reload as new user
 ```
 
-No edge function changes needed -- it already returns `token_hash` and `email` correctly.
+One line change in `ViewSwitcher.tsx`, no edge function changes needed.
 
