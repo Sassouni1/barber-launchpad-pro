@@ -5,14 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Check, ChevronDown, ChevronUp, Package } from 'lucide-react';
+import { Loader2, Truck, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
@@ -86,7 +81,7 @@ export default function ManufacturerOrders() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  
 
   const handleSave = async (orderId: string) => {
     if (!trackingNumber.trim()) {
@@ -126,7 +121,6 @@ export default function ManufacturerOrders() {
           <div className="space-y-3">
             {orders.map((order) => {
               const specs = extractOrderDetails(order.order_details as Record<string, any>);
-              const isExpanded = expandedId === order.id;
 
               return (
                 <Card key={order.id} className="border-border/50">
@@ -195,22 +189,6 @@ export default function ManufacturerOrders() {
                           ))}
                         </div>
                       )}
-
-                      {/* Expandable full details */}
-                      <Collapsible open={isExpanded} onOpenChange={() => setExpandedId(isExpanded ? null : order.id)}>
-                        <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                          <Package className="w-3.5 h-3.5" />
-                          <span>{isExpanded ? 'Hide' : 'Show'} full order details</span>
-                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="mt-3 p-3 rounded-lg bg-secondary/20 border border-border/30">
-                            <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-all font-mono max-h-60 overflow-y-auto">
-                              {JSON.stringify(order.order_details, null, 2)}
-                            </pre>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
                     </div>
                   </CardContent>
                 </Card>
