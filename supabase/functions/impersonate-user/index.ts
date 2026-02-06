@@ -85,9 +85,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const actionLink = linkData.properties?.action_link;
-    if (!actionLink) {
-      return new Response(JSON.stringify({ error: 'Failed to get action link' }), {
+    const tokenHash = linkData.properties?.hashed_token;
+    if (!tokenHash) {
+      return new Response(JSON.stringify({ error: 'Failed to get token' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      action_link: actionLink,
+      token_hash: tokenHash,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
