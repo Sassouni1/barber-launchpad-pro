@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const customerEmail = body.email || body.customer_email || body.Email || '';
     const customerName = body.name || body.customer_name || body.full_name || body.Name || '';
+    const utmUserId = body.user_id || body.userId || '';
 
     if (!customerEmail) {
       return new Response(JSON.stringify({ error: 'Missing customer email' }), {
@@ -37,18 +38,44 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Look up user by email
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', customerEmail.toLowerCase().trim())
-      .maybeSingle();
+    let matchedUserId: string | null = null;
+    let matchMethod = 'none';
+
+    // Priority 1: UTM user_id parameter (direct match)
+    if (utmUserId) {
+      const { data: utmProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', utmUserId)
+        .maybeSingle();
+
+      if (utmProfile) {
+        matchedUserId = utmProfile.id;
+        matchMethod = 'utm_user_id';
+      }
+    }
+
+    // Priority 2: Email fallback
+    if (!matchedUserId && customerEmail) {
+      const { data: emailProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', customerEmail.toLowerCase().trim())
+        .maybeSingle();
+
+      if (emailProfile) {
+        matchedUserId = emailProfile.id;
+        matchMethod = 'email';
+      }
+    }
+
+    console.log(`Order matching: method=${matchMethod}, user_id=${matchedUserId}, email=${customerEmail}`);
 
     // Insert order
     const { data: order, error: insertError } = await supabase
       .from('orders')
       .insert({
-        user_id: profile?.id || null,
+        user_id: matchedUserId,
         customer_email: customerEmail.toLowerCase().trim(),
         customer_name: customerName,
         order_details: body,
