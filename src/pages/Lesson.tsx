@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses } from '@/hooks/useCourses';
@@ -35,6 +35,22 @@ import {
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
+
+// Memoized video player – survives parent re-renders
+const VideoPlayer = React.memo(({ src, title }: { src: string; title: string }) => (
+  <div className="glass-card rounded-2xl overflow-hidden">
+    <div className="aspect-video max-h-[50vh] bg-black relative">
+      <iframe
+        src={src}
+        className="absolute inset-0 w-full h-full"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+        title={title}
+      />
+    </div>
+  </div>
+));
+VideoPlayer.displayName = 'VideoPlayer';
 
 // Copyable text component
 const CopyableText = ({ text }: { text: string }) => {
@@ -345,17 +361,7 @@ export default function Lesson() {
 
         {/* Video Player - only show if video exists and not a certification requirement lesson */}
         {module.video_url?.trim() && !(module as any).is_certification_requirement && (
-          <div className="glass-card rounded-2xl overflow-hidden animate-fade-up" style={{ animationDelay: '0.1s' }}>
-            <div className="aspect-video max-h-[50vh] bg-black relative">
-              <iframe
-                src={vimeoEmbedUrl}
-                className="absolute inset-0 w-full h-full"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
-                title={module.title}
-              />
-            </div>
-          </div>
+          <VideoPlayer src={vimeoEmbedUrl} title={module.title} />
         )}
 
         {/* Photo Upload Section for certification requirement modules */}
