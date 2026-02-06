@@ -30,6 +30,7 @@ import {
   FileSignature,
   Download,
   FileText,
+  Eye,
 } from 'lucide-react';
 import {
   Table,
@@ -47,6 +48,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 function StatCard({ title, value, icon: Icon, subtitle }: { 
   title: string; 
@@ -567,6 +569,29 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
           </div>
         </>
       )}
+
+      {/* View as User Button */}
+      <Button 
+        variant="outline" 
+        className="w-full"
+        onClick={async () => {
+          try {
+            const { data, error } = await supabase.functions.invoke('impersonate-user', {
+              body: { target_user_id: member.id },
+            });
+            if (error) throw error;
+            if (data?.url) {
+              window.open(data.url, '_blank');
+              toast.success(`Opening view as ${member.full_name || member.email}`);
+            }
+          } catch (err: any) {
+            toast.error(err.message || 'Failed to impersonate user');
+          }
+        }}
+      >
+        <Eye className="w-4 h-4 mr-2" />
+        View as This User
+      </Button>
 
       <Button variant="outline" onClick={onClose} className="w-full">
         Close
