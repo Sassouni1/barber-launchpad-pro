@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -84,7 +84,11 @@ function useMobileMembers() {
 
 export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAdmin: userIsAdmin, isManufacturer } = useAuth();
+  
+  // Detect manufacturer view by route or actual role
+  const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
   const [viewOpen, setViewOpen] = useState(false);
   const [memberPickerOpen, setMemberPickerOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
@@ -146,11 +150,46 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const currentViewLabel = isAdminView ? 'Admin' : 'Member';
 
   // Manufacturer-only (non-admin): show only Orders + Sign Out
-  if (isManufacturer && !userIsAdmin) {
+  if (isManufacturerView) {
     return (
       <div className="md:hidden bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
         <div className="grid grid-cols-2 gap-2">
           <NavButton to="/newtimes" icon={Package} label="Orders" />
+          {userIsAdmin && (
+            <Popover open={viewOpen} onOpenChange={setViewOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all',
+                    'border border-primary/30 bg-primary/10 text-primary'
+                  )}
+                >
+                  <Eye className="w-5 h-5" />
+                  <span className="text-[10px] font-medium flex items-center gap-0.5">
+                    View: Supplier <ChevronDown className="w-3 h-3" />
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="start" className="w-56 p-2 bg-popover border-border">
+                <div className="space-y-1">
+                  <button
+                    onClick={() => { setViewOpen(false); navigate('/admin'); }}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="font-medium">Admin</span>
+                  </button>
+                  <button
+                    onClick={() => { setViewOpen(false); navigate('/dashboard'); }}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="font-medium">Member</span>
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           <button
             onClick={handleSignOut}
             className={cn(
