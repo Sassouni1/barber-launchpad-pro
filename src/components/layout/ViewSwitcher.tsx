@@ -81,16 +81,16 @@ export function ViewSwitcher({ collapsed, isAdminView }: ViewSwitcherProps) {
         throw new Error('Invalid response from server');
       }
 
-      toast.success(`Switching to ${name}...`);
-      setMemberPickerOpen(false);
-
       // Establish target user's session via OTP verification (replaces current session in-place)
       const { error: otpError } = await supabase.auth.verifyOtp({
         token_hash: data.token_hash,
-        type: 'email',
+        type: 'magiclink',
       });
 
       if (otpError) throw otpError;
+
+      toast.success(`Switching to ${name}...`);
+      setMemberPickerOpen(false);
 
       // Force full reload to reset all cached state (React Query, AuthContext)
       window.location.href = '/dashboard';
