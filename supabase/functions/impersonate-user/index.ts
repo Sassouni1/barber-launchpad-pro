@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { target_user_id } = await req.json();
+    const { target_user_id, redirect_to } = await req.json();
     if (!target_user_id) {
       return new Response(JSON.stringify({ error: 'Missing target_user_id' }), {
         status: 400,
@@ -72,6 +72,9 @@ Deno.serve(async (req) => {
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email: targetUser.user.email,
+      options: {
+        redirectTo: redirect_to || undefined,
+      },
     });
 
     if (linkError || !linkData) {
@@ -82,10 +85,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // The generateLink returns properties with the token hash
-    const tokenHash = linkData.properties?.hashed_token;
-    if (!tokenHash) {
-      return new Response(JSON.stringify({ error: 'Failed to get token' }), {
+    const actionLink = linkData.properties?.action_link;
+    if (!actionLink) {
+      return new Response(JSON.stringify({ error: 'Failed to get action link' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -95,8 +97,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      token_hash: tokenHash,
-      email: targetUser.user.email,
+      action_link: actionLink,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
