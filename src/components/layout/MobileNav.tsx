@@ -68,6 +68,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/training', icon: Target, label: 'Games' },
     { to: '/order-hair-system', icon: Scissors, label: 'Order Hair' },
     { to: '/products', icon: Package, label: 'Products' },
+    { to: '/orders', icon: Package, label: 'Orders' },
     { to: '/schedule-call', icon: Phone, label: '1 on 1 Call' },
   ];
 

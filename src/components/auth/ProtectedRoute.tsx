@@ -5,11 +5,12 @@ import { Loader2 } from 'lucide-react';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireManufacturer?: boolean;
   skipAgreementCheck?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCheck = false }: ProtectedRouteProps) {
-  const { user, loading, isAdmin, hasSignedAgreement, isAgreementRequired } = useAuth();
+export function ProtectedRoute({ children, requireAdmin = false, requireManufacturer = false, skipAgreementCheck = false }: ProtectedRouteProps) {
+  const { user, loading, isAdmin, isManufacturer, hasSignedAgreement, isAgreementRequired } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -24,7 +25,15 @@ export function ProtectedRoute({ children, requireAdmin = false, skipAgreementCh
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (isAgreementRequired && !hasSignedAgreement && !skipAgreementCheck && !isAdmin) {
+  if (requireManufacturer && !isManufacturer && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (isManufacturer && !isAdmin && !requireManufacturer) {
+    return <Navigate to="/newtimes" replace />;
+  }
+
+  if (isAgreementRequired && !hasSignedAgreement && !skipAgreementCheck && !isAdmin && !isManufacturer) {
     return <Navigate to="/agreement" replace />;
   }
 

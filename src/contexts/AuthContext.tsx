@@ -12,6 +12,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  isManufacturer: boolean;
   hasSignedAgreement: boolean;
   isAdminModeActive: boolean;
   isAgreementRequired: boolean;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isManufacturer, setIsManufacturer] = useState(false);
   const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
   const [isAdminModeActive, setIsAdminModeActive] = useState(() => {
     const stored = localStorage.getItem(ADMIN_MODE_KEY);
@@ -78,14 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const checkUserStatus = async (userId: string) => {
-    // Check admin role and agreement status in parallel
-    const [adminResult, profileResult] = await Promise.all([
+    const [rolesResult, profileResult] = await Promise.all([
       supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle(),
+        .eq('user_id', userId),
       supabase
         .from('profiles')
         .select('agreement_signed_at, skip_agreement')
@@ -93,7 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle()
     ]);
     
-    setIsAdmin(!!adminResult.data);
+    const roles = (rolesResult.data || []).map((r: any) => r.role);
+    setIsAdmin(roles.includes('admin'));
+    setIsManufacturer(roles.includes('manufacturer'));
     setHasSignedAgreement(!!profileResult.data?.agreement_signed_at || !!profileResult.data?.skip_agreement);
     setLoading(false);
   };
@@ -111,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }, 0);
       } else {
         setIsAdmin(false);
+        setIsManufacturer(false);
         setHasSignedAgreement(false);
         setLoading(false);
       }
@@ -169,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading: loading || !agreementSettingLoaded,
       isAdmin,
+      isManufacturer,
       hasSignedAgreement,
       isAdminModeActive,
       isAgreementRequired,

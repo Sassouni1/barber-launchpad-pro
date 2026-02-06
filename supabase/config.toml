@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.verify-quiz]
 verify_jwt = false
+
+[functions.receive-order]
+verify_jwt = false
