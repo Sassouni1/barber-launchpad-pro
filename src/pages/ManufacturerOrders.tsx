@@ -80,16 +80,15 @@ export default function ManufacturerOrders() {
   const updateTracking = useUpdateTracking();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
-  const [trackingUrl, setTrackingUrl] = useState('');
+  
   
 
   const handleSave = async (orderId: string) => {
     try {
-      await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim(), trackingUrl: trackingUrl.trim() });
+      await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim() });
       toast.success(trackingNumber.trim() ? 'Tracking added' : 'Tracking removed — order set back to pending');
       setEditingId(null);
       setTrackingNumber('');
-      setTrackingUrl('');
     } catch {
       toast.error('Failed to update tracking');
     }
@@ -149,12 +148,7 @@ export default function ManufacturerOrders() {
                                 onChange={(e) => setTrackingNumber(e.target.value)}
                                 className="w-40"
                               />
-                              <Input
-                                placeholder="URL (optional)"
-                                value={trackingUrl}
-                                onChange={(e) => setTrackingUrl(e.target.value)}
-                                className="w-40"
-                              />
+                              
                               <Button size="sm" onClick={() => handleSave(order.id)} disabled={updateTracking.isPending}>
                                 <Check className="w-4 h-4" />
                               </Button>
@@ -167,7 +161,6 @@ export default function ManufacturerOrders() {
                               onClick={() => {
                                 setEditingId(order.id);
                                 setTrackingNumber(order.tracking_number || '');
-                                setTrackingUrl(order.tracking_url || '');
                               }}
                             >
                               <Truck className="w-4 h-4 mr-1" />
