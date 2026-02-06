@@ -38,13 +38,13 @@ export function useAllOrders() {
 export function useUpdateTracking() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ orderId, trackingNumber, trackingUrl }: { orderId: string; trackingNumber: string; trackingUrl?: string }) => {
+    mutationFn: async ({ orderId, trackingNumber }: { orderId: string; trackingNumber: string }) => {
       const hasTracking = !!trackingNumber.trim();
       const { error } = await supabase
         .from('orders')
         .update({
           tracking_number: hasTracking ? trackingNumber : null,
-          tracking_url: hasTracking && trackingUrl ? trackingUrl : null,
+          tracking_url: hasTracking ? `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber.trim()}` : null,
           status: hasTracking ? 'shipped' : 'pending',
         })
         .eq('id', orderId);
