@@ -84,7 +84,7 @@ function useMobileMembers() {
 
 export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const navigate = useNavigate();
-  const { isAdmin: userIsAdmin } = useAuth();
+  const { isAdmin: userIsAdmin, isManufacturer } = useAuth();
   const [viewOpen, setViewOpen] = useState(false);
   const [memberPickerOpen, setMemberPickerOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
@@ -144,6 +144,28 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   ];
 
   const currentViewLabel = isAdminView ? 'Admin' : 'Member';
+
+  // Manufacturer-only (non-admin): show only Orders + Sign Out
+  if (isManufacturer && !userIsAdmin) {
+    return (
+      <div className="md:hidden bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
+        <div className="grid grid-cols-2 gap-2">
+          <NavButton to="/newtimes" icon={Package} label="Orders" />
+          <button
+            onClick={handleSignOut}
+            className={cn(
+              'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all',
+              'border border-border/50 bg-card/50 text-muted-foreground',
+              'hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30'
+            )}
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Sign Out</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
