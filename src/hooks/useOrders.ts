@@ -39,12 +39,13 @@ export function useUpdateTracking() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ orderId, trackingNumber, trackingUrl }: { orderId: string; trackingNumber: string; trackingUrl?: string }) => {
+      const hasTracking = !!trackingNumber.trim();
       const { error } = await supabase
         .from('orders')
         .update({
-          tracking_number: trackingNumber,
-          tracking_url: trackingUrl || null,
-          status: 'shipped',
+          tracking_number: hasTracking ? trackingNumber : null,
+          tracking_url: hasTracking && trackingUrl ? trackingUrl : null,
+          status: hasTracking ? 'shipped' : 'pending',
         })
         .eq('id', orderId);
       if (error) throw error;

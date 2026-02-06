@@ -84,13 +84,9 @@ export default function ManufacturerOrders() {
   
 
   const handleSave = async (orderId: string) => {
-    if (!trackingNumber.trim()) {
-      toast.error('Please enter a tracking number');
-      return;
-    }
     try {
       await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim(), trackingUrl: trackingUrl.trim() });
-      toast.success('Tracking added');
+      toast.success(trackingNumber.trim() ? 'Tracking added' : 'Tracking removed — order set back to pending');
       setEditingId(null);
       setTrackingNumber('');
       setTrackingUrl('');
