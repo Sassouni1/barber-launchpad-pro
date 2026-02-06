@@ -74,19 +74,25 @@ export function ViewSwitcher({ collapsed, isAdminView }: ViewSwitcherProps) {
     setImpersonating(userId);
     try {
       const { data, error } = await supabase.functions.invoke('impersonate-user', {
-        body: { target_user_id: userId, redirect_to: window.location.origin + '/dashboard' },
+        body: { target_user_id: userId },
       });
       if (error) throw error;
-      if (!data?.action_link) {
+      if (!data?.access_token || !data?.refresh_token) {
         throw new Error(data?.error || 'Invalid response from server');
       }
+
+      // Set the new session directly
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+      if (sessionError) throw sessionError;
 
       toast.success(`Switching to ${name}...`);
       setMemberPickerOpen(false);
 
-      // Redirect to the magic link — Supabase verifies the token and
-      // redirects back to /dashboard with a valid session as the target user
-      window.location.href = data.action_link;
+      // Full reload to pick up the new session everywhere
+      window.location.href = '/dashboard';
     } catch (err: any) {
       toast.error(err.message || 'Failed to view as user');
       setImpersonating(null);
