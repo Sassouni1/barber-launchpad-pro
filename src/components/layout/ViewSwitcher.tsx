@@ -84,10 +84,7 @@ export function ViewSwitcher({ collapsed, isAdminView }: ViewSwitcherProps) {
       toast.success(`Switching to ${name}...`);
       setMemberPickerOpen(false);
 
-      // Sign out current admin session
-      await supabase.auth.signOut();
-
-      // Establish target user's session via OTP verification
+      // Establish target user's session via OTP verification (replaces current session in-place)
       const { error: otpError } = await supabase.auth.verifyOtp({
         token_hash: data.token_hash,
         type: 'email',
@@ -95,8 +92,8 @@ export function ViewSwitcher({ collapsed, isAdminView }: ViewSwitcherProps) {
 
       if (otpError) throw otpError;
 
-      // Navigate to dashboard — AuthContext will pick up the new session
-      navigate('/dashboard');
+      // Force full reload to reset all cached state (React Query, AuthContext)
+      window.location.href = '/dashboard';
     } catch (err: any) {
       toast.error(err.message || 'Failed to view as user');
     } finally {
