@@ -358,6 +358,32 @@
   }
 }
 
+/* Mobile performance overrides - disable heavy GPU effects on budget devices */
+@media (max-width: 768px) {
+  .glass-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: hsl(var(--card) / 0.95);
+  }
+
+  .glass-card::before {
+    display: none;
+  }
+
+  .spotlight-pulse::after {
+    display: none;
+  }
+
+  .gold-glow, .gold-glow-subtle {
+    box-shadow: none;
+  }
+
+  .hover-lift:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

@@ -215,7 +215,6 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           </div>
           <div className="flex items-center gap-2 mt-2">
             <div className="relative w-2 h-2">
-              <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75" />
               <div className="relative w-2 h-2 bg-green-500 rounded-full" />
             </div>
             <span className="text-xs text-green-500 font-medium">All Systems Operational</span>
