@@ -211,8 +211,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
         )}
       </div>
 
-      {/* System status */}
-      {!collapsed && (
+      {/* System status - hide in manufacturer view */}
+      {!collapsed && !isManufacturerView && (
         <div className="px-6 py-4 border-b border-sidebar-border relative z-10">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Cpu className="w-3.5 h-3.5 text-primary" />
@@ -316,14 +316,16 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           </Button>
         )}
         
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-full justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-        >
-          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-        </Button>
+        {!isManufacturerView && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCollapsed(!collapsed)}
+            className="w-full justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+          >
+            {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          </Button>
+        )}
         
         <button 
           onClick={handleSignOut}
