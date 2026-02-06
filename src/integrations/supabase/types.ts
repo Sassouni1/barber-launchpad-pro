@@ -575,6 +575,59 @@ export type Database = {
           },
         ]
       }
+      orders: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_name: string | null
+          id: string
+          order_date: string
+          order_details: Json | null
+          status: string
+          tracking_number: string | null
+          tracking_seen: boolean
+          tracking_url: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          customer_name?: string | null
+          id?: string
+          order_date?: string
+          order_details?: Json | null
+          status?: string
+          tracking_number?: string | null
+          tracking_seen?: boolean
+          tracking_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_name?: string | null
+          id?: string
+          order_date?: string
+          order_details?: Json | null
+          status?: string
+          tracking_number?: string | null
+          tracking_seen?: boolean
+          tracking_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           button_text: string | null
@@ -1149,7 +1202,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "member"
+      app_role: "admin" | "member" | "manufacturer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1277,7 +1330,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "member"],
+      app_role: ["admin", "member", "manufacturer"],
     },
   },
 } as const
