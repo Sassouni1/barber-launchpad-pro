@@ -3,7 +3,7 @@ import { useUserOrders } from '@/hooks/useOrders';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Package, ExternalLink, Loader2 } from 'lucide-react';
+import { Package, ExternalLink, Loader2, Scissors } from 'lucide-react';
 import { format } from 'date-fns';
 
 const statusColors: Record<string, string> = {
@@ -12,6 +12,24 @@ const statusColors: Record<string, string> = {
   shipped: 'bg-green-500/10 text-green-500 border-green-500/30',
   delivered: 'bg-primary/10 text-primary border-primary/30',
 };
+
+function getOrderSummary(details: Record<string, any> | null): { label: string; value: string }[] {
+  if (!details) return [];
+  const items: { label: string; value: string }[] = [];
+
+  const hairColor = details['Hair Color'];
+  const laceSkin = details['Lace or Skin'];
+
+  if (laceSkin) items.push({ label: 'Type', value: String(laceSkin) });
+  if (hairColor) items.push({ label: 'Hair Color', value: String(hairColor) });
+
+  // Fallback for simpler order structures
+  if (!items.length && details.product) {
+    items.push({ label: 'Product', value: String(details.product) });
+  }
+
+  return items;
+}
 
 export default function Orders() {
   const { data: orders, isLoading } = useUserOrders();
@@ -37,42 +55,62 @@ export default function Orders() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
-              <Card key={order.id} className="border-border/50">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-sm font-medium">
-                          {format(new Date(order.order_date), 'MMM d, yyyy')}
-                        </span>
-                        <Badge variant="outline" className={statusColors[order.status] || ''}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
+            {orders.map((order) => {
+              const details = order.order_details as Record<string, any> | null;
+              const summaryItems = getOrderSummary(details);
+
+              return (
+                <Card key={order.id} className="border-border/50">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2 min-w-0 flex-1">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <Scissors className="w-4 h-4 text-primary flex-shrink-0" />
+                          <span className="font-medium">Hair System Order</span>
+                          <Badge variant="outline" className={statusColors[order.status] || ''}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </Badge>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground">
+                          Ordered {format(new Date(order.order_date), 'MMMM d, yyyy')}
+                        </p>
+
+                        {summaryItems.length > 0 && (
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+                            {summaryItems.map((item, i) => (
+                              <span key={i} className="text-sm">
+                                <span className="text-muted-foreground">{item.label}:</span>{' '}
+                                <span className="text-foreground font-medium">{item.value}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {order.tracking_number && (
+                          <p className="text-sm text-muted-foreground">
+                            Tracking: {order.tracking_number}
+                          </p>
+                        )}
                       </div>
                       {order.tracking_number && (
-                        <p className="text-sm text-muted-foreground">
-                          Tracking: {order.tracking_number}
-                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const url = order.tracking_url || `https://www.google.com/search?q=${encodeURIComponent(order.tracking_number!)}`;
+                            window.open(url, '_blank');
+                          }}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          Track
+                        </Button>
                       )}
                     </div>
-                    {order.tracking_number && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const url = order.tracking_url || `https://www.google.com/search?q=${encodeURIComponent(order.tracking_number!)}`;
-                          window.open(url, '_blank');
-                        }}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        Track
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
