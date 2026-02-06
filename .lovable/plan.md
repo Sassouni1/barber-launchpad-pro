@@ -1,30 +1,54 @@
 
 
-# Fix Video Randomly Pausing
+# Bulletproof the Video Player
 
-## What's Happening
-Every time a user taps their phone screen, switches apps, or interacts with the Vimeo player controls, the app refetches data in the background. This causes the lesson page to re-render, which destroys and recreates the video iframe -- pausing or restarting the video.
-
-## Risk Level: Very Low
-These are the same settings already used in `useCertification.ts` in this project. They are standard, well-documented options. The only tradeoff is that data won't auto-refresh for 5 minutes while sitting on the same page, which is completely fine for lesson content.
+## Summary
+Three small, safe changes that protect the Vimeo iframe from every remaining re-render trigger. No functionality or visual changes.
 
 ## Changes
 
-### 1. Update `src/hooks/useCourses.ts`
-Add `staleTime: 5 * 60 * 1000` and `refetchOnWindowFocus: false` to the `useQuery` options in the `useCourses` hook.
+### 1. Extract the video player into a `React.memo` component
+**File:** `src/pages/Lesson.tsx`
 
-### 2. Update `src/hooks/useModuleFiles.ts`
-Add the same `staleTime` and `refetchOnWindowFocus: false` to the `useModuleFiles` query, since this also runs on the lesson page and can trigger re-renders.
+Create a small memoized component at the top of the file:
 
-### 3. Update `src/hooks/useQuiz.ts`
-Add the same settings to `useQuizQuestions` and `useQuizAttempts` queries.
+```tsx
+const VideoPlayer = React.memo(({ src, title }: { src: string; title: string }) => (
+  <div className="glass-card rounded-2xl overflow-hidden">
+    <div className="aspect-video max-h-[50vh] bg-black relative">
+      <iframe
+        src={src}
+        className="absolute inset-0 w-full h-full"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+        title={title}
+      />
+    </div>
+  </div>
+));
+```
 
-### 4. Update `src/pages/Lesson.tsx`
-Wrap the `getVimeoEmbedUrl()` call in `useMemo` so the iframe `src` stays stable across renders, preventing React from remounting the iframe even if a render does occur.
+Replace the current inline iframe block (lines 347-359) with:
 
-## What Won't Change
-- Desktop experience stays identical
-- Mobile visuals stay identical
-- Data still loads fresh when navigating between lessons
-- Quizzes, files, and all other features work normally
+```tsx
+{module.video_url?.trim() && !(module as any).is_certification_requirement && (
+  <VideoPlayer src={vimeoEmbedUrl} title={module.title} />
+)}
+```
+
+This means even if the parent Lesson component re-renders (from auth token refresh, quiz state changes, etc.), the VideoPlayer will only re-render if `src` or `title` actually change.
+
+### 2. Remove `animate-fade-up` from the video container
+Already handled by the extraction above -- the new `VideoPlayer` component simply doesn't include the animation class. This eliminates the GPU compositing overhead that could cause micro-stalls on low-end mobile devices.
+
+## What stays the same
+- All other animations on the page remain
+- Video loads and plays identically
+- Desktop experience unchanged
+- Quiz, homework, resources all unaffected
+
+## Technical details
+- `React.memo` does a shallow prop comparison: `src` (string) and `title` (string) are both primitives, so the comparison is trivial and reliable
+- The `useMemo` for `vimeoEmbedUrl` (already in place) ensures the `src` prop reference stays stable
+- Combined, these two layers guarantee the iframe is never destroyed/recreated unless the user navigates to a different lesson
 
