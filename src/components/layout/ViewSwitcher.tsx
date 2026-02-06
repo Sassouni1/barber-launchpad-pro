@@ -78,9 +78,10 @@ export function ViewSwitcher({ collapsed, isAdminView }: ViewSwitcherProps) {
       });
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, '_blank');
-        toast.success(`Opening view as ${name}`);
+        toast.success(`Switching to ${name}...`);
         setMemberPickerOpen(false);
+        // Navigate current tab to the magic link — opens as that user
+        window.location.href = data.url;
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to view as user');
