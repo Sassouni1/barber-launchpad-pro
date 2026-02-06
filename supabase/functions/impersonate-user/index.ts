@@ -92,7 +92,9 @@ Deno.serve(async (req) => {
     }
 
     // Build the verification URL that the frontend can use
-    const redirectUrl = `${supabaseUrl}/auth/v1/verify?token=${tokenHash}&type=magiclink`;
+    // Include redirect_to so the user lands on the app after verification
+    const siteUrl = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || `${supabaseUrl}`;
+    const redirectUrl = `${supabaseUrl}/auth/v1/verify?token=${tokenHash}&type=magiclink&redirect_to=${encodeURIComponent(siteUrl + '/dashboard')}`;
 
     console.log(`Admin ${caller.email} impersonating ${targetUser.user.email}`);
 
