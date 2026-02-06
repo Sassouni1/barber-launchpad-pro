@@ -148,7 +148,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const navigate = useNavigate();
-  const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode } = useAuth();
+  const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode, isManufacturer } = useAuth();
   
   // Fetch courses to determine which categories have published content
   const { data: courses = [] } = useCourses();
@@ -228,7 +228,9 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
         <div className="text-xs text-muted-foreground uppercase tracking-wider px-4 mb-3">
           {!collapsed && 'Navigation'}
         </div>
-        {isAdminView ? (
+        {isManufacturer && !userIsAdmin ? (
+          <NavItem to="/newtimes" icon={Package} label="Orders" collapsed={collapsed} />
+        ) : isAdminView ? (
           links.map((link) => (
             <NavItem key={link.to} {...link} collapsed={collapsed} />
           ))
@@ -275,7 +277,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border space-y-2 relative z-10">
-        {/* Admin Mode Toggle */}
+        {/* Admin Mode Toggle - hide for manufacturer-only users */}
         {userIsAdmin && !collapsed && (
           <div className="flex items-center justify-between px-4 py-2 rounded-lg bg-primary/5 border border-primary/20">
             <div className="flex items-center gap-2">
