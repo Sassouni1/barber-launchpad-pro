@@ -77,12 +77,26 @@ export function ViewSwitcher({ collapsed, isAdminView }: ViewSwitcherProps) {
         body: { target_user_id: userId },
       });
       if (error) throw error;
-      if (data?.url) {
-        toast.success(`Switching to ${name}...`);
-        setMemberPickerOpen(false);
-        // Navigate current tab to the magic link — opens as that user
-        window.location.href = data.url;
+      if (!data?.token_hash || !data?.email) {
+        throw new Error('Invalid response from server');
       }
+
+      toast.success(`Switching to ${name}...`);
+      setMemberPickerOpen(false);
+
+      // Sign out current admin session
+      await supabase.auth.signOut();
+
+      // Establish target user's session via OTP verification
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        token_hash: data.token_hash,
+        type: 'email',
+      });
+
+      if (otpError) throw otpError;
+
+      // Navigate to dashboard — AuthContext will pick up the new session
+      navigate('/dashboard');
     } catch (err: any) {
       toast.error(err.message || 'Failed to view as user');
     } finally {
