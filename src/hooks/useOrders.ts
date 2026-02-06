@@ -13,6 +13,7 @@ export function useUserOrders() {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
+        .eq('user_id', user!.id)
         .order('order_date', { ascending: false });
       if (error) throw error;
       return data as Order[];
@@ -80,6 +81,7 @@ export function useUnseenShippedOrders() {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
+        .eq('user_id', user!.id)
         .eq('status', 'shipped')
         .eq('tracking_seen', false);
       if (error) throw error;
