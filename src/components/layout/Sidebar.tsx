@@ -148,7 +148,11 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode, isManufacturer } = useAuth();
+  
+  // Detect if we're currently in the manufacturer/supplier view
+  const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
   
   // Fetch courses to determine which categories have published content
   const { data: courses = [] } = useCourses();
@@ -228,7 +232,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
         <div className="text-xs text-muted-foreground uppercase tracking-wider px-4 mb-3">
           {!collapsed && 'Navigation'}
         </div>
-        {isManufacturer && !userIsAdmin ? (
+        {isManufacturerView ? (
           <NavItem to="/newtimes" icon={Package} label="Orders" collapsed={collapsed} />
         ) : isAdminView ? (
           links.map((link) => (
@@ -277,8 +281,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border space-y-2 relative z-10">
-        {/* Admin Mode Toggle - hide for manufacturer-only users */}
-        {userIsAdmin && !collapsed && (
+        {/* Admin Mode Toggle - hide when in manufacturer view */}
+        {userIsAdmin && !isManufacturerView && !collapsed && (
           <div className="flex items-center justify-between px-4 py-2 rounded-lg bg-primary/5 border border-primary/20">
             <div className="flex items-center gap-2">
               {isAdminModeActive ? (
@@ -297,7 +301,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             />
           </div>
         )}
-        {userIsAdmin && collapsed && (
+        {userIsAdmin && !isManufacturerView && collapsed && (
           <Button
             variant="ghost"
             size="sm"
