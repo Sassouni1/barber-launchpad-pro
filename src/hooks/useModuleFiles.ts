@@ -25,6 +25,8 @@ export function useModuleFiles(moduleId: string | undefined) {
       return data as ModuleFile[];
     },
     enabled: !!moduleId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

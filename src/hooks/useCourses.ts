@@ -37,6 +37,8 @@ export function useCourses(options?: { includeUnpublished?: boolean }) {
 
       return coursesWithModules;
     },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

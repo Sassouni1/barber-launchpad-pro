@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses } from '@/hooks/useCourses';
@@ -218,6 +218,12 @@ export default function Lesson() {
   const { data: questions = [] } = useQuizQuestions(module?.id);
   const { data: attempts = [] } = useQuizAttempts(module?.id);
   const { data: existingSubmission } = useHomeworkSubmission(module?.id);
+
+  // Memoize the embed URL so the iframe src stays stable across re-renders
+  const vimeoEmbedUrl = useMemo(
+    () => module?.video_url ? getVimeoEmbedUrl(module.video_url) : '',
+    [module?.video_url]
+  );
   
   const submitQuiz = useSubmitQuiz();
   const submitHomework = useSubmitHomework();
@@ -342,7 +348,7 @@ export default function Lesson() {
           <div className="glass-card rounded-2xl overflow-hidden animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="aspect-video max-h-[50vh] bg-black relative">
               <iframe
-                src={getVimeoEmbedUrl(module.video_url)}
+                src={vimeoEmbedUrl}
                 className="absolute inset-0 w-full h-full"
                 allow="autoplay; fullscreen; picture-in-picture"
                 allowFullScreen
