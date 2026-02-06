@@ -50,7 +50,6 @@ export function WelcomeHero() {
       >
         <div className="flex items-center gap-2">
           <div className="relative flex items-center justify-center w-2 h-2">
-            <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75" />
             <div className="relative w-1.5 h-1.5 bg-primary rounded-full" />
           </div>
           <span className="text-sm font-medium">
@@ -76,7 +75,7 @@ export function WelcomeHero() {
         <div className="flex items-center justify-between mb-2 md:mb-4">
           <div className="flex items-center gap-2">
             <div className="relative flex items-center justify-center w-2 h-2 md:w-3 md:h-3">
-              <div className="absolute inset-0 bg-primary rounded-full animate-ping opacity-75" />
+              <div className="absolute inset-0 bg-primary rounded-full md:animate-ping opacity-75 hidden md:block" />
               <div className="relative w-1.5 h-1.5 md:w-2 md:h-2 bg-primary rounded-full" />
             </div>
             <span className="text-[10px] md:text-xs font-semibold uppercase tracking-cyber text-primary">
