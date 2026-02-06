@@ -141,11 +141,10 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
     { to: '/training', icon: Target, label: 'Games' },
-    { to: '/order-hair-system', icon: Scissors, label: 'Order Hair' },
-    { to: '/products', icon: Package, label: 'Products' },
-    { to: '/orders', icon: Package, label: 'Orders' },
     { to: '/schedule-call', icon: Phone, label: '1 on 1 Call' },
   ];
+
+  const [productsOpen, setProductsOpen] = useState(false);
 
   const currentViewLabel = isAdminView ? 'Admin' : 'Member';
 
@@ -211,9 +210,47 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
       <div className="md:hidden bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
         {/* Navigation Grid */}
         <div className="grid grid-cols-3 gap-2 mb-2">
-          {!isAdminView && memberLinks.map((link) => (
-            <NavButton key={link.to} {...link} />
-          ))}
+          {!isAdminView && (
+            <>
+              {memberLinks.map((link) => (
+                <NavButton key={link.to} {...link} />
+              ))}
+              <Popover open={productsOpen} onOpenChange={setProductsOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all',
+                      'border border-border/50',
+                      ['/products', '/order-hair-system', '/orders'].includes(location.pathname)
+                        ? 'bg-primary/10 text-primary border-primary/30'
+                        : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground'
+                    )}
+                  >
+                    <Package className="w-5 h-5" />
+                    <span className="text-[10px] font-medium leading-tight text-center flex items-center gap-0.5">
+                      Products <ChevronDown className="w-3 h-3" />
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="top" align="center" className="w-48 p-2 bg-popover border-border">
+                  <div className="space-y-1">
+                    <NavLink to="/products" onClick={() => setProductsOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                      <Package className="w-4 h-4" />
+                      <span className="font-medium">Browse Products</span>
+                    </NavLink>
+                    <NavLink to="/order-hair-system" onClick={() => setProductsOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                      <Scissors className="w-4 h-4" />
+                      <span className="font-medium">Order Hair System</span>
+                    </NavLink>
+                    <NavLink to="/orders" onClick={() => setProductsOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                      <Package className="w-4 h-4" />
+                      <span className="font-medium">My Orders</span>
+                    </NavLink>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
           {isAdminView && adminLinks.map((link) => (
             <NavButton key={link.to} {...link} />
           ))}
