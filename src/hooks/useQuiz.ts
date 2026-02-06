@@ -77,6 +77,8 @@ export function useQuizQuestions(moduleId: string | undefined, includeCorrectAns
       }
     },
     enabled: !!moduleId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -241,6 +243,8 @@ export function useQuizAttempts(moduleId: string | undefined) {
       return data as QuizAttempt[];
     },
     enabled: !!moduleId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
