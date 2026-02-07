@@ -1,39 +1,26 @@
 
 
-## Problem
+## Split Orders into "New Orders" and "Previous Orders"
 
-GHL (the webhook source) is firing twice for the same order, approximately 4 seconds apart. The first payload is missing the nested order metadata needed to extract an `external_order_id`, so it gets inserted with `NULL`. The second payload has the full data and a valid `external_order_id`, but the dedup check finds no match (since the first record has `NULL`), resulting in a duplicate.
+Orders with tracking/shipping will move to a collapsible "Previous Orders" section below the main list.
 
-Evidence from the database:
-- Row 1: created at 03:13:35, `external_order_id = NULL`
-- Row 2: created at 03:13:40, `external_order_id = 6986adde8e6898327c54ad29`
+## How It Works
 
-## Solution
-
-Add a **time-window dedup fallback** in the `receive-order` edge function. When no `external_order_id` match is found, check if an order with the same `customer_email` was inserted within the last 60 seconds. If so, skip the insert.
-
-Additionally, backfill the `external_order_id` on the earlier record when the second (complete) payload arrives, so data is not lost.
+- Orders are split into two groups:
+  - **New Orders** (no tracking number) -- shown at the top, always visible
+  - **Previous Orders** (have a tracking number / shipped / completed) -- shown in a collapsible section below, collapsed by default
+- The collapsible section uses the existing Collapsible component with a chevron toggle
+- Previous orders still show the "Edit Tracking" button so tracking can be updated if needed
 
 ## Technical Details
 
-**File: `supabase/functions/receive-order/index.ts`**
+**File: `src/pages/ManufacturerOrders.tsx`**
 
-After the existing `external_order_id` dedup check, add a second check:
-
-```
--- Pseudocode --
-If no duplicate found by external_order_id:
-  Query orders WHERE customer_email = X
-    AND created_at > (now - 60 seconds)
-    AND external_order_id IS NULL
-  If match found:
-    - Update that row's external_order_id (if we have one now)
-    - Return early as deduplicated
-```
-
-This handles both scenarios:
-- First call (no external ID) inserts normally
-- Second call (has external ID) finds the recent row, patches it with the ID, and skips inserting
-
-**Cleanup:** Delete the current duplicate row (`623df83b-3585-46e7-8c45-5f24ca79881c` -- the one with NULL external_order_id) since the other row has the complete data.
-
+1. Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible` and `ChevronDown` from lucide
+2. Split the `orders` array into `newOrders` (no `tracking_number`) and `previousOrders` (has `tracking_number`)
+3. Render `newOrders` in the existing "New Orders" section
+4. Below it, render a `Collapsible` (defaultOpen={false}) with:
+   - A trigger showing "Previous Orders (X)" with a rotating chevron
+   - The content containing the same order card layout for `previousOrders`
+5. Extract the order card rendering into a reusable helper to avoid duplicating JSX
+6. Update the empty state to only show when both lists are empty
