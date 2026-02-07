@@ -13,8 +13,17 @@ const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
   processing: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
   shipped: 'bg-green-500/10 text-green-500 border-green-500/30',
-  delivered: 'bg-primary/10 text-primary border-primary/30',
+  completed: 'bg-primary/10 text-primary border-primary/30',
 };
+
+function getDisplayStatus(order: { status: string; order_date: string }): string {
+  if (order.status === 'shipped') {
+    const shippedDate = new Date(order.order_date);
+    const daysSince = (Date.now() - shippedDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince >= 7) return 'completed';
+  }
+  return order.status;
+}
 
 // Keys from GHL order_details that represent the actual order specs
 const ORDER_SPEC_KEYS = [
@@ -127,8 +136,8 @@ export default function ManufacturerOrders() {
                           <div className="flex items-center gap-3 flex-wrap">
                             <span className="font-medium">{order.customer_name || 'Unknown'}</span>
                             <span className="text-sm text-muted-foreground">{order.customer_email}</span>
-                            <Badge variant="outline" className={statusColors[order.status] || ''}>
-                              {order.status}
+                            <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
+                              {getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">

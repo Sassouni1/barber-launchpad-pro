@@ -10,8 +10,17 @@ const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
   processing: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
   shipped: 'bg-green-500/10 text-green-500 border-green-500/30',
-  delivered: 'bg-primary/10 text-primary border-primary/30',
+  completed: 'bg-primary/10 text-primary border-primary/30',
 };
+
+function getDisplayStatus(order: { status: string; order_date: string }): string {
+  if (order.status === 'shipped') {
+    const shippedDate = new Date(order.order_date);
+    const daysSince = (Date.now() - shippedDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince >= 7) return 'completed';
+  }
+  return order.status;
+}
 
 function getOrderSummary(details: Record<string, any> | null): { label: string; value: string }[] {
   if (!details) return [];
@@ -59,6 +68,8 @@ export default function Orders() {
               const details = order.order_details as Record<string, any> | null;
               const summaryItems = getOrderSummary(details);
 
+              const displayStatus = getDisplayStatus(order);
+
               return (
                 <Card key={order.id} className="border-border/50">
                   <CardContent className="p-5">
@@ -67,8 +78,8 @@ export default function Orders() {
                         <div className="flex items-center gap-3 flex-wrap">
                           <Scissors className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="font-medium">Hair System Order</span>
-                          <Badge variant="outline" className={statusColors[order.status] || ''}>
-                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          <Badge variant="outline" className={statusColors[displayStatus] || ''}>
+                            {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
                           </Badge>
                         </div>
 
