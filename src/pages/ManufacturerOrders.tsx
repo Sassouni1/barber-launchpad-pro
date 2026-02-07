@@ -28,7 +28,6 @@ function getDisplayStatus(order: { status: string; order_date: string }): string
 // Keys from GHL order_details that represent the actual order specs
 const ORDER_SPEC_KEYS = [
   'Client Name',
-  'Hair Color',
   'Choose Color',
   'Lace or Skin',
   'Curl Pattern — only if needed',
