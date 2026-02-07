@@ -24,6 +24,8 @@ interface Product {
   link_url: string | null;
   button_text: string | null;
   order_index: number;
+  image_position_x: number | null;
+  image_position_y: number | null;
 }
 
 const ProductsManager = () => {
@@ -34,6 +36,8 @@ const ProductsManager = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [buttonText, setButtonText] = useState("View Product");
+  const [imagePosX, setImagePosX] = useState(50);
+  const [imagePosY, setImagePosY] = useState(50);
   
   const queryClient = useQueryClient();
 
@@ -81,6 +85,8 @@ const ProductsManager = () => {
           image_url: product.image_url,
           link_url: product.link_url,
           button_text: product.button_text,
+          image_position_x: product.image_position_x,
+          image_position_y: product.image_position_y,
         })
         .eq("id", product.id);
       if (error) throw error;
@@ -115,6 +121,8 @@ const ProductsManager = () => {
     setImageUrl("");
     setLinkUrl("");
     setButtonText("View Product");
+    setImagePosX(50);
+    setImagePosY(50);
     setEditingProduct(null);
     setIsOpen(false);
   };
@@ -127,6 +135,8 @@ const ProductsManager = () => {
       image_url: imageUrl || null,
       link_url: linkUrl || null,
       button_text: buttonText || "View Product",
+      image_position_x: imagePosX,
+      image_position_y: imagePosY,
     };
 
     if (editingProduct) {
@@ -143,6 +153,8 @@ const ProductsManager = () => {
     setImageUrl(product.image_url || "");
     setLinkUrl(product.link_url || "");
     setButtonText(product.button_text || "View Product");
+    setImagePosX(product.image_position_x ?? 50);
+    setImagePosY(product.image_position_y ?? 50);
     setIsOpen(true);
   };
 
@@ -212,6 +224,49 @@ const ProductsManager = () => {
                     placeholder="View Product"
                   />
                 </div>
+                {imageUrl && (
+                  <div className="space-y-3">
+                    <Label>Image Crop Position</Label>
+                    <div className="relative w-full h-32 rounded-md overflow-hidden border border-border">
+                      <img
+                        src={imageUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        style={{ objectPosition: `${imagePosX}% ${imagePosY}%` }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="posX" className="text-xs">Horizontal</Label>
+                        <span className="text-xs text-muted-foreground">{imagePosX}%</span>
+                      </div>
+                      <input
+                        id="posX"
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={imagePosX}
+                        onChange={(e) => setImagePosX(Number(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="posY" className="text-xs">Vertical</Label>
+                        <span className="text-xs text-muted-foreground">{imagePosY}%</span>
+                      </div>
+                      <input
+                        id="posY"
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={imagePosY}
+                        onChange={(e) => setImagePosY(Number(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={resetForm}>
                     Cancel
@@ -239,6 +294,7 @@ const ProductsManager = () => {
                       src={product.image_url}
                       alt={product.title}
                       className="w-full h-40 object-cover rounded-md"
+                      style={{ objectPosition: `${product.image_position_x ?? 50}% ${product.image_position_y ?? 50}%` }}
                     />
                   )}
                   <h3 className="font-semibold text-foreground">{product.title}</h3>
