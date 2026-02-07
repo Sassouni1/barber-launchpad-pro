@@ -212,8 +212,8 @@ export default function ManufacturerOrders() {
     }
   };
 
-  const newOrders = orders?.filter(o => !o.tracking_number) ?? [];
-  const previousOrders = orders?.filter(o => !!o.tracking_number) ?? [];
+  const newOrders = (orders?.filter(o => !o.tracking_number) ?? []).reverse();
+  const previousOrders = (orders?.filter(o => !!o.tracking_number) ?? []).reverse();
 
   const cardProps = {
     editingId,
@@ -247,7 +247,7 @@ export default function ManufacturerOrders() {
             {newOrders.length > 0 ? (
               <div className="space-y-3">
                 {newOrders.map((order, i) => (
-                  <OrderCard key={order.id} order={order} index={newOrders.length - i} {...cardProps} />
+                  <OrderCard key={order.id} order={order} index={i + 1} {...cardProps} />
                 ))}
               </div>
             ) : (
@@ -266,7 +266,7 @@ export default function ManufacturerOrders() {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-3 mt-3">
                   {previousOrders.map((order, i) => (
-                    <OrderCard key={order.id} order={order} index={previousOrders.length - i} {...cardProps} />
+                    <OrderCard key={order.id} order={order} index={i + 1} {...cardProps} />
                   ))}
                 </CollapsibleContent>
               </Collapsible>
