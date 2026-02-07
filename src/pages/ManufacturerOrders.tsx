@@ -5,9 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Check } from 'lucide-react';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { Loader2, Truck, Check, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Order = Tables<'orders'>;
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
@@ -25,8 +29,6 @@ function getDisplayStatus(order: { status: string; order_date: string }): string
   return order.status;
 }
 
-// Keys from GHL order_details that represent the actual order specs
-// Some keys have aliases because GHL payloads vary
 const ORDER_SPEC_KEYS: (string | { display: string; keys: string[] })[] = [
   { display: 'Choose Color', keys: ['Choose Color', 'Hair Color'] },
   'Lace or Skin',
@@ -53,7 +55,6 @@ function extractLineItems(details: Record<string, any> | null): { items: string[
       .replace(/\s*@\s*\d+/g, '')
       .replace(/\s*\(\$[\d.,]+[^)]*\)/gi, '')
       .trim();
-    // Deduplicate "Name - Name" pattern (e.g. "Rush Ship - Rush Ship")
     const dashParts = title.split(/\s*-\s*/);
     if (dashParts.length === 2 && dashParts[0].trim().toLowerCase() === dashParts[1].trim().toLowerCase()) {
       title = dashParts[0].trim();
@@ -71,18 +72,13 @@ function extractLineItems(details: Record<string, any> | null): { items: string[
   return { items, shipping };
 }
 
-
-// Extract meaningful order details from the raw GHL payload
 function extractOrderDetails(details: Record<string, any> | null): { key: string; value: string }[] {
   if (!details) return [];
-  
   const items: { key: string; value: string }[] = [];
-  
   for (const spec of ORDER_SPEC_KEYS) {
     const isAlias = typeof spec === 'object';
     const displayKey = isAlias ? spec.display : spec;
     const keysToCheck = isAlias ? spec.keys : [spec];
-    
     for (const k of keysToCheck) {
       const val = details[k];
       if (val && typeof val === 'string' && val.trim() && val.trim().toLowerCase() !== 'none' && val.trim().toLowerCase() !== 'no') {
@@ -91,16 +87,108 @@ function extractOrderDetails(details: Record<string, any> | null): { key: string
       }
     }
   }
-  
   return items;
 }
 
-function OrderSpecBadge({ label, value }: { label: string; value: string }) {
+interface OrderCardProps {
+  order: Order;
+  editingId: string | null;
+  trackingNumber: string;
+  setEditingId: (id: string | null) => void;
+  setTrackingNumber: (v: string) => void;
+  onSave: (orderId: string) => void;
+  isSaving: boolean;
+}
+
+function OrderCard({ order, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving }: OrderCardProps) {
+  const details = order.order_details as Record<string, any> | null;
+  const specs = extractOrderDetails(details);
+  const { items: lineItems, shipping } = extractLineItems(details);
+  const barber = extractBarberInfo(details);
+
   return (
-    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/50 border border-border/50 text-xs">
-      <span className="text-muted-foreground">{label}:</span>
-      <span className="font-medium">{value}</span>
-    </div>
+    <Card className="border-border/50">
+      <CardContent className="p-5">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-medium">{barber.name || 'Unknown'}</span>
+                {barber.phone && <span className="text-sm text-muted-foreground">{barber.phone}</span>}
+                <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
+                  {getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
+              </p>
+              {order.tracking_number && (
+                <p className="text-sm">Tracking: <span className="font-mono">{order.tracking_number}</span></p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {editingId === order.id ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Input
+                    placeholder="Tracking #"
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value)}
+                    className="w-40"
+                  />
+                  <Button size="sm" onClick={() => onSave(order.id)} disabled={isSaving}>
+                    <Check className="w-4 h-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingId(order.id);
+                    setTrackingNumber(order.tracking_number || '');
+                  }}
+                >
+                  <Truck className="w-4 h-4 mr-1" />
+                  {order.tracking_number ? 'Edit Tracking' : 'Add Tracking'}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {lineItems.length > 0 && (
+            <p className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3">
+              {lineItems[0]}
+            </p>
+          )}
+
+          {lineItems.length > 1 && (
+            <div className="text-sm">
+              <span className="text-muted-foreground font-medium">Add Ons: </span>
+              <span className="text-muted-foreground">{lineItems.slice(1).join(', ')}</span>
+            </div>
+          )}
+
+          {(specs.length > 0 || shipping) && (
+            <div className="flex flex-col gap-1.5">
+              {specs.map((spec, i) => (
+                <div key={i} className="text-sm">
+                  <span className="text-muted-foreground">{spec.key}: </span>
+                  <span className="font-medium">{spec.value}</span>
+                </div>
+              ))}
+              {shipping && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Shipping: </span>
+                  <span className="font-medium">{shipping}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -109,8 +197,6 @@ export default function ManufacturerOrders() {
   const updateTracking = useUpdateTracking();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
-  
-  
 
   const handleSave = async (orderId: string) => {
     try {
@@ -121,6 +207,18 @@ export default function ManufacturerOrders() {
     } catch {
       toast.error('Failed to update tracking');
     }
+  };
+
+  const newOrders = orders?.filter(o => !o.tracking_number) ?? [];
+  const previousOrders = orders?.filter(o => !!o.tracking_number) ?? [];
+
+  const cardProps = {
+    editingId,
+    trackingNumber,
+    setEditingId,
+    setTrackingNumber,
+    onSave: handleSave,
+    isSaving: updateTracking.isPending,
   };
 
   return (
@@ -142,104 +240,35 @@ export default function ManufacturerOrders() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {orders.map((order) => {
-              const details = order.order_details as Record<string, any> | null;
-              const specs = extractOrderDetails(details);
-              const { items: lineItems, shipping } = extractLineItems(details);
-              const barber = extractBarberInfo(details);
+          <>
+            {newOrders.length > 0 ? (
+              <div className="space-y-3">
+                {newOrders.map((order) => (
+                  <OrderCard key={order.id} order={order} {...cardProps} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  No new orders
+                </CardContent>
+              </Card>
+            )}
 
-              return (
-                <Card key={order.id} className="border-border/50">
-                  <CardContent className="p-5">
-                    <div className="flex flex-col gap-3">
-                      {/* Header row */}
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                        <div className="space-y-1 min-w-0">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="font-medium">{barber.name || 'Unknown'}</span>
-                            {barber.phone && <span className="text-sm text-muted-foreground">{barber.phone}</span>}
-                            <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
-                              {getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
-                          </p>
-                          {order.tracking_number && (
-                            <p className="text-sm">Tracking: <span className="font-mono">{order.tracking_number}</span></p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {editingId === order.id ? (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Input
-                                placeholder="Tracking #"
-                                value={trackingNumber}
-                                onChange={(e) => setTrackingNumber(e.target.value)}
-                                className="w-40"
-                              />
-                              
-                              <Button size="sm" onClick={() => handleSave(order.id)} disabled={updateTracking.isPending}>
-                                <Check className="w-4 h-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                            </div>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setEditingId(order.id);
-                                setTrackingNumber(order.tracking_number || '');
-                              }}
-                            >
-                              <Truck className="w-4 h-4 mr-1" />
-                              {order.tracking_number ? 'Edit Tracking' : 'Add Tracking'}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Line items */}
-                      {lineItems.length > 0 && (
-                        <p className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3">
-                          {lineItems[0]}
-                        </p>
-                      )}
-
-                      {/* Add Ons */}
-                      {lineItems.length > 1 && (
-                        <div className="text-sm">
-                          <span className="text-muted-foreground font-medium">Add Ons: </span>
-                          <span className="text-muted-foreground">{lineItems.slice(1).join(', ')}</span>
-                        </div>
-                      )}
-
-                      {/* Order specs summary */}
-                      {(specs.length > 0 || shipping) && (
-                        <div className="flex flex-col gap-1.5">
-                          {specs.map((spec, i) => (
-                            <div key={i} className="text-sm">
-                              <span className="text-muted-foreground">{spec.key}: </span>
-                              <span className="font-medium">{spec.value}</span>
-                            </div>
-                          ))}
-                          {shipping && (
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Shipping: </span>
-                              <span className="font-medium">{shipping}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+            {previousOrders.length > 0 && (
+              <Collapsible defaultOpen={false}>
+                <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group w-full">
+                  <ChevronDown className="w-4 h-4 transition-transform group-data-[state=closed]:-rotate-90" />
+                  Previous Orders ({previousOrders.length})
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 mt-3">
+                  {previousOrders.map((order) => (
+                    <OrderCard key={order.id} order={order} {...cardProps} />
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+          </>
         )}
       </div>
     </DashboardLayout>
