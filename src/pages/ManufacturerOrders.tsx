@@ -102,11 +102,39 @@ interface OrderCardProps {
   isSaving: boolean;
 }
 
+function CopyBtn({ text, label }: { text: string; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(text);
+        toast.success(`${label || 'Text'} copied`);
+      }}
+      className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+    >
+      <Copy className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
 function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving }: OrderCardProps) {
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
   const barber = extractBarberInfo(details);
+
+  const buildCopyAllText = () => {
+    const lines: string[] = [];
+    if (barber.name) lines.push(`Name: ${barber.name}`);
+    if (barber.phone) lines.push(`Phone: ${barber.phone}`);
+    if (lineItems.length > 0) lines.push(`Product: ${lineItems[0]}`);
+    if (lineItems.length > 1) lines.push(`Add Ons: ${lineItems.slice(1).join(', ')}`);
+    specs.forEach(s => lines.push(`${s.key}: ${s.value}`));
+    if (shipping) lines.push(`Shipping: ${shipping}`);
+    if (order.tracking_number) lines.push(`Tracking: ${order.tracking_number}`);
+    return lines.join('\n');
+  };
 
   return (
     <Card className="border-border/50">
@@ -125,7 +153,10 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
               </p>
               {order.tracking_number && (
-                <p className="text-sm">Tracking: <span className="font-mono">{order.tracking_number}</span></p>
+                <p className="text-sm flex items-center gap-1.5">
+                  Tracking: <span className="font-mono">{order.tracking_number}</span>
+                  <CopyBtn text={order.tracking_number} label="Tracking" />
+                </p>
               )}
             </div>
 
@@ -160,15 +191,17 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
           </div>
 
           {lineItems.length > 0 && (
-            <p className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3">
-              {lineItems[0]}
-            </p>
+            <div className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
+              <span>{lineItems[0]}</span>
+              <CopyBtn text={lineItems[0]} label="Product" />
+            </div>
           )}
 
           {lineItems.length > 1 && (
-            <div className="text-sm">
+            <div className="text-sm flex items-center gap-1.5">
               <span className="text-muted-foreground font-medium">Add Ons: </span>
               <span className="text-muted-foreground">{lineItems.slice(1).join(', ')}</span>
+              <CopyBtn text={lineItems.slice(1).join(', ')} label="Add Ons" />
             </div>
           )}
 
@@ -178,32 +211,39 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                 <div className="text-sm flex items-center gap-1.5">
                   <span className="text-muted-foreground">Phone: </span>
                   <span className="font-medium">{barber.phone}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(barber.phone);
-                      toast.success('Phone number copied');
-                    }}
-                    className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
+                  <CopyBtn text={barber.phone} label="Phone" />
                 </div>
               )}
               {specs.map((spec, i) => (
-                <div key={i} className="text-sm">
+                <div key={i} className="text-sm flex items-center gap-1.5">
                   <span className="text-muted-foreground">{spec.key}: </span>
                   <span className="font-medium">{spec.value}</span>
+                  <CopyBtn text={spec.value} label={spec.key} />
                 </div>
               ))}
               {shipping && (
-                <div className="text-sm">
+                <div className="text-sm flex items-center gap-1.5">
                   <span className="text-muted-foreground">Shipping: </span>
                   <span className="font-medium">{shipping}</span>
+                  <CopyBtn text={shipping} label="Shipping" />
                 </div>
               )}
             </div>
           )}
+
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(buildCopyAllText());
+                toast.success('All order details copied');
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <Copy className="w-3 h-3" />
+              Copy All
+            </button>
+          </div>
         </div>
       </CardContent>
     </Card>
