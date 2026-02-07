@@ -27,7 +27,6 @@ function getDisplayStatus(order: { status: string; order_date: string }): string
 
 // Keys from GHL order_details that represent the actual order specs
 const ORDER_SPEC_KEYS = [
-  'Client Name',
   'Choose Color',
   'Lace or Skin',
   'Curl Pattern — only if needed',
@@ -141,8 +140,6 @@ export default function ManufacturerOrders() {
               const specs = extractOrderDetails(details);
               const { items: lineItems, shipping } = extractLineItems(details);
               const barber = extractBarberInfo(details);
-              const clientName = order.customer_name || '';
-              const showClient = clientName && clientName.toLowerCase() !== barber.name.toLowerCase();
 
               return (
                 <Card key={order.id} className="border-border/50">
@@ -158,9 +155,6 @@ export default function ManufacturerOrders() {
                               {getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}
                             </Badge>
                           </div>
-                          {showClient && (
-                            <p className="text-sm text-muted-foreground">Client: <span className="font-medium text-foreground">{clientName}</span></p>
-                          )}
                           <p className="text-xs text-muted-foreground">
                             {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
                           </p>
