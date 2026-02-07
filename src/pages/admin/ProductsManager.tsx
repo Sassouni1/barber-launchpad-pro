@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Edit2, ExternalLink } from "lucide-react";
+import { Plus } from "lucide-react";
 import ImagePositioner from "@/components/admin/ImagePositioner";
+import SortableProductCard from "@/components/admin/SortableProductCard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +17,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
 
 interface Product {
   id: string;
@@ -115,6 +130,43 @@ const ProductsManager = () => {
       toast({ title: "Error deleting product", description: error.message, variant: "destructive" });
     },
   });
+
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedProducts: { id: string; order_index: number }[]) => {
+      const updates = reorderedProducts.map(({ id, order_index }) =>
+        supabase.from("products").update({ order_index }).eq("id", id)
+      );
+      const results = await Promise.all(updates);
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw failed.error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    },
+    onError: (error) => {
+      toast({ title: "Error reordering products", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = products.findIndex((p) => p.id === active.id);
+    const newIndex = products.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = [...products];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    const updates = reordered.map((p, i) => ({ id: p.id, order_index: i }));
+    // Optimistic update
+    queryClient.setQueryData(["admin-products"], reordered.map((p, i) => ({ ...p, order_index: i })));
+    reorderMutation.mutate(updates);
+  };
 
   const resetForm = () => {
     setTitle("");
@@ -255,49 +307,20 @@ const ProductsManager = () => {
           ) : products.length === 0 ? (
             <p className="text-muted-foreground">No products yet. Add your first product above.</p>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (
-                <div key={product.id} className="border border-border rounded-lg p-4 space-y-3">
-                  {product.image_url && (
-                    <img
-                      src={product.image_url}
-                      alt={product.title}
-                      className="w-full h-56 object-cover rounded-md"
-                      style={{ objectPosition: `${product.image_position_x ?? 50}% ${product.image_position_y ?? 50}%` }}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={products.map((p) => p.id)} strategy={rectSortingStrategy}>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {products.map((product) => (
+                    <SortableProductCard
+                      key={product.id}
+                      product={product}
+                      onEdit={handleEdit}
+                      onDelete={(id) => deleteMutation.mutate(id)}
                     />
-                  )}
-                  <h3 className="font-semibold text-foreground">{product.title}</h3>
-                  {product.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                  )}
-                  {product.link_url && (
-                    <a
-                      href={product.link_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {product.button_text || "View Product"}
-                    </a>
-                  )}
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(product)}>
-                      <Edit2 className="h-3 w-3 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => deleteMutation.mutate(product.id)}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </div>
