@@ -58,7 +58,7 @@ const ImagePositioner = ({ imageUrl, posX, posY, onPositionChange }: ImagePositi
       <div
         ref={containerRef}
         onPointerDown={handlePointerDown}
-        className="relative w-full h-40 rounded-md overflow-hidden border border-border cursor-grab active:cursor-grabbing select-none touch-none"
+        className="relative w-2/3 mx-auto aspect-square rounded-md overflow-hidden border border-border cursor-grab active:cursor-grabbing select-none touch-none"
       >
         <img
           src={imageUrl}
