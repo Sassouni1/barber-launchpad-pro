@@ -41,12 +41,10 @@ function getOrderSummary(details: Record<string, any> | null): { label: string; 
   const items: { label: string; value: string }[] = [];
 
   const laceSkin = details['Lace or Skin'];
-  const hairColor = details['Hair Color'];
   const chooseColor = details['Choose Color'];
   const curlPattern = details['Curl Pattern — only if needed'];
 
   if (laceSkin) items.push({ label: 'Type', value: String(laceSkin) });
-  if (hairColor) items.push({ label: 'Hair Color', value: String(hairColor) });
   if (chooseColor) items.push({ label: 'Color', value: String(chooseColor) });
   if (curlPattern && String(curlPattern).toLowerCase() !== 'none') {
     items.push({ label: 'Curl', value: String(curlPattern) });
