@@ -42,18 +42,26 @@ function extractBarberInfo(details: Record<string, any> | null): { name: string;
   return { name, phone };
 }
 
-function extractLineItems(details: Record<string, any> | null): string[] {
-  if (!details) return [];
+function extractLineItems(details: Record<string, any> | null): { items: string[]; shipping: string | null } {
+  if (!details) return { items: [], shipping: null };
   const order = details.order || details;
-  const items = order.line_items;
-  if (!Array.isArray(items)) return [];
-  return items.map((item: any) =>
+  const rawItems = order.line_items;
+  if (!Array.isArray(rawItems)) return { items: [], shipping: null };
+  let shipping: string | null = null;
+  const items = rawItems.map((item: any) =>
     String(item.title || '')
       .replace(/\s*@\s*\d+/g, '')
       .replace(/\s*-\s*Hair System$/i, '')
       .replace(/\s*\(\$[\d.,]+[^)]*\)/gi, '')
       .trim()
-  ).filter(Boolean);
+  ).filter((title: string) => {
+    if (/rush\s*ship|over\s*night/i.test(title)) {
+      shipping = title;
+      return false;
+    }
+    return Boolean(title);
+  });
+  return { items, shipping };
 }
 
 
@@ -124,7 +132,7 @@ export default function ManufacturerOrders() {
             {orders.map((order) => {
               const details = order.order_details as Record<string, any> | null;
               const specs = extractOrderDetails(details);
-              const lineItems = extractLineItems(details);
+              const { items: lineItems, shipping } = extractLineItems(details);
               const barber = extractBarberInfo(details);
               const clientName = order.customer_name || '';
               const showClient = clientName && clientName.toLowerCase() !== barber.name.toLowerCase();
@@ -201,7 +209,7 @@ export default function ManufacturerOrders() {
                       )}
 
                       {/* Order specs summary */}
-                      {specs.length > 0 && (
+                      {(specs.length > 0 || shipping) && (
                         <div className="flex flex-col gap-1.5">
                           {specs.map((spec, i) => (
                             <div key={i} className="text-sm">
@@ -209,6 +217,12 @@ export default function ManufacturerOrders() {
                               <span className="font-medium">{spec.value}</span>
                             </div>
                           ))}
+                          {shipping && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Shipping: </span>
+                              <span className="font-medium">{shipping}</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
