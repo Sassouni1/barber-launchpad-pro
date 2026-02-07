@@ -133,6 +133,34 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Time-window dedup fallback: catch duplicate webhooks where the first had no external_order_id
+    const { data: recentDup } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('customer_email', customerEmail.toLowerCase().trim())
+      .is('external_order_id', null)
+      .gte('created_at', new Date(Date.now() - 60_000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentDup) {
+      // Backfill external_order_id if we have it now
+      if (externalOrderId) {
+        await supabase
+          .from('orders')
+          .update({ external_order_id: externalOrderId, order_details: body })
+          .eq('id', recentDup.id);
+        console.log(`Time-window dedup: backfilled external_order_id=${externalOrderId} on order ${recentDup.id}`);
+      } else {
+        console.log(`Time-window dedup: skipped duplicate for ${customerEmail}, order ${recentDup.id}`);
+      }
+      return new Response(JSON.stringify({ success: true, order_id: recentDup.id, deduplicated: true, method: 'time_window' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     let matchedUserId: string | null = null;
     let matchMethod = 'none';
 
