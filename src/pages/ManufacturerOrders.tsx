@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAllOrders, useUpdateTracking } from '@/hooks/useOrders';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { Loader2, Truck, Check, ChevronDown, Search } from 'lucide-react';
+import { Loader2, Truck, Check, ChevronDown, Search, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -117,7 +117,6 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
               <div className="flex items-center gap-3 flex-wrap">
                 {index != null && <span className="text-sm font-mono text-muted-foreground">#{index}</span>}
                 <span className="font-medium">{barber.name || 'Unknown'}</span>
-                {barber.phone && <span className="text-sm text-muted-foreground">{barber.phone}</span>}
                 <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
                   {getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}
                 </Badge>
@@ -173,8 +172,24 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
             </div>
           )}
 
-          {(specs.length > 0 || shipping) && (
+          {(barber.phone || specs.length > 0 || shipping) && (
             <div className="flex flex-col gap-1.5">
+              {barber.phone && (
+                <div className="text-sm flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Phone: </span>
+                  <span className="font-medium">{barber.phone}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(barber.phone);
+                      toast.success('Phone number copied');
+                    }}
+                    className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
               {specs.map((spec, i) => (
                 <div key={i} className="text-sm">
                   <span className="text-muted-foreground">{spec.key}: </span>
