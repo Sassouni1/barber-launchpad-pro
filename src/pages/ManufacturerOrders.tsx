@@ -35,6 +35,21 @@ const ORDER_SPEC_KEYS = [
   'Any Notes you may want to add',
 ];
 
+function extractBarberInfo(details: Record<string, any> | null, fallbackEmail: string): { name: string; email: string } {
+  if (!details) return { name: '', email: fallbackEmail };
+  const name = details.full_name || details.name || details.contact?.name || '';
+  // Search for personal email that differs from the GHL contact email
+  const candidates = [
+    details.email,
+    details.contact?.email,
+    details.personal_email,
+    details.secondary_email,
+  ].filter((e): e is string => typeof e === 'string' && e.trim() !== '');
+  // Pick first email that differs from fallbackEmail (the GHL system email), or fallback
+  const personalEmail = candidates.find(e => e.toLowerCase() !== fallbackEmail.toLowerCase()) || fallbackEmail;
+  return { name, email: personalEmail };
+}
+
 function extractLineItems(details: Record<string, any> | null): string[] {
   if (!details) return [];
   const order = details.order || details;
@@ -117,6 +132,9 @@ export default function ManufacturerOrders() {
               const details = order.order_details as Record<string, any> | null;
               const specs = extractOrderDetails(details);
               const lineItems = extractLineItems(details);
+              const barber = extractBarberInfo(details, order.customer_email);
+              const clientName = order.customer_name || '';
+              const showClient = clientName && clientName.toLowerCase() !== barber.name.toLowerCase();
 
               return (
                 <Card key={order.id} className="border-border/50">
@@ -126,12 +144,15 @@ export default function ManufacturerOrders() {
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                         <div className="space-y-1 min-w-0">
                           <div className="flex items-center gap-3 flex-wrap">
-                            <span className="font-medium">{order.customer_name || 'Unknown'}</span>
-                            <span className="text-sm text-muted-foreground">{order.customer_email}</span>
+                            <span className="font-medium">{barber.name || 'Unknown'}</span>
+                            <span className="text-sm text-muted-foreground">{barber.email}</span>
                             <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
                               {getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}
                             </Badge>
                           </div>
+                          {showClient && (
+                            <p className="text-sm text-muted-foreground">Client: <span className="font-medium text-foreground">{clientName}</span></p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
                           </p>
