@@ -48,7 +48,7 @@ const Products = () => {
                     <img
                       src={product.image_url}
                       alt={product.title}
-                      className="w-full h-64 object-cover"
+                      className="w-full aspect-square object-cover"
                       style={{ objectPosition: `${product.image_position_x ?? 50}% ${product.image_position_y ?? 50}%` }}
                     />
                   )}
