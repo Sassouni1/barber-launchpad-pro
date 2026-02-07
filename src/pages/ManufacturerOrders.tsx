@@ -36,32 +36,19 @@ const ORDER_SPEC_KEYS = [
   'Any Notes you may want to add',
 ];
 
-interface LineItem {
-  title: string;
-  price: number;
-  quantity: number;
-}
-
-function extractLineItems(details: Record<string, any> | null): LineItem[] {
+function extractLineItems(details: Record<string, any> | null): string[] {
   if (!details) return [];
   const order = details.order || details;
   const items = order.line_items;
   if (!Array.isArray(items)) return [];
-  return items.map((item: any) => ({
-    title: String(item.title || '').replace(/\s*@\s*\d+/g, '').replace(/\s*-\s*Hair System$/i, '').trim() || 'Item',
-    price: Number(item.price) || 0,
-    quantity: Number(item.quantity) || 1,
-  }));
+  return items.map((item: any) =>
+    String(item.title || '')
+      .replace(/\s*@\s*\d+/g, '')
+      .replace(/\s*-\s*Hair System$/i, '')
+      .trim()
+  ).filter(Boolean);
 }
 
-function extractOrderTotal(details: Record<string, any> | null): { amount: number; symbol: string } | null {
-  if (!details) return null;
-  const order = details.order || details;
-  if (order.total_amount != null) {
-    return { amount: Number(order.total_amount), symbol: order.currency_symbol || '$' };
-  }
-  return null;
-}
 
 // Extract meaningful order details from the raw GHL payload
 function extractOrderDetails(details: Record<string, any> | null): { key: string; value: string }[] {
@@ -131,7 +118,6 @@ export default function ManufacturerOrders() {
               const details = order.order_details as Record<string, any> | null;
               const specs = extractOrderDetails(details);
               const lineItems = extractLineItems(details);
-              const total = extractOrderTotal(details);
 
               return (
                 <Card key={order.id} className="border-border/50">
@@ -188,20 +174,9 @@ export default function ManufacturerOrders() {
 
                       {/* Line items */}
                       {lineItems.length > 0 && (
-                        <div className="text-sm space-y-0.5 border-l-2 border-primary/30 pl-3">
-                          {lineItems.map((item, i) => (
-                            <div key={i} className="flex justify-between gap-4">
-                              <span className="text-foreground">{item.quantity > 1 ? `${item.quantity}× ` : ''}{item.title}</span>
-                              <span className="text-muted-foreground font-mono">${item.price}</span>
-                            </div>
-                          ))}
-                          {total && (
-                            <div className="flex justify-between gap-4 pt-1 border-t border-border/50 font-medium">
-                              <span>Total</span>
-                              <span className="font-mono">{total.symbol}{total.amount}</span>
-                            </div>
-                          )}
-                        </div>
+                        <p className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3">
+                          {lineItems.join(', ')}
+                        </p>
                       )}
 
                       {/* Order specs summary */}

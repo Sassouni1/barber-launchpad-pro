@@ -35,14 +35,6 @@ function getLineItemNames(details: Record<string, any> | null): string[] {
   ).filter(Boolean);
 }
 
-function getOrderTotal(details: Record<string, any> | null): string | null {
-  if (!details) return null;
-  const order = details.order || details;
-  if (order.total_amount != null) {
-    return `${order.currency_symbol || '$'}${order.total_amount}`;
-  }
-  return null;
-}
 
 function getOrderSummary(details: Record<string, any> | null): { label: string; value: string }[] {
   if (!details) return [];
@@ -95,7 +87,6 @@ export default function Orders() {
               const details = order.order_details as Record<string, any> | null;
               const summaryItems = getOrderSummary(details);
               const lineItemNames = getLineItemNames(details);
-              const total = getOrderTotal(details);
 
               const displayStatus = getDisplayStatus(order);
 
@@ -109,9 +100,6 @@ export default function Orders() {
                           <span className="font-medium">
                             {lineItemNames.length > 0 ? lineItemNames.join(', ') : 'Hair System Order'}
                           </span>
-                          {total && (
-                            <span className="text-sm text-muted-foreground font-mono">{total}</span>
-                          )}
                           <Badge variant="outline" className={statusColors[displayStatus] || ''}>
                             {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
                           </Badge>
