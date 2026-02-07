@@ -262,7 +262,7 @@ const ProductsManager = () => {
                     <img
                       src={product.image_url}
                       alt={product.title}
-                      className="w-full h-40 object-cover rounded-md"
+                      className="w-full h-56 object-cover rounded-md"
                       style={{ objectPosition: `${product.image_position_x ?? 50}% ${product.image_position_y ?? 50}%` }}
                     />
                   )}
