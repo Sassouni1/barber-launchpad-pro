@@ -96,14 +96,13 @@ export default function Orders() {
                       {order.tracking_number && (
                         <Button
                           size="sm"
-                          variant="outline"
+                          className="gold-gradient text-primary-foreground font-semibold shadow-md hover:opacity-90 transition-opacity"
                           onClick={() => {
                             const url = order.tracking_url || `https://www.google.com/search?q=${encodeURIComponent(order.tracking_number!)}`;
                             window.open(url, '_blank');
                           }}
                         >
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          Track
+                          Track Package
                         </Button>
                       )}
                     </div>
