@@ -244,7 +244,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                     </NavLink>
                     <NavLink to="/orders" onClick={() => setProductsOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                       <Package className="w-4 h-4" />
-                      <span className="font-medium">My Orders</span>
+                      <span className="font-medium">Order History</span>
                     </NavLink>
                   </div>
                 </PopoverContent>

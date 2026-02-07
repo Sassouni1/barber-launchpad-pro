@@ -38,8 +38,8 @@ export default function Orders() {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-display font-bold">My Orders</h1>
-          <p className="text-muted-foreground text-sm mt-1">Track your hair system orders</p>
+          <h1 className="text-2xl font-display font-bold">Order History & Tracking</h1>
+          <p className="text-muted-foreground text-sm mt-1">View your past orders and track shipments</p>
         </div>
 
         {isLoading ? (
