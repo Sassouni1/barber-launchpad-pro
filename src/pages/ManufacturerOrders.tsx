@@ -147,7 +147,8 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
               ) : (
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant={order.tracking_number ? "outline" : "default"}
+                  className={!order.tracking_number ? "bg-yellow-500 hover:bg-yellow-600 text-yellow-950 border-yellow-500" : ""}
                   onClick={() => {
                     setEditingId(order.id);
                     setTrackingNumber(order.tracking_number || '');
