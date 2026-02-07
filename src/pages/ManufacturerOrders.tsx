@@ -115,7 +115,7 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
-                {index != null && <span className="text-sm font-mono text-muted-foreground">Order {index}:</span>}
+                {index != null && <span className="text-sm font-mono text-muted-foreground">#{index}</span>}
                 <span className="font-medium">{barber.name || 'Unknown'}</span>
                 {barber.phone && <span className="text-sm text-muted-foreground">{barber.phone}</span>}
                 <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
