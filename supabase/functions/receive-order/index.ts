@@ -39,13 +39,48 @@ function scoreNameMatch(
   // Exact full name match = 100
   if (orderFullName && pName === orderFullName) return 100;
 
-  // Both first + last appear in profile name = 80
-  if (orderFirstName && orderLastName && pName.includes(orderFirstName) && pName.includes(orderLastName)) return 80;
+  const pParts = pName.split(/\s+/);
+  const pFirst = pParts[0] || '';
+  const pLast = pParts.slice(1).join(' ') || '';
+
+  // Both first + last match (with prefix support for first name) = 80
+  if (orderFirstName && orderLastName) {
+    const firstMatch = pFirst.startsWith(orderFirstName) || orderFirstName.startsWith(pFirst);
+    const lastMatch = pLast === orderLastName || pName.includes(orderLastName);
+    if (firstMatch && lastMatch) return 80;
+  }
 
   // Last name only match = 40 (only if last name has 2+ chars)
   if (orderLastName && orderLastName.length >= 2 && pName.includes(orderLastName)) return 40;
 
   return 0;
+}
+
+// Extract a stable external order ID from the GHL payload for deduplication
+function extractExternalOrderId(body: Record<string, unknown>): string | null {
+  const order = body.order as Record<string, unknown> | undefined;
+  if (order) {
+    // Try line_items[0].meta.order_id (GHL order ID)
+    const lineItems = order.line_items as Array<Record<string, unknown>> | undefined;
+    if (lineItems && lineItems.length > 0) {
+      const meta = lineItems[0].meta as Record<string, unknown> | undefined;
+      if (meta?.order_id) return String(meta.order_id);
+    }
+    // Fallback: use created_at + source_id
+    if (order.created_at && order.source_id) {
+      return `${order.source_id}_${order.created_at}`;
+    }
+  }
+  return null;
+}
+
+// Extract the actual client name from the GHL form fields
+function extractClientName(body: Record<string, unknown>): string {
+  // "Client Name" is the actual end-client; full_name/name is the GHL contact (barber)
+  const clientName = (body['Client Name'] || '') as string;
+  if (clientName.trim()) return clientName.trim();
+  // Fallback to GHL contact name
+  return ((body.name || body.full_name || body.customer_name || body.Name || '') as string).trim();
 }
 
 Deno.serve(async (req) => {
@@ -66,8 +101,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const customerEmail = (body.email || body.customer_email || body.Email || '') as string;
-    const customerName = (body.name || body.customer_name || body.full_name || body.Name || '') as string;
+    const customerName = extractClientName(body);
     const utmUserId = (body.user_id || body.userId || body.source || '') as string;
+    const externalOrderId = extractExternalOrderId(body);
 
     if (!customerEmail) {
       return new Response(JSON.stringify({ error: 'Missing customer email' }), {
@@ -79,6 +115,23 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Deduplication: if we have an external order ID, check if it already exists
+    if (externalOrderId) {
+      const { data: existing } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('external_order_id', externalOrderId)
+        .maybeSingle();
+
+      if (existing) {
+        console.log(`Duplicate webhook skipped: external_order_id=${externalOrderId}`);
+        return new Response(JSON.stringify({ success: true, order_id: existing.id, deduplicated: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     let matchedUserId: string | null = null;
     let matchMethod = 'none';
@@ -111,8 +164,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Priority 3: Name-based fuzzy match
-    if (!matchedUserId && customerName) {
+    // Priority 3: Name-based fuzzy match (using GHL contact name, not Client Name)
+    if (!matchedUserId) {
       const { firstName, lastName, fullName } = parseName(body);
 
       if (lastName) {
@@ -145,7 +198,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Order matching: method=${matchMethod}, user_id=${matchedUserId}, email=${customerEmail}`);
+    console.log(`Order matching: method=${matchMethod}, user_id=${matchedUserId}, email=${customerEmail}, external_id=${externalOrderId}`);
 
     const { data: order, error: insertError } = await supabase
       .from('orders')
@@ -155,11 +208,20 @@ Deno.serve(async (req) => {
         customer_name: customerName,
         order_details: body,
         status: 'pending',
+        external_order_id: externalOrderId,
       })
       .select()
       .single();
 
     if (insertError) {
+      // Handle unique constraint violation (duplicate external_order_id race condition)
+      if (insertError.code === '23505' && externalOrderId) {
+        console.log(`Duplicate insert caught by constraint: external_order_id=${externalOrderId}`);
+        return new Response(JSON.stringify({ success: true, deduplicated: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       console.error('Insert error:', insertError);
       return new Response(JSON.stringify({ error: insertError.message }), {
         status: 500,

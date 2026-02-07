@@ -580,6 +580,7 @@ export type Database = {
           created_at: string
           customer_email: string
           customer_name: string | null
+          external_order_id: string | null
           id: string
           order_date: string
           order_details: Json | null
@@ -594,6 +595,7 @@ export type Database = {
           created_at?: string
           customer_email: string
           customer_name?: string | null
+          external_order_id?: string | null
           id?: string
           order_date?: string
           order_details?: Json | null
@@ -608,6 +610,7 @@ export type Database = {
           created_at?: string
           customer_email?: string
           customer_name?: string | null
+          external_order_id?: string | null
           id?: string
           order_date?: string
           order_details?: Json | null
