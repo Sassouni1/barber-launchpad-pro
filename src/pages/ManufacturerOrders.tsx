@@ -27,12 +27,41 @@ function getDisplayStatus(order: { status: string; order_date: string }): string
 
 // Keys from GHL order_details that represent the actual order specs
 const ORDER_SPEC_KEYS = [
+  'Client Name',
   'Hair Color',
+  'Choose Color',
   'Lace or Skin',
+  'Curl Pattern — only if needed',
   'Hair Salon Service Requested',
-  'When do you want to watch training?',
   'Any Notes you may want to add',
 ];
+
+interface LineItem {
+  title: string;
+  price: number;
+  quantity: number;
+}
+
+function extractLineItems(details: Record<string, any> | null): LineItem[] {
+  if (!details) return [];
+  const order = details.order || details;
+  const items = order.line_items;
+  if (!Array.isArray(items)) return [];
+  return items.map((item: any) => ({
+    title: String(item.title || '').replace(/\s*@\s*\d+/g, '').replace(/\s*-\s*Hair System$/i, '').trim() || 'Item',
+    price: Number(item.price) || 0,
+    quantity: Number(item.quantity) || 1,
+  }));
+}
+
+function extractOrderTotal(details: Record<string, any> | null): { amount: number; symbol: string } | null {
+  if (!details) return null;
+  const order = details.order || details;
+  if (order.total_amount != null) {
+    return { amount: Number(order.total_amount), symbol: order.currency_symbol || '$' };
+  }
+  return null;
+}
 
 // Extract meaningful order details from the raw GHL payload
 function extractOrderDetails(details: Record<string, any> | null): { key: string; value: string }[] {
@@ -40,35 +69,10 @@ function extractOrderDetails(details: Record<string, any> | null): { key: string
   
   const items: { key: string; value: string }[] = [];
   
-  // First check for known spec keys
   for (const key of ORDER_SPEC_KEYS) {
     const val = details[key];
-    if (val && typeof val === 'string' && val.trim() && val.trim().toLowerCase() !== 'none') {
+    if (val && typeof val === 'string' && val.trim() && val.trim().toLowerCase() !== 'none' && val.trim().toLowerCase() !== 'no') {
       items.push({ key, value: val.trim() });
-    }
-  }
-  
-  // Also scan for any field that has a non-empty value and looks like product info
-  // (skip known metadata fields)
-  const skipKeys = new Set([
-    'email', 'first_name', 'last_name', 'full_name', 'name', 'phone',
-    'address1', 'city', 'state', 'postal_code', 'country', 'full_address',
-    'contact', 'contact_id', 'contact_source', 'contact_type', 'location',
-    'customData', 'triggerData', 'workflow', 'date_created', 'tags',
-    'timezone', 'source_url', 'user_id', 'userId',
-    ...ORDER_SPEC_KEYS.map(k => k),
-  ]);
-  
-  for (const [key, val] of Object.entries(details)) {
-    if (skipKeys.has(key)) continue;
-    if (typeof val === 'string' && val.trim() && val.trim().toLowerCase() !== 'none' && val.length < 200) {
-      // Only include if it looks like a product attribute (has a colon-style label)
-      if (key.includes('Hair') || key.includes('Lace') || key.includes('Skin') || key.includes('Color') || key.includes('product')) {
-        const existing = items.find(i => i.key === key);
-        if (!existing) {
-          items.push({ key, value: val.trim() });
-        }
-      }
     }
   }
   
@@ -124,7 +128,10 @@ export default function ManufacturerOrders() {
         ) : (
           <div className="space-y-3">
             {orders.map((order) => {
-              const specs = extractOrderDetails(order.order_details as Record<string, any>);
+              const details = order.order_details as Record<string, any> | null;
+              const specs = extractOrderDetails(details);
+              const lineItems = extractLineItems(details);
+              const total = extractOrderTotal(details);
 
               return (
                 <Card key={order.id} className="border-border/50">
@@ -178,6 +185,24 @@ export default function ManufacturerOrders() {
                           )}
                         </div>
                       </div>
+
+                      {/* Line items */}
+                      {lineItems.length > 0 && (
+                        <div className="text-sm space-y-0.5 border-l-2 border-primary/30 pl-3">
+                          {lineItems.map((item, i) => (
+                            <div key={i} className="flex justify-between gap-4">
+                              <span className="text-foreground">{item.quantity > 1 ? `${item.quantity}× ` : ''}{item.title}</span>
+                              <span className="text-muted-foreground font-mono">${item.price}</span>
+                            </div>
+                          ))}
+                          {total && (
+                            <div className="flex justify-between gap-4 pt-1 border-t border-border/50 font-medium">
+                              <span>Total</span>
+                              <span className="font-mono">{total.symbol}{total.amount}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Order specs summary */}
                       {specs.length > 0 && (
