@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Edit2, ExternalLink } from "lucide-react";
+import ImagePositioner from "@/components/admin/ImagePositioner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -225,47 +226,15 @@ const ProductsManager = () => {
                   />
                 </div>
                 {imageUrl && (
-                  <div className="space-y-3">
-                    <Label>Image Crop Position</Label>
-                    <div className="relative w-full h-32 rounded-md overflow-hidden border border-border">
-                      <img
-                        src={imageUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        style={{ objectPosition: `${imagePosX}% ${imagePosY}%` }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="posX" className="text-xs">Horizontal</Label>
-                        <span className="text-xs text-muted-foreground">{imagePosX}%</span>
-                      </div>
-                      <input
-                        id="posX"
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={imagePosX}
-                        onChange={(e) => setImagePosX(Number(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="posY" className="text-xs">Vertical</Label>
-                        <span className="text-xs text-muted-foreground">{imagePosY}%</span>
-                      </div>
-                      <input
-                        id="posY"
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={imagePosY}
-                        onChange={(e) => setImagePosY(Number(e.target.value))}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
+                  <ImagePositioner
+                    imageUrl={imageUrl}
+                    posX={imagePosX}
+                    posY={imagePosY}
+                    onPositionChange={(x, y) => {
+                      setImagePosX(x);
+                      setImagePosY(y);
+                    }}
+                  />
                 )}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={resetForm}>
