@@ -22,17 +22,44 @@ function getDisplayStatus(order: { status: string; order_date: string }): string
   return order.status;
 }
 
+function getLineItemNames(details: Record<string, any> | null): string[] {
+  if (!details) return [];
+  const order = details.order || details;
+  const items = order.line_items;
+  if (!Array.isArray(items)) return [];
+  return items.map((item: any) =>
+    String(item.title || '')
+      .replace(/\s*@\s*\d+/g, '')
+      .replace(/\s*-\s*Hair System$/i, '')
+      .trim()
+  ).filter(Boolean);
+}
+
+function getOrderTotal(details: Record<string, any> | null): string | null {
+  if (!details) return null;
+  const order = details.order || details;
+  if (order.total_amount != null) {
+    return `${order.currency_symbol || '$'}${order.total_amount}`;
+  }
+  return null;
+}
+
 function getOrderSummary(details: Record<string, any> | null): { label: string; value: string }[] {
   if (!details) return [];
   const items: { label: string; value: string }[] = [];
 
-  const hairColor = details['Hair Color'];
   const laceSkin = details['Lace or Skin'];
+  const hairColor = details['Hair Color'];
+  const chooseColor = details['Choose Color'];
+  const curlPattern = details['Curl Pattern — only if needed'];
 
   if (laceSkin) items.push({ label: 'Type', value: String(laceSkin) });
   if (hairColor) items.push({ label: 'Hair Color', value: String(hairColor) });
+  if (chooseColor) items.push({ label: 'Color', value: String(chooseColor) });
+  if (curlPattern && String(curlPattern).toLowerCase() !== 'none') {
+    items.push({ label: 'Curl', value: String(curlPattern) });
+  }
 
-  // Fallback for simpler order structures
   if (!items.length && details.product) {
     items.push({ label: 'Product', value: String(details.product) });
   }
@@ -67,6 +94,8 @@ export default function Orders() {
             {orders.map((order) => {
               const details = order.order_details as Record<string, any> | null;
               const summaryItems = getOrderSummary(details);
+              const lineItemNames = getLineItemNames(details);
+              const total = getOrderTotal(details);
 
               const displayStatus = getDisplayStatus(order);
 
@@ -77,7 +106,12 @@ export default function Orders() {
                       <div className="space-y-2 min-w-0 flex-1">
                         <div className="flex items-center gap-3 flex-wrap">
                           <Scissors className="w-4 h-4 text-primary flex-shrink-0" />
-                          <span className="font-medium">Hair System Order</span>
+                          <span className="font-medium">
+                            {lineItemNames.length > 0 ? lineItemNames.join(', ') : 'Hair System Order'}
+                          </span>
+                          {total && (
+                            <span className="text-sm text-muted-foreground font-mono">{total}</span>
+                          )}
                           <Badge variant="outline" className={statusColors[displayStatus] || ''}>
                             {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
                           </Badge>
