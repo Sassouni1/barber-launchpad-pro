@@ -202,9 +202,12 @@ export default function ManufacturerOrders() {
 
                       {/* Order specs summary */}
                       {specs.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-col gap-1.5">
                           {specs.map((spec, i) => (
-                            <OrderSpecBadge key={i} label={spec.key} value={spec.value} />
+                            <div key={i} className="text-sm">
+                              <span className="text-muted-foreground">{spec.key}: </span>
+                              <span className="font-medium">{spec.value}</span>
+                            </div>
                           ))}
                         </div>
                       )}
