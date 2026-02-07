@@ -637,6 +637,8 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_position_x: number
+          image_position_y: number
           image_url: string | null
           link_url: string | null
           order_index: number
@@ -648,6 +650,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_position_x?: number
+          image_position_y?: number
           image_url?: string | null
           link_url?: string | null
           order_index?: number
@@ -659,6 +663,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_position_x?: number
+          image_position_y?: number
           image_url?: string | null
           link_url?: string | null
           order_index?: number

@@ -11,6 +11,8 @@ interface Product {
   image_url: string | null;
   link_url: string | null;
   button_text: string | null;
+  image_position_x: number | null;
+  image_position_y: number | null;
 }
 
 const Products = () => {
@@ -42,11 +44,12 @@ const Products = () => {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {products.map((product) => (
                 <div key={product.id} className="border border-border rounded-lg overflow-hidden bg-card">
-                  {product.image_url && (
+                    {product.image_url && (
                     <img
                       src={product.image_url}
                       alt={product.title}
                       className="w-full h-48 object-cover"
+                      style={{ objectPosition: `${product.image_position_x ?? 50}% ${product.image_position_y ?? 50}%` }}
                     />
                   )}
                   <div className="p-4 space-y-3">
