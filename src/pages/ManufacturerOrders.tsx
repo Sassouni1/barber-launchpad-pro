@@ -48,13 +48,20 @@ function extractLineItems(details: Record<string, any> | null): { items: string[
   const rawItems = order.line_items;
   if (!Array.isArray(rawItems)) return { items: [], shipping: null };
   let shipping: string | null = null;
-  const items = rawItems.map((item: any) =>
-    String(item.title || '')
+  const items = rawItems.map((item: any) => {
+    let title = String(item.title || '')
       .replace(/\s*@\s*\d+/g, '')
-      .replace(/\s*-\s*Hair System$/i, '')
       .replace(/\s*\(\$[\d.,]+[^)]*\)/gi, '')
-      .trim()
-  ).filter((title: string) => {
+      .trim();
+    // Deduplicate "Name - Name" pattern (e.g. "Rush Ship - Rush Ship")
+    const dashParts = title.split(/\s*-\s*/);
+    if (dashParts.length === 2 && dashParts[0].trim().toLowerCase() === dashParts[1].trim().toLowerCase()) {
+      title = dashParts[0].trim();
+    } else {
+      title = title.replace(/\s*-\s*Hair System$/i, '').trim();
+    }
+    return title;
+  }).filter((title: string) => {
     if (/rush\s*ship|over\s*night/i.test(title)) {
       shipping = title;
       return false;
