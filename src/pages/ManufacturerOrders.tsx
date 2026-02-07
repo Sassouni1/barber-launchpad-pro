@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAllOrders, useUpdateTracking } from '@/hooks/useOrders';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { Loader2, Truck, Check, ChevronDown } from 'lucide-react';
+import { Loader2, Truck, Check, ChevronDown, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -93,7 +93,7 @@ function extractOrderDetails(details: Record<string, any> | null): { key: string
 
 interface OrderCardProps {
   order: Order;
-  index: number;
+  index?: number;
   editingId: string | null;
   trackingNumber: string;
   setEditingId: (id: string | null) => void;
@@ -115,7 +115,7 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm font-mono text-muted-foreground">#{index}</span>
+                {index != null && <span className="text-sm font-mono text-muted-foreground">#{index}</span>}
                 <span className="font-medium">{barber.name || 'Unknown'}</span>
                 {barber.phone && <span className="text-sm text-muted-foreground">{barber.phone}</span>}
                 <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
@@ -200,6 +200,7 @@ export default function ManufacturerOrders() {
   const updateTracking = useUpdateTracking();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [search, setSearch] = useState('');
 
   const handleSave = async (orderId: string) => {
     try {
@@ -212,8 +213,25 @@ export default function ManufacturerOrders() {
     }
   };
 
-  const newOrders = (orders?.filter(o => !o.tracking_number) ?? []).reverse();
-  const previousOrders = (orders?.filter(o => !!o.tracking_number) ?? []).reverse();
+  const filterOrders = (list: typeof orders) => {
+    if (!search.trim()) return list ?? [];
+    const q = search.toLowerCase();
+    return (list ?? []).filter(o => {
+      const details = o.order_details as Record<string, any> | null;
+      const barber = extractBarberInfo(details);
+      return (
+        barber.name.toLowerCase().includes(q) ||
+        barber.phone.toLowerCase().includes(q) ||
+        o.customer_email?.toLowerCase().includes(q) ||
+        o.tracking_number?.toLowerCase().includes(q)
+      );
+    });
+  };
+
+  const allNew = useMemo(() => (orders?.filter(o => !o.tracking_number) ?? []).reverse(), [orders]);
+  const allPrevious = useMemo(() => (orders?.filter(o => !!o.tracking_number) ?? []).reverse(), [orders]);
+  const newOrders = useMemo(() => filterOrders(allNew), [allNew, search]);
+  const previousOrders = useMemo(() => filterOrders(allPrevious), [allPrevious, search]);
 
   const cardProps = {
     editingId,
@@ -226,10 +244,21 @@ export default function ManufacturerOrders() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Order Management</h1>
-          <p className="text-muted-foreground text-sm mt-1">New Orders</p>
+       <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-display font-bold">Order Management</h1>
+            <p className="text-muted-foreground text-sm mt-1">New Orders</p>
+          </div>
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search orders..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </div>
 
         {isLoading ? (
@@ -265,8 +294,8 @@ export default function ManufacturerOrders() {
                   Previous Orders ({previousOrders.length})
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-3 mt-3">
-                  {previousOrders.map((order, i) => (
-                    <OrderCard key={order.id} order={order} index={i + 1} {...cardProps} />
+                  {previousOrders.map((order) => (
+                    <OrderCard key={order.id} order={order} {...cardProps} />
                   ))}
                 </CollapsibleContent>
               </Collapsible>
