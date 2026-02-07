@@ -51,6 +51,7 @@ function extractLineItems(details: Record<string, any> | null): string[] {
     String(item.title || '')
       .replace(/\s*@\s*\d+/g, '')
       .replace(/\s*-\s*Hair System$/i, '')
+      .replace(/\s*\(\$[\d.,]+[^)]*\)/gi, '')
       .trim()
   ).filter(Boolean);
 }
