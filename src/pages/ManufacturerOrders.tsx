@@ -188,8 +188,16 @@ export default function ManufacturerOrders() {
                       {/* Line items */}
                       {lineItems.length > 0 && (
                         <p className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3">
-                          {lineItems.join(', ')}
+                          {lineItems[0]}
                         </p>
+                      )}
+
+                      {/* Add Ons */}
+                      {lineItems.length > 1 && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground font-medium">Add Ons: </span>
+                          <span className="text-muted-foreground">{lineItems.slice(1).join(', ')}</span>
+                        </div>
                       )}
 
                       {/* Order specs summary */}
