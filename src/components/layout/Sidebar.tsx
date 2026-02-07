@@ -250,7 +250,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               )}
             </ExpandableNavItem>
             <NavItem to="/training" icon={Target} label="Training Games" collapsed={collapsed} />
-            <ExpandableNavItem icon={Package} label="Products" collapsed={collapsed}>
+            <ExpandableNavItem icon={Package} label="Products" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
               <SubNavItem to="/orders" icon={Package} label="My Orders" />
