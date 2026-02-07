@@ -90,8 +90,10 @@ function extractOrderDetails(details: Record<string, any> | null): { key: string
   return items;
 }
 
+
 interface OrderCardProps {
   order: Order;
+  index: number;
   editingId: string | null;
   trackingNumber: string;
   setEditingId: (id: string | null) => void;
@@ -100,7 +102,7 @@ interface OrderCardProps {
   isSaving: boolean;
 }
 
-function OrderCard({ order, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving }: OrderCardProps) {
+function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving }: OrderCardProps) {
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
@@ -113,6 +115,7 @@ function OrderCard({ order, editingId, trackingNumber, setEditingId, setTracking
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-sm font-mono text-muted-foreground">#{index}</span>
                 <span className="font-medium">{barber.name || 'Unknown'}</span>
                 {barber.phone && <span className="text-sm text-muted-foreground">{barber.phone}</span>}
                 <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
@@ -243,8 +246,8 @@ export default function ManufacturerOrders() {
           <>
             {newOrders.length > 0 ? (
               <div className="space-y-3">
-                {newOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} {...cardProps} />
+                {newOrders.map((order, i) => (
+                  <OrderCard key={order.id} order={order} index={newOrders.length - i} {...cardProps} />
                 ))}
               </div>
             ) : (
@@ -262,8 +265,8 @@ export default function ManufacturerOrders() {
                   Previous Orders ({previousOrders.length})
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-3 mt-3">
-                  {previousOrders.map((order) => (
-                    <OrderCard key={order.id} order={order} {...cardProps} />
+                  {previousOrders.map((order, i) => (
+                    <OrderCard key={order.id} order={order} index={previousOrders.length - i} {...cardProps} />
                   ))}
                 </CollapsibleContent>
               </Collapsible>
