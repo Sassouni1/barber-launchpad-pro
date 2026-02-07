@@ -26,8 +26,9 @@ function getDisplayStatus(order: { status: string; order_date: string }): string
 }
 
 // Keys from GHL order_details that represent the actual order specs
-const ORDER_SPEC_KEYS = [
-  'Choose Color',
+// Some keys have aliases because GHL payloads vary
+const ORDER_SPEC_KEYS: (string | { display: string; keys: string[] })[] = [
+  { display: 'Choose Color', keys: ['Choose Color', 'Hair Color'] },
   'Lace or Skin',
   'Curl Pattern — only if needed',
   'Hair Salon Service Requested',
@@ -77,10 +78,17 @@ function extractOrderDetails(details: Record<string, any> | null): { key: string
   
   const items: { key: string; value: string }[] = [];
   
-  for (const key of ORDER_SPEC_KEYS) {
-    const val = details[key];
-    if (val && typeof val === 'string' && val.trim() && val.trim().toLowerCase() !== 'none' && val.trim().toLowerCase() !== 'no') {
-      items.push({ key, value: val.trim() });
+  for (const spec of ORDER_SPEC_KEYS) {
+    const isAlias = typeof spec === 'object';
+    const displayKey = isAlias ? spec.display : spec;
+    const keysToCheck = isAlias ? spec.keys : [spec];
+    
+    for (const k of keysToCheck) {
+      const val = details[k];
+      if (val && typeof val === 'string' && val.trim() && val.trim().toLowerCase() !== 'none' && val.trim().toLowerCase() !== 'no') {
+        items.push({ key: displayKey, value: val.trim() });
+        break;
+      }
     }
   }
   
