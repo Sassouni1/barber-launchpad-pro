@@ -36,7 +36,6 @@ const ORDER_SPEC_KEYS: (string | { display: string; keys: string[] })[] = [
   'Curl Pattern — only if needed',
   { display: 'Choose Density', keys: ['Choose Density if Needed (75%-110%) - 100% is regular'] },
   'Hair Salon Service Requested',
-  'Any Notes you may want to add',
 ];
 
 function extractBarberInfo(details: Record<string, any> | null): { name: string; phone: string } {
