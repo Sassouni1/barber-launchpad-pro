@@ -31,6 +31,7 @@ import {
   Download,
   FileText,
   Eye,
+  Package,
 } from 'lucide-react';
 import {
   Table,
@@ -100,6 +101,7 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
   const { data: detail, isLoading } = useAdminMemberDetail(member.id);
   const toggleAdminRole = useToggleAdminRole();
   const [updatingSkip, setUpdatingSkip] = useState(false);
+  const [creatingOrder, setCreatingOrder] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
   const [agreementData, setAgreementData] = useState<{ signedAt: string | null; signatureData: string | null } | null>(null);
   const [loadingAgreement, setLoadingAgreement] = useState(false);
@@ -569,6 +571,34 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
           </div>
         </>
       )}
+
+      {/* Needs Tracking Number Button */}
+      <Button
+        variant="outline"
+        className="w-full"
+        disabled={creatingOrder}
+        onClick={async () => {
+          setCreatingOrder(true);
+          try {
+            const { error } = await supabase.from('orders').insert({
+              user_id: member.id,
+              customer_email: member.email || '',
+              customer_name: member.full_name || null,
+              status: 'pending',
+              order_details: { full_name: member.full_name || '', note: 'Manually created — needs tracking number' },
+            });
+            if (error) throw error;
+            toast.success('Order created — it will appear in supplier orders');
+          } catch (err: any) {
+            toast.error(err.message || 'Failed to create order');
+          } finally {
+            setCreatingOrder(false);
+          }
+        }}
+      >
+        <Package className="w-4 h-4 mr-2" />
+        {creatingOrder ? 'Creating...' : 'Needs Tracking Number'}
+      </Button>
 
       {/* View as User Button */}
       <Button 
