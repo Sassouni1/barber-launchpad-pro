@@ -1,26 +1,23 @@
 
 
-## Split Orders into "New Orders" and "Previous Orders"
+## Add "Choose Density" to Supplier Order Cards
 
-Orders with tracking/shipping will move to a collapsible "Previous Orders" section below the main list.
+### What's happening now
+The order form captures a density field called `"Choose Density if Needed (75%-110%) - 100% is regular"`, but the supplier orders page doesn't display it because it's not listed in the spec keys configuration.
 
-## How It Works
+The "Max density" text you saw was typed into the notes field separately, which is why there's a contradiction -- the actual density dropdown was set to 75%.
 
-- Orders are split into two groups:
-  - **New Orders** (no tracking number) -- shown at the top, always visible
-  - **Previous Orders** (have a tracking number / shipped / completed) -- shown in a collapsible section below, collapsed by default
-- The collapsible section uses the existing Collapsible component with a chevron toggle
-- Previous orders still show the "Edit Tracking" button so tracking can be updated if needed
+### What will change
+Add the density field to the order card on the supplier page, displayed as **"Choose Density"**. It will only show when the field has a meaningful value (not empty, "none", or "no"), consistent with how all other specs are handled.
 
-## Technical Details
-
+### Technical details
 **File: `src/pages/ManufacturerOrders.tsx`**
 
-1. Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible` and `ChevronDown` from lucide
-2. Split the `orders` array into `newOrders` (no `tracking_number`) and `previousOrders` (has `tracking_number`)
-3. Render `newOrders` in the existing "New Orders" section
-4. Below it, render a `Collapsible` (defaultOpen={false}) with:
-   - A trigger showing "Previous Orders (X)" with a rotating chevron
-   - The content containing the same order card layout for `previousOrders`
-5. Extract the order card rendering into a reusable helper to avoid duplicating JSX
-6. Update the empty state to only show when both lists are empty
+Add a new entry to the `ORDER_SPEC_KEYS` array:
+
+```typescript
+{ display: 'Choose Density', keys: ['Choose Density if Needed (75%-110%) - 100% is regular'] },
+```
+
+This uses the existing alias pattern (display name + actual key lookup), so no other code changes are needed -- the `extractOrderDetails` function already handles this format. The density will appear alongside color, lace/skin, curl pattern, etc., with its own copy button.
+
