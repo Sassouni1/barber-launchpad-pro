@@ -1,12 +1,13 @@
 import { useState, useMemo, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAllOrders, useUpdateTracking } from '@/hooks/useOrders';
+import { useAllOrders, useUpdateTracking, useDeleteOrder } from '@/hooks/useOrders';
+import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { Loader2, Truck, Check, ChevronDown, Search, Copy } from 'lucide-react';
+import { Loader2, Truck, Check, ChevronDown, Search, Copy, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -100,6 +101,8 @@ interface OrderCardProps {
   setTrackingNumber: (v: string) => void;
   onSave: (orderId: string) => void;
   isSaving: boolean;
+  isAdmin?: boolean;
+  onDelete?: (orderId: string) => void;
 }
 
 function CopyBtn({ text, label }: { text: string; label?: string }) {
@@ -118,7 +121,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving }: OrderCardProps) {
+function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving, isAdmin, onDelete }: OrderCardProps) {
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
@@ -175,17 +178,33 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                   <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                 </div>
               ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingId(order.id);
-                    setTrackingNumber(order.tracking_number || '');
-                  }}
-                >
-                  <Truck className="w-4 h-4 mr-1" />
-                  {order.tracking_number ? 'Edit Tracking' : 'Add Tracking'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditingId(order.id);
+                      setTrackingNumber(order.tracking_number || '');
+                    }}
+                  >
+                    <Truck className="w-4 h-4 mr-1" />
+                    {order.tracking_number ? 'Edit Tracking' : 'Add Tracking'}
+                  </Button>
+                  {isAdmin && onDelete && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (window.confirm('Delete this order?')) {
+                          onDelete(order.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -253,6 +272,8 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
 export default function ManufacturerOrders() {
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
+  const deleteOrder = useDeleteOrder();
+  const { isAdmin } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [search, setSearch] = useState('');
@@ -288,6 +309,15 @@ export default function ManufacturerOrders() {
   const newOrders = useMemo(() => filterOrders(allNew), [allNew, search]);
   const previousOrders = useMemo(() => filterOrders(allPrevious), [allPrevious, search]);
 
+  const handleDelete = async (orderId: string) => {
+    try {
+      await deleteOrder.mutateAsync(orderId);
+      toast.success('Order deleted');
+    } catch {
+      toast.error('Failed to delete order');
+    }
+  };
+
   const cardProps = {
     editingId,
     trackingNumber,
@@ -295,6 +325,8 @@ export default function ManufacturerOrders() {
     setTrackingNumber,
     onSave: handleSave,
     isSaving: updateTracking.isPending,
+    isAdmin,
+    onDelete: isAdmin ? handleDelete : undefined,
   };
 
   return (
