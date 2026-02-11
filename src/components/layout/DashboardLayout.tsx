@@ -24,7 +24,7 @@ export function DashboardLayout({ children, isAdminView = false }: DashboardLayo
         <Sidebar isAdminView={isAdminView} />
       </div>
       
-      <main className="flex-1 overflow-auto relative z-10">
+      <main className="flex-1 overflow-visible relative z-10">
         <div className="p-4 md:p-8">
           {children}
         </div>
