@@ -1,23 +1,43 @@
 
 
-## Add "Choose Density" to Supplier Order Cards
+## Fix Calendar Scroll — Trapped by CSS and External Script
 
-### What's happening now
-The order form captures a density field called `"Choose Density if Needed (75%-110%) - 100% is regular"`, but the supplier orders page doesn't display it because it's not listed in the spec keys configuration.
+### The Problem
+The booking calendar iframe is "frozen" because scroll events can't reach the iframe content. Three things are combining to cause this:
 
-The "Max density" text you saw was typed into the notes field separately, which is why there's a contradiction -- the actual density dropdown was set to 75%.
+1. **`overflow-hidden` on the iframe's parent div** — This clips and traps scroll events
+2. **The external `form_embed.js` script** — It dynamically resizes the iframe and temporarily sets `pointer-events: none`, which blocks interaction
+3. **The iframe height is too small** — The external script sets the iframe to ~860px, but the calendar content (with the booking button) needs more room
 
-### What will change
-Add the density field to the order card on the supplier page, displayed as **"Choose Density"**. It will only show when the field has a meaningful value (not empty, "none", or "no"), consistent with how all other specs are handled.
+### The Fix
 
-### Technical details
-**File: `src/pages/ManufacturerOrders.tsx`**
+**File: `src/pages/ScheduleCall.tsx`**
 
-Add a new entry to the `ORDER_SPEC_KEYS` array:
+Two changes:
 
-```typescript
-{ display: 'Choose Density', keys: ['Choose Density if Needed (75%-110%) - 100% is regular'] },
+1. **Remove `overflow-hidden` from the iframe wrapper div** — Change `rounded-lg overflow-hidden` to just `rounded-lg`. The `overflow-hidden` is cutting off and trapping scroll inside the container.
+
+2. **Remove the external `form_embed.js` script entirely** — This script is the main culprit. It injects an iframe resizer that:
+   - Sets `pointer-events: none` during initialization
+   - Overrides the iframe height to values too small for the full content
+   - Adds its own overflow rules that conflict with scrolling
+   
+   The iframe works fine without it — the `src` URL loads the booking widget directly. The script was meant to auto-resize, but it's actually making things worse.
+
+3. **Set iframe height to a large fixed value** — Use `minHeight: 1200px` to ensure the full calendar plus the booking button are visible without needing to scroll inside the iframe at all.
+
+### Technical Details
+
+```text
+Before:
+- div: className="mt-6 rounded-lg overflow-hidden"
+- useEffect loads form_embed.js script
+- iframe: minHeight 1000px
+
+After:
+- div: className="mt-6 rounded-lg"
+- No external script loading
+- iframe: minHeight 1200px
 ```
 
-This uses the existing alias pattern (display name + actual key lookup), so no other code changes are needed -- the `extractOrderDetails` function already handles this format. The density will appear alongside color, lace/skin, curl pattern, etc., with its own copy button.
-
+This eliminates all three scroll-trapping mechanisms at once.
