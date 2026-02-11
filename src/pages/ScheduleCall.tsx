@@ -1,20 +1,9 @@
-import { useEffect } from "react";
+// Calendar booking page
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Clock, Calendar, Globe } from "lucide-react";
 
 export default function ScheduleCall() {
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://link.msgsndr.com/js/form_embed.js";
-    script.type = "text/javascript";
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-8">
@@ -57,10 +46,10 @@ export default function ScheduleCall() {
           </div>
 
           {/* Calendar Embed */}
-          <div className="mt-6 rounded-lg overflow-hidden">
+          <div className="mt-6 rounded-lg">
             <iframe
               src="https://api.leadconnectorhq.com/widget/booking/uCzRuWcuMfZusci2YhF5"
-              style={{ width: "100%", border: "none", minHeight: "1000px" }}
+              style={{ width: "100%", border: "none", minHeight: "1200px" }}
               id="uCzRuWcuMfZusci2YhF5_1767813565087"
             />
           </div>
