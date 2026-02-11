@@ -49,7 +49,7 @@ export default function ScheduleCall() {
           <div className="mt-6 rounded-lg">
             <iframe
               src="https://api.leadconnectorhq.com/widget/booking/uCzRuWcuMfZusci2YhF5"
-              style={{ width: "100%", border: "none", height: "1800px" }}
+              style={{ width: "100%", border: "none", height: "1000px" }}
               scrolling="yes"
               allow="fullscreen"
               id="uCzRuWcuMfZusci2YhF5_1767813565087"
