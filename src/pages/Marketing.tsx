@@ -4,13 +4,19 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Globe, Sparkles, Copy, RefreshCw, Loader2 } from 'lucide-react';
+import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download } from 'lucide-react';
 
 interface Variation {
   title: string;
   content: string;
+  storyImageUrl?: string;
+  squareImageUrl?: string;
+  storyLoading?: boolean;
+  squareLoading?: boolean;
 }
 
 interface BrandProfile {
@@ -50,13 +56,61 @@ export default function Marketing() {
       setBrandProfile(data.brandProfile);
       toast.success('Website analyzed! Now generate your content.');
 
-      // Auto-generate after scraping
       await generateContent(data.brandProfile);
     } catch (err: any) {
       toast.error(err.message || 'Failed to analyze website');
     } finally {
       setIsScraping(false);
     }
+  };
+
+  const generateImages = (textVariations: Variation[], bp: BrandProfile) => {
+    // Mark all as loading
+    const withLoading = textVariations.map(v => ({
+      ...v,
+      storyLoading: true,
+      squareLoading: true,
+    }));
+    setVariations(withLoading);
+
+    // Fire off parallel image generation for each variation x size
+    textVariations.forEach((variation, idx) => {
+      const body = {
+        brandProfile: bp,
+        variationTitle: variation.title,
+        variationContent: variation.content,
+        contentType,
+        tone,
+      };
+
+      // Story image
+      supabase.functions.invoke('generate-marketing-image', {
+        body: { ...body, size: 'story' },
+      }).then(({ data, error }) => {
+        setVariations(prev => prev.map((v, i) => i === idx ? {
+          ...v,
+          storyLoading: false,
+          storyImageUrl: (!error && data?.success) ? data.imageUrl : undefined,
+        } : v));
+        if (error || !data?.success) {
+          console.error('Story image failed for variation', idx, error || data?.error);
+        }
+      });
+
+      // Square image
+      supabase.functions.invoke('generate-marketing-image', {
+        body: { ...body, size: 'square' },
+      }).then(({ data, error }) => {
+        setVariations(prev => prev.map((v, i) => i === idx ? {
+          ...v,
+          squareLoading: false,
+          squareImageUrl: (!error && data?.success) ? data.imageUrl : undefined,
+        } : v));
+        if (error || !data?.success) {
+          console.error('Square image failed for variation', idx, error || data?.error);
+        }
+      });
+    });
   };
 
   const generateContent = async (profile?: BrandProfile) => {
@@ -75,8 +129,12 @@ export default function Marketing() {
       if (error) throw new Error(error.message);
       if (!data?.success) throw new Error(data?.error || 'Failed to generate content');
 
-      setVariations(data.variations || []);
-      toast.success('Marketing content generated!');
+      const textVariations: Variation[] = data.variations || [];
+      setVariations(textVariations);
+      toast.success('Content generated! Images are being created...');
+
+      // Kick off image generation in parallel
+      generateImages(textVariations, bp);
     } catch (err: any) {
       toast.error(err.message || 'Failed to generate content');
     } finally {
@@ -93,6 +151,15 @@ export default function Marketing() {
     }
   };
 
+  const downloadImage = (dataUrl: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const isLoading = isScraping || isGenerating;
 
   return (
@@ -102,7 +169,7 @@ export default function Marketing() {
         <div>
           <h1 className="text-3xl font-display font-bold gold-text">AI Marketing Generator</h1>
           <p className="text-muted-foreground mt-2">
-            Paste your website URL and get AI-generated marketing content tailored to your brand.
+            Paste your website URL and get AI-generated marketing content & visuals tailored to your brand.
           </p>
         </div>
 
@@ -197,25 +264,98 @@ export default function Marketing() {
               </Button>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-6">
               {variations.map((variation, idx) => (
-                <Card key={idx} className="glass-card p-5 space-y-3 hover-lift">
-                  <div className="flex items-center justify-between">
+                <Card key={idx} className="glass-card overflow-hidden hover-lift">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-5 pb-3">
                     <span className="text-xs font-medium text-primary uppercase tracking-wider">
                       {variation.title}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(variation.content)}
-                      className="text-muted-foreground hover:text-primary"
-                    >
-                      <Copy className="w-4 h-4 mr-1" /> Copy
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(variation.content)}
+                        className="text-muted-foreground hover:text-primary"
+                      >
+                        <Copy className="w-4 h-4 mr-1" /> Copy
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                    {variation.content}
-                  </p>
+
+                  {/* Image Tabs */}
+                  <div className="px-5">
+                    <Tabs defaultValue="story" className="w-full">
+                      <TabsList className="w-full grid grid-cols-2">
+                        <TabsTrigger value="story">Story (9:16)</TabsTrigger>
+                        <TabsTrigger value="square">Square (1:1)</TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="story" className="mt-3">
+                        <div className="relative w-full max-w-[270px] mx-auto" style={{ aspectRatio: '9/16' }}>
+                          {variation.storyLoading ? (
+                            <Skeleton className="w-full h-full rounded-lg" />
+                          ) : variation.storyImageUrl ? (
+                            <div className="relative group">
+                              <img
+                                src={variation.storyImageUrl}
+                                alt={`Story image - ${variation.title}`}
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => downloadImage(variation.storyImageUrl!, `${variation.title}-story.png`)}
+                                className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Download className="w-4 h-4 mr-1" /> Save
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="w-full h-full rounded-lg bg-muted/50 flex items-center justify-center text-xs text-muted-foreground">
+                              Image failed to generate
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="square" className="mt-3">
+                        <div className="relative w-full max-w-[400px] mx-auto" style={{ aspectRatio: '1/1' }}>
+                          {variation.squareLoading ? (
+                            <Skeleton className="w-full h-full rounded-lg" />
+                          ) : variation.squareImageUrl ? (
+                            <div className="relative group">
+                              <img
+                                src={variation.squareImageUrl}
+                                alt={`Square image - ${variation.title}`}
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => downloadImage(variation.squareImageUrl!, `${variation.title}-square.png`)}
+                                className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Download className="w-4 h-4 mr-1" /> Save
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="w-full h-full rounded-lg bg-muted/50 flex items-center justify-center text-xs text-muted-foreground">
+                              Image failed to generate
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+
+                  {/* Caption */}
+                  <div className="p-5 pt-4 border-t border-border mt-4">
+                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                      {variation.content}
+                    </p>
+                  </div>
                 </Card>
               ))}
             </div>
