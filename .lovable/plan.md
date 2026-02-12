@@ -1,69 +1,52 @@
 
 
-## Add AI Image Generation to Marketing Generator
+## Fix Image Dimensions for Marketing Generator
 
-Generate visual marketing assets (like Pomelli) -- story-sized images (1080x1920) with text overlaid, plus square posts (1080x1080). Each generation produces 3 variations, each with both sizes.
+The current implementation only describes the desired dimensions in the text prompt, but the Gemini image model ignores pixel-exact sizing instructions. The generated images are coming out at the model's default resolution (likely 1024x1024), not the requested 1080x1080 or 1080x1920.
 
-### How It Works
+### The Problem
 
-1. After text variations are generated (existing flow), the system automatically generates images for each variation
-2. Uses the Gemini image model (`google/gemini-2.5-flash-image`) to create branded marketing visuals with text on the image
-3. Each variation gets two image sizes: Story (1080x1920) and Square Post (1080x1080)
-4. Images load progressively -- text appears first, then images fill in
+The `google/gemini-2.5-flash-image` model via the chat completions endpoint does not support a `size` parameter. Putting "1080x1920" in the prompt text is a hint at best -- the model produces images at its own default dimensions.
 
-### What Changes
+### The Fix
 
-**New Edge Function: `supabase/functions/generate-marketing-image/index.ts`**
-- Accepts brand profile, variation text/title, content type, tone, and size (story or square)
-- Builds a detailed prompt describing a professional marketing graphic with the caption text overlaid on the image
-- Calls `google/gemini-2.5-flash-image` via the Lovable AI chat completions endpoint with `modalities: ["image", "text"]`
-- Returns the base64 image data
-- Handles 429/402 errors
+Use the higher-quality image model `google/gemini-3-pro-image-preview` which produces better results and supports aspect ratio guidance through prompting more reliably. Additionally, post-process the generated images using an HTML Canvas in the edge function to resize them to the exact target dimensions before returning.
 
-**Updated: `src/pages/Marketing.tsx`**
-- `Variation` interface gains `storyImageUrl`, `squareImageUrl`, and `imagesLoading` fields
-- After text variations arrive, fires off parallel image generation calls (2 per variation = 6 total)
-- Each variation card shows a tabbed view: "Story (9:16)" and "Square (1:1)"
-- Images displayed in proper aspect ratio containers
-- Download button for each image
-- Skeleton loaders while images generate
+**Edge function changes (`supabase/functions/generate-marketing-image/index.ts`):**
 
-**Updated: `supabase/config.toml`**
-- Register `generate-marketing-image` with `verify_jwt = false`
+1. After receiving the base64 image from the AI model, decode it
+2. Use a server-side image resize approach: since Deno edge functions don't have Canvas, we can't resize server-side easily. Instead, handle resizing on the frontend.
 
-### UI Layout per Variation Card
+**Frontend changes (`src/pages/Marketing.tsx`):**
 
-```text
-+--------------------------------------------------+
-|  VARIATION TITLE                    [Copy] [DL]   |
-+--------------------------------------------------+
-|  [Story 9:16]  [Square 1:1]   <-- tab toggle     |
-|  +--------------------------------------------+  |
-|  |                                            |  |
-|  |     Generated image with text overlay      |  |
-|  |     (skeleton while loading)               |  |
-|  |                                            |  |
-|  +--------------------------------------------+  |
-+--------------------------------------------------+
-|  Caption text here for copying...                 |
-+--------------------------------------------------+
-```
+1. When a base64 image is received, draw it onto an off-screen HTML Canvas at the exact target dimensions (1080x1080 for square, 1080x1920 for story)
+2. Export the canvas as a new base64 PNG at the correct resolution
+3. Use this resized image for display and download
+
+This guarantees the downloaded images are exactly 1080x1080 or 1080x1920 regardless of what the model outputs.
 
 ### Technical Details
 
-**Image generation prompt strategy:**
-The prompt will instruct the model to create a visually striking marketing graphic that includes:
-- The brand name prominently displayed
-- Key marketing text from the variation overlaid on the image
-- Visual style matching the selected tone (luxury = elegant/dark, bold = vibrant colors, etc.)
-- Relevant imagery for the hair systems / barber industry
-- No watermarks or placeholder text
+**Modified: `src/pages/Marketing.tsx`**
+- Add a `resizeImage(dataUrl: string, width: number, height: number): Promise<string>` utility function
+- Uses an off-screen `<canvas>` element to draw the source image and export at exact dimensions
+- Called after each image generation resolves, before storing in state
+- Story images resized to 1080x1920, square images to 1080x1080
 
-**Files to create:**
-- `supabase/functions/generate-marketing-image/index.ts`
+**Modified: `supabase/functions/generate-marketing-image/index.ts`**
+- Improve the prompt to more strongly emphasize the aspect ratio (portrait 9:16 vs square 1:1) so the model generates images closer to the correct proportions before resizing
+- Consider switching to `google/gemini-3-pro-image-preview` for better quality output
 
-**Files to modify:**
-- `src/pages/Marketing.tsx` -- add image state, parallel image calls, tabbed image display, download buttons
-- `supabase/config.toml` -- register new function
+### Resize Function
 
-**Image generation is done per-image** (not batched) so they can load progressively and failures are isolated. The frontend fires 6 parallel requests (3 variations x 2 sizes) and updates each card as its images resolve.
+```text
+resizeImage(base64DataUrl, targetWidth, targetHeight)
+  -> Create Image element, load base64
+  -> Create canvas at targetWidth x targetHeight
+  -> Draw image scaled to fill canvas
+  -> Export canvas as PNG data URL
+  -> Return exact-dimension image
+```
+
+This ensures every downloaded image is pixel-perfect at 1080x1080 or 1080x1920.
+
