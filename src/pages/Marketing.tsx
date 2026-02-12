@@ -26,6 +26,23 @@ interface BrandProfile {
   sourceUrl: string;
 }
 
+const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not supported')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+};
+
 export default function Marketing() {
   const [url, setUrl] = useState('');
   const [contentType, setContentType] = useState('instagram');
@@ -86,11 +103,15 @@ export default function Marketing() {
       // Story image
       supabase.functions.invoke('generate-marketing-image', {
         body: { ...body, size: 'story' },
-      }).then(({ data, error }) => {
+      }).then(async ({ data, error }) => {
+        let imageUrl: string | undefined;
+        if (!error && data?.success && data.imageUrl) {
+          try {
+            imageUrl = await resizeImage(data.imageUrl, 1080, 1920);
+          } catch { imageUrl = data.imageUrl; }
+        }
         setVariations(prev => prev.map((v, i) => i === idx ? {
-          ...v,
-          storyLoading: false,
-          storyImageUrl: (!error && data?.success) ? data.imageUrl : undefined,
+          ...v, storyLoading: false, storyImageUrl: imageUrl,
         } : v));
         if (error || !data?.success) {
           console.error('Story image failed for variation', idx, error || data?.error);
@@ -100,11 +121,15 @@ export default function Marketing() {
       // Square image
       supabase.functions.invoke('generate-marketing-image', {
         body: { ...body, size: 'square' },
-      }).then(({ data, error }) => {
+      }).then(async ({ data, error }) => {
+        let imageUrl: string | undefined;
+        if (!error && data?.success && data.imageUrl) {
+          try {
+            imageUrl = await resizeImage(data.imageUrl, 1080, 1080);
+          } catch { imageUrl = data.imageUrl; }
+        }
         setVariations(prev => prev.map((v, i) => i === idx ? {
-          ...v,
-          squareLoading: false,
-          squareImageUrl: (!error && data?.success) ? data.imageUrl : undefined,
+          ...v, squareLoading: false, squareImageUrl: imageUrl,
         } : v));
         if (error || !data?.success) {
           console.error('Square image failed for variation', idx, error || data?.error);

@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     }
 
     const isStory = size === 'story';
-    const dimensions = isStory ? '1080x1920 (9:16 portrait/story)' : '1080x1080 (1:1 square)';
+    const aspectRatio = isStory ? '9:16 portrait' : '1:1 square';
 
     const toneStyles: Record<string, string> = {
       'professional': 'Clean, modern design with neutral tones, sharp typography, and professional imagery.',
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       'social': 'Social media post — versatile visual suitable for multiple platforms.',
     };
 
-    const prompt = `Create a professional marketing graphic for social media. This is a ${dimensions} format image.
+    const prompt = `Create a professional marketing graphic for social media. The image MUST be in ${aspectRatio} aspect ratio.
 
 Brand: ${brandProfile.title || 'Business'}
 Industry: Hair replacement, hair systems, and barber services
@@ -55,6 +55,7 @@ The image MUST include this text overlaid directly on the graphic in an attracti
 "${variationContent.substring(0, 200)}"
 
 Design requirements:
+- CRITICAL: The aspect ratio must be ${aspectRatio}. ${isStory ? 'The image must be tall and narrow (portrait orientation).' : 'The image must be perfectly square.'}
 - The text must be part of the image, styled beautifully with proper hierarchy
 - Use a visually striking background related to the hair/barber industry
 - Brand name "${brandProfile.title || ''}" should appear prominently
