@@ -1,70 +1,69 @@
 
 
-## AI Marketing Content Generator
+## Add AI Image Generation to Marketing Generator
 
-Build a Pomelli-like feature where members paste their business website URL and get AI-generated marketing content (social media posts, ads, captions) tailored to their brand.
+Generate visual marketing assets (like Pomelli) -- story-sized images (1080x1920) with text overlaid, plus square posts (1080x1080). Each generation produces 3 variations, each with both sizes.
 
 ### How It Works
 
-1. Member pastes their website URL
-2. The system scrapes the website to extract brand identity (colors, tone, services, unique selling points)
-3. AI generates on-brand marketing content: Instagram captions, Facebook posts, ad copy, and more
-4. Member can copy/download the content and regenerate as needed
+1. After text variations are generated (existing flow), the system automatically generates images for each variation
+2. Uses the Gemini image model (`google/gemini-2.5-flash-image`) to create branded marketing visuals with text on the image
+3. Each variation gets two image sizes: Story (1080x1920) and Square Post (1080x1080)
+4. Images load progressively -- text appears first, then images fill in
 
-### What Gets Built
+### What Changes
 
-**New Page: `/marketing`**
-- Clean form with a URL input field
-- Content type selector (Instagram post, Facebook ad, Google ad, general social post)
-- Tone selector (professional, casual, luxury, bold)
-- Generated content displayed in copyable cards
-- "Regenerate" button for new variations
-- Loading states with the existing gold/cyber design system
+**New Edge Function: `supabase/functions/generate-marketing-image/index.ts`**
+- Accepts brand profile, variation text/title, content type, tone, and size (story or square)
+- Builds a detailed prompt describing a professional marketing graphic with the caption text overlaid on the image
+- Calls `google/gemini-2.5-flash-image` via the Lovable AI chat completions endpoint with `modalities: ["image", "text"]`
+- Returns the base64 image data
+- Handles 429/402 errors
 
-**Navigation Updates**
-- Added under "Barber Launch Calls" section in the sidebar as a new expandable group or standalone item
-- Added to mobile nav
+**Updated: `src/pages/Marketing.tsx`**
+- `Variation` interface gains `storyImageUrl`, `squareImageUrl`, and `imagesLoading` fields
+- After text variations arrive, fires off parallel image generation calls (2 per variation = 6 total)
+- Each variation card shows a tabbed view: "Story (9:16)" and "Square (1:1)"
+- Images displayed in proper aspect ratio containers
+- Download button for each image
+- Skeleton loaders while images generate
 
-**Backend: 2 Edge Functions**
-- `scrape-website` -- Uses Firecrawl to extract brand info (colors, services, tone, key messaging) from the member's URL
-- `generate-marketing` -- Uses Lovable AI (Gemini Flash) to generate marketing content based on the scraped brand data and selected content type
+**Updated: `supabase/config.toml`**
+- Register `generate-marketing-image` with `verify_jwt = false`
 
-**Connector Required**
-- Firecrawl connector will be connected for website scraping capabilities
+### UI Layout per Variation Card
+
+```text
++--------------------------------------------------+
+|  VARIATION TITLE                    [Copy] [DL]   |
++--------------------------------------------------+
+|  [Story 9:16]  [Square 1:1]   <-- tab toggle     |
+|  +--------------------------------------------+  |
+|  |                                            |  |
+|  |     Generated image with text overlay      |  |
+|  |     (skeleton while loading)               |  |
+|  |                                            |  |
+|  +--------------------------------------------+  |
++--------------------------------------------------+
+|  Caption text here for copying...                 |
++--------------------------------------------------+
+```
 
 ### Technical Details
 
+**Image generation prompt strategy:**
+The prompt will instruct the model to create a visually striking marketing graphic that includes:
+- The brand name prominently displayed
+- Key marketing text from the variation overlaid on the image
+- Visual style matching the selected tone (luxury = elegant/dark, bold = vibrant colors, etc.)
+- Relevant imagery for the hair systems / barber industry
+- No watermarks or placeholder text
+
 **Files to create:**
-- `src/pages/Marketing.tsx` -- Main page component with URL input, content type/tone selectors, results display
-- `supabase/functions/scrape-website/index.ts` -- Firecrawl integration to extract brand identity from a URL
-- `supabase/functions/generate-marketing/index.ts` -- Lovable AI integration to generate marketing copy
+- `supabase/functions/generate-marketing-image/index.ts`
 
 **Files to modify:**
-- `src/App.tsx` -- Add `/marketing` route
-- `src/components/layout/Sidebar.tsx` -- Add Marketing nav item
-- `src/components/layout/MobileNav.tsx` -- Add Marketing nav item
-- `supabase/config.toml` -- Register new edge functions with `verify_jwt = false`
+- `src/pages/Marketing.tsx` -- add image state, parallel image calls, tabbed image display, download buttons
+- `supabase/config.toml` -- register new function
 
-**Edge function flow:**
-
-```text
-User enters URL
-    |
-    v
-scrape-website (Firecrawl)
-    - Scrapes URL with formats: ['markdown', 'branding']
-    - Extracts: brand colors, services offered, tone, key phrases
-    - Returns structured brand profile
-    |
-    v
-generate-marketing (Lovable AI - gemini-3-flash-preview)
-    - Receives brand profile + content type + tone preference
-    - System prompt crafted for hair system / barber business marketing
-    - Returns 3 content variations per request
-    |
-    v
-Display in copyable cards with regenerate option
-```
-
-**UI matches existing design:** dark cyber-gold theme, glass cards, gold accents, same Card/Button/Input components used throughout the app.
-
+**Image generation is done per-image** (not batched) so they can load progressively and failures are isolated. The frontend fires 6 parallel requests (3 variations x 2 sizes) and updates each card as its images resolve.
