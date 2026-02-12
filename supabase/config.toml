@@ -27,4 +27,10 @@ verify_jwt = false
 [functions.impersonate-user]
 verify_jwt = false
 
+[functions.scrape-website]
+verify_jwt = false
+
+[functions.generate-marketing]
+verify_jwt = false
+
 

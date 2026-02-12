@@ -24,6 +24,7 @@ import Agreement from "./pages/Agreement";
 import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
 import ManufacturerOrders from "./pages/ManufacturerOrders";
+import Marketing from "./pages/Marketing";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
             <Route path="/schedule-call" element={<ProtectedRoute><ScheduleCall /></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+            <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
             <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />
             
             {/* Protected Admin Routes */}
