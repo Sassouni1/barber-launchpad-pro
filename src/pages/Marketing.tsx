@@ -511,15 +511,14 @@ export default function Marketing() {
               </Button>
             </div>
 
-            <div className="grid gap-6">
+            <div className="grid grid-cols-2 gap-6">
               {variations.map((variation, idx) => {
                 const validImages = variation.images.filter(Boolean);
-                const hasContent = validImages.length > 0 || variation.imagesLoading;
 
                 return (
                   <Card key={idx} className="glass-card overflow-hidden hover-lift">
                     {/* Header */}
-                    <div className="flex items-center justify-between p-5 pb-3">
+                    <div className="flex items-center justify-between p-4 pb-2">
                       <span className="text-xs font-medium text-primary uppercase tracking-wider">
                         {variation.label}
                       </span>
@@ -527,35 +526,33 @@ export default function Marketing() {
                         variant="ghost"
                         size="sm"
                         onClick={() => copyToClipboard(variation.caption)}
-                        className="text-muted-foreground hover:text-primary"
+                        className="text-muted-foreground hover:text-primary h-7 px-2"
                       >
-                        <Copy className="w-4 h-4 mr-1" /> Copy
+                        <Copy className="w-3 h-3 mr-1" /> Copy
                       </Button>
                     </div>
 
                     {/* Carousel or Loading */}
-                    <div className="px-5">
-                      <div className={`${getMaxWidth(variation.type)} mx-auto`}>
-                        {variation.imagesLoading && validImages.length === 0 ? (
-                          <Skeleton className={`w-full ${getAspectClass(variation.type)} rounded-lg`} />
-                        ) : validImages.length > 0 ? (
-                          <ImageCarousel images={variation.images} aspectClass={getAspectClass(variation.type)} />
-                        ) : (
-                          <div className={`w-full ${getAspectClass(variation.type)} rounded-lg bg-muted/50 flex items-center justify-center text-xs text-muted-foreground`}>
-                            No images available
-                          </div>
-                        )}
-                        {variation.imagesLoading && validImages.length > 0 && (
-                          <div className="flex items-center gap-2 justify-center mt-2 text-xs text-muted-foreground">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Generating more images...
-                          </div>
-                        )}
-                      </div>
+                    <div className="px-4">
+                      {variation.imagesLoading && validImages.length === 0 ? (
+                        <Skeleton className={`w-full ${getAspectClass(variation.type)} rounded-lg`} />
+                      ) : validImages.length > 0 ? (
+                        <ImageCarousel images={variation.images} aspectClass={getAspectClass(variation.type)} />
+                      ) : (
+                        <div className={`w-full ${getAspectClass(variation.type)} rounded-lg bg-muted/50 flex items-center justify-center text-xs text-muted-foreground`}>
+                          No images available
+                        </div>
+                      )}
+                      {variation.imagesLoading && validImages.length > 0 && (
+                        <div className="flex items-center gap-2 justify-center mt-2 text-xs text-muted-foreground">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Generating more...
+                        </div>
+                      )}
                     </div>
 
                     {/* Caption */}
-                    <div className="p-5 pt-4 border-t border-border mt-4">
-                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                    <div className="p-4 pt-3 border-t border-border mt-3">
+                      <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed line-clamp-4">
                         {variation.caption}
                       </p>
                     </div>
