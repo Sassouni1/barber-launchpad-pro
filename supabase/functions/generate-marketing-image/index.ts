@@ -66,46 +66,31 @@ Brand fonts: ${fontFamily}
       ? 'The output MUST be a 9:16 vertical portrait image (1080x1920 pixels). Tall and narrow like an Instagram Story or TikTok.'
       : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
 
-    const hasReference = !!referenceImageUrl;
-
-    // Reference-mode layouts describe compositing around the PROVIDED PHOTO
-    const refLayouts = [
-      'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% displays THE PROVIDED PHOTO exactly as-is (do not redraw it). Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
-      'THE PROVIDED PHOTO used as the full-bleed background exactly as-is (do not redraw it). Apply a heavy dark gradient overlay (70% opacity) on top. Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
-      'Framed composition: dark background with THE PROVIDED PHOTO placed as a centered rectangular inset exactly as-is (do not redraw it), with a thin white or gold border around it. Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
-    ];
-
-    // Pure-AI layouts describe generating new photography
-    const aiLayouts = [
+    const layouts = [
       'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
       'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
       'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
     ];
 
-    const layouts = hasReference ? refLayouts : aiLayouts;
     const layoutInstruction = layouts[layoutIndex];
 
-    const scenes = [
-      'Show the main product or service in action — close-up, hero shot, dramatic detail.',
-      'Show the environment, workspace, or storefront — wide establishing shot that conveys atmosphere and brand identity.',
-      'Show the human element — a customer or professional in context, candid and aspirational.',
-    ];
+    // Build different prompts for reference-image vs pure-AI variations
+    const hasReference = !!referenceImageUrl;
 
     const referenceInstructions = hasReference
-      ? `REFERENCE PHOTO INSTRUCTIONS (HIGHEST PRIORITY):
-You have been given a reference photo. You MUST use this EXACT photo as-is in the composition. DO NOT generate new photography. DO NOT redraw, recreate, or reimagine the photo content in any way.
-- Place the provided photo exactly as it appears — preserve its content, subjects, colors, and details
-- Your job is ONLY to: add text overlays, borders, gradient overlays, and layout elements around/on top of this photo
-- The provided image is the FINAL photo — treat it as a fixed asset you are designing around
-- The result must look like a professionally designed social media post built around this real photo
-- DO NOT replace, regenerate, or artistically reinterpret the photo`
+      ? `REFERENCE PHOTO INSTRUCTIONS:
+You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
+- Incorporate the reference photo prominently — it should be the main visual element
+- Apply cinematic color grading and dramatic lighting to the photo
+- Overlay the headline text in bold typography ON TOP of or alongside the photo
+- The result must look like a professionally designed social media post, NOT a raw photo
+- Blend the photo seamlessly with the dark background and brand elements`
       : `PHOTOGRAPHY INSTRUCTIONS:
-Generate original cinematic photography that fits this specific business: ${brandProfile.title || 'a business'}. ${(brandProfile.description || '').substring(0, 200)}.
-Scene direction: ${scenes[layoutIndex]}
-- Professional scenes relevant to the business, dramatic lighting, shallow depth of field
+Generate original cinematic photography that fits a barbershop/hair replacement business.
+- Professional barbershop scenes, dramatic lighting, shallow depth of field
 - The photography should feel authentic and high-end`;
 
-    const prompt = `You are a world-class graphic designer creating a premium marketing image for: ${brandProfile.title || 'a business'}. Business description: ${(brandProfile.description || brandProfile.content || '').substring(0, 300)}. ${aspectInstruction}
+    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 
 ${brandColorBlock}
 

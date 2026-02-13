@@ -1,47 +1,46 @@
 
 
-## Fix: Brand Images Should Preserve the Reference Photo, Not Recreate It
+## Fix: Image Generation Disappears When Switching Tabs
 
 ### Problem
 
-When generating "brand" images (the ones that use a reference photo from the scraped website), the AI is ignoring the actual reference photo and generating a completely new AI image instead. The result looks like a "pure AI recreation" rather than a design built around the real photo.
+When you switch to another browser tab during image generation, the process appears to stop and images disappear. This happens because:
 
-This happens because:
-
-1. The reference instructions say "incorporate the reference photo" but the layout instructions simultaneously say things like "features cinematic photography" and "full-bleed cinematic photo as background" -- the model interprets this as "generate new photography"
-2. The prompt doesn't strongly enough distinguish between "edit/composite this existing photo" vs "create new imagery"
-3. The model treats the reference image as style inspiration rather than literal content to preserve
+1. The `resizeImage` function creates an HTML canvas and `new Image()` object -- browsers throttle or block these operations in background tabs
+2. The `.then()` callbacks on the fetch promises can silently fail when the tab is inactive
+3. There is no retry or persistence mechanism -- if a callback fails, the image is lost
 
 ### Solution
 
-Strengthen the reference image prompt to make it absolutely clear the model must **preserve and use the exact provided photo** -- not generate new imagery. The key changes:
+Two changes to make this robust:
 
-**1. Make the reference instruction the dominant directive**
+**1. Remove the client-side `resizeImage` step entirely**
 
-Rewrite the reference instructions to be much more forceful:
+The `resizeImage` function is unnecessary -- it resizes a 1080px image to 1080px (same size). The AI model already generates images at the correct dimensions. Removing this eliminates the canvas/Image dependency that breaks in background tabs.
 
-- "DO NOT generate new photography. You MUST use the EXACT provided photo as-is."
-- "The provided image is the final photo -- do not redraw, recreate, or reimagine it."
-- "Your job is ONLY to add text overlays, borders, and layout elements around/on top of this photo."
+**2. Use `async/await` with error handling instead of fire-and-forget `.then()`**
 
-**2. Modify the layout descriptions for reference mode**
+Wrap each `generateSlot` call in a proper `async` function with `try/catch`, and use `Promise.allSettled` to track all generations. This ensures that even if one call fails, others continue, and state is always updated.
 
-When a reference image is provided, adjust the layout instructions to describe compositions around an existing photo rather than asking for new photography:
+**3. Add a `useRef` flag to prevent stale state on unmount**
 
-- Layout 0: "Left panel with text, right panel shows THE PROVIDED PHOTO"
-- Layout 1: "THE PROVIDED PHOTO as the full background with dark gradient overlay and text"  
-- Layout 2: "THE PROVIDED PHOTO centered in a frame with text above and below"
-
-**3. Remove conflicting "cinematic photography" language for reference mode**
-
-Strip out any instructions that could be interpreted as "generate new photos" when a reference is provided.
+Store a ref that tracks whether the component is still mounted, so state updates from long-running promises don't cause errors if the user navigates away from the page entirely.
 
 ### Technical Details
 
-**File: `supabase/functions/generate-marketing-image/index.ts`**
+**File: `src/pages/Marketing.tsx`**
 
-- Update the `referenceInstructions` block (lines 80-87) to strongly enforce photo preservation
-- Create reference-specific layout variants that reference "THE PROVIDED PHOTO" instead of "cinematic photography"
-- Add explicit negative instructions: "Do NOT generate, recreate, or reimagine the photo content"
-- Keep the non-reference (pure AI) path unchanged
+- Remove the `resizeImage` function (lines 41-56) -- it serves no purpose since source and target are both 1080px
+- Rewrite `generateSlot` to be an `async` function that uses `await` instead of `.then()`:
+  - `await supabase.functions.invoke(...)` 
+  - Directly use `data.imageUrl` without resizing
+  - Wrap in `try/catch` so failures update state with `null` instead of silently dropping
+- Add an `isMountedRef` using `useRef(true)` set to `false` on cleanup, checked before `setVariations`
+- Keep the same parallel execution pattern (all slots fire at once) but track with `Promise.allSettled`
+
+### What This Fixes
+
+- Images will no longer disappear when switching tabs -- there is no canvas/Image dependency
+- Failed generations will show as empty slots rather than silently vanishing
+- The generation process will complete in the background regardless of tab focus
 
