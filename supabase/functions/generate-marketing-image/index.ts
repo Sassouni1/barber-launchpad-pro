@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
+    const { brandProfile, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -18,10 +18,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY');
+    if (!GOOGLE_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: 'AI service not configured' }),
+        JSON.stringify({ success: false, error: 'Google AI Studio key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -73,8 +73,6 @@ Brand fonts: ${fontFamily}
     ];
 
     const layoutInstruction = layouts[layoutIndex];
-
-    // Build different prompts for reference-image vs pure-AI variations
     const hasReference = !!referenceImageUrl;
 
     const referenceInstructions = hasReference
@@ -117,68 +115,71 @@ CRITICAL DESIGN RULES:
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
-    console.log('Generating marketing image:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
+    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
 
-    // Ensure reference image is base64 so the AI model always receives the pixel data
-    let resolvedImageData = referenceImageUrl;
-    if (hasReference && !referenceImageUrl.startsWith('data:image/')) {
-      try {
-        console.log('Converting reference URL to base64...');
-        const imgResp = await fetch(referenceImageUrl);
-        if (imgResp.ok) {
-          const buf = await imgResp.arrayBuffer();
-          const b64 = btoa(new Uint8Array(buf).reduce((s, b) => s + String.fromCharCode(b), ''));
-          const contentType = imgResp.headers.get('content-type') || 'image/jpeg';
-          resolvedImageData = `data:${contentType};base64,${b64}`;
-        }
-      } catch (e) {
-        console.error('Failed to convert reference URL to base64, using URL directly:', e);
-      }
-    }
+    // Build parts array for Gemini API
+    const parts: any[] = [];
 
-    // Build message content — multimodal if reference image provided
-    const messageContent: any[] = [];
+    // If reference image, add it as inline_data
     if (hasReference) {
-      messageContent.push({
-        type: 'image_url',
-        image_url: { url: resolvedImageData },
+      let imageData = referenceImageUrl;
+      let mimeType = 'image/jpeg';
+
+      if (referenceImageUrl.startsWith('data:')) {
+        // Extract mime type and base64 from data URL
+        const match = referenceImageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+        if (match) {
+          mimeType = match[1];
+          imageData = match[2];
+        }
+      } else {
+        // Fetch and convert URL to base64
+        try {
+          const imgResp = await fetch(referenceImageUrl);
+          if (imgResp.ok) {
+            const buf = await imgResp.arrayBuffer();
+            imageData = btoa(new Uint8Array(buf).reduce((s, b) => s + String.fromCharCode(b), ''));
+            mimeType = imgResp.headers.get('content-type') || 'image/jpeg';
+          }
+        } catch (e) {
+          console.error('Failed to fetch reference image:', e);
+        }
+      }
+
+      parts.push({
+        inline_data: {
+          mime_type: mimeType,
+          data: imageData,
+        }
       });
     }
-    messageContent.push({
-      type: 'text',
-      text: prompt,
-    });
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    parts.push({ text: prompt });
+
+    // Call Gemini 2.5 Flash via Google AI Studio (generateContent)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_API_KEY}`;
+
+    const response = await fetch(geminiUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
-        messages: [
-          { role: 'user', content: messageContent },
-        ],
-        modalities: ['image', 'text'],
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
       }),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Google AI Studio error:', response.status, errorText);
+
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again in a moment.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'AI credits exhausted. Please add funds to continue.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
       return new Response(
         JSON.stringify({ success: false, error: 'Image generation failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -186,25 +187,32 @@ Make this look like something a premium brand would actually post on Instagram.`
     }
 
     const aiData = await response.json();
-    const images = aiData.choices?.[0]?.message?.images;
 
-    if (!images || images.length === 0) {
-      console.error('No images in response:', JSON.stringify(aiData).substring(0, 500));
+    // Extract image from Gemini response format
+    const candidates = aiData.candidates;
+    if (!candidates || candidates.length === 0) {
+      console.error('No candidates in response:', JSON.stringify(aiData).substring(0, 500));
       return new Response(
         JSON.stringify({ success: false, error: 'No image was generated. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const imageUrl = images[0]?.image_url?.url;
-    if (!imageUrl) {
+    const responseParts = candidates[0]?.content?.parts || [];
+    const imagePart = responseParts.find((p: any) => p.inlineData || p.inline_data);
+
+    if (!imagePart) {
+      console.error('No image part in response:', JSON.stringify(responseParts).substring(0, 500));
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid image data received.' }),
+        JSON.stringify({ success: false, error: 'No image was generated. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Marketing image generated successfully:', { index: layoutIndex, palette, size, hasReference });
+    const inlineData = imagePart.inlineData || imagePart.inline_data;
+    const imageUrl = `data:${inlineData.mimeType || inlineData.mime_type || 'image/png'};base64,${inlineData.data}`;
+
+    console.log('Marketing image generated successfully via Google AI Studio:', { index: layoutIndex, palette, size, hasReference });
     return new Response(
       JSON.stringify({ success: true, imageUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
