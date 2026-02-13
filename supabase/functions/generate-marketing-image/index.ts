@@ -143,6 +143,7 @@ CRITICAL DESIGN RULES:
 8. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
 9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
 10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
+11. HAIR PROTECTION: Never place text, headlines, or decorative elements over any hair areas. Keep all text placement in safe zones: dark background panels, top/bottom margins, side columns, or areas below the neck/jawline. Hair must always be fully visible and unobstructed to showcase the quality and style.
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
