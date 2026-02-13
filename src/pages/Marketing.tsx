@@ -57,7 +57,7 @@ const resizeImage = (dataUrl: string, width: number, height: number): Promise<st
 };
 
 function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; aspectClass: string }) {
-  const validSlides = images.filter((u): u is string => !!u);
+  const validSlides = images.filter((u): u is string => !!u && u !== 'failed');
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
@@ -164,6 +164,7 @@ export default function Marketing() {
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
+  const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const websiteColors = brandProfile?.branding?.colors || {};
@@ -246,50 +247,82 @@ export default function Marketing() {
     ];
     setVariations(cards);
 
-    // Helper to generate an AI image and update variation state
-    const generateSlot = (type: VariationType, imgIdx: number, size: string, refUrl?: string) => {
+    // Helper to generate an AI image and update variation state (returns a promise)
+    const generateSlot = async (type: VariationType, imgIdx: number, size: string, refUrl?: string) => {
       const targetW = size === 'story' ? 1080 : 1080;
       const targetH = size === 'story' ? 1920 : 1080;
 
-      supabase.functions.invoke('generate-marketing-image', {
-        body: {
-          brandProfile: bp,
-          variationTitle: type,
-          variationContent: caption,
-          contentType,
-          tone,
-          index: imgIdx,
-          palette: paletteChoice,
-          size,
-          ...(refUrl ? { referenceImageUrl: refUrl } : {}),
-        },
-      }).then(async ({ data, error }) => {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
+          body: {
+            brandProfile: bp,
+            variationTitle: type,
+            variationContent: caption,
+            contentType,
+            tone,
+            index: imgIdx,
+            palette: paletteChoice,
+            size,
+            ...(refUrl ? { referenceImageUrl: refUrl } : {}),
+          },
+        });
+
         let imageUrl: string | null = null;
         if (!error && data?.success && data.imageUrl) {
           try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
         }
+
         setVariations(prev => prev.map(v => {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
-          newImgs[imgIdx] = imageUrl;
+          newImgs[imgIdx] = imageUrl ?? 'failed';
           const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
-          const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
+          const done = newImgs.slice(0, totalForType).filter(x => x !== null).length;
+          return { ...v, images: newImgs, imagesLoading: done < totalForType };
         }));
-      });
+      } catch {
+        // Mark as failed so loading resolves
+        setVariations(prev => prev.map(v => {
+          if (v.type !== type) return v;
+          const newImgs = [...v.images];
+          newImgs[imgIdx] = 'failed';
+          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
+          const done = newImgs.slice(0, totalForType).filter(x => x !== null).length;
+          return { ...v, images: newImgs, imagesLoading: done < totalForType };
+        }));
+      }
     };
 
     const brandCount = Math.max(realImages.length, 1);
 
-    // Brand images with references
+    // Build all jobs
+    const jobs: Array<() => Promise<void>> = [];
     for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot(brandType, i, sizeVal, realImages[i]);
+      const idx = i;
+      jobs.push(() => generateSlot(brandType, idx, sizeVal, realImages[idx]));
+    }
+    for (let i = 0; i < 3; i++) {
+      const idx = i;
+      jobs.push(() => generateSlot(aiType, idx, sizeVal));
     }
 
-    // AI-only images
-    for (let i = 0; i < 3; i++) {
-      generateSlot(aiType, i, sizeVal);
-    }
+    // Process in pairs of 2 with 3s delay between batches
+    const BATCH_SIZE = 2;
+    const DELAY_MS = 3000;
+    setGenerationProgress({ current: 0, total: jobs.length });
+
+    (async () => {
+      for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
+        const batch = jobs.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(fn => fn()));
+        const completed = Math.min(i + BATCH_SIZE, jobs.length);
+        setGenerationProgress({ current: completed, total: jobs.length });
+        if (i + BATCH_SIZE < jobs.length) {
+          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
+      }
+      setGenerationProgress(null);
+    })();
   };
 
   const copyToClipboard = async (text: string) => {
@@ -577,6 +610,26 @@ export default function Marketing() {
           </Card>
         )}
 
+        {/* Image Generation Progress */}
+        {generationProgress && !isGenerating && (
+          <Card className="glass-card p-4">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-foreground font-medium">
+                  Generating image {generationProgress.current} of {generationProgress.total}...
+                </p>
+                <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Results - 4 Variation Cards */}
         {variations.length > 0 && !isGenerating && (
           <div className="space-y-4">
@@ -595,7 +648,7 @@ export default function Marketing() {
 
             <div className="grid grid-cols-2 gap-6">
               {variations.map((variation, idx) => {
-                const validImages = variation.images.filter(Boolean);
+                const validImages = variation.images.filter(x => x && x !== 'failed');
 
                 return (
                   <Card key={idx} className="glass-card overflow-hidden hover-lift">
