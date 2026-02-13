@@ -99,12 +99,12 @@ Brand fonts: ${fontFamily}
 
     const referenceInstructions = hasReference
       ? `REFERENCE PHOTO INSTRUCTIONS:
-You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
-- Incorporate the reference photo prominently — it should be the main visual element
-- Apply cinematic color grading and dramatic lighting to the photo
-- Overlay the headline text in bold typography ON TOP of or alongside the photo
-- The result must look like a professionally designed social media post, NOT a raw photo
-- Blend the photo seamlessly with the dark background and brand elements`
+You have been given a reference photo. This is the ONLY photo that should appear in the final image.
+- You MUST use this EXACT photo as the main visual. Do NOT generate, replace, or recreate any part of it with AI-generated imagery.
+- Do NOT generate new faces or people. The reference photo contains the real subject — use it exactly as provided.
+- You may apply minor color grading to match the dark theme, but the photo content must remain unchanged.
+- Place headline text and brand elements around or overlaid on the photo using gradients, but never obscure the subject.
+- The result must look like a professionally designed social media post featuring this specific photo.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits a barbershop/hair replacement business.
 - Professional barbershop scenes, dramatic lighting, shallow depth of field
