@@ -1,27 +1,31 @@
 
 
-## Face-Aware Image Composition
+## Parallel-2 Image Generation with Progress
 
-### Problem
-Generated marketing images sometimes cut off faces or place text directly over people's faces, making them look unprofessional.
+### Approach
+Process image generation jobs in **pairs of 2** with a 3-second delay between each pair, instead of fully sequential (slow) or all-at-once (rate-limited).
 
-### Solution
-Add explicit face-protection rules to the AI prompt in the `generate-marketing-image` edge function. Since Gemini 3 Pro is a multimodal model that understands spatial composition, we can instruct it to respect face regions.
+### Changes (single file: `src/pages/Marketing.tsx`)
 
-### Changes
+**1. Batch processing in pairs**
+- Build the full list of generation jobs (brand slots + AI slots, typically 6 total)
+- Process them 2 at a time using `Promise.all` on each pair
+- Wait 3 seconds between each pair
+- Result: 3 batches of 2 instead of 6 sequential calls -- cuts total time from ~18s to ~9s
 
-**File: `supabase/functions/generate-marketing-image/index.ts`**
+**2. Failure handling**
+- When an image request fails (429 or other error), mark the slot with `"failed"` instead of leaving it `null`
+- This ensures the loading state always resolves, even if some images fail
+- The UI can show a subtle "failed" indicator on those slots
 
-Add a new `FACE PROTECTION RULES` section to the prompt (inserted into the `CRITICAL DESIGN RULES` list):
+**3. Progress indicator**
+- Add `generationProgress` state: `{ current: number, total: number }`
+- Update after each batch completes
+- Display "Generating image X of Y..." in the UI so it never looks stuck
 
-- **Never crop or cut off faces** -- if a person is in the image, their full face (forehead to chin) must be fully visible within the frame
-- **Never place text over faces** -- headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face
-- **Safe text zones**: place text in the top 20%, bottom 20%, or on a solid-color panel/overlay area that does not cover a face
-- **When using reference photos with people**: preserve the subject's face completely; apply gradient overlays and text only to non-face regions (e.g., dark gradient from the edges inward, leaving the face clear)
-- **For split layouts**: ensure the photo side shows the full face uncropped; text stays on the solid panel side
+### Why 2 at a time?
+- 10 RPM limit / 2 requests per batch = 5 batches per minute max
+- With 3s delay between batches, we hit ~4 batches per minute -- safely under limit
+- Total time for 6 images: ~12 seconds (vs ~18s sequential, vs instant-but-failing parallel)
 
-These rules get added as items 8-10 in the existing `CRITICAL DESIGN RULES` numbered list, keeping everything in one prompt block. No new API calls, no cost increase -- just better prompt instructions.
-
-### No other files change
-This is a prompt-only update in the single edge function file.
-
+### No backend changes needed
