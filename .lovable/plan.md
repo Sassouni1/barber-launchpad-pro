@@ -1,56 +1,67 @@
 
+## Add Image Upload & Remove Functionality to Brand Assets
 
-## Make All 4 Variations AI-Generated Marketing Posts
+### What You're Getting
 
-### The Problem
+Three new features in the Brand Assets section (lines 399-488), all triggered after analyzing a website:
 
-Brand image variations (1 and 2) currently try to crop raw website photos via Canvas, which fails due to CORS and produces unpolished results. The user wants all 4 variations to have the same professional quality: overlaid text, cinematic lighting, and the "marketing post" look.
+1. **Upload your own images** - Add a "+" button in the Website Images gallery that lets users upload custom photos
+2. **Remove unwanted photos** - Add an "X" button on each image thumbnail to hide it from the gallery and AI generation
+3. **Unified image pool** - All images (scraped + uploaded, minus removed) feed into the brand variation AI generation
 
-### The Solution
+### Technical Approach
 
-All 4 variations will be AI-generated using `generate-marketing-image`. The brand variations will pass scraped website photos as multimodal reference images so the AI incorporates the real brand imagery into polished compositions. The AI variations will generate purely from text prompts (no reference photos).
+**State Management** (in main component):
+- Add `uploadedImages: string[]` - stores data URLs from file uploads (no server needed)
+- Add `removedImages: Set<string>` - tracks URLs the user dismissed
+- Create `allBrandImages` computed value that merges and filters: `[scrapedImages, uploadedImages] - removedImages`
 
-### How It Works
+**Gallery UI Changes**:
+- Add a "+" upload tile at the end of the image row (96x96, dashed border, centered Plus icon)
+- Add a hidden file input (`<input type="file" multiple accept="image/*" />`) that triggers on tile click
+- Add an X button overlay (top-left) on each thumbnail that removes it from `removedImages`
+- Keep existing Download button (bottom-right)
 
-| # | Name | AI Input | Size |
-|---|------|----------|------|
-| 1 | Brand Images (Square) | Text prompt + scraped photo as reference | 1080x1080 |
-| 2 | Brand Images (Stories) | Text prompt + scraped photo as reference | 1080x1920 |
-| 3 | AI Generated (Square) | Text prompt only | 1080x1080 |
-| 4 | AI Generated (Stories) | Text prompt only | 1080x1920 |
+**AI Integration**:
+- Update `buildVariations()` to use `allBrandImages` instead of just `scrapedImages` when generating brand variations
+- Brand variations will now incorporate both website photos AND user-uploaded images as AI reference images
 
-Total AI calls: 12 (3 per variation)
+**Upload Workflow**:
+- User clicks "+" tile
+- File input opens
+- FileReader converts selected files to data URLs (e.g., `data:image/png;base64,...`)
+- Data URLs are pushed to `uploadedImages`
+- New thumbnails appear instantly in gallery
 
-### Edge Function Changes
+### Key Code Patterns
 
-**`supabase/functions/generate-marketing-image/index.ts`**:
+```typescript
+// State additions
+const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
 
-- Accept a new `referenceImageUrl` parameter (optional)
-- When provided, add the image as a multimodal `image_url` content part alongside the text prompt
-- Add instructions telling the AI to incorporate the reference photo into a polished marketing composition with text overlays, cinematic grading, and brand elements
-- When not provided (AI variations), use the existing text-only prompt for original cinematic imagery
-- Keep existing `palette` and `size` params working as-is
+// Computed gallery images
+const allBrandImages = [
+  ...scrapedImages,
+  ...uploadedImages
+].filter(url => !removedImages.has(url));
 
-### Frontend Changes
+// In buildVariations:
+const realImages = allBrandImages.slice(0, 3); // Use combined list
+```
 
-**`src/pages/Marketing.tsx`**:
+### What Doesn't Change
 
-- Remove the `cropImage` function entirely -- no more client-side Canvas cropping
-- Update `buildVariations` for brand types: instead of cropping, fire 3 AI calls per brand variation, passing each scraped image URL as `referenceImageUrl`
-- If fewer than 3 scraped images exist, only generate that many slides (no null placeholders)
-- Keep `resizeImage` for final sizing of AI output (works fine since those are data URLs)
-- Fix `imagesLoading` logic: track a counter of completed calls instead of checking index
-
-### Prompt Strategy for Brand Variations
-
-The AI prompt will include instructions like:
-
-"Use the provided reference photo as the hero image in your composition. Apply cinematic color grading, overlay the headline text in bold typography, and integrate the brand colors. The result should look like a professionally designed social media post, not a raw photo."
-
-This ensures brand photos get the same polished treatment as pure AI images but retain the actual brand imagery.
+- Edge functions (no changes)
+- AI generation prompts (same as before)
+- Palette selector UI/logic
+- Color Palette functionality (stays as-is)
+- Card grid layout (2x2 with Brand/AI side-by-side)
+- Caption generation
+- Regenerate button
+- Download/Save buttons on image carousel
 
 ### Files Modified
 
-- `supabase/functions/generate-marketing-image/index.ts` -- accept `referenceImageUrl`, build multimodal message when present
-- `src/pages/Marketing.tsx` -- remove `cropImage`, change brand variations to use AI generation with reference images
+- `src/pages/Marketing.tsx` only - add states, update gallery rendering, update buildVariations logic
 
