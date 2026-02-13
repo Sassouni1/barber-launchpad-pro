@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl, imageAnalysis } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -51,13 +51,13 @@ Deno.serve(async (req) => {
 
     const fontFamily = fonts.length > 0 ? fonts.map((f: any) => f.family).join(', ') : 'bold sans-serif';
 
+    // Keep color instructions separate from headline text to prevent hex codes leaking into rendered text
     const brandColorBlock = `
-BRAND COLORS (use these EXACT hex values throughout the design):
-- Primary: ${primaryColor}
-- Secondary/Accent: ${secondaryColor}
-- Background base: ${bgColor}
-- Text color: ${textColor}
-- Accent highlight: ${accentColor}
+DESIGN COLOR PALETTE (apply visually, do NOT render these hex codes as text):
+- Use a gold/warm accent tone for highlights and decorative elements
+- Use a dark background (black or charcoal)
+- Use white or light text for maximum contrast
+- Use the accent tone sparingly on key words or borders
 
 Brand fonts: ${fontFamily}
 `;
@@ -76,19 +76,34 @@ Brand fonts: ${fontFamily}
 
     // Build different prompts for reference-image vs pure-AI variations
     const hasReference = !!referenceImageUrl;
+    const isBeforeAfter = imageAnalysis?.isBeforeAfter === true;
+    const imgOrientation = imageAnalysis?.orientation || 'square';
+    const imgDescription = imageAnalysis?.description || '';
 
-    const referenceInstructions = hasReference
-      ? `REFERENCE PHOTO INSTRUCTIONS:
+    let referenceInstructions: string;
+    if (hasReference && isBeforeAfter) {
+      referenceInstructions = `REFERENCE PHOTO INSTRUCTIONS (BEFORE/AFTER IMAGE):
+You have been given a before-and-after transformation photo. This is a side-by-side comparison showing results.
+- Place the before-and-after photo in the LOWER HALF of the image, preserving its FULL width — do NOT crop or zoom it
+- Bold headline text fills the UPPER HALF above the photo
+- Do NOT split, crop, or rearrange the before/after photo — show it exactly as provided
+- Add a thin decorative border or frame around the photo
+- The photo is: ${imgDescription}`;
+    } else if (hasReference) {
+      referenceInstructions = `REFERENCE PHOTO INSTRUCTIONS:
 You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
 - Incorporate the reference photo prominently — it should be the main visual element
 - Apply cinematic color grading and dramatic lighting to the photo
 - Overlay the headline text in bold typography ON TOP of or alongside the photo
 - The result must look like a professionally designed social media post, NOT a raw photo
-- Blend the photo seamlessly with the dark background and brand elements`
-      : `PHOTOGRAPHY INSTRUCTIONS:
+- Blend the photo seamlessly with the dark background and brand elements
+- The photo is: ${imgDescription}`;
+    } else {
+      referenceInstructions = `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits a barbershop/hair replacement business.
 - Professional barbershop scenes, dramatic lighting, shallow depth of field
 - The photography should feel authentic and high-end`;
+    }
 
     const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 

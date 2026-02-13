@@ -13,6 +13,14 @@ import useEmblaCarousel from 'embla-carousel-react';
 type PaletteChoice = 'gold' | 'website';
 type VariationType = 'brand-square' | 'brand-story' | 'ai-square' | 'ai-story';
 
+interface ImageAnalysis {
+  url: string;
+  isBeforeAfter: boolean;
+  orientation: 'landscape' | 'portrait' | 'square';
+  bestFit: 'story' | 'square' | 'both';
+  description: string;
+}
+
 interface VariationCard {
   type: VariationType;
   label: string;
@@ -35,24 +43,7 @@ interface BrandProfile {
   screenshot?: string | null;
 }
 
-// cropImage removed — all variations now use AI generation
-
-const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { reject(new Error('Canvas not supported')); return; }
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = dataUrl;
-  });
-};
+// resizeImage removed — use raw AI output with CSS object-cover
 
 function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; aspectClass: string }) {
   const validSlides = images.filter((u): u is string => !!u);
@@ -159,10 +150,32 @@ export default function Marketing() {
   const [paletteChoice, setPaletteChoice] = useState<PaletteChoice>('gold');
   const [variations, setVariations] = useState<VariationCard[]>([]);
   const [generatedCaption, setGeneratedCaption] = useState('');
+  const [imageAnalyses, setImageAnalyses] = useState<ImageAnalysis[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const websiteColors = brandProfile?.branding?.colors || {};
   const hasWebsiteColors = Object.keys(websiteColors).length > 0;
   const scrapedImages = (brandProfile?.images || []).filter((u) => u.startsWith('http'));
+
+  const analyzeImages = async (imageUrls: string[]): Promise<ImageAnalysis[]> => {
+    if (imageUrls.length === 0) return [];
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-brand-images', {
+        body: { urls: imageUrls },
+      });
+      if (error || !data?.success) {
+        console.error('Image analysis failed:', error || data?.error);
+        return imageUrls.map(url => ({ url, isBeforeAfter: false, orientation: 'square' as const, bestFit: 'both' as const, description: '' }));
+      }
+      return data.analyses;
+    } catch (err) {
+      console.error('Image analysis error:', err);
+      return imageUrls.map(url => ({ url, isBeforeAfter: false, orientation: 'square' as const, bestFit: 'both' as const, description: '' }));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleScrape = async () => {
     if (!url.trim()) {
@@ -183,7 +196,16 @@ export default function Marketing() {
       if (!data?.success) throw new Error(data?.error || 'Failed to scrape website');
 
       setBrandProfile(data.brandProfile);
-      toast.success('Website analyzed! Now generate your content.');
+
+      // Analyze scraped images before generating
+      const httpImages = (data.brandProfile.images || []).filter((u: string) => u.startsWith('http'));
+      if (httpImages.length > 0) {
+        toast.success('Website analyzed! Analyzing images...');
+        const analyses = await analyzeImages(httpImages);
+        setImageAnalyses(analyses);
+      } else {
+        toast.success('Website analyzed! Now generate your content.');
+      }
 
       await generateContent(data.brandProfile);
     } catch (err: any) {
@@ -235,10 +257,7 @@ export default function Marketing() {
     setVariations(cards);
 
     // Helper to generate an AI image and update variation state
-    const generateSlot = (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
-      const targetW = sizeVal === 'story' ? 1080 : 1080;
-      const targetH = sizeVal === 'story' ? 1920 : 1080;
-
+    const generateSlot = (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string, analysis?: ImageAnalysis) => {
       supabase.functions.invoke('generate-marketing-image', {
         body: {
           brandProfile: bp,
@@ -250,12 +269,10 @@ export default function Marketing() {
           palette: paletteChoice,
           size: sizeVal,
           ...(refUrl ? { referenceImageUrl: refUrl } : {}),
+          ...(analysis ? { imageAnalysis: analysis } : {}),
         },
-      }).then(async ({ data, error }) => {
-        let imageUrl: string | null = null;
-        if (!error && data?.success && data.imageUrl) {
-          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
-        }
+      }).then(({ data, error }) => {
+        const imageUrl = (!error && data?.success && data.imageUrl) ? data.imageUrl : null;
         setVariations(prev => prev.map(v => {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
@@ -267,24 +284,24 @@ export default function Marketing() {
       });
     };
 
-    const brandCount = Math.max(realImages.length, 1); // At least 1 AI call even with no images
+    // Smart routing: use image analyses to decide which sizes each image gets
+    for (let i = 0; i < Math.min(realImages.length || 1, 3); i++) {
+      const refUrl = realImages[i];
+      const analysis = imageAnalyses.find(a => a.url === refUrl);
+      const bestFit = analysis?.bestFit || 'both';
 
-    // Brand Square: AI generation with reference images
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot('brand-square', i, 'square', realImages[i]);
+      if (bestFit === 'square' || bestFit === 'both') {
+        generateSlot('brand-square', i, 'square', refUrl, analysis);
+      }
+      if (bestFit === 'story' || bestFit === 'both') {
+        generateSlot('brand-story', i, 'story', refUrl, analysis);
+      }
     }
 
-    // Brand Story: AI generation with reference images
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot('brand-story', i, 'story', realImages[i]);
-    }
-
-    // AI Square: 3 calls, no reference
+    // AI-only: always generate both sizes (no reference image constraints)
     for (let i = 0; i < 3; i++) {
       generateSlot('ai-square', i, 'square');
     }
-
-    // AI Story: 3 calls, no reference
     for (let i = 0; i < 3; i++) {
       generateSlot('ai-story', i, 'story');
     }
@@ -308,7 +325,7 @@ export default function Marketing() {
     document.body.removeChild(link);
   };
 
-  const isLoading = isScraping || isGenerating;
+  const isLoading = isScraping || isGenerating || isAnalyzing;
 
   const getAspectClass = (type: VariationType) => {
     return type.includes('story') ? 'aspect-[9/16]' : 'aspect-square';
