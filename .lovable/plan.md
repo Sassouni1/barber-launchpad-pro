@@ -1,41 +1,25 @@
 
 
-## Force AI to Use Reference Photo (Not Generate New Faces)
+## Fix: 1 of 3 Layouts Still Generates AI Images Instead of Using Reference Photo
 
-### Problem
-When a reference photo is provided, the AI sometimes ignores it entirely and generates its own before-and-after imagery with fake faces. The current prompt says "incorporate the reference photo prominently" but this is too soft -- the model treats it as a suggestion rather than a requirement.
+### Root Cause
+Layout 0 already has a `hasReference` branch that explicitly tells the AI to use the reference photo. Layouts 1 and 2 do not -- they use generic wording like "cinematic photo as background" and "centered rectangular photo inset." The global reference instructions help one of them work, but one layout's wording is ambiguous enough that the AI ignores the reference and generates its own image.
 
-### Solution
-Strengthen the reference photo instructions in the image generation prompt to make it unmistakably clear that the provided photo must appear in the output as-is, not be replaced with AI-generated imagery.
+### Fix
+Add `hasReference` conditional branches to layouts 1 and 2 (matching the pattern layout 0 already uses), so when a reference photo is provided, every layout explicitly says to use it.
 
 ### Technical Change
 
-**`supabase/functions/generate-marketing-image/index.ts`**
+**File: `supabase/functions/generate-marketing-image/index.ts`** -- Update the `layouts` array (lines 88-94):
 
-Update the `REFERENCE PHOTO INSTRUCTIONS` block from the current soft language to strict enforcement:
+Layout 1 (index 1, full-bleed):
+- With reference: "Full-bleed: Use the provided reference photo as the full background. Apply a heavy dark gradient overlay (70% opacity) on areas where text will go, but keep the subject clearly visible. Headline centered in bold uppercase. The reference photo MUST be shown completely -- never crop either side of a before-and-after transformation."
+- Without reference: Keep existing cinematic photo version.
 
-Current:
-```
-You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
-- Incorporate the reference photo prominently...
-- Apply cinematic color grading and dramatic lighting to the photo
-- Overlay the headline text in bold typography ON TOP of or alongside the photo
-- The result must look like a professionally designed social media post, NOT a raw photo
-- Blend the photo seamlessly with the dark background and brand elements
-```
+Layout 2 (index 2, framed):
+- With reference: "Framed composition: dark background with the provided reference photo centered as a rectangular inset (white or gold thin border). Headline ABOVE the photo. Brand name and tagline BELOW. The reference photo MUST be shown completely -- never crop either side of a before-and-after transformation."
+- Without reference: Keep existing version.
 
-New:
-```
-You have been given a reference photo. This is the ONLY photo that should appear in the final image.
-- You MUST use this EXACT photo as the main visual. Do NOT generate, replace, or recreate any part of it with AI-generated imagery.
-- Do NOT generate new faces or people. The reference photo contains the real subject -- use it exactly as provided.
-- You may apply minor color grading to match the dark theme, but the photo content must remain unchanged.
-- Place headline text and brand elements around or overlaid on the photo using gradients, but never obscure the subject.
-- The result must look like a professionally designed social media post featuring this specific photo.
-```
+Layout 0 stays unchanged (already correct).
 
-This makes three things explicit that were previously ambiguous:
-1. Do NOT generate new faces/people
-2. Use the photo exactly as provided
-3. The reference photo is the ONLY visual allowed
-
+This ensures all 3 layout indices explicitly instruct the AI to use the reference photo when one is provided.
