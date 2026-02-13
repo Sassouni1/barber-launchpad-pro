@@ -1,34 +1,31 @@
 
 
-## Fix: Switch Image Generation to Direct Google AI Studio API
+## Fix: Upgrade Image Generation Model for Better Quality
 
 ### Root Cause
-The edge function calls `google/gemini-3-pro-image-preview` through the **Lovable AI gateway** (`ai.gateway.lovable.dev`). This gateway adds significant overhead and queuing, resulting in 2-10 minute response times per image. The model itself can generate images in ~10-30 seconds when called directly.
+The switch to direct Google API used `gemini-2.0-flash-exp-image-generation` -- an older, experimental model that produces significantly lower quality images compared to the `gemini-3-pro-image-preview` model that was used before through the Lovable gateway.
 
 ### Solution
-Switch the edge function to call the **Google AI Studio API directly** using the `GOOGLE_AI_STUDIO_KEY` secret that is already configured. This bypasses the gateway overhead entirely.
+Update the model identifier in the edge function to `gemini-2.5-flash-image`, which is Google's current recommended image generation model. This was part of the original approved plan but was never applied.
 
-### Changes (single file)
+### Change
 
-**File: `supabase/functions/generate-marketing-image/index.ts`**
+**File: `supabase/functions/generate-marketing-image/index.ts`** (line 153)
 
-1. Replace the Lovable gateway call with a direct call to `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent`
-2. Use `GOOGLE_AI_STUDIO_KEY` instead of `LOVABLE_API_KEY`
-3. Restructure the request body to match Google's native API format:
-   - Use `inlineData` for reference images (base64) instead of `image_url`
-   - Add `responseModalities: ["TEXT", "IMAGE"]` in `generationConfig`
-   - Parse the response from Google's native format (`candidates[0].content.parts`) instead of OpenAI-compatible format
-4. Extract generated image from `inlineData.data` (base64) in the response parts and return it as a data URL
+Replace:
+```text
+gemini-2.0-flash-exp-image-generation
+```
+With:
+```text
+gemini-2.5-flash-image
+```
 
-### Expected Performance
-- **Before**: 2-10 minutes per image (Lovable gateway)
-- **After**: 10-30 seconds per image (direct Google API)
-- With Parallel-2 batching of 6 images: ~1-2 minutes total instead of 12-60 minutes
+This single-line change keeps the direct API approach (fast ~10-30s per image) while using a much better model for image quality.
 
-### Reference Image Handling
-- When `referenceImageUrl` is provided, fetch the image, convert to base64, and send as `inlineData` in the request
-- When no reference image, send text-only prompt
+### Why this helps
+- `gemini-2.0-flash-exp-image-generation`: Experimental, lower quality, inconsistent outputs
+- `gemini-2.5-flash-image`: Current stable model, significantly better image quality, same API format
 
-### No frontend changes needed
-The edge function response format (`{ success: true, imageUrl }`) stays the same -- the `imageUrl` will be a base64 data URL instead of a hosted URL, which works identically in `<img>` tags.
+No other changes needed -- the request/response format is identical across Gemini image models.
 
