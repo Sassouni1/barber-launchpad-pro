@@ -7,11 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X } from 'lucide-react';
+import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Square, RectangleVertical } from 'lucide-react';
 import { useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
+type FormatChoice = 'square' | 'story';
 type VariationType = 'brand-square' | 'brand-story' | 'ai-square' | 'ai-story';
 
 interface VariationCard {
@@ -158,6 +159,7 @@ export default function Marketing() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [paletteChoice, setPaletteChoice] = useState<PaletteChoice>('gold');
+  const [formatChoice, setFormatChoice] = useState<FormatChoice>('square');
   const [variations, setVariations] = useState<VariationCard[]>([]);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -233,32 +235,37 @@ export default function Marketing() {
 
   const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
     const realImages = imagesForGeneration.slice(0, 3);
+    const sizeVal = formatChoice;
+    const brandType: VariationType = `brand-${sizeVal}` as VariationType;
+    const aiType: VariationType = `ai-${sizeVal}` as VariationType;
+    const sizeLabel = sizeVal === 'story' ? 'Stories' : 'Square';
+
     const cards: VariationCard[] = [
-      { type: 'brand-square', label: 'Brand Images (Square)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'ai-square', label: 'AI Generated (Square)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'brand-story', label: 'Brand Images (Stories)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'ai-story', label: 'AI Generated (Stories)', caption, images: [null, null, null], imagesLoading: true },
+      { type: brandType, label: `Brand Photos (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true },
+      { type: aiType, label: `AI Generated (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true },
     ];
     setVariations(cards);
 
     // Helper to generate an AI image and update variation state
-    const generateSlot = (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
+    const generateSlot = async (type: VariationType, imgIdx: number, refUrl?: string) => {
       const targetW = sizeVal === 'story' ? 1080 : 1080;
       const targetH = sizeVal === 'story' ? 1920 : 1080;
 
-      supabase.functions.invoke('generate-marketing-image', {
-        body: {
-          brandProfile: bp,
-          variationTitle: type,
-          variationContent: caption,
-          contentType,
-          tone,
-          index: imgIdx,
-          palette: paletteChoice,
-          size: sizeVal,
-          ...(refUrl ? { referenceImageUrl: refUrl } : {}),
-        },
-      }).then(async ({ data, error }) => {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
+          body: {
+            brandProfile: bp,
+            variationTitle: type,
+            variationContent: caption,
+            contentType,
+            tone,
+            index: imgIdx,
+            palette: paletteChoice,
+            size: sizeVal,
+            ...(refUrl ? { referenceImageUrl: refUrl } : {}),
+          },
+        });
+
         let imageUrl: string | null = null;
         if (!error && data?.success && data.imageUrl) {
           try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
@@ -271,30 +278,34 @@ export default function Marketing() {
           const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
           return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
         }));
-      });
+      } catch (e) {
+        console.error('Image generation error:', e);
+        setVariations(prev => prev.map(v => {
+          if (v.type !== type) return v;
+          const newImgs = [...v.images];
+          newImgs[imgIdx] = null;
+          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
+          const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length + 1;
+          return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
+        }));
+      }
     };
 
-    const brandCount = Math.max(realImages.length, 1); // At least 1 AI call even with no images
+    const brandCount = Math.max(realImages.length, 1);
 
-    // Brand Square: AI generation with reference images
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot('brand-square', i, 'square', realImages[i]);
-    }
+    // Sequential generation to avoid rate limits
+    const runSequential = async () => {
+      // Brand images with references
+      for (let i = 0; i < Math.min(brandCount, 3); i++) {
+        await generateSlot(brandType, i, realImages[i]);
+      }
+      // AI generated (no reference)
+      for (let i = 0; i < 3; i++) {
+        await generateSlot(aiType, i);
+      }
+    };
 
-    // Brand Story: AI generation with reference images
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot('brand-story', i, 'story', realImages[i]);
-    }
-
-    // AI Square: 3 calls, no reference
-    for (let i = 0; i < 3; i++) {
-      generateSlot('ai-square', i, 'square');
-    }
-
-    // AI Story: 3 calls, no reference
-    for (let i = 0; i < 3; i++) {
-      generateSlot('ai-story', i, 'story');
-    }
+    runSequential();
   };
 
   const copyToClipboard = async (text: string) => {
@@ -391,6 +402,52 @@ export default function Marketing() {
                     <SelectItem value="bold">Bold</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Format Selector */}
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground uppercase tracking-wider">Image Format</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setFormatChoice('square')}
+                  className={`relative flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
+                    formatChoice === 'square'
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                      : 'border-border bg-secondary/30 hover:bg-secondary/50'
+                  }`}
+                >
+                  {formatChoice === 'square' && (
+                    <div className="absolute top-2 right-2">
+                      <Check className="w-3 h-3 text-primary" />
+                    </div>
+                  )}
+                  <Square className="w-8 h-8 text-muted-foreground" />
+                  <div>
+                    <span className="text-xs font-medium text-foreground block">Square (1:1)</span>
+                    <span className="text-[10px] text-muted-foreground">1080 × 1080</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setFormatChoice('story')}
+                  className={`relative flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
+                    formatChoice === 'story'
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                      : 'border-border bg-secondary/30 hover:bg-secondary/50'
+                  }`}
+                >
+                  {formatChoice === 'story' && (
+                    <div className="absolute top-2 right-2">
+                      <Check className="w-3 h-3 text-primary" />
+                    </div>
+                  )}
+                  <RectangleVertical className="w-8 h-8 text-muted-foreground" />
+                  <div>
+                    <span className="text-xs font-medium text-foreground block">Story (9:16)</span>
+                    <span className="text-[10px] text-muted-foreground">1080 × 1920</span>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -548,7 +605,7 @@ export default function Marketing() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
               {variations.map((variation, idx) => {
                 const validImages = variation.images.filter(Boolean);
 
