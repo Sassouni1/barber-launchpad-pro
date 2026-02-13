@@ -35,36 +35,7 @@ interface BrandProfile {
   screenshot?: string | null;
 }
 
-// Center-crop an image to target dimensions
-const cropImage = (srcUrl: string, width: number, height: number): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { reject(new Error('Canvas not supported')); return; }
-
-      // Center-crop: scale to cover, then center
-      const srcRatio = img.width / img.height;
-      const dstRatio = width / height;
-      let sx = 0, sy = 0, sw = img.width, sh = img.height;
-      if (srcRatio > dstRatio) {
-        sw = img.height * dstRatio;
-        sx = (img.width - sw) / 2;
-      } else {
-        sh = img.width / dstRatio;
-        sy = (img.height - sh) / 2;
-      }
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = srcUrl;
-  });
-};
+// cropImage removed — all variations now use AI generation
 
 const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -263,118 +234,60 @@ export default function Marketing() {
     ];
     setVariations(cards);
 
-    // Brand Square: crop real images to 1080x1080
-    realImages.forEach((imgUrl, i) => {
-      cropImage(imgUrl, 1080, 1080)
-        .then(cropped => {
-          setVariations(prev => prev.map(v => {
-            if (v.type !== 'brand-square') return v;
-            const newImgs = [...v.images];
-            newImgs[i] = cropped;
-            return { ...v, images: newImgs, imagesLoading: newImgs.some((x, j) => x === null && j < realImages.length) };
-          }));
-        })
-        .catch(() => {
-          setVariations(prev => prev.map(v => {
-            if (v.type !== 'brand-square') return v;
-            const newImgs = [...v.images];
-            newImgs[i] = imgUrl; // fallback to original
-            return { ...v, images: newImgs, imagesLoading: newImgs.some((x, j) => x === null && j < realImages.length) };
-          }));
-        });
-    });
-    // If fewer than 3 real images, mark remaining as done
-    if (realImages.length < 3) {
-      setVariations(prev => prev.map(v => {
-        if (v.type !== 'brand-square') return v;
-        return { ...v, images: v.images.slice(0, realImages.length).concat(Array(3 - realImages.length).fill(null)), imagesLoading: realImages.length > 0 };
-      }));
-    }
+    // Helper to generate an AI image and update variation state
+    const generateSlot = (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
+      const targetW = sizeVal === 'story' ? 1080 : 1080;
+      const targetH = sizeVal === 'story' ? 1920 : 1080;
 
-    // Brand Story: crop real images to 1080x1920
-    realImages.forEach((imgUrl, i) => {
-      cropImage(imgUrl, 1080, 1920)
-        .then(cropped => {
-          setVariations(prev => prev.map(v => {
-            if (v.type !== 'brand-story') return v;
-            const newImgs = [...v.images];
-            newImgs[i] = cropped;
-            return { ...v, images: newImgs, imagesLoading: newImgs.some((x, j) => x === null && j < realImages.length) };
-          }));
-        })
-        .catch(() => {
-          setVariations(prev => prev.map(v => {
-            if (v.type !== 'brand-story') return v;
-            const newImgs = [...v.images];
-            newImgs[i] = imgUrl;
-            return { ...v, images: newImgs, imagesLoading: newImgs.some((x, j) => x === null && j < realImages.length) };
-          }));
-        });
-    });
-    if (realImages.length < 3) {
-      setVariations(prev => prev.map(v => {
-        if (v.type !== 'brand-story') return v;
-        return { ...v, images: v.images.slice(0, realImages.length).concat(Array(3 - realImages.length).fill(null)), imagesLoading: realImages.length > 0 };
-      }));
-    }
-
-    // AI Square: 3 calls
-    [0, 1, 2].forEach(imgIdx => {
       supabase.functions.invoke('generate-marketing-image', {
         body: {
           brandProfile: bp,
-          variationTitle: 'AI Square',
+          variationTitle: type,
           variationContent: caption,
           contentType,
           tone,
           index: imgIdx,
           palette: paletteChoice,
-          size: 'square',
+          size: sizeVal,
+          ...(refUrl ? { referenceImageUrl: refUrl } : {}),
         },
       }).then(async ({ data, error }) => {
         let imageUrl: string | null = null;
         if (!error && data?.success && data.imageUrl) {
-          try { imageUrl = await resizeImage(data.imageUrl, 1080, 1080); } catch { imageUrl = data.imageUrl; }
+          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
         }
         setVariations(prev => prev.map(v => {
-          if (v.type !== 'ai-square') return v;
+          if (v.type !== type) return v;
           const newImgs = [...v.images];
           newImgs[imgIdx] = imageUrl;
-          const doneCount = newImgs.filter(x => x !== null).length + newImgs.filter(x => x === null).length - newImgs.filter(x => x === null).length;
-          // Mark loading false after all 3 attempted
-          const attemptedAll = imgIdx === 2 || newImgs.every(x => x !== null);
-          return { ...v, images: newImgs, imagesLoading: !attemptedAll && newImgs.some(x => x === null) };
+          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
+          const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
+          return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
         }));
       });
-    });
+    };
 
-    // AI Story: 3 calls
-    [0, 1, 2].forEach(imgIdx => {
-      supabase.functions.invoke('generate-marketing-image', {
-        body: {
-          brandProfile: bp,
-          variationTitle: 'AI Story',
-          variationContent: caption,
-          contentType,
-          tone,
-          index: imgIdx,
-          palette: paletteChoice,
-          size: 'story',
-        },
-      }).then(async ({ data, error }) => {
-        let imageUrl: string | null = null;
-        if (!error && data?.success && data.imageUrl) {
-          try { imageUrl = await resizeImage(data.imageUrl, 1080, 1920); } catch { imageUrl = data.imageUrl; }
-        }
-        setVariations(prev => prev.map(v => {
-          if (v.type !== 'ai-story') return v;
-          const newImgs = [...v.images];
-          newImgs[imgIdx] = imageUrl;
-          const attemptedAll = imgIdx === 2 || newImgs.every(x => x !== null);
-          return { ...v, images: newImgs, imagesLoading: !attemptedAll && newImgs.some(x => x === null) };
-        }));
-      });
-    });
+    const brandCount = Math.max(realImages.length, 1); // At least 1 AI call even with no images
+
+    // Brand Square: AI generation with reference images
+    for (let i = 0; i < Math.min(brandCount, 3); i++) {
+      generateSlot('brand-square', i, 'square', realImages[i]);
+    }
+
+    // Brand Story: AI generation with reference images
+    for (let i = 0; i < Math.min(brandCount, 3); i++) {
+      generateSlot('brand-story', i, 'story', realImages[i]);
+    }
+
+    // AI Square: 3 calls, no reference
+    for (let i = 0; i < 3; i++) {
+      generateSlot('ai-square', i, 'square');
+    }
+
+    // AI Story: 3 calls, no reference
+    for (let i = 0; i < 3; i++) {
+      generateSlot('ai-story', i, 'story');
+    }
   };
 
   const copyToClipboard = async (text: string) => {
