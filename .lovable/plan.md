@@ -1,52 +1,65 @@
 
 
-## Fix Image Dimensions for Marketing Generator
+## Extract Brand Colors from Website and Use in Image Generation
 
-The current implementation only describes the desired dimensions in the text prompt, but the Gemini image model ignores pixel-exact sizing instructions. The generated images are coming out at the model's default resolution (likely 1024x1024), not the requested 1080x1080 or 1080x1920.
+Currently the scrape only pulls markdown text and links — it completely ignores the website's visual identity. The image generator then falls back to generic tone-based color palettes that have nothing to do with the actual brand. This is why the results look off.
 
-### The Problem
+### The Fix: Two Changes
 
-The `google/gemini-2.5-flash-image` model via the chat completions endpoint does not support a `size` parameter. Putting "1080x1920" in the prompt text is a hint at best -- the model produces images at its own default dimensions.
+**1. Scrape function extracts branding (`supabase/functions/scrape-website/index.ts`)**
 
-### The Fix
+Add `'branding'` to the Firecrawl formats array. This tells Firecrawl to extract the site's actual colors (primary, secondary, accent, background, text), fonts, and logo URL. The returned `brandProfile` will include a new `branding` object with all of this data.
 
-Use the higher-quality image model `google/gemini-3-pro-image-preview` which produces better results and supports aspect ratio guidance through prompting more reliably. Additionally, post-process the generated images using an HTML Canvas in the edge function to resize them to the exact target dimensions before returning.
-
-**Edge function changes (`supabase/functions/generate-marketing-image/index.ts`):**
-
-1. After receiving the base64 image from the AI model, decode it
-2. Use a server-side image resize approach: since Deno edge functions don't have Canvas, we can't resize server-side easily. Instead, handle resizing on the frontend.
-
-**Frontend changes (`src/pages/Marketing.tsx`):**
-
-1. When a base64 image is received, draw it onto an off-screen HTML Canvas at the exact target dimensions (1080x1080 for square, 1080x1920 for story)
-2. Export the canvas as a new base64 PNG at the correct resolution
-3. Use this resized image for display and download
-
-This guarantees the downloaded images are exactly 1080x1080 or 1080x1920 regardless of what the model outputs.
-
-### Technical Details
-
-**Modified: `src/pages/Marketing.tsx`**
-- Add a `resizeImage(dataUrl: string, width: number, height: number): Promise<string>` utility function
-- Uses an off-screen `<canvas>` element to draw the source image and export at exact dimensions
-- Called after each image generation resolves, before storing in state
-- Story images resized to 1080x1920, square images to 1080x1080
-
-**Modified: `supabase/functions/generate-marketing-image/index.ts`**
-- Improve the prompt to more strongly emphasize the aspect ratio (portrait 9:16 vs square 1:1) so the model generates images closer to the correct proportions before resizing
-- Consider switching to `google/gemini-3-pro-image-preview` for better quality output
-
-### Resize Function
-
+Change:
 ```text
-resizeImage(base64DataUrl, targetWidth, targetHeight)
-  -> Create Image element, load base64
-  -> Create canvas at targetWidth x targetHeight
-  -> Draw image scaled to fill canvas
-  -> Export canvas as PNG data URL
-  -> Return exact-dimension image
+formats: ['markdown', 'links']
+```
+to:
+```text
+formats: ['markdown', 'links', 'branding']
 ```
 
-This ensures every downloaded image is pixel-perfect at 1080x1080 or 1080x1920.
+Then include the branding data in the returned profile:
+```text
+brandProfile = {
+  title, description, content, sourceUrl,
+  branding: {
+    colors: { primary: "#FF6B35", secondary: "#004E89", ... },
+    fonts: [{ family: "Inter" }, ...],
+    logo: "https://..."
+  }
+}
+```
+
+**2. Image generator uses the real brand colors (`supabase/functions/generate-marketing-image/index.ts`)**
+
+When building the prompt, inject the actual extracted colors and fonts instead of generic descriptions. The prompt will say things like:
+
+```text
+Brand colors (use these EXACTLY):
+- Primary: #FF6B35
+- Secondary: #004E89
+- Background: #1A1A1A
+- Text: #FFFFFF
+
+Brand fonts: Inter, Roboto Mono
+```
+
+This gives the AI model concrete hex values to work with instead of vague instructions like "use professional colors."
+
+Also upgrade the model from `google/gemini-2.5-flash-image` to `google/gemini-3-pro-image-preview` for better visual quality and more reliable color adherence.
+
+**3. Update BrandProfile interface and pass-through (`src/pages/Marketing.tsx`)**
+
+Add `branding` to the `BrandProfile` TypeScript interface so it flows through from scrape to image generation without being dropped.
+
+### Files Modified
+
+- `supabase/functions/scrape-website/index.ts` — add `'branding'` format, include branding data in response
+- `supabase/functions/generate-marketing-image/index.ts` — read `brandProfile.branding.colors` and inject hex values into prompt; upgrade model to `gemini-3-pro-image-preview`; rewrite prompt with reference-image-inspired art direction (dark backgrounds, bold typography, decorative elements) combined with real brand colors
+- `src/pages/Marketing.tsx` — update `BrandProfile` interface to include optional `branding` field
+
+### What This Achieves
+
+Instead of "make it look professional" the AI now gets "use #D4AF37 as accent color, #1A1A1A as background, Inter font family" — pulled directly from the client's actual website. The images will match the brand identity automatically.
 
