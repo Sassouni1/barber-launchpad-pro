@@ -1,41 +1,41 @@
 
 
-## Fix Brand Image Generation + Allow Upload Before Website Analysis
+## Simplify Image Generation: Choose Format Type
 
-### Problem 1: Brand Images Only Generate 1
+### What Changes
 
-`buildVariations` reads `allBrandImages` from the component closure, but it's called immediately after `setBrandProfile()` -- before React re-renders. So the scraped images list is still empty, and `brandCount = Math.max(0, 1) = 1`.
+Instead of generating all 4 variation types (12 images) at once, users will pick a single format -- **Square** or **Story** -- and only generate images for that format. This cuts generation to 3-6 images max per run.
 
-**Fix**: Pass the scraped images directly into `buildVariations` as a parameter instead of reading stale closure state. Compute the combined image list inside the function using the fresh brand profile data + current uploaded/removed state.
+### UI Changes
 
-### Problem 2: Upload Only Available After Website Analysis
+**Format Selector** (added between Tone selector and the Analyze button area):
+- Two clickable cards side by side, similar to the palette selector style
+- **Square (1:1)** -- shows a small square icon outline with "1080 x 1080" dimension text
+- **Story (9:16)** -- shows a tall rectangle icon outline with "1080 x 1920" dimension text
+- Selected state uses the same ring/highlight treatment as the palette selector
+- Default selection: Square
 
-The entire Brand Assets card is wrapped in `{brandProfile && (...)}`, hiding the upload button until a website is analyzed.
+**Results Section**:
+- Instead of a 2x2 grid of 4 cards, show only 2 cards in a row:
+  - "Brand Images (Square)" + "AI Generated (Square)" -- if Square selected
+  - "Brand Images (Stories)" + "AI Generated (Stories)" -- if Story selected
+- Each card still has up to 3 carousel slides
 
-**Fix**: Split the Brand Assets section into two parts:
-- **Image upload area** -- always visible (even before website analysis), so users can upload their own photos first
-- **Color palette selector + scraped images** -- only shown after website analysis (since palette data comes from scraping)
+### Technical Details
 
-### Changes (single file: `src/pages/Marketing.tsx`)
+**New state**: `formatChoice: 'square' | 'story'` (default `'square'`)
 
-1. **`buildVariations` signature change**: Accept images array as parameter
-   ```
-   buildVariations(bp, caption, combinedImages)
-   ```
-   Inside, compute `realImages` from the passed-in array instead of the stale `allBrandImages` closure.
+**`buildVariations` changes**:
+- Only create 2 variation cards instead of 4, based on `formatChoice`
+- If `formatChoice === 'square'`: create `brand-square` and `ai-square` only
+- If `formatChoice === 'story'`: create `brand-story` and `ai-story` only
+- This reduces AI calls from 12 to 6 (or fewer if limited brand images)
 
-2. **Callers pass fresh images**: In `generateContent`, after getting the brand profile, compute the image list from `bp.images` + `uploadedImages` - `removedImages` and pass it in. Same for the Regenerate button's call.
+**Format selector component** (inline in Marketing.tsx):
+- Two styled buttons with SVG/icon dimension indicators
+- Square icon: a small square outline with "1080 x 1080" below
+- Story icon: a tall narrow rectangle outline with "1080 x 1920" below
+- Placed in the input card, below the Content Type / Tone row
 
-3. **Move upload UI outside the `brandProfile &&` gate**: Add an "Upload Your Images" section that's always visible above the Brand Assets card. The scraped images gallery and palette selector remain inside the `brandProfile &&` block.
-
-4. **Merge galleries**: When `brandProfile` exists, show all images (scraped + uploaded) in one gallery. When no brand profile yet, show only uploaded images.
-
-### What Doesn't Change
-
-- Edge functions (no changes)
-- AI generation prompts
-- Card grid layout (2x2)
-- Palette selector logic
-- Caption generation
-- Carousel / download / save
+**No edge function changes** -- the `size` parameter already supports `'square'` and `'story'`.
 
