@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -30,7 +30,6 @@ Deno.serve(async (req) => {
     const isStory = size === 'story';
     const useGold = palette !== 'website';
 
-    // Determine colors based on palette choice
     const colors = brandProfile.branding?.colors || {};
     const fonts = brandProfile.branding?.fonts || [];
 
@@ -75,12 +74,30 @@ Brand fonts: ${fontFamily}
 
     const layoutInstruction = layouts[layoutIndex];
 
+    // Build different prompts for reference-image vs pure-AI variations
+    const hasReference = !!referenceImageUrl;
+
+    const referenceInstructions = hasReference
+      ? `REFERENCE PHOTO INSTRUCTIONS:
+You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
+- Incorporate the reference photo prominently — it should be the main visual element
+- Apply cinematic color grading and dramatic lighting to the photo
+- Overlay the headline text in bold typography ON TOP of or alongside the photo
+- The result must look like a professionally designed social media post, NOT a raw photo
+- Blend the photo seamlessly with the dark background and brand elements`
+      : `PHOTOGRAPHY INSTRUCTIONS:
+Generate original cinematic photography that fits a barbershop/hair replacement business.
+- Professional barbershop scenes, dramatic lighting, shallow depth of field
+- The photography should feel authentic and high-end`;
+
     const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 
 ${brandColorBlock}
 
 LAYOUT:
 ${layoutInstruction}
+
+${referenceInstructions}
 
 TEXT TO INCLUDE ON THE IMAGE (render this text directly as part of the graphic):
 Headline: "${variationContent.substring(0, 120)}"
@@ -89,16 +106,28 @@ Brand: "${brandProfile.title || ''}"
 CRITICAL DESIGN RULES:
 1. The headline typography must be MASSIVE — taking up at least 30% of the image area. Bold, uppercase, impactful sans-serif or display font.
 2. Background must be DARK (black, charcoal, or very dark version of brand colors). Never use bright, pastel, or white backgrounds.
-3. If using photography, it must look cinematic with dramatic lighting, shallow depth of field, professional barbershop scenes.
-4. Text must have extremely high contrast against the background. Use the brand accent color for emphasis on key words.
-5. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames.
-6. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
-7. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
-8. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
+3. Text must have extremely high contrast against the background. Use the brand accent color for emphasis on key words.
+4. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames.
+5. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
+6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
+7. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
-    console.log('Generating marketing image:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size });
+    console.log('Generating marketing image:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
+
+    // Build message content — multimodal if reference image provided
+    const messageContent: any[] = [];
+    if (hasReference) {
+      messageContent.push({
+        type: 'image_url',
+        image_url: { url: referenceImageUrl },
+      });
+    }
+    messageContent.push({
+      type: 'text',
+      text: prompt,
+    });
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -109,7 +138,7 @@ Make this look like something a premium brand would actually post on Instagram.`
       body: JSON.stringify({
         model: 'google/gemini-3-pro-image-preview',
         messages: [
-          { role: 'user', content: prompt },
+          { role: 'user', content: messageContent },
         ],
         modalities: ['image', 'text'],
       }),
@@ -155,7 +184,7 @@ Make this look like something a premium brand would actually post on Instagram.`
       );
     }
 
-    console.log('Marketing image generated successfully:', { index: layoutIndex, palette, size });
+    console.log('Marketing image generated successfully:', { index: layoutIndex, palette, size, hasReference });
     return new Response(
       JSON.stringify({ success: true, imageUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
