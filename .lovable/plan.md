@@ -1,26 +1,41 @@
 
 
-## Reduce Images from 3 to 2 Per Variation Type
+## Simplify Image Generation: Choose Format Type
 
 ### What Changes
 
-Reduce image generation from 3 to 2 per variation type, cutting total API calls from 12 to 8. Also make them sequential with a delay to avoid rate limiting.
+Instead of generating all 4 variation types (12 images) at once, users will pick a single format -- **Square** or **Story** -- and only generate images for that format. This cuts generation to 3-6 images max per run.
 
-### Changes in `src/pages/Marketing.tsx`
+### UI Changes
 
-**1. Variation cards initialization (lines 237-240)**
-- Change `images` arrays from `[null, null, null]` to `[null, null]`
+**Format Selector** (added between Tone selector and the Analyze button area):
+- Two clickable cards side by side, similar to the palette selector style
+- **Square (1:1)** -- shows a small square icon outline with "1080 x 1080" dimension text
+- **Story (9:16)** -- shows a tall rectangle icon outline with "1080 x 1920" dimension text
+- Selected state uses the same ring/highlight treatment as the palette selector
+- Default selection: Square
 
-**2. Image slicing (line 235)**
-- Change `imagesForGeneration.slice(0, 3)` to `imagesForGeneration.slice(0, 2)`
+**Results Section**:
+- Instead of a 2x2 grid of 4 cards, show only 2 cards in a row:
+  - "Brand Images (Square)" + "AI Generated (Square)" -- if Square selected
+  - "Brand Images (Stories)" + "AI Generated (Stories)" -- if Story selected
+- Each card still has up to 3 carousel slides
 
-**3. Loop limits for generation calls (lines 270, 280-297)**
-- Change all `3` caps to `2` in the generation loops and the `totalForType` calculation
-- Brand Square/Story: `Math.min(brandCount, 2)` instead of `3`
-- AI Square/Story: loop `i < 2` instead of `i < 3`
+### Technical Details
 
-**4. Make generation sequential**
-- Convert `generateSlot` to return a Promise
-- Queue all 8 calls sequentially with a ~3-second delay between each to stay under Google's 10 RPM free tier limit
-- Show progress text ("Generating image 2 of 8...")
+**New state**: `formatChoice: 'square' | 'story'` (default `'square'`)
+
+**`buildVariations` changes**:
+- Only create 2 variation cards instead of 4, based on `formatChoice`
+- If `formatChoice === 'square'`: create `brand-square` and `ai-square` only
+- If `formatChoice === 'story'`: create `brand-story` and `ai-story` only
+- This reduces AI calls from 12 to 6 (or fewer if limited brand images)
+
+**Format selector component** (inline in Marketing.tsx):
+- Two styled buttons with SVG/icon dimension indicators
+- Square icon: a small square outline with "1080 x 1080" below
+- Story icon: a tall narrow rectangle outline with "1080 x 1920" below
+- Placed in the input card, below the Content Type / Tone row
+
+**No edge function changes** -- the `size` parameter already supports `'square'` and `'story'`.
 
