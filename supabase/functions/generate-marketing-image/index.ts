@@ -104,6 +104,7 @@ Brand fonts: ${fontFamily}
     const referenceInstructions = hasReference
       ? `REFERENCE PHOTO INSTRUCTIONS:
 You have been given a reference photo. This is the ONLY photo that should appear in the final image.
+- The person in the reference photo is a REAL CLIENT or REAL PERSON. Their exact appearance — skin tone, facial features, hair style, hair color, body type, clothing — MUST be preserved identically. Do NOT generate a different person, alter their face, or create an AI approximation or a "similar-looking" person. The final image must look like a photo of THIS SAME PERSON.
 - You MUST use this EXACT photo as the main visual. Do NOT generate, replace, or recreate any part of it with AI-generated imagery.
 - Do NOT generate new faces or people. The reference photo contains the real subject — use it exactly as provided.
 - You may apply minor color grading to match the dark theme, but the photo content must remain unchanged.
@@ -146,9 +147,13 @@ TEXT ON THE IMAGE:
 Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold, punchy headline of 5-8 words max inspired by this theme. Do NOT copy the theme text directly onto the image.
 
 WEBSITE CONTENT CONTEXT (use this to understand what the brand ACTUALLY offers):
-"${brandProfile.content?.substring(0, 500) || ''}"
+"${brandProfile.content?.substring(0, 2000) || ''}"
 
-Headline Strategy: Analyze BOTH the theme above AND the website content. Extract the brand's ACTUAL services, products, themes, or unique selling points from the website content. Create a headline that reflects what THIS specific brand offers. Do NOT default to generic hair/barber/salon topics unless the website content explicitly mentions those services.
+Headline Strategy:
+Step 1 — Read the WEBSITE CONTENT above carefully. Identify the brand's INDUSTRY (e.g., restaurant, fitness, salon, tech), their TOP 3 SERVICES or PRODUCTS, and any unique taglines or selling points.
+Step 2 — Create a headline (5-8 words max) that directly references one of the identified services, products, or themes. The headline MUST make sense for THIS specific brand.
+Step 3 — If the website content mentions specific offerings (e.g., "lace front units", "pasta made fresh daily", "personal training"), use those actual terms in the headline.
+Do NOT default to generic hair/barber/salon topics unless the website content explicitly mentions those services.
 
 ${variationTitle ? `Variation style: "${variationTitle}" -- use this as creative direction, not as visible text.` : ''}
 HEADLINE STYLE — rotate between these approaches: results-driven (${headlineExamples}), service-driven, lifestyle, urgency ("Book This Week"), social proof ("Trusted By Hundreds"). Pick the style that best fits the brand's actual offerings from the website content.
@@ -173,6 +178,7 @@ CRITICAL DESIGN RULES:
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
+    console.log('Website content preview:', brandProfile.content?.substring(0, 200) || '(empty)');
     console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
 
     // Build request parts
@@ -185,7 +191,11 @@ Make this look like something a premium brand would actually post on Instagram.`
           inlineData: { mimeType, data: base64 },
         });
       } catch (e) {
-        console.warn('Failed to fetch reference image, proceeding without it:', e);
+        console.error('Failed to fetch reference image, aborting:', e);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to fetch reference image. Please try again.' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
