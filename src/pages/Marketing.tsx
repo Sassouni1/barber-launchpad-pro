@@ -275,6 +275,7 @@ export default function Marketing() {
             index: imgIdx,
             palette: paletteChoice,
             size,
+            businessCategory,
             ...(refUrl ? { referenceImageUrl: refUrl } : {}),
           },
         });

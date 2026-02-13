@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl, businessCategory } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -126,6 +126,13 @@ Generate original cinematic photography that fits ${businessCategory ? ({
       'extensions': 'a hair extensions business',
     } as Record<string, string>)[businessCategory] || 'a premium brand' : 'a premium brand';
 
+    const headlineExamples = businessCategory ? ({
+      'hair-system': '"Fresh Look. Zero Surgery.", "Same-Day Installs"',
+      'haircut': '"Sharp Cuts. Clean Lines.", "Walk-Ins Welcome"',
+      'salon': '"Your Best Hair Day.", "Color That Turns Heads"',
+      'extensions': '"Length You\'ll Love.", "Seamless Blends"',
+    } as Record<string, string>)[businessCategory] || '"See The Difference.", "Book Today", "Your Best Look Yet"' : '"See The Difference.", "Book Today", "Your Best Look Yet"';
+
     const prompt = `You are a world-class graphic designer creating a premium marketing image for ${businessDesc}. ${aspectInstruction}
 
 ${brandColorBlock}
@@ -137,13 +144,20 @@ ${referenceInstructions}
 
 TEXT ON THE IMAGE:
 Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold, punchy headline of 5-8 words max inspired by this theme. Do NOT copy the theme text directly onto the image.
+
+WEBSITE CONTENT CONTEXT (use this to understand what the brand ACTUALLY offers):
+"${brandProfile.content?.substring(0, 500) || ''}"
+
+Headline Strategy: Analyze BOTH the theme above AND the website content. Extract the brand's ACTUAL services, products, themes, or unique selling points from the website content. Create a headline that reflects what THIS specific brand offers. Do NOT default to generic hair/barber/salon topics unless the website content explicitly mentions those services.
+
 ${variationTitle ? `Variation style: "${variationTitle}" -- use this as creative direction, not as visible text.` : ''}
-HEADLINE STYLE — rotate between these approaches: results-driven ("Fresh Look. Zero Surgery."), service-driven ("Same-Day Installs"), lifestyle ("Look Good Every Day"), urgency ("Book This Week"), social proof ("Trusted By Hundreds"). Pick the style that best fits the variation theme.
+HEADLINE STYLE — rotate between these approaches: results-driven (${headlineExamples}), service-driven, lifestyle, urgency ("Book This Week"), social proof ("Trusted By Hundreds"). Pick the style that best fits the brand's actual offerings from the website content.
 BANNED WORDS in headlines: Do NOT use "confidence", "reclaim", "journey", or "hair loss". Focus on the positive outcome, the service, or a call to action instead.
 ${brandProfile.title ? `Brand name: "${brandProfile.title}"` : '(No brand name provided — do NOT invent or display any brand name on the image.)'}
 CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e.g., "BOOK A FREE CONSULTATION", "DM TO SCHEDULE", "LINK IN BIO", "CALL NOW"). Place it in a contrasting banner, button-style box, or prominent text area near the bottom of the image.
 
 CRITICAL DESIGN RULES:
+0. TEXT PLACEMENT PRIORITY: Before placing ANY text, scan the image and identify the largest empty areas (solid-color walls, ceilings, dark backgrounds, open negative space with no people). ALL headlines, brand names, CTAs, and decorative elements MUST be positioned in these empty zones. If a person occupies one side of the frame and empty space occupies the other, place 100% of the text on the empty side. Never place text over any part of a person — face, hair, body, or clothing.
 1. The headline typography must be large and impactful. If a word does not fit on a single line, reduce the font size until it does. Never hyphenate or break a word across two lines. Bold, uppercase, impactful sans-serif or display font.
 2. Background must be DARK (black, charcoal, or very dark version of brand colors). Never use bright, pastel, or white backgrounds.
 3. Text must have extremely high contrast against the background. Use the brand accent color for emphasis on key words.
