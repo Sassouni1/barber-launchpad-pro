@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl, referenceImageBase64, referenceImageMimeType } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -138,14 +138,23 @@ Make this look like something a premium brand would actually post on Instagram.`
     // Build request parts
     const parts: any[] = [];
 
-    if (hasReference) {
+    // Use pre-fetched base64 if provided, otherwise fetch the URL
+    if (referenceImageBase64 && referenceImageMimeType) {
+      parts.push({
+        inlineData: { mimeType: referenceImageMimeType, data: referenceImageBase64 },
+      });
+    } else if (hasReference) {
       try {
         const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
         parts.push({
           inlineData: { mimeType, data: base64 },
         });
       } catch (e) {
-        console.warn('Failed to fetch reference image, proceeding without it:', e);
+        console.error('Failed to fetch reference image:', e);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Could not fetch reference image. The image host may be blocking repeated requests.' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
