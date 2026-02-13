@@ -1,37 +1,28 @@
 
 
-## Fix Brand Photos: Default Selection and Stronger Reference Usage
+## Fix: Send Reference Images as Base64 to Guarantee AI Sees Them
 
-### Problem
-1. `sourceChoice` defaults to `'ai'` so users unknowingly generate AI-only images
-2. Even when Brand Photos is selected, the Gemini prompt treats the reference image as "inspiration" rather than requiring it to be prominently featured
+### Root Cause
+The reference image is sent as a URL (`image_url.url`). If the AI gateway can't fetch that URL (e.g., CORS, auth headers, timing), Gemini never actually sees the photo and just generates from scratch. This explains the inconsistency -- sometimes it works, sometimes it doesn't.
+
+### Fix
+Convert the reference image to base64 on the client side before sending it to the edge function. This guarantees the image data is embedded directly in the request, so Gemini always has access to it.
 
 ### Changes
 
 **File: `src/pages/Marketing.tsx`**
-- Change default `sourceChoice` from `'ai'` to `'brand'`
+- Add a helper function `urlToBase64(url: string): Promise<string>` that fetches the image and converts it to a base64 data URI using canvas
+- In the `generateSlot` call for brand mode, convert `realImages[i]` to base64 before passing it as `referenceImageUrl`
+- This ensures the edge function always receives actual image data, not just a link that might fail
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
-- Rewrite the `referenceInstructions` prompt block when `hasReference` is true
-- New prompt will instruct Gemini to use the reference photo as the dominant visual element (background or hero image), NOT generate a completely new scene
-- Specifically tell the AI: "The reference photo MUST be the main visual. Use it as the background. Overlay text, brand elements, and decorative accents on top. Do NOT replace or reimagine the photo."
+- Detect if `referenceImageUrl` is already a base64 data URI (starts with `data:image/`)
+- If it's a regular URL, fetch it and convert to base64 inside the function as a fallback
+- Pass the base64 data URI directly in the `image_url.url` field to the AI gateway -- this is supported by the OpenAI-compatible API format
+- Keep the strict prompt instructions already in place
 
-### Technical Details
-
-**Marketing.tsx line 164:**
-```
-// Before
-const [sourceChoice, setSourceChoice] = useState<SourceChoice>('ai');
-// After
-const [sourceChoice, setSourceChoice] = useState<SourceChoice>('brand');
-```
-
-**Edge function prompt change (referenceInstructions when hasReference):**
-Replace the current vague "incorporate the reference photo prominently" with explicit instructions:
-- "The provided reference photo IS the background of this design. Do not generate new photography."
-- "Place the reference image full-bleed or as the dominant element."
-- "Apply a dark gradient overlay on top of the photo for text readability."
-- "Render the headline text, brand name, and decorative elements ON TOP of the photo."
-- "The final output must clearly show the original reference photo, not a reimagined version."
-
-No database or other file changes needed.
+### Why This Works
+- Base64 images are embedded directly in the API request body -- no external fetching needed
+- The AI model is guaranteed to receive the actual pixel data
+- Combined with the strict "DO NOT reimagine" prompt, this should reliably produce overlays on the real photos
+- No visual quality loss -- still AI-composed with professional typography, just guaranteed to use the actual photo
