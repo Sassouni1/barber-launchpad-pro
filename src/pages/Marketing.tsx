@@ -288,30 +288,28 @@ export default function Marketing() {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
           newImgs[imgIdx] = imageUrl ?? 'failed';
-          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
-          const done = newImgs.slice(0, totalForType).filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: done < totalForType };
+          const done = newImgs.filter(x => x !== null).length;
+          return { ...v, images: newImgs, imagesLoading: done < 3 };
         }));
       } catch {
         setVariations(prev => prev.map(v => {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
           newImgs[imgIdx] = 'failed';
-          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
-          const done = newImgs.slice(0, totalForType).filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: done < totalForType };
+          const done = newImgs.filter(x => x !== null).length;
+          return { ...v, images: newImgs, imagesLoading: done < 3 };
         }));
       }
     };
 
-    const brandCount = Math.max(realImages.length, 1);
-
     // Build jobs based on imageMode
     const jobs: Array<() => Promise<void>> = [];
     if (imageMode === 'both' || imageMode === 'brand') {
-      for (let i = 0; i < Math.min(brandCount, 3); i++) {
+      for (let i = 0; i < 3; i++) {
         const idx = i;
-        jobs.push(() => generateSlot(brandType, idx, sizeVal, realImages[idx]));
+        // Reuse reference images cyclically if fewer than 3
+        const refUrl = realImages.length > 0 ? realImages[i % realImages.length] : undefined;
+        jobs.push(() => generateSlot(brandType, idx, sizeVal, refUrl));
       }
     }
     if (imageMode === 'both' || imageMode === 'ai') {
