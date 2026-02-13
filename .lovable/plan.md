@@ -1,65 +1,41 @@
 
-## Fix: Website Content Not Driving Headlines + Text Over People
 
-### Current State
-The recent diff shows that `businessCategory` was already made dynamic in the photography instructions and business descriptions (lines 113-128), BUT:
+## Fix: Reference Photos Being Reimagined + Website Content Too Short
 
-1. **Frontend never passes `businessCategory`** (line 268-279 in Marketing.tsx) — the body sent to `generate-marketing-image` doesn't include it
-2. **Edge function doesn't destructure `businessCategory`** (line 29 in generate-marketing-image/index.ts) — it's missing from the destructuring
-3. **Hardcoded headline examples** (line 141) still contain "Zero Surgery" and "Same-Day Installs" which override the dynamic logic
-4. **No instruction to mine website content for themes** — line 139 says "inspired by this theme" but doesn't tell AI to extract actual themes/services from the website content itself
-5. **No explicit "use empty space" rule** — only negative rules (don't place over faces/hair) without a positive instruction to prioritize empty zones
+### Root Cause Analysis
 
-### Technical Changes
+**1. Reference photos are being reimagined, not used literally**
+The logs confirm all 3 images had `hasReference: true` and no fetch failures -- so the reference photo WAS sent to Gemini every time. The problem is fundamental: Gemini 3 Pro Image is a **generation** model, not a compositing tool. When you give it a photo and say "use this," it generates a new image *inspired by* the reference rather than placing the actual photo into a design. One out of three happened to look close enough; the other two diverged into AI-generated people.
 
-**File 1: `src/pages/Marketing.tsx`** (line 268-279)
-- Add `businessCategory` to the request body so the edge function receives it
+**2. Website content truncated to 500 characters**
+Line 149 sends only `brandProfile.content?.substring(0, 500)` to the image AI. For a salon website, 500 chars barely covers the page title and first paragraph -- it misses the actual services, pricing, specialties, etc. The AI then falls back to generic content.
 
-**File 2: `supabase/functions/generate-marketing-image/index.ts`** (multiple locations)
+### Proposed Changes
 
-1. **Line 29** — Destructure `businessCategory` from request:
-   ```typescript
-   const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl, businessCategory } = await req.json();
-   ```
+**File: `supabase/functions/generate-marketing-image/index.ts`**
 
-2. **Line 139** — Update headline instruction to mine website content for themes AND services:
-   Replace: `"Theme/mood of the post: \"${variationContent.substring(0, 200)}\"..."`
-   
-   With explicit content mining and theme extraction:
-   ```
-   Theme/mood of the post: "${variationContent.substring(0, 200)}"
-   
-   WEBSITE CONTENT CONTEXT: "${brandProfile.content?.substring(0, 500) || ''}"
-   
-   Headline Strategy: Analyze BOTH the generated theme AND the website content above. Extract key themes, services, or offerings mentioned on the website. Create a bold, punchy headline (5-8 words max) that reflects ONE of these actual themes or services. Do NOT default to generic hair-system messaging unless the website content explicitly mentions hair services.
-   ```
+**Change 1: Increase website content from 500 to 2000 characters (line 149)**
+Give the image AI enough context to actually understand the brand's offerings, themes, and services.
 
-3. **Line 141** — Replace hardcoded hair-system headline examples with dynamic ones based on `businessCategory`:
-   ```typescript
-   const headlineExamples = businessCategory ? {
-     'hair-system': '"Fresh Look. Zero Surgery.", "Same-Day Installs"',
-     'haircut': '"Sharp Cuts. Clean Lines.", "Walk-Ins Welcome"',
-     'salon': '"Your Best Hair Day.", "Color That Turns Heads"',
-     'extensions': '"Length You\'ll Love.", "Seamless Blends"',
-   }[businessCategory] : '"See The Difference.", "Book Today", "Your Best Look Yet"';
-   ```
-   
-   Then insert into prompt: `HEADLINE STYLE — rotate between these approaches: results-driven (${headlineExamples}), ...`
+**Change 2: Add explicit 3-step headline extraction (line 151)**
+Replace the current headline strategy with a structured approach:
+- Step 1: Identify the brand's industry and top 3 services/offerings from the website content
+- Step 2: Create a headline that directly references one of those identified services or themes
+- Step 3: Use actual terms found on the website (e.g., "balayage specialists" or "keratin treatments") rather than generic phrases
 
-4. **Line 146** — Add TEXT PLACEMENT PRIORITY rule before all other critical design rules:
-   ```
-   TEXT PLACEMENT PRIORITY: Before placing ANY text, scan the image and identify the largest empty areas (solid-color walls, ceilings, dark backgrounds, open negative space with no people). ALL headlines, brand names, CTAs, and decorative elements MUST be positioned in these empty zones. If a person occupies one side of the frame and empty space occupies the other, place 100% of the text on the empty side. Never place text over any part of a person — face, hair, body, or clothing.
-   ```
+**Change 3: Strengthen reference photo instructions to emphasize exact likeness (lines 104-111)**
+Add explicit language that the person is a REAL person whose exact appearance (skin tone, facial features, hair style, hair color, body type, clothing) MUST be preserved identically. Add: "Do NOT generate an AI approximation or a 'similar-looking' person."
 
-### Implementation Order
-1. Update frontend to pass `businessCategory`
-2. Update edge function destructuring to accept `businessCategory`
-3. Create dynamic headline examples mapping
-4. Update headline instruction to reference website content and extract themes
-5. Add TEXT PLACEMENT PRIORITY rule at the top of critical design rules
-6. Redeploy `generate-marketing-image` edge function
+**Change 4: Add a hard fail when reference image fetch fails (lines 187-189)**
+Currently the code silently falls back to pure AI generation when the reference image fetch fails. Change this to return a 502 error so the frontend knows to retry, rather than generating a fake person with a prompt that still says "use the reference photo."
 
-### Expected Behavior
-- When analyzing a restaurant website with no category selected → headlines will be based on actual restaurant content/themes, not hair systems
-- When analyzing a salon website with "salon" category → salon-specific headline examples
-- Text will be placed in clearly empty areas (backgrounds, margins, negative space) instead of over people's faces/hair
+**Change 5: Add debug logging for website content (after line 176)**
+Log the first 200 characters of `brandProfile.content` so we can verify the scrape data is actually flowing into the image function.
+
+### Important Caveat
+Gemini image generation has an inherent limitation: it generates new images rather than compositing existing photos into designs. The stronger instructions will improve consistency, but the model may still produce variations that don't perfectly match the reference. The hard fail on fetch errors and stronger likeness language will reduce the worst cases (completely different people).
+
+### Files Changed
+- `supabase/functions/generate-marketing-image/index.ts` (5 edits)
+- Redeploy edge function
+
