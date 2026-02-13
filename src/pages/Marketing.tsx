@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X } from 'lucide-react';
-import { useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
@@ -36,24 +35,7 @@ interface BrandProfile {
   screenshot?: string | null;
 }
 
-// cropImage removed — all variations now use AI generation
-
-const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { reject(new Error('Canvas not supported')); return; }
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = dataUrl;
-  });
-};
+// cropImage and resizeImage removed — AI generates correct dimensions directly
 
 function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; aspectClass: string }) {
   const validSlides = images.filter((u): u is string => !!u);
@@ -163,6 +145,12 @@ export default function Marketing() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const websiteColors = brandProfile?.branding?.colors || {};
   const hasWebsiteColors = Object.keys(websiteColors).length > 0;
@@ -242,27 +230,25 @@ export default function Marketing() {
     setVariations(cards);
 
     // Helper to generate an AI image and update variation state
-    const generateSlot = (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
-      const targetW = sizeVal === 'story' ? 1080 : 1080;
-      const targetH = sizeVal === 'story' ? 1920 : 1080;
+    const generateSlot = async (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
+          body: {
+            brandProfile: bp,
+            variationTitle: type,
+            variationContent: caption,
+            contentType,
+            tone,
+            index: imgIdx,
+            palette: paletteChoice,
+            size: sizeVal,
+            ...(refUrl ? { referenceImageUrl: refUrl } : {}),
+          },
+        });
 
-      supabase.functions.invoke('generate-marketing-image', {
-        body: {
-          brandProfile: bp,
-          variationTitle: type,
-          variationContent: caption,
-          contentType,
-          tone,
-          index: imgIdx,
-          palette: paletteChoice,
-          size: sizeVal,
-          ...(refUrl ? { referenceImageUrl: refUrl } : {}),
-        },
-      }).then(async ({ data, error }) => {
-        let imageUrl: string | null = null;
-        if (!error && data?.success && data.imageUrl) {
-          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
-        }
+        const imageUrl = (!error && data?.success && data.imageUrl) ? data.imageUrl : null;
+        if (!isMountedRef.current) return;
+
         setVariations(prev => prev.map(v => {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
@@ -271,7 +257,17 @@ export default function Marketing() {
           const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
           return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
         }));
-      });
+      } catch {
+        if (!isMountedRef.current) return;
+        setVariations(prev => prev.map(v => {
+          if (v.type !== type) return v;
+          const newImgs = [...v.images];
+          newImgs[imgIdx] = null;
+          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
+          const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length + 1;
+          return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
+        }));
+      }
     };
 
     const brandCount = Math.max(realImages.length, 1); // At least 1 AI call even with no images
