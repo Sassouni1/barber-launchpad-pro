@@ -161,7 +161,7 @@ export default function Marketing() {
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [paletteChoice, setPaletteChoice] = useState<PaletteChoice>('gold');
   const [formatChoice, setFormatChoice] = useState<FormatChoice>('square');
-  const [sourceChoice, setSourceChoice] = useState<SourceChoice>('ai');
+  const [sourceChoice, setSourceChoice] = useState<SourceChoice>('brand');
   const [variations, setVariations] = useState<VariationCard[]>([]);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
