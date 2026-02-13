@@ -1,41 +1,46 @@
 
 
-## Simplify Image Generation: Choose Format Type
+## Fix: Image Generation Disappears When Switching Tabs
 
-### What Changes
+### Problem
 
-Instead of generating all 4 variation types (12 images) at once, users will pick a single format -- **Square** or **Story** -- and only generate images for that format. This cuts generation to 3-6 images max per run.
+When you switch to another browser tab during image generation, the process appears to stop and images disappear. This happens because:
 
-### UI Changes
+1. The `resizeImage` function creates an HTML canvas and `new Image()` object -- browsers throttle or block these operations in background tabs
+2. The `.then()` callbacks on the fetch promises can silently fail when the tab is inactive
+3. There is no retry or persistence mechanism -- if a callback fails, the image is lost
 
-**Format Selector** (added between Tone selector and the Analyze button area):
-- Two clickable cards side by side, similar to the palette selector style
-- **Square (1:1)** -- shows a small square icon outline with "1080 x 1080" dimension text
-- **Story (9:16)** -- shows a tall rectangle icon outline with "1080 x 1920" dimension text
-- Selected state uses the same ring/highlight treatment as the palette selector
-- Default selection: Square
+### Solution
 
-**Results Section**:
-- Instead of a 2x2 grid of 4 cards, show only 2 cards in a row:
-  - "Brand Images (Square)" + "AI Generated (Square)" -- if Square selected
-  - "Brand Images (Stories)" + "AI Generated (Stories)" -- if Story selected
-- Each card still has up to 3 carousel slides
+Two changes to make this robust:
+
+**1. Remove the client-side `resizeImage` step entirely**
+
+The `resizeImage` function is unnecessary -- it resizes a 1080px image to 1080px (same size). The AI model already generates images at the correct dimensions. Removing this eliminates the canvas/Image dependency that breaks in background tabs.
+
+**2. Use `async/await` with error handling instead of fire-and-forget `.then()`**
+
+Wrap each `generateSlot` call in a proper `async` function with `try/catch`, and use `Promise.allSettled` to track all generations. This ensures that even if one call fails, others continue, and state is always updated.
+
+**3. Add a `useRef` flag to prevent stale state on unmount**
+
+Store a ref that tracks whether the component is still mounted, so state updates from long-running promises don't cause errors if the user navigates away from the page entirely.
 
 ### Technical Details
 
-**New state**: `formatChoice: 'square' | 'story'` (default `'square'`)
+**File: `src/pages/Marketing.tsx`**
 
-**`buildVariations` changes**:
-- Only create 2 variation cards instead of 4, based on `formatChoice`
-- If `formatChoice === 'square'`: create `brand-square` and `ai-square` only
-- If `formatChoice === 'story'`: create `brand-story` and `ai-story` only
-- This reduces AI calls from 12 to 6 (or fewer if limited brand images)
+- Remove the `resizeImage` function (lines 41-56) -- it serves no purpose since source and target are both 1080px
+- Rewrite `generateSlot` to be an `async` function that uses `await` instead of `.then()`:
+  - `await supabase.functions.invoke(...)` 
+  - Directly use `data.imageUrl` without resizing
+  - Wrap in `try/catch` so failures update state with `null` instead of silently dropping
+- Add an `isMountedRef` using `useRef(true)` set to `false` on cleanup, checked before `setVariations`
+- Keep the same parallel execution pattern (all slots fire at once) but track with `Promise.allSettled`
 
-**Format selector component** (inline in Marketing.tsx):
-- Two styled buttons with SVG/icon dimension indicators
-- Square icon: a small square outline with "1080 x 1080" below
-- Story icon: a tall narrow rectangle outline with "1080 x 1920" below
-- Placed in the input card, below the Content Type / Tone row
+### What This Fixes
 
-**No edge function changes** -- the `size` parameter already supports `'square'` and `'story'`.
+- Images will no longer disappear when switching tabs -- there is no canvas/Image dependency
+- Failed generations will show as empty slots rather than silently vanishing
+- The generation process will complete in the background regardless of tab focus
 
