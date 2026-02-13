@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X } from 'lucide-react';
+import { useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
+type FormatChoice = 'square' | 'story';
 type VariationType = 'brand-square' | 'brand-story' | 'ai-square' | 'ai-story';
 
 interface VariationCard {
@@ -35,7 +37,24 @@ interface BrandProfile {
   screenshot?: string | null;
 }
 
-// cropImage and resizeImage removed — AI generates correct dimensions directly
+// cropImage removed — all variations now use AI generation
+
+const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not supported')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+};
 
 function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; aspectClass: string }) {
   const validSlides = images.filter((u): u is string => !!u);
@@ -140,17 +159,12 @@ export default function Marketing() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [paletteChoice, setPaletteChoice] = useState<PaletteChoice>('gold');
+  const [formatChoice, setFormatChoice] = useState<FormatChoice>('square');
   const [variations, setVariations] = useState<VariationCard[]>([]);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
-  }, []);
 
   const websiteColors = brandProfile?.branding?.colors || {};
   const hasWebsiteColors = Object.keys(websiteColors).length > 0;
@@ -221,34 +235,39 @@ export default function Marketing() {
 
   const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
     const realImages = imagesForGeneration.slice(0, 3);
+    const sizeVal = formatChoice;
+    const sizeLabel = formatChoice === 'square' ? 'Square' : 'Stories';
+    const brandType: VariationType = `brand-${sizeVal}` as VariationType;
+    const aiType: VariationType = `ai-${sizeVal}` as VariationType;
+
     const cards: VariationCard[] = [
-      { type: 'brand-square', label: 'Brand Images (Square)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'ai-square', label: 'AI Generated (Square)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'brand-story', label: 'Brand Images (Stories)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'ai-story', label: 'AI Generated (Stories)', caption, images: [null, null, null], imagesLoading: true },
+      { type: brandType, label: `Brand Images (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true },
+      { type: aiType, label: `AI Generated (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true },
     ];
     setVariations(cards);
 
     // Helper to generate an AI image and update variation state
-    const generateSlot = async (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
-      try {
-        const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
-          body: {
-            brandProfile: bp,
-            variationTitle: type,
-            variationContent: caption,
-            contentType,
-            tone,
-            index: imgIdx,
-            palette: paletteChoice,
-            size: sizeVal,
-            ...(refUrl ? { referenceImageUrl: refUrl } : {}),
-          },
-        });
+    const generateSlot = (type: VariationType, imgIdx: number, size: string, refUrl?: string) => {
+      const targetW = size === 'story' ? 1080 : 1080;
+      const targetH = size === 'story' ? 1920 : 1080;
 
-        const imageUrl = (!error && data?.success && data.imageUrl) ? data.imageUrl : null;
-        if (!isMountedRef.current) return;
-
+      supabase.functions.invoke('generate-marketing-image', {
+        body: {
+          brandProfile: bp,
+          variationTitle: type,
+          variationContent: caption,
+          contentType,
+          tone,
+          index: imgIdx,
+          palette: paletteChoice,
+          size,
+          ...(refUrl ? { referenceImageUrl: refUrl } : {}),
+        },
+      }).then(async ({ data, error }) => {
+        let imageUrl: string | null = null;
+        if (!error && data?.success && data.imageUrl) {
+          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
+        }
         setVariations(prev => prev.map(v => {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
@@ -257,39 +276,19 @@ export default function Marketing() {
           const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
           return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
         }));
-      } catch {
-        if (!isMountedRef.current) return;
-        setVariations(prev => prev.map(v => {
-          if (v.type !== type) return v;
-          const newImgs = [...v.images];
-          newImgs[imgIdx] = null;
-          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
-          const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length + 1;
-          return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
-        }));
-      }
+      });
     };
 
-    const brandCount = Math.max(realImages.length, 1); // At least 1 AI call even with no images
+    const brandCount = Math.max(realImages.length, 1);
 
-    // Brand Square: AI generation with reference images
+    // Brand images with references
     for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot('brand-square', i, 'square', realImages[i]);
+      generateSlot(brandType, i, sizeVal, realImages[i]);
     }
 
-    // Brand Story: AI generation with reference images
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot('brand-story', i, 'story', realImages[i]);
-    }
-
-    // AI Square: 3 calls, no reference
+    // AI-only images
     for (let i = 0; i < 3; i++) {
-      generateSlot('ai-square', i, 'square');
-    }
-
-    // AI Story: 3 calls, no reference
-    for (let i = 0; i < 3; i++) {
-      generateSlot('ai-story', i, 'story');
+      generateSlot(aiType, i, sizeVal);
     }
   };
 
@@ -454,6 +453,56 @@ export default function Marketing() {
                   e.target.value = '';
                 }}
               />
+            </div>
+          </div>
+
+          {/* Format Selector */}
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider">Format</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setFormatChoice('square')}
+                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
+                  formatChoice === 'square'
+                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
+                }`}
+              >
+                {formatChoice === 'square' && (
+                  <div className="absolute top-2 right-2">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                )}
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="text-foreground">
+                  <rect x="4" y="4" width="24" height="24" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+                <div className="text-center">
+                  <span className="text-xs font-medium text-foreground block">Square (1:1)</span>
+                  <span className="text-[10px] text-muted-foreground">1080 × 1080</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setFormatChoice('story')}
+                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
+                  formatChoice === 'story'
+                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
+                }`}
+              >
+                {formatChoice === 'story' && (
+                  <div className="absolute top-2 right-2">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                )}
+                <svg width="20" height="32" viewBox="0 0 20 32" fill="none" className="text-foreground">
+                  <rect x="1" y="1" width="18" height="30" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+                <div className="text-center">
+                  <span className="text-xs font-medium text-foreground block">Story (9:16)</span>
+                  <span className="text-[10px] text-muted-foreground">1080 × 1920</span>
+                </div>
+              </button>
             </div>
           </div>
 
