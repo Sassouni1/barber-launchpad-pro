@@ -214,7 +214,7 @@ export default function Marketing() {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-marketing', {
-        body: { brandProfile: bp, contentType, tone },
+        body: { brandProfile: bp, contentType, tone, businessCategory },
       });
 
       if (error) throw new Error(error.message);
