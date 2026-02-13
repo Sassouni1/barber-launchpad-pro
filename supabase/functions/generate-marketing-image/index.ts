@@ -83,15 +83,19 @@ Brand fonts: ${fontFamily}
       ? 'The output MUST be a 9:16 vertical portrait image (1080x1920 pixels). Tall and narrow like an Instagram Story or TikTok.'
       : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
 
+    const hasReference = !!referenceImageUrl;
+
     const layouts = [
-      'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
+      hasReference
+        ? 'Split layout: left 25% is a dark solid panel with the headline stacked vertically, right 75% features the reference photo at FULL width without any cropping. Thin gold border around the entire image. Decorative dotted line divider between text and photo. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
+        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
       'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
       'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
     ];
 
     const layoutInstruction = layouts[layoutIndex];
 
-    const hasReference = !!referenceImageUrl;
+    // hasReference moved above layouts array
 
     const referenceInstructions = hasReference
       ? `REFERENCE PHOTO INSTRUCTIONS:
@@ -118,7 +122,7 @@ ${referenceInstructions}
 TEXT ON THE IMAGE:
 Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold, punchy headline of 5-8 words max inspired by this theme. Do NOT copy the theme text directly onto the image.
 ${variationTitle ? `Variation style: "${variationTitle}" -- use this as creative direction, not as visible text.` : ''}
-Brand name: "${brandProfile.title || ''}"
+${brandProfile.title ? `Brand name: "${brandProfile.title}"` : '(No brand name provided — do NOT invent or display any brand name on the image.)'}
 
 CRITICAL DESIGN RULES:
 1. The headline typography must be MASSIVE — taking up at least 30% of the image area. Bold, uppercase, impactful sans-serif or display font.
