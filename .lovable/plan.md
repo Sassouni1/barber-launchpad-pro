@@ -1,41 +1,27 @@
 
 
-## Simplify Image Generation: Choose Format Type
+## Face-Aware Image Composition
 
-### What Changes
+### Problem
+Generated marketing images sometimes cut off faces or place text directly over people's faces, making them look unprofessional.
 
-Instead of generating all 4 variation types (12 images) at once, users will pick a single format -- **Square** or **Story** -- and only generate images for that format. This cuts generation to 3-6 images max per run.
+### Solution
+Add explicit face-protection rules to the AI prompt in the `generate-marketing-image` edge function. Since Gemini 3 Pro is a multimodal model that understands spatial composition, we can instruct it to respect face regions.
 
-### UI Changes
+### Changes
 
-**Format Selector** (added between Tone selector and the Analyze button area):
-- Two clickable cards side by side, similar to the palette selector style
-- **Square (1:1)** -- shows a small square icon outline with "1080 x 1080" dimension text
-- **Story (9:16)** -- shows a tall rectangle icon outline with "1080 x 1920" dimension text
-- Selected state uses the same ring/highlight treatment as the palette selector
-- Default selection: Square
+**File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**Results Section**:
-- Instead of a 2x2 grid of 4 cards, show only 2 cards in a row:
-  - "Brand Images (Square)" + "AI Generated (Square)" -- if Square selected
-  - "Brand Images (Stories)" + "AI Generated (Stories)" -- if Story selected
-- Each card still has up to 3 carousel slides
+Add a new `FACE PROTECTION RULES` section to the prompt (inserted into the `CRITICAL DESIGN RULES` list):
 
-### Technical Details
+- **Never crop or cut off faces** -- if a person is in the image, their full face (forehead to chin) must be fully visible within the frame
+- **Never place text over faces** -- headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face
+- **Safe text zones**: place text in the top 20%, bottom 20%, or on a solid-color panel/overlay area that does not cover a face
+- **When using reference photos with people**: preserve the subject's face completely; apply gradient overlays and text only to non-face regions (e.g., dark gradient from the edges inward, leaving the face clear)
+- **For split layouts**: ensure the photo side shows the full face uncropped; text stays on the solid panel side
 
-**New state**: `formatChoice: 'square' | 'story'` (default `'square'`)
+These rules get added as items 8-10 in the existing `CRITICAL DESIGN RULES` numbered list, keeping everything in one prompt block. No new API calls, no cost increase -- just better prompt instructions.
 
-**`buildVariations` changes**:
-- Only create 2 variation cards instead of 4, based on `formatChoice`
-- If `formatChoice === 'square'`: create `brand-square` and `ai-square` only
-- If `formatChoice === 'story'`: create `brand-story` and `ai-story` only
-- This reduces AI calls from 12 to 6 (or fewer if limited brand images)
-
-**Format selector component** (inline in Marketing.tsx):
-- Two styled buttons with SVG/icon dimension indicators
-- Square icon: a small square outline with "1080 x 1080" below
-- Story icon: a tall narrow rectangle outline with "1080 x 1920" below
-- Placed in the input card, below the Content Type / Tone row
-
-**No edge function changes** -- the `size` parameter already supports `'square'` and `'story'`.
+### No other files change
+This is a prompt-only update in the single edge function file.
 
