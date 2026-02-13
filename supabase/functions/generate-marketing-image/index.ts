@@ -86,11 +86,11 @@ You have been given a reference photo from the brand's website. You MUST use thi
 - The result must look like a professionally designed social media post, NOT a raw photo
 - Blend the photo seamlessly with the dark background and brand elements`
       : `PHOTOGRAPHY INSTRUCTIONS:
-Generate original cinematic photography that fits a barbershop/hair replacement business.
-- Professional barbershop scenes, dramatic lighting, shallow depth of field
+Generate original cinematic photography that fits this specific business: ${brandProfile.title || 'a business'}. ${(brandProfile.description || '').substring(0, 200)}. The imagery should directly represent what this business does and sells.
+- Professional scenes relevant to the business, dramatic lighting, shallow depth of field
 - The photography should feel authentic and high-end`;
 
-    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
+    const prompt = `You are a world-class graphic designer creating a premium marketing image for: ${brandProfile.title || 'a business'}. Business description: ${(brandProfile.description || brandProfile.content || '').substring(0, 300)}. ${aspectInstruction}
 
 ${brandColorBlock}
 
