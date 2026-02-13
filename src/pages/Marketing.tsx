@@ -206,7 +206,7 @@ export default function Marketing() {
 
   const generateContent = async (profile?: BrandProfile) => {
     const bp = profile || brandProfile || {
-      title: businessCategory || 'My Business',
+      title: '',
       description: '',
       content: '',
       sourceUrl: '',
