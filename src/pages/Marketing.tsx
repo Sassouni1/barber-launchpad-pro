@@ -77,24 +77,7 @@ interface BrandProfile {
   screenshot?: string | null;
 }
 
-// cropImage removed — all variations now use AI generation
-
-const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { reject(new Error('Canvas not supported')); return; }
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = dataUrl;
-  });
-};
+// cropImage & resizeImage removed — all variations now use raw AI output
 
 function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; aspectClass: string }) {
   const validSlides = images.filter((u): u is string => !!u);
@@ -295,8 +278,6 @@ export default function Marketing() {
 
     // Helper to generate an AI image and update variation state
     const generateSlot = (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
-      const targetW = sizeVal === 'story' ? 1080 : 1080;
-      const targetH = sizeVal === 'story' ? 1920 : 1080;
 
       supabase.functions.invoke('generate-marketing-image', {
         body: {
@@ -313,7 +294,7 @@ export default function Marketing() {
       }).then(async ({ data, error }) => {
         let imageUrl: string | null = null;
         if (!error && data?.success && data.imageUrl) {
-          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
+          imageUrl = data.imageUrl;
         }
         setVariations(prev => prev.map(v => {
           if (v.type !== type) return v;
@@ -503,6 +484,26 @@ export default function Marketing() {
                 </button>
               </div>
             </div>
+
+            {/* Scraped Website Images */}
+            {scrapedImages.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground uppercase tracking-wider">Website Images</label>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {scrapedImages.slice(0, 6).map((imgUrl, i) => (
+                    <div key={i} className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-border group">
+                      <img src={imgUrl} alt={`Website ${i + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => downloadImage(imgUrl, `website-image-${i + 1}.jpg`)}
+                        className="absolute bottom-0.5 right-0.5 bg-secondary text-secondary-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Download className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* User Image Uploads */}
             <UserImageUploader
