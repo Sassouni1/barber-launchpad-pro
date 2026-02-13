@@ -13,6 +13,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
 type FormatChoice = 'square' | 'story';
+type SourceChoice = 'brand' | 'ai';
 type VariationType = 'brand-square' | 'brand-story' | 'ai-square' | 'ai-story';
 
 interface VariationCard {
@@ -160,6 +161,7 @@ export default function Marketing() {
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [paletteChoice, setPaletteChoice] = useState<PaletteChoice>('gold');
   const [formatChoice, setFormatChoice] = useState<FormatChoice>('square');
+  const [sourceChoice, setSourceChoice] = useState<SourceChoice>('ai');
   const [variations, setVariations] = useState<VariationCard[]>([]);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -237,18 +239,18 @@ export default function Marketing() {
     const realImages = imagesForGeneration.slice(0, 3);
     const sizeVal = formatChoice;
     const sizeLabel = formatChoice === 'square' ? 'Square' : 'Stories';
-    const brandType: VariationType = `brand-${sizeVal}` as VariationType;
-    const aiType: VariationType = `ai-${sizeVal}` as VariationType;
+
+    const isBrand = sourceChoice === 'brand';
+    const varType: VariationType = `${isBrand ? 'brand' : 'ai'}-${sizeVal}` as VariationType;
+    const label = isBrand ? `Brand Images (${sizeLabel})` : `AI Generated (${sizeLabel})`;
 
     const cards: VariationCard[] = [
-      { type: brandType, label: `Brand Images (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true },
-      { type: aiType, label: `AI Generated (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true },
+      { type: varType, label, caption, images: [null, null, null], imagesLoading: true },
     ];
     setVariations(cards);
 
-    // Helper to generate an AI image and update variation state
     const generateSlot = (type: VariationType, imgIdx: number, size: string, refUrl?: string) => {
-      const targetW = size === 'story' ? 1080 : 1080;
+      const targetW = 1080;
       const targetH = size === 'story' ? 1920 : 1080;
 
       supabase.functions.invoke('generate-marketing-image', {
@@ -272,23 +274,22 @@ export default function Marketing() {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
           newImgs[imgIdx] = imageUrl;
-          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
+          const totalForType = isBrand ? Math.min(realImages.length || 1, 3) : 3;
           const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
           return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
         }));
       });
     };
 
-    const brandCount = Math.max(realImages.length, 1);
-
-    // Brand images with references
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot(brandType, i, sizeVal, realImages[i]);
-    }
-
-    // AI-only images
-    for (let i = 0; i < 3; i++) {
-      generateSlot(aiType, i, sizeVal);
+    if (isBrand) {
+      const brandCount = Math.max(realImages.length, 1);
+      for (let i = 0; i < Math.min(brandCount, 3); i++) {
+        generateSlot(varType, i, sizeVal, realImages[i]);
+      }
+    } else {
+      for (let i = 0; i < 3; i++) {
+        generateSlot(varType, i, sizeVal);
+      }
     }
   };
 
@@ -506,7 +507,51 @@ export default function Marketing() {
             </div>
           </div>
 
-          {/* Palette Selector - only after website analysis */}
+          {/* Image Source Selector */}
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider">Image Source</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setSourceChoice('brand')}
+                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
+                  sourceChoice === 'brand'
+                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
+                }`}
+              >
+                {sourceChoice === 'brand' && (
+                  <div className="absolute top-2 right-2">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                )}
+                <ImageIcon className="w-6 h-6 text-foreground" />
+                <div className="text-center">
+                  <span className="text-xs font-medium text-foreground block">Brand Photos</span>
+                  <span className="text-[10px] text-muted-foreground">Uses your uploaded images</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setSourceChoice('ai')}
+                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
+                  sourceChoice === 'ai'
+                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
+                }`}
+              >
+                {sourceChoice === 'ai' && (
+                  <div className="absolute top-2 right-2">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                )}
+                <Sparkles className="w-6 h-6 text-foreground" />
+                <div className="text-center">
+                  <span className="text-xs font-medium text-foreground block">AI Generated</span>
+                  <span className="text-[10px] text-muted-foreground">Original AI photography</span>
+                </div>
+              </button>
+            </div>
+          </div>
           {brandProfile && (
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground uppercase tracking-wider">Color Palette</label>
@@ -593,7 +638,7 @@ export default function Marketing() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 max-w-md mx-auto gap-6">
               {variations.map((variation, idx) => {
                 const validImages = variation.images.filter(Boolean);
 
