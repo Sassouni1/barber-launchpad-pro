@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url: formattedUrl,
-        formats: ['markdown', 'links'],
+        formats: ['markdown', 'links', 'branding'],
         onlyMainContent: true,
       }),
     });
@@ -60,12 +60,18 @@ Deno.serve(async (req) => {
     // Extract brand profile from scraped data
     const markdown = data.data?.markdown || data.markdown || '';
     const metadata = data.data?.metadata || data.metadata || {};
+    const branding = data.data?.branding || data.branding || null;
 
     const brandProfile = {
       title: metadata.title || '',
       description: metadata.description || '',
-      content: markdown.substring(0, 3000), // Limit content for AI prompt
+      content: markdown.substring(0, 3000),
       sourceUrl: formattedUrl,
+      branding: branding ? {
+        colors: branding.colors || {},
+        fonts: branding.fonts || [],
+        logo: branding.logo || branding.images?.logo || null,
+      } : null,
     };
 
     console.log('Scrape successful, brand profile extracted');

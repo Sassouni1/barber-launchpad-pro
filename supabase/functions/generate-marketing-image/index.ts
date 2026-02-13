@@ -27,44 +27,80 @@ Deno.serve(async (req) => {
     }
 
     const isStory = size === 'story';
-    const aspectRatio = isStory ? '9:16 portrait' : '1:1 square';
+    const aspectRatio = isStory ? '9:16 portrait (tall and narrow)' : '1:1 square';
 
-    const toneStyles: Record<string, string> = {
-      'professional': 'Clean, modern design with neutral tones, sharp typography, and professional imagery.',
-      'casual': 'Warm, inviting colors, friendly rounded fonts, lifestyle photography feel.',
-      'luxury': 'Dark elegant backgrounds (black/deep navy), gold accents, serif typography, premium feel with subtle gradients.',
-      'bold': 'Vibrant saturated colors, large impactful typography, high contrast, energetic and attention-grabbing.',
-    };
+    // Extract brand colors if available
+    const colors = brandProfile.branding?.colors || {};
+    const fonts = brandProfile.branding?.fonts || [];
+    const primaryColor = colors.primary || colors.textPrimary || '#FFFFFF';
+    const secondaryColor = colors.secondary || colors.accent || '#D4AF37';
+    const bgColor = colors.background || '#1A1A1A';
+    const textColor = colors.textPrimary || '#FFFFFF';
+    const accentColor = colors.accent || colors.secondary || '#D4AF37';
+    const fontFamily = fonts.length > 0 ? fonts.map((f: any) => f.family).join(', ') : 'bold sans-serif';
 
-    const contentTypeContext: Record<string, string> = {
-      'instagram': 'Instagram post — eye-catching, scroll-stopping visual optimized for the Instagram feed.',
-      'facebook': 'Facebook post — engaging visual designed for the Facebook feed with clear messaging.',
-      'google-ad': 'Google Display Ad — clean, professional ad creative with prominent call-to-action.',
-      'social': 'Social media post — versatile visual suitable for multiple platforms.',
-    };
+    const brandColorBlock = Object.keys(colors).length > 0
+      ? `
+BRAND COLORS (use these EXACT hex values throughout the design):
+- Primary: ${primaryColor}
+- Secondary/Accent: ${secondaryColor}
+- Background base: ${bgColor}
+- Text color: ${textColor}
+- Accent highlight: ${accentColor}
 
-    const prompt = `Create a professional marketing graphic for social media. The image MUST be in ${aspectRatio} aspect ratio.
+Brand fonts: ${fontFamily}
+`
+      : `
+COLOR PALETTE:
+- Background: dark charcoal or black (#1A1A1A or #0D0D0D)
+- Primary accent: gold (#D4AF37) or the brand's main color
+- Text: white (#FFFFFF) with gold accents
+- Use high contrast between text and background
+`;
 
-Brand: ${brandProfile.title || 'Business'}
-Industry: Hair replacement, hair systems, and barber services
+    // Layout variation — pick a random layout template
+    const layoutSeed = Math.floor(Math.random() * 3);
 
-Content type: ${contentTypeContext[contentType] || contentTypeContext['social']}
-Visual style: ${toneStyles[tone] || toneStyles['professional']}
+    const squareLayouts = [
+      'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% is a cinematic barbershop photo. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
+      'Full-bleed barber photography background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
+      'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
+    ];
 
-The image MUST include this text overlaid directly on the graphic in an attractive, readable way:
-"${variationContent.substring(0, 200)}"
+    const storyLayouts = [
+      'Full-bleed barber photography background. Heavy dark gradient from top (90% opacity) fading to 30% in middle, then back to 90% at bottom. MASSIVE headline in the top third, all-caps, bold. Smaller supporting text in the bottom third. Clean middle section letting the photo breathe.',
+      'Dark solid background top 35% with headline text, then a barbershop photo taking up the middle 40% with thin gold border, then dark solid bottom 25% with brand name and CTA text.',
+      'Full-bleed cinematic photo with a dark overlay. Brand name at very top in small elegant text. Giant headline word stacked vertically down the center. Contact/CTA at the very bottom. Everything centered.',
+    ];
 
-Design requirements:
-- CRITICAL: The aspect ratio must be ${aspectRatio}. ${isStory ? 'The image must be tall and narrow (portrait orientation).' : 'The image must be perfectly square.'}
-- The text must be part of the image, styled beautifully with proper hierarchy
-- Use a visually striking background related to the hair/barber industry
-- Brand name "${brandProfile.title || ''}" should appear prominently
-- Professional quality, ready to post on social media
-- No watermarks, no placeholder text, no lorem ipsum
-- ${isStory ? 'Vertical story format — text should be centered and large enough to read on mobile' : 'Square format — balanced composition with text and visuals'}
-- Make it look like a real, polished social media graphic that a professional agency would create`;
+    const layoutInstruction = isStory
+      ? storyLayouts[layoutSeed % storyLayouts.length]
+      : squareLayouts[layoutSeed % squareLayouts.length];
 
-    console.log('Generating marketing image:', { size, contentType, tone, brand: brandProfile.title });
+    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. The output MUST be a ${aspectRatio} image.
+
+${brandColorBlock}
+
+LAYOUT:
+${layoutInstruction}
+
+TEXT TO INCLUDE ON THE IMAGE (render this text directly as part of the graphic):
+Headline: "${variationContent.substring(0, 120)}"
+Brand: "${brandProfile.title || ''}"
+
+CRITICAL DESIGN RULES:
+1. The headline typography must be MASSIVE — taking up at least 30% of the image area. Bold, uppercase, impactful sans-serif or display font.
+2. Background must be DARK (black, charcoal, or very dark version of brand colors). Never use bright, pastel, or white backgrounds.
+3. If using photography, it must look cinematic — professional barbershop scenes, men with fresh fades/haircuts, dramatic lighting, shallow depth of field. NO stock photo aesthetic.
+4. Text must have extremely high contrast against the background. Use the brand's accent color for emphasis on key words.
+5. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames.
+6. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
+7. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
+8. ${isStory ? 'PORTRAIT orientation — the image must be tall and narrow. Text should be large enough to read on a phone screen.' : 'SQUARE format — perfectly balanced composition.'}
+
+Make this look like something a premium barber brand would actually post on Instagram.`;
+
+    console.log('Generating marketing image:', { size, contentType, tone, brand: brandProfile.title, hasColors: Object.keys(colors).length > 0 });
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -73,7 +109,7 @@ Design requirements:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
+        model: 'google/gemini-3-pro-image-preview',
         messages: [
           { role: 'user', content: prompt },
         ],
