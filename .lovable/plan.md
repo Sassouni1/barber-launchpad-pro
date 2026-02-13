@@ -1,29 +1,34 @@
 
 
-## Add Image Type Selector (Brand / AI / Both)
+## Fix: Switch Image Generation to Direct Google AI Studio API
 
-Currently, generation always creates both "Brand Images" and "AI Generated" cards. This adds a selector so you can pick which type you want.
+### Root Cause
+The edge function calls `google/gemini-3-pro-image-preview` through the **Lovable AI gateway** (`ai.gateway.lovable.dev`). This gateway adds significant overhead and queuing, resulting in 2-10 minute response times per image. The model itself can generate images in ~10-30 seconds when called directly.
 
-### Changes (single file: `src/pages/Marketing.tsx`)
+### Solution
+Switch the edge function to call the **Google AI Studio API directly** using the `GOOGLE_AI_STUDIO_KEY` secret that is already configured. This bypasses the gateway overhead entirely.
 
-**1. New state variable**
-- Add `imageMode` state with options: `'both'` | `'brand'` | `'ai'` (default: `'both'`)
+### Changes (single file)
 
-**2. Image Mode selector UI**
-- Add a 3-option toggle in the settings card (next to Format selector), styled the same way as the format buttons
-- Options:
-  - **Brand Images** -- uses your uploaded/scraped reference photos as the base with AI text overlays
-  - **AI Generated** -- fully AI-generated images with no reference photo
-  - **Both** -- generates both sets (current behavior)
+**File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**3. Update `buildVariations` logic**
-- When `imageMode === 'brand'`: only create the brand variation card and only queue brand jobs
-- When `imageMode === 'ai'`: only create the AI variation card and only queue AI jobs  
-- When `imageMode === 'both'`: current behavior (both cards)
-- This also reduces total generation time when only one type is selected (3 images instead of 6)
+1. Replace the Lovable gateway call with a direct call to `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent`
+2. Use `GOOGLE_AI_STUDIO_KEY` instead of `LOVABLE_API_KEY`
+3. Restructure the request body to match Google's native API format:
+   - Use `inlineData` for reference images (base64) instead of `image_url`
+   - Add `responseModalities: ["TEXT", "IMAGE"]` in `generationConfig`
+   - Parse the response from Google's native format (`candidates[0].content.parts`) instead of OpenAI-compatible format
+4. Extract generated image from `inlineData.data` (base64) in the response parts and return it as a data URL
 
-**4. Update results grid**
-- When only one type is selected, show it full-width instead of in a 2-column grid
+### Expected Performance
+- **Before**: 2-10 minutes per image (Lovable gateway)
+- **After**: 10-30 seconds per image (direct Google API)
+- With Parallel-2 batching of 6 images: ~1-2 minutes total instead of 12-60 minutes
 
-### No backend changes needed
+### Reference Image Handling
+- When `referenceImageUrl` is provided, fetch the image, convert to base64, and send as `inlineData` in the request
+- When no reference image, send text-only prompt
+
+### No frontend changes needed
+The edge function response format (`{ success: true, imageUrl }`) stays the same -- the `imageUrl` will be a base64 data URL instead of a hosted URL, which works identically in `<img>` tags.
 
