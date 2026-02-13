@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, size } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -26,8 +26,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const isStory = size === 'story';
-    const aspectRatio = isStory ? '9:16 portrait (tall and narrow)' : '1:1 square';
+    const layoutIndex = typeof index === 'number' ? index % 3 : 0;
 
     // Extract brand colors if available
     const colors = brandProfile.branding?.colors || {};
@@ -62,32 +61,20 @@ COLOR PALETTE:
 - Use high contrast between text and background
 `;
 
-    // Layout variation — pick a random layout template
-    const layoutSeed = Math.floor(Math.random() * 3);
-
-    const squareLayouts = [
+    const layouts = [
       'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features the reference photo from the brand. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
       'Full-bleed reference photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
       'Framed composition: dark background with a centered rectangular photo inset from the brand (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
     ];
 
-    const storyLayouts = [
-      'Full-bleed reference photo as background. Heavy dark gradient from top (90% opacity) fading to 30% in middle, then back to 90% at bottom. MASSIVE headline in the top third, all-caps, bold. Smaller supporting text in the bottom third. Clean middle section letting the photo breathe.',
-      'Dark solid background top 35% with headline text, then the reference brand photo taking up the middle 40% with thin gold border, then dark solid bottom 25% with brand name and CTA text.',
-      'Full-bleed reference photo with a dark overlay. Brand name at very top in small elegant text. Giant headline word stacked vertically down the center. Contact/CTA at the very bottom. Everything centered.',
-    ];
-
-    const layoutInstruction = isStory
-      ? storyLayouts[layoutSeed % storyLayouts.length]
-      : squareLayouts[layoutSeed % squareLayouts.length];
-
+    const layoutInstruction = layouts[layoutIndex];
     const hasReferenceImages = brandImages.length > 0 || screenshot;
 
     const photoInstruction = hasReferenceImages
       ? `IMPORTANT: I am providing reference image(s) from the brand's actual website. Use the photography, people, and scenes from these reference images as the visual foundation of the marketing graphic. Incorporate them naturally into the layout — crop, overlay, and style them to fit the design. Do NOT ignore these images.`
       : `If using photography, it must look cinematic — professional barbershop scenes, men with fresh fades/haircuts, dramatic lighting, shallow depth of field. NO stock photo aesthetic.`;
 
-    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. The output MUST be a ${aspectRatio} image.
+    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. The output MUST be a 1:1 square image.
 
 ${brandColorBlock}
 
@@ -108,14 +95,14 @@ CRITICAL DESIGN RULES:
 5. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames.
 6. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
 7. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
-8. ${isStory ? 'PORTRAIT orientation — the image must be tall and narrow. Text should be large enough to read on a phone screen.' : 'SQUARE format — perfectly balanced composition.'}
+8. SQUARE format — perfectly balanced composition.
 
-Make this look like something a premium barber brand would actually post on Instagram.`;
+Make this look like something a premium brand would actually post on Instagram.`;
 
     // Build message content — include reference images if available
     const messageContent: any[] = [{ type: 'text', text: prompt }];
 
-    // Add up to 2 brand images as reference (to keep payload reasonable)
+    // Add up to 2 brand images as reference
     const imageUrls = brandImages.filter((url: string) => url.startsWith('http')).slice(0, 2);
     for (const imgUrl of imageUrls) {
       messageContent.push({
@@ -133,7 +120,7 @@ Make this look like something a premium barber brand would actually post on Inst
       });
     }
 
-    console.log('Generating marketing image:', { size, contentType, tone, brand: brandProfile.title, hasColors: Object.keys(colors).length > 0, refImages: imageUrls.length, hasScreenshot: !!screenshot && imageUrls.length === 0 });
+    console.log('Generating marketing image:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, hasColors: Object.keys(colors).length > 0, refImages: imageUrls.length });
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -190,7 +177,7 @@ Make this look like something a premium barber brand would actually post on Inst
       );
     }
 
-    console.log('Marketing image generated successfully:', { size });
+    console.log('Marketing image generated successfully:', { index: layoutIndex });
     return new Response(
       JSON.stringify({ success: true, imageUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
