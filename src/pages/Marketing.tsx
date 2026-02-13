@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,48 @@ import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
 type VariationType = 'brand-square' | 'brand-story' | 'ai-square' | 'ai-story';
+
+function UserImageUploader({ images, onAdd, onRemove }: {
+  images: string[];
+  onAdd: (files: FileList) => void;
+  onRemove: (index: number) => void;
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      onAdd(e.target.files);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs text-muted-foreground uppercase tracking-wider">Your Images (optional)</label>
+      <div className="flex gap-3 flex-wrap">
+        {images.map((src, i) => (
+          <div key={i} className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-border group">
+            <img src={src} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
+            <button
+              onClick={() => onRemove(i)}
+              className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="w-20 h-20 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ImageIcon className="w-5 h-5" />
+          <span className="text-[10px]">Add</span>
+        </button>
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
+    </div>
+  );
+}
 
 interface VariationCard {
   type: VariationType;
@@ -159,6 +201,23 @@ export default function Marketing() {
   const [paletteChoice, setPaletteChoice] = useState<PaletteChoice>('gold');
   const [variations, setVariations] = useState<VariationCard[]>([]);
   const [generatedCaption, setGeneratedCaption] = useState('');
+  const [userImages, setUserImages] = useState<string[]>([]);
+
+  const handleAddUserImages = (files: FileList) => {
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setUserImages((prev) => [...prev, e.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveUserImage = (index: number) => {
+    setUserImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const websiteColors = brandProfile?.branding?.colors || {};
   const hasWebsiteColors = Object.keys(websiteColors).length > 0;
@@ -224,7 +283,7 @@ export default function Marketing() {
   };
 
   const buildVariations = (bp: BrandProfile, caption: string) => {
-    const realImages = (bp.images || []).filter((u) => u.startsWith('http')).slice(0, 3);
+    const realImages = [...(bp.images || []).filter((u) => u.startsWith('http')), ...userImages].slice(0, 3);
 
     const cards: VariationCard[] = [
       { type: 'brand-square', label: 'Brand Images (Square)', caption, images: [null, null, null], imagesLoading: true },
@@ -386,28 +445,11 @@ export default function Marketing() {
                 </Select>
               </div>
             </div>
-          </div>
 
-          {brandProfile && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground border-t border-border pt-4">
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <span>Analyzed: <span className="text-foreground font-medium">{brandProfile.title || brandProfile.sourceUrl}</span></span>
-            </div>
-          )}
-        </Card>
-
-        {/* Brand Assets Section */}
-        {brandProfile && (
-          <Card className="glass-card p-6 space-y-5">
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-              <ImageIcon className="w-4 h-4 text-primary" /> Brand Assets
-            </h2>
-
-            {/* Palette Selector */}
+            {/* Color Palette */}
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground uppercase tracking-wider">Color Palette</label>
               <div className="grid grid-cols-2 gap-3">
-                {/* Gold option */}
                 <button
                   onClick={() => setPaletteChoice('gold')}
                   className={`relative flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
@@ -428,7 +470,6 @@ export default function Marketing() {
                   <span className="text-xs font-medium text-foreground">Premium Gold/Dark</span>
                 </button>
 
-                {/* Website colors option */}
                 <button
                   onClick={() => hasWebsiteColors && setPaletteChoice('website')}
                   className={`relative flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
@@ -463,29 +504,21 @@ export default function Marketing() {
               </div>
             </div>
 
-            {/* Website Images Gallery */}
-            {scrapedImages.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-xs text-muted-foreground uppercase tracking-wider">Website Images</label>
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {scrapedImages.map((imgUrl, i) => (
-                    <div key={i} className="relative shrink-0 w-24 h-24 rounded-lg overflow-hidden group border border-border">
-                      <img src={imgUrl} alt={`Website ${i + 1}`} className="w-full h-full object-cover" />
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        onClick={() => downloadImage(imgUrl, `website-image-${i + 1}.jpg`)}
-                        className="absolute bottom-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Download className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </Card>
-        )}
+            {/* User Image Uploads */}
+            <UserImageUploader
+              images={userImages}
+              onAdd={handleAddUserImages}
+              onRemove={handleRemoveUserImage}
+            />
+          </div>
+
+          {brandProfile && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground border-t border-border pt-4">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+              <span>Analyzed: <span className="text-foreground font-medium">{brandProfile.title || brandProfile.sourceUrl}</span></span>
+            </div>
+          )}
+        </Card>
 
         {/* Loading State */}
         {isGenerating && (
