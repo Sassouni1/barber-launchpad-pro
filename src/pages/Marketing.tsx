@@ -29,6 +29,8 @@ interface BrandProfile {
     fonts: Array<{ family: string }>;
     logo: string | null;
   } | null;
+  images?: string[];
+  screenshot?: string | null;
 }
 
 const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
