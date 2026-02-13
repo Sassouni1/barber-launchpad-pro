@@ -111,6 +111,9 @@ CRITICAL DESIGN RULES:
 5. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
 6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
 7. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
+8. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
+9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face. Safe text zones: top 20%, bottom 20%, or on a solid-color panel/overlay that does not cover a face.
+10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions (dark gradient from edges inward, leaving the face clear). For split layouts: ensure the photo side shows the full face uncropped; text stays on the solid panel side.
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
