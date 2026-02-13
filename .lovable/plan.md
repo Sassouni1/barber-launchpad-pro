@@ -1,41 +1,37 @@
 
 
-## Simplify Image Generation: Choose Format Type
+## Fix Brand Photos: Default Selection and Stronger Reference Usage
 
-### What Changes
+### Problem
+1. `sourceChoice` defaults to `'ai'` so users unknowingly generate AI-only images
+2. Even when Brand Photos is selected, the Gemini prompt treats the reference image as "inspiration" rather than requiring it to be prominently featured
 
-Instead of generating all 4 variation types (12 images) at once, users will pick a single format -- **Square** or **Story** -- and only generate images for that format. This cuts generation to 3-6 images max per run.
+### Changes
 
-### UI Changes
+**File: `src/pages/Marketing.tsx`**
+- Change default `sourceChoice` from `'ai'` to `'brand'`
 
-**Format Selector** (added between Tone selector and the Analyze button area):
-- Two clickable cards side by side, similar to the palette selector style
-- **Square (1:1)** -- shows a small square icon outline with "1080 x 1080" dimension text
-- **Story (9:16)** -- shows a tall rectangle icon outline with "1080 x 1920" dimension text
-- Selected state uses the same ring/highlight treatment as the palette selector
-- Default selection: Square
-
-**Results Section**:
-- Instead of a 2x2 grid of 4 cards, show only 2 cards in a row:
-  - "Brand Images (Square)" + "AI Generated (Square)" -- if Square selected
-  - "Brand Images (Stories)" + "AI Generated (Stories)" -- if Story selected
-- Each card still has up to 3 carousel slides
+**File: `supabase/functions/generate-marketing-image/index.ts`**
+- Rewrite the `referenceInstructions` prompt block when `hasReference` is true
+- New prompt will instruct Gemini to use the reference photo as the dominant visual element (background or hero image), NOT generate a completely new scene
+- Specifically tell the AI: "The reference photo MUST be the main visual. Use it as the background. Overlay text, brand elements, and decorative accents on top. Do NOT replace or reimagine the photo."
 
 ### Technical Details
 
-**New state**: `formatChoice: 'square' | 'story'` (default `'square'`)
+**Marketing.tsx line 164:**
+```
+// Before
+const [sourceChoice, setSourceChoice] = useState<SourceChoice>('ai');
+// After
+const [sourceChoice, setSourceChoice] = useState<SourceChoice>('brand');
+```
 
-**`buildVariations` changes**:
-- Only create 2 variation cards instead of 4, based on `formatChoice`
-- If `formatChoice === 'square'`: create `brand-square` and `ai-square` only
-- If `formatChoice === 'story'`: create `brand-story` and `ai-story` only
-- This reduces AI calls from 12 to 6 (or fewer if limited brand images)
+**Edge function prompt change (referenceInstructions when hasReference):**
+Replace the current vague "incorporate the reference photo prominently" with explicit instructions:
+- "The provided reference photo IS the background of this design. Do not generate new photography."
+- "Place the reference image full-bleed or as the dominant element."
+- "Apply a dark gradient overlay on top of the photo for text readability."
+- "Render the headline text, brand name, and decorative elements ON TOP of the photo."
+- "The final output must clearly show the original reference photo, not a reimagined version."
 
-**Format selector component** (inline in Marketing.tsx):
-- Two styled buttons with SVG/icon dimension indicators
-- Square icon: a small square outline with "1080 x 1080" below
-- Story icon: a tall narrow rectangle outline with "1080 x 1920" below
-- Placed in the input card, below the Content Type / Tone row
-
-**No edge function changes** -- the `size` parameter already supports `'square'` and `'story'`.
-
+No database or other file changes needed.
