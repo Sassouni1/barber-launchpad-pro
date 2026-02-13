@@ -84,9 +84,9 @@ Brand fonts: ${fontFamily}
       : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
 
     const layouts = [
-      'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
-      'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
-      'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
+      'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
+      'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
+      'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
     ];
 
     const layoutInstruction = layouts[layoutIndex];
@@ -115,9 +115,10 @@ ${layoutInstruction}
 
 ${referenceInstructions}
 
-TEXT TO INCLUDE ON THE IMAGE (render this text directly as part of the graphic):
-Headline: "${variationContent.substring(0, 120)}"
-Brand: "${brandProfile.title || ''}"
+TEXT ON THE IMAGE:
+Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold, punchy headline of 5-8 words max inspired by this theme. Do NOT copy the theme text directly onto the image.
+${variationTitle ? `Variation style: "${variationTitle}" -- use this as creative direction, not as visible text.` : ''}
+Brand name: "${brandProfile.title || ''}"
 
 CRITICAL DESIGN RULES:
 1. The headline typography must be MASSIVE — taking up at least 30% of the image area. Bold, uppercase, impactful sans-serif or display font.
@@ -127,6 +128,7 @@ CRITICAL DESIGN RULES:
 5. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
 6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
 7. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
+11. Never display category labels, slugs, or metadata (like "hair-system") as visible text on the image. Category context should inform the design style, not appear as text.
 8. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
 9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
 10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
