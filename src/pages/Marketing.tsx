@@ -236,7 +236,7 @@ export default function Marketing() {
     }
   };
 
-  const buildVariations = async (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
+  const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
     const realImages = imagesForGeneration.slice(0, 3);
     const sizeVal = formatChoice;
     const sizeLabel = formatChoice === 'square' ? 'Square' : 'Stories';
@@ -252,61 +252,25 @@ export default function Marketing() {
     }
     setVariations(cards);
 
-    // Pre-fetch unique reference images to base64 so the edge function doesn't re-download each one
-    const imageCache = new Map<string, { base64: string; mimeType: string }>();
-    if (imageMode === 'both' || imageMode === 'brand') {
-      const uniqueUrls = [...new Set(realImages.filter(Boolean))];
-      for (const imgUrl of uniqueUrls) {
-        try {
-          const resp = await fetch(imgUrl);
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const blob = await resp.blob();
-          const mimeType = blob.type || 'image/jpeg';
-          const arrayBuffer = await blob.arrayBuffer();
-          const uint8 = new Uint8Array(arrayBuffer);
-          let binary = '';
-          const chunkSize = 8192;
-          for (let i = 0; i < uint8.length; i += chunkSize) {
-            const chunk = uint8.subarray(i, i + chunkSize);
-            binary += String.fromCharCode(...chunk);
-          }
-          const base64 = btoa(binary);
-          imageCache.set(imgUrl, { base64, mimeType });
-        } catch (e) {
-          console.warn('Failed to pre-fetch reference image:', imgUrl, e);
-          toast.error(`Could not load brand image for generation`);
-        }
-      }
-    }
-
-    // Helper to generate an AI image and update variation state
+    // Helper to generate an AI image and update variation state (returns a promise)
     const generateSlot = async (type: VariationType, imgIdx: number, size: string, refUrl?: string) => {
       const targetW = size === 'story' ? 1080 : 1080;
       const targetH = size === 'story' ? 1920 : 1080;
 
-      const body: Record<string, any> = {
-        brandProfile: bp,
-        variationTitle: type,
-        variationContent: caption,
-        contentType,
-        tone,
-        index: imgIdx,
-        palette: paletteChoice,
-        size,
-      };
-
-      if (refUrl) {
-        const cached = imageCache.get(refUrl);
-        if (cached) {
-          body.referenceImageBase64 = cached.base64;
-          body.referenceImageMimeType = cached.mimeType;
-        } else {
-          body.referenceImageUrl = refUrl;
-        }
-      }
-
       try {
-        const { data, error } = await supabase.functions.invoke('generate-marketing-image', { body });
+        const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
+          body: {
+            brandProfile: bp,
+            variationTitle: type,
+            variationContent: caption,
+            contentType,
+            tone,
+            index: imgIdx,
+            palette: paletteChoice,
+            size,
+            ...(refUrl ? { referenceImageUrl: refUrl } : {}),
+          },
+        });
 
         let imageUrl: string | null = null;
         if (!error && data?.success && data.imageUrl) {
@@ -335,6 +299,7 @@ export default function Marketing() {
 
     const brandCount = Math.max(realImages.length, 1);
 
+    // Build jobs based on imageMode
     const jobs: Array<() => Promise<void>> = [];
     if (imageMode === 'both' || imageMode === 'brand') {
       for (let i = 0; i < Math.min(brandCount, 3); i++) {
@@ -349,20 +314,23 @@ export default function Marketing() {
       }
     }
 
+    // Process in pairs of 2 with 3s delay between batches
     const BATCH_SIZE = 2;
     const DELAY_MS = 3000;
     setGenerationProgress({ current: 0, total: jobs.length });
 
-    for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
-      const batch = jobs.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map(fn => fn()));
-      const completed = Math.min(i + BATCH_SIZE, jobs.length);
-      setGenerationProgress({ current: completed, total: jobs.length });
-      if (i + BATCH_SIZE < jobs.length) {
-        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+    (async () => {
+      for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
+        const batch = jobs.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(fn => fn()));
+        const completed = Math.min(i + BATCH_SIZE, jobs.length);
+        setGenerationProgress({ current: completed, total: jobs.length });
+        if (i + BATCH_SIZE < jobs.length) {
+          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
       }
-    }
-    setGenerationProgress(null);
+      setGenerationProgress(null);
+    })();
   };
 
   const copyToClipboard = async (text: string) => {
