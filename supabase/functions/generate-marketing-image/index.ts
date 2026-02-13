@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -27,23 +27,32 @@ Deno.serve(async (req) => {
     }
 
     const layoutIndex = typeof index === 'number' ? index % 3 : 0;
+    const isStory = size === 'story';
+    const useGold = palette !== 'website';
 
-    // Extract brand colors if available
+    // Determine colors based on palette choice
     const colors = brandProfile.branding?.colors || {};
     const fonts = brandProfile.branding?.fonts || [];
-    const primaryColor = colors.primary || colors.textPrimary || '#FFFFFF';
-    const secondaryColor = colors.secondary || colors.accent || '#D4AF37';
-    const bgColor = colors.background || '#1A1A1A';
-    const textColor = colors.textPrimary || '#FFFFFF';
-    const accentColor = colors.accent || colors.secondary || '#D4AF37';
+
+    let primaryColor: string, secondaryColor: string, bgColor: string, textColor: string, accentColor: string;
+
+    if (useGold) {
+      primaryColor = '#D4AF37';
+      secondaryColor = '#D4AF37';
+      bgColor = '#1A1A1A';
+      textColor = '#FFFFFF';
+      accentColor = '#D4AF37';
+    } else {
+      primaryColor = colors.primary || colors.textPrimary || '#FFFFFF';
+      secondaryColor = colors.secondary || colors.accent || '#D4AF37';
+      bgColor = colors.background || '#1A1A1A';
+      textColor = colors.textPrimary || '#FFFFFF';
+      accentColor = colors.accent || colors.secondary || '#D4AF37';
+    }
+
     const fontFamily = fonts.length > 0 ? fonts.map((f: any) => f.family).join(', ') : 'bold sans-serif';
 
-    // Extract brand images
-    const brandImages: string[] = brandProfile.images || [];
-    const screenshot: string | null = brandProfile.screenshot || null;
-
-    const brandColorBlock = Object.keys(colors).length > 0
-      ? `
+    const brandColorBlock = `
 BRAND COLORS (use these EXACT hex values throughout the design):
 - Primary: ${primaryColor}
 - Secondary/Accent: ${secondaryColor}
@@ -52,33 +61,23 @@ BRAND COLORS (use these EXACT hex values throughout the design):
 - Accent highlight: ${accentColor}
 
 Brand fonts: ${fontFamily}
-`
-      : `
-COLOR PALETTE:
-- Background: dark charcoal or black (#1A1A1A or #0D0D0D)
-- Primary accent: gold (#D4AF37) or the brand's main color
-- Text: white (#FFFFFF) with gold accents
-- Use high contrast between text and background
 `;
 
+    const aspectInstruction = isStory
+      ? 'The output MUST be a 9:16 vertical portrait image (1080x1920 pixels). Tall and narrow like an Instagram Story or TikTok.'
+      : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
+
     const layouts = [
-      'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features the reference photo from the brand. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
-      'Full-bleed reference photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
-      'Framed composition: dark background with a centered rectangular photo inset from the brand (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
+      'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
+      'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
+      'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
     ];
 
     const layoutInstruction = layouts[layoutIndex];
-    const hasReferenceImages = brandImages.length > 0 || screenshot;
 
-    const photoInstruction = hasReferenceImages
-      ? `IMPORTANT: I am providing reference image(s) from the brand's actual website. Use the photography, people, and scenes from these reference images as the visual foundation of the marketing graphic. Incorporate them naturally into the layout — crop, overlay, and style them to fit the design. Do NOT ignore these images.`
-      : `If using photography, it must look cinematic — professional barbershop scenes, men with fresh fades/haircuts, dramatic lighting, shallow depth of field. NO stock photo aesthetic.`;
-
-    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. The output MUST be a 1:1 square image.
+    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 
 ${brandColorBlock}
-
-${photoInstruction}
 
 LAYOUT:
 ${layoutInstruction}
@@ -90,37 +89,16 @@ Brand: "${brandProfile.title || ''}"
 CRITICAL DESIGN RULES:
 1. The headline typography must be MASSIVE — taking up at least 30% of the image area. Bold, uppercase, impactful sans-serif or display font.
 2. Background must be DARK (black, charcoal, or very dark version of brand colors). Never use bright, pastel, or white backgrounds.
-3. ${hasReferenceImages ? 'USE THE PROVIDED REFERENCE IMAGES as the photography in the design. Style and crop them to fit professionally.' : 'If using photography, it must look cinematic with dramatic lighting.'}
+3. If using photography, it must look cinematic with dramatic lighting, shallow depth of field, professional barbershop scenes.
 4. Text must have extremely high contrast against the background. Use the brand accent color for emphasis on key words.
 5. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames.
 6. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
 7. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
-8. SQUARE format — perfectly balanced composition.
+8. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
-    // Build message content — include reference images if available
-    const messageContent: any[] = [{ type: 'text', text: prompt }];
-
-    // Add up to 2 brand images as reference
-    const imageUrls = brandImages.filter((url: string) => url.startsWith('http')).slice(0, 2);
-    for (const imgUrl of imageUrls) {
-      messageContent.push({
-        type: 'image_url',
-        image_url: { url: imgUrl },
-      });
-    }
-
-    // Add screenshot as fallback if no content images
-    if (imageUrls.length === 0 && screenshot) {
-      const screenshotUrl = screenshot.startsWith('data:') ? screenshot : `data:image/png;base64,${screenshot}`;
-      messageContent.push({
-        type: 'image_url',
-        image_url: { url: screenshotUrl },
-      });
-    }
-
-    console.log('Generating marketing image:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, hasColors: Object.keys(colors).length > 0, refImages: imageUrls.length });
+    console.log('Generating marketing image:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size });
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -131,7 +109,7 @@ Make this look like something a premium brand would actually post on Instagram.`
       body: JSON.stringify({
         model: 'google/gemini-3-pro-image-preview',
         messages: [
-          { role: 'user', content: messageContent },
+          { role: 'user', content: prompt },
         ],
         modalities: ['image', 'text'],
       }),
@@ -177,7 +155,7 @@ Make this look like something a premium brand would actually post on Instagram.`
       );
     }
 
-    console.log('Marketing image generated successfully:', { index: layoutIndex });
+    console.log('Marketing image generated successfully:', { index: layoutIndex, palette, size });
     return new Response(
       JSON.stringify({ success: true, imageUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
