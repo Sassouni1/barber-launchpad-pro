@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon } from 'lucide-react';
+import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X } from 'lucide-react';
+import { useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
@@ -159,10 +160,14 @@ export default function Marketing() {
   const [paletteChoice, setPaletteChoice] = useState<PaletteChoice>('gold');
   const [variations, setVariations] = useState<VariationCard[]>([]);
   const [generatedCaption, setGeneratedCaption] = useState('');
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const websiteColors = brandProfile?.branding?.colors || {};
   const hasWebsiteColors = Object.keys(websiteColors).length > 0;
   const scrapedImages = (brandProfile?.images || []).filter((u) => u.startsWith('http'));
+  const allBrandImages = [...scrapedImages, ...uploadedImages].filter(url => !removedImages.has(url));
 
   const handleScrape = async () => {
     if (!url.trim()) {
@@ -224,8 +229,7 @@ export default function Marketing() {
   };
 
   const buildVariations = (bp: BrandProfile, caption: string) => {
-    const realImages = (bp.images || []).filter((u) => u.startsWith('http')).slice(0, 3);
-
+    const realImages = allBrandImages.slice(0, 3);
     const cards: VariationCard[] = [
       { type: 'brand-square', label: 'Brand Images (Square)', caption, images: [null, null, null], imagesLoading: true },
       { type: 'ai-square', label: 'AI Generated (Square)', caption, images: [null, null, null], imagesLoading: true },
@@ -464,26 +468,59 @@ export default function Marketing() {
             </div>
 
             {/* Website Images Gallery */}
-            {scrapedImages.length > 0 && (
+            {allBrandImages.length > 0 || true ? (
               <div className="space-y-2">
-                <label className="text-xs text-muted-foreground uppercase tracking-wider">Website Images</label>
+                <label className="text-xs text-muted-foreground uppercase tracking-wider">Images</label>
                 <div className="flex gap-3 overflow-x-auto pb-2">
-                  {scrapedImages.map((imgUrl, i) => (
-                    <div key={i} className="relative shrink-0 w-24 h-24 rounded-lg overflow-hidden group border border-border">
-                      <img src={imgUrl} alt={`Website ${i + 1}`} className="w-full h-full object-cover" />
+                  {allBrandImages.map((imgUrl, i) => (
+                    <div key={imgUrl + i} className="relative shrink-0 w-24 h-24 rounded-lg overflow-hidden group border border-border">
+                      <img src={imgUrl} alt={`Brand ${i + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setRemovedImages(prev => new Set([...prev, imgUrl]))}
+                        className="absolute top-1 left-1 h-6 w-6 rounded-full bg-destructive/80 hover:bg-destructive flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3 text-destructive-foreground" />
+                      </button>
                       <Button
                         variant="secondary"
                         size="icon"
-                        onClick={() => downloadImage(imgUrl, `website-image-${i + 1}.jpg`)}
+                        onClick={() => downloadImage(imgUrl, `brand-image-${i + 1}.jpg`)}
                         className="absolute bottom-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Download className="w-3 h-3" />
                       </Button>
                     </div>
                   ))}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="text-[10px]">Upload</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            setUploadedImages(prev => [...prev, ev.target!.result as string]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                      e.target.value = '';
+                    }}
+                  />
                 </div>
               </div>
-            )}
+            ) : null}
           </Card>
         )}
 
