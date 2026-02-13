@@ -119,12 +119,29 @@ Make this look like something a premium brand would actually post on Instagram.`
 
     console.log('Generating marketing image:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
 
+    // Ensure reference image is base64 so the AI model always receives the pixel data
+    let resolvedImageData = referenceImageUrl;
+    if (hasReference && !referenceImageUrl.startsWith('data:image/')) {
+      try {
+        console.log('Converting reference URL to base64...');
+        const imgResp = await fetch(referenceImageUrl);
+        if (imgResp.ok) {
+          const buf = await imgResp.arrayBuffer();
+          const b64 = btoa(new Uint8Array(buf).reduce((s, b) => s + String.fromCharCode(b), ''));
+          const contentType = imgResp.headers.get('content-type') || 'image/jpeg';
+          resolvedImageData = `data:${contentType};base64,${b64}`;
+        }
+      } catch (e) {
+        console.error('Failed to convert reference URL to base64, using URL directly:', e);
+      }
+    }
+
     // Build message content — multimodal if reference image provided
     const messageContent: any[] = [];
     if (hasReference) {
       messageContent.push({
         type: 'image_url',
-        image_url: { url: referenceImageUrl },
+        image_url: { url: resolvedImageData },
       });
     }
     messageContent.push({

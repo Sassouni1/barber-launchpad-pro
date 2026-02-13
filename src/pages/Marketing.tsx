@@ -38,7 +38,20 @@ interface BrandProfile {
   screenshot?: string | null;
 }
 
-// cropImage removed — all variations now use AI generation
+// Convert an image URL to a base64 data URI so the AI model receives raw pixel data
+const urlToBase64 = async (url: string): Promise<string> => {
+  // Already base64 (e.g. uploaded images)
+  if (url.startsWith('data:')) return url;
+
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
 const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -284,7 +297,15 @@ export default function Marketing() {
     if (isBrand) {
       const brandCount = Math.max(realImages.length, 1);
       for (let i = 0; i < Math.min(brandCount, 3); i++) {
-        generateSlot(varType, i, sizeVal, realImages[i]);
+        // Convert to base64 so the AI model always receives the actual image data
+        const imgUrl = realImages[i];
+        if (imgUrl) {
+          urlToBase64(imgUrl)
+            .then(b64 => generateSlot(varType, i, sizeVal, b64))
+            .catch(() => generateSlot(varType, i, sizeVal, imgUrl)); // fallback to URL
+        } else {
+          generateSlot(varType, i, sizeVal);
+        }
       }
     } else {
       for (let i = 0; i < 3; i++) {
