@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, contentType, tone } = await req.json();
+    const { brandProfile, contentType, tone, businessCategory } = await req.json();
 
     if (!brandProfile) {
       return new Response(
@@ -40,19 +40,48 @@ Deno.serve(async (req) => {
       'bold': 'Energetic, direct, and attention-grabbing. Use power words and strong calls to action.',
     };
 
+    const categoryDescriptions: Record<string, string> = {
+      'hair-system': `This business specializes in HAIR SYSTEM SERVICES (non-surgical hair replacement). Focus content on:
+- Hair system installs, maintenance, and styling
+- Transformations and confidence-boosting results
+- Free consultations — emphasize "DM to schedule" or "Click the link in my bio to book"
+- Before & after transformations
+- Phrases like: "Get your confidence back", "Undetectable hair systems", "Book your free consultation today", "DM us to get started", "Link in bio"
+- Target men dealing with hair loss who want a natural, full look without surgery
+- Avoid mentioning wigs or toupees — use "hair system" or "unit"`,
+      'haircut': `This business focuses on HAIRCUT & BARBERING SERVICES. Focus content on:
+- Fresh cuts, fades, tapers, beard trims, grooming
+- Walk-ins welcome or booking availability
+- "Book your next cut" or "DM to schedule"
+- Men's grooming expertise and style trends`,
+      'salon': `This business is a SALON offering full hair services. Focus content on:
+- Color, styling, treatments, blowouts, keratin, etc.
+- Luxury or self-care experience
+- "Book your appointment" or "Treat yourself"
+- Client transformations and testimonials`,
+      'extensions': `This business specializes in HAIR EXTENSIONS. Focus content on:
+- Length, volume, and transformation results
+- Extension types (tape-in, sew-in, clip-in, fusion, etc.)
+- "DM for a consultation" or "Book your install"
+- Natural-looking, seamless blends`,
+    };
+
+    const categoryContext = categoryDescriptions[businessCategory] || '';
+
     const systemPrompt = `You are an expert marketing copywriter specializing in the hair replacement, hair systems, and barber industry. You create compelling, on-brand marketing content that drives engagement and conversions.
 
 Your task: Generate exactly 3 unique variations of marketing content based on the brand information provided.
 
 Content type: ${contentTypeDescriptions[contentType] || contentTypeDescriptions['social']}
 Tone: ${toneDescriptions[tone] || toneDescriptions['professional']}
-
+${categoryContext ? `\nBUSINESS CATEGORY FOCUS:\n${categoryContext}\n` : ''}
 Rules:
 - Each variation must be distinct in approach (e.g., one emotional, one educational, one promotional)
 - Use the brand's actual services, name, and unique selling points from the website content
-- Include a clear call-to-action in each variation
+- Include a clear call-to-action in each variation (prefer "DM to schedule", "Link in bio", or "Book a free consultation")
 - Keep content authentic and avoid generic filler
 - If the business is related to hair systems/barber services, lean into that expertise
+${categoryContext ? '- IMPORTANT: Stay laser-focused on the business category described above. Every variation must be about that specific service.' : ''}
 
 Return your response as a JSON object with this exact structure:
 {
