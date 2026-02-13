@@ -1,31 +1,29 @@
 
 
-## Parallel-2 Image Generation with Progress
+## Add Image Type Selector (Brand / AI / Both)
 
-### Approach
-Process image generation jobs in **pairs of 2** with a 3-second delay between each pair, instead of fully sequential (slow) or all-at-once (rate-limited).
+Currently, generation always creates both "Brand Images" and "AI Generated" cards. This adds a selector so you can pick which type you want.
 
 ### Changes (single file: `src/pages/Marketing.tsx`)
 
-**1. Batch processing in pairs**
-- Build the full list of generation jobs (brand slots + AI slots, typically 6 total)
-- Process them 2 at a time using `Promise.all` on each pair
-- Wait 3 seconds between each pair
-- Result: 3 batches of 2 instead of 6 sequential calls -- cuts total time from ~18s to ~9s
+**1. New state variable**
+- Add `imageMode` state with options: `'both'` | `'brand'` | `'ai'` (default: `'both'`)
 
-**2. Failure handling**
-- When an image request fails (429 or other error), mark the slot with `"failed"` instead of leaving it `null`
-- This ensures the loading state always resolves, even if some images fail
-- The UI can show a subtle "failed" indicator on those slots
+**2. Image Mode selector UI**
+- Add a 3-option toggle in the settings card (next to Format selector), styled the same way as the format buttons
+- Options:
+  - **Brand Images** -- uses your uploaded/scraped reference photos as the base with AI text overlays
+  - **AI Generated** -- fully AI-generated images with no reference photo
+  - **Both** -- generates both sets (current behavior)
 
-**3. Progress indicator**
-- Add `generationProgress` state: `{ current: number, total: number }`
-- Update after each batch completes
-- Display "Generating image X of Y..." in the UI so it never looks stuck
+**3. Update `buildVariations` logic**
+- When `imageMode === 'brand'`: only create the brand variation card and only queue brand jobs
+- When `imageMode === 'ai'`: only create the AI variation card and only queue AI jobs  
+- When `imageMode === 'both'`: current behavior (both cards)
+- This also reduces total generation time when only one type is selected (3 images instead of 6)
 
-### Why 2 at a time?
-- 10 RPM limit / 2 requests per batch = 5 batches per minute max
-- With 3s delay between batches, we hit ~4 batches per minute -- safely under limit
-- Total time for 6 images: ~12 seconds (vs ~18s sequential, vs instant-but-failing parallel)
+**4. Update results grid**
+- When only one type is selected, show it full-width instead of in a 2-column grid
 
 ### No backend changes needed
+
