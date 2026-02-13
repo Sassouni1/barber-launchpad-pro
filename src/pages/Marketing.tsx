@@ -223,7 +223,7 @@ export default function Marketing() {
       // Compute fresh image list to avoid stale closure
       const freshScraped = (bp.images || []).filter((u: string) => u.startsWith('http'));
       const freshAllImages = [...freshScraped, ...uploadedImages].filter(u => !removedImages.has(u));
-      buildVariations(bp, caption, freshAllImages);
+      await buildVariations(bp, caption, freshAllImages);
     } catch (err: any) {
       toast.error(err.message || 'Failed to generate content');
     } finally {
@@ -231,22 +231,24 @@ export default function Marketing() {
     }
   };
 
-  const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
-    const realImages = imagesForGeneration.slice(0, 3);
+  const [generationProgress, setGenerationProgress] = useState('');
+
+  const buildVariations = async (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
+    const realImages = imagesForGeneration.slice(0, 2);
     const cards: VariationCard[] = [
-      { type: 'brand-square', label: 'Brand Images (Square)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'ai-square', label: 'AI Generated (Square)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'brand-story', label: 'Brand Images (Stories)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'ai-story', label: 'AI Generated (Stories)', caption, images: [null, null, null], imagesLoading: true },
+      { type: 'brand-square', label: 'Brand Images (Square)', caption, images: [null, null], imagesLoading: true },
+      { type: 'ai-square', label: 'AI Generated (Square)', caption, images: [null, null], imagesLoading: true },
+      { type: 'brand-story', label: 'Brand Images (Stories)', caption, images: [null, null], imagesLoading: true },
+      { type: 'ai-story', label: 'AI Generated (Stories)', caption, images: [null, null], imagesLoading: true },
     ];
     setVariations(cards);
 
     // Helper to generate an AI image and update variation state
-    const generateSlot = (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
+    const generateSlot = async (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
       const targetW = sizeVal === 'story' ? 1080 : 1080;
       const targetH = sizeVal === 'story' ? 1920 : 1080;
 
-      supabase.functions.invoke('generate-marketing-image', {
+      const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
         body: {
           brandProfile: bp,
           variationTitle: type,
@@ -258,43 +260,50 @@ export default function Marketing() {
           size: sizeVal,
           ...(refUrl ? { referenceImageUrl: refUrl } : {}),
         },
-      }).then(async ({ data, error }) => {
-        let imageUrl: string | null = null;
-        if (!error && data?.success && data.imageUrl) {
-          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
-        }
-        setVariations(prev => prev.map(v => {
-          if (v.type !== type) return v;
-          const newImgs = [...v.images];
-          newImgs[imgIdx] = imageUrl;
-          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
-          const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
-        }));
       });
+
+      let imageUrl: string | null = null;
+      if (!error && data?.success && data.imageUrl) {
+        try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
+      }
+      setVariations(prev => prev.map(v => {
+        if (v.type !== type) return v;
+        const newImgs = [...v.images];
+        newImgs[imgIdx] = imageUrl;
+        const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 2) : 2;
+        const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
+        return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
+      }));
     };
 
-    const brandCount = Math.max(realImages.length, 1); // At least 1 AI call even with no images
+    const brandCount = Math.max(realImages.length, 1);
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-    // Brand Square: AI generation with reference images
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot('brand-square', i, 'square', realImages[i]);
+    // Build sequential queue of all generation calls
+    type QueueItem = { type: VariationType; idx: number; size: string; ref?: string };
+    const queue: QueueItem[] = [];
+
+    for (let i = 0; i < Math.min(brandCount, 2); i++) {
+      queue.push({ type: 'brand-square', idx: i, size: 'square', ref: realImages[i] });
+    }
+    for (let i = 0; i < Math.min(brandCount, 2); i++) {
+      queue.push({ type: 'brand-story', idx: i, size: 'story', ref: realImages[i] });
+    }
+    for (let i = 0; i < 2; i++) {
+      queue.push({ type: 'ai-square', idx: i, size: 'square' });
+    }
+    for (let i = 0; i < 2; i++) {
+      queue.push({ type: 'ai-story', idx: i, size: 'story' });
     }
 
-    // Brand Story: AI generation with reference images
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      generateSlot('brand-story', i, 'story', realImages[i]);
+    // Run sequentially with delay to avoid rate limiting
+    for (let q = 0; q < queue.length; q++) {
+      const item = queue[q];
+      setGenerationProgress(`Generating image ${q + 1} of ${queue.length}...`);
+      await generateSlot(item.type, item.idx, item.size, item.ref);
+      if (q < queue.length - 1) await delay(3000);
     }
-
-    // AI Square: 3 calls, no reference
-    for (let i = 0; i < 3; i++) {
-      generateSlot('ai-square', i, 'square');
-    }
-
-    // AI Story: 3 calls, no reference
-    for (let i = 0; i < 3; i++) {
-      generateSlot('ai-story', i, 'story');
-    }
+    setGenerationProgress('');
   };
 
   const copyToClipboard = async (text: string) => {
@@ -529,6 +538,14 @@ export default function Marketing() {
           <Card className="glass-card p-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
             <p className="text-muted-foreground">Generating your marketing content...</p>
+          </Card>
+        )}
+
+        {/* Generation Progress */}
+        {generationProgress && (
+          <Card className="glass-card p-4 flex items-center gap-3">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">{generationProgress}</span>
           </Card>
         )}
 
