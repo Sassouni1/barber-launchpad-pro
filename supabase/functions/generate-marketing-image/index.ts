@@ -153,26 +153,42 @@ Make this look like something a premium brand would actually post on Instagram.`
 
     const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${GOOGLE_API_KEY}`;
 
-    const response = await fetch(googleUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
-        },
-      }),
+    const requestBody = JSON.stringify({
+      contents: [{ role: 'user', parts }],
+      generationConfig: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    let response: Response | null = null;
+    const maxRetries = 3;
+    const retryDelays = [0, 10000, 20000];
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      if (attempt > 0) {
+        console.log(`Retry attempt ${attempt + 1} after ${retryDelays[attempt] / 1000}s delay...`);
+        await new Promise(r => setTimeout(r, retryDelays[attempt]));
+      }
+
+      response = await fetch(googleUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      });
+
+      if (response.status !== 429) break;
+      console.warn(`Got 429 rate limit on attempt ${attempt + 1}`);
+    }
+
+    if (!response || !response.ok) {
+      if (response?.status === 429) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again in a moment.' }),
+          JSON.stringify({ success: false, error: 'Rate limit exceeded after retries. Please try again later.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const errorText = await response.text();
-      console.error('Google AI Studio error:', response.status, errorText);
+      const errorText = response ? await response.text() : 'No response';
+      console.error('Google AI Studio error:', response?.status, errorText);
       return new Response(
         JSON.stringify({ success: false, error: 'Image generation failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
