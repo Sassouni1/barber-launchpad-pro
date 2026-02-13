@@ -1,41 +1,28 @@
 
 
-## Fix Marketing Image Quality Issues
+## Fix "HAIR SYSTEM" Text and Photo Cropping
 
-### Problems Identified
+### Problem 1: Category Name Displayed as Brand Name
 
-1. **Headline truncation**: The edge function passes `variationContent.substring(0, 120)` as the image headline. Captions are 150-300 words long -- they should never be used as image text. The result is cut-off sentences like "it's about how you feel when you..."
+When no website URL is provided, the frontend creates a minimal brand profile with `title` set to the business category (e.g., "Hair System"). The edge function prompt then says `Brand name: "Hair System"`, causing the AI to render "HAIR SYSTEM" prominently on the image.
 
-2. **Category slug displayed as text**: "hair-system" appears as raw text on the image because the prompt includes it directly.
+**Fix (Frontend - `src/pages/Marketing.tsx`):**
+- When creating the fallback brand profile without a URL, set `title` to an empty string (or omit it) instead of the category name
+- The category context is already passed separately via `businessCategory` -- it does not need to double as the brand name
 
-3. **Reference photo cropping**: The split layout instruction tells the AI to use 40/60 split, which crops before/after photos poorly, losing the transformation effect.
+### Problem 2: Reference Photo Still Getting Cropped
 
-### Solution
+The split layout allocates only 60% width to the photo, which crops before/after images. While we added a text instruction, the 40/60 split constraint overrides it.
 
-**Edge Function: `supabase/functions/generate-marketing-image/index.ts`**
+**Fix (Edge Function - `supabase/functions/generate-marketing-image/index.ts`):**
+- When a reference image is provided, adjust the split layout to give more space to the photo (e.g., 25/75 or let the AI decide)
+- Alternatively, for the split layout specifically, instruct: "If a reference photo is provided, use it at full width across the right panel without any cropping -- expand the photo area as needed to show the complete image"
 
-1. **Generate a short headline separately from the caption**: Instead of substring-ing the long caption, add a `variationHeadline` or `variationTitle` field. Use the variation's `title` (which is already short, e.g., "Emotional Appeal") as a fallback, or instruct the AI in the prompt to create its own 5-8 word headline based on the content theme.
+### Technical Changes
 
-2. **Replace raw category slug**: Convert "hair-system" to "Hair System" (proper formatting) or remove it from the image text entirely -- the category context should inform the design, not appear as visible text.
+**`src/pages/Marketing.tsx`:**
+- Change the fallback brand profile from `{ title: formattedCategory, ... }` to `{ title: '', ... }` so no fake brand name is rendered on the image
 
-3. **Update prompt to generate its own headline**: Instead of forcing the truncated caption onto the image, tell the AI: "Create a bold, punchy headline (5-8 words max) inspired by this theme: [variationContent]". This lets the model compose proper image text.
-
-4. **Fix reference photo cropping rule**: Add a prompt instruction that before/after transformation photos must show BOTH sides. Update the split layout to say "if the reference photo contains a before/after comparison, show the full photo without cropping."
-
-### Frontend: `src/pages/Marketing.tsx`
-
-- Pass `variationTitle` (the short label like "Emotional Appeal" or "Promotional Push") alongside `variationContent` to the edge function, so the function has a short text option available.
-
-### Specific Changes
-
-**Edge function prompt changes:**
-- Replace: `Headline: "${variationContent.substring(0, 120)}"` 
-- With: `Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold headline of 5-8 words max based on this theme. Do NOT copy this text directly onto the image.`
-- Replace: `Brand: "${brandProfile.title || ''}"` keep as is but remove any raw category slug from appearing
-- Add to layout instructions: "If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side."
-- Add rule: "Never display category labels, slugs, or metadata as visible text on the image."
-
-**Frontend changes:**
-- Pass `variationTitle` in the request body alongside `variationContent`
-- Format `businessCategory` properly (e.g., "hair-system" to "Hair System") before sending
-
+**`supabase/functions/generate-marketing-image/index.ts`:**
+- Update the prompt: if `brandProfile.title` is empty, omit the "Brand name" line from the prompt entirely
+- Adjust split layout instruction to prioritize showing the full reference photo: change "left 40%" to "left 25%" when a reference image is present, giving the photo 75% of the space
