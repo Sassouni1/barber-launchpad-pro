@@ -12,8 +12,6 @@ import { useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
-type FormatChoice = 'square' | 'story';
-type SourceChoice = 'brand' | 'ai';
 type VariationType = 'brand-square' | 'brand-story' | 'ai-square' | 'ai-story';
 
 interface VariationCard {
@@ -38,40 +36,21 @@ interface BrandProfile {
   screenshot?: string | null;
 }
 
-// Convert an image URL to a base64 data URI so the AI model receives raw pixel data
-const urlToBase64 = async (url: string): Promise<string> => {
-  // Already base64 (e.g. uploaded images)
-  if (url.startsWith('data:')) return url;
+// cropImage removed — all variations now use AI generation
 
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
-
-const resizeImage = (dataUrl: string, maxW: number, maxH: number): Promise<string> => {
+const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      // Scale down proportionally to fit within maxW x maxH
-      let w = img.naturalWidth;
-      let h = img.naturalHeight;
-      if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
-      if (h > maxH) { w = Math.round(w * (maxH / h)); h = maxH; }
       const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('Canvas not supported')); return; }
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.85));
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/png'));
     };
     img.onerror = () => reject(new Error('Failed to load image'));
-    img.crossOrigin = 'anonymous';
     img.src = dataUrl;
   });
 };
@@ -179,8 +158,6 @@ export default function Marketing() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [paletteChoice, setPaletteChoice] = useState<PaletteChoice>('gold');
-  const [formatChoice, setFormatChoice] = useState<FormatChoice>('square');
-  const [sourceChoice, setSourceChoice] = useState<SourceChoice>('brand');
   const [variations, setVariations] = useState<VariationCard[]>([]);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -256,23 +233,20 @@ export default function Marketing() {
 
   const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
     const realImages = imagesForGeneration.slice(0, 3);
-    const sizeVal = formatChoice;
-    const sizeLabel = formatChoice === 'square' ? 'Square' : 'Stories';
-
-    const isBrand = sourceChoice === 'brand';
-    const varType: VariationType = `${isBrand ? 'brand' : 'ai'}-${sizeVal}` as VariationType;
-    const label = isBrand ? `Brand Images (${sizeLabel})` : `AI Generated (${sizeLabel})`;
-
     const cards: VariationCard[] = [
-      { type: varType, label, caption, images: [null, null, null], imagesLoading: true },
+      { type: 'brand-square', label: 'Brand Images (Square)', caption, images: [null, null, null], imagesLoading: true },
+      { type: 'ai-square', label: 'AI Generated (Square)', caption, images: [null, null, null], imagesLoading: true },
+      { type: 'brand-story', label: 'Brand Images (Stories)', caption, images: [null, null, null], imagesLoading: true },
+      { type: 'ai-story', label: 'AI Generated (Stories)', caption, images: [null, null, null], imagesLoading: true },
     ];
     setVariations(cards);
 
-    const generateSlot = async (type: VariationType, imgIdx: number, size: string, refUrl?: string): Promise<void> => {
-      const targetW = 1080;
-      const targetH = size === 'story' ? 1920 : 1080;
+    // Helper to generate an AI image and update variation state
+    const generateSlot = (type: VariationType, imgIdx: number, sizeVal: string, refUrl?: string) => {
+      const targetW = sizeVal === 'story' ? 1080 : 1080;
+      const targetH = sizeVal === 'story' ? 1920 : 1080;
 
-      const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
+      supabase.functions.invoke('generate-marketing-image', {
         body: {
           brandProfile: bp,
           variationTitle: type,
@@ -281,52 +255,46 @@ export default function Marketing() {
           tone,
           index: imgIdx,
           palette: paletteChoice,
-          size,
+          size: sizeVal,
           ...(refUrl ? { referenceImageUrl: refUrl } : {}),
         },
+      }).then(async ({ data, error }) => {
+        let imageUrl: string | null = null;
+        if (!error && data?.success && data.imageUrl) {
+          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
+        }
+        setVariations(prev => prev.map(v => {
+          if (v.type !== type) return v;
+          const newImgs = [...v.images];
+          newImgs[imgIdx] = imageUrl;
+          const totalForType = type.startsWith('brand-') ? Math.min(realImages.length || 1, 3) : 3;
+          const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
+          return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
+        }));
       });
-
-      let imageUrl: string | null = null;
-      if (!error && data?.success && data.imageUrl) {
-        try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
-      }
-      setVariations(prev => prev.map(v => {
-        if (v.type !== type) return v;
-        const newImgs = [...v.images];
-        newImgs[imgIdx] = imageUrl;
-        const totalForType = isBrand ? Math.min(realImages.length || 1, 3) : 3;
-        const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
-        return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
-      }));
     };
 
-    // Sequential generation to avoid rate limits; downscale brand photos first
-    const runSequential = async () => {
-      if (isBrand) {
-        const brandCount = Math.min(Math.max(realImages.length, 1), 3);
-        for (let i = 0; i < brandCount; i++) {
-          const imgUrl = realImages[i];
-          if (imgUrl) {
-            try {
-              const b64 = await urlToBase64(imgUrl);
-              // Downscale to max 1200px to shrink payload ~90%
-              const small = await resizeImage(b64, 1200, 1200);
-              await generateSlot(varType, i, sizeVal, small);
-            } catch {
-              await generateSlot(varType, i, sizeVal, imgUrl);
-            }
-          } else {
-            await generateSlot(varType, i, sizeVal);
-          }
-        }
-      } else {
-        for (let i = 0; i < 3; i++) {
-          await generateSlot(varType, i, sizeVal);
-        }
-      }
-    };
+    const brandCount = Math.max(realImages.length, 1); // At least 1 AI call even with no images
 
-    runSequential();
+    // Brand Square: AI generation with reference images
+    for (let i = 0; i < Math.min(brandCount, 3); i++) {
+      generateSlot('brand-square', i, 'square', realImages[i]);
+    }
+
+    // Brand Story: AI generation with reference images
+    for (let i = 0; i < Math.min(brandCount, 3); i++) {
+      generateSlot('brand-story', i, 'story', realImages[i]);
+    }
+
+    // AI Square: 3 calls, no reference
+    for (let i = 0; i < 3; i++) {
+      generateSlot('ai-square', i, 'square');
+    }
+
+    // AI Story: 3 calls, no reference
+    for (let i = 0; i < 3; i++) {
+      generateSlot('ai-story', i, 'story');
+    }
   };
 
   const copyToClipboard = async (text: string) => {
@@ -493,101 +461,7 @@ export default function Marketing() {
             </div>
           </div>
 
-          {/* Format Selector */}
-          <div className="space-y-2">
-            <label className="text-xs text-muted-foreground uppercase tracking-wider">Format</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setFormatChoice('square')}
-                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                  formatChoice === 'square'
-                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
-                }`}
-              >
-                {formatChoice === 'square' && (
-                  <div className="absolute top-2 right-2">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                )}
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="text-foreground">
-                  <rect x="4" y="4" width="24" height="24" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-                <div className="text-center">
-                  <span className="text-xs font-medium text-foreground block">Square (1:1)</span>
-                  <span className="text-[10px] text-muted-foreground">1080 × 1080</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setFormatChoice('story')}
-                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                  formatChoice === 'story'
-                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
-                }`}
-              >
-                {formatChoice === 'story' && (
-                  <div className="absolute top-2 right-2">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                )}
-                <svg width="20" height="32" viewBox="0 0 20 32" fill="none" className="text-foreground">
-                  <rect x="1" y="1" width="18" height="30" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-                <div className="text-center">
-                  <span className="text-xs font-medium text-foreground block">Story (9:16)</span>
-                  <span className="text-[10px] text-muted-foreground">1080 × 1920</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Image Source Selector */}
-          <div className="space-y-2">
-            <label className="text-xs text-muted-foreground uppercase tracking-wider">Image Source</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setSourceChoice('brand')}
-                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                  sourceChoice === 'brand'
-                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
-                }`}
-              >
-                {sourceChoice === 'brand' && (
-                  <div className="absolute top-2 right-2">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                )}
-                <ImageIcon className="w-6 h-6 text-foreground" />
-                <div className="text-center">
-                  <span className="text-xs font-medium text-foreground block">Brand Photos</span>
-                  <span className="text-[10px] text-muted-foreground">Uses your uploaded images</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setSourceChoice('ai')}
-                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                  sourceChoice === 'ai'
-                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
-                }`}
-              >
-                {sourceChoice === 'ai' && (
-                  <div className="absolute top-2 right-2">
-                    <Check className="w-3 h-3 text-primary" />
-                  </div>
-                )}
-                <Sparkles className="w-6 h-6 text-foreground" />
-                <div className="text-center">
-                  <span className="text-xs font-medium text-foreground block">AI Generated</span>
-                  <span className="text-[10px] text-muted-foreground">Original AI photography</span>
-                </div>
-              </button>
-            </div>
-          </div>
+          {/* Palette Selector - only after website analysis */}
           {brandProfile && (
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground uppercase tracking-wider">Color Palette</label>
@@ -674,7 +548,7 @@ export default function Marketing() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 max-w-md mx-auto gap-6">
+            <div className="grid grid-cols-2 gap-6">
               {variations.map((variation, idx) => {
                 const validImages = variation.images.filter(Boolean);
 
