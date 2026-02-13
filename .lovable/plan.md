@@ -1,39 +1,65 @@
 
-## Fix: Website Mode Forces Hair System Context Even When Not Selected
+## Fix: Website Content Not Driving Headlines + Text Over People
 
-### Problem
-Three hardcoded references to "barbershop/hair replacement business" exist in both edge functions. When a user analyzes a website (e.g., a restaurant, fitness studio, or general business) without selecting "Hair System" as the category, the AI still frames everything around hair systems because the system prompts literally say "specializing in the hair replacement, hair systems, and barber industry."
+### Current State
+The recent diff shows that `businessCategory` was already made dynamic in the photography instructions and business descriptions (lines 113-128), BUT:
 
-### Root Cause
-The `businessCategory` variable is used to inject extra context, but the **base system prompts** are hardcoded to hair/barber regardless. So even with no category selected, the AI thinks it's writing for a hair business.
-
-### Solution
-Make the base prompts generic when no category (or a non-hair category) is selected. Only mention hair/barber when the user explicitly picks a hair-related category.
+1. **Frontend never passes `businessCategory`** (line 268-279 in Marketing.tsx) — the body sent to `generate-marketing-image` doesn't include it
+2. **Edge function doesn't destructure `businessCategory`** (line 29 in generate-marketing-image/index.ts) — it's missing from the destructuring
+3. **Hardcoded headline examples** (line 141) still contain "Zero Surgery" and "Same-Day Installs" which override the dynamic logic
+4. **No instruction to mine website content for themes** — line 139 says "inspired by this theme" but doesn't tell AI to extract actual themes/services from the website content itself
+5. **No explicit "use empty space" rule** — only negative rules (don't place over faces/hair) without a positive instruction to prioritize empty zones
 
 ### Technical Changes
 
-**File 1: `supabase/functions/generate-marketing/index.ts`**
+**File 1: `src/pages/Marketing.tsx`** (line 268-279)
+- Add `businessCategory` to the request body so the edge function receives it
 
-1. **Line 71** -- Change the system prompt intro from hardcoded hair industry to dynamic:
-   - If a category is selected, use a category-appropriate intro (e.g., "specializing in hair system services")
-   - If no category, use generic: "You are an expert marketing copywriter. You create compelling, on-brand marketing content that drives engagement and conversions."
+**File 2: `supabase/functions/generate-marketing-image/index.ts`** (multiple locations)
 
-2. **Line 83** -- Remove the always-present fallback "If the business is related to hair systems/barber services, lean into that expertise" -- this should only appear when the category context is active.
+1. **Line 29** — Destructure `businessCategory` from request:
+   ```typescript
+   const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl, businessCategory } = await req.json();
+   ```
 
-**File 2: `supabase/functions/generate-marketing-image/index.ts`**
+2. **Line 139** — Update headline instruction to mine website content for themes AND services:
+   Replace: `"Theme/mood of the post: \"${variationContent.substring(0, 200)}\"..."`
+   
+   With explicit content mining and theme extraction:
+   ```
+   Theme/mood of the post: "${variationContent.substring(0, 200)}"
+   
+   WEBSITE CONTENT CONTEXT: "${brandProfile.content?.substring(0, 500) || ''}"
+   
+   Headline Strategy: Analyze BOTH the generated theme AND the website content above. Extract key themes, services, or offerings mentioned on the website. Create a bold, punchy headline (5-8 words max) that reflects ONE of these actual themes or services. Do NOT default to generic hair-system messaging unless the website content explicitly mentions hair services.
+   ```
 
-1. **Line 113** -- Photography fallback: Change from "fits a barbershop/hair replacement business" to a dynamic description based on `businessCategory`. If no category, use generic: "fits the brand's industry and style."
+3. **Line 141** — Replace hardcoded hair-system headline examples with dynamic ones based on `businessCategory`:
+   ```typescript
+   const headlineExamples = businessCategory ? {
+     'hair-system': '"Fresh Look. Zero Surgery.", "Same-Day Installs"',
+     'haircut': '"Sharp Cuts. Clean Lines.", "Walk-Ins Welcome"',
+     'salon': '"Your Best Hair Day.", "Color That Turns Heads"',
+     'extensions': '"Length You\'ll Love.", "Seamless Blends"',
+   }[businessCategory] : '"See The Difference.", "Book Today", "Your Best Look Yet"';
+   ```
+   
+   Then insert into prompt: `HEADLINE STYLE — rotate between these approaches: results-driven (${headlineExamples}), ...`
 
-2. **Line 117** -- Main prompt intro: Change from "for a barbershop/hair replacement business" to dynamic. If no category, use generic: "for a premium brand."
+4. **Line 146** — Add TEXT PLACEMENT PRIORITY rule before all other critical design rules:
+   ```
+   TEXT PLACEMENT PRIORITY: Before placing ANY text, scan the image and identify the largest empty areas (solid-color walls, ceilings, dark backgrounds, open negative space with no people). ALL headlines, brand names, CTAs, and decorative elements MUST be positioned in these empty zones. If a person occupies one side of the frame and empty space occupies the other, place 100% of the text on the empty side. Never place text over any part of a person — face, hair, body, or clothing.
+   ```
 
-### Mapping
+### Implementation Order
+1. Update frontend to pass `businessCategory`
+2. Update edge function destructuring to accept `businessCategory`
+3. Create dynamic headline examples mapping
+4. Update headline instruction to reference website content and extract themes
+5. Add TEXT PLACEMENT PRIORITY rule at the top of critical design rules
+6. Redeploy `generate-marketing-image` edge function
 
-| businessCategory | Prompt wording |
-|---|---|
-| `hair-system` | "hair system / non-surgical hair replacement business" |
-| `haircut` | "barbershop / men's grooming business" |
-| `salon` | "hair salon" |
-| `extensions` | "hair extensions business" |
-| (empty/none) | Generic -- derive context from the website content only |
-
-This ensures that when someone uses the "Website" feature without picking a category, the AI reads the actual website content and generates relevant marketing -- not hair system content.
+### Expected Behavior
+- When analyzing a restaurant website with no category selected → headlines will be based on actual restaurant content/themes, not hair systems
+- When analyzing a salon website with "salon" category → salon-specific headline examples
+- Text will be placed in clearly empty areas (backgrounds, margins, negative space) instead of over people's faces/hair
