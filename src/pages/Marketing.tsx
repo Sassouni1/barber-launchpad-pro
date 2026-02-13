@@ -24,6 +24,11 @@ interface BrandProfile {
   description: string;
   content: string;
   sourceUrl: string;
+  branding?: {
+    colors: Record<string, string>;
+    fonts: Array<{ family: string }>;
+    logo: string | null;
+  } | null;
 }
 
 const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
