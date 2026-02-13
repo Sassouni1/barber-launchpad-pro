@@ -151,7 +151,7 @@ Make this look like something a premium brand would actually post on Instagram.`
 
     parts.push({ text: prompt });
 
-    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_API_KEY}`;
+    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${GOOGLE_API_KEY}`;
 
     const response = await fetch(googleUrl, {
       method: 'POST',
