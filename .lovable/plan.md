@@ -1,65 +1,65 @@
 
 
-## Extract Brand Colors from Website and Use in Image Generation
+## Show Real + AI Images in a Carousel
 
-Currently the scrape only pulls markdown text and links — it completely ignores the website's visual identity. The image generator then falls back to generic tone-based color palettes that have nothing to do with the actual brand. This is why the results look off.
+Each variation will display 6 images total: 3 real photos pulled from the website and 3 AI-generated graphics. Instead of showing them as separate stacked cards, they'll be presented in a swipeable carousel/slider within each variation card.
 
-### The Fix: Two Changes
+### Changes
 
-**1. Scrape function extracts branding (`supabase/functions/scrape-website/index.ts`)**
+**1. Frontend (`src/pages/Marketing.tsx`)**
 
-Add `'branding'` to the Firecrawl formats array. This tells Firecrawl to extract the site's actual colors (primary, secondary, accent, background, text), fonts, and logo URL. The returned `brandProfile` will include a new `branding` object with all of this data.
+- Update the `Variation` interface to hold arrays of images instead of single story/square URLs:
+  ```
+  realImages: string[]         // 3 images scraped from the website
+  aiImages: string[]           // 3 AI-generated images
+  aiImagesLoading: boolean     // loading state for AI batch
+  ```
+- After scraping, pull up to 3 real images from `brandProfile.images` and store them on each variation
+- Generate 3 AI images per variation (fire off 3 parallel calls instead of 2 story/square calls)
+- Replace the Story/Square tabs with an Embla carousel that cycles through all 6 images (real first, then AI), with:
+  - Dot indicators showing position
+  - A small label badge on each slide ("From Website" vs "AI Generated")
+  - Download button on hover for each image
+  - Left/right arrow navigation
 
-Change:
-```text
-formats: ['markdown', 'links']
-```
-to:
-```text
-formats: ['markdown', 'links', 'branding']
-```
+**2. Image Generation (`supabase/functions/generate-marketing-image/index.ts`)**
 
-Then include the branding data in the returned profile:
-```text
-brandProfile = {
-  title, description, content, sourceUrl,
-  branding: {
-    colors: { primary: "#FF6B35", secondary: "#004E89", ... },
-    fonts: [{ family: "Inter" }, ...],
-    logo: "https://..."
-  }
-}
-```
+- Remove the `size` parameter distinction (story vs square) -- instead accept an `index` (0, 1, 2) to vary the layout
+- Generate all images as square (1:1 at 1080x1080) for consistency in the carousel
+- Use the existing layout variation logic (index 0 = split, index 1 = full-bleed, index 2 = framed) so each of the 3 AI images looks different
 
-**2. Image generator uses the real brand colors (`supabase/functions/generate-marketing-image/index.ts`)**
+**3. No changes to scrape function** -- it already extracts up to 6 images
 
-When building the prompt, inject the actual extracted colors and fonts instead of generic descriptions. The prompt will say things like:
+### UI Layout Per Variation Card
 
 ```text
-Brand colors (use these EXACTLY):
-- Primary: #FF6B35
-- Secondary: #004E89
-- Background: #1A1A1A
-- Text: #FFFFFF
-
-Brand fonts: Inter, Roboto Mono
++------------------------------------------+
+| Variation Title                    [Copy] |
+|                                          |
+|  +------------------------------------+  |
+|  |                                    |  |
+|  |     < [Image Carousel Slide] >     |  |
+|  |       "From Website" badge         |  |
+|  |                                    |  |
+|  +------------------------------------+  |
+|  |       o  o  o  o  o  o             |  |
+|  +------------------------------------+  |
+|                                          |
+|  Caption text here...                    |
++------------------------------------------+
 ```
 
-This gives the AI model concrete hex values to work with instead of vague instructions like "use professional colors."
+### Technical Details
 
-Also upgrade the model from `google/gemini-2.5-flash-image` to `google/gemini-3-pro-image-preview` for better visual quality and more reliable color adherence.
-
-**3. Update BrandProfile interface and pass-through (`src/pages/Marketing.tsx`)**
-
-Add `branding` to the `BrandProfile` TypeScript interface so it flows through from scrape to image generation without being dropped.
+- Uses `embla-carousel-react` (already installed) for the slider
+- Real images are displayed as-is (direct URLs from the website)
+- AI images go through the existing `resizeImage` canvas function to enforce 1080x1080
+- 3 AI image generation calls fire in parallel per variation (so 9 total for 3 variations)
+- Each slide shows a small pill badge: "Website Photo" (green) or "AI Generated" (gold)
+- Carousel has prev/next arrow buttons and dot indicators
 
 ### Files Modified
 
-- `supabase/functions/scrape-website/index.ts` — add `'branding'` format, include branding data in response
-- `supabase/functions/generate-marketing-image/index.ts` — read `brandProfile.branding.colors` and inject hex values into prompt; upgrade model to `gemini-3-pro-image-preview`; rewrite prompt with reference-image-inspired art direction (dark backgrounds, bold typography, decorative elements) combined with real brand colors
-- `src/pages/Marketing.tsx` — update `BrandProfile` interface to include optional `branding` field
-
-### What This Achieves
-
-Instead of "make it look professional" the AI now gets "use #D4AF37 as accent color, #1A1A1A as background, Inter font family" — pulled directly from the client's actual website. The images will match the brand identity automatically.
+- `src/pages/Marketing.tsx` -- new data model, carousel UI, parallel 3x AI image generation
+- `supabase/functions/generate-marketing-image/index.ts` -- accept `index` instead of `size`, generate square only, vary layout by index
 
