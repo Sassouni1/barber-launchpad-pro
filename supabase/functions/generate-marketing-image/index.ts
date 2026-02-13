@@ -89,8 +89,12 @@ Brand fonts: ${fontFamily}
       hasReference
         ? 'Split layout: left 25% is a dark solid panel with the headline stacked vertically, right 75% features the reference photo at FULL width without any cropping. Thin gold border around the entire image. Decorative dotted line divider between text and photo. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
         : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
-      'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
-      'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
+      hasReference
+        ? 'Full-bleed: Use the provided reference photo as the full background. Apply a heavy dark gradient overlay (70% opacity) on areas where text will go, but keep the subject clearly visible. Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
+        : 'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
+      hasReference
+        ? 'Framed composition: dark background with the provided reference photo centered as a rectangular inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
+        : 'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
     ];
 
     const layoutInstruction = layouts[layoutIndex];
