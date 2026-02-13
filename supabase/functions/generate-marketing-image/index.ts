@@ -110,11 +110,23 @@ You have been given a reference photo. This is the ONLY photo that should appear
 - Place headline text and brand elements around or overlaid on the photo using gradients, but never obscure the subject.
 - The result must look like a professionally designed social media post featuring this specific photo.`
       : `PHOTOGRAPHY INSTRUCTIONS:
-Generate original cinematic photography that fits a barbershop/hair replacement business.
-- Professional barbershop scenes, dramatic lighting, shallow depth of field
+Generate original cinematic photography that fits ${businessCategory ? ({
+        'hair-system': 'a hair system / non-surgical hair replacement business',
+        'haircut': 'a barbershop / men\'s grooming business',
+        'salon': 'a hair salon',
+        'extensions': 'a hair extensions business',
+      } as Record<string, string>)[businessCategory] || 'the brand\'s industry and style' : 'the brand\'s industry and style'}.
+- Professional scenes, dramatic lighting, shallow depth of field
 - The photography should feel authentic and high-end`;
 
-    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
+    const businessDesc = businessCategory ? ({
+      'hair-system': 'a hair system / non-surgical hair replacement business',
+      'haircut': 'a barbershop / men\'s grooming business',
+      'salon': 'a hair salon',
+      'extensions': 'a hair extensions business',
+    } as Record<string, string>)[businessCategory] || 'a premium brand' : 'a premium brand';
+
+    const prompt = `You are a world-class graphic designer creating a premium marketing image for ${businessDesc}. ${aspectInstruction}
 
 ${brandColorBlock}
 

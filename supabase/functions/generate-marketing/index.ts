@@ -68,7 +68,18 @@ Deno.serve(async (req) => {
 
     const categoryContext = categoryDescriptions[businessCategory] || '';
 
-    const systemPrompt = `You are an expert marketing copywriter specializing in the hair replacement, hair systems, and barber industry. You create compelling, on-brand marketing content that drives engagement and conversions.
+    const categorySpecializations: Record<string, string> = {
+      'hair-system': 'specializing in hair system / non-surgical hair replacement services',
+      'haircut': 'specializing in barbershop and men\'s grooming services',
+      'salon': 'specializing in hair salon services',
+      'extensions': 'specializing in hair extensions services',
+    };
+
+    const specialization = businessCategory && categorySpecializations[businessCategory]
+      ? ` ${categorySpecializations[businessCategory]}`
+      : '';
+
+    const systemPrompt = `You are an expert marketing copywriter${specialization}. You create compelling, on-brand marketing content that drives engagement and conversions.
 
 Your task: Generate exactly 3 unique variations of marketing content based on the brand information provided.
 
@@ -80,8 +91,7 @@ Rules:
 - Use the brand's actual services, name, and unique selling points from the website content
 - Include a clear call-to-action in each variation (prefer "DM to schedule", "Link in bio", or "Book a free consultation")
 - Keep content authentic and avoid generic filler
-- If the business is related to hair systems/barber services, lean into that expertise
-${categoryContext ? '- IMPORTANT: Stay laser-focused on the business category described above. Every variation must be about that specific service.' : ''}
+${categoryContext ? '- IMPORTANT: Stay laser-focused on the business category described above. Every variation must be about that specific service.' : '- Focus on whatever the brand\'s actual industry and services are based on their website content.'}
 
 Return your response as a JSON object with this exact structure:
 {
