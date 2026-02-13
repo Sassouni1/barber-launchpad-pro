@@ -87,14 +87,14 @@ Brand fonts: ${fontFamily}
 
     const layouts = [
       hasReference
-        ? 'Split layout: left 25% is a dark solid panel with the headline stacked vertically, right 75% features the reference photo at FULL width without any cropping. Thin gold border around the entire image. Decorative dotted line divider between text and photo. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
-        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
+        ? 'Split layout: left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is the reference photo ONLY with zero text overlay. Gold border around the entire image. Decorative dotted line divider separates text panel from photo. The reference photo MUST be shown completely — never crop either side.'
+        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
       hasReference
-        ? 'Full-bleed: Use the provided reference photo as the full background. Apply a heavy dark gradient overlay (70% opacity) on areas where text will go, but keep the subject clearly visible. Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
-        : 'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline.',
+        ? 'Full-bleed: Top 15% of the image is RESERVED for text ONLY (headline, brand name — dark overlay, NO part of any person). Center 65% shows the reference photo subject clearly with NO text, NO headlines, NO decorative elements. Bottom 20% is RESERVED for CTA ONLY (dark overlay, NO part of any person). The reference photo MUST be shown completely — never crop either side.'
+        : 'Full-bleed cinematic photo as background. Top 15% reserved for text ONLY (dark overlay, no people). Center 65% shows the subject clearly with no text. Bottom 20% for CTA ONLY (dark overlay, no people). Headline in bold uppercase in the top zone. Brand name at top in smaller text.',
       hasReference
-        ? 'Framed composition: dark background with the provided reference photo centered as a rectangular inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
-        : 'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout.',
+        ? 'Framed composition: dark background surrounding a centered rectangular photo frame (white or gold thin border). ALL text (headline, brand name) goes ABOVE the frame in dark background — zero overlap with the photo. CTA goes BELOW the frame in dark background. NO text on the sides of the frame. NO text overlapping the frame or the person inside it. The reference photo MUST be shown completely — never crop either side.'
+        : 'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
     ];
 
     const layoutInstruction = layouts[layoutIndex];
@@ -104,11 +104,11 @@ Brand fonts: ${fontFamily}
     const referenceInstructions = hasReference
       ? `REFERENCE PHOTO INSTRUCTIONS:
 You have been given a reference photo. This is the ONLY photo that should appear in the final image.
-- You MUST use this EXACT photo as the main visual. Do NOT generate, replace, or recreate any part of it with AI-generated imagery.
-- Do NOT generate new faces or people. The reference photo contains the real subject — use it exactly as provided.
-- You may apply minor color grading to match the dark theme, but the photo content must remain unchanged.
-- Place headline text and brand elements around or overlaid on the photo using gradients, but never obscure the subject.
-- The result must look like a professionally designed social media post featuring this specific photo.`
+- CRITICAL: Do NOT generate, recreate, or reimagine the person. The photo must show THIS EXACT PERSON with their exact face, hair, skin tone, and appearance — not an AI approximation or a "similar-looking" person.
+- Insert the reference photo directly into the design. Do not alter, regenerate, or stylize the person in any way.
+- You may apply minor color grading to the photo to match the dark theme, but the person themselves must be identical to the reference.
+- All text, headlines, brand names, CTAs, gradients, and decorative graphics MUST be placed in separate dark background panels or reserved text zones — NEVER on the person's face, hair, neck, body, or clothing.
+- The result must look like a professionally designed social media post featuring this specific real person's photo.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits ${businessCategory ? ({
         'hair-system': 'a hair system / non-surgical hair replacement business',
@@ -157,7 +157,11 @@ ${brandProfile.title ? `Brand name: "${brandProfile.title}"` : '(No brand name p
 CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e.g., "BOOK A FREE CONSULTATION", "DM TO SCHEDULE", "LINK IN BIO", "CALL NOW"). Place it in a contrasting banner, button-style box, or prominent text area near the bottom of the image.
 
 CRITICAL DESIGN RULES:
-0. TEXT PLACEMENT PRIORITY: Before placing ANY text, scan the image and identify the largest empty areas (solid-color walls, ceilings, dark backgrounds, open negative space with no people). ALL headlines, brand names, CTAs, and decorative elements MUST be positioned in these empty zones. If a person occupies one side of the frame and empty space occupies the other, place 100% of the text on the empty side. Never place text over any part of a person — face, hair, body, or clothing.
+0. TEXT PLACEMENT PRIORITY — ABSOLUTE RULES (these override everything else):
+   - For SPLIT layouts: Text MUST be in the left 25-40% dark panel ONLY. The right panel is a TEXT-FREE ZONE containing only the photo.
+   - For FULL-BLEED layouts: Top 15% and Bottom 20% are RESERVED for text ONLY. The center 65% is a TEXT-FREE ZONE for the person. No headlines, brand names, CTAs, or decorative elements in the center zone.
+   - For FRAMED layouts: Text goes ABOVE and BELOW the photo frame in dark background areas ONLY. The photo frame and its immediate surroundings are TEXT-FREE ZONES.
+   - UNIVERSAL RULE: Never place text, gradients, or decorative elements over any part of a person's face, hair, neck, body, or clothing. If in doubt, move text further away from the person.
 1. The headline typography must be large and impactful. If a word does not fit on a single line, reduce the font size until it does. Never hyphenate or break a word across two lines. Bold, uppercase, impactful sans-serif or display font.
 2. Background must be DARK (black, charcoal, or very dark version of brand colors). Never use bright, pastel, or white backgrounds.
 3. Text must have extremely high contrast against the background. Use the brand accent color for emphasis on key words.
