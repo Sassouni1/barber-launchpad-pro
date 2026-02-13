@@ -228,8 +228,8 @@ export default function Marketing() {
 
     const cards: VariationCard[] = [
       { type: 'brand-square', label: 'Brand Images (Square)', caption, images: [null, null, null], imagesLoading: true },
-      { type: 'brand-story', label: 'Brand Images (Stories)', caption, images: [null, null, null], imagesLoading: true },
       { type: 'ai-square', label: 'AI Generated (Square)', caption, images: [null, null, null], imagesLoading: true },
+      { type: 'brand-story', label: 'Brand Images (Stories)', caption, images: [null, null, null], imagesLoading: true },
       { type: 'ai-story', label: 'AI Generated (Stories)', caption, images: [null, null, null], imagesLoading: true },
     ];
     setVariations(cards);
