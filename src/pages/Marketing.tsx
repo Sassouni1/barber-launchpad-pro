@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X } from 'lucide-react';
+import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle } from 'lucide-react';
 import { useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
@@ -167,6 +167,7 @@ export default function Marketing() {
   const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
   const [imageMode, setImageMode] = useState<ImageMode>('both');
+  const [businessCategory, setBusinessCategory] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const websiteColors = brandProfile?.branding?.colors || {};
@@ -437,6 +438,37 @@ export default function Marketing() {
               <span>Analyzed: <span className="text-foreground font-medium">{brandProfile.title || brandProfile.sourceUrl}</span></span>
             </div>
           )}
+        </Card>
+
+        {/* Business Category Selector */}
+        <Card className="glass-card p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Business Category</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {([
+              { value: 'haircut', label: 'Haircut', icon: Scissors },
+              { value: 'hair-system', label: 'Hair System', icon: User },
+              { value: 'salon', label: 'Salon', icon: Store },
+              { value: 'extensions', label: 'Extensions', icon: Sparkle },
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setBusinessCategory(opt.value)}
+                className={`relative flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
+                  businessCategory === opt.value
+                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                    : 'border-border bg-secondary/30 hover:bg-secondary/50'
+                }`}
+              >
+                {businessCategory === opt.value && (
+                  <div className="absolute top-2 right-2">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                )}
+                <opt.icon className="w-6 h-6 text-foreground" />
+                <span className="text-xs font-medium text-foreground">{opt.label}</span>
+              </button>
+            ))}
+          </div>
         </Card>
 
         {/* Upload Your Images - Always visible */}
