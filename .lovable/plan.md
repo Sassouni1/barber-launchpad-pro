@@ -1,24 +1,39 @@
 
-## Add Hair Protection Rule to Text Placement
+## Fix: Website Mode Forces Hair System Context Even When Not Selected
 
 ### Problem
-The current prompt prevents text placement over faces but doesn't forbid text over hair. Since hair is the primary focus of a barbershop/hair system business, placing headlines or text over hair areas obscures the key product—defeating the purpose of the reference photo.
+Three hardcoded references to "barbershop/hair replacement business" exist in both edge functions. When a user analyzes a website (e.g., a restaurant, fitness studio, or general business) without selecting "Hair System" as the category, the AI still frames everything around hair systems because the system prompts literally say "specializing in the hair replacement, hair systems, and barber industry."
+
+### Root Cause
+The `businessCategory` variable is used to inject extra context, but the **base system prompts** are hardcoded to hair/barber regardless. So even with no category selected, the AI thinks it's writing for a hair business.
 
 ### Solution
-Add an explicit "HAIR PROTECTION" rule to the critical design rules section that prevents all text placement over hair areas, similar to the existing face protection rule.
+Make the base prompts generic when no category (or a non-hair category) is selected. Only mention hair/barber when the user explicitly picks a hair-related category.
 
-### Technical Change
+### Technical Changes
 
-**File: `supabase/functions/generate-marketing-image/index.ts`** -- Add a hair protection rule (after line 145):
+**File 1: `supabase/functions/generate-marketing/index.ts`**
 
-Insert a new rule (rule 11):
-```
-11. HAIR PROTECTION: Never place text, headlines, or decorative elements over any hair areas. Keep all text placement in safe zones: dark background panels, top/bottom margins, side columns, or areas below the neck/jawline. Hair must always be fully visible and unobstructed to showcase the quality and style.
-```
+1. **Line 71** -- Change the system prompt intro from hardcoded hair industry to dynamic:
+   - If a category is selected, use a category-appropriate intro (e.g., "specializing in hair system services")
+   - If no category, use generic: "You are an expert marketing copywriter. You create compelling, on-brand marketing content that drives engagement and conversions."
 
-This will be inserted after the existing rule 10 and before the closing of the CRITICAL DESIGN RULES section.
+2. **Line 83** -- Remove the always-present fallback "If the business is related to hair systems/barber services, lean into that expertise" -- this should only appear when the category context is active.
 
-The rule explicitly:
-1. Forbids text placement over hair (headlines, brand names, CTAs, decorative elements)
-2. Specifies safe zones for text (dark panels, margins, columns, below jawline)
-3. Reinforces that hair visibility is critical for the barbershop business model
+**File 2: `supabase/functions/generate-marketing-image/index.ts`**
+
+1. **Line 113** -- Photography fallback: Change from "fits a barbershop/hair replacement business" to a dynamic description based on `businessCategory`. If no category, use generic: "fits the brand's industry and style."
+
+2. **Line 117** -- Main prompt intro: Change from "for a barbershop/hair replacement business" to dynamic. If no category, use generic: "for a premium brand."
+
+### Mapping
+
+| businessCategory | Prompt wording |
+|---|---|
+| `hair-system` | "hair system / non-surgical hair replacement business" |
+| `haircut` | "barbershop / men's grooming business" |
+| `salon` | "hair salon" |
+| `extensions` | "hair extensions business" |
+| (empty/none) | Generic -- derive context from the website content only |
+
+This ensures that when someone uses the "Website" feature without picking a category, the AI reads the actual website content and generates relevant marketing -- not hair system content.
