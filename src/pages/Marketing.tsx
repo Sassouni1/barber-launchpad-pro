@@ -205,7 +205,13 @@ export default function Marketing() {
   };
 
   const generateContent = async (profile?: BrandProfile) => {
-    const bp = profile || brandProfile;
+    const bp = profile || brandProfile || {
+      title: businessCategory || 'My Business',
+      description: '',
+      content: '',
+      sourceUrl: '',
+      images: [],
+    };
     if (!bp) {
       toast.error('Please analyze a website first');
       return;
@@ -469,6 +475,21 @@ export default function Marketing() {
               </button>
             ))}
           </div>
+
+          {/* Generate without URL */}
+          {!brandProfile && (
+            <Button
+              onClick={() => generateContent()}
+              disabled={isLoading || !businessCategory}
+              className="w-full gold-gradient text-primary-foreground font-semibold"
+            >
+              {isGenerating ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> Generate Content</>
+              )}
+            </Button>
+          )}
         </Card>
 
         {/* Upload Your Images - Always visible */}
