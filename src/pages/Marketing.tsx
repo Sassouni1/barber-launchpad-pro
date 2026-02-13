@@ -53,19 +53,25 @@ const urlToBase64 = async (url: string): Promise<string> => {
   });
 };
 
-const resizeImage = (dataUrl: string, width: number, height: number): Promise<string> => {
+const resizeImage = (dataUrl: string, maxW: number, maxH: number): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
+      // Scale down proportionally to fit within maxW x maxH
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
+      if (h > maxH) { w = Math.round(w * (maxH / h)); h = maxH; }
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('Canvas not supported')); return; }
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/png'));
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.onerror = () => reject(new Error('Failed to load image'));
+    img.crossOrigin = 'anonymous';
     img.src = dataUrl;
   });
 };
@@ -262,11 +268,11 @@ export default function Marketing() {
     ];
     setVariations(cards);
 
-    const generateSlot = (type: VariationType, imgIdx: number, size: string, refUrl?: string) => {
+    const generateSlot = async (type: VariationType, imgIdx: number, size: string, refUrl?: string): Promise<void> => {
       const targetW = 1080;
       const targetH = size === 'story' ? 1920 : 1080;
 
-      supabase.functions.invoke('generate-marketing-image', {
+      const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
         body: {
           brandProfile: bp,
           variationTitle: type,
@@ -278,40 +284,49 @@ export default function Marketing() {
           size,
           ...(refUrl ? { referenceImageUrl: refUrl } : {}),
         },
-      }).then(async ({ data, error }) => {
-        let imageUrl: string | null = null;
-        if (!error && data?.success && data.imageUrl) {
-          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
-        }
-        setVariations(prev => prev.map(v => {
-          if (v.type !== type) return v;
-          const newImgs = [...v.images];
-          newImgs[imgIdx] = imageUrl;
-          const totalForType = isBrand ? Math.min(realImages.length || 1, 3) : 3;
-          const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
-        }));
       });
+
+      let imageUrl: string | null = null;
+      if (!error && data?.success && data.imageUrl) {
+        try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
+      }
+      setVariations(prev => prev.map(v => {
+        if (v.type !== type) return v;
+        const newImgs = [...v.images];
+        newImgs[imgIdx] = imageUrl;
+        const totalForType = isBrand ? Math.min(realImages.length || 1, 3) : 3;
+        const attempted = newImgs.slice(0, totalForType).filter(x => x !== null).length;
+        return { ...v, images: newImgs, imagesLoading: attempted < totalForType };
+      }));
     };
 
-    if (isBrand) {
-      const brandCount = Math.max(realImages.length, 1);
-      for (let i = 0; i < Math.min(brandCount, 3); i++) {
-        // Convert to base64 so the AI model always receives the actual image data
-        const imgUrl = realImages[i];
-        if (imgUrl) {
-          urlToBase64(imgUrl)
-            .then(b64 => generateSlot(varType, i, sizeVal, b64))
-            .catch(() => generateSlot(varType, i, sizeVal, imgUrl)); // fallback to URL
-        } else {
-          generateSlot(varType, i, sizeVal);
+    // Sequential generation to avoid rate limits; downscale brand photos first
+    const runSequential = async () => {
+      if (isBrand) {
+        const brandCount = Math.min(Math.max(realImages.length, 1), 3);
+        for (let i = 0; i < brandCount; i++) {
+          const imgUrl = realImages[i];
+          if (imgUrl) {
+            try {
+              const b64 = await urlToBase64(imgUrl);
+              // Downscale to max 1200px to shrink payload ~90%
+              const small = await resizeImage(b64, 1200, 1200);
+              await generateSlot(varType, i, sizeVal, small);
+            } catch {
+              await generateSlot(varType, i, sizeVal, imgUrl);
+            }
+          } else {
+            await generateSlot(varType, i, sizeVal);
+          }
+        }
+      } else {
+        for (let i = 0; i < 3; i++) {
+          await generateSlot(varType, i, sizeVal);
         }
       }
-    } else {
-      for (let i = 0; i < 3; i++) {
-        generateSlot(varType, i, sizeVal);
-      }
-    }
+    };
+
+    runSequential();
   };
 
   const copyToClipboard = async (text: string) => {
