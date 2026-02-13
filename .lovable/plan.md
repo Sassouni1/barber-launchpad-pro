@@ -1,41 +1,55 @@
 
+## Problem: Text Placement Over Faces/Hair Despite Instructions
 
-## Fix: Reference Photos Being Reimagined + Website Content Too Short
+### Root Cause
+The prompt has TEXT PLACEMENT PRIORITY rules (lines 160-172), but Gemini 3 Pro Image doesn't reliably follow layout constraints when compositing text and images. Additionally:
 
-### Root Cause Analysis
+1. **Layout instructions don't guarantee safe zones**: The 25/75 split layout assumes the reference photo stays in the right 75%, but if Gemini generates a different-looking person or repositions elements, text can still overlap faces.
 
-**1. Reference photos are being reimagined, not used literally**
-The logs confirm all 3 images had `hasReference: true` and no fetch failures -- so the reference photo WAS sent to Gemini every time. The problem is fundamental: Gemini 3 Pro Image is a **generation** model, not a compositing tool. When you give it a photo and say "use this," it generates a new image *inspired by* the reference rather than placing the actual photo into a design. One out of three happened to look close enough; the other two diverged into AI-generated people.
+2. **Reference photos are reimagined, not embedded**: Gemini generates new images "inspired by" the reference rather than inserting the actual photo. So even when you say "use this photo," it creates a new person with similar features—text placement rules don't apply to the generated person.
 
-**2. Website content truncated to 500 characters**
-Line 149 sends only `brandProfile.content?.substring(0, 500)` to the image AI. For a salon website, 500 chars barely covers the page title and first paragraph -- it misses the actual services, pricing, specialties, etc. The AI then falls back to generic content.
+3. **Text placement priority is too soft**: The rule says "identify empty areas" but Gemini interprets "area" loosely. It needs an **absolute rule**: "Top X% and Bottom Y% of the image are RESERVED for text ONLY. No faces, hair, or bodies in these zones."
 
-### Proposed Changes
+### Solution: Three-Part Fix
 
+**Part 1: Absolute Text Zones** (lines 160-162)
+Replace the "scan and identify" language with hard geometric constraints:
+```
+TEXT PLACEMENT PRIORITY: Create fixed text zones based on the layout:
+- For split layouts: Text MUST be in the left 25-40% panel ONLY (completely dark background, zero people)
+- For framed layouts: Text MUST go ABOVE and BELOW the framed photo (dark background areas, not adjacent to face)
+- For full-bleed layouts: Reserve top 15% and bottom 20% for text ONLY. Keep center 70% for the person.
+Never place text, gradients, or decorative elements over any part of a person's face, hair, neck, or body.
+```
+
+**Part 2: Stricter Reference Photo Language** (lines 105-111)
+Add a "no reimagining" clause:
+```
+REFERENCE PHOTO INSTRUCTIONS:
+You have been given a reference photo. This is the ONLY photo that should appear in the final image.
+- CRITICAL: Do NOT generate, recreate, or reimagine the person. The photo must show THIS EXACT PERSON with their exact face, hair, skin tone, and appearance—not an AI approximation.
+- Insert the reference photo directly into the design. Do not alter, regenerate, or stylize the person.
+- You may apply minor color grading to the photo to match the theme, but the person themselves must be identical.
+- All text, gradients, and graphics must be placed in separate background panels or zones—never on the person.
+```
+
+**Part 3: Explicit Layout Guardrails** (lines 90-97)
+Make each layout description include explicit "text-free zones":
+```
+Split layout: left 25% dark panel is TEXT ONLY (no people, no faces). Right 75% is the reference photo only. Gold border and decorative line divider keep them separate.
+
+Full-bleed: Top 15% reserved for text (dark overlay, no people). Center 70% shows the person clearly. Bottom 20% for CTA (dark overlay, no people).
+
+Framed: Dark background surrounding a centered photo frame. ALL text (headline, brand, CTA) goes ABOVE the frame (top) and BELOW the frame (bottom) in dark zones. Nothing on the sides or overlapping the frame.
+```
+
+### Why This Matters
+Gemini struggles with soft constraints ("try to avoid text on faces"). Hard geometric rules ("text ONLY in top 15% and bottom 20%") are easier for the model to follow. Combined with stricter "don't reimagine the person" language, this should reduce the instances of text landing on faces or hair, and reduce fake people being generated.
+
+### Implementation
 **File: `supabase/functions/generate-marketing-image/index.ts`**
-
-**Change 1: Increase website content from 500 to 2000 characters (line 149)**
-Give the image AI enough context to actually understand the brand's offerings, themes, and services.
-
-**Change 2: Add explicit 3-step headline extraction (line 151)**
-Replace the current headline strategy with a structured approach:
-- Step 1: Identify the brand's industry and top 3 services/offerings from the website content
-- Step 2: Create a headline that directly references one of those identified services or themes
-- Step 3: Use actual terms found on the website (e.g., "balayage specialists" or "keratin treatments") rather than generic phrases
-
-**Change 3: Strengthen reference photo instructions to emphasize exact likeness (lines 104-111)**
-Add explicit language that the person is a REAL person whose exact appearance (skin tone, facial features, hair style, hair color, body type, clothing) MUST be preserved identically. Add: "Do NOT generate an AI approximation or a 'similar-looking' person."
-
-**Change 4: Add a hard fail when reference image fetch fails (lines 187-189)**
-Currently the code silently falls back to pure AI generation when the reference image fetch fails. Change this to return a 502 error so the frontend knows to retry, rather than generating a fake person with a prompt that still says "use the reference photo."
-
-**Change 5: Add debug logging for website content (after line 176)**
-Log the first 200 characters of `brandProfile.content` so we can verify the scrape data is actually flowing into the image function.
-
-### Important Caveat
-Gemini image generation has an inherent limitation: it generates new images rather than compositing existing photos into designs. The stronger instructions will improve consistency, but the model may still produce variations that don't perfectly match the reference. The hard fail on fetch errors and stronger likeness language will reduce the worst cases (completely different people).
-
-### Files Changed
-- `supabase/functions/generate-marketing-image/index.ts` (5 edits)
+- Update lines 90-97 (layout instructions) with explicit text-free zones
+- Update lines 105-111 (reference photo instructions) with "no reimagining" clause
+- Update lines 160-162 (TEXT PLACEMENT PRIORITY) with absolute zone definitions
 - Redeploy edge function
 
