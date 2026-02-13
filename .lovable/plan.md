@@ -1,21 +1,34 @@
 
 
-## Soften Headline Tone and Prevent Repetition
+## Diversify Headlines and Content Themes
 
 ### Problem
-The AI is generating shame-based, negative headlines like "STOP HIDING" (repeated twice). This feels confrontational and could alienate potential clients rather than attract them.
+The AI keeps generating the same "confidence" and "hair loss is hard" messaging because:
+1. The **text generator** prompt for hair-system category literally lists "Get your confidence back" as a suggested phrase and focuses heavily on emotional/confidence themes
+2. The **image generator** derives its headline from that caption text, so the same "reclaim your confidence" angle carries through to every image
 
 ### Solution
-Add two prompt rules in `supabase/functions/generate-marketing-image/index.ts`:
+Update both edge functions with broader, more varied creative direction.
 
-1. **Tone guidance**: Add instruction that headlines should be positive, aspirational, and empowering -- never shame-based or negative. Examples: "Look Your Best", "Confidence Starts Here", "Your Best Look Awaits" vs. "Stop Hiding", "Don't Be Afraid".
+### Changes
 
-2. **No repetition**: Add rule that no word or phrase should appear more than once on the image.
+**1. `supabase/functions/generate-marketing/index.ts` -- Diversify caption themes**
 
-### Technical Change
+Replace the hair-system category phrases with a wider set of angles:
+- Results-focused: "Fresh install. Fresh look.", "See the difference for yourself"
+- Service-focused: "Same-day installs available", "Custom color-matched units"  
+- Social proof: "Join 500+ clients who made the switch", "Our most requested service"
+- Lifestyle: "Look good. Feel good.", "Ready for your new look?"
+- Urgency: "Limited spots this week", "Now booking for [month]"
 
-**`supabase/functions/generate-marketing-image/index.ts`** -- Add two new design rules to the prompt:
+Also add a rule in the system prompt: "Each of the 3 variations MUST use a different angle -- one results/transformation-focused, one service/offer-focused, and one lifestyle/aspirational. Do NOT make all three about confidence or emotional recovery."
 
-- Rule: "Headlines must be POSITIVE and ASPIRATIONAL. Focus on the transformation and confidence gained, never on shame, fear, or what the client is currently lacking. Use empowering language like 'Your Best Look', 'Confidence Redefined', 'Transform Your Look' -- never 'Stop Hiding', 'Don't Be Afraid', or similar negative phrasing."
-- Rule: "Never repeat the same word or phrase more than once anywhere on the image."
+**2. `supabase/functions/generate-marketing-image/index.ts` -- Broaden headline variety**
 
+Add explicit headline direction in the prompt:
+- Provide a list of headline **styles** the AI should rotate between: results-driven ("Fresh Look. Zero Surgery."), service-driven ("Same-Day Installs"), lifestyle ("Look Good Every Day"), urgency ("Book This Week"), social proof ("Trusted By Hundreds")
+- Add rule: "Do NOT use the words 'confidence', 'reclaim', 'journey', or 'hair loss' in the headline. Focus on the positive outcome, the service, or a call to action instead."
+- This keeps headlines punchy and varied rather than always defaulting to the emotional angle
+
+### Why This Works
+The root cause is that the prompts over-index on one emotional angle. By explicitly requiring variety and banning overused words, we force the AI into fresher, more marketing-savvy territory -- the kind of content real barbershops actually post.
