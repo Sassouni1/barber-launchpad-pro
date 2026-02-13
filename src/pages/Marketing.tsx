@@ -13,6 +13,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
 type FormatChoice = 'square' | 'story';
+type ImageMode = 'both' | 'brand' | 'ai';
 type VariationType = 'brand-square' | 'brand-story' | 'ai-square' | 'ai-story';
 
 interface VariationCard {
@@ -165,6 +166,7 @@ export default function Marketing() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
+  const [imageMode, setImageMode] = useState<ImageMode>('both');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const websiteColors = brandProfile?.branding?.colors || {};
@@ -241,10 +243,13 @@ export default function Marketing() {
     const brandType: VariationType = `brand-${sizeVal}` as VariationType;
     const aiType: VariationType = `ai-${sizeVal}` as VariationType;
 
-    const cards: VariationCard[] = [
-      { type: brandType, label: `Brand Images (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true },
-      { type: aiType, label: `AI Generated (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true },
-    ];
+    const cards: VariationCard[] = [];
+    if (imageMode === 'both' || imageMode === 'brand') {
+      cards.push({ type: brandType, label: `Brand Images (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true });
+    }
+    if (imageMode === 'both' || imageMode === 'ai') {
+      cards.push({ type: aiType, label: `AI Generated (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true });
+    }
     setVariations(cards);
 
     // Helper to generate an AI image and update variation state (returns a promise)
@@ -281,7 +286,6 @@ export default function Marketing() {
           return { ...v, images: newImgs, imagesLoading: done < totalForType };
         }));
       } catch {
-        // Mark as failed so loading resolves
         setVariations(prev => prev.map(v => {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
@@ -295,15 +299,19 @@ export default function Marketing() {
 
     const brandCount = Math.max(realImages.length, 1);
 
-    // Build all jobs
+    // Build jobs based on imageMode
     const jobs: Array<() => Promise<void>> = [];
-    for (let i = 0; i < Math.min(brandCount, 3); i++) {
-      const idx = i;
-      jobs.push(() => generateSlot(brandType, idx, sizeVal, realImages[idx]));
+    if (imageMode === 'both' || imageMode === 'brand') {
+      for (let i = 0; i < Math.min(brandCount, 3); i++) {
+        const idx = i;
+        jobs.push(() => generateSlot(brandType, idx, sizeVal, realImages[idx]));
+      }
     }
-    for (let i = 0; i < 3; i++) {
-      const idx = i;
-      jobs.push(() => generateSlot(aiType, idx, sizeVal));
+    if (imageMode === 'both' || imageMode === 'ai') {
+      for (let i = 0; i < 3; i++) {
+        const idx = i;
+        jobs.push(() => generateSlot(aiType, idx, sizeVal));
+      }
     }
 
     // Process in pairs of 2 with 3s delay between batches
@@ -489,6 +497,36 @@ export default function Marketing() {
             </div>
           </div>
 
+          {/* Image Type Selector */}
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground uppercase tracking-wider">Image Type</label>
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                { value: 'brand' as ImageMode, label: 'Brand Images', desc: 'Uses your reference photos' },
+                { value: 'ai' as ImageMode, label: 'AI Generated', desc: 'Fully AI-generated' },
+                { value: 'both' as ImageMode, label: 'Both', desc: 'Brand + AI sets' },
+              ]).map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setImageMode(opt.value)}
+                  className={`relative flex flex-col items-center gap-1 p-3 rounded-lg border transition-all ${
+                    imageMode === opt.value
+                      ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                      : 'border-border bg-secondary/30 hover:bg-secondary/50'
+                  }`}
+                >
+                  {imageMode === opt.value && (
+                    <div className="absolute top-2 right-2">
+                      <Check className="w-3 h-3 text-primary" />
+                    </div>
+                  )}
+                  <span className="text-xs font-medium text-foreground">{opt.label}</span>
+                  <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Format Selector */}
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground uppercase tracking-wider">Format</label>
@@ -646,7 +684,7 @@ export default function Marketing() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className={`grid ${variations.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-2'} gap-6`}>
               {variations.map((variation, idx) => {
                 const validImages = variation.images.filter(x => x && x !== 'failed');
 
