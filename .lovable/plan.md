@@ -1,75 +1,41 @@
 
 
-## Fix: Stop Silent Fallback When Reference Image Fetch Fails
+## Fix Marketing Image Quality Issues
 
-### Root Cause
+### Problems Identified
 
-The pattern "2 work, 1 doesn't" is caused by the edge function's silent error handling at line 147-149. Here's what happens:
+1. **Headline truncation**: The edge function passes `variationContent.substring(0, 120)` as the image headline. Captions are 150-300 words long -- they should never be used as image text. The result is cut-off sentences like "it's about how you feel when you..."
 
-1. All 3 brand image requests send a `referenceImageUrl` to the edge function
-2. Each request independently fetches that URL to convert it to base64
-3. The first 2 requests (running concurrently) succeed
-4. By the 3rd request, the origin server (e.g., the brand's website CDN) throttles or blocks the repeated download, causing a timeout or 403
-5. The `catch` block on line 148 silently swallows this error: `console.warn('Failed to fetch reference image, proceeding without it:', e)`
-6. The model then generates with text-only, producing a "pure AI" image
+2. **Category slug displayed as text**: "hair-system" appears as raw text on the image because the prompt includes it directly.
 
-The function literally finds the image (requests 1-2 work) then "forgets" it (request 3 silently fails).
+3. **Reference photo cropping**: The split layout instruction tells the AI to use 40/60 split, which crops before/after photos poorly, losing the transformation effect.
 
-### Solution: Two changes
+### Solution
 
-**1. Edge function: Fail loudly instead of silently (main fix)**
+**Edge Function: `supabase/functions/generate-marketing-image/index.ts`**
 
-When a `referenceImageUrl` is provided but can't be fetched, return an error response instead of proceeding without it. This lets the frontend know something went wrong.
+1. **Generate a short headline separately from the caption**: Instead of substring-ing the long caption, add a `variationHeadline` or `variationTitle` field. Use the variation's `title` (which is already short, e.g., "Emotional Appeal") as a fallback, or instruct the AI in the prompt to create its own 5-8 word headline based on the content theme.
 
-**2. Edge function: Cache the base64 across requests (prevents the root cause)**
+2. **Replace raw category slug**: Convert "hair-system" to "Hair System" (proper formatting) or remove it from the image text entirely -- the category context should inform the design, not appear as visible text.
 
-Since the same reference image is often used for all 3 brand slots, fetch it once and pass the base64 data directly from the frontend instead of having each edge function invocation re-fetch the same URL independently. This eliminates the repeated downloads that trigger rate limiting.
+3. **Update prompt to generate its own headline**: Instead of forcing the truncated caption onto the image, tell the AI: "Create a bold, punchy headline (5-8 words max) inspired by this theme: [variationContent]". This lets the model compose proper image text.
 
-### Technical Details
+4. **Fix reference photo cropping rule**: Add a prompt instruction that before/after transformation photos must show BOTH sides. Update the split layout to say "if the reference photo contains a before/after comparison, show the full photo without cropping."
 
-**File: `supabase/functions/generate-marketing-image/index.ts`**
+### Frontend: `src/pages/Marketing.tsx`
 
-Change the catch block (lines 147-149) from silently proceeding to returning an error:
+- Pass `variationTitle` (the short label like "Emotional Appeal" or "Promotional Push") alongside `variationContent` to the edge function, so the function has a short text option available.
 
-```
-// BEFORE (silent fallback):
-} catch (e) {
-  console.warn('Failed to fetch reference image, proceeding without it:', e);
-}
+### Specific Changes
 
-// AFTER (fail loudly):
-} catch (e) {
-  console.error('Failed to fetch reference image:', e);
-  return new Response(
-    JSON.stringify({ success: false, error: 'Could not fetch reference image. The image host may be blocking repeated requests.' }),
-    { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
-```
+**Edge function prompt changes:**
+- Replace: `Headline: "${variationContent.substring(0, 120)}"` 
+- With: `Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold headline of 5-8 words max based on this theme. Do NOT copy this text directly onto the image.`
+- Replace: `Brand: "${brandProfile.title || ''}"` keep as is but remove any raw category slug from appearing
+- Add to layout instructions: "If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side."
+- Add rule: "Never display category labels, slugs, or metadata as visible text on the image."
 
-Also accept an optional `referenceImageBase64` + `referenceImageMimeType` parameter so the frontend can pass pre-fetched image data, avoiding repeated downloads entirely.
-
-**File: `src/pages/Marketing.tsx`**
-
-Pre-fetch each unique reference image URL once (convert to base64 on the client side), then pass the base64 data directly to the edge function for all slots using that image. This eliminates the repeated server-side fetches that cause the 3rd image to fail.
-
-```
-// Before generating, pre-fetch unique reference images
-const uniqueUrls = [...new Set(realImages)];
-const imageCache = new Map();
-for (const url of uniqueUrls) {
-  const resp = await fetch(url);
-  const blob = await resp.blob();
-  // Convert to base64 and cache
-  imageCache.set(url, { base64, mimeType });
-}
-
-// Then pass cached data to each generateSlot call
-```
-
-### Why This Fixes It
-
-- The 3rd image no longer fails silently -- if something goes wrong, the user sees an error
-- Pre-fetching eliminates repeated downloads of the same image, so CDN rate-limiting can't cause the issue
-- Each edge function call receives the image data directly instead of re-downloading it
+**Frontend changes:**
+- Pass `variationTitle` in the request body alongside `variationContent`
+- Format `businessCategory` properly (e.g., "hair-system" to "Hair System") before sending
 
