@@ -122,6 +122,8 @@ ${referenceInstructions}
 TEXT ON THE IMAGE:
 Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold, punchy headline of 5-8 words max inspired by this theme. Do NOT copy the theme text directly onto the image.
 ${variationTitle ? `Variation style: "${variationTitle}" -- use this as creative direction, not as visible text.` : ''}
+HEADLINE STYLE — rotate between these approaches: results-driven ("Fresh Look. Zero Surgery."), service-driven ("Same-Day Installs"), lifestyle ("Look Good Every Day"), urgency ("Book This Week"), social proof ("Trusted By Hundreds"). Pick the style that best fits the variation theme.
+BANNED WORDS in headlines: Do NOT use "confidence", "reclaim", "journey", or "hair loss". Focus on the positive outcome, the service, or a call to action instead.
 ${brandProfile.title ? `Brand name: "${brandProfile.title}"` : '(No brand name provided — do NOT invent or display any brand name on the image.)'}
 CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e.g., "BOOK A FREE CONSULTATION", "DM TO SCHEDULE", "LINK IN BIO", "CALL NOW"). Place it in a contrasting banner, button-style box, or prominent text area near the bottom of the image.
 

@@ -43,12 +43,12 @@ Deno.serve(async (req) => {
     const categoryDescriptions: Record<string, string> = {
       'hair-system': `This business specializes in HAIR SYSTEM SERVICES (non-surgical hair replacement). Focus content on:
 - Hair system installs, maintenance, and styling
-- Transformations and confidence-boosting results
+- Before & after transformations and results
 - Free consultations — emphasize "DM to schedule" or "Click the link in my bio to book"
-- Before & after transformations
-- Phrases like: "Get your confidence back", "Undetectable hair systems", "Book your free consultation today", "DM us to get started", "Link in bio"
-- Target men dealing with hair loss who want a natural, full look without surgery
-- Avoid mentioning wigs or toupees — use "hair system" or "unit"`,
+- Rotate between these angles: results ("Fresh install. Fresh look.", "See the difference for yourself"), service ("Same-day installs available", "Custom color-matched units"), social proof ("Join 500+ clients who made the switch", "Our most requested service"), lifestyle ("Look good. Feel good.", "Ready for your new look?"), urgency ("Limited spots this week", "Now booking for [month]")
+- Target men who want a natural, full look without surgery
+- Avoid mentioning wigs or toupees — use "hair system" or "unit"
+- Do NOT overuse the words "confidence", "reclaim", "journey", or "hair loss" — keep it fresh and varied`,
       'haircut': `This business focuses on HAIRCUT & BARBERING SERVICES. Focus content on:
 - Fresh cuts, fades, tapers, beard trims, grooming
 - Walk-ins welcome or booking availability
@@ -76,7 +76,7 @@ Content type: ${contentTypeDescriptions[contentType] || contentTypeDescriptions[
 Tone: ${toneDescriptions[tone] || toneDescriptions['professional']}
 ${categoryContext ? `\nBUSINESS CATEGORY FOCUS:\n${categoryContext}\n` : ''}
 Rules:
-- Each variation must be distinct in approach (e.g., one emotional, one educational, one promotional)
+- Each of the 3 variations MUST use a different angle: one results/transformation-focused, one service/offer-focused, and one lifestyle/aspirational. Do NOT make all three about confidence or emotional recovery.
 - Use the brand's actual services, name, and unique selling points from the website content
 - Include a clear call-to-action in each variation (prefer "DM to schedule", "Link in bio", or "Book a free consultation")
 - Keep content authentic and avoid generic filler
