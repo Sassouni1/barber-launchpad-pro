@@ -3,6 +3,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string }> {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to fetch reference image: ${resp.status}`);
+  const contentType = resp.headers.get('content-type') || 'image/jpeg';
+  const arrayBuffer = await resp.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuffer);
+  // Manual base64 encoding in chunks to avoid stack overflow
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < uint8.length; i += chunkSize) {
+    const chunk = uint8.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  const base64 = btoa(binary);
+  return { base64, mimeType: contentType.split(';')[0] };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,10 +35,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY');
+    if (!GOOGLE_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: 'AI service not configured' }),
+        JSON.stringify({ success: false, error: 'Google AI Studio key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -74,7 +91,6 @@ Brand fonts: ${fontFamily}
 
     const layoutInstruction = layouts[layoutIndex];
 
-    // Build different prompts for reference-image vs pure-AI variations
     const hasReference = !!referenceImageUrl;
 
     const referenceInstructions = hasReference
@@ -112,38 +128,39 @@ CRITICAL DESIGN RULES:
 6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
 7. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
 8. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
-9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face. Safe text zones: top 20%, bottom 20%, or on a solid-color panel/overlay that does not cover a face.
-10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions (dark gradient from edges inward, leaving the face clear). For split layouts: ensure the photo side shows the full face uncropped; text stays on the solid panel side.
+9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
+10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
-    console.log('Generating marketing image:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
+    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
 
-    // Build message content — multimodal if reference image provided
-    const messageContent: any[] = [];
+    // Build request parts
+    const parts: any[] = [];
+
     if (hasReference) {
-      messageContent.push({
-        type: 'image_url',
-        image_url: { url: referenceImageUrl },
-      });
+      try {
+        const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
+        parts.push({
+          inlineData: { mimeType, data: base64 },
+        });
+      } catch (e) {
+        console.warn('Failed to fetch reference image, proceeding without it:', e);
+      }
     }
-    messageContent.push({
-      type: 'text',
-      text: prompt,
-    });
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    parts.push({ text: prompt });
+
+    const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_API_KEY}`;
+
+    const response = await fetch(googleUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
-        messages: [
-          { role: 'user', content: messageContent },
-        ],
-        modalities: ['image', 'text'],
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
       }),
     });
 
@@ -154,14 +171,8 @@ Make this look like something a premium brand would actually post on Instagram.`
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'AI credits exhausted. Please add funds to continue.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
+      console.error('Google AI Studio error:', response.status, errorText);
       return new Response(
         JSON.stringify({ success: false, error: 'Image generation failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -169,25 +180,37 @@ Make this look like something a premium brand would actually post on Instagram.`
     }
 
     const aiData = await response.json();
-    const images = aiData.choices?.[0]?.message?.images;
+    const candidates = aiData.candidates;
 
-    if (!images || images.length === 0) {
-      console.error('No images in response:', JSON.stringify(aiData).substring(0, 500));
+    if (!candidates || candidates.length === 0) {
+      console.error('No candidates in response:', JSON.stringify(aiData).substring(0, 500));
       return new Response(
         JSON.stringify({ success: false, error: 'No image was generated. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const imageUrl = images[0]?.image_url?.url;
+    // Find the image part in the response
+    const responseParts = candidates[0]?.content?.parts || [];
+    let imageUrl: string | null = null;
+
+    for (const part of responseParts) {
+      if (part.inlineData?.data) {
+        const mime = part.inlineData.mimeType || 'image/png';
+        imageUrl = `data:${mime};base64,${part.inlineData.data}`;
+        break;
+      }
+    }
+
     if (!imageUrl) {
+      console.error('No image in response parts:', JSON.stringify(responseParts).substring(0, 500));
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid image data received.' }),
+        JSON.stringify({ success: false, error: 'No image was generated. Please try again.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Marketing image generated successfully:', { index: layoutIndex, palette, size, hasReference });
+    console.log('Marketing image generated successfully via Google AI Studio:', { index: layoutIndex, palette, size, hasReference });
     return new Response(
       JSON.stringify({ success: true, imageUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
