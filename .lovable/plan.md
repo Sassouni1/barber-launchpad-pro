@@ -1,34 +1,41 @@
 
 
-## Diversify Headlines and Content Themes
+## Force AI to Use Reference Photo (Not Generate New Faces)
 
 ### Problem
-The AI keeps generating the same "confidence" and "hair loss is hard" messaging because:
-1. The **text generator** prompt for hair-system category literally lists "Get your confidence back" as a suggested phrase and focuses heavily on emotional/confidence themes
-2. The **image generator** derives its headline from that caption text, so the same "reclaim your confidence" angle carries through to every image
+When a reference photo is provided, the AI sometimes ignores it entirely and generates its own before-and-after imagery with fake faces. The current prompt says "incorporate the reference photo prominently" but this is too soft -- the model treats it as a suggestion rather than a requirement.
 
 ### Solution
-Update both edge functions with broader, more varied creative direction.
+Strengthen the reference photo instructions in the image generation prompt to make it unmistakably clear that the provided photo must appear in the output as-is, not be replaced with AI-generated imagery.
 
-### Changes
+### Technical Change
 
-**1. `supabase/functions/generate-marketing/index.ts` -- Diversify caption themes**
+**`supabase/functions/generate-marketing-image/index.ts`**
 
-Replace the hair-system category phrases with a wider set of angles:
-- Results-focused: "Fresh install. Fresh look.", "See the difference for yourself"
-- Service-focused: "Same-day installs available", "Custom color-matched units"  
-- Social proof: "Join 500+ clients who made the switch", "Our most requested service"
-- Lifestyle: "Look good. Feel good.", "Ready for your new look?"
-- Urgency: "Limited spots this week", "Now booking for [month]"
+Update the `REFERENCE PHOTO INSTRUCTIONS` block from the current soft language to strict enforcement:
 
-Also add a rule in the system prompt: "Each of the 3 variations MUST use a different angle -- one results/transformation-focused, one service/offer-focused, and one lifestyle/aspirational. Do NOT make all three about confidence or emotional recovery."
+Current:
+```
+You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
+- Incorporate the reference photo prominently...
+- Apply cinematic color grading and dramatic lighting to the photo
+- Overlay the headline text in bold typography ON TOP of or alongside the photo
+- The result must look like a professionally designed social media post, NOT a raw photo
+- Blend the photo seamlessly with the dark background and brand elements
+```
 
-**2. `supabase/functions/generate-marketing-image/index.ts` -- Broaden headline variety**
+New:
+```
+You have been given a reference photo. This is the ONLY photo that should appear in the final image.
+- You MUST use this EXACT photo as the main visual. Do NOT generate, replace, or recreate any part of it with AI-generated imagery.
+- Do NOT generate new faces or people. The reference photo contains the real subject -- use it exactly as provided.
+- You may apply minor color grading to match the dark theme, but the photo content must remain unchanged.
+- Place headline text and brand elements around or overlaid on the photo using gradients, but never obscure the subject.
+- The result must look like a professionally designed social media post featuring this specific photo.
+```
 
-Add explicit headline direction in the prompt:
-- Provide a list of headline **styles** the AI should rotate between: results-driven ("Fresh Look. Zero Surgery."), service-driven ("Same-Day Installs"), lifestyle ("Look Good Every Day"), urgency ("Book This Week"), social proof ("Trusted By Hundreds")
-- Add rule: "Do NOT use the words 'confidence', 'reclaim', 'journey', or 'hair loss' in the headline. Focus on the positive outcome, the service, or a call to action instead."
-- This keeps headlines punchy and varied rather than always defaulting to the emotional angle
+This makes three things explicit that were previously ambiguous:
+1. Do NOT generate new faces/people
+2. Use the photo exactly as provided
+3. The reference photo is the ONLY visual allowed
 
-### Why This Works
-The root cause is that the prompts over-index on one emotional angle. By explicitly requiring variety and banning overused words, we force the AI into fresher, more marketing-savvy territory -- the kind of content real barbershops actually post.
