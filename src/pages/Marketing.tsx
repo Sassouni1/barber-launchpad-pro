@@ -57,64 +57,6 @@ const resizeImage = (dataUrl: string, width: number, height: number): Promise<st
   });
 };
 
-// Composite a real reference photo into the placeholder zone of a generated design
-const compositeImage = (
-  designDataUrl: string,
-  referenceImageUrl: string,
-  photoZone: { x: number; y: number; width: number; height: number }
-): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const designImg = new Image();
-    designImg.crossOrigin = 'anonymous';
-    designImg.onload = () => {
-      const refImg = new Image();
-      refImg.crossOrigin = 'anonymous';
-      refImg.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = designImg.width;
-        canvas.height = designImg.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { reject(new Error('Canvas not supported')); return; }
-
-        // Draw the design template
-        ctx.drawImage(designImg, 0, 0);
-
-        // Calculate cover-fit dimensions for the reference photo in the zone
-        const zoneAspect = photoZone.width / photoZone.height;
-        const refAspect = refImg.width / refImg.height;
-
-        let sx = 0, sy = 0, sw = refImg.width, sh = refImg.height;
-        if (refAspect > zoneAspect) {
-          // Reference is wider — crop sides
-          sw = refImg.height * zoneAspect;
-          sx = (refImg.width - sw) / 2;
-        } else {
-          // Reference is taller — crop top/bottom
-          sh = refImg.width / zoneAspect;
-          sy = (refImg.height - sh) / 2;
-        }
-
-        // Scale photoZone coordinates to actual image dimensions
-        const scaleX = designImg.width / (designImg.naturalWidth || designImg.width);
-        const scaleY = designImg.height / (designImg.naturalHeight || designImg.height);
-        const dx = photoZone.x * scaleX;
-        const dy = photoZone.y * scaleY;
-        const dw = photoZone.width * scaleX;
-        const dh = photoZone.height * scaleY;
-
-        // Draw the reference photo into the placeholder zone (cover mode)
-        ctx.drawImage(refImg, sx, sy, sw, sh, dx, dy, dw, dh);
-
-        resolve(canvas.toDataURL('image/png'));
-      };
-      refImg.onerror = () => reject(new Error('Failed to load reference image'));
-      refImg.src = referenceImageUrl;
-    };
-    designImg.onerror = () => reject(new Error('Failed to load design image'));
-    designImg.src = designDataUrl;
-  });
-};
-
 function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; aspectClass: string }) {
   const validSlides = images.filter((u): u is string => !!u && u !== 'failed');
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
@@ -340,20 +282,7 @@ export default function Marketing() {
 
         let imageUrl: string | null = null;
         if (!error && data?.success && data.imageUrl) {
-          try {
-            let processedUrl = await resizeImage(data.imageUrl, targetW, targetH);
-            // If there's a photoZone and a reference image, composite the real photo
-            if (data.photoZone && refUrl) {
-              try {
-                processedUrl = await compositeImage(processedUrl, refUrl, data.photoZone);
-              } catch (compErr) {
-                console.warn('Compositing failed, using design-only image:', compErr);
-              }
-            }
-            imageUrl = processedUrl;
-          } catch {
-            imageUrl = data.imageUrl;
-          }
+          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
         }
 
         setVariations(prev => prev.map(v => {

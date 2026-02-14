@@ -3,6 +3,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string }> {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to fetch reference image: ${resp.status}`);
+  const contentType = resp.headers.get('content-type') || 'image/jpeg';
+  const arrayBuffer = await resp.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuffer);
+  // Manual base64 encoding in chunks to avoid stack overflow
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < uint8.length; i += chunkSize) {
+    const chunk = uint8.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  const base64 = btoa(binary);
+  return { base64, mimeType: contentType.split(';')[0] };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -68,58 +85,30 @@ Brand fonts: ${fontFamily}
 
     const hasReference = !!referenceImageUrl;
 
-    // Image dimensions
-    const imgW = 1080;
-    const imgH = isStory ? 1920 : 1080;
-
-    // Calculate photo zone coordinates based on layout
-    let photoZone: { x: number; y: number; width: number; height: number } | null = null;
-
-    if (hasReference) {
-      if (layoutIndex === 0) {
-        // Split: right 75%
-        const leftPanel = Math.round(imgW * 0.25);
-        photoZone = { x: leftPanel, y: 0, width: imgW - leftPanel, height: imgH };
-      } else if (layoutIndex === 1) {
-        // Full-bleed: center 65% vertically
-        const topReserve = Math.round(imgH * 0.15);
-        const bottomReserve = Math.round(imgH * 0.20);
-        photoZone = { x: 0, y: topReserve, width: imgW, height: imgH - topReserve - bottomReserve };
-      } else {
-        // Framed: centered rectangle with padding
-        const padX = Math.round(imgW * 0.10);
-        const padTop = Math.round(imgH * 0.20);
-        const padBottom = Math.round(imgH * 0.22);
-        photoZone = { x: padX, y: padTop, width: imgW - padX * 2, height: imgH - padTop - padBottom };
-      }
-    }
-
-    // When we have a reference, generate DESIGN ONLY with a placeholder zone
-    const layouts = hasReference
-      ? [
-          // Split: left 25% text panel, right 75% solid magenta placeholder
-          `Split layout: The image has TWO zones. Left 25% is a DARK panel (${bgColor}) containing ALL text: headline at top, brand name in middle, CTA at bottom — stacked vertically. Right 75% is filled with a SOLID FLAT COLOR (#FF00FF magenta) — this is a PHOTO PLACEHOLDER. Do NOT draw any person, face, hair, or photography in the magenta zone. It must be a perfectly flat, uniform #FF00FF fill with NO gradients, patterns, or variation. Add a thin gold decorative border between the two panels.`,
-          // Full-bleed: top 15% text, center 65% magenta placeholder, bottom 20% CTA
-          `Full-bleed layout: The image has THREE horizontal bands. Top 15% is a DARK band (${bgColor}) with the headline and brand name — TEXT ONLY. Center 65% is filled with SOLID FLAT COLOR (#FF00FF magenta) — this is a PHOTO PLACEHOLDER. Do NOT draw any person, face, hair, or photography in the magenta zone. It must be a perfectly flat, uniform #FF00FF fill. Bottom 20% is a DARK band (${bgColor}) with the CTA — TEXT ONLY. No gradients bleeding into the magenta zone.`,
-          // Framed: dark background, centered magenta rectangle, text above/below
-          `Framed layout: Dark background (${bgColor}) fills the entire image. In the center, draw a rectangular area filled with SOLID FLAT COLOR (#FF00FF magenta) — this is a PHOTO PLACEHOLDER. The magenta rectangle should have a thin gold or white border frame around it. Do NOT draw any person, face, hair, or photography. The magenta must be perfectly flat, uniform #FF00FF with NO gradients. ALL text (headline, brand name) goes ABOVE the frame. CTA goes BELOW the frame. No text overlapping the magenta zone.`,
-        ]
-      : [
-          'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
-          'Full-bleed cinematic photo as background. Top 15% reserved for text ONLY (dark overlay, no people). Center 65% shows the subject clearly with no text. Bottom 20% for CTA ONLY (dark overlay, no people). Headline in bold uppercase in the top zone. Brand name at top in smaller text.',
-          'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
-        ];
+    const layouts = [
+      hasReference
+        ? 'Split layout: left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is the reference photo ONLY with zero text overlay. Gold border around the entire image. Decorative dotted line divider separates text panel from photo. The reference photo MUST be shown completely — never crop either side.'
+        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
+      hasReference
+        ? 'Full-bleed: Top 15% of the image is RESERVED for text ONLY (headline, brand name — dark overlay, NO part of any person). Center 65% shows the reference photo subject clearly with NO text, NO headlines, NO decorative elements. Bottom 20% is RESERVED for CTA ONLY (dark overlay, NO part of any person). The reference photo MUST be shown completely — never crop either side.'
+        : 'Full-bleed cinematic photo as background. Top 15% reserved for text ONLY (dark overlay, no people). Center 65% shows the subject clearly with no text. Bottom 20% for CTA ONLY (dark overlay, no people). Headline in bold uppercase in the top zone. Brand name at top in smaller text.',
+      hasReference
+        ? 'Framed composition: dark background surrounding a centered rectangular photo frame (white or gold thin border). ALL text (headline, brand name) goes ABOVE the frame in dark background — zero overlap with the photo. CTA goes BELOW the frame in dark background. NO text on the sides of the frame. NO text overlapping the frame or the person inside it. The reference photo MUST be shown completely — never crop either side.'
+        : 'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
+    ];
 
     const layoutInstruction = layouts[layoutIndex];
 
+    // hasReference moved above layouts array
+
     const referenceInstructions = hasReference
-      ? `PHOTO PLACEHOLDER INSTRUCTIONS:
-You are generating a DESIGN TEMPLATE, not a final photo. The magenta (#FF00FF) zone is where a real photo will be composited later.
-- CRITICAL: Do NOT generate, draw, or include ANY person, face, hair, silhouette, or human figure ANYWHERE in the image.
-- The magenta zone MUST be a perfectly flat, solid, uniform #FF00FF color — no gradients, no patterns, no shading, no variation.
-- Do NOT attempt to "help" by adding a person or photo-like element. The magenta placeholder is intentional.
-- All your creative energy goes into the TEXT, TYPOGRAPHY, DECORATIVE ELEMENTS, and DARK BACKGROUND panels.
-- Make the design elements (headlines, brand name, CTA, borders, accents) look premium and polished.`
+      ? `REFERENCE PHOTO INSTRUCTIONS:
+You have been given a reference photo. This is the ONLY photo that should appear in the final image.
+- CRITICAL: Do NOT generate, recreate, or reimagine the person. The photo must show THIS EXACT PERSON with their exact face, hair, skin tone, and appearance — not an AI approximation or a "similar-looking" person.
+- Insert the reference photo directly into the design. Do not alter, regenerate, or stylize the person in any way.
+- You may apply minor color grading to the photo to match the dark theme, but the person themselves must be identical to the reference.
+- All text, headlines, brand names, CTAs, gradients, and decorative graphics MUST be placed in separate dark background panels or reserved text zones — NEVER on the person's face, hair, neck, body, or clothing.
+- The result must look like a professionally designed social media post featuring this specific real person's photo.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits ${businessCategory ? ({
         'hair-system': 'a hair system / non-surgical hair replacement business',
@@ -168,11 +157,11 @@ ${brandProfile.title ? `Brand name: "${brandProfile.title}"` : '(No brand name p
 CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e.g., "BOOK A FREE CONSULTATION", "DM TO SCHEDULE", "LINK IN BIO", "CALL NOW"). Place it in a contrasting banner, button-style box, or prominent text area near the bottom of the image.
 
 CRITICAL DESIGN RULES:
-${hasReference ? `0. PLACEHOLDER ZONE: The #FF00FF magenta area MUST remain a perfectly flat, solid, uniform color. No people, no faces, no gradients, no patterns in it. This is non-negotiable.` : `0. TEXT PLACEMENT PRIORITY — ABSOLUTE RULES:
-   - For SPLIT layouts: Text MUST be in the left 25-40% dark panel ONLY.
-   - For FULL-BLEED layouts: Top 15% and Bottom 20% are RESERVED for text ONLY. Center 65% is TEXT-FREE.
-   - For FRAMED layouts: Text goes ABOVE and BELOW the photo frame ONLY.
-   - UNIVERSAL: Never place text over any person's face, hair, neck, body, or clothing.`}
+0. TEXT PLACEMENT PRIORITY — ABSOLUTE RULES (these override everything else):
+   - For SPLIT layouts: Text MUST be in the left 25-40% dark panel ONLY. The right panel is a TEXT-FREE ZONE containing only the photo.
+   - For FULL-BLEED layouts: Top 15% and Bottom 20% are RESERVED for text ONLY. The center 65% is a TEXT-FREE ZONE for the person. No headlines, brand names, CTAs, or decorative elements in the center zone.
+   - For FRAMED layouts: Text goes ABOVE and BELOW the photo frame in dark background areas ONLY. The photo frame and its immediate surroundings are TEXT-FREE ZONES.
+   - UNIVERSAL RULE: Never place text, gradients, or decorative elements over any part of a person's face, hair, neck, body, or clothing. If in doubt, move text further away from the person.
 1. The headline typography must be large and impactful. If a word does not fit on a single line, reduce the font size until it does. Never hyphenate or break a word across two lines. Bold, uppercase, impactful sans-serif or display font.
 2. Background must be DARK (black, charcoal, or very dark version of brand colors). Never use bright, pastel, or white backgrounds.
 3. Text must have extremely high contrast against the background. Use the brand accent color for emphasis on key words.
@@ -180,17 +169,31 @@ ${hasReference ? `0. PLACEHOLDER ZONE: The #FF00FF magenta area MUST remain a pe
 5. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
 6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
 7. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
-8. Never display category labels, slugs, or metadata (like "hair-system") as visible text on the image.
-${!hasReference ? `9. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face must be fully visible.
-10. Never place text over faces — headlines, brand names, and decorative elements must not overlap with any person's face.
-11. HAIR PROTECTION: Never place text or decorative elements over any hair areas.` : ''}
+11. Never display category labels, slugs, or metadata (like "hair-system") as visible text on the image. Category context should inform the design style, not appear as text.
+8. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
+9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
+10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
+11. HAIR PROTECTION: Never place text, headlines, or decorative elements over any hair areas. Keep all text placement in safe zones: dark background panels, top/bottom margins, side columns, or areas below the neck/jawline. Hair must always be fully visible and unobstructed to showcase the quality and style.
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
-    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference, hasPhotoZone: !!photoZone });
+    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
 
-    // Build request parts — NO reference image sent to Gemini when hasReference
-    const parts: any[] = [{ text: prompt }];
+    // Build request parts
+    const parts: any[] = [];
+
+    if (hasReference) {
+      try {
+        const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
+        parts.push({
+          inlineData: { mimeType, data: base64 },
+        });
+      } catch (e) {
+        console.warn('Failed to fetch reference image, proceeding without it:', e);
+      }
+    }
+
+    parts.push({ text: prompt });
 
     const googleUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GOOGLE_API_KEY}`;
 
@@ -267,9 +270,9 @@ Make this look like something a premium brand would actually post on Instagram.`
       );
     }
 
-    console.log('Marketing image generated successfully via Google AI Studio:', { index: layoutIndex, palette, size, hasReference, photoZone });
+    console.log('Marketing image generated successfully via Google AI Studio:', { index: layoutIndex, palette, size, hasReference });
     return new Response(
-      JSON.stringify({ success: true, imageUrl, ...(photoZone ? { photoZone } : {}) }),
+      JSON.stringify({ success: true, imageUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
