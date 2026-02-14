@@ -84,6 +84,7 @@ Brand fonts: ${fontFamily}
       : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
 
     const hasReference = !!referenceImageUrl;
+    // Note: referenceAttached is set later after actual fetch; used for prompt selection
 
     const layouts = [
       hasReference
@@ -95,9 +96,10 @@ Brand fonts: ${fontFamily}
 
     const layoutInstruction = layouts[layoutIndex];
 
-    // hasReference moved above layouts array
+    
 
-    const referenceInstructions = hasReference
+    // referenceInstructions will be resolved after fetch attempt using referenceAttached
+    const getReferenceInstructions = (attached: boolean) => attached
       ? `REFERENCE PHOTO INSTRUCTIONS:
 You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
 - Display the reference photo as the main visual element. Do NOT redraw, recreate, or generate a new version of the photo.
@@ -111,6 +113,28 @@ You have been given a reference photo from the brand's website. You MUST use thi
 Generate original cinematic photography that fits a barbershop/hair replacement business.
 - Professional barbershop scenes, natural high-end studio lighting, shallow depth of field
 - The photography should feel authentic and high-end`;
+
+    // Build request parts (fetch reference image first, then construct prompt)
+    const parts: any[] = [];
+
+    let referenceAttached = false;
+    if (hasReference) {
+      try {
+        const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
+        parts.push({
+          inlineData: { mimeType, data: base64 },
+        });
+        referenceAttached = true;
+      } catch (e) {
+        console.error('Failed to fetch reference image, aborting generation:', e);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to load reference image. Please try again or use a different image.' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    const referenceInstructions = getReferenceInstructions(referenceAttached);
 
     const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 
@@ -142,21 +166,7 @@ CRITICAL DESIGN RULES:
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
-    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
-
-    // Build request parts
-    const parts: any[] = [];
-
-    if (hasReference) {
-      try {
-        const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
-        parts.push({
-          inlineData: { mimeType, data: base64 },
-        });
-      } catch (e) {
-        console.warn('Failed to fetch reference image, proceeding without it:', e);
-      }
-    }
+    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference, referenceAttached });
 
     parts.push({ text: prompt });
 
