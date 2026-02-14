@@ -814,21 +814,9 @@ export default function Marketing() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(img.public_url);
-                          const blob = await res.blob();
-                          const blobUrl = URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = blobUrl;
-                          link.download = `marketing-${img.id}.png`;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          URL.revokeObjectURL(blobUrl);
-                        } catch {
-                          toast.error('Failed to download image');
-                        }
+                      onClick={() => {
+                        const downloadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(img.public_url)}&filename=${encodeURIComponent(`marketing-${img.id}.png`)}`;
+                        window.open(downloadUrl, '_blank');
                       }}
                     >
                       <Download className="w-3 h-3 mr-1" /> Save
