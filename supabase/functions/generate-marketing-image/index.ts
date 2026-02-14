@@ -84,17 +84,16 @@ Brand fonts: ${fontFamily}
       : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
 
     const hasReference = !!referenceImageUrl;
-    const useHybridCompositing = hasReference;
 
     const layouts = [
       hasReference
-        ? 'Split layout — left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is a SOLID MAGENTA (#FF00FF) RECTANGLE — this is a photo placeholder zone. Fill that entire right area with flat, uniform magenta color (#FF00FF). No gradients, no patterns, no text in this zone. Decorative dotted line divider separates text panel from placeholder.'
+        ? 'Split layout — left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% shows the PROVIDED REFERENCE PHOTO exactly as-is — do NOT generate a new person or alter the photo. Decorative dotted line divider separates text panel from photo.'
         : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Decorative dotted line divider between text and photo.',
       hasReference
-        ? 'Full-bleed layout — Top 15% reserved for text ONLY (headline, brand name — dark overlay). Center 65% is a SOLID MAGENTA (#FF00FF) RECTANGLE — this is a photo placeholder zone. Fill that entire center area with flat, uniform magenta color (#FF00FF). No gradients, no patterns, no text in this zone. Bottom 20% for CTA ONLY (dark overlay).'
+        ? 'Full-bleed layout — Use the PROVIDED REFERENCE PHOTO as the full-bleed background — do NOT generate a new person. Top 15% reserved for text ONLY (dark overlay). Bottom 20% for CTA ONLY (dark overlay).'
         : 'Full-bleed cinematic photo as background. Top 15% reserved for text ONLY (dark overlay, no people). Center 65% shows the subject clearly with no text. Bottom 20% for CTA ONLY (dark overlay, no people). Headline in bold uppercase in the top zone. Brand name at top in smaller text.',
       hasReference
-        ? 'Framed composition — dark background. Headline ABOVE in large bold text. Center area contains a SOLID MAGENTA (#FF00FF) RECTANGLE as a photo placeholder — fill it with flat, uniform magenta color (#FF00FF). No gradients, no patterns, no text in this zone. Use a subtle thin border around the magenta rectangle. CTA BELOW the frame.'
+        ? 'Framed composition — dark background. Headline ABOVE in large bold text. Center frame contains the PROVIDED REFERENCE PHOTO exactly as-is — do NOT generate a new person. Use a subtle thin border around the photo. CTA BELOW the frame.'
         : 'Framed composition: dark background with a centered rectangular photo inset (subtle thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
     ];
 
@@ -103,14 +102,13 @@ Brand fonts: ${fontFamily}
     // hasReference moved above layouts array
 
     const referenceInstructions = hasReference
-      ? `PHOTO PLACEHOLDER INSTRUCTIONS:
-This design will have a REAL PHOTO composited into it after generation. Your job is to create the layout with a clearly marked placeholder zone.
-- Where the layout says "SOLID MAGENTA (#FF00FF) RECTANGLE", fill that ENTIRE area with a perfectly flat, uniform magenta color (#FF00FF).
-- The magenta zone must be a single solid color — NO gradients, NO patterns, NO textures, NO generated people or faces, NO photography.
-- The magenta rectangle should be large and prominent — it represents where a real photo will be inserted.
-- Make sure the magenta zone has clean, sharp edges against the surrounding design.
-- All text, headlines, brand name, and CTA must be in their designated zones OUTSIDE the magenta area.
-- The rest of the design (text, colors, decorative elements, dark panels) should look polished and complete.`
+      ? `REFERENCE PHOTO INSTRUCTIONS — READ CAREFULLY:
+You are given a REAL PHOTO. You MUST use this EXACT photo in the design. Do NOT generate, recreate, reimagine, or approximate the person in the photo. The reference photo must appear UNCHANGED — same face, same hair, same angle, same lighting. Treat it as a placed photograph in a graphic design layout, not as inspiration.
+- The PROVIDED PHOTO must be placed directly into the layout as-is. It is NOT a reference for generating a new image.
+- Do NOT create a new person that "looks like" the photo. Use the ACTUAL photo.
+- Do NOT alter the person's face, hair color, hair style, skin tone, or clothing.
+- The photo should appear as if it was physically placed into the design — like a magazine layout or Canva template.
+- Apply design elements (text, overlays, borders) AROUND the photo, never replacing it.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits ${businessCategory ? ({
         'hair-system': 'a hair system / non-surgical hair replacement business',
@@ -186,9 +184,8 @@ Make this look like something a premium brand would actually post on Instagram.`
     // Build request parts
     const parts: any[] = [];
 
-    // In hybrid mode, skip sending the reference image (AI doesn't use it properly anyway)
-    // This also speeds up the request significantly
-    if (hasReference && !useHybridCompositing) {
+    // Always send the reference image when available
+    if (hasReference) {
       try {
         const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
         parts.push({
@@ -276,9 +273,9 @@ Make this look like something a premium brand would actually post on Instagram.`
       );
     }
 
-    console.log('Marketing image generated successfully via Google AI Studio:', { index: layoutIndex, palette, size, hasReference, hybrid: useHybridCompositing });
+    console.log('Marketing image generated successfully via Google AI Studio:', { index: layoutIndex, palette, size, hasReference });
     return new Response(
-      JSON.stringify({ success: true, imageUrl, hybrid: useHybridCompositing }),
+      JSON.stringify({ success: true, imageUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
