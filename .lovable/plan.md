@@ -1,45 +1,26 @@
 
+## Fix: Stop All Images From Using the Same Headline
 
-## Update Marketing Image Headlines with Custom Examples
+### Problem
+All 3 generated images show "INSTANT DENSITY" because:
+1. The text content generator produces a caption starting with "INSTANT DENSITY. UNDETECTABLE FINISH."
+2. That same caption is passed as `variationContent` to all 3 image generation calls
+3. The image prompt includes `variationContent.substring(0, 200)` as the "theme/mood"
+4. Despite the instruction "Create your OWN headline", the AI sees "INSTANT DENSITY" right there and copies it every time
 
-### What's Changing
-Replace the generic "reclaim your confidence" style headlines in the image generation prompt with your curated list of 30+ proven headline examples. The AI will randomly pick from these as creative direction instead of defaulting to the same tired phrases.
+### Fix (Edge Function Only)
 
-### Technical Change
+**`supabase/functions/generate-marketing-image/index.ts`** -- Two changes:
 
-**`supabase/functions/generate-marketing-image/index.ts`:**
+1. **Index-based headline rotation**: Instead of showing ALL 19 headline examples to the AI, use the `index` parameter (0, 1, 2) to select a DIFFERENT subset of ~6 headlines for each image. This forces each image to draw from a different pool.
 
-Update the `hair-system` category context in the prompt's TEXT ON THE IMAGE section to include your full headline bank:
+2. **Stronger anti-copy instruction**: Change the prompt from "Create your OWN headline inspired by this theme" to explicitly say: "Do NOT use any words or phrases from the theme text below as your headline. Instead, pick ONE of the headline examples listed and adapt it." Strip the first line of `variationContent` (which contains the headline the AI keeps copying) so it only sees the body text as context.
 
-```
-HEADLINE STYLE EXAMPLES (use these as creative direction — pick ONE style per image, do NOT reuse across variations):
-- "REAL HAIRLINE. REAL CONFIDENCE. ZERO SURGERY."
-- "INSTANT DENSITY. UNDETECTABLE FINISH."
-- "THINNING TO THICK. IN ONE SESSION."
-- "SEAMLESS. CUSTOM. PRECISE."
-- "ZERO PATCHY. ZERO OBVIOUS. ZERO COMPROMISE."
-- "A HAIRLINE THAT HOLDS UP UNDER LIGHT."
-- "BUILT TO BLEND. DESIGNED TO LAST."
-- "NO SCARS. NO DOWNTIME. JUST RESULTS."
-- "WHEN IT LOOKS THIS NATURAL, NO ONE ASKS."
-- "ENGINEERED HAIRLINES. BARBER-FINISHED."
-- "FROM RECEDING TO REDEFINED."
-- "CLEAN HAIRCUT. FLAWLESS BLEND."
-- "PRECISION INSTALLED. PROFESSIONALLY STYLED."
-- "THE DIFFERENCE IS IN THE DETAILS."
-- "PRECISION HAIR SYSTEMS INSTALLED DAILY"
-- "INSTANT RESULTS. SEAMLESS BLEND. ZERO SURGERY."
-- "FLAWLESS HAIRLINE, ZERO DETECTION."
-- "INSTANT TRANSFORMATION. ZERO COMPROMISE."
-- "FRESH LOOK. ZERO SURGERY. SAME-DAY RESULTS."
-```
+### What This Means
+- Image 0 gets headlines like "REAL HAIRLINE. REAL CONFIDENCE." / "THINNING TO THICK." / etc.
+- Image 1 gets headlines like "BUILT TO BLEND." / "NO SCARS. NO DOWNTIME." / etc.  
+- Image 2 gets headlines like "ENGINEERED HAIRLINES." / "PRECISION INSTALLED." / etc.
+- The AI never sees the caption's opening headline phrase, so it can't copy it
 
-Also update the `generate-marketing` text content function with similar headline direction so the caption copy stays aligned with the image headlines.
-
-Add a prompt rule: "Each of the 3 variations MUST use a completely different headline style from the examples. Never repeat the same phrasing across variations."
-
-### What Stays the Same
-- All layout logic, reference photo handling, color/font extraction
-- CTA placement rules, face protection rules
-- Everything else in the prompt
-
+### Files Changed
+- `supabase/functions/generate-marketing-image/index.ts`
