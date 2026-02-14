@@ -1,29 +1,36 @@
 
-## Soften Contrast and Lighten Image Effects
+
+## Protect Reference Photos from AI Alteration
 
 ### Problem
-The generated marketing images are described as "too intense" due to high contrast, heavy dark overlays, and "dramatic" lighting instructions in the AI prompt. The user wants the same professional look but with "lighter opacity" on these filters and effects to make them feel less heavy.
+The AI is redrawing/recreating people in reference photos instead of using the actual image. The current instructions say "Apply cinematic color grading" and "Blend the photo naturally" which gives the AI too much creative license to alter or regenerate the subject.
 
 ### Solution
-I will update the `generate-marketing-image` edge function to use more subtle lighting and overlay instructions while maintaining the premium aesthetic. This involves moving away from "dramatic" and "heavy" keywords towards "natural", "balanced", and "sophisticated" descriptors.
+Update the reference photo instructions to allow cinematic styling (color grading, filters, lighting adjustments) while strictly forbidding any alteration of the actual person (face, hair, body, features).
 
-### Technical Changes
-**Edge Function (`supabase/functions/generate-marketing-image/index.ts`):**
-- **Layout 1 (Full-bleed)**: Change the overlay description from "heavy dark gradient overlay (70% opacity)" to "subtle dark gradient overlay (40% opacity)".
-- **Photography Instructions**: Replace "dramatic lighting" with "natural, high-end studio lighting" to avoid harsh shadows and overly intense contrast.
-- **Reference Photo Instructions**: Update "Apply cinematic color grading and dramatic lighting" to "Apply clean cinematic color grading and balanced professional lighting".
-- **Design Rule 2**: Soften the strict "MUST be DARK" language. It will now encourage "rich, sophisticated tones" while explicitly stating to "maintain a premium feel without being overly heavy or flatly dark".
-- **Blend Instruction**: Update the blending instruction to be "natural" rather than forcing it into a "dark background".
-- **Layout Descriptions**: Update layouts to use "sophisticated dark" instead of "dark solid" or "dark background" to signal a more nuanced use of color to the AI.
+### Technical Change
 
-These changes should result in images that still look premium and expensive but feel "lighter" and more accessible.
+**`supabase/functions/generate-marketing-image/index.ts`** -- Replace the `referenceInstructions` block (lines 100-107):
 
-<lov-mermaid>
-graph TD
-    A[Current Intense Style] -->|Update Prompt| B[New Softer Style]
-    B --> C[Subtle Overlays 40% vs 70%]
-    B --> D[Balanced Studio Lighting]
-    B --> E[Rich/Sophisticated Tones]
-    B --> F[Natural Blending]
-    C & D & E & F --> G[Premium but Accessible Result]
-</lov-mermaid>
+**Current:**
+```
+- Incorporate the reference photo prominently — it should be the main visual element
+- Apply clean cinematic color grading and balanced professional lighting to the photo
+- Overlay the headline text in bold typography ON TOP of or alongside the photo
+- The result must look like a professionally designed social media post, NOT a raw photo
+- Blend the photo naturally with the background and brand elements
+```
+
+**New:**
+```
+- Display the reference photo as the main visual element. Do NOT redraw, recreate, or generate a new version of the photo.
+- Use the EXACT pixels from the provided image for all people/subjects. Do NOT alter faces, hair, skin, body, or any physical features of any person in the photo.
+- You MAY apply cinematic color grading, lighting adjustments, filters, and tonal shifts to the photo — but the actual person must remain completely unmodified.
+- You may crop or resize the photo to fit the layout.
+- Place headline text and design elements AROUND or BESIDE the photo, not covering faces.
+- The result must look like a professionally designed social media post, NOT a raw photo.
+- Blend the photo naturally with the background and brand elements.
+```
+
+This keeps all the cinematic polish (color grading, filters, lighting) while drawing a hard line: never alter the actual person in the image.
+
