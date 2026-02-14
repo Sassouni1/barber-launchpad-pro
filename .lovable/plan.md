@@ -1,37 +1,27 @@
 
 
-## Handle Before-and-After Reference Photos
+## Fix Before-and-After Photo Handling
 
-### Problem
-When a before-and-after (side-by-side) reference photo is used, the current layouts can crop one side out or squeeze the wide image into a square/vertical frame, losing the transformation comparison.
+### Changes to `supabase/functions/generate-marketing-image/index.ts`
 
-### Solution
+**Change 1: Remove forced "BEFORE" / "AFTER" labels**
+In the `referenceInstructions` block (lines 113-119) and all three layout definitions (lines 89-97), remove every mention of adding "BEFORE" and "AFTER" labels. The photos speak for themselves.
 
-**File: `supabase/functions/generate-marketing-image/index.ts`**
+**Change 2: Allow split layout for before-and-after photos**
+Currently, when a before-and-after photo is detected, all three layouts OVERRIDE to a stacked layout. This is wrong -- the split layout (text on left, photo on right) works perfectly as shown in the reference images. The key rule is simply: show BOTH people. Update the layout overrides so:
+- Split layout: Keep text-on-left, photo-on-right. Just add the rule that both subjects in the comparison must be fully visible -- never zoom into or crop out either person.
+- Full-bleed and Framed: Keep the stacked override but remove the forced labels.
 
-**Change 1: Add before-and-after detection instruction to the prompt**
-Add a new section in the prompt (after the reference photo instructions) that tells Gemini to detect if the reference photo is a horizontal before-and-after composition (two subjects side by side, or a split showing transformation). When detected, it must:
-- Show the COMPLETE photo -- both the left side and the right side, never cropping either
-- Use a wide horizontal slot for the photo (full width of the image)
-- Place ALL text (headline, brand name, CTA) ABOVE and/or BELOW the photo strip -- never on it
-- Optionally add "BEFORE" and "AFTER" labels at the top edge of each half
+**Change 3: Stronger hair protection rule**
+Update rule #8 (line 181) to explicitly include hair/top of head:
+- "Never crop or cut off faces or hair -- if a person is in the image, their full head from the TOP OF THEIR HAIR down to their chin must be fully visible. Leave vertical padding above the tallest point of the hair."
 
-**Change 2: Add before-and-after-specific layouts**
-Update all 3 layout variants to include a before-and-after override rule:
-- **Split layout**: Instead of 25/75 text-photo split, switch to a stacked layout -- text banner on top, full-width before-and-after photo in center, CTA banner on bottom
-- **Full-bleed layout**: Top 20% for text, center 60% for the full before-and-after photo (uncropped, edge to edge), bottom 20% for CTA
-- **Framed layout**: Dark background, headline above, full-width framed before-and-after photo in center, CTA below
+Also update rule #11 (line 184) to reinforce: the top of the head/hair must never be clipped by the edge of the frame.
 
-**Change 3: Add explicit "never show just one side" rule**
-Add to the CRITICAL DESIGN RULES section:
-- "BEFORE-AND-AFTER PHOTOS: If the reference photo shows a side-by-side comparison (before and after), you MUST display BOTH sides completely. Never crop, cut, or hide either the left or right half. The entire horizontal photo must be visible edge-to-edge. Use a wide rectangular photo slot spanning the full width of the image."
-
-### What This Changes
-- The AI will recognize horizontal before-and-after compositions and adapt the layout to give them full width
-- Both sides of the transformation will always be visible
-- Text stays in safe zones above and below the photo strip
-- No risk of only showing one side of the comparison
-
-### Files Changed
-- `supabase/functions/generate-marketing-image/index.ts` (prompt updates in layouts, reference instructions, and design rules)
+### Summary of prompt edits
+- Lines 89-97: Remove OVERRIDE-to-stacked for split layout; remove "BEFORE"/"AFTER" label instructions from all layouts
+- Lines 113-119: Remove forced "BEFORE"/"AFTER" labels; simplify to "show both sides, never crop either half"
+- Line 181: Strengthen face/hair cropping rule to include top of hair with padding
+- Line 184: Add "top of hair must not be clipped by frame edge"
 - Redeploy edge function
+
