@@ -57,7 +57,6 @@ const resizeImage = (dataUrl: string, width: number, height: number): Promise<st
   });
 };
 
-
 function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; aspectClass: string }) {
   const validSlides = images.filter((u): u is string => !!u && u !== 'failed');
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
@@ -293,9 +292,6 @@ export default function Marketing() {
           if (!error && data?.success && data.imageUrl) {
             let imageUrl: string | null = null;
             try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
-
-
-
             if (imageUrl && imageUrl !== 'failed') {
               saveImage(imageUrl, type, caption, bp.sourceUrl || '').catch(() => {});
               setVariations(prev => prev.map(v => {

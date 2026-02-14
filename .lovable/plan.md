@@ -1,42 +1,34 @@
 
 
-## Ditch Hybrid Compositing — Send Real Photos to the AI
+## Make Borders Palette-Aware and Optional
 
 ### Problem
-The magenta placeholder + canvas compositing approach is producing terrible results: magenta showing through, awkward photo placement, and broken layouts. The whole approach needs to go.
+Two issues with borders right now:
+1. The layout descriptions hardcode "Gold border" even when the user chose the website palette (should use brand colors instead).
+2. Borders are forced on 2 out of 3 layouts — you want them to be a natural design choice, appearing roughly 1 in 4 images.
 
-### New Approach
-Go back to sending the actual reference photo directly to the AI model (Gemini 3 Pro) and use extremely forceful prompt language demanding it incorporate the REAL photo as-is. No canvas tricks, no placeholders. The AI gets the photo and must use it.
-
-### Changes
+### Fix
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-1. **Remove all hybrid/magenta logic:**
-   - Remove the `useHybridCompositing` variable (line 87)
-   - Remove the condition that skips sending the reference image (lines 189-200) — always send it when available
-   - Remove `hybrid` from the response (line 281)
+**1. Remove hardcoded border references from layout strings (lines 88-97):**
 
-2. **Rewrite layout descriptions for reference images (lines 90-97):**
-   - Replace all magenta placeholder instructions with direct photo usage instructions:
-     - **Split layout with ref:** "Right 75% shows the PROVIDED REFERENCE PHOTO exactly as-is — do NOT generate a new person or alter the photo."
-     - **Full-bleed with ref:** "Use the PROVIDED REFERENCE PHOTO as the full-bleed background — do NOT generate a new person."
-     - **Framed with ref:** "Center frame contains the PROVIDED REFERENCE PHOTO exactly as-is — do NOT generate a new person."
+- **Split layout with reference (line 90):** Remove "Gold border around the entire image." — keep the dotted divider only.
+- **Split layout without reference (line 91):** Remove "Thin gold border around the entire image." — keep the dotted divider only.
+- **Framed layout with reference (line 96):** Change "white or gold thin border" to just "subtle thin border" (no color specified).
+- **Framed layout without reference (line 97):** Same change.
+- **Full-bleed (lines 93-94):** No change — already borderless.
 
-3. **Rewrite `referenceInstructions` (lines 105-122):**
-   - Replace the magenta placeholder instructions with aggressive photo-preservation language:
-     - "You are given a REAL PHOTO. You MUST use this EXACT photo in the design. Do NOT generate, recreate, reimagine, or approximate the person in the photo. The reference photo must appear UNCHANGED — same face, same hair, same angle, same lighting. Treat it as a placed photograph in a graphic design layout, not as inspiration."
+**2. Add a palette-aware global border rule in CRITICAL DESIGN RULES (after line 184):**
 
-**File: `src/pages/Marketing.tsx`**
+A new rule that uses the existing `accentColor` variable so it respects the palette choice:
 
-4. **Remove the entire `compositeImage` function** (lines 60-143)
+> "BORDERS: Outer borders are a creative choice, not a default. Most images (roughly 3 out of 4) should have NO outer border — let the design breathe edge-to-edge. Only add a thin border (2-3px) when it genuinely enhances the composition. When you do use a border, use the accent color (${accentColor}) or white. Never use thick or heavy borders."
 
-5. **Remove the compositing call in `generateSlot`** (lines 382-390) — just use the image directly from the AI response
+This way:
+- If the user chose gold palette, `accentColor` is `#D4AF37` (gold) so borders will be gold when they appear.
+- If the user chose website palette, `accentColor` is whatever their brand's accent color is.
+- Borders only show up when the AI thinks it fits — roughly 1 in 4 images.
 
-6. **Remove `hybrid` handling** — no need to check for `data.hybrid` anymore
+**3. Redeploy the edge function.**
 
-### Deployment
-Redeploy `generate-marketing-image` edge function.
-
-### Why This Should Work Better
-Gemini 3 Pro *does* accept inline images — we were already sending them before the hybrid change. The issue was weak prompting. By being extremely explicit ("use this EXACT photo, do NOT generate a new person"), and removing all the magenta noise from the prompt, the model has a much better shot at incorporating the real photo. And even if it sometimes approximates, that's far better than broken magenta rectangles showing through.

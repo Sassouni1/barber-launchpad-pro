@@ -87,14 +87,14 @@ Brand fonts: ${fontFamily}
 
     const layouts = [
       hasReference
-        ? 'Split layout — left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% shows the PROVIDED REFERENCE PHOTO exactly as-is — do NOT generate a new person or alter the photo. Decorative dotted line divider separates text panel from photo.'
-        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Decorative dotted line divider between text and photo.',
+        ? 'Split layout — left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is the reference photo ONLY with zero text overlay. Gold border around the entire image. Decorative dotted line divider separates text panel from photo. IMPORTANT: If the reference photo is a before-and-after (side-by-side comparison), BOTH subjects must be fully visible in the right panel — never zoom into or crop out either person. Show the complete comparison.'
+        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
       hasReference
-        ? 'Full-bleed layout — Use the PROVIDED REFERENCE PHOTO as the full-bleed background — do NOT generate a new person. Top 15% reserved for text ONLY (dark overlay). Bottom 20% for CTA ONLY (dark overlay).'
+        ? 'Full-bleed — If the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE layout: Top 20% RESERVED for text ONLY (headline, brand name — dark overlay). Center 60% shows the COMPLETE before-and-after photo edge-to-edge, both halves fully visible, NO cropping. Bottom 20% RESERVED for CTA ONLY. If NOT a before-and-after: Top 15% reserved for text ONLY (dark overlay, NO part of any person). Center 65% shows the reference photo subject clearly with NO text. Bottom 20% for CTA ONLY.'
         : 'Full-bleed cinematic photo as background. Top 15% reserved for text ONLY (dark overlay, no people). Center 65% shows the subject clearly with no text. Bottom 20% for CTA ONLY (dark overlay, no people). Headline in bold uppercase in the top zone. Brand name at top in smaller text.',
       hasReference
-        ? 'Framed composition — dark background. Headline ABOVE in large bold text. Center frame contains the PROVIDED REFERENCE PHOTO exactly as-is — do NOT generate a new person. Use a subtle thin border around the photo. CTA BELOW the frame.'
-        : 'Framed composition: dark background with a centered rectangular photo inset (subtle thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
+        ? 'Framed composition — If the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE layout: dark background, headline ABOVE, full-width framed before-and-after photo in center (wide rectangular frame, both halves completely visible edge-to-edge, NO cropping), CTA BELOW. If NOT a before-and-after: dark background surrounding a centered rectangular photo frame (white or gold thin border). ALL text (headline, brand name) goes ABOVE the frame. CTA goes BELOW the frame. NO text overlapping the frame or the person inside it.'
+        : 'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
     ];
 
     const layoutInstruction = layouts[layoutIndex];
@@ -102,13 +102,20 @@ Brand fonts: ${fontFamily}
     // hasReference moved above layouts array
 
     const referenceInstructions = hasReference
-      ? `REFERENCE PHOTO INSTRUCTIONS — READ CAREFULLY:
-You are given a REAL PHOTO. You MUST use this EXACT photo in the design. Do NOT generate, recreate, reimagine, or approximate the person in the photo. The reference photo must appear UNCHANGED — same face, same hair, same angle, same lighting. Treat it as a placed photograph in a graphic design layout, not as inspiration.
-- The PROVIDED PHOTO must be placed directly into the layout as-is. It is NOT a reference for generating a new image.
-- Do NOT create a new person that "looks like" the photo. Use the ACTUAL photo.
-- Do NOT alter the person's face, hair color, hair style, skin tone, or clothing.
-- The photo should appear as if it was physically placed into the design — like a magazine layout or Canva template.
-- Apply design elements (text, overlays, borders) AROUND the photo, never replacing it.`
+      ? `REFERENCE PHOTO INSTRUCTIONS:
+You have been given a reference photo. This is the ONLY photo that should appear in the final image.
+- CRITICAL: Do NOT generate, recreate, or reimagine the person. The photo must show THIS EXACT PERSON with their exact face, hair, skin tone, and appearance — not an AI approximation or a "similar-looking" person.
+- Insert the reference photo directly into the design. Do not alter, regenerate, or stylize the person in any way.
+- You may apply minor color grading to the photo to match the dark theme, but the person themselves must be identical to the reference.
+- All text, headlines, brand names, CTAs, gradients, and decorative graphics MUST be placed in separate dark background panels or reserved text zones — NEVER on the person's face, hair, neck, body, or clothing.
+- The result must look like a professionally designed social media post featuring this specific real person's photo.
+
+BEFORE-AND-AFTER DETECTION:
+Analyze the reference photo. If it shows two subjects side by side, a split image showing a transformation, or any side-by-side comparison:
+- You MUST display BOTH sides completely — NEVER crop, cut, zoom into, or hide either half. NEVER show just one person.
+- Both subjects must be fully visible from the top of their hair to at least their chin.
+- Place ALL text (headline, brand name, CTA) in designated text zones — NEVER overlapping the photo subjects.
+- The viewer must be able to see the full comparison/transformation.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits ${businessCategory ? ({
         'hair-system': 'a hair system / non-surgical hair replacement business',
@@ -175,7 +182,6 @@ CRITICAL DESIGN RULES:
 10. When using reference photos with people: preserve the subject's face and hair completely; apply gradient overlays and text only to non-face/non-hair regions.
 11. HAIR PROTECTION: Never place text, headlines, or decorative elements over any hair areas. The top of the head/hair must NEVER be clipped by the edge of the frame or any overlay. Keep all text placement in safe zones: dark background panels, top/bottom margins, side columns, or areas below the neck/jawline. Hair must always be fully visible and unobstructed.
 12. BEFORE-AND-AFTER PHOTOS: If the reference photo shows a side-by-side comparison (before and after), you MUST display BOTH sides completely. Never crop, cut, or hide either the left or right half. The entire horizontal photo must be visible edge-to-edge. Use a wide rectangular photo slot spanning the full width of the image. NEVER show just one side of the comparison.
-13. BORDERS: Outer borders are a creative choice, not a default. Most images (roughly 3 out of 4) should have NO outer border — let the design breathe edge-to-edge. Only add a thin border (2-3px) when it genuinely enhances the composition. When you do use a border, use the accent color (${accentColor}) or white. Never use thick or heavy borders.
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
@@ -184,7 +190,6 @@ Make this look like something a premium brand would actually post on Instagram.`
     // Build request parts
     const parts: any[] = [];
 
-    // Always send the reference image when available
     if (hasReference) {
       try {
         const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
