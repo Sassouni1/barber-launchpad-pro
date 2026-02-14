@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle, Clock, Trash2 } from 'lucide-react';
-import { useMarketingImages } from '@/hooks/useMarketingImages';
+import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle } from 'lucide-react';
+import { useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
@@ -169,7 +169,6 @@ export default function Marketing() {
   const [imageMode, setImageMode] = useState<ImageMode>('both');
   const [businessCategory, setBusinessCategory] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { savedImages, isLoading: savedLoading, saveImage, deleteImage } = useMarketingImages();
 
   const websiteColors = brandProfile?.branding?.colors || {};
   const hasWebsiteColors = Object.keys(websiteColors).length > 0;
@@ -264,63 +263,43 @@ export default function Marketing() {
     const generateSlot = async (type: VariationType, imgIdx: number, size: string, refUrl?: string) => {
       const targetW = size === 'story' ? 1080 : 1080;
       const targetH = size === 'story' ? 1920 : 1080;
-      const maxAttempts = 3;
-      const retryDelays = [0, 5000, 10000];
 
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        if (attempt > 0) {
-          console.log(`Slot ${type}[${imgIdx}]: retry attempt ${attempt + 1} after ${retryDelays[attempt] / 1000}s...`);
-          await new Promise(r => setTimeout(r, retryDelays[attempt]));
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
+          body: {
+            brandProfile: bp,
+            variationTitle: type,
+            variationContent: caption,
+            contentType,
+            tone,
+            index: imgIdx,
+            palette: paletteChoice,
+            size,
+            ...(refUrl ? { referenceImageUrl: refUrl } : {}),
+          },
+        });
+
+        let imageUrl: string | null = null;
+        if (!error && data?.success && data.imageUrl) {
+          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
         }
 
-        try {
-          const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
-            body: {
-              brandProfile: bp,
-              variationTitle: type,
-              variationContent: caption,
-              contentType,
-              tone,
-              index: imgIdx,
-              palette: paletteChoice,
-              size,
-              businessCategory,
-              ...(refUrl ? { referenceImageUrl: refUrl } : {}),
-            },
-          });
-
-          if (!error && data?.success && data.imageUrl) {
-            let imageUrl: string | null = null;
-            try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
-            if (imageUrl && imageUrl !== 'failed') {
-              saveImage(imageUrl, type, caption, bp.sourceUrl || '').catch(() => {});
-              setVariations(prev => prev.map(v => {
-                if (v.type !== type) return v;
-                const newImgs = [...v.images];
-                newImgs[imgIdx] = imageUrl;
-                const done = newImgs.filter(x => x !== null).length;
-                return { ...v, images: newImgs, imagesLoading: done < 3 };
-              }));
-              return; // Success — exit retry loop
-            }
-          }
-
-          // Response came back but no usable image — retry
-          console.warn(`Slot ${type}[${imgIdx}]: attempt ${attempt + 1} returned no usable image`);
-        } catch (err) {
-          console.warn(`Slot ${type}[${imgIdx}]: attempt ${attempt + 1} threw error:`, err);
-        }
+        setVariations(prev => prev.map(v => {
+          if (v.type !== type) return v;
+          const newImgs = [...v.images];
+          newImgs[imgIdx] = imageUrl ?? 'failed';
+          const done = newImgs.filter(x => x !== null).length;
+          return { ...v, images: newImgs, imagesLoading: done < 3 };
+        }));
+      } catch {
+        setVariations(prev => prev.map(v => {
+          if (v.type !== type) return v;
+          const newImgs = [...v.images];
+          newImgs[imgIdx] = 'failed';
+          const done = newImgs.filter(x => x !== null).length;
+          return { ...v, images: newImgs, imagesLoading: done < 3 };
+        }));
       }
-
-      // All retries exhausted — mark as failed
-      console.error(`Slot ${type}[${imgIdx}]: all ${maxAttempts} attempts failed`);
-      setVariations(prev => prev.map(v => {
-        if (v.type !== type) return v;
-        const newImgs = [...v.images];
-        newImgs[imgIdx] = 'failed';
-        const done = newImgs.filter(x => x !== null).length;
-        return { ...v, images: newImgs, imagesLoading: done < 3 };
-      }));
     };
 
     // Build jobs based on imageMode
@@ -804,52 +783,6 @@ export default function Marketing() {
                   </Card>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* Previously Generated Images */}
-        {savedImages.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-display font-semibold text-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" /> Previously Generated
-              </h2>
-              <span className="text-xs text-muted-foreground">Auto-deletes after 24 hours</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {savedImages.map((img) => (
-                <div key={img.id} className="relative group rounded-lg overflow-hidden border border-border">
-                  <img
-                    src={img.public_url}
-                    alt="Generated marketing image"
-                    className="w-full aspect-square object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end justify-between p-2 opacity-0 group-hover:opacity-100">
-                    <a
-                      href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(img.public_url)}&name=${encodeURIComponent(`marketing-${img.id}.png`)}`}
-                      download={`marketing-${img.id}.png`}
-                      className="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 px-3 bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    >
-                    </a>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => deleteImage(img.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  {img.caption && (
-                    <div className="absolute top-2 left-2 right-2">
-                      <span className="text-[10px] bg-black/60 text-white px-2 py-0.5 rounded-full line-clamp-1">
-                        {img.variation_type}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
             </div>
           </div>
         )}

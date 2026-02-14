@@ -43,12 +43,12 @@ Deno.serve(async (req) => {
     const categoryDescriptions: Record<string, string> = {
       'hair-system': `This business specializes in HAIR SYSTEM SERVICES (non-surgical hair replacement). Focus content on:
 - Hair system installs, maintenance, and styling
-- Before & after transformations and results
+- Transformations and confidence-boosting results
 - Free consultations — emphasize "DM to schedule" or "Click the link in my bio to book"
-- Rotate between these angles: results ("Fresh install. Fresh look.", "See the difference for yourself"), service ("Same-day installs available", "Custom color-matched units"), social proof ("Join 500+ clients who made the switch", "Our most requested service"), lifestyle ("Look good. Feel good.", "Ready for your new look?"), urgency ("Limited spots this week", "Now booking for [month]")
-- Target men who want a natural, full look without surgery
-- Avoid mentioning wigs or toupees — use "hair system" or "unit"
-- Do NOT overuse the words "confidence", "reclaim", "journey", or "hair loss" — keep it fresh and varied`,
+- Before & after transformations
+- Phrases like: "Get your confidence back", "Undetectable hair systems", "Book your free consultation today", "DM us to get started", "Link in bio"
+- Target men dealing with hair loss who want a natural, full look without surgery
+- Avoid mentioning wigs or toupees — use "hair system" or "unit"`,
       'haircut': `This business focuses on HAIRCUT & BARBERING SERVICES. Focus content on:
 - Fresh cuts, fades, tapers, beard trims, grooming
 - Walk-ins welcome or booking availability
@@ -68,18 +68,7 @@ Deno.serve(async (req) => {
 
     const categoryContext = categoryDescriptions[businessCategory] || '';
 
-    const categorySpecializations: Record<string, string> = {
-      'hair-system': 'specializing in hair system / non-surgical hair replacement services',
-      'haircut': 'specializing in barbershop and men\'s grooming services',
-      'salon': 'specializing in hair salon services',
-      'extensions': 'specializing in hair extensions services',
-    };
-
-    const specialization = businessCategory && categorySpecializations[businessCategory]
-      ? ` ${categorySpecializations[businessCategory]}`
-      : '';
-
-    const systemPrompt = `You are an expert marketing copywriter${specialization}. You create compelling, on-brand marketing content that drives engagement and conversions.
+    const systemPrompt = `You are an expert marketing copywriter specializing in the hair replacement, hair systems, and barber industry. You create compelling, on-brand marketing content that drives engagement and conversions.
 
 Your task: Generate exactly 3 unique variations of marketing content based on the brand information provided.
 
@@ -87,11 +76,12 @@ Content type: ${contentTypeDescriptions[contentType] || contentTypeDescriptions[
 Tone: ${toneDescriptions[tone] || toneDescriptions['professional']}
 ${categoryContext ? `\nBUSINESS CATEGORY FOCUS:\n${categoryContext}\n` : ''}
 Rules:
-- Each of the 3 variations MUST use a different angle: one results/transformation-focused, one service/offer-focused, and one lifestyle/aspirational. Do NOT make all three about confidence or emotional recovery.
+- Each variation must be distinct in approach (e.g., one emotional, one educational, one promotional)
 - Use the brand's actual services, name, and unique selling points from the website content
 - Include a clear call-to-action in each variation (prefer "DM to schedule", "Link in bio", or "Book a free consultation")
 - Keep content authentic and avoid generic filler
-${categoryContext ? '- IMPORTANT: Stay laser-focused on the business category described above. Every variation must be about that specific service.' : '- Focus on whatever the brand\'s actual industry and services are based on their website content.'}
+- If the business is related to hair systems/barber services, lean into that expertise
+${categoryContext ? '- IMPORTANT: Stay laser-focused on the business category described above. Every variation must be about that specific service.' : ''}
 
 Return your response as a JSON object with this exact structure:
 {

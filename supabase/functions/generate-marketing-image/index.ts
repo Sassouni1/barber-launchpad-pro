@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl, businessCategory } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -87,14 +87,10 @@ Brand fonts: ${fontFamily}
 
     const layouts = [
       hasReference
-        ? 'Split layout — left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is the reference photo ONLY with zero text overlay. Gold border around the entire image. Decorative dotted line divider separates text panel from photo. IMPORTANT: If the reference photo is a before-and-after (side-by-side comparison), BOTH subjects must be fully visible in the right panel — never zoom into or crop out either person. Show the complete comparison.'
-        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
-      hasReference
-        ? 'Full-bleed — If the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE layout: Top 20% RESERVED for text ONLY (headline, brand name — dark overlay). Center 60% shows the COMPLETE before-and-after photo edge-to-edge, both halves fully visible, NO cropping. Bottom 20% RESERVED for CTA ONLY. If NOT a before-and-after: Top 15% reserved for text ONLY (dark overlay, NO part of any person). Center 65% shows the reference photo subject clearly with NO text. Bottom 20% for CTA ONLY.'
-        : 'Full-bleed cinematic photo as background. Top 15% reserved for text ONLY (dark overlay, no people). Center 65% shows the subject clearly with no text. Bottom 20% for CTA ONLY (dark overlay, no people). Headline in bold uppercase in the top zone. Brand name at top in smaller text.',
-      hasReference
-        ? 'Framed composition — If the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE layout: dark background, headline ABOVE, full-width framed before-and-after photo in center (wide rectangular frame, both halves completely visible edge-to-edge, NO cropping), CTA BELOW. If NOT a before-and-after: dark background surrounding a centered rectangular photo frame (white or gold thin border). ALL text (headline, brand name) goes ABOVE the frame. CTA goes BELOW the frame. NO text overlapping the frame or the person inside it.'
-        : 'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
+        ? 'Split layout: left 25% is a dark solid panel with the headline stacked vertically, right 75% features the reference photo at FULL width without any cropping. Thin gold border around the entire image. Decorative dotted line divider between text and photo. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
+        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
+      'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
+      'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
     ];
 
     const layoutInstruction = layouts[layoutIndex];
@@ -103,44 +99,18 @@ Brand fonts: ${fontFamily}
 
     const referenceInstructions = hasReference
       ? `REFERENCE PHOTO INSTRUCTIONS:
-You have been given a reference photo. This is the ONLY photo that should appear in the final image.
-- CRITICAL: Do NOT generate, recreate, or reimagine the person. The photo must show THIS EXACT PERSON with their exact face, hair, skin tone, and appearance — not an AI approximation or a "similar-looking" person.
-- Insert the reference photo directly into the design. Do not alter, regenerate, or stylize the person in any way.
-- You may apply minor color grading to the photo to match the dark theme, but the person themselves must be identical to the reference.
-- All text, headlines, brand names, CTAs, gradients, and decorative graphics MUST be placed in separate dark background panels or reserved text zones — NEVER on the person's face, hair, neck, body, or clothing.
-- The result must look like a professionally designed social media post featuring this specific real person's photo.
-
-BEFORE-AND-AFTER DETECTION:
-Analyze the reference photo. If it shows two subjects side by side, a split image showing a transformation, or any side-by-side comparison:
-- You MUST display BOTH sides completely — NEVER crop, cut, zoom into, or hide either half. NEVER show just one person.
-- Both subjects must be fully visible from the top of their hair to at least their chin.
-- Place ALL text (headline, brand name, CTA) in designated text zones — NEVER overlapping the photo subjects.
-- The viewer must be able to see the full comparison/transformation.`
+You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
+- Incorporate the reference photo prominently — it should be the main visual element
+- Apply cinematic color grading and dramatic lighting to the photo
+- Overlay the headline text in bold typography ON TOP of or alongside the photo
+- The result must look like a professionally designed social media post, NOT a raw photo
+- Blend the photo seamlessly with the dark background and brand elements`
       : `PHOTOGRAPHY INSTRUCTIONS:
-Generate original cinematic photography that fits ${businessCategory ? ({
-        'hair-system': 'a hair system / non-surgical hair replacement business',
-        'haircut': 'a barbershop / men\'s grooming business',
-        'salon': 'a hair salon',
-        'extensions': 'a hair extensions business',
-      } as Record<string, string>)[businessCategory] || 'the brand\'s industry and style' : 'the brand\'s industry and style'}.
-- Professional scenes, dramatic lighting, shallow depth of field
+Generate original cinematic photography that fits a barbershop/hair replacement business.
+- Professional barbershop scenes, dramatic lighting, shallow depth of field
 - The photography should feel authentic and high-end`;
 
-    const businessDesc = businessCategory ? ({
-      'hair-system': 'a hair system / non-surgical hair replacement business',
-      'haircut': 'a barbershop / men\'s grooming business',
-      'salon': 'a hair salon',
-      'extensions': 'a hair extensions business',
-    } as Record<string, string>)[businessCategory] || 'a premium brand' : 'a premium brand';
-
-    const headlineExamples = businessCategory ? ({
-      'hair-system': '"Fresh Look. Zero Surgery.", "Same-Day Installs"',
-      'haircut': '"Sharp Cuts. Clean Lines.", "Walk-Ins Welcome"',
-      'salon': '"Your Best Hair Day.", "Color That Turns Heads"',
-      'extensions': '"Length You\'ll Love.", "Seamless Blends"',
-    } as Record<string, string>)[businessCategory] || '"See The Difference.", "Book Today", "Your Best Look Yet"' : '"See The Difference.", "Book Today", "Your Best Look Yet"';
-
-    const prompt = `You are a world-class graphic designer creating a premium marketing image for ${businessDesc}. ${aspectInstruction}
+    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 
 ${brandColorBlock}
 
@@ -151,24 +121,11 @@ ${referenceInstructions}
 
 TEXT ON THE IMAGE:
 Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold, punchy headline of 5-8 words max inspired by this theme. Do NOT copy the theme text directly onto the image.
-
-WEBSITE CONTENT CONTEXT (use this to understand what the brand ACTUALLY offers):
-"${brandProfile.content?.substring(0, 500) || ''}"
-
-Headline Strategy: Analyze BOTH the theme above AND the website content. Extract the brand's ACTUAL services, products, themes, or unique selling points from the website content. Create a headline that reflects what THIS specific brand offers. Do NOT default to generic hair/barber/salon topics unless the website content explicitly mentions those services.
-
 ${variationTitle ? `Variation style: "${variationTitle}" -- use this as creative direction, not as visible text.` : ''}
-HEADLINE STYLE — rotate between these approaches: results-driven (${headlineExamples}), service-driven, lifestyle, urgency ("Book This Week"), social proof ("Trusted By Hundreds"). Pick the style that best fits the brand's actual offerings from the website content.
-BANNED WORDS in headlines: Do NOT use "confidence", "reclaim", "journey", or "hair loss". Focus on the positive outcome, the service, or a call to action instead.
 ${brandProfile.title ? `Brand name: "${brandProfile.title}"` : '(No brand name provided — do NOT invent or display any brand name on the image.)'}
 CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e.g., "BOOK A FREE CONSULTATION", "DM TO SCHEDULE", "LINK IN BIO", "CALL NOW"). Place it in a contrasting banner, button-style box, or prominent text area near the bottom of the image.
 
 CRITICAL DESIGN RULES:
-0. TEXT PLACEMENT PRIORITY — ABSOLUTE RULES (these override everything else):
-   - For SPLIT layouts: Text MUST be in the left 25-40% dark panel ONLY. The right panel is a TEXT-FREE ZONE containing only the photo.
-   - For FULL-BLEED layouts: Top 15% and Bottom 20% are RESERVED for text ONLY. The center 65% is a TEXT-FREE ZONE for the person. No headlines, brand names, CTAs, or decorative elements in the center zone.
-   - For FRAMED layouts: Text goes ABOVE and BELOW the photo frame in dark background areas ONLY. The photo frame and its immediate surroundings are TEXT-FREE ZONES.
-   - UNIVERSAL RULE: Never place text, gradients, or decorative elements over any part of a person's face, hair, neck, body, or clothing. If in doubt, move text further away from the person.
 1. The headline typography must be large and impactful. If a word does not fit on a single line, reduce the font size until it does. Never hyphenate or break a word across two lines. Bold, uppercase, impactful sans-serif or display font.
 2. Background must be DARK (black, charcoal, or very dark version of brand colors). Never use bright, pastel, or white backgrounds.
 3. Text must have extremely high contrast against the background. Use the brand accent color for emphasis on key words.
@@ -177,11 +134,9 @@ CRITICAL DESIGN RULES:
 6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
 7. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
 11. Never display category labels, slugs, or metadata (like "hair-system") as visible text on the image. Category context should inform the design style, not appear as text.
-8. FACE & HAIR PROTECTION: Never crop or cut off faces OR hair — if a person is in the image, their full head from the TOP OF THEIR HAIR down to their chin must be fully visible. Leave vertical padding above the tallest point of the hair so it is never clipped by the frame edge.
+8. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
 9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
-10. When using reference photos with people: preserve the subject's face and hair completely; apply gradient overlays and text only to non-face/non-hair regions.
-11. HAIR PROTECTION: Never place text, headlines, or decorative elements over any hair areas. The top of the head/hair must NEVER be clipped by the edge of the frame or any overlay. Keep all text placement in safe zones: dark background panels, top/bottom margins, side columns, or areas below the neck/jawline. Hair must always be fully visible and unobstructed.
-12. BEFORE-AND-AFTER PHOTOS: If the reference photo shows a side-by-side comparison (before and after), you MUST display BOTH sides completely. Never crop, cut, or hide either the left or right half. The entire horizontal photo must be visible edge-to-edge. Use a wide rectangular photo slot spanning the full width of the image. NEVER show just one side of the comparison.
+10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
