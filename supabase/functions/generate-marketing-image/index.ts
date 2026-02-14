@@ -84,16 +84,17 @@ Brand fonts: ${fontFamily}
       : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
 
     const hasReference = !!referenceImageUrl;
+    const useHybridCompositing = hasReference;
 
     const layouts = [
       hasReference
-        ? 'Split layout — left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is the reference photo ONLY with zero text overlay. Decorative dotted line divider separates text panel from photo. IMPORTANT: If the reference photo is a before-and-after (side-by-side comparison), BOTH subjects must be fully visible in the right panel — never zoom into or crop out either person. Show the complete comparison.'
+        ? 'Split layout — left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is a SOLID MAGENTA (#FF00FF) RECTANGLE — this is a photo placeholder zone. Fill that entire right area with flat, uniform magenta color (#FF00FF). No gradients, no patterns, no text in this zone. Decorative dotted line divider separates text panel from placeholder.'
         : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Decorative dotted line divider between text and photo.',
       hasReference
-        ? 'Full-bleed — If the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE layout: Top 20% RESERVED for text ONLY (headline, brand name — dark overlay). Center 60% shows the COMPLETE before-and-after photo edge-to-edge, both halves fully visible, NO cropping. Bottom 20% RESERVED for CTA ONLY. If NOT a before-and-after: Top 15% reserved for text ONLY (dark overlay, NO part of any person). Center 65% shows the reference photo subject clearly with NO text. Bottom 20% for CTA ONLY.'
+        ? 'Full-bleed layout — Top 15% reserved for text ONLY (headline, brand name — dark overlay). Center 65% is a SOLID MAGENTA (#FF00FF) RECTANGLE — this is a photo placeholder zone. Fill that entire center area with flat, uniform magenta color (#FF00FF). No gradients, no patterns, no text in this zone. Bottom 20% for CTA ONLY (dark overlay).'
         : 'Full-bleed cinematic photo as background. Top 15% reserved for text ONLY (dark overlay, no people). Center 65% shows the subject clearly with no text. Bottom 20% for CTA ONLY (dark overlay, no people). Headline in bold uppercase in the top zone. Brand name at top in smaller text.',
       hasReference
-        ? 'Framed composition — If the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE layout: dark background, headline ABOVE, full-width framed before-and-after photo in center (wide rectangular frame, both halves completely visible edge-to-edge, NO cropping), CTA BELOW. If NOT a before-and-after: dark background surrounding a centered rectangular photo frame (subtle thin border). ALL text (headline, brand name) goes ABOVE the frame. CTA goes BELOW the frame. NO text overlapping the frame or the person inside it.'
+        ? 'Framed composition — dark background. Headline ABOVE in large bold text. Center area contains a SOLID MAGENTA (#FF00FF) RECTANGLE as a photo placeholder — fill it with flat, uniform magenta color (#FF00FF). No gradients, no patterns, no text in this zone. Use a subtle thin border around the magenta rectangle. CTA BELOW the frame.'
         : 'Framed composition: dark background with a centered rectangular photo inset (subtle thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
     ];
 
@@ -102,20 +103,14 @@ Brand fonts: ${fontFamily}
     // hasReference moved above layouts array
 
     const referenceInstructions = hasReference
-      ? `REFERENCE PHOTO INSTRUCTIONS:
-You have been given a reference photo. This is the ONLY photo that should appear in the final image.
-- CRITICAL: Do NOT generate, recreate, or reimagine the person. The photo must show THIS EXACT PERSON with their exact face, hair, skin tone, and appearance — not an AI approximation or a "similar-looking" person.
-- Insert the reference photo directly into the design. Do not alter, regenerate, or stylize the person in any way.
-- You may apply minor color grading to the photo to match the dark theme, but the person themselves must be identical to the reference.
-- All text, headlines, brand names, CTAs, gradients, and decorative graphics MUST be placed in separate dark background panels or reserved text zones — NEVER on the person's face, hair, neck, body, or clothing.
-- The result must look like a professionally designed social media post featuring this specific real person's photo.
-
-BEFORE-AND-AFTER DETECTION:
-Analyze the reference photo. If it shows two subjects side by side, a split image showing a transformation, or any side-by-side comparison:
-- You MUST display BOTH sides completely — NEVER crop, cut, zoom into, or hide either half. NEVER show just one person.
-- Both subjects must be fully visible from the top of their hair to at least their chin.
-- Place ALL text (headline, brand name, CTA) in designated text zones — NEVER overlapping the photo subjects.
-- The viewer must be able to see the full comparison/transformation.`
+      ? `PHOTO PLACEHOLDER INSTRUCTIONS:
+This design will have a REAL PHOTO composited into it after generation. Your job is to create the layout with a clearly marked placeholder zone.
+- Where the layout says "SOLID MAGENTA (#FF00FF) RECTANGLE", fill that ENTIRE area with a perfectly flat, uniform magenta color (#FF00FF).
+- The magenta zone must be a single solid color — NO gradients, NO patterns, NO textures, NO generated people or faces, NO photography.
+- The magenta rectangle should be large and prominent — it represents where a real photo will be inserted.
+- Make sure the magenta zone has clean, sharp edges against the surrounding design.
+- All text, headlines, brand name, and CTA must be in their designated zones OUTSIDE the magenta area.
+- The rest of the design (text, colors, decorative elements, dark panels) should look polished and complete.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits ${businessCategory ? ({
         'hair-system': 'a hair system / non-surgical hair replacement business',
@@ -191,7 +186,9 @@ Make this look like something a premium brand would actually post on Instagram.`
     // Build request parts
     const parts: any[] = [];
 
-    if (hasReference) {
+    // In hybrid mode, skip sending the reference image (AI doesn't use it properly anyway)
+    // This also speeds up the request significantly
+    if (hasReference && !useHybridCompositing) {
       try {
         const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
         parts.push({
@@ -279,9 +276,9 @@ Make this look like something a premium brand would actually post on Instagram.`
       );
     }
 
-    console.log('Marketing image generated successfully via Google AI Studio:', { index: layoutIndex, palette, size, hasReference });
+    console.log('Marketing image generated successfully via Google AI Studio:', { index: layoutIndex, palette, size, hasReference, hybrid: useHybridCompositing });
     return new Response(
-      JSON.stringify({ success: true, imageUrl }),
+      JSON.stringify({ success: true, imageUrl, hybrid: useHybridCompositing }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
