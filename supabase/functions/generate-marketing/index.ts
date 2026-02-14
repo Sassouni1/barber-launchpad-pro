@@ -43,12 +43,14 @@ Deno.serve(async (req) => {
     const categoryDescriptions: Record<string, string> = {
       'hair-system': `This business specializes in HAIR SYSTEM SERVICES (non-surgical hair replacement). Focus content on:
 - Hair system installs, maintenance, and styling
-- Transformations and confidence-boosting results
+- Transformations and results-driven messaging
 - Free consultations — emphasize "DM to schedule" or "Click the link in my bio to book"
 - Before & after transformations
-- Phrases like: "Get your confidence back", "Undetectable hair systems", "Book your free consultation today", "DM us to get started", "Link in bio"
 - Target men dealing with hair loss who want a natural, full look without surgery
-- Avoid mentioning wigs or toupees — use "hair system" or "unit"`,
+- Avoid mentioning wigs or toupees — use "hair system" or "unit"
+- Do NOT default to generic "reclaim your confidence" phrasing. Instead use headline styles like:
+  "REAL HAIRLINE. REAL CONFIDENCE. ZERO SURGERY." / "INSTANT DENSITY. UNDETECTABLE FINISH." / "THINNING TO THICK. IN ONE SESSION." / "SEAMLESS. CUSTOM. PRECISE." / "ZERO PATCHY. ZERO OBVIOUS. ZERO COMPROMISE." / "BUILT TO BLEND. DESIGNED TO LAST." / "NO SCARS. NO DOWNTIME. JUST RESULTS." / "ENGINEERED HAIRLINES. BARBER-FINISHED." / "FROM RECEDING TO REDEFINED." / "PRECISION INSTALLED. PROFESSIONALLY STYLED." / "THE DIFFERENCE IS IN THE DETAILS." / "FLAWLESS HAIRLINE, ZERO DETECTION." / "INSTANT TRANSFORMATION. ZERO COMPROMISE." / "FRESH LOOK. ZERO SURGERY. SAME-DAY RESULTS."
+- Each of the 3 variations MUST use a completely different headline style. Never repeat the same phrasing across variations.`,
       'haircut': `This business focuses on HAIRCUT & BARBERING SERVICES. Focus content on:
 - Fresh cuts, fades, tapers, beard trims, grooming
 - Walk-ins welcome or booking availability
@@ -77,9 +79,10 @@ Tone: ${toneDescriptions[tone] || toneDescriptions['professional']}
 ${categoryContext ? `\nBUSINESS CATEGORY FOCUS:\n${categoryContext}\n` : ''}
 Rules:
 - Each variation must be distinct in approach (e.g., one emotional, one educational, one promotional)
+- Each of the 3 variations MUST use a completely different headline style from the category examples. Never repeat the same phrasing across variations.
 - Use the brand's actual services, name, and unique selling points from the website content
 - Include a clear call-to-action in each variation (prefer "DM to schedule", "Link in bio", or "Book a free consultation")
-- Keep content authentic and avoid generic filler
+- Keep content authentic and avoid generic filler — do NOT default to "reclaim your confidence" style messaging
 - If the business is related to hair systems/barber services, lean into that expertise
 ${categoryContext ? '- IMPORTANT: Stay laser-focused on the business category described above. Every variation must be about that specific service.' : ''}
 
