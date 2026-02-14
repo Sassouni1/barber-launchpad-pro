@@ -814,13 +814,21 @@ export default function Marketing() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => {
-                        const link = document.createElement('a');
-                        link.href = img.public_url;
-                        link.download = `marketing-${img.id}.png`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(img.public_url);
+                          const blob = await res.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = blobUrl;
+                          link.download = `marketing-${img.id}.png`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(blobUrl);
+                        } catch {
+                          toast.error('Failed to download image');
+                        }
                       }}
                     >
                       <Download className="w-3 h-3 mr-1" /> Save
