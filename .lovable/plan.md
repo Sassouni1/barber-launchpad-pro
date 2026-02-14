@@ -1,46 +1,42 @@
 
 
-## Fix: Real Photos Instead of AI Faces
+## Ditch Hybrid Compositing — Send Real Photos to the AI
 
-### The Real Problem
-Reference photos ARE being sent to Gemini correctly. The issue is fundamental: image generation models don't composite photos -- they generate everything from scratch. Even with strong prompts saying "preserve exact likeness," Gemini creates new AI-approximated people. This will keep happening no matter how we word the prompt.
+### Problem
+The magenta placeholder + canvas compositing approach is producing terrible results: magenta showing through, awkward photo placement, and broken layouts. The whole approach needs to go.
 
-### The Solution: Hybrid Compositing
-Generate the design layout with a **placeholder zone** (solid color block where the photo should go), then **programmatically overlay the real reference photo** onto that zone using canvas on the client side.
+### New Approach
+Go back to sending the actual reference photo directly to the AI model (Gemini 3 Pro) and use extremely forceful prompt language demanding it incorporate the REAL photo as-is. No canvas tricks, no placeholders. The AI gets the photo and must use it.
 
-### How It Works
-
-1. **Prompt Change** (edge function): For "brand" variations with a reference image, the prompt will instruct the AI to leave a clearly marked **solid-colored placeholder rectangle** (e.g., bright magenta `#FF00FF`) where the photo should appear -- no AI-generated person, just a flat color block. The rest of the design (text, layout, colors, decorative elements) is generated normally by AI.
-
-2. **Remove the reference photo from the API call**: When using the hybrid approach, we no longer send the reference image to Gemini (since it's not using it properly anyway). This also speeds up the request.
-
-3. **Client-side compositing** (Marketing.tsx): After receiving the AI-generated layout image, detect the magenta placeholder region and overlay the real reference photo onto it using an HTML canvas:
-   - Load the AI layout image onto a canvas
-   - Scan for the magenta placeholder zone (find bounding box of `#FF00FF` pixels)
-   - Draw the reference photo scaled to fit that zone
-   - Export the composited result as the final image
-
-4. **Fallback**: If placeholder detection fails (the AI didn't create a clean magenta zone), fall back to the current behavior (show the AI-generated image as-is).
-
-### Technical Details
+### Changes
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
-- Add a new flag `useHybridCompositing` when `hasReference` is true
-- Change the prompt for hybrid mode: replace "insert the reference photo" instructions with "place a solid magenta (#FF00FF) rectangle as a photo placeholder"
-- Stop sending the reference image as `inlineData` in hybrid mode
-- Return `{ success: true, imageUrl, hybrid: true }` so the client knows to composite
+
+1. **Remove all hybrid/magenta logic:**
+   - Remove the `useHybridCompositing` variable (line 87)
+   - Remove the condition that skips sending the reference image (lines 189-200) — always send it when available
+   - Remove `hybrid` from the response (line 281)
+
+2. **Rewrite layout descriptions for reference images (lines 90-97):**
+   - Replace all magenta placeholder instructions with direct photo usage instructions:
+     - **Split layout with ref:** "Right 75% shows the PROVIDED REFERENCE PHOTO exactly as-is — do NOT generate a new person or alter the photo."
+     - **Full-bleed with ref:** "Use the PROVIDED REFERENCE PHOTO as the full-bleed background — do NOT generate a new person."
+     - **Framed with ref:** "Center frame contains the PROVIDED REFERENCE PHOTO exactly as-is — do NOT generate a new person."
+
+3. **Rewrite `referenceInstructions` (lines 105-122):**
+   - Replace the magenta placeholder instructions with aggressive photo-preservation language:
+     - "You are given a REAL PHOTO. You MUST use this EXACT photo in the design. Do NOT generate, recreate, reimagine, or approximate the person in the photo. The reference photo must appear UNCHANGED — same face, same hair, same angle, same lighting. Treat it as a placed photograph in a graphic design layout, not as inspiration."
 
 **File: `src/pages/Marketing.tsx`**
-- Add a `compositeImage(layoutUrl: string, refPhotoUrl: string)` function that:
-  1. Draws the AI layout on a canvas
-  2. Scans pixels to find the magenta placeholder bounding box
-  3. Loads and draws the reference photo into that bounding box
-  4. Returns the final composited data URL
-- In `generateSlot`, when the response has `hybrid: true`, call `compositeImage` before saving
 
-### What This Means for You
-- "Brand Images" will show the ACTUAL person from your reference photos -- not AI approximations
-- "AI Generated" images continue working as before (fully AI-generated)
-- The design quality (text, layout, colors) stays the same since AI still handles that part
-- If the compositing ever fails, you still get the AI layout as a fallback
+4. **Remove the entire `compositeImage` function** (lines 60-143)
 
+5. **Remove the compositing call in `generateSlot`** (lines 382-390) — just use the image directly from the AI response
+
+6. **Remove `hybrid` handling** — no need to check for `data.hybrid` anymore
+
+### Deployment
+Redeploy `generate-marketing-image` edge function.
+
+### Why This Should Work Better
+Gemini 3 Pro *does* accept inline images — we were already sending them before the hybrid change. The issue was weak prompting. By being extremely explicit ("use this EXACT photo, do NOT generate a new person"), and removing all the magenta noise from the prompt, the model has a much better shot at incorporating the real photo. And even if it sometimes approximates, that's far better than broken magenta rectangles showing through.
