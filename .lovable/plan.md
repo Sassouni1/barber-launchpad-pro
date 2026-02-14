@@ -1,34 +1,46 @@
 
 
-## Make Borders Palette-Aware and Optional
+## Fix: Real Photos Instead of AI Faces
 
-### Problem
-Two issues with borders right now:
-1. The layout descriptions hardcode "Gold border" even when the user chose the website palette (should use brand colors instead).
-2. Borders are forced on 2 out of 3 layouts — you want them to be a natural design choice, appearing roughly 1 in 4 images.
+### The Real Problem
+Reference photos ARE being sent to Gemini correctly. The issue is fundamental: image generation models don't composite photos -- they generate everything from scratch. Even with strong prompts saying "preserve exact likeness," Gemini creates new AI-approximated people. This will keep happening no matter how we word the prompt.
 
-### Fix
+### The Solution: Hybrid Compositing
+Generate the design layout with a **placeholder zone** (solid color block where the photo should go), then **programmatically overlay the real reference photo** onto that zone using canvas on the client side.
+
+### How It Works
+
+1. **Prompt Change** (edge function): For "brand" variations with a reference image, the prompt will instruct the AI to leave a clearly marked **solid-colored placeholder rectangle** (e.g., bright magenta `#FF00FF`) where the photo should appear -- no AI-generated person, just a flat color block. The rest of the design (text, layout, colors, decorative elements) is generated normally by AI.
+
+2. **Remove the reference photo from the API call**: When using the hybrid approach, we no longer send the reference image to Gemini (since it's not using it properly anyway). This also speeds up the request.
+
+3. **Client-side compositing** (Marketing.tsx): After receiving the AI-generated layout image, detect the magenta placeholder region and overlay the real reference photo onto it using an HTML canvas:
+   - Load the AI layout image onto a canvas
+   - Scan for the magenta placeholder zone (find bounding box of `#FF00FF` pixels)
+   - Draw the reference photo scaled to fit that zone
+   - Export the composited result as the final image
+
+4. **Fallback**: If placeholder detection fails (the AI didn't create a clean magenta zone), fall back to the current behavior (show the AI-generated image as-is).
+
+### Technical Details
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
+- Add a new flag `useHybridCompositing` when `hasReference` is true
+- Change the prompt for hybrid mode: replace "insert the reference photo" instructions with "place a solid magenta (#FF00FF) rectangle as a photo placeholder"
+- Stop sending the reference image as `inlineData` in hybrid mode
+- Return `{ success: true, imageUrl, hybrid: true }` so the client knows to composite
 
-**1. Remove hardcoded border references from layout strings (lines 88-97):**
+**File: `src/pages/Marketing.tsx`**
+- Add a `compositeImage(layoutUrl: string, refPhotoUrl: string)` function that:
+  1. Draws the AI layout on a canvas
+  2. Scans pixels to find the magenta placeholder bounding box
+  3. Loads and draws the reference photo into that bounding box
+  4. Returns the final composited data URL
+- In `generateSlot`, when the response has `hybrid: true`, call `compositeImage` before saving
 
-- **Split layout with reference (line 90):** Remove "Gold border around the entire image." — keep the dotted divider only.
-- **Split layout without reference (line 91):** Remove "Thin gold border around the entire image." — keep the dotted divider only.
-- **Framed layout with reference (line 96):** Change "white or gold thin border" to just "subtle thin border" (no color specified).
-- **Framed layout without reference (line 97):** Same change.
-- **Full-bleed (lines 93-94):** No change — already borderless.
-
-**2. Add a palette-aware global border rule in CRITICAL DESIGN RULES (after line 184):**
-
-A new rule that uses the existing `accentColor` variable so it respects the palette choice:
-
-> "BORDERS: Outer borders are a creative choice, not a default. Most images (roughly 3 out of 4) should have NO outer border — let the design breathe edge-to-edge. Only add a thin border (2-3px) when it genuinely enhances the composition. When you do use a border, use the accent color (${accentColor}) or white. Never use thick or heavy borders."
-
-This way:
-- If the user chose gold palette, `accentColor` is `#D4AF37` (gold) so borders will be gold when they appear.
-- If the user chose website palette, `accentColor` is whatever their brand's accent color is.
-- Borders only show up when the AI thinks it fits — roughly 1 in 4 images.
-
-**3. Redeploy the edge function.**
+### What This Means for You
+- "Brand Images" will show the ACTUAL person from your reference photos -- not AI approximations
+- "AI Generated" images continue working as before (fully AI-generated)
+- The design quality (text, layout, colors) stays the same since AI still handles that part
+- If the compositing ever fails, you still get the AI layout as a fallback
 
