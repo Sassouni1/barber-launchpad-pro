@@ -57,91 +57,6 @@ const resizeImage = (dataUrl: string, width: number, height: number): Promise<st
   });
 };
 
-/**
- * Hybrid compositing: detect magenta (#FF00FF) placeholder in AI layout,
- * then overlay the real reference photo into that zone.
- */
-const compositeImage = (layoutDataUrl: string, refPhotoUrl: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const layoutImg = new Image();
-    layoutImg.crossOrigin = 'anonymous';
-    layoutImg.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = layoutImg.width;
-      canvas.height = layoutImg.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { reject(new Error('Canvas not supported')); return; }
-
-      // Draw the AI layout
-      ctx.drawImage(layoutImg, 0, 0);
-
-      // Get pixel data and find magenta bounding box
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const pixels = imageData.data;
-      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-      let magentaCount = 0;
-
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const i = (y * canvas.width + x) * 4;
-          const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
-          // Detect magenta: high red, low green, high blue (with tolerance)
-          if (r > 200 && g < 80 && b > 200) {
-            magentaCount++;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-          }
-        }
-      }
-
-      const zoneW = maxX - minX + 1;
-      const zoneH = maxY - minY + 1;
-      const totalPixels = canvas.width * canvas.height;
-      const magentaRatio = magentaCount / totalPixels;
-
-      // Need at least 5% of image to be magenta and a reasonable bounding box
-      if (magentaRatio < 0.05 || zoneW < 50 || zoneH < 50) {
-        console.warn('Magenta placeholder not detected, using layout as-is', { magentaCount, magentaRatio, zoneW, zoneH });
-        resolve(layoutDataUrl); // Fallback
-        return;
-      }
-
-      console.log('Magenta placeholder detected:', { minX, minY, zoneW, zoneH, magentaRatio: (magentaRatio * 100).toFixed(1) + '%' });
-
-      // Load the reference photo and draw it into the placeholder zone
-      const refImg = new Image();
-      refImg.crossOrigin = 'anonymous';
-      refImg.onload = () => {
-        // Calculate cover-fit dimensions (fill the zone, crop overflow)
-        const srcAspect = refImg.width / refImg.height;
-        const dstAspect = zoneW / zoneH;
-        let sx = 0, sy = 0, sw = refImg.width, sh = refImg.height;
-
-        if (srcAspect > dstAspect) {
-          // Source is wider — crop sides
-          sw = refImg.height * dstAspect;
-          sx = (refImg.width - sw) / 2;
-        } else {
-          // Source is taller — crop top/bottom
-          sh = refImg.width / dstAspect;
-          sy = (refImg.height - sh) / 2;
-        }
-
-        ctx.drawImage(refImg, sx, sy, sw, sh, minX, minY, zoneW, zoneH);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      refImg.onerror = () => {
-        console.warn('Failed to load reference photo for compositing, using layout as-is');
-        resolve(layoutDataUrl); // Fallback
-      };
-      refImg.src = refPhotoUrl;
-    };
-    layoutImg.onerror = () => reject(new Error('Failed to load layout image'));
-    layoutImg.src = layoutDataUrl;
-  });
-};
 
 function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; aspectClass: string }) {
   const validSlides = images.filter((u): u is string => !!u && u !== 'failed');
@@ -379,15 +294,7 @@ export default function Marketing() {
             let imageUrl: string | null = null;
             try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
 
-            // Hybrid compositing: overlay real photo onto magenta placeholder
-            if (imageUrl && imageUrl !== 'failed' && data.hybrid && refUrl) {
-              try {
-                console.log(`Slot ${type}[${imgIdx}]: compositing reference photo onto layout...`);
-                imageUrl = await compositeImage(imageUrl, refUrl);
-              } catch (compErr) {
-                console.warn(`Slot ${type}[${imgIdx}]: compositing failed, using layout as-is`, compErr);
-              }
-            }
+
 
             if (imageUrl && imageUrl !== 'failed') {
               saveImage(imageUrl, type, caption, bp.sourceUrl || '').catch(() => {});
