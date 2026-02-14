@@ -36,4 +36,7 @@ verify_jwt = false
 [functions.generate-marketing-image]
 verify_jwt = false
 
+[functions.cleanup-marketing-images]
+verify_jwt = false
+
 
