@@ -264,48 +264,63 @@ export default function Marketing() {
     const generateSlot = async (type: VariationType, imgIdx: number, size: string, refUrl?: string) => {
       const targetW = size === 'story' ? 1080 : 1080;
       const targetH = size === 'story' ? 1920 : 1080;
+      const maxAttempts = 3;
+      const retryDelays = [0, 5000, 10000];
 
-      try {
-        const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
-          body: {
-            brandProfile: bp,
-            variationTitle: type,
-            variationContent: caption,
-            contentType,
-            tone,
-            index: imgIdx,
-            palette: paletteChoice,
-            size,
-            businessCategory,
-            ...(refUrl ? { referenceImageUrl: refUrl } : {}),
-          },
-        });
-
-        let imageUrl: string | null = null;
-        if (!error && data?.success && data.imageUrl) {
-          try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
-          // Save to storage in background
-          if (imageUrl && imageUrl !== 'failed') {
-            saveImage(imageUrl, type, caption, bp.sourceUrl || '').catch(() => {});
-          }
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        if (attempt > 0) {
+          console.log(`Slot ${type}[${imgIdx}]: retry attempt ${attempt + 1} after ${retryDelays[attempt] / 1000}s...`);
+          await new Promise(r => setTimeout(r, retryDelays[attempt]));
         }
 
-        setVariations(prev => prev.map(v => {
-          if (v.type !== type) return v;
-          const newImgs = [...v.images];
-          newImgs[imgIdx] = imageUrl ?? 'failed';
-          const done = newImgs.filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: done < 3 };
-        }));
-      } catch {
-        setVariations(prev => prev.map(v => {
-          if (v.type !== type) return v;
-          const newImgs = [...v.images];
-          newImgs[imgIdx] = 'failed';
-          const done = newImgs.filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: done < 3 };
-        }));
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-marketing-image', {
+            body: {
+              brandProfile: bp,
+              variationTitle: type,
+              variationContent: caption,
+              contentType,
+              tone,
+              index: imgIdx,
+              palette: paletteChoice,
+              size,
+              businessCategory,
+              ...(refUrl ? { referenceImageUrl: refUrl } : {}),
+            },
+          });
+
+          if (!error && data?.success && data.imageUrl) {
+            let imageUrl: string | null = null;
+            try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
+            if (imageUrl && imageUrl !== 'failed') {
+              saveImage(imageUrl, type, caption, bp.sourceUrl || '').catch(() => {});
+              setVariations(prev => prev.map(v => {
+                if (v.type !== type) return v;
+                const newImgs = [...v.images];
+                newImgs[imgIdx] = imageUrl;
+                const done = newImgs.filter(x => x !== null).length;
+                return { ...v, images: newImgs, imagesLoading: done < 3 };
+              }));
+              return; // Success — exit retry loop
+            }
+          }
+
+          // Response came back but no usable image — retry
+          console.warn(`Slot ${type}[${imgIdx}]: attempt ${attempt + 1} returned no usable image`);
+        } catch (err) {
+          console.warn(`Slot ${type}[${imgIdx}]: attempt ${attempt + 1} threw error:`, err);
+        }
       }
+
+      // All retries exhausted — mark as failed
+      console.error(`Slot ${type}[${imgIdx}]: all ${maxAttempts} attempts failed`);
+      setVariations(prev => prev.map(v => {
+        if (v.type !== type) return v;
+        const newImgs = [...v.images];
+        newImgs[imgIdx] = 'failed';
+        const done = newImgs.filter(x => x !== null).length;
+        return { ...v, images: newImgs, imagesLoading: done < 3 };
+      }));
     };
 
     // Build jobs based on imageMode
