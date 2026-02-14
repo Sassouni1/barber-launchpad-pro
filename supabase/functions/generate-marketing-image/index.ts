@@ -87,13 +87,13 @@ Brand fonts: ${fontFamily}
 
     const layouts = [
       hasReference
-        ? 'Split layout: left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is the reference photo ONLY with zero text overlay. Gold border around the entire image. Decorative dotted line divider separates text panel from photo. The reference photo MUST be shown completely — never crop either side.'
+        ? 'Split layout — BUT if the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE to a STACKED layout: dark text banner on top (headline + brand name), full-width before-and-after photo in center (edge-to-edge, NO cropping, both sides fully visible), CTA banner on bottom. Add "BEFORE" and "AFTER" labels at the top edge of each half. If NOT a before-and-after: left 25% dark panel is TEXT ONLY (headline, brand name, CTA stacked vertically — no people, no faces, no hair in this panel). Right 75% is the reference photo ONLY with zero text overlay. Gold border around the entire image. Decorative dotted line divider separates text panel from photo. The reference photo MUST be shown completely — never crop either side.'
         : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically (TEXT ONLY zone — no people). Right 60% features cinematic photography with no text overlay. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
       hasReference
-        ? 'Full-bleed: Top 15% of the image is RESERVED for text ONLY (headline, brand name — dark overlay, NO part of any person). Center 65% shows the reference photo subject clearly with NO text, NO headlines, NO decorative elements. Bottom 20% is RESERVED for CTA ONLY (dark overlay, NO part of any person). The reference photo MUST be shown completely — never crop either side.'
+        ? 'Full-bleed — BUT if the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE layout: Top 20% RESERVED for text ONLY (headline, brand name — dark overlay). Center 60% shows the COMPLETE before-and-after photo edge-to-edge, both halves fully visible, NO cropping. Bottom 20% RESERVED for CTA ONLY. Add "BEFORE" and "AFTER" labels at the top edge of each half. If NOT a before-and-after: Top 15% reserved for text ONLY (dark overlay, NO part of any person). Center 65% shows the reference photo subject clearly with NO text. Bottom 20% for CTA ONLY.'
         : 'Full-bleed cinematic photo as background. Top 15% reserved for text ONLY (dark overlay, no people). Center 65% shows the subject clearly with no text. Bottom 20% for CTA ONLY (dark overlay, no people). Headline in bold uppercase in the top zone. Brand name at top in smaller text.',
       hasReference
-        ? 'Framed composition: dark background surrounding a centered rectangular photo frame (white or gold thin border). ALL text (headline, brand name) goes ABOVE the frame in dark background — zero overlap with the photo. CTA goes BELOW the frame in dark background. NO text on the sides of the frame. NO text overlapping the frame or the person inside it. The reference photo MUST be shown completely — never crop either side.'
+        ? 'Framed composition — BUT if the reference photo is a horizontal before-and-after (side-by-side comparison), OVERRIDE layout: dark background, headline ABOVE, full-width framed before-and-after photo in center (wide rectangular frame, both halves completely visible edge-to-edge, NO cropping), CTA BELOW. Add "BEFORE" and "AFTER" labels at the top edge of each half. If NOT a before-and-after: dark background surrounding a centered rectangular photo frame (white or gold thin border). ALL text (headline, brand name) goes ABOVE the frame. CTA goes BELOW the frame. NO text overlapping the frame or the person inside it. The reference photo MUST be shown completely — never crop either side.'
         : 'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border). Headline ABOVE the photo in large bold text (dark background zone). Brand name and CTA BELOW the photo (dark background zone). No text overlapping the photo.',
     ];
 
@@ -108,7 +108,15 @@ You have been given a reference photo. This is the ONLY photo that should appear
 - Insert the reference photo directly into the design. Do not alter, regenerate, or stylize the person in any way.
 - You may apply minor color grading to the photo to match the dark theme, but the person themselves must be identical to the reference.
 - All text, headlines, brand names, CTAs, gradients, and decorative graphics MUST be placed in separate dark background panels or reserved text zones — NEVER on the person's face, hair, neck, body, or clothing.
-- The result must look like a professionally designed social media post featuring this specific real person's photo.`
+- The result must look like a professionally designed social media post featuring this specific real person's photo.
+
+BEFORE-AND-AFTER DETECTION:
+Analyze the reference photo. If it is a HORIZONTAL before-and-after composition (two subjects side by side, a split image showing a transformation, or any side-by-side comparison):
+- You MUST display the COMPLETE photo — both the left side AND the right side. NEVER crop, cut, zoom into, or hide either half.
+- Use a WIDE HORIZONTAL rectangular slot for the photo that spans the FULL WIDTH of the image.
+- Place ALL text (headline, brand name, CTA) ABOVE and/or BELOW the photo strip — NEVER overlapping the photo.
+- Add small "BEFORE" and "AFTER" labels at the top edge of each respective half of the photo.
+- The entire horizontal composition must be visible edge-to-edge so the viewer can see the full transformation.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits ${businessCategory ? ({
         'hair-system': 'a hair system / non-surgical hair replacement business',
@@ -174,6 +182,7 @@ CRITICAL DESIGN RULES:
 9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
 10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
 11. HAIR PROTECTION: Never place text, headlines, or decorative elements over any hair areas. Keep all text placement in safe zones: dark background panels, top/bottom margins, side columns, or areas below the neck/jawline. Hair must always be fully visible and unobstructed to showcase the quality and style.
+12. BEFORE-AND-AFTER PHOTOS: If the reference photo shows a side-by-side comparison (before and after), you MUST display BOTH sides completely. Never crop, cut, or hide either the left or right half. The entire horizontal photo must be visible edge-to-edge. Use a wide rectangular photo slot spanning the full width of the image. NEVER show just one side of the comparison.
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
