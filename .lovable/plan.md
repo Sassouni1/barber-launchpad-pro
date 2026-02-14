@@ -1,36 +1,38 @@
 
 
-## Protect Reference Photos from AI Alteration
+## Fix: Website Scraper Not Extracting Images
 
 ### Problem
-The AI is redrawing/recreating people in reference photos instead of using the actual image. The current instructions say "Apply cinematic color grading" and "Blend the photo naturally" which gives the AI too much creative license to alter or regenerate the subject.
+When analyzing `www.thebaberlaunch.com`, the scraper returns zero images (`"images": []`). This means:
+1. No images show up in the "Images" section of the brand profile
+2. All image generation falls back to pure AI (no reference photos), producing fake people
+3. The "Brand Images" mode has no reference photos to work with
+
+The root cause is in the `scrape-website` edge function. It only extracts images from:
+- Markdown `![alt](url)` patterns
+- `og:image` metadata
+- Firecrawl branding data (logo, ogImage)
+
+Many modern websites (especially those built with frameworks like Wix, Squarespace, or custom SPAs) render images via CSS backgrounds, lazy-loading, or JavaScript -- none of which appear in Firecrawl's markdown output.
 
 ### Solution
-Update the reference photo instructions to allow cinematic styling (color grading, filters, lighting adjustments) while strictly forbidding any alteration of the actual person (face, hair, body, features).
+Two changes to the `scrape-website` edge function:
 
-### Technical Change
+1. **Request HTML format from Firecrawl** in addition to markdown, and extract `<img src="...">` tags from the raw HTML. This catches images that don't appear in the markdown conversion.
 
-**`supabase/functions/generate-marketing-image/index.ts`** -- Replace the `referenceInstructions` block (lines 100-107):
+2. **Use the screenshot as a fallback image** -- if no images are found at all, and a screenshot was captured, include the screenshot URL in the images array so the user has at least one reference image.
 
-**Current:**
-```
-- Incorporate the reference photo prominently — it should be the main visual element
-- Apply clean cinematic color grading and balanced professional lighting to the photo
-- Overlay the headline text in bold typography ON TOP of or alongside the photo
-- The result must look like a professionally designed social media post, NOT a raw photo
-- Blend the photo naturally with the background and brand elements
-```
+3. **Extract from Firecrawl's `links` data** -- check if any returned links point to image files (`.jpg`, `.png`, `.webp`).
 
-**New:**
-```
-- Display the reference photo as the main visual element. Do NOT redraw, recreate, or generate a new version of the photo.
-- Use the EXACT pixels from the provided image for all people/subjects. Do NOT alter faces, hair, skin, body, or any physical features of any person in the photo.
-- You MAY apply cinematic color grading, lighting adjustments, filters, and tonal shifts to the photo — but the actual person must remain completely unmodified.
-- You may crop or resize the photo to fit the layout.
-- Place headline text and design elements AROUND or BESIDE the photo, not covering faces.
-- The result must look like a professionally designed social media post, NOT a raw photo.
-- Blend the photo naturally with the background and brand elements.
-```
+### Technical Changes
 
-This keeps all the cinematic polish (color grading, filters, lighting) while drawing a hard line: never alter the actual person in the image.
+**`supabase/functions/scrape-website/index.ts`:**
 
+- Add `'html'` to the Firecrawl `formats` array so we also get raw HTML
+- After the markdown regex, add an HTML `<img>` tag regex to extract `src` attributes from `<img>` tags in the HTML response
+- Add `srcset` parsing to catch responsive images
+- Filter for reasonable image URLs (skip tiny icons, data URIs, SVGs, tracking pixels)
+- If after all extraction we still have zero images but have a screenshot, push the screenshot URL into the images array as a last resort
+- Keep the existing 6-image cap to avoid overwhelming the generation pipeline
+
+This should dramatically improve image extraction for sites where the markdown format strips out visual content.
