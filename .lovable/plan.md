@@ -1,29 +1,34 @@
 
 
-## Auto-Retry Failed Image Generation Slots
+## Make Borders Palette-Aware and Optional
 
 ### Problem
-When generating a batch of images, some slots fail (due to rate limits, Gemini flakiness, or missing image data in the response). Currently, a failed slot is just marked as "failed" with no retry, so you end up with fewer images than expected.
+Two issues with borders right now:
+1. The layout descriptions hardcode "Gold border" even when the user chose the website palette (should use brand colors instead).
+2. Borders are forced on 2 out of 3 layouts — you want them to be a natural design choice, appearing roughly 1 in 4 images.
 
-### Solution
-Add automatic retry logic (up to 2 retries per slot) inside the `generateSlot` function in `src/pages/Marketing.tsx`.
+### Fix
 
-### Technical Details
+**File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**File: `src/pages/Marketing.tsx`**
+**1. Remove hardcoded border references from layout strings (lines 88-97):**
 
-Update the `generateSlot` function (lines 264-308) to wrap the API call in a retry loop:
+- **Split layout with reference (line 90):** Remove "Gold border around the entire image." — keep the dotted divider only.
+- **Split layout without reference (line 91):** Remove "Thin gold border around the entire image." — keep the dotted divider only.
+- **Framed layout with reference (line 96):** Change "white or gold thin border" to just "subtle thin border" (no color specified).
+- **Framed layout without reference (line 97):** Same change.
+- **Full-bleed (lines 93-94):** No change — already borderless.
 
-- On failure (error response, no image, or resize failure), wait a few seconds and retry
-- Up to 2 retries per slot (3 total attempts)
-- Delay increases between retries: 5s after first failure, 10s after second
-- Only mark as `'failed'` after all retries are exhausted
-- Log retry attempts to console for debugging
+**2. Add a palette-aware global border rule in CRITICAL DESIGN RULES (after line 184):**
 
-The rest of the batching logic (pairs of 2 with 3s delay) stays unchanged.
+A new rule that uses the existing `accentColor` variable so it respects the palette choice:
 
-### What This Fixes
-- Intermittent Gemini failures will be automatically retried instead of permanently failing
-- Rate limit (429) responses get a longer backoff before retry
-- Users should see all 3 images complete successfully much more consistently
+> "BORDERS: Outer borders are a creative choice, not a default. Most images (roughly 3 out of 4) should have NO outer border — let the design breathe edge-to-edge. Only add a thin border (2-3px) when it genuinely enhances the composition. When you do use a border, use the accent color (${accentColor}) or white. Never use thick or heavy borders."
+
+This way:
+- If the user chose gold palette, `accentColor` is `#D4AF37` (gold) so borders will be gold when they appear.
+- If the user chose website palette, `accentColor` is whatever their brand's accent color is.
+- Borders only show up when the AI thinks it fits — roughly 1 in 4 images.
+
+**3. Redeploy the edge function.**
 
