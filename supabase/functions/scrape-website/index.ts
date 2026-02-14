@@ -42,15 +42,20 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url: formattedUrl,
-        formats: ['markdown', 'links', 'branding', 'screenshot'],
+        formats: ['markdown', 'html', 'links', 'branding', 'screenshot'],
         onlyMainContent: true,
+        waitFor: 3000,
       }),
     });
 
     const data = await response.json();
 
+    console.log('Firecrawl response status:', response.status);
+    if (data.error) console.error('Firecrawl error:', data.error, 'code:', data.code);
+    console.log('Firecrawl screenshot:', !!(data.data?.screenshot || data.screenshot));
+
     if (!response.ok) {
-      console.error('Firecrawl API error:', data);
+      console.error('Firecrawl API error:', JSON.stringify(data));
       return new Response(
         JSON.stringify({ success: false, error: data.error || `Scrape failed with status ${response.status}` }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -59,33 +64,64 @@ Deno.serve(async (req) => {
 
     // Extract brand profile from scraped data
     const markdown = data.data?.markdown || data.markdown || '';
+    const html = data.data?.html || data.html || '';
     const metadata = data.data?.metadata || data.metadata || {};
     const branding = data.data?.branding || data.branding || null;
     const screenshot = data.data?.screenshot || data.screenshot || null;
+    const links = data.data?.links || data.links || [];
 
-    // Extract image URLs from markdown content (![alt](url) patterns)
+    const isValidImageUrl = (url: string): boolean => {
+      if (!url || url.startsWith('data:')) return false;
+      if (url.includes('.svg') || url.includes('tracking') || url.includes('pixel') || url.includes('favicon')) return false;
+      if (url.includes('1x1') || url.includes('spacer')) return false;
+      return url.startsWith('http://') || url.startsWith('https://');
+    };
+
+    // 1. Extract from markdown ![alt](url)
     const imageRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
-    const markdownImages: string[] = [];
+    const allFoundImages: string[] = [];
     let match;
     while ((match = imageRegex.exec(markdown)) !== null) {
-      const imgUrl = match[1];
-      // Filter for likely hero/product images (skip tiny icons, svgs, tracking pixels)
-      if (imgUrl && !imgUrl.includes('.svg') && !imgUrl.includes('tracking') && !imgUrl.includes('pixel') && !imgUrl.includes('favicon')) {
-        markdownImages.push(imgUrl);
+      if (isValidImageUrl(match[1])) allFoundImages.push(match[1]);
+    }
+
+    // 2. Extract from HTML <img> tags (src and srcset)
+    const imgSrcRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+    while ((match = imgSrcRegex.exec(html)) !== null) {
+      if (isValidImageUrl(match[1])) allFoundImages.push(match[1]);
+    }
+    const srcsetRegex = /<img[^>]+srcset=["']([^"']+)["']/gi;
+    while ((match = srcsetRegex.exec(html)) !== null) {
+      const srcsetUrls = match[1].split(',').map(s => s.trim().split(/\s+/)[0]);
+      for (const u of srcsetUrls) {
+        if (isValidImageUrl(u)) allFoundImages.push(u);
       }
     }
 
-    // Collect best images: og:image, logo, and top content images
+    // 3. Extract image URLs from links data
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    for (const link of links) {
+      const l = typeof link === 'string' ? link : '';
+      if (l && imageExtensions.some(ext => l.toLowerCase().includes(ext))) {
+        if (isValidImageUrl(l)) allFoundImages.push(l);
+      }
+    }
+
+    // Collect best images: og:image, logo first, then deduplicated found images
     const collectedImages: string[] = [];
     if (metadata.ogImage) collectedImages.push(metadata.ogImage);
-    if (branding?.images?.ogImage) collectedImages.push(branding.images.ogImage);
+    if (branding?.images?.ogImage && !collectedImages.includes(branding.images.ogImage)) collectedImages.push(branding.images.ogImage);
     if (branding?.logo) collectedImages.push(branding.logo);
-    if (branding?.images?.logo) collectedImages.push(branding.images.logo);
-    // Add first few unique content images
-    for (const img of markdownImages) {
-      if (!collectedImages.includes(img) && collectedImages.length < 6) {
+    if (branding?.images?.logo && !collectedImages.includes(branding.images.logo)) collectedImages.push(branding.images.logo);
+    for (const img of allFoundImages) {
+      if (!collectedImages.includes(img) && collectedImages.length < 10) {
         collectedImages.push(img);
       }
+    }
+
+    // 4. Screenshot fallback
+    if (collectedImages.length === 0 && screenshot) {
+      collectedImages.push(screenshot);
     }
 
     console.log('Extracted images:', collectedImages.length);
