@@ -96,9 +96,38 @@ Brand fonts: ${fontFamily}
 
     const layoutInstruction = layouts[layoutIndex];
 
-    
+    // Index-based headline rotation: each image gets a different subset
+    const allHeadlines = [
+      '"REAL HAIRLINE. REAL CONFIDENCE. ZERO SURGERY."',
+      '"THINNING TO THICK. IN ONE SESSION."',
+      '"SEAMLESS. CUSTOM. PRECISE."',
+      '"ZERO PATCHY. ZERO OBVIOUS. ZERO COMPROMISE."',
+      '"A HAIRLINE THAT HOLDS UP UNDER LIGHT."',
+      '"BUILT TO BLEND. DESIGNED TO LAST."',
+      '"NO SCARS. NO DOWNTIME. JUST RESULTS."',
+      '"WHEN IT LOOKS THIS NATURAL, NO ONE ASKS."',
+      '"ENGINEERED HAIRLINES. BARBER-FINISHED."',
+      '"FROM RECEDING TO REDEFINED."',
+      '"CLEAN HAIRCUT. FLAWLESS BLEND."',
+      '"PRECISION INSTALLED. PROFESSIONALLY STYLED."',
+      '"THE DIFFERENCE IS IN THE DETAILS."',
+      '"PRECISION HAIR SYSTEMS INSTALLED DAILY"',
+      '"INSTANT RESULTS. SEAMLESS BLEND. ZERO SURGERY."',
+      '"FLAWLESS HAIRLINE, ZERO DETECTION."',
+      '"INSTANT TRANSFORMATION. ZERO COMPROMISE."',
+      '"FRESH LOOK. ZERO SURGERY. SAME-DAY RESULTS."',
+    ];
 
-    // referenceInstructions will be resolved after fetch attempt using referenceAttached
+    // Split into 3 pools of 6 headlines each
+    const poolSize = 6;
+    const poolIndex = layoutIndex % 3;
+    const headlinePool = allHeadlines.slice(poolIndex * poolSize, poolIndex * poolSize + poolSize);
+    const headlineExamples = headlinePool.map(h => `- ${h}`).join('\n');
+
+    // Strip the first line of variationContent (it's usually the headline the AI copies)
+    const contentLines = (variationContent || '').split('\n');
+    const strippedContent = contentLines.length > 1 ? contentLines.slice(1).join('\n').trim() : variationContent;
+
     const getReferenceInstructions = (attached: boolean) => attached
       ? `REFERENCE PHOTO INSTRUCTIONS:
 You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
@@ -136,6 +165,7 @@ Generate original cinematic photography that fits a barbershop/hair replacement 
 
     const referenceInstructions = getReferenceInstructions(referenceAttached);
 
+
     const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 
 ${brandColorBlock}
@@ -146,30 +176,12 @@ ${layoutInstruction}
 ${referenceInstructions}
 
 TEXT ON THE IMAGE:
-Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold, punchy headline of 5-8 words max inspired by this theme. Do NOT copy the theme text directly onto the image.
+Context/mood of the post (for design inspiration ONLY — do NOT copy any of this text onto the image): "${strippedContent.substring(0, 200)}"
 ${variationTitle ? `Variation style: "${variationTitle}" -- use this as creative direction, not as visible text.` : ''}
 
-HEADLINE STYLE EXAMPLES (pick ONE as creative direction — do NOT reuse the same style if generating multiple images):
-- "REAL HAIRLINE. REAL CONFIDENCE. ZERO SURGERY."
-- "INSTANT DENSITY. UNDETECTABLE FINISH."
-- "THINNING TO THICK. IN ONE SESSION."
-- "SEAMLESS. CUSTOM. PRECISE."
-- "ZERO PATCHY. ZERO OBVIOUS. ZERO COMPROMISE."
-- "A HAIRLINE THAT HOLDS UP UNDER LIGHT."
-- "BUILT TO BLEND. DESIGNED TO LAST."
-- "NO SCARS. NO DOWNTIME. JUST RESULTS."
-- "WHEN IT LOOKS THIS NATURAL, NO ONE ASKS."
-- "ENGINEERED HAIRLINES. BARBER-FINISHED."
-- "FROM RECEDING TO REDEFINED."
-- "CLEAN HAIRCUT. FLAWLESS BLEND."
-- "PRECISION INSTALLED. PROFESSIONALLY STYLED."
-- "THE DIFFERENCE IS IN THE DETAILS."
-- "PRECISION HAIR SYSTEMS INSTALLED DAILY"
-- "INSTANT RESULTS. SEAMLESS BLEND. ZERO SURGERY."
-- "FLAWLESS HAIRLINE, ZERO DETECTION."
-- "INSTANT TRANSFORMATION. ZERO COMPROMISE."
-- "FRESH LOOK. ZERO SURGERY. SAME-DAY RESULTS."
-Use these as inspiration — create a headline in this STYLE but make it unique. Do NOT default to generic "reclaim your confidence" phrasing.
+YOUR HEADLINE — pick ONE from this list and adapt it into a bold 5-8 word headline. Do NOT invent your own — use one of these as a base:
+${headlineExamples}
+Adapt and rephrase your chosen example. Do NOT default to generic "reclaim your confidence" phrasing. Do NOT copy any text from the context/mood above.
 ${brandProfile.title ? `Brand name: "${brandProfile.title}"` : '(No brand name provided — do NOT invent or display any brand name on the image.)'}
 CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e.g., "BOOK A FREE CONSULTATION", "DM TO SCHEDULE", "LINK IN BIO", "CALL NOW"). Place it in a contrasting banner, button-style box, or prominent text area near the bottom of the image.
 
@@ -181,10 +193,10 @@ CRITICAL DESIGN RULES:
 5. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
 6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
 7. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
-11. Never display category labels, slugs, or metadata (like "hair-system") as visible text on the image. Category context should inform the design style, not appear as text.
-8. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
-9. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
-10. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
+8. Never display category labels, slugs, or metadata (like "hair-system") as visible text on the image. Category context should inform the design style, not appear as text.
+9. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
+10. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
+11. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
 
 Make this look like something a premium brand would actually post on Instagram.`;
 
