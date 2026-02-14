@@ -148,6 +148,28 @@ ${referenceInstructions}
 TEXT ON THE IMAGE:
 Theme/mood of the post: "${variationContent.substring(0, 200)}" -- Create your OWN bold, punchy headline of 5-8 words max inspired by this theme. Do NOT copy the theme text directly onto the image.
 ${variationTitle ? `Variation style: "${variationTitle}" -- use this as creative direction, not as visible text.` : ''}
+
+HEADLINE STYLE EXAMPLES (pick ONE as creative direction — do NOT reuse the same style if generating multiple images):
+- "REAL HAIRLINE. REAL CONFIDENCE. ZERO SURGERY."
+- "INSTANT DENSITY. UNDETECTABLE FINISH."
+- "THINNING TO THICK. IN ONE SESSION."
+- "SEAMLESS. CUSTOM. PRECISE."
+- "ZERO PATCHY. ZERO OBVIOUS. ZERO COMPROMISE."
+- "A HAIRLINE THAT HOLDS UP UNDER LIGHT."
+- "BUILT TO BLEND. DESIGNED TO LAST."
+- "NO SCARS. NO DOWNTIME. JUST RESULTS."
+- "WHEN IT LOOKS THIS NATURAL, NO ONE ASKS."
+- "ENGINEERED HAIRLINES. BARBER-FINISHED."
+- "FROM RECEDING TO REDEFINED."
+- "CLEAN HAIRCUT. FLAWLESS BLEND."
+- "PRECISION INSTALLED. PROFESSIONALLY STYLED."
+- "THE DIFFERENCE IS IN THE DETAILS."
+- "PRECISION HAIR SYSTEMS INSTALLED DAILY"
+- "INSTANT RESULTS. SEAMLESS BLEND. ZERO SURGERY."
+- "FLAWLESS HAIRLINE, ZERO DETECTION."
+- "INSTANT TRANSFORMATION. ZERO COMPROMISE."
+- "FRESH LOOK. ZERO SURGERY. SAME-DAY RESULTS."
+Use these as inspiration — create a headline in this STYLE but make it unique. Do NOT default to generic "reclaim your confidence" phrasing.
 ${brandProfile.title ? `Brand name: "${brandProfile.title}"` : '(No brand name provided — do NOT invent or display any brand name on the image.)'}
 CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e.g., "BOOK A FREE CONSULTATION", "DM TO SCHEDULE", "LINK IN BIO", "CALL NOW"). Place it in a contrasting banner, button-style box, or prominent text area near the bottom of the image.
 
