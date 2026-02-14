@@ -1,22 +1,45 @@
 
-## Fix: Stop Generating Fake Images When Reference Fetch Fails
 
-### Problem
-When in "Brand Images" mode, some images come out as AI-generated fakes because:
+## Update Marketing Image Headlines with Custom Examples
 
-1. The reference image fetch silently fails (line 156-158) -- it catches the error, logs a warning, and continues without the photo
-2. But `hasReference` is still `true`, so the prompt tells the AI "use the reference photo" even though no image data was actually attached
-3. The AI then invents/redraws a fake person to satisfy the prompt
+### What's Changing
+Replace the generic "reclaim your confidence" style headlines in the image generation prompt with your curated list of 30+ proven headline examples. The AI will randomly pick from these as creative direction instead of defaulting to the same tired phrases.
 
-### Fix
+### Technical Change
 
-**`supabase/functions/generate-marketing-image/index.ts`** -- Two changes:
+**`supabase/functions/generate-marketing-image/index.ts`:**
 
-1. **Hard fail when reference fetch fails**: Replace the `console.warn` + continue with a **502 error response**. If a reference image was requested but can't be fetched, the function should return an error instead of silently generating a fake image.
+Update the `hair-system` category context in the prompt's TEXT ON THE IMAGE section to include your full headline bank:
 
-2. **Track whether the image was actually attached**: Add a boolean (`referenceAttached`) that only becomes `true` when the image data is successfully added to the `parts` array. Use this instead of `hasReference` when deciding which prompt instructions to include. This way, if the fetch fails for any reason, the prompt won't mislead the AI into thinking there's a reference photo.
+```
+HEADLINE STYLE EXAMPLES (use these as creative direction — pick ONE style per image, do NOT reuse across variations):
+- "REAL HAIRLINE. REAL CONFIDENCE. ZERO SURGERY."
+- "INSTANT DENSITY. UNDETECTABLE FINISH."
+- "THINNING TO THICK. IN ONE SESSION."
+- "SEAMLESS. CUSTOM. PRECISE."
+- "ZERO PATCHY. ZERO OBVIOUS. ZERO COMPROMISE."
+- "A HAIRLINE THAT HOLDS UP UNDER LIGHT."
+- "BUILT TO BLEND. DESIGNED TO LAST."
+- "NO SCARS. NO DOWNTIME. JUST RESULTS."
+- "WHEN IT LOOKS THIS NATURAL, NO ONE ASKS."
+- "ENGINEERED HAIRLINES. BARBER-FINISHED."
+- "FROM RECEDING TO REDEFINED."
+- "CLEAN HAIRCUT. FLAWLESS BLEND."
+- "PRECISION INSTALLED. PROFESSIONALLY STYLED."
+- "THE DIFFERENCE IS IN THE DETAILS."
+- "PRECISION HAIR SYSTEMS INSTALLED DAILY"
+- "INSTANT RESULTS. SEAMLESS BLEND. ZERO SURGERY."
+- "FLAWLESS HAIRLINE, ZERO DETECTION."
+- "INSTANT TRANSFORMATION. ZERO COMPROMISE."
+- "FRESH LOOK. ZERO SURGERY. SAME-DAY RESULTS."
+```
 
-### What this means for the user
-- When in "Brand Images" mode, if a reference photo can't be loaded, that slot will show as "failed" instead of showing a fake AI image
-- No more surprise fake people mixed in with real brand photos
-- The user can retry or upload different reference images
+Also update the `generate-marketing` text content function with similar headline direction so the caption copy stays aligned with the image headlines.
+
+Add a prompt rule: "Each of the 3 variations MUST use a completely different headline style from the examples. Never repeat the same phrasing across variations."
+
+### What Stays the Same
+- All layout logic, reference photo handling, color/font extraction
+- CTA placement rules, face protection rules
+- Everything else in the prompt
+
