@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle } from 'lucide-react';
-import { useRef } from 'react';
+import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle, Clock, Trash2 } from 'lucide-react';
+import { useMarketingImages } from '@/hooks/useMarketingImages';
 import useEmblaCarousel from 'embla-carousel-react';
 
 type PaletteChoice = 'gold' | 'website';
@@ -169,6 +169,7 @@ export default function Marketing() {
   const [imageMode, setImageMode] = useState<ImageMode>('both');
   const [businessCategory, setBusinessCategory] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { savedImages, isLoading: savedLoading, saveImage, deleteImage } = useMarketingImages();
 
   const websiteColors = brandProfile?.branding?.colors || {};
   const hasWebsiteColors = Object.keys(websiteColors).length > 0;
@@ -283,6 +284,10 @@ export default function Marketing() {
         let imageUrl: string | null = null;
         if (!error && data?.success && data.imageUrl) {
           try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
+          // Save to storage in background
+          if (imageUrl && imageUrl !== 'failed') {
+            saveImage(imageUrl, type, caption, bp.sourceUrl || '').catch(() => {});
+          }
         }
 
         setVariations(prev => prev.map(v => {
@@ -784,6 +789,60 @@ export default function Marketing() {
                   </Card>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Previously Generated Images */}
+        {savedImages.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-display font-semibold text-foreground flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" /> Previously Generated
+              </h2>
+              <span className="text-xs text-muted-foreground">Auto-deletes after 24 hours</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {savedImages.map((img) => (
+                <div key={img.id} className="relative group rounded-lg overflow-hidden border border-border">
+                  <img
+                    src={img.public_url}
+                    alt="Generated marketing image"
+                    className="w-full aspect-square object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end justify-between p-2 opacity-0 group-hover:opacity-100">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = img.public_url;
+                        link.download = `marketing-${img.id}.png`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      <Download className="w-3 h-3 mr-1" /> Save
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => deleteImage(img.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  {img.caption && (
+                    <div className="absolute top-2 left-2 right-2">
+                      <span className="text-[10px] bg-black/60 text-white px-2 py-0.5 rounded-full line-clamp-1">
+                        {img.variation_type}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
