@@ -405,6 +405,39 @@ export type Database = {
           },
         ]
       }
+      marketing_images: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          public_url: string
+          storage_path: string
+          user_id: string
+          variation_type: string
+          website_url: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          public_url: string
+          storage_path: string
+          user_id: string
+          variation_type: string
+          website_url?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          public_url?: string
+          storage_path?: string
+          user_id?: string
+          variation_type?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       module_files: {
         Row: {
           created_at: string
@@ -1202,6 +1235,7 @@ export type Database = {
       }
     }
     Functions: {
+      cleanup_old_marketing_images: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

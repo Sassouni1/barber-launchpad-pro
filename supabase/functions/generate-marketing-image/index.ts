@@ -87,10 +87,10 @@ Brand fonts: ${fontFamily}
 
     const layouts = [
       hasReference
-        ? 'Split layout: left 25% is a dark solid panel with the headline stacked vertically, right 75% features the reference photo at FULL width without any cropping. Thin gold border around the entire image. Decorative dotted line divider between text and photo. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
-        : 'Split layout: left 40% is a dark solid panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
-      'Full-bleed cinematic photo as background with a heavy dark gradient overlay (70% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
-      'Framed composition: dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
+        ? 'Split layout: left 25% is a sophisticated dark panel with the headline stacked vertically, right 75% features the reference photo at FULL width without any cropping. Thin gold border around the entire image. Decorative dotted line divider between text and photo. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
+        : 'Split layout: left 40% is a sophisticated dark panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
+      'Full-bleed cinematic photo as background with a subtle dark gradient overlay (40% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
+      'Framed composition: sophisticated dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
     ];
 
     const layoutInstruction = layouts[layoutIndex];
@@ -101,13 +101,13 @@ Brand fonts: ${fontFamily}
       ? `REFERENCE PHOTO INSTRUCTIONS:
 You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
 - Incorporate the reference photo prominently — it should be the main visual element
-- Apply cinematic color grading and dramatic lighting to the photo
+- Apply clean cinematic color grading and balanced professional lighting to the photo
 - Overlay the headline text in bold typography ON TOP of or alongside the photo
 - The result must look like a professionally designed social media post, NOT a raw photo
-- Blend the photo seamlessly with the dark background and brand elements`
+- Blend the photo naturally with the background and brand elements`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits a barbershop/hair replacement business.
-- Professional barbershop scenes, dramatic lighting, shallow depth of field
+- Professional barbershop scenes, natural high-end studio lighting, shallow depth of field
 - The photography should feel authentic and high-end`;
 
     const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
@@ -127,7 +127,7 @@ CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e
 
 CRITICAL DESIGN RULES:
 1. The headline typography must be large and impactful. If a word does not fit on a single line, reduce the font size until it does. Never hyphenate or break a word across two lines. Bold, uppercase, impactful sans-serif or display font.
-2. Background must be DARK (black, charcoal, or very dark version of brand colors). Never use bright, pastel, or white backgrounds.
+2. Background should use rich, sophisticated tones (deep charcoal, dark navy, warm espresso). Maintain a premium feel without being overly heavy or flatly dark. Never use bright, pastel, or white backgrounds.
 3. Text must have extremely high contrast against the background. Use the brand accent color for emphasis on key words.
 4. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames.
 5. The overall feel should match a high-end Canva template or professional agency output — NOT generic AI art.
