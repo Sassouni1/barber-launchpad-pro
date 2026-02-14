@@ -811,16 +811,12 @@ export default function Marketing() {
                     className="w-full aspect-square object-cover"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end justify-between p-2 opacity-0 group-hover:opacity-100">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        const downloadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(img.public_url)}&filename=${encodeURIComponent(`marketing-${img.id}.png`)}`;
-                        window.open(downloadUrl, '_blank');
-                      }}
+                    <a
+                      href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(img.public_url)}&name=${encodeURIComponent(`marketing-${img.id}.png`)}`}
+                      download={`marketing-${img.id}.png`}
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 px-3 bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     >
-                      <Download className="w-3 h-3 mr-1" /> Save
-                    </Button>
+                    </a>
                     <Button
                       variant="destructive"
                       size="icon"
