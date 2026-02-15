@@ -1,57 +1,34 @@
 
 
-## Fix Hair Cropping in Generated Marketing Images
+## Restore Premium Full-Bleed Design Aesthetic
 
 ### Problem
-The generated image cuts off the "after" side's hair at the top-right corner. The current rules say to scale down if needed, but the layout instructions contradict this by telling the AI to use "FULL width" for the reference photo. The AI is prioritizing filling the space over keeping the subject fully visible.
+The recent anti-cropping fixes overcorrected by telling the AI to shrink the reference photo to 75-85% of the canvas as an "inset." This killed the bold, full-bleed look that made the original designs premium. The reference images show:
+
+- Photo fills the right side edge-to-edge (or nearly so)
+- Text on a dark panel to the left with white + gold alternating words
+- Thin gold outer frame border wrapping the entire composition
+- Decorative gold dotted-line divider between text and photo panels
+- Photo is the HERO element, not a shrunken thumbnail
 
 ### Changes
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**1. Update layout instructions (lines 93-96) to emphasize scaling down**
+**1. Rewrite all three layout descriptions (lines 91-97)**
 
-All three layout descriptions that mention reference photos need stronger language about scaling down to show the complete photo. Change "at FULL width without any cropping" to instructions that prioritize showing the entire photo over filling the space:
+Restore full-bleed photo placement while keeping the anti-cropping rules in the PERSON FRAMING section (Rule 9) to handle head/hair visibility:
 
-- Layout 0 (line 93): Change "right 75% features the reference photo at FULL width without any cropping" to "right 75% features the reference photo scaled to fit ENTIRELY within this area — the COMPLETE photo must be visible including all hair and heads, even if it means leaving some background padding around the photo. Never zoom in or crop any edge."
-- Layout 1 (line 95): Add "Scale the reference photo to fit entirely within the frame — never zoom in or crop edges."
-- Layout 2 (line 96): Add same scaling language.
+- **Layout 0 (split, with reference):** Left 25% dark panel with headline stacked vertically in bold white + gold text. Right 75% is the reference photo used LARGE — it should fill most of the right side. Thin gold border around the entire image. Decorative gold dotted line divider between text panel and photo.
+- **Layout 1 (full-bleed):** Reference photo as large background. Headline in bold uppercase positioned in the upper-left or upper area with a subtle dark gradient behind the text for readability. Brand name + CTA at bottom. Thin gold outer frame.
+- **Layout 2 (framed editorial):** Dark background with the reference photo as a large centered element with a thin white or gold border around just the photo. Headline ABOVE in large bold text. Brand name + CTA BELOW. Clean editorial layout.
 
-**2. Strengthen Rule 9 (line 209)**
+Key difference: remove the "shrink to 85%/80%/75%" language. Instead, let the photo be big and bold. The anti-cropping rules in Rule 9 and Rule 13 still protect against cutting off heads/hair.
 
-Replace:
-```
-9. PERSON FRAMING: Never crop or cut off a person's head, hair, forehead, or face. The full head including all hair must be visible within the frame with breathing room above. Shoulders, arms, and body may be cropped if needed.
-```
-With:
-```
-9. PERSON FRAMING: Never crop or cut off a person's head, hair, forehead, or face at ANY edge of the image — top, bottom, left, or right. The full head including ALL hair must be visible with breathing room on every side. Scale the photo smaller if needed to achieve this. It is better to have empty space around the photo than to cut off any hair. Shoulders, arms, and body may be cropped if needed.
-```
+**2. No changes to Rules 9, 13, 14 or the verification checklist**
 
-**3. Strengthen Rule 13 (line 213)**
+Those rules still apply and will prevent cropping. The fix is purely about layout intent — letting the photo be the hero again instead of a shrunken inset.
 
-Replace:
-```
-13. BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison...Scale the photo down if needed to fit both sides entirely within the frame.
-```
-With:
-```
-13. BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison (two sides showing a transformation), you MUST display BOTH sides completely — every pixel of both the "before" and "after" must be visible. Scale the entire photo DOWN until it fits completely within the frame with NO cropping on ANY edge. It is better to have the photo appear smaller with padding than to crop any part of either side. Showing only one side or cropping the top of either person's head/hair is strictly forbidden.
-```
+### Technical Details
 
-**4. Update verification check 3 (line 221)**
-
-Replace:
-```
-3. Is any person cut off at the edges of the image (hair, face)? If YES, reframe with more space around them.
-```
-With:
-```
-3. Check ALL FOUR edges of the image (top, right, bottom, left). Is any person's head or hair touching or cut off at ANY edge? If YES, scale the photo smaller and reposition it with padding on all sides.
-```
-
-### What stays the same
-- All other rules (1-8, 10-12, 14)
-- Retry logic, base64 fetching, brand name conditionals
-- Headline pools, content stripping
-- Verification checks 1, 2, 4, 5, 6
+The layout strings in the `layouts` array (lines 91-97) will be rewritten to match the aesthetic of the reference images while keeping all other prompt rules intact. The key shift is from "shrink and pad" to "fill and frame."
