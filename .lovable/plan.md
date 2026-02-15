@@ -1,33 +1,37 @@
 
 
-## Fix: Prevent AI from Inventing Fake Brand Names
+## Strengthen Anti-Cropping and Add Before/After Rules
 
-### The Problem
-When `brandProfile.title` is empty or missing, the AI sometimes invents filler text like "BARBERSHOP NAME" and puts it on the image. Line 192 already says "do NOT invent or display any brand name" when no title is provided, but the layout instructions on lines 92-94 still reference "brand name" placement (e.g., "Brand name at top in smaller text"), which contradicts the no-name rule.
-
-### The Fix
+### Changes
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**1. Make layout instructions conditional on having an actual brand name (lines 89-95)**
+**1. Update Rule 9 (line 206)**
 
-When `brandProfile.title` is empty, remove all "brand name" references from layout descriptions:
-- Layout 1 (split): Remove "and brand name" from the text panel description
-- Layout 2 (full-bleed): Remove "Brand name at top in smaller text"
-- Layout 3 (framed): Remove "Brand name and tagline BELOW the photo"
-
-**2. Add an explicit anti-filler rule to CRITICAL DESIGN RULES (after line 207)**
-
-Add a new rule:
+Replace:
 ```
-12. NEVER invent, fabricate, or use placeholder business names. If no brand name was provided above, do NOT write "BARBERSHOP NAME", "YOUR BRAND", "STUDIO NAME", or ANY made-up name on the image. Leave the brand name area empty or omit it entirely. Only display a brand name if one was explicitly provided.
+9. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
+```
+With:
+```
+9. PERSON FRAMING: Never crop or cut off a person's head, hair, forehead, or face. The full head including all hair must be visible within the frame with breathing room above. Shoulders, arms, and body may be cropped if needed.
+```
+
+**2. Add Rule 13 for before/after photos (after Rule 12)**
+
+```
+13. BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison (two sides showing a transformation), you MUST display BOTH sides completely. Never crop, hide, or cut off either the "before" or "after" side. Scale the photo down if needed to fit both sides entirely within the frame. Showing only one side of a transformation is strictly forbidden.
+```
+
+**3. Add verification checks to the final checklist (after existing checks around lines 213-215)**
+
+```
+3. Is any person cut off at the edges of the image (hair, face)? If YES, reframe with more space around them.
+4. Does the reference photo show a before-and-after transformation? If YES, are BOTH sides fully visible? If either side is cropped, scale down and reposition to show the complete transformation.
 ```
 
 ### What stays the same
-- All reference photo logic, retry logic, color/font extraction
-- The existing line 192 conditional (kept as reinforcement)
-- Everything else in the prompt
-
-### File changed
-- `supabase/functions/generate-marketing-image/index.ts`
+- All layout descriptions, retry logic, reference photo handling
+- Rules 1-8, 10-12
+- Brand name conditional logic
 
