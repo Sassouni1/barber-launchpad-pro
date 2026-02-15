@@ -146,7 +146,10 @@ You must:
 If you cannot use the reference photo for any reason, output a design with NO PEOPLE AT ALL — use abstract textures, barbershop tools, or geometric patterns instead. NEVER substitute with an AI-generated person.
 
 === SELF-CHECK BEFORE FINALIZING ===
-Look at your output. Does it contain a person that was NOT in the reference photo? If yes, you have FAILED. Remove that person and use ONLY the reference photo or no people at all.`
+Look at your output. Does it contain a person that was NOT in the reference photo? If yes, you have FAILED. Remove that person and use ONLY the reference photo or no people at all.
+
+=== ZERO TOLERANCE ===
+If your final image contains ANY person who is not pixel-for-pixel from the provided reference photo, your output is a FAILURE. There are no exceptions. No stylized versions. No "similar looking" people. No AI-generated faces. ONLY the exact reference photo pixels.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits a barbershop/hair replacement business.
 - Professional barbershop scenes, natural high-end studio lighting, shallow depth of field
@@ -208,6 +211,7 @@ CRITICAL DESIGN RULES:
 11. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
 12. NEVER invent, fabricate, or use placeholder business names. If no brand name was provided above, do NOT write "BARBERSHOP NAME", "YOUR BRAND", "STUDIO NAME", or ANY made-up name on the image. Leave the brand name area empty or omit it entirely. Only display a brand name if one was explicitly provided.
 13. BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison (two sides showing a transformation), you MUST display BOTH sides completely. Never crop, hide, or cut off either the "before" or "after" side. Scale the photo down if needed to fit both sides entirely within the frame. Showing only one side of a transformation is strictly forbidden.
+14. ZERO AI-GENERATED PEOPLE: When a reference photo is provided, you are absolutely forbidden from generating, drawing, painting, or synthesizing any human face, head, hair, or body. The reference photo is the ONLY source of human imagery. If you catch yourself generating a person instead of embedding the reference photo, STOP and start over. This rule overrides all other creative decisions.
 
 Make this look like something a premium brand would actually post on Instagram.
 
@@ -215,7 +219,9 @@ Make this look like something a premium brand would actually post on Instagram.
 1. Does your image contain any human face or body? If YES, is it from the provided reference photo? If you generated a new person, DELETE THEM and redo with the reference photo only.
 2. The reference photo is the ONLY source of human imagery allowed. No exceptions. No "inspired by" versions. The actual photo pixels.
 3. Is any person cut off at the edges of the image (hair, face)? If YES, reframe with more space around them.
-4. Does the reference photo show a before-and-after transformation? If YES, are BOTH sides fully visible? If either side is cropped, scale down and reposition to show the complete transformation.`;
+4. Does the reference photo show a before-and-after transformation? If YES, are BOTH sides fully visible? If either side is cropped, scale down and reposition to show the complete transformation.
+5. SECOND CHECK: Look at every person in your image one more time. Compare each face to the reference photo. If ANY face does not match the reference EXACTLY, remove it. An AI-generated face is NEVER acceptable.
+6. If you failed any check above, DO NOT output the image. Redo it from scratch.`;
 
     console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference, referenceAttached });
 
