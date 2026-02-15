@@ -86,12 +86,14 @@ Brand fonts: ${fontFamily}
     const hasReference = !!referenceImageUrl;
     // Note: referenceAttached is set later after actual fetch; used for prompt selection
 
+    const hasBrandName = !!brandProfile.title;
+
     const layouts = [
       hasReference
-        ? 'Split layout: left 25% is a sophisticated dark panel with the headline stacked vertically, right 75% features the reference photo at FULL width without any cropping. Thin gold border around the entire image. Decorative dotted line divider between text and photo. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.'
-        : 'Split layout: left 40% is a sophisticated dark panel with the headline and brand name stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.',
-      'Full-bleed cinematic photo as background with a subtle dark gradient overlay (40% opacity). Headline centered in bold uppercase. Brand name at top in smaller text. Thin decorative line separators above and below the headline. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
-      'Framed composition: sophisticated dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text. Brand name and tagline BELOW the photo. Clean, editorial layout. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.',
+        ? `Split layout: left 25% is a sophisticated dark panel with the headline stacked vertically, right 75% features the reference photo at FULL width without any cropping. Thin gold border around the entire image. Decorative dotted line divider between text and photo. The reference photo MUST be shown completely — never crop either side of a before-and-after transformation.`
+        : `Split layout: left 40% is a sophisticated dark panel with the headline${hasBrandName ? ' and brand name' : ''} stacked vertically, right 60% features cinematic photography. Thin gold border around the entire image. Decorative dotted line divider between text and photo.`,
+      `Full-bleed cinematic photo as background with a subtle dark gradient overlay (40% opacity). Headline centered in bold uppercase.${hasBrandName ? ' Brand name at top in smaller text.' : ''} Thin decorative line separators above and below the headline. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.`,
+      `Framed composition: sophisticated dark background with a centered rectangular photo inset (white or gold thin border around the photo). Headline ABOVE the photo in large bold text.${hasBrandName ? ' Brand name and tagline BELOW the photo.' : ''} Clean, editorial layout. If the reference photo shows a before-and-after transformation, you MUST display the FULL photo without cropping either side.`,
     ];
 
     const layoutInstruction = layouts[layoutIndex];
@@ -204,6 +206,7 @@ CRITICAL DESIGN RULES:
 9. FACE PROTECTION: Never crop or cut off faces — if a person is in the image, their full face (forehead to chin) must be fully visible within the frame.
 10. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
 11. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
+12. NEVER invent, fabricate, or use placeholder business names. If no brand name was provided above, do NOT write "BARBERSHOP NAME", "YOUR BRAND", "STUDIO NAME", or ANY made-up name on the image. Leave the brand name area empty or omit it entirely. Only display a brand name if one was explicitly provided.
 
 Make this look like something a premium brand would actually post on Instagram.
 
