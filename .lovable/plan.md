@@ -1,44 +1,57 @@
 
 
-## Make Anti-Fake-Person Rules More Aggressive
+## Fix Hair Cropping in Generated Marketing Images
 
-The current rules tell the AI not to generate fake people, but it's still doing it occasionally. The fix: repeat the rule multiple times in different sections, use stronger "failure" language, and add a second self-check pass.
+### Problem
+The generated image cuts off the "after" side's hair at the top-right corner. The current rules say to scale down if needed, but the layout instructions contradict this by telling the AI to use "FULL width" for the reference photo. The AI is prioritizing filling the space over keeping the subject fully visible.
 
 ### Changes
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**1. Strengthen the reference instructions block (lines 134-149)**
+**1. Update layout instructions (lines 93-96) to emphasize scaling down**
 
-Add a bold repeated warning at the end of the existing block:
+All three layout descriptions that mention reference photos need stronger language about scaling down to show the complete photo. Change "at FULL width without any cropping" to instructions that prioritize showing the entire photo over filling the space:
 
+- Layout 0 (line 93): Change "right 75% features the reference photo at FULL width without any cropping" to "right 75% features the reference photo scaled to fit ENTIRELY within this area — the COMPLETE photo must be visible including all hair and heads, even if it means leaving some background padding around the photo. Never zoom in or crop any edge."
+- Layout 1 (line 95): Add "Scale the reference photo to fit entirely within the frame — never zoom in or crop edges."
+- Layout 2 (line 96): Add same scaling language.
+
+**2. Strengthen Rule 9 (line 209)**
+
+Replace:
 ```
-=== ZERO TOLERANCE ===
-If your final image contains ANY person who is not pixel-for-pixel from the provided reference photo, your output is a FAILURE. There are no exceptions. No stylized versions. No "similar looking" people. No AI-generated faces. ONLY the exact reference photo pixels.
+9. PERSON FRAMING: Never crop or cut off a person's head, hair, forehead, or face. The full head including all hair must be visible within the frame with breathing room above. Shoulders, arms, and body may be cropped if needed.
+```
+With:
+```
+9. PERSON FRAMING: Never crop or cut off a person's head, hair, forehead, or face at ANY edge of the image — top, bottom, left, or right. The full head including ALL hair must be visible with breathing room on every side. Scale the photo smaller if needed to achieve this. It is better to have empty space around the photo than to cut off any hair. Shoulders, arms, and body may be cropped if needed.
 ```
 
-**2. Add Rule 14 to CRITICAL DESIGN RULES (after Rule 13, line 210)**
+**3. Strengthen Rule 13 (line 213)**
 
+Replace:
 ```
-14. ZERO AI-GENERATED PEOPLE: When a reference photo is provided, you are absolutely forbidden from generating, drawing, painting, or synthesizing any human face, head, hair, or body. The reference photo is the ONLY source of human imagery. If you catch yourself generating a person instead of embedding the reference photo, STOP and start over. This rule overrides all other creative decisions.
+13. BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison...Scale the photo down if needed to fit both sides entirely within the frame.
+```
+With:
+```
+13. BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison (two sides showing a transformation), you MUST display BOTH sides completely — every pixel of both the "before" and "after" must be visible. Scale the entire photo DOWN until it fits completely within the frame with NO cropping on ANY edge. It is better to have the photo appear smaller with padding than to crop any part of either side. Showing only one side or cropping the top of either person's head/hair is strictly forbidden.
 ```
 
-**3. Expand the FINAL VERIFICATION block (lines 214-218)**
+**4. Update verification check 3 (line 221)**
 
-Replace the existing 4-check block with a 6-check block that repeats the anti-fake rule with escalating severity:
-
+Replace:
 ```
-=== FINAL VERIFICATION — DO THIS BEFORE OUTPUTTING ===
-1. Does your image contain any human face or body? If YES, is it from the provided reference photo? If you generated a new person, DELETE THEM and redo with the reference photo only.
-2. The reference photo is the ONLY source of human imagery allowed. No exceptions. No "inspired by" versions. The actual photo pixels.
 3. Is any person cut off at the edges of the image (hair, face)? If YES, reframe with more space around them.
-4. Does the reference photo show a before-and-after transformation? If YES, are BOTH sides fully visible? If either side is cropped, scale down and reposition to show the complete transformation.
-5. SECOND CHECK: Look at every person in your image one more time. Compare each face to the reference photo. If ANY face does not match the reference EXACTLY, remove it. An AI-generated face is NEVER acceptable.
-6. If you failed any check above, DO NOT output the image. Redo it from scratch.
+```
+With:
+```
+3. Check ALL FOUR edges of the image (top, right, bottom, left). Is any person's head or hair touching or cut off at ANY edge? If YES, scale the photo smaller and reposition it with padding on all sides.
 ```
 
 ### What stays the same
-- All layout logic, color logic, retry logic, base64 fetching
-- Rules 1-13 (unchanged)
-- Headline pools, content stripping, brand name conditionals
-
+- All other rules (1-8, 10-12, 14)
+- Retry logic, base64 fetching, brand name conditionals
+- Headline pools, content stripping
+- Verification checks 1, 2, 4, 5, 6
