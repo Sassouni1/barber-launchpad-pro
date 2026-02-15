@@ -1,40 +1,32 @@
 
 
-## Fix: Retry on 503/Timeout Errors (Not Just 429)
+## Fix: Prevent AI from Inventing Fake Brand Names
 
 ### The Problem
-The edge function only retries when it gets a 429 (rate limit) error. When Google returns a 503 ("Deadline expired") — which is a temporary timeout — the function gives up immediately and returns a failure. This is why you get 2 out of 3 images.
+When `brandProfile.title` is empty or missing, the AI sometimes invents filler text like "BARBERSHOP NAME" and puts it on the image. Line 192 already says "do NOT invent or display any brand name" when no title is provided, but the layout instructions on lines 92-94 still reference "brand name" placement (e.g., "Brand name at top in smaller text"), which contradicts the no-name rule.
 
 ### The Fix
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**Expand the retry loop (lines 231-245) to also retry on 503 errors:**
+**1. Make layout instructions conditional on having an actual brand name (lines 89-95)**
 
-Currently the loop breaks on anything that isn't a 429. Change it to also retry on 503 (and 500) errors since these are transient Google-side failures.
+When `brandProfile.title` is empty, remove all "brand name" references from layout descriptions:
+- Layout 1 (split): Remove "and brand name" from the text panel description
+- Layout 2 (full-bleed): Remove "Brand name at top in smaller text"
+- Layout 3 (framed): Remove "Brand name and tagline BELOW the photo"
 
+**2. Add an explicit anti-filler rule to CRITICAL DESIGN RULES (after line 207)**
+
+Add a new rule:
 ```
-for (let attempt = 0; attempt < maxRetries; attempt++) {
-  if (attempt > 0) {
-    console.log(`Retry attempt ${attempt + 1} after delay...`);
-    await new Promise(r => setTimeout(r, retryDelays[attempt]));
-  }
-
-  response = await fetch(googleUrl, { ... });
-
-  // Retry on rate limit OR transient server errors
-  if (response.status === 429 || response.status === 503 || response.status === 500) {
-    console.warn(`Got ${response.status} on attempt ${attempt + 1}, will retry...`);
-    continue;
-  }
-
-  break; // Success or non-retryable error
-}
+12. NEVER invent, fabricate, or use placeholder business names. If no brand name was provided above, do NOT write "BARBERSHOP NAME", "YOUR BRAND", "STUDIO NAME", or ANY made-up name on the image. Leave the brand name area empty or omit it entirely. Only display a brand name if one was explicitly provided.
 ```
 
 ### What stays the same
-- Everything else: prompts, reference photo logic, layouts, headlines, frontend batching
-- The cycling of 1 reference image across all 3 slots already works correctly
+- All reference photo logic, retry logic, color/font extraction
+- The existing line 192 conditional (kept as reinforcement)
+- Everything else in the prompt
 
 ### File changed
 - `supabase/functions/generate-marketing-image/index.ts`
