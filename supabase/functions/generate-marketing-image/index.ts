@@ -129,15 +129,22 @@ Brand fonts: ${fontFamily}
     const strippedContent = contentLines.length > 1 ? contentLines.slice(1).join('\n').trim() : variationContent;
 
     const getReferenceInstructions = (attached: boolean) => attached
-      ? `REFERENCE PHOTO INSTRUCTIONS:
-You have been given a reference photo from the brand's website. You MUST use this photo as the hero/featured image in your composition.
-- Display the reference photo as the main visual element. Do NOT redraw, recreate, or generate a new version of the photo.
-- Use the EXACT pixels from the provided image for all people/subjects. Do NOT alter faces, hair, skin, body, or any physical features of any person in the photo.
-- You MAY apply cinematic color grading, lighting adjustments, filters, and tonal shifts to the photo — but the actual person must remain completely unmodified.
-- You may crop or resize the photo to fit the layout.
-- Place headline text and design elements AROUND or BESIDE the photo, not covering faces.
-- The result must look like a professionally designed social media post, NOT a raw photo.
-- Blend the photo naturally with the background and brand elements.`
+      ? `=== ABSOLUTE NON-NEGOTIABLE RULE — REFERENCE PHOTO ===
+A reference photo has been provided as an input image. You are FORBIDDEN from generating, creating, drawing, or synthesizing ANY person, face, hair, or human subject.
+
+DO NOT generate a new person. DO NOT create an AI face. DO NOT illustrate a human. The ONLY human imagery allowed in your output is the EXACT reference photo provided.
+
+You must:
+- EMBED the provided reference photo directly into your composition as the hero image
+- Use the EXACT pixels — do not redraw, repaint, re-imagine, or "improve" the person
+- You MAY crop, resize, apply color grading, lighting filters, or tonal shifts
+- Place text and design elements AROUND or BESIDE the photo, never over faces
+- The final result must look like a designed social media post featuring the REAL photo
+
+If you cannot use the reference photo for any reason, output a design with NO PEOPLE AT ALL — use abstract textures, barbershop tools, or geometric patterns instead. NEVER substitute with an AI-generated person.
+
+=== SELF-CHECK BEFORE FINALIZING ===
+Look at your output. Does it contain a person that was NOT in the reference photo? If yes, you have FAILED. Remove that person and use ONLY the reference photo or no people at all.`
       : `PHOTOGRAPHY INSTRUCTIONS:
 Generate original cinematic photography that fits a barbershop/hair replacement business.
 - Professional barbershop scenes, natural high-end studio lighting, shallow depth of field
@@ -198,7 +205,11 @@ CRITICAL DESIGN RULES:
 10. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
 11. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
 
-Make this look like something a premium brand would actually post on Instagram.`;
+Make this look like something a premium brand would actually post on Instagram.
+
+=== FINAL VERIFICATION — DO THIS BEFORE OUTPUTTING ===
+1. Does your image contain any human face or body? If YES, is it from the provided reference photo? If you generated a new person, DELETE THEM and redo with the reference photo only.
+2. The reference photo is the ONLY source of human imagery allowed. No exceptions. No "inspired by" versions. The actual photo pixels.`;
 
     console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference, referenceAttached });
 
