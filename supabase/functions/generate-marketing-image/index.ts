@@ -240,8 +240,13 @@ Make this look like something a premium brand would actually post on Instagram.
         body: requestBody,
       });
 
-      if (response.status !== 429) break;
-      console.warn(`Got 429 rate limit on attempt ${attempt + 1}`);
+      // Retry on rate limit OR transient server errors
+      if (response.status === 429 || response.status === 503 || response.status === 500) {
+        console.warn(`Got ${response.status} on attempt ${attempt + 1}, will retry...`);
+        continue;
+      }
+
+      break; // Success or non-retryable error
     }
 
     if (!response || !response.ok) {
