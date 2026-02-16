@@ -865,7 +865,7 @@ export default function Marketing() {
                     </div>
 
                     {/* Image carousel */}
-                    <div className="px-4">
+                    <div className={`px-4 ${variation.type.includes('story') ? 'max-w-[280px] mx-auto' : ''}`}>
                       <ImageCarousel images={variation.images} aspectClass={aspectClass} />
                       {variation.imagesLoading && validImages.length > 0 && (
                         <div className="flex items-center gap-2 justify-center mt-2 text-xs text-muted-foreground">
@@ -913,7 +913,7 @@ export default function Marketing() {
                             {format(createdAt, 'MMM d, h:mm a')}
                           </span>
                         </div>
-                        <div className="px-3 pb-2">
+                        <div className={`px-3 pb-2 ${isStory ? 'max-w-[200px] mx-auto' : ''}`}>
                           <ImageCarousel 
                             images={chunk.map(i => i.public_url)} 
                             aspectClass={aspectClass} 
