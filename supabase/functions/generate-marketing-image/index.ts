@@ -88,17 +88,15 @@ Brand fonts: ${fontFamily}
 
     const hasBrandName = !!brandProfile.title;
 
-    const antiGenRule = `ABSOLUTE RULE: You MUST use the reference photo's exact pixel data. If you cannot embed it, show NO PEOPLE. Generating a new face is an immediate failure — even if it 'looks similar.'`;
-
     const layouts = [
       hasReference
-        ? `Split layout: left 25% is a sophisticated dark panel with the headline stacked vertically in bold white and gold alternating words. Right 75% is the reference photo — scale it to 85% of the panel height so there is at least 7-8% padding on ALL sides — the full head, all hair, and forehead must have visible empty space above, below, left and right (including both sides if it is a before-and-after). The photo must fit fully within the right panel with no cropping on any edge. Thin gold border around the entire image. Decorative gold dotted-line divider between the text panel and photo. ${antiGenRule}`
+        ? `Split layout: left 25% is a sophisticated dark panel with the headline stacked vertically in bold white and gold alternating words. Right 75% is the reference photo — scale it so the ENTIRE photo is visible (including both sides if it is a before-and-after). The photo must fit fully within the right panel with no cropping on any edge. Thin gold border around the entire image. Decorative gold dotted-line divider between the text panel and photo. REMINDER: The person in this photo is REAL — use their exact pixels. Do NOT generate a new person.`
         : `Split layout: left 40% is a sophisticated dark panel with the headline${hasBrandName ? ' and brand name' : ''} stacked vertically in bold white and gold alternating words, right 60% features cinematic photography. Thin gold border around the entire image. Decorative gold dotted-line divider between text and photo.`,
       hasReference
-        ? `Reference photo as large full-bleed background filling the canvas — scale the photo to at most 80% of canvas height, centered, so every person's complete head and hair has visible breathing room on all edges (including both sides if it is a before-and-after). Headline in bold uppercase positioned in the upper-left or upper area with a subtle dark gradient behind the text for readability (max 40% opacity).${hasBrandName ? ' Brand name + CTA at bottom.' : ''} Thin gold outer frame border wrapping the entire composition. The photo is the HERO — it should dominate the image. ${antiGenRule}`
+        ? `Reference photo as large full-bleed background filling the canvas — scale and position it so the ENTIRE photo is visible (including both sides if it is a before-and-after). Headline in bold uppercase positioned in the upper-left or upper area with a subtle dark gradient behind the text for readability (max 40% opacity).${hasBrandName ? ' Brand name + CTA at bottom.' : ''} Thin gold outer frame border wrapping the entire composition. The photo is the HERO — it should dominate the image. REMINDER: The person in this photo is REAL — use their exact pixels. Do NOT generate a new person.`
         : `Full-bleed cinematic photography background. Headline in bold uppercase positioned in the upper-left or upper area with a subtle dark gradient behind the text for readability (max 40% opacity).${hasBrandName ? ' Brand name + CTA at bottom.' : ''} Thin gold outer frame border wrapping the entire composition.`,
       hasReference
-        ? `Dark background with the reference photo as a large centered element with a thin white or gold border around just the photo — scale the photo to at most 75% of the canvas height so there is generous padding above every person's head and on all sides (including both sides if it is a before-and-after). Headline ABOVE the photo in large bold white and gold text.${hasBrandName ? ' Brand name and tagline BELOW the photo.' : ''} Clean, editorial layout. The photo should be prominent and large — the focal point of the composition. ${antiGenRule}`
+        ? `Dark background with the reference photo as a large centered element with a thin white or gold border around just the photo — scale it so the ENTIRE photo is visible (including both sides if it is a before-and-after). Headline ABOVE the photo in large bold white and gold text.${hasBrandName ? ' Brand name and tagline BELOW the photo.' : ''} Clean, editorial layout. The photo should be prominent and large — the focal point of the composition. REMINDER: The person in this photo is REAL — use their exact pixels. Do NOT generate a new person.`
         : `Dark background with cinematic photography as a large centered element with a thin white or gold border around just the photo. Headline ABOVE the photo in large bold white and gold text.${hasBrandName ? ' Brand name and tagline BELOW the photo.' : ''} Clean, editorial layout.`,
     ];
 
@@ -168,12 +166,9 @@ Generate original cinematic photography that fits a barbershop/hair replacement 
     if (hasReference) {
       try {
         const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
-        // Sandwich the image with text anchors so the model can't drift
-        parts.push({ text: "REFERENCE PHOTO BELOW — this is a real photograph. Memorize it. You will embed these EXACT pixels into your design." });
         parts.push({
           inlineData: { mimeType, data: base64 },
         });
-        parts.push({ text: "REFERENCE PHOTO ABOVE — you just saw the real photo. Every human in your output MUST be these exact pixels. If your output contains ANY person not from this photo, your output is INVALID. Now proceed with the design instructions:" });
         referenceAttached = true;
       } catch (e) {
         console.error('Failed to fetch reference image, aborting generation:', e);
@@ -186,24 +181,15 @@ Generate original cinematic photography that fits a barbershop/hair replacement 
 
     const referenceInstructions = getReferenceInstructions(referenceAttached);
 
-    // Build preamble that goes BEFORE everything else when reference is attached
-    const referencePreamble = referenceAttached
-      ? `STOP AND READ THIS FIRST — BEFORE ANYTHING ELSE:
-The image above is a REAL photograph of a REAL person. Your ONLY job is to place this EXACT photo into a designed marketing layout. You are NOT creating a person — you are designing AROUND this photo. The pixels of this photo are sacred. Do not redraw, re-imagine, or replace the person in any way.
 
-COMMON FAILURE MODE: The AI often generates a "similar looking" person with slightly different features, different lighting, or a cleaner background. This is STILL a fake person. The ONLY acceptable human imagery is the literal pixel data from the reference photo, with optional color grading applied.
-
-`
-      : '';
-
-    const prompt = `${referencePreamble}You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
-
-${referenceInstructions}
+    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 
 ${brandColorBlock}
 
 LAYOUT:
 ${layoutInstruction}
+
+${referenceInstructions}
 
 TEXT ON THE IMAGE:
 Context/mood of the post (for design inspiration ONLY — do NOT copy any of this text onto the image): "${strippedContent.substring(0, 200)}"
@@ -231,7 +217,6 @@ CRITICAL DESIGN RULES:
 13. BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison (two sides showing a transformation), you MUST display BOTH sides completely — every pixel of both the "before" and "after" must be visible. Scale the entire photo DOWN until it fits completely within the frame with NO cropping on ANY edge. It is better to have the photo appear smaller with padding than to crop any part of either side. Showing only one side or cropping the top of either person's head/hair is strictly forbidden.
 14. ZERO AI-GENERATED PEOPLE: When a reference photo is provided, you are absolutely forbidden from generating, drawing, painting, or synthesizing any human face, head, hair, or body. The reference photo is the ONLY source of human imagery. If you cannot embed the reference photo, use NO PEOPLE AT ALL — show barbershop tools, textures, or abstract patterns instead. NEVER create a "similar looking" person. This rule overrides all other creative decisions.
 15. ABSOLUTE NON-NEGOTIABLE — FULL HEAD VISIBILITY: The ENTIRE head, ALL hair, the COMPLETE face, and the full forehead of EVERY person in the image MUST be 100% visible at all times — in single photos AND in before-and-after photos. This applies to EVERY edge of the image (top, bottom, left, right). If ANY part of ANY person's head, hair, or face is cut off, cropped, or touches any edge, the image is an IMMEDIATE FAILURE. Scale the photo DOWN until every person's full head fits with visible breathing room on all sides. There are ZERO exceptions to this rule. This overrides all layout, composition, and framing decisions.
-16. GOLD ACCENTS: Every image MUST include at least one visible gold (#D4AF37) design element — a thin gold outer border/frame, a gold dotted-line divider, gold text on key headline words, or a gold CTA button outline. Gold is the signature accent of this brand's visual identity.
 
 Make this look like something a premium brand would actually post on Instagram.
 
