@@ -181,15 +181,24 @@ Generate original cinematic photography that fits a barbershop/hair replacement 
 
     const referenceInstructions = getReferenceInstructions(referenceAttached);
 
+    // Build preamble that goes BEFORE everything else when reference is attached
+    const referencePreamble = referenceAttached
+      ? `STOP AND READ THIS FIRST — BEFORE ANYTHING ELSE:
+The image above is a REAL photograph of a REAL person. Your ONLY job is to place this EXACT photo into a designed marketing layout. You are NOT creating a person — you are designing AROUND this photo. The pixels of this photo are sacred. Do not redraw, re-imagine, or replace the person in any way.
 
-    const prompt = `You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
+COMMON FAILURE MODE: The AI often generates a "similar looking" person with slightly different features, different lighting, or a cleaner background. This is STILL a fake person. The ONLY acceptable human imagery is the literal pixel data from the reference photo, with optional color grading applied.
+
+`
+      : '';
+
+    const prompt = `${referencePreamble}You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
+
+${referenceInstructions}
 
 ${brandColorBlock}
 
 LAYOUT:
 ${layoutInstruction}
-
-${referenceInstructions}
 
 TEXT ON THE IMAGE:
 Context/mood of the post (for design inspiration ONLY — do NOT copy any of this text onto the image): "${strippedContent.substring(0, 200)}"
@@ -217,6 +226,7 @@ CRITICAL DESIGN RULES:
 13. BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison (two sides showing a transformation), you MUST display BOTH sides completely — every pixel of both the "before" and "after" must be visible. Scale the entire photo DOWN until it fits completely within the frame with NO cropping on ANY edge. It is better to have the photo appear smaller with padding than to crop any part of either side. Showing only one side or cropping the top of either person's head/hair is strictly forbidden.
 14. ZERO AI-GENERATED PEOPLE: When a reference photo is provided, you are absolutely forbidden from generating, drawing, painting, or synthesizing any human face, head, hair, or body. The reference photo is the ONLY source of human imagery. If you cannot embed the reference photo, use NO PEOPLE AT ALL — show barbershop tools, textures, or abstract patterns instead. NEVER create a "similar looking" person. This rule overrides all other creative decisions.
 15. ABSOLUTE NON-NEGOTIABLE — FULL HEAD VISIBILITY: The ENTIRE head, ALL hair, the COMPLETE face, and the full forehead of EVERY person in the image MUST be 100% visible at all times — in single photos AND in before-and-after photos. This applies to EVERY edge of the image (top, bottom, left, right). If ANY part of ANY person's head, hair, or face is cut off, cropped, or touches any edge, the image is an IMMEDIATE FAILURE. Scale the photo DOWN until every person's full head fits with visible breathing room on all sides. There are ZERO exceptions to this rule. This overrides all layout, composition, and framing decisions.
+16. GOLD ACCENTS: Every image MUST include at least one visible gold (#D4AF37) design element — a thin gold outer border/frame, a gold dotted-line divider, gold text on key headline words, or a gold CTA button outline. Gold is the signature accent of this brand's visual identity.
 
 Make this look like something a premium brand would actually post on Instagram.
 
