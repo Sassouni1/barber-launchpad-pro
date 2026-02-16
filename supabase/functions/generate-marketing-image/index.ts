@@ -84,7 +84,6 @@ Brand fonts: ${fontFamily}
       : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
 
     const hasReference = !!referenceImageUrl;
-    // Note: referenceAttached is set later after actual fetch; used for prompt selection
 
     const hasBrandName = !!brandProfile.title;
 
@@ -134,9 +133,32 @@ Brand fonts: ${fontFamily}
     const contentLines = (variationContent || '').split('\n');
     const strippedContent = contentLines.length > 1 ? contentLines.slice(1).join('\n').trim() : variationContent;
 
+    // Initialize parts array and fetch reference image
+    const parts: any[] = [];
+
+    if (hasReference) {
+      try {
+        if (referenceImageUrl.startsWith('data:')) {
+          const match = referenceImageUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            parts.push({ inlineData: { data: match[2], mimeType: match[1] } });
+          }
+        } else {
+          const { base64, mimeType } = await fetchImageAsBase64(referenceImageUrl);
+          parts.push({ inlineData: { data: base64, mimeType } });
+        }
+        console.log('Reference image fetched and attached successfully');
+      } catch (fetchErr) {
+        console.error('Failed to fetch reference image:', fetchErr);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to fetch reference image. Please try again.' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
 
-    const stopAndReadPreamble = referenceAttached
+    const stopAndReadPreamble = hasReference
       ? `STOP AND READ: The image above is a REAL photograph of a REAL person. You are NOT generating a person. You are designing a marketing layout AROUND this exact photo. The person's ENTIRE head, ALL hair, and COMPLETE face must be visible with breathing room on every side. COMMON FAILURE: The AI crops the top of the head or generates a "similar looking" person. Both are IMMEDIATE FAILURES.
 
 `
@@ -148,7 +170,7 @@ RULE #1 — ABSOLUTE NON-NEGOTIABLE — FULL HEAD VISIBILITY:
 The ENTIRE head, ALL hair, the COMPLETE face, and the full forehead of EVERY person in the image MUST be 100% visible at all times — in single photos AND in before-and-after photos. This applies to EVERY edge of the image (top, bottom, left, right). If ANY part of ANY person's head, hair, or face is cut off, cropped, or touches any edge, the image is an IMMEDIATE FAILURE. Scale the photo DOWN until every person's full head fits with visible breathing room on all sides. There are ZERO exceptions to this rule. This overrides all layout, composition, and framing decisions.
 
 RULE #2 — ZERO AI-GENERATED PEOPLE:
-${referenceAttached ? `A reference photo has been provided. You are absolutely forbidden from generating, drawing, painting, or synthesizing any human face, head, hair, or body. The reference photo is the ONLY source of human imagery. If you cannot embed the reference photo, use NO PEOPLE AT ALL — show barbershop tools, textures, or abstract patterns instead. NEVER create a "similar looking" person. COMMON FAILURE MODE: The AI often generates a "similar looking" person with slightly different features, different lighting, or a cleaner background. This is STILL a fake person. The ONLY acceptable human imagery is the literal pixel data from the reference photo.` : `Generate original cinematic photography. Any people must look natural and authentic — professional barbershop/salon scenes.`}
+${hasReference ? `A reference photo has been provided. You are absolutely forbidden from generating, drawing, painting, or synthesizing any human face, head, hair, or body. The reference photo is the ONLY source of human imagery. If you cannot embed the reference photo, use NO PEOPLE AT ALL — show barbershop tools, textures, or abstract patterns instead. NEVER create a "similar looking" person. COMMON FAILURE MODE: The AI often generates a "similar looking" person with slightly different features, different lighting, or a cleaner background. This is STILL a fake person. The ONLY acceptable human imagery is the literal pixel data from the reference photo.` : `Generate original cinematic photography. Any people must look natural and authentic — professional barbershop/salon scenes.`}
 
 RULE #3 — BEFORE-AND-AFTER PHOTOS:
 If the reference photo contains a before-and-after comparison (two sides showing a transformation), you MUST display BOTH sides completely — every pixel of both the "before" and "after" must be visible. Scale the entire photo DOWN until it fits completely within the frame with NO cropping on ANY edge. It is better to have the photo appear smaller with padding than to crop any part of either side. Showing only one side or cropping the top of either person's head/hair is strictly forbidden.
@@ -164,7 +186,7 @@ ${brandColorBlock}
 LAYOUT:
 ${layoutInstruction}
 
-${referenceAttached ? `=== REFERENCE PHOTO EMBEDDING ===
+${hasReference ? `=== REFERENCE PHOTO EMBEDDING ===
 You MUST embed the provided reference photo directly into your composition as the hero image.
 - Use the EXACT pixels — do not redraw, repaint, re-imagine, or "improve" the person
 - You MAY crop, resize, apply color grading, lighting filters, or tonal shifts
@@ -212,7 +234,7 @@ Make this look like something a premium brand would actually post on Instagram.
 6. If you failed any check above, DO NOT output the image. Redo it from scratch.
 7. Check EVERY person's head in the image. Can you see their COMPLETE hair, forehead, and face with space around it on ALL sides? If ANY part is cut off at ANY edge, scale smaller and redo.`;
 
-    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference, referenceAttached });
+    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
 
     parts.push({ text: prompt });
 
