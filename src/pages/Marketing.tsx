@@ -842,7 +842,7 @@ export default function Marketing() {
               </Button>
             </div>
 
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {variations.map((variation, idx) => {
                 const validImages = variation.images.filter(x => x && x !== 'failed');
 
