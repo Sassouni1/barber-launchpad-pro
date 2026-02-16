@@ -1,47 +1,35 @@
 
 
-## Fix Fake People, Cropping, and Excessive Contrast
+## Restore Layout Variety + Add Strongest-Ever Face/Head Visibility Rule
 
-### Problems
-1. **Fake person generated** -- despite strict rules, the AI still created an AI-generated person in one of the three images
-2. **Before-and-after photo cropped** -- one side of the transformation was cut off
-3. **Contrast too high** -- the "dramatic cinematic color grading" and "push the contrast hard" language went too far, making images look overprocessed
-
-### Root Causes
-- The color grading instructions say "push the contrast hard" and mention it in 4+ places (layouts + Rule 5), which compounds
-- The anti-fake-person rules are extensive but the model still occasionally ignores them; the layout instructions themselves say things like "cinematic photography" for the no-reference path, which may bleed into reference mode
-- Before-and-after cropping persists because the layout says "fill most of the right side" which conflicts with Rule 13
-
-### Changes
+### What's changing
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**1. Tone down color grading (lines 93-96 and line 205)**
+#### 1. Restore 3 distinct layout styles (currently all look the same)
 
-Remove all "deep teal shadows, warm amber highlights, high contrast" from the layout descriptions. Keep color grading only in Rule 5 but soften it:
+Remove the "IMPORTANT: If the reference photo is a before-and-after... override the layout" prefix from all 3 layouts. Instead, embed before-and-after scaling naturally within each layout's own composition:
 
-- Layouts 0, 1, 2: Remove all color grading language from layout descriptions. Layouts should describe composition only, not color treatment.
-- Rule 5 (line 205): Change from "Push the contrast hard" to "Apply subtle cinematic color grading — slightly warm highlights, slightly cool shadows, natural-looking contrast. The look should feel polished and editorial, NOT over-processed or heavy-handed. Avoid extreme teal-and-orange looks. The photo should still look natural and real."
+- **Layout 0 (Split panel)**: Left 25% dark panel, right 75% photo. For before-and-after, scale within the right panel so both sides show. No layout override.
+- **Layout 1 (Full-bleed)**: Photo fills the canvas as background. For before-and-after, scale/position so both sides are visible. Text in upper area with gradient.
+- **Layout 2 (Centered editorial)**: Dark background, photo centered. For before-and-after, scale down to fit both sides.
 
-**2. Strengthen anti-fake-person enforcement in layouts (lines 93-96)**
+All 3 keep the anti-fake-person reminder at the end.
 
-Add an explicit reminder at the end of each reference-photo layout:
+#### 2. Add the strongest possible face/head visibility rule
 
-- Layout 0: Append "REMINDER: The person in this photo is REAL — use their exact pixels. Do NOT generate a new person."
-- Layout 1: Same reminder
-- Layout 2: Same reminder
+Add a new **Rule 15** — the single most emphatic rule in the prompt:
 
-**3. Fix before-and-after cropping in Layout 0 (line 93)**
+> **"ABSOLUTE NON-NEGOTIABLE — FULL HEAD VISIBILITY: The ENTIRE head, ALL hair, the COMPLETE face, and the full forehead of EVERY person in the image MUST be 100% visible at all times — in single photos AND in before-and-after photos. This applies to EVERY edge of the image (top, bottom, left, right). If ANY part of ANY person's head, hair, or face is cut off, cropped, or touches any edge, the image is an IMMEDIATE FAILURE. Scale the photo DOWN until every person's full head fits with visible breathing room on all sides. There are ZERO exceptions to this rule. This overrides all layout, composition, and framing decisions."**
 
-Change "it should fill most of the right side as the HERO element" to "if it is a before-and-after photo, scale it down enough to show BOTH sides completely with no cropping on any edge. Otherwise, fill most of the right side."
+#### 3. Add matching verification step
 
-**4. Add a layout-level before-and-after override to all 3 layouts**
+Add verification step 7:
 
-Prepend each reference layout with: "IMPORTANT: If the reference photo is a before-and-after (two sides), override the layout below — center the photo at a size that shows both sides fully, then place text above or below."
+> "Check EVERY person's head in the image. Can you see their COMPLETE hair, forehead, and face with space around it on ALL sides? If ANY part is cut off at ANY edge, scale smaller and redo."
 
 ### What stays the same
-- Rules 9, 13, 14 and their text (already strong enough)
-- Verification checklist
-- Retry logic, base64 fetching, headline pools
-- Everything outside the prompt construction
+- All other rules (1-14)
+- Verification steps 1-6
+- Headline pools, retry logic, color grading, everything else
 
