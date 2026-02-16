@@ -1,34 +1,46 @@
 
 
-## Fix: Before-and-After = Two People, Both Heads Must Be Fully Visible
+## Rename to "AI Social Media Generator" + Persist Generated Images
 
-### The Problem
+### Changes Overview
 
-Before-and-after reference photos show two views of the same person side by side -- effectively two people in one image. The current rules say "show both sides" but the AI still crops one person's head because it doesn't treat the before-and-after as "two separate people who each need full head visibility."
+1. **Rename** all references from "AI Marketing Generator" to "AI Social Media Generator"
+2. **Save generated images** to storage after each one is created, with metadata in the database
+3. **Show a "Previously Generated" section** below the current results, loading saved images grouped by generation session
+4. **Images auto-delete after 24 hours** (already handled by the existing cleanup function)
 
-### The Fix
+---
 
-**File: `supabase/functions/generate-marketing-image/index.ts`**
+### Technical Details
 
-#### 1. Rewrite RULE #3 (Before-and-After) to explicitly say "two people"
+#### 1. Rename (3 files)
 
-Replace the current Rule #3 text with:
+- **`src/pages/Marketing.tsx`** line 395: Change heading from "AI Marketing Generator" to "AI Social Media Generator"
+- **`src/components/layout/Sidebar.tsx`** line 223: Change nav label from "AI Marketing" to "AI Social Media"
+- **`src/components/layout/MobileNav.tsx`**: Update the corresponding label if present
 
-> "BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison, it shows TWO PEOPLE (or two views of the same person). BOTH people's ENTIRE heads, ALL hair, and COMPLETE faces must be fully visible with breathing room on all sides. Rule #1 (Full Head Visibility) applies to EACH person individually. Scale the entire photo DOWN until BOTH people fit completely within the frame with NO cropping on ANY edge. It is better to have the photo appear smaller with generous padding than to crop any part of either person's head or hair. Showing only one side or cropping the top of either person's head is an IMMEDIATE FAILURE."
+#### 2. Persist images to storage (`src/pages/Marketing.tsx`)
 
-#### 2. Update Rule #9 (Person Framing) to reinforce "every person"
+After each image is successfully generated in the `generateSlot` function:
+- Convert the data URL to a Blob
+- Upload it to the `marketing-images` storage bucket with a unique path like `{userId}/{timestamp}-{index}.png`
+- Insert a record into `marketing_images` table with `storage_path`, `public_url`, `variation_type`, `caption`, and `website_url`
+- Replace the in-memory data URL with the public storage URL so the carousel uses the persistent URL
 
-Add to Rule #9: "In before-and-after photos, this applies to BOTH the 'before' person and the 'after' person independently -- both heads must have full visibility."
+#### 3. Load previously generated images on page mount
 
-#### 3. Update Verification Step #4
+- On component mount, query `marketing_images` table for the current user's images (ordered by `created_at desc`)
+- Group them by `variation_type` and display in a "Previously Generated" section below the main results
+- Each group shows as a carousel with download buttons (using the existing `download-file` edge function proxy for reliable downloads)
+- Include a small timestamp label showing when each set was generated
 
-Replace current step 4 with: "Does the reference photo show a before-and-after transformation (two people/views)? If YES, check EACH person's head separately -- can you see the COMPLETE hair, forehead, and face of BOTH people with space around them? If either person's head is cropped at any edge, scale the entire photo smaller and redo."
+#### 4. Download button behavior
 
-#### 4. Add sizing constraint to layouts
+- The existing "Save" button in the `ImageCarousel` component will use the storage public URL directly
+- For mobile compatibility, route downloads through the `download-file` edge function (already exists)
 
-In each of the 3 layout descriptions that mention before-and-after, add: "If the photo contains two people (before-and-after), scale it so that BOTH heads occupy no more than 70% of the available panel height, leaving at least 15% padding above the tallest head."
+#### 5. Cleanup (already implemented)
 
-### What stays the same
-- All other rules, layouts, headline pools, retry logic, gold accents
-- Reference image fetching and base64 encoding
-- The overall prompt structure (critical rules first, then layout, then design rules)
+- The `cleanup-marketing-images` edge function already deletes images older than 24 hours from both storage and the database table
+- This function is already triggered on page load
+
