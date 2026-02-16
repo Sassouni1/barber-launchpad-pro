@@ -187,8 +187,8 @@ export default function Marketing() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
-  const [imageMode, setImageMode] = useState<ImageMode>('both');
-  const [businessCategory, setBusinessCategory] = useState<string>('');
+  const [imageMode, setImageMode] = useState<ImageMode>('brand');
+  const [businessCategory, setBusinessCategory] = useState<string>('hair-system');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const websiteColors = brandProfile?.branding?.colors || {};
