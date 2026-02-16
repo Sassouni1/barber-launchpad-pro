@@ -755,8 +755,8 @@ export default function Marketing() {
                     </div>
                   )}
                   <div className="flex gap-1">
-                    <div className="w-6 h-6 rounded" style={{ backgroundColor: '#D4AF37' }} />
-                    <div className="w-6 h-6 rounded" style={{ backgroundColor: '#1A1A1A' }} />
+                    <div className="w-6 h-6 rounded" style={{ background: 'linear-gradient(135deg, #8B6914, #D4AF37, #F0D060)' }} />
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: '#0A0A0A' }} />
                   </div>
                   <span className="text-xs font-medium text-foreground">Premium Gold/Dark</span>
                 </button>

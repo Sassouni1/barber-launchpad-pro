@@ -53,11 +53,11 @@ Deno.serve(async (req) => {
     let primaryColor: string, secondaryColor: string, bgColor: string, textColor: string, accentColor: string;
 
     if (useGold) {
-      primaryColor = '#D4AF37';
-      secondaryColor = '#D4AF37';
-      bgColor = '#1A1A1A';
+      primaryColor = 'METALLIC GOLD GRADIENT (deep burnished bronze #8B6914 → rich gold #D4AF37 → bright luminous gold #F0D060)';
+      secondaryColor = 'METALLIC GOLD GRADIENT (same as primary)';
+      bgColor = '#0A0A0A (TRUE BLACK)';
       textColor = '#FFFFFF';
-      accentColor = '#D4AF37';
+      accentColor = 'METALLIC GOLD GRADIENT (same as primary)';
     } else {
       primaryColor = colors.primary || colors.textPrimary || '#FFFFFF';
       secondaryColor = colors.secondary || colors.accent || '#D4AF37';
@@ -68,7 +68,14 @@ Deno.serve(async (req) => {
 
     const fontFamily = fonts.length > 0 ? fonts.map((f: any) => f.family).join(', ') : 'bold sans-serif';
 
-    const brandColorBlock = `
+    const brandColorBlock = useGold ? `
+BRAND COLORS — METALLIC GOLD + TRUE BLACK PALETTE:
+- Gold elements: METALLIC GOLD GRADIENT — transitions from deep burnished bronze (#8B6914) at edges/shadows, through rich gold (#D4AF37) in midtones, to bright luminous gold (#F0D060) at highlights. This creates a 3D metallic shimmer effect like polished gold foil or a luxury embossed business card. Every gold element (text, borders, CTA bars, dividers) MUST use this gradient treatment — never flat single-tone gold.
+- Background: TRUE BLACK (#0A0A0A to #0D0D0D) — as dark as possible, like black velvet or luxury card stock. Must be indistinguishable from pure black (#000000).
+- Text: Alternate between WHITE (#FFFFFF) and METALLIC GOLD for visual punch.
+
+Brand fonts: ${fontFamily}
+` : `
 BRAND COLORS (use these EXACT hex values throughout the design):
 - Primary: ${primaryColor}
 - Secondary/Accent: ${secondaryColor}
@@ -210,7 +217,7 @@ CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e
 
 DESIGN RULES:
 1. The headline typography must be large and impactful. If a word does not fit on a single line, reduce the font size until it does. Never hyphenate or break a word across two lines. Bold, uppercase, impactful sans-serif or display font.
-2. Background MUST be near-black (#1A1A1A to #0D0D0D). The dominant background color should always read as BLACK — not charcoal, not navy, not brown, not gray. Dark and rich, like a premium black business card. Never use bright, pastel, white, or medium-toned backgrounds.
+2. Background MUST be TRUE BLACK (#0A0A0A to #0D0D0D) — as dark as possible, like black velvet or luxury card stock. The background should be indistinguishable from pure black (#000000) in most lighting conditions. #1A1A1A is TOO LIGHT — do NOT use it. Never use charcoal, navy, brown, gray, or any medium-toned backgrounds.
 3. Text must have extremely high contrast against the black background. Alternate between WHITE and GOLD (#D4AF37) text for visual punch — gold on key impactful words, white on the rest. This white-and-gold alternating pattern is MANDATORY for every headline.
 4. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames. Use gold/metallic tones for these accents.
 5. COLOR GRADING: Apply subtle cinematic color grading — slightly warm highlights, slightly cool shadows, natural-looking contrast. The look should feel polished and editorial, NOT over-processed or heavy-handed. Avoid extreme teal-and-orange looks. The photo should still look natural and real. Never leave photos completely flat, but do NOT push contrast to extremes.
@@ -221,7 +228,7 @@ DESIGN RULES:
 10. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
 11. When using reference photos with people: preserve the subject's face completely; apply gradient overlays and text only to non-face regions.
 12. NEVER invent, fabricate, or use placeholder business names. If no brand name was provided above, do NOT write "BARBERSHOP NAME", "YOUR BRAND", "STUDIO NAME", or ANY made-up name on the image. Leave the brand name area empty or omit it entirely. Only display a brand name if one was explicitly provided.
-13. GOLD ACCENTS — MANDATORY: Every image MUST prominently feature gold (#D4AF37) as a signature design element. This means AT MINIMUM: (a) a thin gold outer border/frame around the entire image, AND (b) gold text on at least 2-3 key headline words, AND (c) at least one additional gold element such as a gold dotted-line divider, gold CTA button/banner, or gold decorative accent. The overall color palette must read as BLACK AND GOLD. If the final image does not prominently feature gold, it is a FAILURE.
+13. GOLD ACCENTS — MANDATORY: Every image MUST prominently feature METALLIC GOLD GRADIENT (transitioning from deep bronze #8B6914 through rich gold #D4AF37 to bright gold #F0D060) as a signature design element. Every gold element must have this gradient shimmer like polished gold foil — never flat single-tone gold. AT MINIMUM: (a) a thin metallic gold outer border/frame around the entire image, AND (b) metallic gold gradient text on at least 2-3 key headline words, AND (c) at least one additional metallic gold element such as a gold dotted-line divider, gold CTA button/banner, or gold decorative accent. The overall color palette must read as TRUE BLACK AND METALLIC GOLD. If the final image does not prominently feature metallic gold gradients, it is a FAILURE.
 
 Make this look like something a premium brand would actually post on Instagram.
 
