@@ -893,36 +893,40 @@ export default function Marketing() {
             </h2>
 
             {(() => {
-              // Chunk saved images into groups of 3, each as its own carousel, stacked vertically
+              // Chunk saved images into groups of 3, each as its own carousel
               const chunks: SavedImage[][] = [];
               for (let i = 0; i < savedImages.length; i += 3) {
                 chunks.push(savedImages.slice(i, i + 3));
               }
 
-              return chunks.map((chunk, chunkIdx) => {
-                const isStory = chunk[0].variation_type.includes('story');
-                const aspectClass = isStory ? 'aspect-[9/16]' : 'aspect-square';
-                const createdAt = new Date(chunk[0].created_at);
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {chunks.map((chunk, chunkIdx) => {
+                    const isStory = chunk[0].variation_type.includes('story');
+                    const aspectClass = isStory ? 'aspect-[9/16]' : 'aspect-square';
+                    const createdAt = new Date(chunk[0].created_at);
 
-                return (
-                  <Card key={chunkIdx} className="glass-card overflow-hidden">
-                    <div className="flex items-center justify-between p-4 pb-2">
-                      <span className="text-[10px] text-muted-foreground">
-                        {format(createdAt, 'MMM d, h:mm a')}
-                      </span>
-                    </div>
-                    <div className="px-4 pb-2">
-                      <ImageCarousel 
-                        images={chunk.map(i => i.public_url)} 
-                        aspectClass={aspectClass} 
-                      />
-                    </div>
-                    {chunk[0].caption && (
-                      <CaptionBlock caption={chunk[0].caption} onCopy={() => copyToClipboard(chunk[0].caption!)} />
-                    )}
-                  </Card>
-                );
-              });
+                    return (
+                      <Card key={chunkIdx} className="glass-card overflow-hidden">
+                        <div className="p-3 pb-1">
+                          <span className="text-[10px] text-muted-foreground">
+                            {format(createdAt, 'MMM d, h:mm a')}
+                          </span>
+                        </div>
+                        <div className="px-3 pb-2">
+                          <ImageCarousel 
+                            images={chunk.map(i => i.public_url)} 
+                            aspectClass={aspectClass} 
+                          />
+                        </div>
+                        {chunk[0].caption && (
+                          <CaptionBlock caption={chunk[0].caption} onCopy={() => copyToClipboard(chunk[0].caption!)} />
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
             })()}
           </div>
         )}
