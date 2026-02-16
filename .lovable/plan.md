@@ -1,38 +1,37 @@
 
 
-## Fix Palette Logic + Add Metallic Gold Gradient + True Black
+## Soften Background Requirement from "True Black" to "Dark/Premium"
 
 ### What's changing
 
-**The palette selector already works correctly** -- gold is the default, website colors are only available when a website has colors. No forced overrides per image index. The previous suggestion to force index 0 to always be gold was wrong and will NOT be implemented.
+The current prompt is too aggressive — it demands pure black (#0A0A0A) and says anything lighter is a "FAILURE." The background should be dark and premium but not always jet black. Deep charcoals, dark moody tones, and rich dark colors should all be acceptable.
 
-The real changes are in the edge function prompt to improve the visual quality:
-
-### 1. Update gold description to metallic gradient (edge function)
+### Changes (1 file)
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-In the `brandColorBlock` when `useGold` is true, replace the flat `#D4AF37` references with a metallic gradient description:
+#### 1. Soften the `brandColorBlock` background line (line 74)
 
-- Primary/Accent becomes: "METALLIC GOLD GRADIENT -- transitions from deep burnished bronze (#8B6914) through rich gold (#D4AF37) to bright luminous gold (#F0D060). Every gold element must have this gradient shimmer like polished gold foil, never flat single-tone gold."
+Change from:
+> "Background: TRUE BLACK (#0A0A0A to #0D0D0D) — as dark as possible, like black velvet or luxury card stock. Must be indistinguishable from pure black (#000000)."
 
-### 2. Darken the background to true black (edge function)
+To:
+> "Background: Dark and premium — deep black (#0D0D0D), rich charcoal (#1A1A1A), or other dark moody tones. The background should feel luxurious and cinematic. Avoid bright, light, or medium-toned backgrounds."
 
-Update Rule #2 in the prompt:
-- Change `#1A1A1A to #0D0D0D` to `#0A0A0A to #0D0D0D`
-- Add: "as dark as possible, like black velvet or luxury card stock. The background should be indistinguishable from pure black."
+#### 2. Soften Rule #2 (line 220)
 
-### 3. Update Rule #13 (Gold Accents) to mandate gradient (edge function)
+Change from:
+> "Background MUST be TRUE BLACK (#0A0A0A to #0D0D0D) — as dark as possible, like black velvet or luxury card stock. The background should be indistinguishable from pure black (#000000) in most lighting conditions. #1A1A1A is TOO LIGHT — do NOT use it. Never use charcoal, navy, brown, gray, or any medium-toned backgrounds."
 
-Replace flat gold references with metallic gradient language so every gold element (borders, text highlights, CTA bars, dividers) gets the shimmer treatment.
+To:
+> "Background should be DARK and PREMIUM — ranging from deep black (#0D0D0D) to rich charcoal (#1A1A1A). Dark moody tones are welcome. The overall feel should be luxurious and cinematic. Avoid any light, bright, or medium-toned backgrounds."
 
-### 4. Update palette swatch preview color (frontend)
+#### 3. Soften Rule #13 (line 231)
 
-In `src/pages/Marketing.tsx`, update the gold swatch preview from flat `#D4AF37` / `#1A1A1A` to use a CSS gradient on the gold swatch so users see the metallic look in the selector too.
+Change the phrase "The overall color palette must read as TRUE BLACK AND METALLIC GOLD" to "The overall color palette must read as DARK AND METALLIC GOLD" — removing the insistence on pure black specifically.
 
 ### What stays the same
-- Gold is already the default palette choice -- no change needed
-- Website colors option only appears when colors are found -- no change needed
-- User's palette choice applies to all 3 images -- no forced overrides
+- Metallic gold gradient description unchanged
 - All layout logic, headline pools, retry logic, verification steps unchanged
+- Website palette logic unchanged
 
