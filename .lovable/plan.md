@@ -1,36 +1,48 @@
 
 
-## Fix: Blue Backgrounds from Photo Backdrop Sampling Override
+## Fix: Remove Conflicting Backdrop-Sampling from Layout Descriptions
 
 ### Problem
-Rule 2 currently has two conflicting instructions:
-1. "Background tone for THIS variation: warm black / neutral black / cool charcoal"
-2. "Sample the dominant background color from the photo itself and use that tone as the canvas fill"
-
-The second instruction wins every time. If the reference photo has a blue studio backdrop (which most do), the model extends that blue across the entire canvas -- making the tone rotation pointless. Layout 0 says "Absolutely NO blue" but the photo-sampling instruction immediately contradicts it.
+The last change only fixed Rule 2 (line 258) but left all three layout descriptions (lines 107, 110, 113) with the old "extend the photo's backdrop outward" language. The model sees both instructions, and the layout-specific ones win because they're more detailed and appear first in the prompt. Result: blue studio backdrops still take over the canvas.
 
 ### Solution
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**1. Rewrite Design Rule 2 (line 258)** so the tone rotation takes priority and the photo blending adapts to IT, not the other way around:
+**1. Layout 0 — Split layout (line 107)**
 
-Current:
-> "Background tone for THIS variation: [tone]. ... sample the dominant background color from the photo itself and use that tone..."
+Remove:
+> "If the reference photo has a visible studio backdrop or background color, extend or feather that same background color outward to fill the rest of the canvas so there is no harsh color boundary between the photo and the layout background. The surrounding area should seamlessly match the photo's own backdrop tone rather than defaulting to pure black."
 
-New:
-> "Background tone for THIS variation: [tone]. The canvas background MUST match this tone direction. When placing a reference photo, blend the edges of the photo seamlessly into this canvas tone -- soften, feather, or fade the photo's edges so it transitions smoothly into the prescribed background tone. Do NOT let the photo's own studio backdrop color take over the entire canvas. The canvas tone instruction above is the authority; the photo blends INTO it, not the other way around."
+Replace with:
+> "Blend and feather the photo's edges into the prescribed canvas background tone (see Design Rule 2) so there is no harsh boundary. The canvas tone takes priority — the photo fades into it, not the other way around."
 
-This keeps the seamless transition (no harsh boundary) but forces the canvas to follow the warm/neutral/cool rotation instead of always becoming whatever color the studio backdrop was (usually blue).
+**2. Layout 1 — Full-bleed (line 110)**
 
-### What changes
-- Rule 2 reworded so tone rotation is authoritative
-- Photo blending direction reversed: photo fades into canvas tone, not canvas adopts photo tone
+Remove:
+> "use the photo's own backdrop color extended outward as padding behind the photo, or if the photo has no clear backdrop, use a dark premium background (#0D0D0D)"
+
+And remove:
+> "If the reference photo has a visible studio backdrop or background color, extend or feather that same background color outward to fill the rest of the canvas so there is no harsh color boundary between the photo and the layout background."
+
+Replace both with:
+> "use the prescribed canvas background tone (see Design Rule 2) as padding behind the photo. Feather the photo's edges into this canvas tone seamlessly."
+
+**3. Layout 2 — Centered editorial (line 113)**
+
+Remove:
+> "If the reference photo has a visible studio backdrop or background color, extend or feather that same background color outward to fill the rest of the canvas so there is no harsh color boundary between the photo and the layout background. The surrounding area should seamlessly match the photo's own backdrop tone rather than defaulting to pure black."
+
+Replace with:
+> "The canvas background should use the prescribed tone from Design Rule 2. Feather the photo's edges into this canvas tone so there is no harsh boundary."
+
+### Why this fixes it
+Rule 2 already has the correct instruction (canvas tone is authoritative, photo blends into it). The problem is that all three layouts still had the OLD instruction telling the model to do the opposite. With this change, the layouts and Rule 2 are aligned — every instruction points the same direction: warm/neutral/cool canvas tone first, photo fades into it.
 
 ### What stays the same
+- Rule 2 wording (already correct from the last change)
 - The 3-tone rotation array (warm black, neutral black, cool charcoal)
 - All layout structures, gold accents, typography rules
-- Reference photo preservation (no modifications to the person)
-- Anti-crop and head visibility logic
-- Everything else in the prompt
+- Reference photo preservation and anti-crop logic
+- Non-reference layout variants (lines 108, 109, 114)
 
