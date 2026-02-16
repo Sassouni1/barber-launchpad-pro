@@ -1,36 +1,26 @@
 
 
-## Fix: "UNALTERED" Text Appearing on Generated Images
+## Fix: Full-Bleed Layout Cuts Off Faces
 
 ### Problem
-The prompt contains many capitalized instruction words like "UNCHANGED", "IMMUTABLE", "LOCKED LAYER", "UNALTERED" that Gemini is rendering as visible text on the image. The model confuses bold instructional language with desired on-image text.
+The full-bleed background layout (layout index 1) instructs the model to fill the entire canvas with the reference photo, which conflicts with Rule #1 (full head visibility). The model stretches or crops the photo to fill the frame, cutting off heads. This is the style shown in your reference images — photo as background with text overlay — and it should work well, but the "filling the canvas" language causes cropping.
 
 ### Solution
-Rewrite the reference photo instructions in the edge function to remove all-caps "action words" that the model might render as text. Replace them with softer phrasing that conveys the same constraint without looking like headline copy.
-
-### Changes
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-1. **Replace all-caps instruction keywords throughout the prompt**:
-   - "UNCHANGED" -> "without any modifications"
-   - "IMMUTABLE" -> "fixed"  
-   - "LOCKED LAYER" -> "provided photo layer"
-   - "PASTE" -> "place" or "include"
-   - Remove any occurrence of "UNALTERED"
-   - Keep all-caps only for words that are meant to appear AS TEXT on the image (like headline examples and CTA text)
+1. **Rewrite layout 1 (full-bleed) reference instructions (line 102)** to prioritize head visibility over canvas fill:
+   - Change "placed as large full-bleed background filling the canvas" to "placed as a large background element that covers most of the canvas while keeping every person's full head, hair, and face visible with breathing room"
+   - Add: "If the photo does not naturally fill the entire canvas without cropping any person's head, use a dark premium background (#0D0D0D) behind the photo and let the photo sit within the frame at the largest size that keeps all heads fully visible"
+   - Keep the rest: headline overlay with dark gradient, brand name + CTA at bottom, gold outer frame
 
-2. **Specifically update these sections**:
-   - `stopAndReadPreamble` (lines 178-193): Rephrase "LOCKED LAYER", "IMMUTABLE INPUT", "PIXEL FOR PIXEL"
-   - `criticalRulesBlock` Rule #2 (line 201): Rephrase "PASTE it UNCHANGED"
-   - `referencePhotoBlock` (lines 210-223): Rephrase "LOCKED LAYER", "IMMUTABLE ASSET", "EXACT original pixels"
-   - Layout instructions (lines 98-106): Rephrase "PASTE it UNCHANGED", "PASTED as large full-bleed", "exact pixels"
-   - Final verification block (lines 263-269): Rephrase "EXACT UNCHANGED pixels"
+2. **Add explicit anti-crop instruction for layout 1**: "For this layout, it is better to have dark padding around the edges than to crop any part of a person's head or hair. Scale the photo down 10-20% if needed to guarantee full head visibility."
 
-3. **Add an explicit negative instruction**: "Do NOT render any instructional words as visible text on the image. The only text on the image should be the headline, brand name, and CTA."
+3. **Keep the before-and-after scaling rules** already in the layout (70% max panel height, 15% padding above).
 
 ### What stays the same
-- All headline pools, palette logic, retry logic, layout structure
-- The intent of every instruction (preserve the photo exactly) -- just the wording changes
-- Non-reference mode prompt unchanged
+- Layout 0 (split) and layout 2 (centered editorial) unchanged
+- All headline pools, palette logic, retry logic unchanged
+- The overall aesthetic (dark background, gold accents, text overlay) unchanged
+- The layout still produces the full-bleed look the user wants — just with safer framing
 
