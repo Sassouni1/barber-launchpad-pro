@@ -1,35 +1,49 @@
 
 
-## Restore Layout Variety + Add Strongest-Ever Face/Head Visibility Rule
+## Fix Fake Image Generation + Restore Gold Styling
 
-### What's changing
+### Problems
+1. **Fake AI-generated people**: Despite strong rules, 1 out of 3 images still sometimes has an AI-generated person instead of using the real reference photo
+2. **Missing gold styling**: The thin gold frames, gold dotted dividers, and gold text accents from your reference images aren't showing up consistently
+
+### Changes
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-#### 1. Restore 3 distinct layout styles (currently all look the same)
+#### 1. Move anti-fake-person rule to the VERY TOP of the prompt (before layout, before colors, before everything)
 
-Remove the "IMPORTANT: If the reference photo is a before-and-after... override the layout" prefix from all 3 layouts. Instead, embed before-and-after scaling naturally within each layout's own composition:
+Currently the reference photo instructions appear mid-prompt after layout and colors. The AI model processes instructions top-down, so by the time it reaches the "don't generate fake people" rules, it may have already started composing with a generated person. Moving it to the absolute first thing the model reads will make it the strongest constraint.
 
-- **Layout 0 (Split panel)**: Left 25% dark panel, right 75% photo. For before-and-after, scale within the right panel so both sides show. No layout override.
-- **Layout 1 (Full-bleed)**: Photo fills the canvas as background. For before-and-after, scale/position so both sides are visible. Text in upper area with gradient.
-- **Layout 2 (Centered editorial)**: Dark background, photo centered. For before-and-after, scale down to fit both sides.
+New prompt structure:
+```
+1. FIRST: Anti-fake-person absolute rule (if reference attached)
+2. Then: Aspect ratio
+3. Then: Colors
+4. Then: Layout
+5. Then: Text/headline
+6. Then: Design rules
+7. Then: Verification
+```
 
-All 3 keep the anti-fake-person reminder at the end.
+#### 2. Add a "STOP AND CHECK" instruction right after the reference image inline data
 
-#### 2. Add the strongest possible face/head visibility rule
+Before the text prompt even begins, add a preamble that says: "The image above is a REAL photograph. Your ONLY job is to place this EXACT photo into a designed marketing layout. You are NOT creating a person — you are designing AROUND this photo."
 
-Add a new **Rule 15** — the single most emphatic rule in the prompt:
+#### 3. Strengthen gold accent instructions in the layout descriptions
 
-> **"ABSOLUTE NON-NEGOTIABLE — FULL HEAD VISIBILITY: The ENTIRE head, ALL hair, the COMPLETE face, and the full forehead of EVERY person in the image MUST be 100% visible at all times — in single photos AND in before-and-after photos. This applies to EVERY edge of the image (top, bottom, left, right). If ANY part of ANY person's head, hair, or face is cut off, cropped, or touches any edge, the image is an IMMEDIATE FAILURE. Scale the photo DOWN until every person's full head fits with visible breathing room on all sides. There are ZERO exceptions to this rule. This overrides all layout, composition, and framing decisions."**
+Each layout already mentions gold, but the instructions are buried. Add explicit gold requirements to the design rules section:
 
-#### 3. Add matching verification step
+- Add Rule 16: "GOLD ACCENTS: Every image MUST include at least one visible gold (#D4AF37) design element — a thin gold outer border/frame, a gold dotted-line divider, gold text on key headline words, or a gold CTA button outline. Gold is the signature accent of this brand's visual identity."
 
-Add verification step 7:
+This makes gold a rule-level requirement rather than just a suggestion in the layout text.
 
-> "Check EVERY person's head in the image. Can you see their COMPLETE hair, forehead, and face with space around it on ALL sides? If ANY part is cut off at ANY edge, scale smaller and redo."
+#### 4. Add negative example to anti-fake rule
+
+Add: "COMMON FAILURE MODE: The AI often generates a 'similar looking' person with slightly different features, different lighting, or a cleaner background. This is STILL a fake person. The ONLY acceptable human imagery is the literal pixel data from the reference photo, with optional color grading applied."
 
 ### What stays the same
-- All other rules (1-14)
-- Verification steps 1-6
-- Headline pools, retry logic, color grading, everything else
+- All existing rules 1-15
+- Verification steps 1-7
+- Headline pools, retry logic, color palette logic
+- Layout variety (3 distinct styles)
 
