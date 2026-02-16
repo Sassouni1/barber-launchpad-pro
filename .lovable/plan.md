@@ -1,37 +1,50 @@
 
 
-## Soften Background Requirement from "True Black" to "Dark/Premium"
+## Fix: AI-Generated People Instead of Reference Photos in Stories
 
-### What's changing
+### The Problem
 
-The current prompt is too aggressive — it demands pure black (#0A0A0A) and says anything lighter is a "FAILURE." The background should be dark and premium but not always jet black. Deep charcoals, dark moody tones, and rich dark colors should all be acceptable.
+The reference photo is being sent correctly, but Gemini 3 Pro Image Preview is ignoring it and generating AI people instead. This is a known limitation of image generation models -- they tend to "redraw" people rather than compositing the original photo. The story format (9:16) makes this worse because the aspect ratio change gives the model more creative freedom to regenerate.
 
-### Changes (1 file)
+### Root Cause
+
+The current prompt treats the reference photo as something to "embed" in a composition, but Gemini's image generation mode doesn't work like a compositor -- it generates everything from scratch, using the reference as loose inspiration rather than exact pixel data.
+
+### Proposed Changes
+
+#### 1. Reorder parts: text prompt BEFORE reference image (edge function)
+
+Currently the reference image is pushed to `parts[]` first, then the text prompt. Some models respond better when the instruction comes first, followed by the image. This gives the model context about what it should do with the image before it sees it.
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-#### 1. Soften the `brandColorBlock` background line (line 74)
+Move the `parts.push({ text: prompt })` call to happen BEFORE the reference image inline data, so the model reads "here's what you must do" before seeing the photo.
 
-Change from:
-> "Background: TRUE BLACK (#0A0A0A to #0D0D0D) — as dark as possible, like black velvet or luxury card stock. Must be indistinguishable from pure black (#000000)."
+#### 2. Restructure the prompt for "photo-first" compositing language (edge function)
 
-To:
-> "Background: Dark and premium — deep black (#0D0D0D), rich charcoal (#1A1A1A), or other dark moody tones. The background should feel luxurious and cinematic. Avoid bright, light, or medium-toned backgrounds."
+Replace "embed the reference photo" language with stronger compositing instructions:
+- "PASTE this photo into the layout UNCHANGED"
+- "This photo is a LOCKED LAYER -- you cannot modify the pixels"
+- "Design the background, text, and borders AROUND this locked photo"
+- Remove any language that implies the model should "generate" photography
 
-#### 2. Soften Rule #2 (line 220)
+#### 3. Add a story-specific scaling instruction (edge function)
 
-Change from:
-> "Background MUST be TRUE BLACK (#0A0A0A to #0D0D0D) — as dark as possible, like black velvet or luxury card stock. The background should be indistinguishable from pure black (#000000) in most lighting conditions. #1A1A1A is TOO LIGHT — do NOT use it. Never use charcoal, navy, brown, gray, or any medium-toned backgrounds."
+For story (9:16) format with a reference, add explicit instructions:
+- "The reference photo should be placed as a LARGE element within the vertical frame"
+- "NEVER regenerate or redraw the person -- if the photo doesn't fit the vertical layout, add dark padding above and below"
+- "It is acceptable for the photo to occupy only 50-60% of the vertical canvas, with headline text above and CTA below"
 
-To:
-> "Background should be DARK and PREMIUM — ranging from deep black (#0D0D0D) to rich charcoal (#1A1A1A). Dark moody tones are welcome. The overall feel should be luxurious and cinematic. Avoid any light, bright, or medium-toned backgrounds."
+#### 4. Simplify the prompt when reference is present (edge function)
 
-#### 3. Soften Rule #13 (line 231)
-
-Change the phrase "The overall color palette must read as TRUE BLACK AND METALLIC GOLD" to "The overall color palette must read as DARK AND METALLIC GOLD" — removing the insistence on pure black specifically.
+The prompt is very long (~240 lines of text). Long prompts can cause the model to lose focus on key instructions. When a reference photo is present, strip out the photography generation instructions and cinematic photography language entirely -- those only apply to no-reference mode. This reduces prompt length and eliminates conflicting signals.
 
 ### What stays the same
-- Metallic gold gradient description unchanged
-- All layout logic, headline pools, retry logic, verification steps unchanged
-- Website palette logic unchanged
+- All headline pools, palette logic, retry logic unchanged
+- Gold gradient and dark background styling unchanged
+- Layout structure (3 layouts) stays the same, just the reference photo language gets sharper
+- Non-reference mode (no photo uploaded) stays the same
 
+### Technical Details
+
+The key insight is that putting the text prompt first (before the image) combined with much stronger "do not redraw" language should improve compliance. The model currently sees the image first with no context, which may cause it to treat the image as a "style reference" rather than a "photo to include."
