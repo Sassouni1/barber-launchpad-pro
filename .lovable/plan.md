@@ -1,34 +1,47 @@
 
 
-## Restore Premium Full-Bleed Design Aesthetic
+## Fix Fake People, Cropping, and Excessive Contrast
 
-### Problem
-The recent anti-cropping fixes overcorrected by telling the AI to shrink the reference photo to 75-85% of the canvas as an "inset." This killed the bold, full-bleed look that made the original designs premium. The reference images show:
+### Problems
+1. **Fake person generated** -- despite strict rules, the AI still created an AI-generated person in one of the three images
+2. **Before-and-after photo cropped** -- one side of the transformation was cut off
+3. **Contrast too high** -- the "dramatic cinematic color grading" and "push the contrast hard" language went too far, making images look overprocessed
 
-- Photo fills the right side edge-to-edge (or nearly so)
-- Text on a dark panel to the left with white + gold alternating words
-- Thin gold outer frame border wrapping the entire composition
-- Decorative gold dotted-line divider between text and photo panels
-- Photo is the HERO element, not a shrunken thumbnail
+### Root Causes
+- The color grading instructions say "push the contrast hard" and mention it in 4+ places (layouts + Rule 5), which compounds
+- The anti-fake-person rules are extensive but the model still occasionally ignores them; the layout instructions themselves say things like "cinematic photography" for the no-reference path, which may bleed into reference mode
+- Before-and-after cropping persists because the layout says "fill most of the right side" which conflicts with Rule 13
 
 ### Changes
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-**1. Rewrite all three layout descriptions (lines 91-97)**
+**1. Tone down color grading (lines 93-96 and line 205)**
 
-Restore full-bleed photo placement while keeping the anti-cropping rules in the PERSON FRAMING section (Rule 9) to handle head/hair visibility:
+Remove all "deep teal shadows, warm amber highlights, high contrast" from the layout descriptions. Keep color grading only in Rule 5 but soften it:
 
-- **Layout 0 (split, with reference):** Left 25% dark panel with headline stacked vertically in bold white + gold text. Right 75% is the reference photo used LARGE — it should fill most of the right side. Thin gold border around the entire image. Decorative gold dotted line divider between text panel and photo.
-- **Layout 1 (full-bleed):** Reference photo as large background. Headline in bold uppercase positioned in the upper-left or upper area with a subtle dark gradient behind the text for readability. Brand name + CTA at bottom. Thin gold outer frame.
-- **Layout 2 (framed editorial):** Dark background with the reference photo as a large centered element with a thin white or gold border around just the photo. Headline ABOVE in large bold text. Brand name + CTA BELOW. Clean editorial layout.
+- Layouts 0, 1, 2: Remove all color grading language from layout descriptions. Layouts should describe composition only, not color treatment.
+- Rule 5 (line 205): Change from "Push the contrast hard" to "Apply subtle cinematic color grading — slightly warm highlights, slightly cool shadows, natural-looking contrast. The look should feel polished and editorial, NOT over-processed or heavy-handed. Avoid extreme teal-and-orange looks. The photo should still look natural and real."
 
-Key difference: remove the "shrink to 85%/80%/75%" language. Instead, let the photo be big and bold. The anti-cropping rules in Rule 9 and Rule 13 still protect against cutting off heads/hair.
+**2. Strengthen anti-fake-person enforcement in layouts (lines 93-96)**
 
-**2. No changes to Rules 9, 13, 14 or the verification checklist**
+Add an explicit reminder at the end of each reference-photo layout:
 
-Those rules still apply and will prevent cropping. The fix is purely about layout intent — letting the photo be the hero again instead of a shrunken inset.
+- Layout 0: Append "REMINDER: The person in this photo is REAL — use their exact pixels. Do NOT generate a new person."
+- Layout 1: Same reminder
+- Layout 2: Same reminder
 
-### Technical Details
+**3. Fix before-and-after cropping in Layout 0 (line 93)**
 
-The layout strings in the `layouts` array (lines 91-97) will be rewritten to match the aesthetic of the reference images while keeping all other prompt rules intact. The key shift is from "shrink and pad" to "fill and frame."
+Change "it should fill most of the right side as the HERO element" to "if it is a before-and-after photo, scale it down enough to show BOTH sides completely with no cropping on any edge. Otherwise, fill most of the right side."
+
+**4. Add a layout-level before-and-after override to all 3 layouts**
+
+Prepend each reference layout with: "IMPORTANT: If the reference photo is a before-and-after (two sides), override the layout below — center the photo at a size that shows both sides fully, then place text above or below."
+
+### What stays the same
+- Rules 9, 13, 14 and their text (already strong enough)
+- Verification checklist
+- Retry logic, base64 fetching, headline pools
+- Everything outside the prompt construction
+
