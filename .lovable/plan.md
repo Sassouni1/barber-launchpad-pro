@@ -1,26 +1,36 @@
 
 
-## Fix: Blue Photo Background Clashing with Black Layout Background
+## Fix: Blue Backgrounds from Photo Backdrop Sampling Override
 
 ### Problem
-When a reference photo has a dark-colored studio backdrop (like dark blue or dark gray), it clashes visually against the jet-black (#0D0D0D) layout background. The two different dark tones sitting next to each other look cheap and unpolished. The prompt currently says nothing about matching or blending these colors.
+Rule 2 currently has two conflicting instructions:
+1. "Background tone for THIS variation: warm black / neutral black / cool charcoal"
+2. "Sample the dominant background color from the photo itself and use that tone as the canvas fill"
+
+The second instruction wins every time. If the reference photo has a blue studio backdrop (which most do), the model extends that blue across the entire canvas -- making the tone rotation pointless. Layout 0 says "Absolutely NO blue" but the photo-sampling instruction immediately contradicts it.
 
 ### Solution
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-1. **Add a background-blending instruction to all 3 layouts** that have reference photos (lines 99, 102, 105):
-   - Add to each layout: "If the reference photo has a visible studio backdrop or background color, extend or feather that same background color outward to fill the rest of the canvas so there is no harsh color boundary between the photo and the layout background. The surrounding area should seamlessly match the photo's own backdrop tone rather than defaulting to pure black."
+**1. Rewrite Design Rule 2 (line 258)** so the tone rotation takes priority and the photo blending adapts to IT, not the other way around:
 
-2. **Update the design rules section** to add a new rule about background continuity:
-   - "When placing a reference photo, sample the dominant background color from the photo itself and use that tone (not pure black) as the canvas fill behind and around the photo. This prevents jarring color mismatches between the photo backdrop and the layout background."
+Current:
+> "Background tone for THIS variation: [tone]. ... sample the dominant background color from the photo itself and use that tone..."
 
-3. **Adjust the #0D0D0D fallback language** in layout 1 (line 102):
-   - Change "use a dark premium background (#0D0D0D)" to "use the photo's own backdrop color extended outward, or if the photo has no clear backdrop, use a dark premium background (#0D0D0D)"
+New:
+> "Background tone for THIS variation: [tone]. The canvas background MUST match this tone direction. When placing a reference photo, blend the edges of the photo seamlessly into this canvas tone -- soften, feather, or fade the photo's edges so it transitions smoothly into the prescribed background tone. Do NOT let the photo's own studio backdrop color take over the entire canvas. The canvas tone instruction above is the authority; the photo blends INTO it, not the other way around."
+
+This keeps the seamless transition (no harsh boundary) but forces the canvas to follow the warm/neutral/cool rotation instead of always becoming whatever color the studio backdrop was (usually blue).
+
+### What changes
+- Rule 2 reworded so tone rotation is authoritative
+- Photo blending direction reversed: photo fades into canvas tone, not canvas adopts photo tone
 
 ### What stays the same
-- All 3 layout structures unchanged
-- Gold accents, typography, headline pools
-- Reference photo preservation rules (no modifications to the photo itself)
+- The 3-tone rotation array (warm black, neutral black, cool charcoal)
+- All layout structures, gold accents, typography rules
+- Reference photo preservation (no modifications to the person)
 - Anti-crop and head visibility logic
+- Everything else in the prompt
 
