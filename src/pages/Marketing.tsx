@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle } from 'lucide-react';
+import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
@@ -147,6 +147,27 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
             />
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function CaptionBlock({ caption, onCopy }: { caption: string; onCopy: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = caption.length > 200;
+
+  return (
+    <div className="p-4 pt-3 border-t border-border mt-3">
+      <p className={`text-xs text-foreground whitespace-pre-wrap leading-relaxed ${!expanded && isLong ? 'line-clamp-4' : ''}`}>
+        {caption}
+      </p>
+      {isLong && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1 mt-2 text-xs text-primary hover:text-primary/80 transition-colors"
+        >
+          {expanded ? <><ChevronUp className="w-3 h-3" /> Show less</> : <><ChevronDown className="w-3 h-3" /> Show more</>}
+        </button>
       )}
     </div>
   );
@@ -775,11 +796,7 @@ export default function Marketing() {
                     </div>
 
                     {/* Caption */}
-                    <div className="p-4 pt-3 border-t border-border mt-3">
-                      <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed line-clamp-4">
-                        {variation.caption}
-                      </p>
-                    </div>
+                    <CaptionBlock caption={variation.caption} onCopy={() => copyToClipboard(variation.caption)} />
                   </Card>
                 );
               })}
