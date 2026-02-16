@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle, ChevronDown, ChevronUp } from 'lucide-react';
-import { useRef } from 'react';
+import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
+import { useAuth } from '@/hooks/useAuth';
+import { format } from 'date-fns';
 
 type PaletteChoice = 'gold' | 'website';
 type FormatChoice = 'square' | 'story';
@@ -36,6 +37,15 @@ interface BrandProfile {
   } | null;
   images?: string[];
   screenshot?: string | null;
+}
+
+interface SavedImage {
+  id: string;
+  public_url: string;
+  variation_type: string;
+  caption: string | null;
+  website_url: string | null;
+  created_at: string;
 }
 
 // cropImage removed — all variations now use AI generation
@@ -80,8 +90,10 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
   }, [emblaApi, onSelect]);
 
   const downloadImage = (url: string, filename: string) => {
+    // Use edge function proxy for reliable cross-platform downloads
+    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
     const link = document.createElement('a');
-    link.href = url;
+    link.href = proxyUrl;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
@@ -189,7 +201,34 @@ export default function Marketing() {
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
   const [imageMode, setImageMode] = useState<ImageMode>('brand');
   const [businessCategory, setBusinessCategory] = useState<string>('hair-system');
+  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+
+  // Load previously generated images on mount
+  useEffect(() => {
+    const loadSavedImages = async () => {
+      try {
+        // Trigger cleanup of old images
+        supabase.functions.invoke('cleanup-marketing-images').catch(() => {});
+        
+        const { data, error } = await supabase
+          .from('marketing_images')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (!error && data) {
+          setSavedImages(data);
+        }
+      } catch {
+        // Silently fail
+      } finally {
+        setLoadingSaved(false);
+      }
+    };
+    loadSavedImages();
+  }, []);
 
   const websiteColors = brandProfile?.branding?.colors || {};
   const hasWebsiteColors = Object.keys(websiteColors).length > 0;
@@ -305,6 +344,53 @@ export default function Marketing() {
           try { imageUrl = await resizeImage(data.imageUrl, targetW, targetH); } catch { imageUrl = data.imageUrl; }
         }
 
+        // Persist to storage if we got a valid image
+        if (imageUrl && imageUrl !== 'failed' && user?.id) {
+          try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const timestamp = Date.now();
+            const storagePath = `${user.id}/${timestamp}-${imgIdx}.png`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('marketing-images')
+              .upload(storagePath, blob, { contentType: 'image/png' });
+            
+            if (!uploadError) {
+              const { data: urlData } = supabase.storage
+                .from('marketing-images')
+                .getPublicUrl(storagePath);
+              
+              const publicUrl = urlData.publicUrl;
+              
+              // Save metadata to DB
+              await supabase.from('marketing_images').insert({
+                user_id: user.id,
+                storage_path: storagePath,
+                public_url: publicUrl,
+                variation_type: type,
+                caption: caption || null,
+                website_url: bp.sourceUrl || null,
+              });
+
+              // Use the persistent URL instead of data URL
+              imageUrl = publicUrl;
+              
+              // Add to saved images state
+              setSavedImages(prev => [{
+                id: crypto.randomUUID(),
+                public_url: publicUrl,
+                variation_type: type,
+                caption: caption || null,
+                website_url: bp.sourceUrl || null,
+                created_at: new Date().toISOString(),
+              }, ...prev]);
+            }
+          } catch {
+            // Silently continue with data URL if persistence fails
+          }
+        }
+
         setVariations(prev => prev.map(v => {
           if (v.type !== type) return v;
           const newImgs = [...v.images];
@@ -392,7 +478,7 @@ export default function Marketing() {
       <div className="space-y-8 max-w-4xl mx-auto">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-display font-bold gold-text">AI Marketing Generator</h1>
+          <h1 className="text-3xl font-display font-bold gold-text">AI Social Media Generator</h1>
           <p className="text-muted-foreground mt-2">
             Paste your website URL and get AI-generated marketing content & visuals tailored to your brand.
           </p>
@@ -801,6 +887,56 @@ export default function Marketing() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Previously Generated Images */}
+        {savedImages.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-display font-semibold text-foreground flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
+              Previously Generated
+              <span className="text-xs text-muted-foreground font-normal">(auto-deletes after 24h)</span>
+            </h2>
+
+            {(() => {
+              // Group by variation_type + created_at (rounded to minute) for session grouping
+              const groups: Record<string, SavedImage[]> = {};
+              savedImages.forEach(img => {
+                const timeKey = img.created_at.slice(0, 16); // group by minute
+                const key = `${img.variation_type}__${timeKey}`;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(img);
+              });
+
+              return Object.entries(groups).map(([key, imgs]) => {
+                const variationType = imgs[0].variation_type;
+                const isStory = variationType.includes('story');
+                const aspectClass = isStory ? 'aspect-[9/16]' : 'aspect-square';
+                const label = variationType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase());
+                const createdAt = new Date(imgs[0].created_at);
+
+                return (
+                  <Card key={key} className="glass-card overflow-hidden">
+                    <div className="flex items-center justify-between p-4 pb-2">
+                      <span className="text-xs font-medium text-primary uppercase tracking-wider">{label}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {format(createdAt, 'MMM d, h:mm a')}
+                      </span>
+                    </div>
+                    <div className="px-4 pb-2">
+                      <ImageCarousel 
+                        images={imgs.map(i => i.public_url)} 
+                        aspectClass={aspectClass} 
+                      />
+                    </div>
+                    {imgs[0].caption && (
+                      <CaptionBlock caption={imgs[0].caption} onCopy={() => copyToClipboard(imgs[0].caption!)} />
+                    )}
+                  </Card>
+                );
+              });
+            })()}
           </div>
         )}
       </div>
