@@ -1,26 +1,26 @@
 
 
-## Fix: Full-Bleed Layout Cuts Off Faces
+## Fix: Blue Photo Background Clashing with Black Layout Background
 
 ### Problem
-The full-bleed background layout (layout index 1) instructs the model to fill the entire canvas with the reference photo, which conflicts with Rule #1 (full head visibility). The model stretches or crops the photo to fill the frame, cutting off heads. This is the style shown in your reference images — photo as background with text overlay — and it should work well, but the "filling the canvas" language causes cropping.
+When a reference photo has a dark-colored studio backdrop (like dark blue or dark gray), it clashes visually against the jet-black (#0D0D0D) layout background. The two different dark tones sitting next to each other look cheap and unpolished. The prompt currently says nothing about matching or blending these colors.
 
 ### Solution
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-1. **Rewrite layout 1 (full-bleed) reference instructions (line 102)** to prioritize head visibility over canvas fill:
-   - Change "placed as large full-bleed background filling the canvas" to "placed as a large background element that covers most of the canvas while keeping every person's full head, hair, and face visible with breathing room"
-   - Add: "If the photo does not naturally fill the entire canvas without cropping any person's head, use a dark premium background (#0D0D0D) behind the photo and let the photo sit within the frame at the largest size that keeps all heads fully visible"
-   - Keep the rest: headline overlay with dark gradient, brand name + CTA at bottom, gold outer frame
+1. **Add a background-blending instruction to all 3 layouts** that have reference photos (lines 99, 102, 105):
+   - Add to each layout: "If the reference photo has a visible studio backdrop or background color, extend or feather that same background color outward to fill the rest of the canvas so there is no harsh color boundary between the photo and the layout background. The surrounding area should seamlessly match the photo's own backdrop tone rather than defaulting to pure black."
 
-2. **Add explicit anti-crop instruction for layout 1**: "For this layout, it is better to have dark padding around the edges than to crop any part of a person's head or hair. Scale the photo down 10-20% if needed to guarantee full head visibility."
+2. **Update the design rules section** to add a new rule about background continuity:
+   - "When placing a reference photo, sample the dominant background color from the photo itself and use that tone (not pure black) as the canvas fill behind and around the photo. This prevents jarring color mismatches between the photo backdrop and the layout background."
 
-3. **Keep the before-and-after scaling rules** already in the layout (70% max panel height, 15% padding above).
+3. **Adjust the #0D0D0D fallback language** in layout 1 (line 102):
+   - Change "use a dark premium background (#0D0D0D)" to "use the photo's own backdrop color extended outward, or if the photo has no clear backdrop, use a dark premium background (#0D0D0D)"
 
 ### What stays the same
-- Layout 0 (split) and layout 2 (centered editorial) unchanged
-- All headline pools, palette logic, retry logic unchanged
-- The overall aesthetic (dark background, gold accents, text overlay) unchanged
-- The layout still produces the full-bleed look the user wants — just with safer framing
+- All 3 layout structures unchanged
+- Gold accents, typography, headline pools
+- Reference photo preservation rules (no modifications to the photo itself)
+- Anti-crop and head visibility logic
 
