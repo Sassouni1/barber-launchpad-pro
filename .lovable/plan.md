@@ -1,42 +1,34 @@
 
 
-## Fix: Broken Edge Function (referenceAttached is not defined)
+## Fix: Before-and-After = Two People, Both Heads Must Be Fully Visible
 
 ### The Problem
 
-The last code change that restructured the prompt accidentally removed the critical section that:
-1. Initializes the `parts` array
-2. Fetches the reference image as base64
-3. Sets the `referenceAttached` variable
-
-This causes a `referenceAttached is not defined` error on every image generation attempt, which is why you see "No images available."
+Before-and-after reference photos show two views of the same person side by side -- effectively two people in one image. The current rules say "show both sides" but the AI still crops one person's head because it doesn't treat the before-and-after as "two separate people who each need full head visibility."
 
 ### The Fix
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-#### 1. Replace all references to `referenceAttached` with `hasReference`
+#### 1. Rewrite RULE #3 (Before-and-After) to explicitly say "two people"
 
-The variable `hasReference` is already correctly defined on line 86 as `!!referenceImageUrl`. The undefined `referenceAttached` on lines 139, 151, 167, and 215 must all be changed to `hasReference`.
+Replace the current Rule #3 text with:
 
-#### 2. Restore the `parts` array initialization and reference image fetching
+> "BEFORE-AND-AFTER PHOTOS: If the reference photo contains a before-and-after comparison, it shows TWO PEOPLE (or two views of the same person). BOTH people's ENTIRE heads, ALL hair, and COMPLETE faces must be fully visible with breathing room on all sides. Rule #1 (Full Head Visibility) applies to EACH person individually. Scale the entire photo DOWN until BOTH people fit completely within the frame with NO cropping on ANY edge. It is better to have the photo appear smaller with generous padding than to crop any part of either person's head or hair. Showing only one side or cropping the top of either person's head is an IMMEDIATE FAILURE."
 
-Before the prompt is constructed (around line 137), add back the missing code that:
-- Initializes `const parts: any[] = []`
-- If `hasReference` is true, fetches the reference image using `fetchImageAsBase64()` (the function already exists at line 6)
-- Pushes the image inline data into `parts` as `{ inlineData: { data: base64, mimeType } }`
-- If the reference image is a data URL (starts with `data:`), parses the base64 directly instead of fetching
-- Wraps the fetch in a try/catch that returns a 502 error if it fails (to prevent falling back to AI generation)
+#### 2. Update Rule #9 (Person Framing) to reinforce "every person"
 
-#### 3. Remove the misleading comment on line 87
+Add to Rule #9: "In before-and-after photos, this applies to BOTH the 'before' person and the 'after' person independently -- both heads must have full visibility."
 
-Delete the comment "Note: referenceAttached is set later after actual fetch" since we are using `hasReference` directly.
+#### 3. Update Verification Step #4
+
+Replace current step 4 with: "Does the reference photo show a before-and-after transformation (two people/views)? If YES, check EACH person's head separately -- can you see the COMPLETE hair, forehead, and face of BOTH people with space around them? If either person's head is cropped at any edge, scale the entire photo smaller and redo."
+
+#### 4. Add sizing constraint to layouts
+
+In each of the 3 layout descriptions that mention before-and-after, add: "If the photo contains two people (before-and-after), scale it so that BOTH heads occupy no more than 70% of the available panel height, leaving at least 15% padding above the tallest head."
 
 ### What stays the same
-- All prompt text, rules, layouts, verification steps
-- The `fetchImageAsBase64` helper function
-- All retry logic and response handling
-
-### Result
-Image generation will work again immediately after this fix is deployed.
-
+- All other rules, layouts, headline pools, retry logic, gold accents
+- Reference image fetching and base64 encoding
+- The overall prompt structure (critical rules first, then layout, then design rules)
