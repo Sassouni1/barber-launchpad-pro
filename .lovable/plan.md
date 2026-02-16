@@ -1,49 +1,53 @@
 
 
-## Fix Fake Image Generation + Restore Gold Styling
+## Fix Fake Person Generation + Head Cropping
 
-### Problems
-1. **Fake AI-generated people**: Despite strong rules, 1 out of 3 images still sometimes has an AI-generated person instead of using the real reference photo
-2. **Missing gold styling**: The thin gold frames, gold dotted dividers, and gold text accents from your reference images aren't showing up consistently
+### Problem 1: Fake person still appearing (Image 2)
+The reference photo is added as raw image data with no surrounding text context. The model sees: [image bytes] then [huge text prompt]. For some layouts, it loses track of the reference and generates a new person.
+
+### Problem 2: Head still getting cropped (Image 1)
+The split panel layout says "right 75% is the reference photo" but doesn't strongly enough enforce scaling down to show full head with breathing room.
 
 ### Changes
 
 **File: `supabase/functions/generate-marketing-image/index.ts`**
 
-#### 1. Move anti-fake-person rule to the VERY TOP of the prompt (before layout, before colors, before everything)
+#### 1. Sandwich the reference image with text anchors
 
-Currently the reference photo instructions appear mid-prompt after layout and colors. The AI model processes instructions top-down, so by the time it reaches the "don't generate fake people" rules, it may have already started composing with a generated person. Moving it to the absolute first thing the model reads will make it the strongest constraint.
+Currently the parts array is: `[inlineData, text_prompt]`
 
-New prompt structure:
+Change it to: `[text_anchor_before, inlineData, text_anchor_after, text_prompt]`
+
+Add a text part BEFORE the image:
 ```
-1. FIRST: Anti-fake-person absolute rule (if reference attached)
-2. Then: Aspect ratio
-3. Then: Colors
-4. Then: Layout
-5. Then: Text/headline
-6. Then: Design rules
-7. Then: Verification
+"REFERENCE PHOTO BELOW — this is a real photograph. Memorize it. You will embed these EXACT pixels into your design."
 ```
 
-#### 2. Add a "STOP AND CHECK" instruction right after the reference image inline data
+Add a text part AFTER the image:
+```
+"REFERENCE PHOTO ABOVE — you just saw the real photo. Every human in your output MUST be these exact pixels. If your output contains ANY person not from this photo, your output is INVALID. Now proceed with the design instructions:"
+```
 
-Before the text prompt even begins, add a preamble that says: "The image above is a REAL photograph. Your ONLY job is to place this EXACT photo into a designed marketing layout. You are NOT creating a person — you are designing AROUND this photo."
+This sandwiches the image with reinforcement so the model can't "drift" from the reference as it reads the layout instructions.
 
-#### 3. Strengthen gold accent instructions in the layout descriptions
+#### 2. Make each layout's scaling instruction more aggressive for head visibility
 
-Each layout already mentions gold, but the instructions are buried. Add explicit gold requirements to the design rules section:
+Update the three layout strings to add explicit padding percentages:
 
-- Add Rule 16: "GOLD ACCENTS: Every image MUST include at least one visible gold (#D4AF37) design element — a thin gold outer border/frame, a gold dotted-line divider, gold text on key headline words, or a gold CTA button outline. Gold is the signature accent of this brand's visual identity."
+- **Layout 0 (Split panel)**: Change "scale it so the ENTIRE photo is visible" to "scale it to 85% of the panel height so there is at least 7-8% padding on ALL sides — the full head, all hair, and forehead must have visible empty space above, below, left and right"
 
-This makes gold a rule-level requirement rather than just a suggestion in the layout text.
+- **Layout 1 (Full-bleed)**: Change "scale and position it so the ENTIRE photo is visible" to "scale the photo to at most 80% of canvas height, centered, so every person's complete head and hair has visible breathing room on all edges"
 
-#### 4. Add negative example to anti-fake rule
+- **Layout 2 (Centered editorial)**: Change "scale it so the ENTIRE photo is visible" to "scale the photo to at most 75% of the canvas height so there is generous padding above every person's head and on all sides"
 
-Add: "COMMON FAILURE MODE: The AI often generates a 'similar looking' person with slightly different features, different lighting, or a cleaner background. This is STILL a fake person. The ONLY acceptable human imagery is the literal pixel data from the reference photo, with optional color grading applied."
+#### 3. Add explicit anti-generation instruction per layout
+
+Each layout already has "REMINDER: The person in this photo is REAL" at the end. Strengthen this to: "ABSOLUTE RULE: You MUST use the reference photo's exact pixel data. If you cannot embed it, show NO PEOPLE. Generating a new face is an immediate failure — even if it 'looks similar.'"
 
 ### What stays the same
-- All existing rules 1-15
-- Verification steps 1-7
-- Headline pools, retry logic, color palette logic
-- Layout variety (3 distinct styles)
+- All 16 rules unchanged
+- All 7 verification steps unchanged
+- Headline pools, retry logic, color grading
+- Preamble and referenceInstructions text
+- Gold accent rule (Rule 16)
 
