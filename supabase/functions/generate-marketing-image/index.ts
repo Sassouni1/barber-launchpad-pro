@@ -47,6 +47,14 @@ Deno.serve(async (req) => {
     const isStory = size === 'story';
     const useGold = palette !== 'website';
 
+    // Rotate background tones so we don't get the same blue-ish tint on every image
+    const bgToneVariations = [
+      'warm black — use a warm-toned black/charcoal background with subtle warm undertones (brown-black, espresso, dark walnut). Absolutely NO blue, teal, or cool-toned tints.',
+      'neutral true black — use a pure neutral black (#0D0D0D to #1A1A1A) with zero color cast. No blue, no warm, just pure darkness.',
+      'cool charcoal — a dark background with subtle cool undertones (slate, steel, dark navy) is acceptable for this variation only.',
+    ];
+    const bgToneInstruction = bgToneVariations[layoutIndex];
+
     const colors = brandProfile.branding?.colors || {};
     const fonts = brandProfile.branding?.fonts || [];
 
@@ -247,7 +255,7 @@ CALL TO ACTION: You MUST include a clear, visible call-to-action on the image (e
 
 DESIGN RULES:
 1. The headline typography must be large and impactful. If a word does not fit on a single line, reduce the font size until it does. Never hyphenate or break a word across two lines. Bold, uppercase, impactful sans-serif or display font.
-2. Background should be DARK and PREMIUM — ranging from deep black (#0D0D0D) to rich charcoal (#1A1A1A). Dark moody tones are welcome. The overall feel should be luxurious and cinematic. Avoid any light, bright, or medium-toned backgrounds. When placing a reference photo, sample the dominant background color from the photo itself and use that tone (not pure black) as the canvas fill behind and around the photo — this prevents jarring color mismatches between the photo backdrop and the layout background. Extend or feather the photo's own backdrop outward so the transition is seamless.
+2. Background tone for THIS variation: ${bgToneInstruction}. The overall feel should be luxurious and cinematic. Avoid any light, bright, or medium-toned backgrounds. When placing a reference photo, sample the dominant background color from the photo itself and use that tone (not pure black) as the canvas fill behind and around the photo — this prevents jarring color mismatches between the photo backdrop and the layout background. Extend or feather the photo's own backdrop outward so the transition is seamless.
 3. Text must have extremely high contrast against the black background. Alternate between WHITE and GOLD (#D4AF37) text for visual punch — gold on key impactful words, white on the rest. This white-and-gold alternating pattern is MANDATORY for every headline.
 4. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames. Use gold/metallic tones for these accents.
 ${hasReference ? '' : `5. COLOR GRADING: Apply subtle cinematic color grading — slightly warm highlights, slightly cool shadows, natural-looking contrast. The look should feel polished and editorial, NOT over-processed or heavy-handed. Avoid extreme teal-and-orange looks. The photo should still look natural and real. Never leave photos completely flat, but do NOT push contrast to extremes.
