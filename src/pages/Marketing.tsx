@@ -864,41 +864,9 @@ export default function Marketing() {
                       </Button>
                     </div>
 
-                    {/* 3-column image grid */}
+                    {/* Image carousel */}
                     <div className="px-4">
-                      <div className="grid grid-cols-3 gap-3">
-                        {variation.images.map((img, i) => (
-                          <div key={i}>
-                            {img === null ? (
-                              <Skeleton className={`w-full ${aspectClass} rounded-lg`} />
-                            ) : img === 'failed' ? (
-                              <div className={`w-full ${aspectClass} rounded-lg bg-muted/50 flex items-center justify-center text-xs text-muted-foreground`}>
-                                Failed
-                              </div>
-                            ) : (
-                              <div className={`relative ${aspectClass} group rounded-lg overflow-hidden`}>
-                                <img src={img} alt={`Image ${i + 1}`} className="w-full h-full object-cover" />
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => {
-                                    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(img)}&name=${encodeURIComponent(`image-${i + 1}.png`)}`;
-                                    const link = document.createElement('a');
-                                    link.href = proxyUrl;
-                                    link.download = `image-${i + 1}.png`;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                  }}
-                                  className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <Download className="w-3 h-3 mr-1" /> Save
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      <ImageCarousel images={variation.images} aspectClass={aspectClass} />
                       {variation.imagesLoading && validImages.length > 0 && (
                         <div className="flex items-center gap-2 justify-center mt-2 text-xs text-muted-foreground">
                           <Loader2 className="w-3 h-3 animate-spin" /> Generating more...
