@@ -893,38 +893,32 @@ export default function Marketing() {
             </h2>
 
             {(() => {
-              // Group by variation_type + created_at (rounded to minute) for session grouping
-              const groups: Record<string, SavedImage[]> = {};
-              savedImages.forEach(img => {
-                const timeKey = img.created_at.slice(0, 16); // group by minute
-                const key = `${img.variation_type}__${timeKey}`;
-                if (!groups[key]) groups[key] = [];
-                groups[key].push(img);
-              });
+              // Chunk saved images into groups of 3, each as its own carousel, stacked vertically
+              const chunks: SavedImage[][] = [];
+              for (let i = 0; i < savedImages.length; i += 3) {
+                chunks.push(savedImages.slice(i, i + 3));
+              }
 
-              return Object.entries(groups).map(([key, imgs]) => {
-                const variationType = imgs[0].variation_type;
-                const isStory = variationType.includes('story');
+              return chunks.map((chunk, chunkIdx) => {
+                const isStory = chunk[0].variation_type.includes('story');
                 const aspectClass = isStory ? 'aspect-[9/16]' : 'aspect-square';
-                const label = variationType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase());
-                const createdAt = new Date(imgs[0].created_at);
+                const createdAt = new Date(chunk[0].created_at);
 
                 return (
-                  <Card key={key} className="glass-card overflow-hidden">
+                  <Card key={chunkIdx} className="glass-card overflow-hidden">
                     <div className="flex items-center justify-between p-4 pb-2">
-                      <span className="text-xs font-medium text-primary uppercase tracking-wider">{label}</span>
                       <span className="text-[10px] text-muted-foreground">
                         {format(createdAt, 'MMM d, h:mm a')}
                       </span>
                     </div>
                     <div className="px-4 pb-2">
                       <ImageCarousel 
-                        images={imgs.map(i => i.public_url)} 
+                        images={chunk.map(i => i.public_url)} 
                         aspectClass={aspectClass} 
                       />
                     </div>
-                    {imgs[0].caption && (
-                      <CaptionBlock caption={imgs[0].caption} onCopy={() => copyToClipboard(imgs[0].caption!)} />
+                    {chunk[0].caption && (
+                      <CaptionBlock caption={chunk[0].caption} onCopy={() => copyToClipboard(chunk[0].caption!)} />
                     )}
                   </Card>
                 );
