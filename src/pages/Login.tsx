@@ -113,12 +113,6 @@ export default function Login() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link to="/create" className="text-primary hover:underline font-medium">
-            Create one
-          </Link>
-        </p>
       </div>
     </div>
   );
