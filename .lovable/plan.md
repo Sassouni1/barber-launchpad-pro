@@ -1,26 +1,55 @@
 
 
-## Fix: Blue Photo Background Clashing with Black Layout Background
+## Fix: Better Error Handling for Website Analysis Failures
 
 ### Problem
-When a reference photo has a dark-colored studio backdrop (like dark blue or dark gray), it clashes visually against the jet-black (#0D0D0D) layout background. The two different dark tones sitting next to each other look cheap and unpolished. The prompt currently says nothing about matching or blending these colors.
+When Firecrawl can't scrape a website (blocked by the site, down, invalid URL, etc.), the edge function returns a 500 status with a long technical error message. The client sees "Edge function returned a non-2xx status" instead of a helpful message. This happens on both mobile and desktop.
+
+The logs show the exact error: `SCRAPE_ALL_ENGINES_FAILED` -- meaning the website is blocking automated scraping.
 
 ### Solution
 
-**File: `supabase/functions/generate-marketing-image/index.ts`**
+**File: `supabase/functions/scrape-website/index.ts`**
 
-1. **Add a background-blending instruction to all 3 layouts** that have reference photos (lines 99, 102, 105):
-   - Add to each layout: "If the reference photo has a visible studio backdrop or background color, extend or feather that same background color outward to fill the rest of the canvas so there is no harsh color boundary between the photo and the layout background. The surrounding area should seamlessly match the photo's own backdrop tone rather than defaulting to pure black."
+1. When Firecrawl returns an error, return a **200 status with `success: false`** instead of forwarding the 500 status. This prevents the Supabase client from throwing a generic "non-2xx" error and lets the client read the actual error message.
 
-2. **Update the design rules section** to add a new rule about background continuity:
-   - "When placing a reference photo, sample the dominant background color from the photo itself and use that tone (not pure black) as the canvas fill behind and around the photo. This prevents jarring color mismatches between the photo backdrop and the layout background."
+2. Map common Firecrawl error codes to **user-friendly messages**:
+   - `SCRAPE_ALL_ENGINES_FAILED` -> "This website couldn't be analyzed -- it may be blocking automated access. Try a different URL or enter your brand info manually."
+   - Generic/other errors -> "Failed to analyze this website. Please check the URL and try again."
 
-3. **Adjust the #0D0D0D fallback language** in layout 1 (line 102):
-   - Change "use a dark premium background (#0D0D0D)" to "use the photo's own backdrop color extended outward, or if the photo has no clear backdrop, use a dark premium background (#0D0D0D)"
+**File: `src/pages/Marketing.tsx`**
+
+3. Improve the error toast to show a shorter, cleaner message instead of the raw error string. No structural changes needed since the edge function fix will deliver proper error messages through `data.error`.
+
+### Technical Details
+
+In the edge function, change the error response block (around line 60):
+
+Before:
+```
+return new Response(
+  JSON.stringify({ success: false, error: data.error || '...' }),
+  { status: response.status, ... }  // forwards 500
+);
+```
+
+After:
+```
+// Map to friendly message
+let userMessage = 'Failed to analyze this website.';
+if (data.code === 'SCRAPE_ALL_ENGINES_FAILED') {
+  userMessage = "This website couldn't be analyzed — it may be blocking automated access. Try a different URL.";
+}
+
+return new Response(
+  JSON.stringify({ success: false, error: userMessage }),
+  { status: 200, ... }  // return 200 so client can read the message
+);
+```
 
 ### What stays the same
-- All 3 layout structures unchanged
-- Gold accents, typography, headline pools
-- Reference photo preservation rules (no modifications to the photo itself)
-- Anti-crop and head visibility logic
+- All scraping logic and Firecrawl integration
+- Image extraction and brand profile building
+- Client-side Marketing page structure
+- All other edge functions
 
