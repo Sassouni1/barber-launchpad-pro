@@ -491,7 +491,7 @@ export default function Marketing() {
               <div className="relative flex-1">
                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="https://yourbusiness.com"
+                  placeholder="yourbusiness.com"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className="pl-10 bg-secondary/50 border-border"
