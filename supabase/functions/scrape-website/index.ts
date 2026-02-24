@@ -56,9 +56,13 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       console.error('Firecrawl API error:', JSON.stringify(data));
+      let userMessage = 'Failed to analyze this website. Please check the URL and try again.';
+      if (data.code === 'SCRAPE_ALL_ENGINES_FAILED') {
+        userMessage = "This website couldn't be analyzed — it may be blocking automated access. Try a different URL or enter your brand info manually.";
+      }
       return new Response(
-        JSON.stringify({ success: false, error: data.error || `Scrape failed with status ${response.status}` }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: userMessage }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
