@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
-export default function Login() {
+export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -112,12 +112,6 @@ export default function Login() {
             )}
           </Button>
         </form>
-        <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link to="/create" className="text-primary hover:underline font-medium">
-            Create one
-          </Link>
-        </p>
       </div>
     </div>
   );
