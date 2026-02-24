@@ -254,9 +254,7 @@ export default function Marketing() {
       if (!data?.success) throw new Error(data?.error || 'Failed to scrape website');
 
       setBrandProfile(data.brandProfile);
-      toast.success('Website analyzed! Now generate your content.');
-
-      await generateContent(data.brandProfile);
+      toast.success('Website analyzed! Review your images below, then hit Generate.');
     } catch (err: any) {
       toast.error(err.message || 'Failed to analyze website');
     } finally {
