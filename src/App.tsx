@@ -28,6 +28,7 @@ import ManufacturerOrders from "./pages/ManufacturerOrders";
 import Marketing from "./pages/Marketing";
 import QRCodes from "./pages/QRCodes";
 import Rewards from "./pages/Rewards";
+import RewardsJoin from "./pages/RewardsJoin";
 import QRRedirect from "./pages/QRRedirect";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
             <Route path="/qr-codes" element={<ProtectedRoute><QRCodes /></ProtectedRoute>} />
             <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
+            <Route path="/rewards/join/:userId" element={<RewardsJoin />} />
             <Route path="/r/:shortCode" element={<QRRedirect />} />
             <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />
             
