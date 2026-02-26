@@ -1,16 +1,48 @@
 
 
-## Support Multiple QR Codes
+## Rewards Tracker - Full Implementation
 
-Right now the page only shows `links[0]` and hides the create form once one QR exists. We'll update it to show **all** existing QR codes as a list of cards, plus a "Create New QR Code" button that reveals the creation form. Old QR codes are never touched -- each one keeps its own unique short code and redirect.
+Everything needs to be created: database tables, page, hooks, and navigation links.
 
-### Changes (single file: `src/pages/QRCodes.tsx`)
+### 1. Database Migration
 
-1. **Remove the single-link constraint** -- delete the `existingLink = links[0]` logic that gates between "show card" vs "show form"
-2. **Add a `showCreateForm` state** -- toggled by a "Create New QR Code" button; resets to false after successful creation
-3. **Render all QR links** -- map over `links` array, rendering a `QRLinkCard` for each one inside its own Card
-4. **Add the "Create New QR Code" button** -- shown below the list (or as the primary CTA if no links exist yet), opens the inline creation form
-5. **Add a label** (e.g. "My Instagram") next to each card so users can tell them apart
+Create two tables with RLS:
 
-No database or hook changes needed -- the hooks already support multiple links. This is purely a UI update.
+- **`reward_clients`**: id, user_id, client_name, client_phone (nullable), client_email (nullable), created_at
+- **`reward_visits`**: id, client_id (FK to reward_clients), user_id, visited_at, is_redemption (default false), created_at
+
+RLS policies on both tables: users can only SELECT, INSERT, UPDATE, DELETE their own rows (`auth.uid() = user_id`).
+
+Also insert an `app_settings` row for `reward_visits_required` with value `{"count": 10}`.
+
+### 2. New Hook: `src/hooks/useRewards.ts`
+
+- `useRewardClients()` - fetch all clients for current user with visit counts
+- `useAddClient()` - mutation to add a new client
+- `useLogVisit()` - mutation to log a visit for a client
+- `useRedeemReward()` - mutation to insert a visit with `is_redemption = true`
+- `useDeleteClient()` - mutation to delete a client and their visits
+
+### 3. New Page: `src/pages/Rewards.tsx`
+
+- Stats bar showing total clients and total rewards redeemed
+- "Add Client" dialog/form (name required, phone/email optional)
+- Client list with visual punch card (10 circles that fill up)
+- "Log Visit" button per client
+- "Redeem" button when punch card is full
+- Delete client option
+- Wrapped in `DashboardLayout`
+
+### 4. Route in `src/App.tsx`
+
+Add protected route: `/rewards` pointing to `Rewards` page.
+
+### 5. Navigation Updates
+
+**Sidebar (`src/components/layout/Sidebar.tsx`)**:
+- Import `Gift` icon from lucide-react
+- Add `NavItem` for `/rewards` with label "Rewards Tracker" after Marketing Tools and before Products
+
+**Mobile Nav (`src/components/layout/MobileNav.tsx`)**:
+- Add "Rewards Tracker" link with Gift icon to the mobile nav
 
