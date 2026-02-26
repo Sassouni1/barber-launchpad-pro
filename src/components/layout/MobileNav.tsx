@@ -144,9 +144,9 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
     { to: '/training', icon: Target, label: 'Games' },
     { to: '/schedule-call', icon: Phone, label: '1 on 1 Call' },
-    { to: '/marketing', icon: Megaphone, label: 'AI Social' },
-    { to: '/qr-codes', icon: QrCode, label: 'QR Codes' },
   ];
+
+  const [marketingOpen, setMarketingOpen] = useState(false);
 
   const [productsOpen, setProductsOpen] = useState(false);
 
@@ -249,6 +249,36 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                     <NavLink to="/orders" onClick={() => setProductsOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                       <Package className="w-4 h-4" />
                       <span className="font-medium">Order History</span>
+                    </NavLink>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Popover open={marketingOpen} onOpenChange={setMarketingOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all',
+                      'border border-border/50',
+                      ['/marketing', '/qr-codes'].includes(location.pathname)
+                        ? 'bg-primary/10 text-primary border-primary/30'
+                        : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground'
+                    )}
+                  >
+                    <Megaphone className="w-5 h-5" />
+                    <span className="text-[10px] font-medium leading-tight text-center flex items-center gap-0.5">
+                      Marketing <ChevronDown className="w-3 h-3" />
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="top" align="center" className="w-48 p-2 bg-popover border-border">
+                  <div className="space-y-1">
+                    <NavLink to="/marketing" onClick={() => setMarketingOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                      <Megaphone className="w-4 h-4" />
+                      <span className="font-medium">AI Social Media</span>
+                    </NavLink>
+                    <NavLink to="/qr-codes" onClick={() => setMarketingOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                      <QrCode className="w-4 h-4" />
+                      <span className="font-medium">QR Codes</span>
                     </NavLink>
                   </div>
                 </PopoverContent>
