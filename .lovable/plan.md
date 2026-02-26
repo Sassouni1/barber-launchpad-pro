@@ -1,48 +1,41 @@
 
 
-## Rewards Tracker - Full Implementation
+## Add Multiple Ways to Add Clients to Rewards Tracker
 
-Everything needs to be created: database tables, page, hooks, and navigation links.
+Three methods to get clients into your rewards list: quick add, QR code, and shareable link.
 
-### 1. Database Migration
+### 1. Self-Registration Edge Function
 
-Create two tables with RLS:
+Create a backend function (`register-reward-client`) that accepts a client's name, phone, and email along with the member's user ID. This allows unauthenticated clients to add themselves without needing a login. The function uses the service role key to insert into `reward_clients` on behalf of the member.
 
-- **`reward_clients`**: id, user_id, client_name, client_phone (nullable), client_email (nullable), created_at
-- **`reward_visits`**: id, client_id (FK to reward_clients), user_id, visited_at, is_redemption (default false), created_at
+### 2. Public Self-Registration Page
 
-RLS policies on both tables: users can only SELECT, INSERT, UPDATE, DELETE their own rows (`auth.uid() = user_id`).
+Create a new page at `/rewards/join/:userId` that shows a simple branded form where a client enters their name and phone/email. On submit, it calls the edge function above. No login required -- the client just sees a "You're signed up!" confirmation. This route will be public (no `ProtectedRoute` wrapper).
 
-Also insert an `app_settings` row for `reward_visits_required` with value `{"count": 10}`.
+### 3. QR Code Generation on Rewards Page
 
-### 2. New Hook: `src/hooks/useRewards.ts`
+On the member's Rewards Tracker page, add a "Get QR Code" button that generates a QR code pointing to the member's personal join link (`/rewards/join/{userId}`). Uses the existing `qrcode.react` library already installed. The member can download or screenshot the QR to display in their shop.
 
-- `useRewardClients()` - fetch all clients for current user with visit counts
-- `useAddClient()` - mutation to add a new client
-- `useLogVisit()` - mutation to log a visit for a client
-- `useRedeemReward()` - mutation to insert a visit with `is_redemption = true`
-- `useDeleteClient()` - mutation to delete a client and their visits
+### 4. Shareable Link with Copy Button
 
-### 3. New Page: `src/pages/Rewards.tsx`
+Next to the QR code, show the join URL as text with a "Copy Link" button. Members can text or DM this to clients.
 
-- Stats bar showing total clients and total rewards redeemed
-- "Add Client" dialog/form (name required, phone/email optional)
-- Client list with visual punch card (10 circles that fill up)
-- "Log Visit" button per client
-- "Redeem" button when punch card is full
-- Delete client option
-- Wrapped in `DashboardLayout`
+### 5. Quick Add Simplification
 
-### 4. Route in `src/App.tsx`
+Simplify the existing "Add Client" dialog to default to just a name field with phone/email collapsed behind an "Add details" toggle, making it faster for in-person additions.
 
-Add protected route: `/rewards` pointing to `Rewards` page.
+### Files to Create/Edit
 
-### 5. Navigation Updates
+- **`supabase/functions/register-reward-client/index.ts`** -- Edge function for public client self-registration
+- **`supabase/config.toml`** -- Add `verify_jwt = false` for the new function (NOTE: this file updates automatically, we just need the function config)
+- **`src/pages/RewardsJoin.tsx`** -- Public-facing self-registration form page
+- **`src/pages/Rewards.tsx`** -- Add QR code display, shareable link section, and simplify the add client dialog
+- **`src/App.tsx`** -- Add public route for `/rewards/join/:userId`
 
-**Sidebar (`src/components/layout/Sidebar.tsx`)**:
-- Import `Gift` icon from lucide-react
-- Add `NavItem` for `/rewards` with label "Rewards Tracker" after Marketing Tools and before Products
+### Technical Details
 
-**Mobile Nav (`src/components/layout/MobileNav.tsx`)**:
-- Add "Rewards Tracker" link with Gift icon to the mobile nav
+- The edge function validates input (name required, trims whitespace, checks length limits) and inserts into `reward_clients` using the service role key
+- Duplicate detection: if a client with the same name + phone already exists for that member, show a friendly "you're already registered" message instead of creating a duplicate
+- QR code uses the same `qrcode.react` library and styling conventions as the existing QR Codes page
+- The join page uses the app's published URL as the base for the QR/link (pulled from `window.location.origin`)
 
