@@ -12,6 +12,7 @@ import {
   FileEdit,
   Phone,
   Megaphone,
+  QrCode,
   Eye,
   Shield,
   Factory,
@@ -144,6 +145,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/training', icon: Target, label: 'Games' },
     { to: '/schedule-call', icon: Phone, label: '1 on 1 Call' },
     { to: '/marketing', icon: Megaphone, label: 'AI Social' },
+    { to: '/qr-codes', icon: QrCode, label: 'QR Codes' },
   ];
 
   const [productsOpen, setProductsOpen] = useState(false);

@@ -23,6 +23,7 @@ import {
   Phone,
   Award,
   Megaphone,
+  QrCode,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -260,6 +261,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule Call 1 on 1" />
             </ExpandableNavItem>
             <NavItem to="/marketing" icon={Megaphone} label="AI Social Media" collapsed={collapsed} />
+            <NavItem to="/qr-codes" icon={QrCode} label="QR Codes" collapsed={collapsed} />
             
             {/* Level 1 Cert Button */}
             <button
