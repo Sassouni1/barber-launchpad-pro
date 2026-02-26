@@ -851,6 +851,68 @@ export type Database = {
           },
         ]
       }
+      reward_clients: {
+        Row: {
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reward_visits: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          is_redemption: boolean
+          user_id: string
+          visited_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          is_redemption?: boolean
+          user_id: string
+          visited_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_redemption?: boolean
+          user_id?: string
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_visits_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "reward_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       todo_subtasks: {
         Row: {
           created_at: string
