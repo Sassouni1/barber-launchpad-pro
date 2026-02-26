@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -22,21 +21,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Gift, Plus, Star, Trash2, Users, QrCode, Copy, ChevronDown, Link } from 'lucide-react';
+import { Gift, Plus, Star, Trash2, Users, QrCode, Copy, ChevronDown, Link, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   useRewardClients,
   useRewardVisitsRequired,
+  useReferralTiers,
   useAddClient,
   useLogVisit,
   useRedeemReward,
+  useRedeemReferralReward,
   useDeleteClient,
+  type ClientWithProgress,
+  type ReferralTier,
 } from '@/hooks/useRewards';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
+// --- Share Section ---
 function ShareSection() {
   const { user } = useAuth();
   const [showQR, setShowQR] = useState(false);
@@ -78,11 +89,21 @@ function ShareSection() {
   );
 }
 
-function AddClientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+// --- Add Client Dialog ---
+function AddClientDialog({
+  open,
+  onOpenChange,
+  existingClients,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  existingClients: ClientWithProgress[];
+}) {
   const addClient = useAddClient();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [referredBy, setReferredBy] = useState<string>('');
   const [showDetails, setShowDetails] = useState(false);
 
   const handleAdd = async () => {
@@ -92,11 +113,13 @@ function AddClientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
         client_name: name.trim(),
         client_phone: phone.trim() || undefined,
         client_email: email.trim() || undefined,
+        referred_by_client_id: referredBy || undefined,
       });
       toast.success('Client added!');
       setName('');
       setPhone('');
       setEmail('');
+      setReferredBy('');
       setShowDetails(false);
       onOpenChange(false);
     } catch {
@@ -121,6 +144,26 @@ function AddClientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
               autoFocus
             />
           </div>
+
+          {existingClients.length > 0 && (
+            <div>
+              <Label>Referred by</Label>
+              <Select value={referredBy} onValueChange={setReferredBy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No referral" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No referral</SelectItem>
+                  {existingClients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.client_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <Collapsible open={showDetails} onOpenChange={setShowDetails}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground px-0">
@@ -131,24 +174,15 @@ function AddClientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
             <CollapsibleContent className="space-y-3 pt-2">
               <div>
                 <Label htmlFor="client-phone">Phone</Label>
-                <Input
-                  id="client-phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Optional"
-                />
+                <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" />
               </div>
               <div>
                 <Label htmlFor="client-email">Email</Label>
-                <Input
-                  id="client-email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Optional"
-                />
+                <Input id="client-email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Optional" />
               </div>
             </CollapsibleContent>
           </Collapsible>
+
           <Button onClick={handleAdd} disabled={!name.trim() || addClient.isPending} className="w-full">
             {addClient.isPending ? 'Adding...' : 'Add Client'}
           </Button>
@@ -158,15 +192,64 @@ function AddClientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
   );
 }
 
+// --- Referral Badge ---
+function ReferralBadge({
+  client,
+  tiers,
+  onRedeem,
+  isRedeeming,
+}: {
+  client: ClientWithProgress;
+  tiers: ReferralTier[];
+  onRedeem: () => void;
+  isRedeeming: boolean;
+}) {
+  if (client.referralCount === 0 && tiers.length === 0) return null;
+
+  const sortedTiers = [...tiers].sort((a, b) => a.count - b.count);
+  const earnedTiers = sortedTiers.filter((t) => client.referralCount >= t.count);
+  const nextTier = sortedTiers.find((t) => client.referralCount < t.count);
+  const canClaim = earnedTiers.length > client.referral_redeemed_count;
+  const currentReward = earnedTiers.length > 0 ? earnedTiers[earnedTiers.length - 1] : null;
+
+  if (client.referralCount === 0 && !nextTier) return null;
+
+  return (
+    <div className="mt-2 p-2 rounded-lg bg-accent/50 space-y-1">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+        <UserPlus className="w-3.5 h-3.5" />
+        {client.referralCount} referral{client.referralCount !== 1 ? 's' : ''}
+        {currentReward && !canClaim && (
+          <span className="text-muted-foreground ml-1">· {currentReward.reward} claimed</span>
+        )}
+      </div>
+      {canClaim && currentReward && (
+        <Button size="sm" variant="secondary" className="gap-1 h-7 text-xs" onClick={onRedeem} disabled={isRedeeming}>
+          <Gift className="w-3 h-3" /> Claim: {earnedTiers[client.referral_redeemed_count]?.reward}
+        </Button>
+      )}
+      {nextTier && (
+        <p className="text-[11px] text-muted-foreground">
+          {nextTier.count - client.referralCount} more referral{nextTier.count - client.referralCount !== 1 ? 's' : ''} for {nextTier.reward}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// --- Main Page ---
 export default function Rewards() {
   const { data: clients = [], isLoading } = useRewardClients();
   const { data: visitsRequired = 10 } = useRewardVisitsRequired();
+  const { data: tiers = [] } = useReferralTiers();
   const logVisit = useLogVisit();
   const redeemReward = useRedeemReward();
+  const redeemReferral = useRedeemReferralReward();
   const deleteClient = useDeleteClient();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const totalRedemptions = clients.reduce((sum, c) => sum + c.totalRedemptions, 0);
+  const totalReferrals = clients.reduce((sum, c) => sum + c.referralCount, 0);
 
   const handleLogVisit = async (clientId: string, clientName: string) => {
     try {
@@ -183,6 +266,18 @@ export default function Rewards() {
       toast.success(`🎉 Reward redeemed for ${clientName}!`);
     } catch {
       toast.error('Failed to redeem reward');
+    }
+  };
+
+  const handleRedeemReferral = async (client: ClientWithProgress) => {
+    try {
+      await redeemReferral.mutateAsync({
+        clientId: client.id,
+        newCount: client.referral_redeemed_count + 1,
+      });
+      toast.success(`🎉 Referral reward claimed for ${client.client_name}!`);
+    } catch {
+      toast.error('Failed to claim referral reward');
     }
   };
 
@@ -208,12 +303,13 @@ export default function Rewards() {
           <Button className="gap-2" onClick={() => setDialogOpen(true)}>
             <Plus className="w-4 h-4" /> Add Client
           </Button>
-          <AddClientDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+          <AddClientDialog open={dialogOpen} onOpenChange={setDialogOpen} existingClients={clients} />
         </div>
 
         <ShareSection />
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3">
           <Card className="bg-card border-border">
             <CardContent className="flex items-center gap-3 p-4">
               <div className="p-2 rounded-lg bg-primary/10">
@@ -221,7 +317,7 @@ export default function Rewards() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{clients.length}</p>
-                <p className="text-xs text-muted-foreground">Total Clients</p>
+                <p className="text-xs text-muted-foreground">Clients</p>
               </div>
             </CardContent>
           </Card>
@@ -232,12 +328,24 @@ export default function Rewards() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{totalRedemptions}</p>
-                <p className="text-xs text-muted-foreground">Rewards Given</p>
+                <p className="text-xs text-muted-foreground">Rewards</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <UserPlus className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{totalReferrals}</p>
+                <p className="text-xs text-muted-foreground">Referrals</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Client List */}
         {isLoading ? (
           <p className="text-muted-foreground text-center py-8">Loading...</p>
         ) : clients.length === 0 ? (
@@ -286,6 +394,7 @@ export default function Rewards() {
                     )}
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    {/* Punch card */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {Array.from({ length: visitsRequired }).map((_, i) => (
                         <div
@@ -332,6 +441,14 @@ export default function Rewards() {
                         )}
                       </div>
                     </div>
+
+                    {/* Referral section */}
+                    <ReferralBadge
+                      client={client}
+                      tiers={tiers}
+                      onRedeem={() => handleRedeemReferral(client)}
+                      isRedeeming={redeemReferral.isPending}
+                    />
                   </CardContent>
                 </Card>
               );
