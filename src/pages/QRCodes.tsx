@@ -86,7 +86,7 @@ function PosterPreview({ link, posterUrl, qrX, qrY, qrSize }: {
   return (
     <div className="space-y-4">
       {/* Visual preview */}
-      <div className="relative w-full max-w-lg mx-auto rounded-xl overflow-hidden border border-border/50 shadow-lg">
+      <div className="relative w-full max-w-xs mx-auto rounded-xl overflow-hidden border border-border/50 shadow-lg">
         <img src={posterUrl} alt="Poster" className="w-full" draggable={false} />
         <div
           ref={qrRef}
@@ -140,55 +140,54 @@ function QRLinkCard({ link, posterUrl, qrX, qrY, qrSize }: {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Info row */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        {editing ? (
-          <div className="flex-1 space-y-2 min-w-0">
-            <Input value={editLabel} onChange={e => setEditLabel(e.target.value)} placeholder="Label" className="bg-secondary/50" />
-            <Input value={editUrl} onChange={e => setEditUrl(e.target.value)} placeholder="Destination URL" className="bg-secondary/50" />
-            <div className="flex gap-2">
+    <div className="space-y-5">
+      {/* Destination URL — always visible */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Your Website / Link</Label>
+        <div className="flex gap-2">
+          <Input
+            value={editUrl}
+            onChange={e => { setEditUrl(e.target.value); setEditing(true); }}
+            placeholder="https://instagram.com/yourbiz"
+            className="bg-secondary/50 flex-1"
+          />
+          {editing && (
+            <>
               <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
                 <Check className="w-4 h-4 mr-1" /> Save
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setEditLabel(link.label); setEditUrl(link.destination_url); }}>
-                <X className="w-4 h-4 mr-1" /> Cancel
+              <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setEditUrl(link.destination_url); }}>
+                <X className="w-4 h-4" />
               </Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-foreground">{link.label}</h3>
-              <p className="text-sm text-muted-foreground truncate">{link.destination_url}</p>
-              <p className="text-xs text-muted-foreground">{link.scan_count} scan{link.scan_count !== 1 ? 's' : ''}</p>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><Pencil className="w-4 h-4" /></Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete QR Code?</AlertDialogTitle>
-                    <AlertDialogDescription>Anyone who scans this QR code will see "Link Not Found". This cannot be undone.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">{link.scan_count} scan{link.scan_count !== 1 ? 's' : ''}</p>
       </div>
 
-      {/* Poster preview */}
-      {posterUrl && !editing && (
+      {/* Compact poster preview */}
+      {posterUrl && (
         <PosterPreview link={link} posterUrl={posterUrl} qrX={qrX} qrY={qrY} qrSize={qrSize} />
       )}
+
+      {/* Delete */}
+      <div className="flex justify-end">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4 mr-1" /> Remove QR</Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete QR Code?</AlertDialogTitle>
+              <AlertDialogDescription>Anyone who scans this QR code will see "Link Not Found". This cannot be undone.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
@@ -238,12 +237,12 @@ export default function QRCodes() {
           </Card>
         )}
 
-        {isLoading ? (
+      {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : existingLink ? (
-          /* Show existing QR on poster */
+          /* Show existing QR with editable link + compact poster */
           <Card className="glass-card border-border/50">
             <CardContent className="p-6">
               <QRLinkCard
@@ -263,15 +262,13 @@ export default function QRCodes() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="qr-label">Label</Label>
-                    <Input id="qr-label" placeholder="e.g. Instagram, Booking Page" value={label} onChange={e => setLabel(e.target.value)} className="bg-secondary/50" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="qr-url">Destination URL</Label>
-                    <Input id="qr-url" placeholder="https://instagram.com/yourbiz" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="qr-label">Label</Label>
+                  <Input id="qr-label" placeholder="e.g. Instagram, Booking Page" value={label} onChange={e => setLabel(e.target.value)} className="bg-secondary/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="qr-url">Your Website / Link</Label>
+                  <Input id="qr-url" placeholder="https://instagram.com/yourbiz" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
                 </div>
                 <Button type="submit" disabled={createMutation.isPending || !label.trim() || !url.trim()}>
                   {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
