@@ -858,6 +858,8 @@ export type Database = {
           client_phone: string | null
           created_at: string
           id: string
+          referral_redeemed_count: number
+          referred_by_client_id: string | null
           user_id: string
         }
         Insert: {
@@ -866,6 +868,8 @@ export type Database = {
           client_phone?: string | null
           created_at?: string
           id?: string
+          referral_redeemed_count?: number
+          referred_by_client_id?: string | null
           user_id: string
         }
         Update: {
@@ -874,9 +878,19 @@ export type Database = {
           client_phone?: string | null
           created_at?: string
           id?: string
+          referral_redeemed_count?: number
+          referred_by_client_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reward_clients_referred_by_client_id_fkey"
+            columns: ["referred_by_client_id"]
+            isOneToOne: false
+            referencedRelation: "reward_clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reward_visits: {
         Row: {
