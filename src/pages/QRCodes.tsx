@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQRLinks, useCreateQRLink, useUpdateQRLink, useDeleteQRLink, QRLink } from '@/hooks/useQRLinks';
+import { usePosterTemplate } from '@/hooks/usePosterTemplate';
 import { toast } from 'sonner';
-import { Plus, Download, Copy, Pencil, Trash2, ExternalLink, QrCode, BarChart3, Check, X, Loader2 } from 'lucide-react';
+import { Download, Pencil, Trash2, QrCode, Check, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -19,40 +20,109 @@ function getRedirectUrl(shortCode: string) {
   return `${BASE_URL}/r/${shortCode}`;
 }
 
-function QRCodeCard({ link }: { link: QRLink }) {
+/* ─── Poster Preview with QR overlay ─── */
+function PosterPreview({ link, posterUrl, qrX, qrY, qrSize }: {
+  link: QRLink;
+  posterUrl: string;
+  qrX: number;
+  qrY: number;
+  qrSize: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const qrRef = useRef<HTMLDivElement>(null);
+  const redirectUrl = getRedirectUrl(link.short_code);
+
+  const handleDownload = useCallback(async () => {
+    try {
+      // Load poster image
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = posterUrl;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+
+      // Render QR to canvas
+      const qrSvg = qrRef.current?.querySelector('svg');
+      if (qrSvg) {
+        const qrCanvas = document.createElement('canvas');
+        const qrSize_px = Math.round((qrSize / 100) * canvas.width);
+        qrCanvas.width = qrSize_px;
+        qrCanvas.height = qrSize_px;
+        const qrCtx = qrCanvas.getContext('2d')!;
+
+        const svgData = new XMLSerializer().serializeToString(qrSvg);
+        const qrImg = new Image();
+        await new Promise<void>((resolve, reject) => {
+          qrImg.onload = () => resolve();
+          qrImg.onerror = reject;
+          qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+        });
+        qrCtx.drawImage(qrImg, 0, 0, qrSize_px, qrSize_px);
+
+        // Position QR on poster (centered on the x/y point)
+        const posX = Math.round((qrX / 100) * canvas.width - qrSize_px / 2);
+        const posY = Math.round((qrY / 100) * canvas.height - qrSize_px / 2);
+        ctx.drawImage(qrCanvas, posX, posY);
+      }
+
+      const a = document.createElement('a');
+      a.download = `${link.label.replace(/\s+/g, '-')}-poster.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      toast.success('Poster downloaded!');
+    } catch {
+      toast.error('Failed to generate poster');
+    }
+  }, [posterUrl, qrX, qrY, qrSize, link]);
+
+  return (
+    <div className="space-y-4">
+      {/* Visual preview */}
+      <div className="relative w-full max-w-lg mx-auto rounded-xl overflow-hidden border border-border/50 shadow-lg">
+        <img src={posterUrl} alt="Poster" className="w-full" draggable={false} />
+        <div
+          ref={qrRef}
+          className="absolute -translate-x-1/2 -translate-y-1/2"
+          style={{
+            left: `${qrX}%`,
+            top: `${qrY}%`,
+            width: `${qrSize}%`,
+          }}
+        >
+          <QRCodeSVG value={redirectUrl} size={512} level="L" fgColor="#d8d1c4" bgColor="transparent" className="w-full h-auto" />
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <Button onClick={handleDownload} size="lg">
+          <Download className="w-4 h-4 mr-2" /> Download Poster
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── QR Link Manager Card ─── */
+function QRLinkCard({ link, posterUrl, qrX, qrY, qrSize }: {
+  link: QRLink;
+  posterUrl: string | null;
+  qrX: number;
+  qrY: number;
+  qrSize: number;
+}) {
   const [editing, setEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(link.label);
   const [editUrl, setEditUrl] = useState(link.destination_url);
   const updateMutation = useUpdateQRLink();
   const deleteMutation = useDeleteQRLink();
-  const qrRef = useRef<HTMLDivElement>(null);
-
-  const redirectUrl = getRedirectUrl(link.short_code);
-
-  const handleDownload = useCallback(() => {
-    const svg = qrRef.current?.querySelector('svg');
-    if (!svg) return;
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = 512;
-      canvas.height = 512;
-      // Keep transparent background (no fill)
-      ctx?.drawImage(img, 0, 0, 512, 512);
-      const a = document.createElement('a');
-      a.download = `${link.label.replace(/\s+/g, '-')}-qr.png`;
-      a.href = canvas.toDataURL('image/png');
-      a.click();
-    };
-    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-  }, [link.label]);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(redirectUrl);
-    toast.success('Link copied!');
-  };
 
   const handleSave = async () => {
     try {
@@ -70,77 +140,69 @@ function QRCodeCard({ link }: { link: QRLink }) {
   };
 
   return (
-    <Card className="glass-card border-border/50">
-      <CardContent className="p-5">
-        <div className="flex gap-5">
-          {/* QR Code */}
-          <div ref={qrRef} className="flex-shrink-0 rounded-lg p-3" style={{ backgroundColor: 'transparent' }}>
-            <QRCodeSVG value={redirectUrl} size={120} level="L" fgColor="#d8d1c4" bgColor="transparent" />
+    <div className="space-y-6">
+      {/* Info row */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        {editing ? (
+          <div className="flex-1 space-y-2 min-w-0">
+            <Input value={editLabel} onChange={e => setEditLabel(e.target.value)} placeholder="Label" className="bg-secondary/50" />
+            <Input value={editUrl} onChange={e => setEditUrl(e.target.value)} placeholder="Destination URL" className="bg-secondary/50" />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
+                <Check className="w-4 h-4 mr-1" /> Save
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setEditLabel(link.label); setEditUrl(link.destination_url); }}>
+                <X className="w-4 h-4 mr-1" /> Cancel
+              </Button>
+            </div>
           </div>
-
-          {/* Info */}
-          <div className="flex-1 min-w-0 space-y-2">
-            {editing ? (
-              <div className="space-y-2">
-                <Input value={editLabel} onChange={e => setEditLabel(e.target.value)} placeholder="Label" className="bg-secondary/50" />
-                <Input value={editUrl} onChange={e => setEditUrl(e.target.value)} placeholder="Destination URL" className="bg-secondary/50" />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
-                    <Check className="w-4 h-4 mr-1" /> Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setEditLabel(link.label); setEditUrl(link.destination_url); }}>
-                    <X className="w-4 h-4 mr-1" /> Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <h3 className="font-semibold text-foreground truncate">{link.label}</h3>
-                <a href={link.destination_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate flex items-center gap-1">
-                  {link.destination_url} <ExternalLink className="w-3 h-3" />
-                </a>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  {link.scan_count} scan{link.scan_count !== 1 ? 's' : ''}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        {!editing && (
-          <div className="flex gap-2 mt-4 flex-wrap">
-            <Button size="sm" variant="outline" onClick={handleDownload}><Download className="w-4 h-4 mr-1" /> Download</Button>
-            <Button size="sm" variant="outline" onClick={handleCopy}><Copy className="w-4 h-4 mr-1" /> Copy Link</Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><Pencil className="w-4 h-4 mr-1" /> Edit</Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4 mr-1" /> Delete</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete QR Code?</AlertDialogTitle>
-                  <AlertDialogDescription>Anyone who scans this QR code will see "Link Not Found". This cannot be undone.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+        ) : (
+          <>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-foreground">{link.label}</h3>
+              <p className="text-sm text-muted-foreground truncate">{link.destination_url}</p>
+              <p className="text-xs text-muted-foreground">{link.scan_count} scan{link.scan_count !== 1 ? 's' : ''}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setEditing(true)}><Pencil className="w-4 h-4" /></Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete QR Code?</AlertDialogTitle>
+                    <AlertDialogDescription>Anyone who scans this QR code will see "Link Not Found". This cannot be undone.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Poster preview */}
+      {posterUrl && !editing && (
+        <PosterPreview link={link} posterUrl={posterUrl} qrX={qrX} qrY={qrY} qrSize={qrSize} />
+      )}
+    </div>
   );
 }
 
+/* ─── Main Page ─── */
 export default function QRCodes() {
   const { data: links = [], isLoading } = useQRLinks();
+  const { data: poster } = usePosterTemplate();
   const createMutation = useCreateQRLink();
   const [label, setLabel] = useState('');
   const [url, setUrl] = useState('');
+
+  const existingLink = links[0]; // One QR per poster
+  const posterUrl = poster?.image_url ?? null;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,50 +223,63 @@ export default function QRCodes() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
-            <QrCode className="w-8 h-8 text-primary" /> QR Codes
+            <QrCode className="w-8 h-8 text-primary" /> QR Poster
           </h1>
-          <p className="text-muted-foreground mt-1">Create QR codes that work forever. Change the destination anytime without reprinting.</p>
+          <p className="text-muted-foreground mt-1">Generate your QR code poster — update where it links anytime without reprinting.</p>
         </div>
 
-        {/* Create form */}
-        <Card className="glass-card border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-lg">Create New QR Code</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="qr-label">Label</Label>
-                  <Input id="qr-label" placeholder="e.g. Instagram, Booking Page" value={label} onChange={e => setLabel(e.target.value)} className="bg-secondary/50" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="qr-url">Destination URL</Label>
-                  <Input id="qr-url" placeholder="https://instagram.com/yourbiz" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
-                </div>
-              </div>
-              <Button type="submit" disabled={createMutation.isPending || !label.trim() || !url.trim()}>
-                {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Create QR Code
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        {/* No poster template warning */}
+        {!posterUrl && (
+          <Card className="glass-card border-border/50">
+            <CardContent className="p-8 text-center space-y-3">
+              <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground opacity-40" />
+              <p className="text-muted-foreground">No poster template has been set up yet. Ask your admin to upload one.</p>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* List */}
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : links.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <QrCode className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>No QR codes yet. Create your first one above!</p>
-          </div>
+        ) : existingLink ? (
+          /* Show existing QR on poster */
+          <Card className="glass-card border-border/50">
+            <CardContent className="p-6">
+              <QRLinkCard
+                link={existingLink}
+                posterUrl={posterUrl}
+                qrX={poster?.qr_x ?? 50}
+                qrY={poster?.qr_y ?? 50}
+                qrSize={poster?.qr_size ?? 15}
+              />
+            </CardContent>
+          </Card>
         ) : (
-          <div className="space-y-4">
-            {links.map(link => <QRCodeCard key={link.id} link={link} />)}
-          </div>
+          /* Create form */
+          <Card className="glass-card border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-lg">Create Your QR Code</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreate} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="qr-label">Label</Label>
+                    <Input id="qr-label" placeholder="e.g. Instagram, Booking Page" value={label} onChange={e => setLabel(e.target.value)} className="bg-secondary/50" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="qr-url">Destination URL</Label>
+                    <Input id="qr-url" placeholder="https://instagram.com/yourbiz" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
+                  </div>
+                </div>
+                <Button type="submit" disabled={createMutation.isPending || !label.trim() || !url.trim()}>
+                  {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
+                  Generate QR Poster
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         )}
       </div>
     </DashboardLayout>
