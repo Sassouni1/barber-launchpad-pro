@@ -39,6 +39,7 @@ function QRCodeCard({ link }: { link: QRLink }) {
     img.onload = () => {
       canvas.width = 512;
       canvas.height = 512;
+      // Keep transparent background (no fill)
       ctx?.drawImage(img, 0, 0, 512, 512);
       const a = document.createElement('a');
       a.download = `${link.label.replace(/\s+/g, '-')}-qr.png`;
@@ -73,8 +74,8 @@ function QRCodeCard({ link }: { link: QRLink }) {
       <CardContent className="p-5">
         <div className="flex gap-5">
           {/* QR Code */}
-          <div ref={qrRef} className="flex-shrink-0 bg-white rounded-lg p-3">
-            <QRCodeSVG value={redirectUrl} size={120} level="M" />
+          <div ref={qrRef} className="flex-shrink-0 rounded-lg p-3" style={{ backgroundColor: 'transparent' }}>
+            <QRCodeSVG value={redirectUrl} size={120} level="M" fgColor="#d8d1c4" bgColor="transparent" />
           </div>
 
           {/* Info */}
