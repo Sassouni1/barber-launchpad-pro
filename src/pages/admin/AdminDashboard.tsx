@@ -4,6 +4,7 @@ import { useAgreementRequired, useToggleAgreementRequired } from '@/hooks/useApp
 import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2, Settings } from 'lucide-react';
 import { CertificateTemplateUploader } from '@/components/admin/CertificateTemplateUploader';
 import { FontUploader } from '@/components/admin/FontUploader';
+import { PosterTemplateManager } from '@/components/admin/PosterTemplateManager';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -129,8 +130,14 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Certificate Template Uploader */}
+        {/* Poster Template */}
         <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.6s' }}>
+          <h2 className="font-display text-xl font-semibold mb-4">QR Poster Template</h2>
+          <PosterTemplateManager />
+        </div>
+
+        {/* Certificate Template Uploader */}
+        <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.7s' }}>
           <h2 className="font-display text-xl font-semibold mb-4">Certificate Settings</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <CertificateTemplateUploader />
