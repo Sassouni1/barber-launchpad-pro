@@ -1,41 +1,55 @@
 
 
-## Add Multiple Ways to Add Clients to Rewards Tracker
+## Add Referral Tracking to Rewards Tracker
 
-Three methods to get clients into your rewards list: quick add, QR code, and shareable link.
+Track when existing clients refer new ones, with tiered free service rewards based on total referrals.
 
-### 1. Self-Registration Edge Function
+### How It Works
 
-Create a backend function (`register-reward-client`) that accepts a client's name, phone, and email along with the member's user ID. This allows unauthenticated clients to add themselves without needing a login. The function uses the service role key to insert into `reward_clients` on behalf of the member.
+When a new client is added (manually or via self-signup), the member can mark which existing client referred them. The referring client earns credit toward tiered rewards:
 
-### 2. Public Self-Registration Page
+- **1 referral** -- Small reward (e.g. free beard trim)
+- **3 referrals** -- Medium reward (e.g. free haircut)  
+- **5 referrals** -- Big reward (e.g. free full service)
 
-Create a new page at `/rewards/join/:userId` that shows a simple branded form where a client enters their name and phone/email. On submit, it calls the edge function above. No login required -- the client just sees a "You're signed up!" confirmation. This route will be public (no `ProtectedRoute` wrapper).
+The tiers are stored in an admin-configurable `app_settings` row so they can be adjusted later.
 
-### 3. QR Code Generation on Rewards Page
+### Database Changes
 
-On the member's Rewards Tracker page, add a "Get QR Code" button that generates a QR code pointing to the member's personal join link (`/rewards/join/{userId}`). Uses the existing `qrcode.react` library already installed. The member can download or screenshot the QR to display in their shop.
+1. **Add `referred_by_client_id` column** to `reward_clients` table (nullable UUID, self-referencing FK). This tracks which existing client referred each new client.
 
-### 4. Shareable Link with Copy Button
+2. **Add `app_settings` row** for `referral_tiers` with value like:
+   ```json
+   {
+     "tiers": [
+       { "count": 1, "reward": "Free Beard Trim" },
+       { "count": 3, "reward": "Free Haircut" },
+       { "count": 5, "reward": "Free Full Service" }
+     ]
+   }
+   ```
 
-Next to the QR code, show the join URL as text with a "Copy Link" button. Members can text or DM this to clients.
+3. **Add `referral_redeemed_count` column** to `reward_clients` (integer, default 0) to track how many referral rewards they've already claimed.
 
-### 5. Quick Add Simplification
+### Frontend Changes
 
-Simplify the existing "Add Client" dialog to default to just a name field with phone/email collapsed behind an "Add details" toggle, making it faster for in-person additions.
+**`src/hooks/useRewards.ts`**:
+- Extend `useRewardClients` query to include referral count (count of other clients where `referred_by_client_id = this client's id`)
+- Add `useReferralTiers` hook to fetch tier config from `app_settings`
+- Add `useRedeemReferralReward` mutation to increment `referral_redeemed_count`
 
-### Files to Create/Edit
+**`src/pages/Rewards.tsx`**:
+- In the "Add Client" dialog (and self-signup flow), add an optional "Referred by" dropdown listing existing clients
+- On each client card, show referral count and their current tier/reward earned
+- Add a "Claim Referral Reward" button when they've hit a new tier they haven't redeemed yet
+- Display referral stats in the stats bar (total referrals alongside total clients / rewards given)
 
-- **`supabase/functions/register-reward-client/index.ts`** -- Edge function for public client self-registration
-- **`supabase/config.toml`** -- Add `verify_jwt = false` for the new function (NOTE: this file updates automatically, we just need the function config)
-- **`src/pages/RewardsJoin.tsx`** -- Public-facing self-registration form page
-- **`src/pages/Rewards.tsx`** -- Add QR code display, shareable link section, and simplify the add client dialog
-- **`src/App.tsx`** -- Add public route for `/rewards/join/:userId`
+**`src/pages/RewardsJoin.tsx`** (self-signup page):
+- No changes needed here since the member assigns the referrer on their end after the client signs up
 
-### Technical Details
+### Technical Notes
 
-- The edge function validates input (name required, trims whitespace, checks length limits) and inserts into `reward_clients` using the service role key
-- Duplicate detection: if a client with the same name + phone already exists for that member, show a friendly "you're already registered" message instead of creating a duplicate
-- QR code uses the same `qrcode.react` library and styling conventions as the existing QR Codes page
-- The join page uses the app's published URL as the base for the QR/link (pulled from `window.location.origin`)
+- Referral count is computed by counting rows in `reward_clients` where `referred_by_client_id` matches the client's ID and the client belongs to the same member (`user_id` match)
+- Tier progression: if a client has 3 referrals and has redeemed 1 tier reward, they can claim the 3-referral tier reward next
+- The `referred_by_client_id` FK is scoped to the same `user_id` to prevent cross-member referral assignments
 
