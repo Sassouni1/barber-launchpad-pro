@@ -199,8 +199,8 @@ export default function QRCodes() {
   const createMutation = useCreateQRLink();
   const [label, setLabel] = useState('');
   const [url, setUrl] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const existingLink = links[0]; // One QR per poster
   const posterUrl = poster?.image_url ?? null;
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -213,6 +213,7 @@ export default function QRCodes() {
       toast.success('QR code created!');
       setLabel('');
       setUrl('');
+      setShowCreateForm(false);
     } catch { toast.error('Failed to create QR code'); }
   };
 
@@ -237,46 +238,64 @@ export default function QRCodes() {
           </Card>
         )}
 
-      {isLoading ? (
+        {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : existingLink ? (
-          /* Show existing QR with editable link + compact poster */
-          <Card className="glass-card border-border/50">
-            <CardContent className="p-6">
-              <QRLinkCard
-                link={existingLink}
-                posterUrl={posterUrl}
-                qrX={poster?.qr_x ?? 50}
-                qrY={poster?.qr_y ?? 50}
-                qrSize={poster?.qr_size ?? 15}
-              />
-            </CardContent>
-          </Card>
         ) : (
-          /* Create form */
-          <Card className="glass-card border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-lg">Create Your QR Code</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="qr-label">Label</Label>
-                  <Input id="qr-label" placeholder="e.g. Instagram, Booking Page" value={label} onChange={e => setLabel(e.target.value)} className="bg-secondary/50" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="qr-url">Your Website / Link</Label>
-                  <Input id="qr-url" placeholder="https://instagram.com/yourbiz" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
-                </div>
-                <Button type="submit" disabled={createMutation.isPending || !label.trim() || !url.trim()}>
-                  {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
-                  Generate QR Poster
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <>
+            {/* Existing QR codes */}
+            {links.map((link) => (
+              <Card key={link.id} className="glass-card border-border/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-medium">{link.label}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <QRLinkCard
+                    link={link}
+                    posterUrl={posterUrl}
+                    qrX={poster?.qr_x ?? 50}
+                    qrY={poster?.qr_y ?? 50}
+                    qrSize={poster?.qr_size ?? 15}
+                  />
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Create new QR button / form */}
+            {showCreateForm ? (
+              <Card className="glass-card border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-lg">Create New QR Code</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreate} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="qr-label">Label</Label>
+                      <Input id="qr-label" placeholder="e.g. Instagram, Booking Page" value={label} onChange={e => setLabel(e.target.value)} className="bg-secondary/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="qr-url">Your Website / Link</Label>
+                      <Input id="qr-url" placeholder="https://instagram.com/yourbiz" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" disabled={createMutation.isPending || !label.trim() || !url.trim()}>
+                        {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
+                        Generate QR Poster
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => setShowCreateForm(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            ) : (
+              <Button onClick={() => setShowCreateForm(true)} variant="outline" className="w-full">
+                <QrCode className="w-4 h-4 mr-2" /> Create New QR Code
+              </Button>
+            )}
+          </>
         )}
       </div>
     </DashboardLayout>
