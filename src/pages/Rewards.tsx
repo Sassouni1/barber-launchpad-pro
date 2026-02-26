@@ -22,8 +22,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Gift, Plus, Star, Trash2, Users } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Gift, Plus, Star, Trash2, Users, QrCode, Copy, ChevronDown, Link } from 'lucide-react';
 import { toast } from 'sonner';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   useRewardClients,
   useRewardVisitsRequired,
@@ -32,24 +34,58 @@ import {
   useRedeemReward,
   useDeleteClient,
 } from '@/hooks/useRewards';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
-export default function Rewards() {
-  const { data: clients = [], isLoading } = useRewardClients();
-  const { data: visitsRequired = 10 } = useRewardVisitsRequired();
-  const addClient = useAddClient();
-  const logVisit = useLogVisit();
-  const redeemReward = useRedeemReward();
-  const deleteClient = useDeleteClient();
+function ShareSection() {
+  const { user } = useAuth();
+  const [showQR, setShowQR] = useState(false);
+  const joinUrl = `${window.location.origin}/rewards/join/${user?.id}`;
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(joinUrl);
+    toast.success('Link copied!');
+  };
+
+  if (!user) return null;
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+          <Link className="w-4 h-4" /> Share with Clients
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Clients can sign themselves up using your personal link or QR code.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleCopy}>
+            <Copy className="w-3.5 h-3.5" /> Copy Link
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowQR(!showQR)}>
+            <QrCode className="w-3.5 h-3.5" /> {showQR ? 'Hide QR' : 'Show QR'}
+          </Button>
+        </div>
+        {showQR && (
+          <div className="flex justify-center p-4 bg-white rounded-lg">
+            <QRCodeSVG value={joinUrl} size={180} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AddClientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const addClient = useAddClient();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
 
-  const totalRedemptions = clients.reduce((sum, c) => sum + c.totalRedemptions, 0);
-
-  const handleAddClient = async () => {
+  const handleAdd = async () => {
     if (!name.trim()) return;
     try {
       await addClient.mutateAsync({
@@ -61,11 +97,76 @@ export default function Rewards() {
       setName('');
       setPhone('');
       setEmail('');
-      setDialogOpen(false);
+      setShowDetails(false);
+      onOpenChange(false);
     } catch {
       toast.error('Failed to add client');
     }
   };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Quick Add Client</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          <div>
+            <Label htmlFor="client-name">Name *</Label>
+            <Input
+              id="client-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Client name"
+              autoFocus
+            />
+          </div>
+          <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground px-0">
+                <ChevronDown className={cn('w-4 h-4 transition-transform', showDetails && 'rotate-180')} />
+                Add details
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-2">
+              <div>
+                <Label htmlFor="client-phone">Phone</Label>
+                <Input
+                  id="client-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <Label htmlFor="client-email">Email</Label>
+                <Input
+                  id="client-email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+          <Button onClick={handleAdd} disabled={!name.trim() || addClient.isPending} className="w-full">
+            {addClient.isPending ? 'Adding...' : 'Add Client'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function Rewards() {
+  const { data: clients = [], isLoading } = useRewardClients();
+  const { data: visitsRequired = 10 } = useRewardVisitsRequired();
+  const logVisit = useLogVisit();
+  const redeemReward = useRedeemReward();
+  const deleteClient = useDeleteClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const totalRedemptions = clients.reduce((sum, c) => sum + c.totalRedemptions, 0);
 
   const handleLogVisit = async (clientId: string, clientName: string) => {
     try {
@@ -97,7 +198,6 @@ export default function Rewards() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-display font-bold text-foreground">Rewards Tracker</h1>
@@ -105,53 +205,14 @@ export default function Rewards() {
               Track client visits and reward loyal customers
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" /> Add Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Client</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-2">
-                <div>
-                  <Label htmlFor="client-name">Name *</Label>
-                  <Input
-                    id="client-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Client name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="client-phone">Phone</Label>
-                  <Input
-                    id="client-phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="client-email">Email</Label>
-                  <Input
-                    id="client-email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
-                <Button onClick={handleAddClient} disabled={!name.trim() || addClient.isPending} className="w-full">
-                  {addClient.isPending ? 'Adding...' : 'Add Client'}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+            <Plus className="w-4 h-4" /> Add Client
+          </Button>
+          <AddClientDialog open={dialogOpen} onOpenChange={setDialogOpen} />
         </div>
 
-        {/* Stats */}
+        <ShareSection />
+
         <div className="grid grid-cols-2 gap-4">
           <Card className="bg-card border-border">
             <CardContent className="flex items-center gap-3 p-4">
@@ -177,7 +238,6 @@ export default function Rewards() {
           </Card>
         </div>
 
-        {/* Client List */}
         {isLoading ? (
           <p className="text-muted-foreground text-center py-8">Loading...</p>
         ) : clients.length === 0 ? (
@@ -226,7 +286,6 @@ export default function Rewards() {
                     )}
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {/* Punch Card */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {Array.from({ length: visitsRequired }).map((_, i) => (
                         <div
@@ -244,7 +303,6 @@ export default function Rewards() {
                         </div>
                       ))}
                     </div>
-
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground">
                         {isFull
