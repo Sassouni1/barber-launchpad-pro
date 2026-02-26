@@ -742,6 +742,39 @@ export type Database = {
         }
         Relationships: []
       }
+      qr_links: {
+        Row: {
+          created_at: string
+          destination_url: string
+          id: string
+          label: string
+          scan_count: number
+          short_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination_url: string
+          id?: string
+          label: string
+          scan_count?: number
+          short_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          destination_url?: string
+          id?: string
+          label?: string
+          scan_count?: number
+          short_code?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quiz_answers: {
         Row: {
           answer_text: string
@@ -1242,6 +1275,12 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      resolve_qr_link: {
+        Args: { code: string }
+        Returns: {
+          destination_url: string
+        }[]
       }
     }
     Enums: {
