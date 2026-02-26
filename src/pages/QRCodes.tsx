@@ -75,7 +75,7 @@ function QRCodeCard({ link }: { link: QRLink }) {
         <div className="flex gap-5">
           {/* QR Code */}
           <div ref={qrRef} className="flex-shrink-0 rounded-lg p-3" style={{ backgroundColor: 'transparent' }}>
-            <QRCodeSVG value={redirectUrl} size={120} level="M" fgColor="#d8d1c4" bgColor="transparent" />
+            <QRCodeSVG value={redirectUrl} size={120} level="L" fgColor="#d8d1c4" bgColor="transparent" />
           </div>
 
           {/* Info */}
