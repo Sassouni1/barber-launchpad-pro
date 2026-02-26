@@ -61,10 +61,12 @@ export function PosterTemplateManager() {
   };
 
   const handlePosterClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Use the image container (currentTarget) for bounding rect
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
-    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
-    setLocalTemplate({ ...current, qr_x: Math.max(0, Math.min(100, x)), qr_y: Math.max(0, Math.min(100, y)) });
+    const x = Math.round(Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)));
+    const y = Math.round(Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100)));
+    const updated = { ...current, qr_x: x, qr_y: y };
+    setLocalTemplate(updated);
   };
 
   if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-primary" />;
@@ -96,7 +98,7 @@ export function PosterTemplateManager() {
               className="relative w-full max-w-md rounded-lg overflow-hidden border border-border cursor-crosshair"
               onClick={handlePosterClick}
             >
-              <img src={current.image_url} alt="Poster template" className="w-full" draggable={false} />
+              <img src={current.image_url} alt="Poster template" className="w-full pointer-events-none select-none" draggable={false} />
               {/* QR preview indicator */}
               <div
                 className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none border-2 border-primary rounded-sm bg-primary/10"
