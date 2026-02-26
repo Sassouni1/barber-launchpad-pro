@@ -1,55 +1,69 @@
 
 
-## Fix: Better Error Handling for Website Analysis Failures
+## QR Code Generator with Permanent Links
 
-### Problem
-When Firecrawl can't scrape a website (blocked by the site, down, invalid URL, etc.), the edge function returns a 500 status with a long technical error message. The client sees "Edge function returned a non-2xx status" instead of a helpful message. This happens on both mobile and desktop.
+### Overview
+Build a QR code generator where each code points to a redirect URL on your own domain. You can change where a QR code leads at any time without reprinting it. Includes scan tracking.
 
-The logs show the exact error: `SCRAPE_ALL_ENGINES_FAILED` -- meaning the website is blocking automated scraping.
+### What You'll Get
+- A new **QR Codes** page in the sidebar
+- Create QR codes by entering a label and destination URL
+- Download QR codes as images to print or share
+- Edit where any QR code points to (the printed code stays valid forever)
+- See how many times each QR code has been scanned
+- Delete QR codes you no longer need
 
-### Solution
+### How "Forever" Works
+Instead of encoding `instagram.com/yourbiz` directly into the QR code, it encodes `barber-launchpad-pro.lovable.app/r/abc123`. When someone scans it, they hit your site, which looks up `abc123` in the database and redirects them. If you change your Instagram handle, just update the destination -- same QR code, new destination.
 
-**File: `supabase/functions/scrape-website/index.ts`**
-
-1. When Firecrawl returns an error, return a **200 status with `success: false`** instead of forwarding the 500 status. This prevents the Supabase client from throwing a generic "non-2xx" error and lets the client read the actual error message.
-
-2. Map common Firecrawl error codes to **user-friendly messages**:
-   - `SCRAPE_ALL_ENGINES_FAILED` -> "This website couldn't be analyzed -- it may be blocking automated access. Try a different URL or enter your brand info manually."
-   - Generic/other errors -> "Failed to analyze this website. Please check the URL and try again."
-
-**File: `src/pages/Marketing.tsx`**
-
-3. Improve the error toast to show a shorter, cleaner message instead of the raw error string. No structural changes needed since the edge function fix will deliver proper error messages through `data.error`.
+---
 
 ### Technical Details
 
-In the edge function, change the error response block (around line 60):
+**1. Database Migration**
+Create `qr_links` table:
+- `id` (UUID, PK)
+- `user_id` (UUID, not null)
+- `short_code` (text, unique, not null)
+- `destination_url` (text, not null)
+- `label` (text, not null)
+- `scan_count` (integer, default 0)
+- `created_at`, `updated_at` (timestamps)
 
-Before:
-```
-return new Response(
-  JSON.stringify({ success: false, error: data.error || '...' }),
-  { status: response.status, ... }  // forwards 500
-);
+RLS policies:
+- Users can SELECT/INSERT/UPDATE/DELETE their own rows (`auth.uid() = user_id`)
+- Public SELECT by short_code needed for redirects -- handled via a `security definer` function instead, so the table stays locked down
+
+A `security definer` function `resolve_qr_link(code text)` will look up the destination and increment scan count without requiring auth.
+
+**2. New dependency**
+- `qrcode.react` for client-side QR code rendering
+
+**3. New files**
+- `src/pages/QRCodes.tsx` -- Main page: create, list, edit, download, delete QR codes
+- `src/pages/QRRedirect.tsx` -- Minimal page at `/r/:shortCode` that calls `resolve_qr_link`, increments scan count, redirects to destination
+- `src/hooks/useQRLinks.ts` -- CRUD hooks using Supabase client
+
+**4. Modified files**
+- `src/App.tsx` -- Add `/qr-codes` (protected) and `/r/:shortCode` (public) routes
+- `src/components/layout/Sidebar.tsx` -- Add "QR Codes" nav item with QrCode icon
+- `src/components/layout/MobileNav.tsx` -- Add QR Codes link for mobile
+
+**5. Redirect flow**
+```text
+User scans QR -> barber-launchpad-pro.lovable.app/r/abc123
+  -> QRRedirect page loads
+  -> Calls resolve_qr_link('abc123') (security definer, no auth needed)
+  -> Function returns destination_url, increments scan_count
+  -> window.location.href = destination_url
+  -> If invalid code, shows "This QR code is no longer active"
 ```
 
-After:
-```
-// Map to friendly message
-let userMessage = 'Failed to analyze this website.';
-if (data.code === 'SCRAPE_ALL_ENGINES_FAILED') {
-  userMessage = "This website couldn't be analyzed — it may be blocking automated access. Try a different URL.";
-}
-
-return new Response(
-  JSON.stringify({ success: false, error: userMessage }),
-  { status: 200, ... }  // return 200 so client can read the message
-);
-```
-
-### What stays the same
-- All scraping logic and Firecrawl integration
-- Image extraction and brand profile building
-- Client-side Marketing page structure
-- All other edge functions
+**6. QR Code page features**
+- Form: label + destination URL -> generates unique 8-char short code
+- List view: label, destination, scan count, created date
+- Edit button: change destination URL (short code stays the same)
+- Download button: exports QR code as PNG
+- Delete button with confirmation
+- Copy link button for sharing without QR image
 
