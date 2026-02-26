@@ -260,8 +260,10 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <ExpandableNavItem icon={Phone} label="Barber Launch Calls" collapsed={collapsed}>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule Call 1 on 1" />
             </ExpandableNavItem>
-            <NavItem to="/marketing" icon={Megaphone} label="AI Social Media" collapsed={collapsed} />
-            <NavItem to="/qr-codes" icon={QrCode} label="QR Codes" collapsed={collapsed} />
+            <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
+              <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
+              <SubNavItem to="/qr-codes" icon={QrCode} label="QR Codes" />
+            </ExpandableNavItem>
             
             {/* Level 1 Cert Button */}
             <button
