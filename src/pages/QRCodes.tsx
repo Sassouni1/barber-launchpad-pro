@@ -162,7 +162,7 @@ function QRLinkCard({ link, posterUrl, qrX, qrY, qrSize }: {
             </>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">{link.scan_count} scan{link.scan_count !== 1 ? 's' : ''}</p>
+        
       </div>
 
       {/* Compact poster preview */}
