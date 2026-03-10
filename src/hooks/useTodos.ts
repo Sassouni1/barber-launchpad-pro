@@ -15,7 +15,7 @@ export interface Todo {
   id: string;
   title: string;
   description: string | null;
-  type: 'course' | 'daily' | 'weekly';
+  type: 'course' | 'daily' | 'weekly' | 'quick_win';
   week_number: number | null;
   course_id: string | null;
   module_id: string | null;
