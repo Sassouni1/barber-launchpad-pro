@@ -226,7 +226,7 @@ export default function TodosManager() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: 'course' as 'course' | 'daily' | 'weekly',
+    type: 'course' as 'course' | 'daily' | 'weekly' | 'quick_win',
     week_number: 1,
     course_id: '',
     module_id: '',
