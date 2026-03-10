@@ -1,37 +1,55 @@
 
 
-## Add "Quick Wins" Todo Category
+## Add Referral Tracking to Rewards Tracker
 
-The existing `todos` table already has a `type` column (values: `course`, `daily`, `weekly`). We'll add a new type `quick_win` and display it as a distinct section.
+Track when existing clients refer new ones, with tiered free service rewards based on total referrals.
+
+### How It Works
+
+When a new client is added (manually or via self-signup), the member can mark which existing client referred them. The referring client earns credit toward tiered rewards:
+
+- **1 referral** -- Small reward (e.g. free beard trim)
+- **3 referrals** -- Medium reward (e.g. free haircut)  
+- **5 referrals** -- Big reward (e.g. free full service)
+
+The tiers are stored in an admin-configurable `app_settings` row so they can be adjusted later.
 
 ### Database Changes
 
-**Migration**: Add `quick_win` as a valid type (no schema change needed -- `type` is a text column, not an enum). Just insert the items:
+1. **Add `referred_by_client_id` column** to `reward_clients` table (nullable UUID, self-referencing FK). This tracks which existing client referred each new client.
 
-```sql
-INSERT INTO todos (title, type, order_index) VALUES
-  ('Hang up hair system poster (Print)', 'quick_win', 0),
-  ('Tell every client', 'quick_win', 1),
-  ('Make 5 posts on your social media this week & post 3 stories', 'quick_win', 2),
-  ('Bonus: Instagram DM 100 people or Facebook message', 'quick_win', 3);
-```
+2. **Add `app_settings` row** for `referral_tiers` with value like:
+   ```json
+   {
+     "tiers": [
+       { "count": 1, "reward": "Free Beard Trim" },
+       { "count": 3, "reward": "Free Haircut" },
+       { "count": 5, "reward": "Free Full Service" }
+     ]
+   }
+   ```
+
+3. **Add `referral_redeemed_count` column** to `reward_clients` (integer, default 0) to track how many referral rewards they've already claimed.
 
 ### Frontend Changes
 
-**`src/components/dashboard/TodoList.tsx`**:
-- Add `quick_win` to the `groupedTodos` object
-- Render a "Quick Wins This Week" section at the **top** of the TodoList, before daily/weekly -- with a distinct style (e.g. Zap icon, accent border) so it feels separate and action-oriented
-- Quick wins are NOT locked behind dynamic todos -- they show always
+**`src/hooks/useRewards.ts`**:
+- Extend `useRewardClients` query to include referral count (count of other clients where `referred_by_client_id = this client's id`)
+- Add `useReferralTiers` hook to fetch tier config from `app_settings`
+- Add `useRedeemReferralReward` mutation to increment `referral_redeemed_count`
 
-**`src/pages/admin/TodosManager.tsx`**:
-- Add `quick_win` to the type dropdown so admins can create/edit these items
+**`src/pages/Rewards.tsx`**:
+- In the "Add Client" dialog (and self-signup flow), add an optional "Referred by" dropdown listing existing clients
+- On each client card, show referral count and their current tier/reward earned
+- Add a "Claim Referral Reward" button when they've hit a new tier they haven't redeemed yet
+- Display referral stats in the stats bar (total referrals alongside total clients / rewards given)
 
-**`src/hooks/useTodos.ts`**:
-- No changes needed -- it already fetches all todos regardless of type
+**`src/pages/RewardsJoin.tsx`** (self-signup page):
+- No changes needed here since the member assigns the referrer on their end after the client signs up
 
-### Where It Shows
+### Technical Notes
 
-- **Dashboard**: Inside the existing `TodoList` component, as the first section
-- **Todos page**: Same component, same position
-- Not gated behind dynamic todo completion -- always visible as a motivational quick-action list
+- Referral count is computed by counting rows in `reward_clients` where `referred_by_client_id` matches the client's ID and the client belongs to the same member (`user_id` match)
+- Tier progression: if a client has 3 referrals and has redeemed 1 tier reward, they can claim the 3-referral tier reward next
+- The `referred_by_client_id` FK is scoped to the same `user_id` to prevent cross-member referral assignments
 
