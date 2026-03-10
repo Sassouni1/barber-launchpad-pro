@@ -1,17 +1,22 @@
 import { Link } from 'react-router-dom';
-import { useTodosWithSubtasks } from '@/hooks/useTodos';
+import { useTodosWithSubtasks, useUserTodos, useToggleUserTodo } from '@/hooks/useTodos';
 import { useDynamicTodos } from '@/hooks/useDynamicTodos';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Play, Lock } from 'lucide-react';
+import { Play, Lock, Zap } from 'lucide-react';
 
 export function TodoList() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
+  const { data: userTodos = [] } = useUserTodos();
+  const toggleTodo = useToggleUserTodo();
   const { allListsCompleted, totalLists, isLoading: dynamicLoading } = useDynamicTodos();
+
+  const isCompleted = (todoId: string) => userTodos.some(ut => ut.todo_id === todoId && ut.completed);
 
   const groupedTodos = {
     course: todos.filter(t => t.type === 'course'),
     daily: todos.filter(t => t.type === 'daily'),
     weekly: todos.filter(t => t.type === 'weekly'),
+    quick_win: todos.filter(t => t.type === 'quick_win'),
   };
 
   const weekGroups = [1, 2, 3, 4, 5].map(week => ({

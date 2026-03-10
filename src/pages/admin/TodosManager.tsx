@@ -519,7 +519,7 @@ export default function TodosManager() {
                 />
                 <Select
                   value={formData.type}
-                  onValueChange={(v: 'course' | 'daily' | 'weekly') => setFormData(p => ({ ...p, type: v }))}
+                  onValueChange={(v: 'course' | 'daily' | 'weekly' | 'quick_win') => setFormData(p => ({ ...p, type: v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Type" />
@@ -528,6 +528,7 @@ export default function TodosManager() {
                     <SelectItem value="course">Course Task</SelectItem>
                     <SelectItem value="daily">Daily</SelectItem>
                     <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="quick_win">Quick Win</SelectItem>
                   </SelectContent>
                 </Select>
 
