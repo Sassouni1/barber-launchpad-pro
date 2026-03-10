@@ -1,0 +1,2 @@
+ALTER TABLE public.todos DROP CONSTRAINT todos_type_check;
+ALTER TABLE public.todos ADD CONSTRAINT todos_type_check CHECK (type = ANY (ARRAY['course'::text, 'daily'::text, 'weekly'::text, 'quick_win'::text]));
