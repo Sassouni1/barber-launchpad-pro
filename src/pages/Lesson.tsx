@@ -786,6 +786,8 @@ export default function Lesson() {
                             src={file.file_url} 
                             alt={file.file_name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       ) : isVideo(file.file_type) ? (
