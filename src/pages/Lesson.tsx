@@ -443,15 +443,23 @@ export default function Lesson() {
           const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
           const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-          const getDownloadUrl = (fileUrl: string, fileName: string) => {
-            // For public storage files, add download query param for direct download
-            // This avoids proxying large files through the edge function which can timeout
-            if (fileUrl.includes('/storage/v1/object/public/')) {
-              return `${fileUrl}?download=${encodeURIComponent(fileName)}`;
+          const handleDownloadFile = async (fileUrl: string, fileName: string) => {
+            try {
+              toast.loading('Downloading...', { id: 'download' });
+              const response = await fetch(fileUrl);
+              const blob = await response.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = fileName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              toast.success('Downloaded!', { id: 'download' });
+            } catch {
+              toast.error('Download failed', { id: 'download' });
             }
-            // Fallback to edge function proxy for non-public files
-            const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-            return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
           };
 
           const MobileFileCard = ({ file }: { file: typeof files[0] }) => (
@@ -488,14 +496,13 @@ export default function Lesson() {
                 <p className="text-xs font-medium truncate" title={file.file_name}>
                   {file.file_name}
                 </p>
-                <a
-                  href={getDownloadUrl(file.file_url, file.file_name)}
-                  download={file.file_name}
+                <button
+                  onClick={() => handleDownloadFile(file.file_url, file.file_name)}
                   className="flex items-center justify-center gap-1 text-xs text-primary hover:underline"
                 >
                   <Download className="w-3 h-3" />
                   Save
-                </a>
+                </button>
               </div>
             </div>
           );
@@ -779,13 +786,23 @@ export default function Lesson() {
                   const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
                   const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-                  const getDownloadUrl = (fileUrl: string, fileName: string) => {
-                    // For public storage files, use direct download to avoid edge function timeouts
-                    if (fileUrl.includes('/storage/v1/object/public/')) {
-                      return `${fileUrl}?download=${encodeURIComponent(fileName)}`;
+                  const handleDownloadFile = async (fileUrl: string, fileName: string) => {
+                    try {
+                      toast.loading('Downloading...', { id: 'download' });
+                      const response = await fetch(fileUrl);
+                      const blob = await response.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = fileName;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      toast.success('Downloaded!', { id: 'download' });
+                    } catch {
+                      toast.error('Download failed', { id: 'download' });
                     }
-                    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-                    return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
                   };
 
                   const FileCard = ({ file }: { file: typeof files[0] }) => (
@@ -822,13 +839,13 @@ export default function Lesson() {
                         <p className="text-xs font-medium truncate" title={file.file_name}>
                           {file.file_name}
                         </p>
-                        <a
-                          href={getDownloadUrl(file.file_url, file.file_name)}
+                        <button
+                          onClick={() => handleDownloadFile(file.file_url, file.file_name)}
                           className="flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
                         >
                           <Download className="w-3.5 h-3.5" />
                           Save
-                        </a>
+                        </button>
                       </div>
                     </div>
                   );
