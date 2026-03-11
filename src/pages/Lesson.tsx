@@ -443,12 +443,30 @@ export default function Lesson() {
           const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
           const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-          const getDownloadUrl = (fileUrl: string, fileName: string) => {
-            const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-            return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+          const triggerDownload = async (fileUrl: string, fileName: string) => {
+            try {
+              const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+              const downloadUrl = `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+              const response = await fetch(downloadUrl);
+              if (!response.ok) throw new Error('Download failed');
+              const blob = await response.blob();
+              const blobUrl = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = blobUrl;
+              a.download = fileName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(blobUrl);
+              toast.success(`Downloaded ${fileName}`);
+            } catch {
+              toast.error('Download failed. Please try again.');
+            }
           };
 
-          const MobileFileCard = ({ file }: { file: typeof files[0] }) => (
+          const MobileFileCard = ({ file }: { file: typeof files[0] }) => {
+            const [downloading, setDownloading] = useState(false);
+            return (
             <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[120px] max-w-[140px] flex-shrink-0">
               {isImage(file.file_type) ? (
                 <div className="aspect-square bg-black/20 relative">
@@ -480,17 +498,22 @@ export default function Lesson() {
                 <p className="text-xs font-medium truncate" title={file.file_name}>
                   {file.file_name}
                 </p>
-                <a
-                  href={getDownloadUrl(file.file_url, file.file_name)}
-                  download={file.file_name}
-                  className="flex items-center justify-center gap-1 text-xs text-primary hover:underline"
+                <button
+                  onClick={async () => {
+                    setDownloading(true);
+                    await triggerDownload(file.file_url, file.file_name);
+                    setDownloading(false);
+                  }}
+                  disabled={downloading}
+                  className="flex items-center justify-center gap-1 text-xs text-primary hover:underline w-full"
                 >
-                  <Download className="w-3 h-3" />
-                  Save
-                </a>
+                  {downloading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                  {downloading ? 'Saving...' : 'Save'}
+                </button>
               </div>
             </div>
-          );
+            );
+          };
 
           return (
             <div className="glass-card p-4 rounded-2xl space-y-3 animate-fade-up" style={{ animationDelay: '0.2s' }}>
