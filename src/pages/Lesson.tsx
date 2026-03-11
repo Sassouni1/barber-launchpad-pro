@@ -443,27 +443,9 @@ export default function Lesson() {
           const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
           const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-          const handleDownloadFile = async (fileUrl: string, fileName: string) => {
-            try {
-              toast.info('Downloading...');
-              const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-              const proxyUrl = `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
-              const response = await fetch(proxyUrl);
-              if (!response.ok) throw new Error('Download failed');
-              const blob = await response.blob();
-              const blobUrl = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = blobUrl;
-              link.download = fileName;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-              toast.success('Downloaded!');
-            } catch (err) {
-              console.error('Download error:', err);
-              toast.error('Download failed. Try again.');
-            }
+          const getDownloadUrl = (fileUrl: string, fileName: string) => {
+            const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+            return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
           };
 
           const MobileFileCard = ({ file }: { file: typeof files[0] }) => (
@@ -474,8 +456,6 @@ export default function Lesson() {
                     src={file.file_url} 
                     alt={file.file_name}
                     className="w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
                   />
                 </div>
               ) : isVideo(file.file_type) ? (
@@ -500,13 +480,14 @@ export default function Lesson() {
                 <p className="text-xs font-medium truncate" title={file.file_name}>
                   {file.file_name}
                 </p>
-                <button
-                  onClick={() => handleDownloadFile(file.file_url, file.file_name)}
+                <a
+                  href={getDownloadUrl(file.file_url, file.file_name)}
+                  download={file.file_name}
                   className="flex items-center justify-center gap-1 text-xs text-primary hover:underline"
                 >
                   <Download className="w-3 h-3" />
                   Save
-                </button>
+                </a>
               </div>
             </div>
           );
@@ -790,27 +771,9 @@ export default function Lesson() {
                   const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
                   const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-                  const handleDownloadFile = async (fileUrl: string, fileName: string) => {
-                    try {
-                      toast.info('Downloading...');
-                      const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-                      const proxyUrl = `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
-                      const response = await fetch(proxyUrl);
-                      if (!response.ok) throw new Error('Download failed');
-                      const blob = await response.blob();
-                      const blobUrl = URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = blobUrl;
-                      link.download = fileName;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-                      toast.success('Downloaded!');
-                    } catch (err) {
-                      console.error('Download error:', err);
-                      toast.error('Download failed. Try again.');
-                    }
+                  const getDownloadUrl = (fileUrl: string, fileName: string) => {
+                    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+                    return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
                   };
 
                   const FileCard = ({ file }: { file: typeof files[0] }) => (
@@ -821,8 +784,6 @@ export default function Lesson() {
                             src={file.file_url} 
                             alt={file.file_name}
                             className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async"
                           />
                         </div>
                       ) : isVideo(file.file_type) ? (
@@ -847,13 +808,13 @@ export default function Lesson() {
                         <p className="text-xs font-medium truncate" title={file.file_name}>
                           {file.file_name}
                         </p>
-                        <button
-                          onClick={() => handleDownloadFile(file.file_url, file.file_name)}
+                        <a
+                          href={getDownloadUrl(file.file_url, file.file_name)}
                           className="flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
                         >
                           <Download className="w-3.5 h-3.5" />
                           Save
-                        </button>
+                        </a>
                       </div>
                     </div>
                   );
