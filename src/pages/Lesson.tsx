@@ -444,6 +444,12 @@ export default function Lesson() {
           const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
           const getDownloadUrl = (fileUrl: string, fileName: string) => {
+            // For public storage files, add download query param for direct download
+            // This avoids proxying large files through the edge function which can timeout
+            if (fileUrl.includes('/storage/v1/object/public/')) {
+              return `${fileUrl}?download=${encodeURIComponent(fileName)}`;
+            }
+            // Fallback to edge function proxy for non-public files
             const baseUrl = import.meta.env.VITE_SUPABASE_URL;
             return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
           };
@@ -456,6 +462,8 @@ export default function Lesson() {
                     src={file.file_url} 
                     alt={file.file_name}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               ) : isVideo(file.file_type) ? (
@@ -784,6 +792,8 @@ export default function Lesson() {
                             src={file.file_url} 
                             alt={file.file_name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       ) : isVideo(file.file_type) ? (
