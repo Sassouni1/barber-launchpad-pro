@@ -443,19 +443,10 @@ export default function Lesson() {
           const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
           const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-          const getProxyDownloadUrl = (fileUrl: string, fileName: string) => {
-            const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-            return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
-          };
-
           const handleDownloadFile = (fileUrl: string, fileName: string) => {
-            const proxyUrl = getProxyDownloadUrl(fileUrl, fileName);
-            const link = document.createElement('a');
-            link.href = proxyUrl;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const proxyUrl = `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+            window.open(proxyUrl, '_blank');
           };
 
           const MobileFileCard = ({ file }: { file: typeof files[0] }) => (
@@ -782,19 +773,10 @@ export default function Lesson() {
                   const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
                   const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-                  const getProxyDownloadUrl = (fileUrl: string, fileName: string) => {
-                    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-                    return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
-                  };
-
                   const handleDownloadFile = (fileUrl: string, fileName: string) => {
-                    const proxyUrl = getProxyDownloadUrl(fileUrl, fileName);
-                    const link = document.createElement('a');
-                    link.href = proxyUrl;
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+                    const proxyUrl = `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+                    window.open(proxyUrl, '_blank');
                   };
 
                   const FileCard = ({ file }: { file: typeof files[0] }) => (
