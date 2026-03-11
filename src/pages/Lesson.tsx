@@ -794,12 +794,30 @@ export default function Lesson() {
                   const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
                   const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-                  const getDownloadUrl = (fileUrl: string, fileName: string) => {
-                    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-                    return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+                  const triggerDownloadDesktop = async (fileUrl: string, fileName: string) => {
+                    try {
+                      const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+                      const downloadUrl = `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+                      const response = await fetch(downloadUrl);
+                      if (!response.ok) throw new Error('Download failed');
+                      const blob = await response.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = blobUrl;
+                      a.download = fileName;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(blobUrl);
+                      toast.success(`Downloaded ${fileName}`);
+                    } catch {
+                      toast.error('Download failed. Please try again.');
+                    }
                   };
 
-                  const FileCard = ({ file }: { file: typeof files[0] }) => (
+                  const FileCard = ({ file }: { file: typeof files[0] }) => {
+                    const [downloading, setDownloading] = useState(false);
+                    return (
                     <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[140px] max-w-[160px] flex-shrink-0">
                       {isImage(file.file_type) ? (
                         <div className="aspect-square bg-black/20 relative">
@@ -831,16 +849,22 @@ export default function Lesson() {
                         <p className="text-xs font-medium truncate" title={file.file_name}>
                           {file.file_name}
                         </p>
-                        <a
-                          href={getDownloadUrl(file.file_url, file.file_name)}
-                          className="flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                        <button
+                          onClick={async () => {
+                            setDownloading(true);
+                            await triggerDownloadDesktop(file.file_url, file.file_name);
+                            setDownloading(false);
+                          }}
+                          disabled={downloading}
+                          className="flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
                         >
-                          <Download className="w-3.5 h-3.5" />
-                          Save
-                        </a>
+                          {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          {downloading ? 'Saving...' : 'Save'}
+                        </button>
                       </div>
                     </div>
-                  );
+                    );
+                  };
 
                   return (
                     <div className="space-y-4">
