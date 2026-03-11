@@ -496,14 +496,13 @@ export default function Lesson() {
                 <p className="text-xs font-medium truncate" title={file.file_name}>
                   {file.file_name}
                 </p>
-                <a
-                  href={getDownloadUrl(file.file_url, file.file_name)}
-                  download={file.file_name}
+                <button
+                  onClick={() => handleDownloadFile(file.file_url, file.file_name)}
                   className="flex items-center justify-center gap-1 text-xs text-primary hover:underline"
                 >
                   <Download className="w-3 h-3" />
                   Save
-                </a>
+                </button>
               </div>
             </div>
           );
