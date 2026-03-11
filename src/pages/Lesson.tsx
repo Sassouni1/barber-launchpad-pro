@@ -786,13 +786,23 @@ export default function Lesson() {
                   const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
                   const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-                  const getDownloadUrl = (fileUrl: string, fileName: string) => {
-                    // For public storage files, use direct download to avoid edge function timeouts
-                    if (fileUrl.includes('/storage/v1/object/public/')) {
-                      return `${fileUrl}?download=${encodeURIComponent(fileName)}`;
+                  const handleDownloadFile = async (fileUrl: string, fileName: string) => {
+                    try {
+                      toast.loading('Downloading...', { id: 'download' });
+                      const response = await fetch(fileUrl);
+                      const blob = await response.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = fileName;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      toast.success('Downloaded!', { id: 'download' });
+                    } catch {
+                      toast.error('Download failed', { id: 'download' });
                     }
-                    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-                    return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
                   };
 
                   const FileCard = ({ file }: { file: typeof files[0] }) => (
