@@ -780,6 +780,10 @@ export default function Lesson() {
                   const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
                   const getDownloadUrl = (fileUrl: string, fileName: string) => {
+                    // For public storage files, use direct download to avoid edge function timeouts
+                    if (fileUrl.includes('/storage/v1/object/public/')) {
+                      return `${fileUrl}?download=${encodeURIComponent(fileName)}`;
+                    }
                     const baseUrl = import.meta.env.VITE_SUPABASE_URL;
                     return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
                   };
