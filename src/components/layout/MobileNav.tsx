@@ -145,7 +145,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
     { to: '/training', icon: Target, label: 'Games' },
     { to: '/schedule-call', icon: Phone, label: '1 on 1 Call' },
-    { to: '/rewards', icon: Gift, label: 'Rewards' },
+    
   ];
 
   const [marketingOpen, setMarketingOpen] = useState(false);
