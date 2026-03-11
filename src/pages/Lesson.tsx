@@ -443,23 +443,19 @@ export default function Lesson() {
           const isImage = (fileType: string | null) => fileType && imageExtensions.includes(fileType.toLowerCase());
           const isVideo = (fileType: string | null) => fileType && videoExtensions.includes(fileType.toLowerCase());
 
-          const handleDownloadFile = async (fileUrl: string, fileName: string) => {
-            try {
-              toast.loading('Downloading...', { id: 'download' });
-              const response = await fetch(fileUrl);
-              const blob = await response.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = fileName;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              toast.success('Downloaded!', { id: 'download' });
-            } catch {
-              toast.error('Download failed', { id: 'download' });
-            }
+          const getProxyDownloadUrl = (fileUrl: string, fileName: string) => {
+            const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+            return `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+          };
+
+          const handleDownloadFile = (fileUrl: string, fileName: string) => {
+            const proxyUrl = getProxyDownloadUrl(fileUrl, fileName);
+            const link = document.createElement('a');
+            link.href = proxyUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
           };
 
           const MobileFileCard = ({ file }: { file: typeof files[0] }) => (
