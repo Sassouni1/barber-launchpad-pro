@@ -254,7 +254,9 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               )}
               <SubNavItem to="/training" icon={Target} label="Training Games" />
             </ExpandableNavItem>
-            <NavItem to="/checklist" icon={ClipboardCheck} label="Hair System Checklist" collapsed={collapsed} />
+            <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed} defaultOpen>
+              <SubNavItem to="/checklist" icon={ClipboardCheck} label="Hair System Checklist" />
+            </ExpandableNavItem>
             <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
               <SubNavItem to="/qr-codes" icon={QrCode} label="Poster + QR Codes" />
