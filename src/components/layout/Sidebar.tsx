@@ -164,8 +164,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   
   // Fetch courses to determine which categories have published content
   const { data: courses = [] } = useCourses();
+  const { data: checklistLists = [] } = useChecklistLists();
   
-  // Check if categories have any published courses
   const hasHairSystemCourses = courses.some(course => (course as any).category === 'hair-system');
   const hasBusinessCourses = courses.some(course => (course as any).category === 'business');
 
