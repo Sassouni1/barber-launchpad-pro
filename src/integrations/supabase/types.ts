@@ -211,6 +211,7 @@ export type Database = {
           list_id: string
           module_id: string | null
           order_index: number
+          section_title: string | null
           title: string
         }
         Insert: {
@@ -219,6 +220,7 @@ export type Database = {
           list_id: string
           module_id?: string | null
           order_index?: number
+          section_title?: string | null
           title: string
         }
         Update: {
@@ -227,6 +229,7 @@ export type Database = {
           list_id?: string
           module_id?: string | null
           order_index?: number
+          section_title?: string | null
           title?: string
         }
         Relationships: [
