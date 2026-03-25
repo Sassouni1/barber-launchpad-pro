@@ -208,6 +208,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_important: boolean
           list_id: string
           module_id: string | null
           order_index: number
@@ -217,6 +218,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_important?: boolean
           list_id: string
           module_id?: string | null
           order_index?: number
@@ -226,6 +228,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_important?: boolean
           list_id?: string
           module_id?: string | null
           order_index?: number

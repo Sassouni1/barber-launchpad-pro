@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, ClipboardCheck, Loader2, Play } from 'lucide-react';
+import { Download, ClipboardCheck, Loader2, Play, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useParams } from 'react-router-dom';
 import { useState } from 'react';
@@ -17,6 +17,7 @@ interface ChecklistItem {
   completed?: boolean;
   module_id: string | null;
   section_title: string | null;
+  is_important: boolean;
 }
 
 interface ChecklistList {
@@ -260,19 +261,28 @@ export default function HairSystemChecklist() {
                         }
                       });
                       let globalIdx = 0;
-                      return sections.map((section, sIdx) => (
-                        <div key={sIdx} className="space-y-2">
+                      return sections.map((section, sIdx) => {
+                        const sectionIsImportant = section.items.every(i => i.is_important);
+                        return (
+                        <div key={sIdx} className={`space-y-2 ${sectionIsImportant ? 'border-2 border-primary/40 bg-primary/5 rounded-xl p-4 -mx-1' : ''}`}>
                           {section.title && (
-                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wide pt-2">
+                            <h3 className={`text-sm font-semibold uppercase tracking-wide pt-1 flex items-center gap-2 ${sectionIsImportant ? 'text-primary' : 'text-primary'}`}>
+                              {sectionIsImportant && <AlertTriangle className="w-4 h-4 text-primary" />}
                               {section.title}
+                              {sectionIsImportant && <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full uppercase">Don't Skip</span>}
                             </h3>
                           )}
                           {section.items.map(item => {
                             const idx = globalIdx++;
+                            const important = item.is_important && !sectionIsImportant;
                             return (
                               <div
                                 key={item.id}
-                                className="flex items-center gap-3 p-3 bg-background/50 rounded-lg hover:bg-background/80 transition-colors"
+                                className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                                  important
+                                    ? 'bg-primary/10 border border-primary/30 hover:bg-primary/15'
+                                    : 'bg-background/50 hover:bg-background/80'
+                                }`}
                               >
                                 <Checkbox
                                   id={`checklist-${item.id}`}
@@ -281,10 +291,15 @@ export default function HairSystemChecklist() {
                                     toggleMutation.mutate({ itemId: item.id, completed: !!checked })
                                   }
                                 />
+                                {important && <AlertTriangle className="w-4 h-4 text-primary shrink-0" />}
                                 <label
                                   htmlFor={`checklist-${item.id}`}
-                                  className={`text-sm font-medium cursor-pointer flex-1 ${
-                                    item.completed ? 'line-through text-muted-foreground' : ''
+                                  className={`text-sm cursor-pointer flex-1 ${
+                                    item.completed
+                                      ? 'line-through text-muted-foreground font-medium'
+                                      : important
+                                        ? 'font-bold text-primary'
+                                        : 'font-medium'
                                   }`}
                                 >
                                   {idx + 1}. {item.title}
@@ -302,7 +317,8 @@ export default function HairSystemChecklist() {
                             );
                           })}
                         </div>
-                      ));
+                        );
+                      });
                     })()}
                   </div>
                 </div>
