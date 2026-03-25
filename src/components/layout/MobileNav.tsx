@@ -260,7 +260,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-              <NavButton to="/schedule-call" icon={Phone} label="1 on 1 Call" />
+              
               <Popover open={productsOpen} onOpenChange={setProductsOpen}>
                 <PopoverTrigger asChild>
                   <button
