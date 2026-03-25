@@ -150,6 +150,9 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/rewards', icon: Gift, label: 'Rewards' },
   ];
 
+  const [checklistOpen, setChecklistOpen] = useState(false);
+  const { data: checklistLists = [] } = useChecklistLists();
+
   const [marketingOpen, setMarketingOpen] = useState(false);
 
   const [productsOpen, setProductsOpen] = useState(false);
