@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useChecklistLists } from '@/hooks/useChecklistLists';
 import {
   Popover,
   PopoverContent,
