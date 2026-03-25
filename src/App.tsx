@@ -69,6 +69,7 @@ const App = () => (
             <Route path="/qr-codes" element={<ProtectedRoute><QRCodes /></ProtectedRoute>} />
             <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
             <Route path="/checklist" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
+            <Route path="/checklist/:listId" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
             <Route path="/rewards/join/:userId" element={<RewardsJoin />} />
             <Route path="/r/:shortCode" element={<QRRedirect />} />
             <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />

@@ -1,12 +1,11 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useDynamicTodos } from '@/hooks/useDynamicTodos';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Download, ClipboardCheck, Loader2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -28,18 +27,25 @@ interface ChecklistList {
 
 export default function HairSystemChecklist() {
   const { user } = useAuth();
+  const { listId } = useParams<{ listId?: string }>();
   const [downloading, setDownloading] = useState(false);
+  const queryClient = useQueryClient();
 
-  // Fetch checklist-specific dynamic lists (tagged with "checklist" category)
   const { data: lists = [], isLoading } = useQuery({
-    queryKey: ['checklist-todos', user?.id],
+    queryKey: ['checklist-todos', user?.id, listId],
     queryFn: async () => {
-      const { data: listsData, error: listsError } = await supabase
+      let query = supabase
         .from('dynamic_todo_lists')
         .select('*')
-        .ilike('title', '%checklist%')
         .order('order_index');
 
+      if (listId) {
+        query = query.eq('id', listId);
+      } else {
+        query = query.ilike('title', '%checklist%');
+      }
+
+      const { data: listsData, error: listsError } = await query;
       if (listsError) throw listsError;
       if (!listsData || listsData.length === 0) return [];
 
@@ -76,41 +82,64 @@ export default function HairSystemChecklist() {
     enabled: true,
   });
 
-  const toggleItem = async (itemId: string, completed: boolean) => {
-    if (!user) return;
+  const toggleMutation = useMutation({
+    mutationFn: async ({ itemId, completed }: { itemId: string; completed: boolean }) => {
+      if (!user) throw new Error('Not authenticated');
 
-    const { data: existing } = await supabase
-      .from('user_dynamic_todo_progress')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('item_id', itemId)
-      .single();
+      const { data: existing } = await supabase
+        .from('user_dynamic_todo_progress')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('item_id', itemId)
+        .single();
 
-    if (existing) {
-      await supabase
-        .from('user_dynamic_todo_progress')
-        .update({ completed, completed_at: completed ? new Date().toISOString() : null })
-        .eq('id', existing.id);
-    } else {
-      await supabase
-        .from('user_dynamic_todo_progress')
-        .insert({
-          user_id: user.id,
-          item_id: itemId,
-          completed,
-          completed_at: completed ? new Date().toISOString() : null,
-        });
-    }
-  };
+      if (existing) {
+        await supabase
+          .from('user_dynamic_todo_progress')
+          .update({ completed, completed_at: completed ? new Date().toISOString() : null })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('user_dynamic_todo_progress')
+          .insert({
+            user_id: user.id,
+            item_id: itemId,
+            completed,
+            completed_at: completed ? new Date().toISOString() : null,
+          });
+      }
+    },
+    onMutate: async ({ itemId, completed }) => {
+      await queryClient.cancelQueries({ queryKey: ['checklist-todos', user?.id, listId] });
+      const prev = queryClient.getQueryData<ChecklistList[]>(['checklist-todos', user?.id, listId]);
+      queryClient.setQueryData<ChecklistList[]>(['checklist-todos', user?.id, listId], old =>
+        old?.map(list => ({
+          ...list,
+          items: list.items.map(item =>
+            item.id === itemId ? { ...item, completed } : item
+          ),
+        }))
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(['checklist-todos', user?.id, listId], context.prev);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['checklist-todos'] });
+    },
+  });
 
   const handleDownload = () => {
-    // Generate a printable text version
     setDownloading(true);
     try {
-      const lines: string[] = ['HAIR SYSTEM CHECKLIST', '='.repeat(40), ''];
+      const lines: string[] = [];
       lists.forEach(list => {
         lines.push(list.title.toUpperCase());
-        lines.push('-'.repeat(30));
+        lines.push('='.repeat(40));
+        lines.push('');
         list.items.forEach((item, i) => {
           lines.push(`  [ ] ${i + 1}. ${item.title}`);
         });
@@ -121,7 +150,7 @@ export default function HairSystemChecklist() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'hair-system-checklist.txt';
+      a.download = `${lists[0]?.title || 'checklist'}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -136,23 +165,24 @@ export default function HairSystemChecklist() {
 
   const totalItems = lists.reduce((acc, l) => acc + l.items.length, 0);
   const completedItems = lists.reduce(
-    (acc, l) => acc + l.items.filter(i => i.completed).length,
-    0
+    (acc, l) => acc + l.items.filter(i => i.completed).length, 0
   );
   const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+  const pageTitle = listId && lists.length === 1 ? lists[0].title : 'Checklists';
 
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-up">
           <div>
             <h1 className="font-display text-4xl font-bold mb-2 flex items-center gap-3">
               <ClipboardCheck className="w-9 h-9 text-primary" />
-              Hair System Checklist
+              {pageTitle}
             </h1>
             <p className="text-muted-foreground text-lg">
-              Your step-by-step guide for hair system installs. Use it yourself or walk your client through it.
+              {listId
+                ? 'Check off each step as you go. Download a copy for your client.'
+                : 'Your step-by-step guides. Use them yourself or walk your client through it.'}
             </p>
           </div>
           <Button
@@ -166,17 +196,16 @@ export default function HairSystemChecklist() {
             ) : (
               <Download className="w-4 h-4 mr-2" />
             )}
-            {downloading ? 'Downloading...' : 'Download Checklist'}
+            {downloading ? 'Downloading...' : 'Download'}
           </Button>
         </div>
 
-        {/* Progress bar */}
         {totalItems > 0 && (
           <div className="glass-card p-4 rounded-xl animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Overall Progress</span>
+              <span className="text-sm font-medium">Progress</span>
               <span className="text-sm text-muted-foreground">
-                {completedItems}/{totalItems} completed ({progressPercent}%)
+                {completedItems}/{totalItems} ({progressPercent}%)
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-3">
@@ -188,7 +217,6 @@ export default function HairSystemChecklist() {
           </div>
         )}
 
-        {/* Checklist content */}
         {isLoading ? (
           <div className="glass-card p-8 rounded-xl">
             <div className="animate-pulse space-y-4">
@@ -201,9 +229,9 @@ export default function HairSystemChecklist() {
         ) : lists.length === 0 ? (
           <div className="glass-card p-12 rounded-xl text-center animate-fade-up" style={{ animationDelay: '0.2s' }}>
             <ClipboardCheck className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
-            <h3 className="text-lg font-semibold mb-2">No Checklists Yet</h3>
+            <h3 className="text-lg font-semibold mb-2">No Checklist Items Yet</h3>
             <p className="text-muted-foreground text-sm max-w-md mx-auto">
-              Checklists will appear here once they're set up. Any dynamic to-do list with "checklist" in its title will show up on this page.
+              Items will appear here once they're added in the admin panel.
             </p>
           </div>
         ) : (
@@ -228,7 +256,9 @@ export default function HairSystemChecklist() {
                         <Checkbox
                           id={`checklist-${item.id}`}
                           checked={item.completed}
-                          onCheckedChange={(checked) => toggleItem(item.id, !!checked)}
+                          onCheckedChange={(checked) =>
+                            toggleMutation.mutate({ itemId: item.id, completed: !!checked })
+                          }
                         />
                         <label
                           htmlFor={`checklist-${item.id}`}
