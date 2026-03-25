@@ -16,6 +16,7 @@ interface ChecklistItem {
   order_index: number;
   completed?: boolean;
   module_id: string | null;
+  section_title: string | null;
 }
 
 interface ChecklistList {
@@ -247,38 +248,62 @@ export default function HairSystemChecklist() {
                       {listCompleted}/{listTotal}
                     </span>
                   </div>
-                  <div className="space-y-2">
-                    {list.items.map((item, idx) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-3 p-3 bg-background/50 rounded-lg hover:bg-background/80 transition-colors"
-                      >
-                        <Checkbox
-                          id={`checklist-${item.id}`}
-                          checked={item.completed}
-                          onCheckedChange={(checked) =>
-                            toggleMutation.mutate({ itemId: item.id, completed: !!checked })
-                          }
-                        />
-                        <label
-                          htmlFor={`checklist-${item.id}`}
-                          className={`text-sm font-medium cursor-pointer flex-1 ${
-                            item.completed ? 'line-through text-muted-foreground' : ''
-                          }`}
-                        >
-                          {idx + 1}. {item.title}
-                        </label>
-                        {item.module_id && (
-                          <Link
-                            to={`/courses/lesson/${item.module_id}`}
-                            className="text-xs text-primary underline flex items-center gap-1 shrink-0"
-                          >
-                            <Play className="w-3 h-3" />
-                            Watch
-                          </Link>
-                        )}
-                      </div>
-                    ))}
+                  <div className="space-y-4">
+                    {(() => {
+                      const sections: { title: string | null; items: ChecklistItem[] }[] = [];
+                      list.items.forEach(item => {
+                        const last = sections[sections.length - 1];
+                        if (last && last.title === (item.section_title || null)) {
+                          last.items.push(item);
+                        } else {
+                          sections.push({ title: item.section_title || null, items: [item] });
+                        }
+                      });
+                      let globalIdx = 0;
+                      return sections.map((section, sIdx) => (
+                        <div key={sIdx} className="space-y-2">
+                          {section.title && (
+                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wide pt-2">
+                              {section.title}
+                            </h3>
+                          )}
+                          {section.items.map(item => {
+                            const idx = globalIdx++;
+                            return (
+                              <div
+                                key={item.id}
+                                className="flex items-center gap-3 p-3 bg-background/50 rounded-lg hover:bg-background/80 transition-colors"
+                              >
+                                <Checkbox
+                                  id={`checklist-${item.id}`}
+                                  checked={item.completed}
+                                  onCheckedChange={(checked) =>
+                                    toggleMutation.mutate({ itemId: item.id, completed: !!checked })
+                                  }
+                                />
+                                <label
+                                  htmlFor={`checklist-${item.id}`}
+                                  className={`text-sm font-medium cursor-pointer flex-1 ${
+                                    item.completed ? 'line-through text-muted-foreground' : ''
+                                  }`}
+                                >
+                                  {idx + 1}. {item.title}
+                                </label>
+                                {item.module_id && (
+                                  <Link
+                                    to={`/courses/lesson/${item.module_id}`}
+                                    className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                                  >
+                                    <Play className="w-3 h-3" />
+                                    Watch
+                                  </Link>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
               );
