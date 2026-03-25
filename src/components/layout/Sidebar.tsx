@@ -25,6 +25,7 @@ import {
   Megaphone,
   QrCode,
   Gift,
+  ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
