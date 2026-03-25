@@ -192,8 +192,8 @@ export default function HairSystemChecklist() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-up">
           <div>
-            <h1 className="font-display text-4xl font-bold mb-2 flex items-center gap-3">
-              <ClipboardCheck className="w-9 h-9 text-primary" />
+            <h1 className="font-display text-2xl sm:text-4xl font-bold mb-2 flex items-center gap-3">
+              <ClipboardCheck className="w-7 h-7 sm:w-9 sm:h-9 text-primary" />
               {pageTitle}
             </h1>
             <p className="text-muted-foreground text-lg">
