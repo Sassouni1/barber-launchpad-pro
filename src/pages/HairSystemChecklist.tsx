@@ -134,29 +134,40 @@ export default function HairSystemChecklist() {
     },
   });
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setDownloading(true);
     try {
-      const lines: string[] = [];
-      lists.forEach(list => {
-        lines.push(list.title.toUpperCase());
-        lines.push('='.repeat(40));
-        lines.push('');
-        list.items.forEach((item, i) => {
-          lines.push(`  [ ] ${i + 1}. ${item.title}`);
+      const isInstallation = lists.some(l => l.title.toLowerCase().includes('installation'));
+      
+      if (isInstallation) {
+        const a = document.createElement('a');
+        a.href = '/files/Barber_Installation_Checklist_Mobile.pdf';
+        a.download = 'Installation_Checklist.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        const lines: string[] = [];
+        lists.forEach(list => {
+          lines.push(list.title.toUpperCase());
+          lines.push('='.repeat(40));
+          lines.push('');
+          list.items.forEach((item, i) => {
+            lines.push(`  [ ] ${i + 1}. ${item.title}`);
+          });
+          lines.push('');
         });
-        lines.push('');
-      });
 
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${lists[0]?.title || 'checklist'}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${lists[0]?.title || 'checklist'}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
       toast.success('Checklist downloaded!');
     } catch {
       toast.error('Failed to download checklist');
