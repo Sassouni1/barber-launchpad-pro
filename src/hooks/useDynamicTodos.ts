@@ -29,6 +29,7 @@ export const useDynamicTodos = () => {
       const { data: listsData, error: listsError } = await supabase
         .from("dynamic_todo_lists")
         .select("*")
+        .not("title", "ilike", "%checklist%")
         .order("order_index");
 
       if (listsError) throw listsError;
