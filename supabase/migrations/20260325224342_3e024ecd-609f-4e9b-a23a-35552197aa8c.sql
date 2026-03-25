@@ -1,0 +1,1 @@
+ALTER TABLE dynamic_todo_items ADD COLUMN is_important boolean NOT NULL DEFAULT false;
