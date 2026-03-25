@@ -264,7 +264,7 @@ export default function HairSystemChecklist() {
                       return sections.map((section, sIdx) => {
                         const sectionIsImportant = section.items.every(i => i.is_important);
                         return (
-                        <div key={sIdx} className={`space-y-2 ${sectionIsImportant ? 'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-5 shadow-lg shadow-primary/5' : ''}`}>
+                        <div key={sIdx} className={`space-y-2 ${sectionIsImportant ? 'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-5 shadow-lg shadow-primary/5 animate-wiggle' : ''}`}>
                           {section.title && !sectionIsImportant && (
                             <h3 className="text-sm font-semibold text-primary uppercase tracking-wide pt-1 flex items-center gap-2">
                               {section.title}
