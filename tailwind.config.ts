@@ -141,6 +141,7 @@ export default {
         ping: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite",
         "grid-flow": "grid-flow 20s linear infinite",
         shake: "shake 0.5s ease-in-out",
+        wiggle: "wiggle 2s ease-in-out infinite",
       },
     },
   },
