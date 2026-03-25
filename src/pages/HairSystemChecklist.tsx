@@ -16,6 +16,7 @@ interface ChecklistItem {
   order_index: number;
   completed?: boolean;
   module_id: string | null;
+  section_title: string | null;
 }
 
 interface ChecklistList {
