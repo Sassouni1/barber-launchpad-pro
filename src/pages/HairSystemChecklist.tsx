@@ -140,12 +140,16 @@ export default function HairSystemChecklist() {
       const isInstallation = lists.some(l => l.title.toLowerCase().includes('installation'));
       
       if (isInstallation) {
+        const response = await fetch('/files/Barber_Installation_Checklist_Mobile.pdf');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = '/files/Barber_Installation_Checklist_Mobile.pdf';
+        a.href = url;
         a.download = 'Installation_Checklist.pdf';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } else {
         const lines: string[] = [];
         lists.forEach(list => {
