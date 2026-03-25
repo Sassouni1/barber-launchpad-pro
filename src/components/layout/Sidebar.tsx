@@ -41,6 +41,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useCourses } from '@/hooks/useCourses';
+import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
 
