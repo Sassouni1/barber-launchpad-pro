@@ -146,7 +146,6 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
     { to: '/training', icon: Target, label: 'Games' },
-    { to: '/rewards', icon: Gift, label: 'Rewards' },
   ];
 
   const [checklistOpen, setChecklistOpen] = useState(false);
@@ -261,7 +260,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-              <NavButton to="/schedule-call" icon={Phone} label="1 on 1 Call" />
+              
               <Popover open={productsOpen} onOpenChange={setProductsOpen}>
                 <PopoverTrigger asChild>
                   <button
@@ -334,7 +333,9 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
         </div>
 
         {/* Bottom row: View switcher + Sign out */}
-        <div className="grid grid-cols-2 gap-2 mt-2">
+        <div className="grid grid-cols-4 gap-2 mt-2">
+          <NavButton to="/schedule-call" icon={Phone} label="1 on 1 Call" />
+          <NavButton to="/rewards" icon={Gift} label="Rewards" />
           {userIsAdmin && (
             <Popover open={viewOpen} onOpenChange={setViewOpen}>
               <PopoverTrigger asChild>
