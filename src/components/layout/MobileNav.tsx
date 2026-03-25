@@ -146,7 +146,6 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
     { to: '/training', icon: Target, label: 'Games' },
-    { to: '/rewards', icon: Gift, label: 'Rewards' },
   ];
 
   const [checklistOpen, setChecklistOpen] = useState(false);
