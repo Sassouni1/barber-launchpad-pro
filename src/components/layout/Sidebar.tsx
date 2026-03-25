@@ -41,6 +41,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useCourses } from '@/hooks/useCourses';
+import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
 
@@ -163,8 +164,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   
   // Fetch courses to determine which categories have published content
   const { data: courses = [] } = useCourses();
+  const { data: checklistLists = [] } = useChecklistLists();
   
-  // Check if categories have any published courses
   const hasHairSystemCourses = courses.some(course => (course as any).category === 'hair-system');
   const hasBusinessCourses = courses.some(course => (course as any).category === 'business');
 
@@ -255,7 +256,9 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/training" icon={Target} label="Training Games" />
             </ExpandableNavItem>
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed} defaultOpen>
-              <SubNavItem to="/checklist" icon={ClipboardCheck} label="All Checklists" />
+              {checklistLists.map(list => (
+                <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
+              ))}
             </ExpandableNavItem>
             <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
