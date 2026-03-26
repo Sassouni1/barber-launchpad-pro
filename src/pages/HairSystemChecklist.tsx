@@ -86,6 +86,12 @@ export default function HairSystemChecklist() {
     enabled: true,
   });
 
+  useEffect(() => {
+    if (searchParams.get('scrollBottom') === 'true' && !isLoading && lists.length > 0) {
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+    }
+  }, [searchParams, isLoading, lists]);
+
   const toggleMutation = useMutation({
     mutationFn: async ({ itemId, completed }: { itemId: string; completed: boolean }) => {
       if (!user) throw new Error('Not authenticated');
