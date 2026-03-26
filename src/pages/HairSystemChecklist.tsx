@@ -309,7 +309,7 @@ export default function HairSystemChecklist() {
                                 ? 'text-xs font-medium text-primary italic'
                                 : 'text-sm font-semibold text-primary uppercase tracking-wide'
                             }`}>
-                              {section.title}
+                              {section.title.toLowerCase().includes('instructions') ? `— ${section.title}` : section.title}
                             </h3>
                           )}
                           {sectionIsImportant && section.title && (
