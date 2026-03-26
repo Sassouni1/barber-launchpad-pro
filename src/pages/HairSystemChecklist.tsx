@@ -213,19 +213,21 @@ export default function HairSystemChecklist() {
                 : 'Your step-by-step guides. Use them yourself or walk your client through it.'}
             </p>
           </div>
-          <Button
-            onClick={handleDownload}
-            variant="outline"
-            disabled={downloading || lists.length === 0}
-            className="shrink-0"
-          >
-            {downloading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            {downloading ? 'Downloading...' : 'Download'}
-          </Button>
+          {!isClientAfterInstall && (
+            <Button
+              onClick={handleDownload}
+              variant="outline"
+              disabled={downloading || lists.length === 0}
+              className="shrink-0"
+            >
+              {downloading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              {downloading ? 'Downloading...' : 'Download'}
+            </Button>
+          )}
         </div>
 
         {totalItems > 0 && (
