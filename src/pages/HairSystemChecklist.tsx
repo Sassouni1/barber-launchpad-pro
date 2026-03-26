@@ -31,6 +31,8 @@ export default function HairSystemChecklist() {
   const { user } = useAuth();
   const { listId } = useParams<{ listId?: string }>();
   const [downloading, setDownloading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
   const { data: lists = [], isLoading } = useQuery({
