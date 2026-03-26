@@ -26,6 +26,7 @@ import {
   QrCode,
   Gift,
   ClipboardCheck,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -257,7 +258,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             </ExpandableNavItem>
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed} defaultOpen>
               {checklistLists.map(list => (
-                <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
+                <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={list.title.toLowerCase().includes('7 day') ? CalendarDays : ClipboardCheck} label={list.title} />
               ))}
             </ExpandableNavItem>
             <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>

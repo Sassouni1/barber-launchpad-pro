@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Gift,
   ClipboardCheck,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -243,20 +244,23 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                 </PopoverTrigger>
                 <PopoverContent side="top" align="center" className="w-52 p-2 bg-popover border-border">
                   <div className="space-y-1">
-                    {checklistLists.map((list) => (
-                      <NavLink
-                        key={list.id}
-                        to={`/checklist/${list.id}`}
-                        onClick={() => setChecklistOpen(false)}
-                        className={({ isActive }) => cn(
-                          'flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all',
-                          isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                        )}
-                      >
-                        <ClipboardCheck className="w-4 h-4" />
-                        <span className="font-medium">{list.title.replace(' Checklist', '')}</span>
-                      </NavLink>
-                    ))}
+                    {checklistLists.map((list) => {
+                      const IconComp = list.title.toLowerCase().includes('7 day') ? CalendarDays : ClipboardCheck;
+                      return (
+                        <NavLink
+                          key={list.id}
+                          to={`/checklist/${list.id}`}
+                          onClick={() => setChecklistOpen(false)}
+                          className={({ isActive }) => cn(
+                            'flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all',
+                            isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                          )}
+                        >
+                          <IconComp className="w-4 h-4" />
+                          <span className="font-medium">{list.title.replace(' Checklist', '')}</span>
+                        </NavLink>
+                      );
+                    })}
                   </div>
                 </PopoverContent>
               </Popover>
