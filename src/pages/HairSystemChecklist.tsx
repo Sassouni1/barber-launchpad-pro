@@ -401,6 +401,12 @@ export default function HairSystemChecklist() {
               <Copy className="w-4 h-4 mr-2" />
               Copy Message
             </Button>
+            <Link to="/checklist/b0a7264d-1184-4a24-a6ed-f3352d916e49?scrollBottom=true">
+              <Button variant="outline" className="w-full">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Back to Installation Checklist
+              </Button>
+            </Link>
           </div>
         )}
       </div>
