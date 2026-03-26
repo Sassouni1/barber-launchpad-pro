@@ -209,52 +209,50 @@ export default function HairSystemChecklist() {
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-8">
-        {!isClientAfterInstall && (
-          <>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-up">
-              <div>
-                <h1 className="font-display text-2xl sm:text-4xl font-bold mb-2 flex items-center gap-3">
-                  <ClipboardCheck className="w-7 h-7 sm:w-9 sm:h-9 text-primary" />
-                  {pageTitle}
-                </h1>
-                <p className="text-muted-foreground text-lg">
-                  {listId
-                    ? 'Check off each step as you go. Download a copy for your client.'
-                    : 'Your step-by-step guides. Use them yourself or walk your client through it.'}
-                </p>
-              </div>
-              <Button
-                onClick={handleDownload}
-                variant="outline"
-                disabled={downloading || lists.length === 0}
-                className="shrink-0"
-              >
-                {downloading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 mr-2" />
-                )}
-                {downloading ? 'Downloading...' : 'Download'}
-              </Button>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-up">
+          <div>
+            <h1 className="font-display text-2xl sm:text-4xl font-bold mb-2 flex items-center gap-3">
+              <ClipboardCheck className="w-7 h-7 sm:w-9 sm:h-9 text-primary" />
+              {pageTitle}
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              {listId
+                ? 'Check off each step as you go. Download a copy for your client.'
+                : 'Your step-by-step guides. Use them yourself or walk your client through it.'}
+            </p>
+          </div>
+          {!isClientAfterInstall && (
+            <Button
+              onClick={handleDownload}
+              variant="outline"
+              disabled={downloading || lists.length === 0}
+              className="shrink-0"
+            >
+              {downloading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              {downloading ? 'Downloading...' : 'Download'}
+            </Button>
+          )}
+        </div>
 
-            {totalItems > 0 && (
-              <div className="glass-card p-4 rounded-xl animate-fade-up" style={{ animationDelay: '0.1s' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Progress</span>
-                  <span className="text-sm text-muted-foreground">
-                    {completedItems}/{totalItems} ({progressPercent}%)
-                  </span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-3">
-                  <div
-                    className="bg-primary h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </>
+        {totalItems > 0 && (
+          <div className="glass-card p-4 rounded-xl animate-fade-up" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Progress</span>
+              <span className="text-sm text-muted-foreground">
+                {completedItems}/{totalItems} ({progressPercent}%)
+              </span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-3">
+              <div
+                className="bg-primary h-3 rounded-full transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
         )}
 
         {isLoading ? (
