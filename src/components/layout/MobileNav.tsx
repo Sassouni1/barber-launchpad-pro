@@ -339,7 +339,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
         {/* Bottom row: View switcher + Sign out */}
         <div className="grid grid-cols-4 gap-2 mt-2">
           <NavButton to="/schedule-call" icon={Phone} label="1 on 1 Call" />
-          <NavButton to="/rewards" icon={Gift} label="Rewards" />
+          {/* Rewards hidden for now */}
           {userIsAdmin && (
             <Popover open={viewOpen} onOpenChange={setViewOpen}>
               <PopoverTrigger asChild>
