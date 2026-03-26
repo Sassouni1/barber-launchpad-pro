@@ -26,6 +26,7 @@ import {
   QrCode,
   Gift,
   ClipboardCheck,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
