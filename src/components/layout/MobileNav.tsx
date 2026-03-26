@@ -228,13 +228,14 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                 <PopoverTrigger asChild>
                   <button
                     className={cn(
-                      'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all',
+                      'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all relative',
                       'border border-border/50',
                       location.pathname.startsWith('/checklist')
                         ? 'bg-primary/10 text-primary border-primary/30'
                         : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground'
                     )}
                   >
+                    <span className="absolute -top-1.5 -right-1.5 text-[8px] font-bold uppercase bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full leading-none">New</span>
                     <ClipboardCheck className="w-5 h-5" />
                     <span className="text-[10px] font-medium leading-tight text-center flex items-center gap-0.5">
                       Checklists <ChevronDown className="w-3 h-3" />
