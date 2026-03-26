@@ -363,7 +363,7 @@ export default function HairSystemChecklist() {
            </div>
         )}
 
-        {!isLoading && isInstallationList && (
+        {!isLoading && isClientAfterInstall && (
           <div className="glass-card p-6 rounded-xl space-y-4 animate-fade-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
