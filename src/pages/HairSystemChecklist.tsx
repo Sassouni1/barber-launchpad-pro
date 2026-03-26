@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, ClipboardCheck, Loader2, Play, AlertTriangle } from 'lucide-react';
+import { Download, ClipboardCheck, Loader2, Play, AlertTriangle, Copy, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useParams } from 'react-router-dom';
 import { useState } from 'react';
@@ -180,6 +180,17 @@ export default function HairSystemChecklist() {
     }
   };
 
+  const isInstallationList = lists.some(l => l.title.toLowerCase().includes('installation'));
+  const clientMessage = `Here's everything you need to maintain your hair system, please watch it all the way as it's very important.\n\nhttps://www.menshairexpert.com/thank-you`;
+
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(clientMessage).then(() => {
+      toast.success('Message copied to clipboard!');
+    }).catch(() => {
+      toast.error('Failed to copy message');
+    });
+  };
+
   const totalItems = lists.reduce((acc, l) => acc + l.items.length, 0);
   const completedItems = lists.reduce(
     (acc, l) => acc + l.items.filter(i => i.completed).length, 0
@@ -349,6 +360,27 @@ export default function HairSystemChecklist() {
                 </div>
               );
             })}
+           </div>
+        )}
+
+        {!isLoading && isInstallationList && (
+          <div className="glass-card p-6 rounded-xl space-y-4 animate-fade-up" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold">Send Your Client This Text</h3>
+                <p className="text-xs text-muted-foreground">Copy and send after install</p>
+              </div>
+            </div>
+            <div className="bg-muted/50 border border-border rounded-lg p-4 text-sm whitespace-pre-line">
+              {clientMessage}
+            </div>
+            <Button onClick={handleCopyMessage} variant="outline" className="w-full">
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Message
+            </Button>
           </div>
         )}
       </div>
