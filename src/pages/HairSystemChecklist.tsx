@@ -278,7 +278,7 @@ export default function HairSystemChecklist() {
               const listCompleted = list.items.filter(i => i.completed).length;
               const listTotal = list.items.length;
               return (
-                <div key={list.id} className="glass-card p-6 rounded-xl space-y-4">
+                <div key={list.id} className={listId ? 'space-y-4' : 'glass-card p-6 rounded-xl space-y-4'}>
                   {!listId && (
                     <div className="flex items-center justify-between">
                       <h2 className="font-display text-xl font-semibold">{list.title}</h2>
