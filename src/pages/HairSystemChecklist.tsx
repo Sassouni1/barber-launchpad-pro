@@ -379,6 +379,7 @@ export default function HairSystemChecklist() {
                 </div>
               );
             })}
+            <div ref={bottomRef} />
            </div>
         )}
 
