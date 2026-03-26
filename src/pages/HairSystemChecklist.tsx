@@ -180,6 +180,17 @@ export default function HairSystemChecklist() {
     }
   };
 
+  const isInstallationList = lists.some(l => l.title.toLowerCase().includes('installation'));
+  const clientMessage = `Here's everything you need to maintain your hair system, please watch it all the way as it's very important.\n\nhttps://www.menshairexpert.com/thank-you`;
+
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(clientMessage).then(() => {
+      toast.success('Message copied to clipboard!');
+    }).catch(() => {
+      toast.error('Failed to copy message');
+    });
+  };
+
   const totalItems = lists.reduce((acc, l) => acc + l.items.length, 0);
   const completedItems = lists.reduce(
     (acc, l) => acc + l.items.filter(i => i.completed).length, 0
