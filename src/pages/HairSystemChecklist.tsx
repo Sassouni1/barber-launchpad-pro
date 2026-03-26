@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, ClipboardCheck, Loader2, Play, AlertTriangle, Copy, MessageSquare } from 'lucide-react';
+import { Download, ClipboardCheck, Loader2, Play, AlertTriangle, Copy, MessageSquare, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link, useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 interface ChecklistItem {
