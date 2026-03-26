@@ -238,7 +238,7 @@ export default function HairSystemChecklist() {
           )}
         </div>
 
-        {totalItems > 0 && (
+        {totalItems > 0 && !listId && (
           <div className="glass-card p-4 rounded-xl animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Progress</span>
