@@ -322,10 +322,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                       <Megaphone className="w-4 h-4" />
                       <span className="font-medium">AI Social Media</span>
                     </NavLink>
-                    <NavLink to="/qr-codes" onClick={() => setMarketingOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
-                      <QrCode className="w-4 h-4" />
-                      <span className="font-medium">Poster + QR Codes</span>
-                    </NavLink>
+                    {/* Poster + QR Codes hidden for now */}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -339,7 +336,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
         {/* Bottom row: View switcher + Sign out */}
         <div className="grid grid-cols-4 gap-2 mt-2">
           <NavButton to="/schedule-call" icon={Phone} label="1 on 1 Call" />
-          <NavButton to="/rewards" icon={Gift} label="Rewards" />
+          {/* Rewards hidden for now */}
           {userIsAdmin && (
             <Popover open={viewOpen} onOpenChange={setViewOpen}>
               <PopoverTrigger asChild>
