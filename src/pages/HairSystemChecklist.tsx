@@ -357,7 +357,7 @@ export default function HairSystemChecklist() {
                                     className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md flex items-center gap-1 shrink-0 font-medium"
                                   >
                                     <ClipboardCheck className="w-3 h-3" />
-                                    Open
+                                    Click Here
                                   </Link>
                                 )}
                               </div>
