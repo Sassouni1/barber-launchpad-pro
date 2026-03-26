@@ -180,7 +180,7 @@ export default function HairSystemChecklist() {
     }
   };
 
-  const isInstallationList = lists.some(l => l.title.toLowerCase().includes('installation'));
+  const isClientAfterInstall = lists.some(l => l.title.toLowerCase().includes('after install'));
   const clientMessage = `Here's everything you need to maintain your hair system, please watch it all the way as it's very important.\n\nhttps://www.menshairexpert.com/thank-you`;
 
   const handleCopyMessage = () => {
