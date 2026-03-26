@@ -215,11 +215,11 @@ export default function HairSystemChecklist() {
               <ClipboardCheck className="w-7 h-7 sm:w-9 sm:h-9 text-primary" />
               {pageTitle}
             </h1>
-            <p className="text-muted-foreground text-lg">
-              {listId
-                ? 'Check off each step as you go. Download a copy for your client.'
-                : 'Your step-by-step guides. Use them yourself or walk your client through it.'}
-            </p>
+            {!listId && (
+              <p className="text-muted-foreground text-lg">
+                Your step-by-step guides. Use them yourself or walk your client through it.
+              </p>
+            )}
           </div>
           {!isClientAfterInstall && (
             <Button
