@@ -306,7 +306,7 @@ export default function HairSystemChecklist() {
                           {section.title && !sectionIsImportant && (
                             <h3 className={`pt-1 flex items-center gap-2 ${
                               section.title.toLowerCase().includes('instructions')
-                                ? 'text-xs font-medium text-muted-foreground italic'
+                                ? 'text-xs font-medium text-primary italic'
                                 : 'text-sm font-semibold text-primary uppercase tracking-wide'
                             }`}>
                               {section.title}
