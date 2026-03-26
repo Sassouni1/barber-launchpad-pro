@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, ClipboardCheck, Loader2, Play, AlertTriangle, Copy, MessageSquare } from 'lucide-react';
+import { Download, ClipboardCheck, Loader2, Play, AlertTriangle, Copy, MessageSquare, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link, useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 interface ChecklistItem {
@@ -31,6 +31,8 @@ export default function HairSystemChecklist() {
   const { user } = useAuth();
   const { listId } = useParams<{ listId?: string }>();
   const [downloading, setDownloading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
   const { data: lists = [], isLoading } = useQuery({
@@ -83,6 +85,12 @@ export default function HairSystemChecklist() {
     },
     enabled: true,
   });
+
+  useEffect(() => {
+    if (searchParams.get('scrollBottom') === 'true' && !isLoading && lists.length > 0) {
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+    }
+  }, [searchParams, isLoading, lists]);
 
   const toggleMutation = useMutation({
     mutationFn: async ({ itemId, completed }: { itemId: string; completed: boolean }) => {
@@ -371,6 +379,7 @@ export default function HairSystemChecklist() {
                 </div>
               );
             })}
+            <div ref={bottomRef} />
            </div>
         )}
 
@@ -392,6 +401,12 @@ export default function HairSystemChecklist() {
               <Copy className="w-4 h-4 mr-2" />
               Copy Message
             </Button>
+            <Link to="/checklist/b0a7264d-1184-4a24-a6ed-f3352d916e49?scrollBottom=true">
+              <Button variant="outline" className="w-full">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Back to Installation Checklist
+              </Button>
+            </Link>
           </div>
         )}
       </div>
