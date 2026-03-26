@@ -305,11 +305,11 @@ export default function HairSystemChecklist() {
                         <div key={sIdx} className={`space-y-2 ${sectionIsImportant ? 'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-5 shadow-lg shadow-primary/5 animate-wiggle' : ''}`}>
                           {section.title && !sectionIsImportant && (
                             <h3 className={`pt-1 flex items-center gap-2 ${
-                              section.title.toLowerCase().includes('instructions')
+                              section.title.toLowerCase().includes('(instructions)')
                                 ? 'text-xs font-medium text-primary italic'
                                 : 'text-sm font-semibold text-primary uppercase tracking-wide'
                             }`}>
-                              {section.title.toLowerCase().includes('instructions') ? `— ${section.title}` : section.title}
+                              {section.title.toLowerCase().includes('(instructions)') ? `— ${section.title}` : section.title}
                             </h3>
                           )}
                           {sectionIsImportant && section.title && (
