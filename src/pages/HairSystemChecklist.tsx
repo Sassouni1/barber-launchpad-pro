@@ -215,11 +215,11 @@ export default function HairSystemChecklist() {
               <ClipboardCheck className="w-7 h-7 sm:w-9 sm:h-9 text-primary" />
               {pageTitle}
             </h1>
-            <p className="text-muted-foreground text-lg">
-              {listId
-                ? 'Check off each step as you go. Download a copy for your client.'
-                : 'Your step-by-step guides. Use them yourself or walk your client through it.'}
-            </p>
+            {!listId && (
+              <p className="text-muted-foreground text-lg">
+                Your step-by-step guides. Use them yourself or walk your client through it.
+              </p>
+            )}
           </div>
           {!isClientAfterInstall && (
             <Button
@@ -238,7 +238,7 @@ export default function HairSystemChecklist() {
           )}
         </div>
 
-        {totalItems > 0 && (
+        {totalItems > 0 && !listId && (
           <div className="glass-card p-4 rounded-xl animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Progress</span>
@@ -279,12 +279,14 @@ export default function HairSystemChecklist() {
               const listTotal = list.items.length;
               return (
                 <div key={list.id} className="glass-card p-6 rounded-xl space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-display text-xl font-semibold">{list.title}</h2>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                      {listCompleted}/{listTotal}
-                    </span>
-                  </div>
+                  {!listId && (
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-display text-xl font-semibold">{list.title}</h2>
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                        {listCompleted}/{listTotal}
+                      </span>
+                    </div>
+                  )}
                   <div className="space-y-4">
                     {(() => {
                       const sections: { title: string | null; items: ChecklistItem[] }[] = [];
