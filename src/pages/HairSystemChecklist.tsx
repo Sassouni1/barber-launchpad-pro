@@ -351,6 +351,15 @@ export default function HairSystemChecklist() {
                                     Watch
                                   </Link>
                                 )}
+                                {item.title.toLowerCase().includes('text client checklist') && (
+                                  <Link
+                                    to="/checklist/345e249b-5f4f-4191-b140-c5cae86aac54"
+                                    className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md flex items-center gap-1 shrink-0 font-medium"
+                                  >
+                                    <ClipboardCheck className="w-3 h-3" />
+                                    Open
+                                  </Link>
+                                )}
                               </div>
                             );
                           })}
