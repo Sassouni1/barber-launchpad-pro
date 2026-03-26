@@ -137,7 +137,7 @@ export default function HairSystemChecklist() {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const isInstallation = lists.some(l => l.title.toLowerCase().includes('installation'));
+      const isInstallation = lists.some(l => l.title.toLowerCase().includes('installation') && !l.title.toLowerCase().includes('after'));
       
       if (isInstallation) {
         const response = await fetch('/files/Barber_Installation_Checklist_Mobile.pdf');
@@ -180,7 +180,7 @@ export default function HairSystemChecklist() {
     }
   };
 
-  const isInstallationList = lists.some(l => l.title.toLowerCase().includes('installation'));
+  const isClientAfterInstall = lists.some(l => l.title.toLowerCase().includes('after install'));
   const clientMessage = `Here's everything you need to maintain your hair system, please watch it all the way as it's very important.\n\nhttps://www.menshairexpert.com/thank-you`;
 
   const handleCopyMessage = () => {
@@ -363,7 +363,7 @@ export default function HairSystemChecklist() {
            </div>
         )}
 
-        {!isLoading && isInstallationList && (
+        {!isLoading && isClientAfterInstall && (
           <div className="glass-card p-6 rounded-xl space-y-4 animate-fade-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
