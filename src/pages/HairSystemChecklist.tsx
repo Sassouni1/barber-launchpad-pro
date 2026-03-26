@@ -137,7 +137,7 @@ export default function HairSystemChecklist() {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const isInstallation = lists.some(l => l.title.toLowerCase().includes('installation'));
+      const isInstallation = lists.some(l => l.title.toLowerCase().includes('installation') && !l.title.toLowerCase().includes('after'));
       
       if (isInstallation) {
         const response = await fetch('/files/Barber_Installation_Checklist_Mobile.pdf');
