@@ -279,12 +279,14 @@ export default function HairSystemChecklist() {
               const listTotal = list.items.length;
               return (
                 <div key={list.id} className="glass-card p-6 rounded-xl space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-display text-xl font-semibold">{list.title}</h2>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                      {listCompleted}/{listTotal}
-                    </span>
-                  </div>
+                  {!listId && (
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-display text-xl font-semibold">{list.title}</h2>
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                        {listCompleted}/{listTotal}
+                      </span>
+                    </div>
+                  )}
                   <div className="space-y-4">
                     {(() => {
                       const sections: { title: string | null; items: ChecklistItem[] }[] = [];
