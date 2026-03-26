@@ -360,6 +360,27 @@ export default function HairSystemChecklist() {
                 </div>
               );
             })}
+           </div>
+        )}
+
+        {!isLoading && isInstallationList && (
+          <div className="glass-card p-6 rounded-xl space-y-4 animate-fade-up" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold">Send Your Client This Text</h3>
+                <p className="text-xs text-muted-foreground">Copy and send after install</p>
+              </div>
+            </div>
+            <div className="bg-muted/50 border border-border rounded-lg p-4 text-sm whitespace-pre-line">
+              {clientMessage}
+            </div>
+            <Button onClick={handleCopyMessage} variant="outline" className="w-full">
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Message
+            </Button>
           </div>
         )}
       </div>
