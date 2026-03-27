@@ -93,13 +93,7 @@ export const DynamicTodoList = () => {
         </span>
       </div>
 
-      {allListsCompleted ? (
-        <div className="text-center py-6 space-y-2">
-          <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
-          <p className="font-medium text-foreground">All Lists Completed!</p>
-          <p className="text-sm text-muted-foreground">You've completed all dynamic to-do lists.</p>
-        </div>
-      ) : currentList ? (
+      {allListsCompleted ? null : currentList ? (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-primary">
