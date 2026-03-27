@@ -139,8 +139,7 @@ export const DynamicTodoList = () => {
                       className="text-xs text-primary underline flex items-center gap-1 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Play className="w-3 h-3" />
-                      Watch lesson
+                      Click here
                     </Link>
                   )}
                 </div>
