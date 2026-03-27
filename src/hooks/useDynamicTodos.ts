@@ -174,6 +174,8 @@ export const useDynamicTodos = () => {
     completedListsCount,
     totalLists,
     allListsCompleted,
+    allRegularCompleted,
+    isOngoingList: allRegularCompleted && ongoingLists.length > 0,
     isLoading,
     toggleItem: toggleItemMutation.mutate,
     isToggling: toggleItemMutation.isPending,
