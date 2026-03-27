@@ -263,7 +263,13 @@ export function useAdminMemberDetail(userId: string | null) {
         .select('*')
         .eq('user_id', userId);
 
-      // Build items per list
+      // Build items per list with full item data
+      const itemDataByList: Record<string, { id: string; title: string; order_index: number }[]> = {};
+      dynamicItems?.forEach(item => {
+        if (!itemDataByList[item.list_id]) itemDataByList[item.list_id] = [];
+        itemDataByList[item.list_id].push({ id: item.id, title: item.title, order_index: item.order_index });
+      });
+
       const itemsByList: Record<string, string[]> = {};
       dynamicItems?.forEach(item => {
         if (!itemsByList[item.list_id]) itemsByList[item.list_id] = [];
