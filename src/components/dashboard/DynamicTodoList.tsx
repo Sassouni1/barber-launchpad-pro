@@ -11,6 +11,8 @@ export const DynamicTodoList = () => {
     completedListsCount,
     totalLists,
     allListsCompleted,
+    allRegularCompleted,
+    isOngoingList,
     isLoading,
     toggleItem,
   } = useDynamicTodos();
@@ -66,7 +68,7 @@ export const DynamicTodoList = () => {
     );
   }
 
-  if (totalLists === 0 || allListsCompleted) {
+  if (totalLists === 0 || (allListsCompleted && !currentList)) {
     return null;
   }
 
@@ -86,19 +88,25 @@ export const DynamicTodoList = () => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Dynamic To-Do List</h3>
+          <h3 className="font-semibold text-foreground">
+            {isOngoingList ? 'Ongoing Marketing' : 'Dynamic To-Do List'}
+          </h3>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {completedListsCount} / {totalLists} lists completed
-        </span>
+        {!isOngoingList && (
+          <span className="text-xs text-muted-foreground">
+            {completedListsCount} / {totalLists} lists completed
+          </span>
+        )}
       </div>
 
       {allListsCompleted ? null : currentList ? (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-primary">
-              List {completedListsCount + 1}:
-            </span>
+            {!isOngoingList && (
+              <span className="text-sm font-medium text-primary">
+                List {completedListsCount + 1}:
+              </span>
+            )}
             <span className="text-sm font-semibold text-foreground">{currentList.title}</span>
           </div>
 

@@ -8,7 +8,7 @@ export function TodoList() {
   const { data: todos = [], isLoading } = useTodosWithSubtasks();
   const { data: userTodos = [] } = useUserTodos();
   const toggleTodo = useToggleUserTodo();
-  const { allListsCompleted, totalLists, isLoading: dynamicLoading } = useDynamicTodos();
+  const { allRegularCompleted, totalLists, isLoading: dynamicLoading } = useDynamicTodos();
 
   const isCompleted = (todoId: string) => userTodos.some(ut => ut.todo_id === todoId && ut.completed);
 
@@ -24,7 +24,7 @@ export function TodoList() {
     todos: groupedTodos.course.filter(t => t.week_number === week),
   }));
 
-  const isLocked = totalLists > 0 && !allListsCompleted;
+  const isLocked = totalLists > 0 && !allRegularCompleted;
 
   if (isLoading || dynamicLoading) {
     return (
