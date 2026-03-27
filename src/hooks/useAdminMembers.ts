@@ -2,6 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
 
+export interface DynamicTodoItemStatus {
+  itemId: string;
+  itemTitle: string;
+  completed: boolean;
+  completedAt: string | null;
+}
+
 export interface DynamicTodoStatus {
   listId: string;
   listTitle: string;
@@ -11,6 +18,7 @@ export interface DynamicTodoStatus {
   isComplete: boolean;
   isBehind: boolean;
   daysOverdue: number;
+  items: DynamicTodoItemStatus[];
 }
 
 export interface MemberStats {
@@ -168,6 +176,7 @@ export function useAdminMembers() {
             isComplete,
             isBehind,
             daysOverdue,
+            items: [],
           };
         });
 
@@ -246,22 +255,29 @@ export function useAdminMemberDetail(userId: string | null) {
 
       const { data: dynamicItems } = await supabase
         .from('dynamic_todo_items')
-        .select('*');
+        .select('*')
+        .order('order_index');
 
       const { data: dynamicProgress } = await supabase
         .from('user_dynamic_todo_progress')
         .select('*')
-        .eq('user_id', userId)
-        .eq('completed', true);
+        .eq('user_id', userId);
 
-      // Build items per list
+      // Build items per list with full item data
+      const itemDataByList: Record<string, { id: string; title: string; order_index: number }[]> = {};
+      dynamicItems?.forEach(item => {
+        if (!itemDataByList[item.list_id]) itemDataByList[item.list_id] = [];
+        itemDataByList[item.list_id].push({ id: item.id, title: item.title, order_index: item.order_index });
+      });
+
       const itemsByList: Record<string, string[]> = {};
       dynamicItems?.forEach(item => {
         if (!itemsByList[item.list_id]) itemsByList[item.list_id] = [];
         itemsByList[item.list_id].push(item.id);
       });
 
-      const completedItemIds = new Set(dynamicProgress?.map(p => p.item_id) || []);
+      const completedItemIds = new Set(dynamicProgress?.filter(p => p.completed).map(p => p.item_id) || []);
+      const progressByItemId = new Map(dynamicProgress?.map(p => [p.item_id, p]) || []);
       const memberJoinDate = profile?.created_at ? new Date(profile.created_at) : new Date();
       const daysSinceJoin = differenceInDays(new Date(), memberJoinDate);
 
@@ -279,6 +295,17 @@ export function useAdminMemberDetail(userId: string | null) {
           daysOverdue = daysSinceJoin - dueDays;
         }
 
+        const listItemData = (itemDataByList[list.id] || []).sort((a, b) => a.order_index - b.order_index);
+        const items: DynamicTodoItemStatus[] = listItemData.map(item => {
+          const progress = progressByItemId.get(item.id);
+          return {
+            itemId: item.id,
+            itemTitle: item.title,
+            completed: progress?.completed || false,
+            completedAt: progress?.completed_at || null,
+          };
+        });
+
         return {
           listId: list.id,
           listTitle: list.title,
@@ -288,6 +315,7 @@ export function useAdminMemberDetail(userId: string | null) {
           isComplete,
           isBehind,
           daysOverdue,
+          items,
         };
       });
 
