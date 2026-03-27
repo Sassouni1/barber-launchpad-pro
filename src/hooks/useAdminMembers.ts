@@ -276,7 +276,8 @@ export function useAdminMemberDetail(userId: string | null) {
         itemsByList[item.list_id].push(item.id);
       });
 
-      const completedItemIds = new Set(dynamicProgress?.map(p => p.item_id) || []);
+      const completedItemIds = new Set(dynamicProgress?.filter(p => p.completed).map(p => p.item_id) || []);
+      const progressByItemId = new Map(dynamicProgress?.map(p => [p.item_id, p]) || []);
       const memberJoinDate = profile?.created_at ? new Date(profile.created_at) : new Date();
       const daysSinceJoin = differenceInDays(new Date(), memberJoinDate);
 
