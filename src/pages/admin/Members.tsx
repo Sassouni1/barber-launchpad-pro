@@ -779,8 +779,7 @@ export default function Members() {
                   <TableHead>Joined</TableHead>
                   <TableHead>Quiz Avg</TableHead>
                   <TableHead>Lessons</TableHead>
-                   <TableHead>Current List</TableHead>
-                   <TableHead>Tasks Done</TableHead>
+                   <TableHead>Tasks</TableHead>
                    <TableHead>Status</TableHead>
                   <TableHead>Last Active</TableHead>
                   <TableHead></TableHead>
