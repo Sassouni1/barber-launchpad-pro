@@ -14,7 +14,7 @@ export default function Dashboard() {
         
         <div className="space-y-6">
           <DynamicTodoList />
-          <TodoList />
+          
           <ContinueLearning />
         </div>
       </div>
