@@ -42,35 +42,7 @@ export function TodoList() {
     <div className="glass-card p-6 rounded-xl space-y-6">
       <h2 className="font-display text-xl font-semibold">Your To-Do List</h2>
 
-      {/* Quick Wins */}
-      {groupedTodos.quick_win.length > 0 && (
-        <div className="border border-primary/30 bg-primary/5 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            Quick Wins This Week
-          </h3>
-          <div className="space-y-2">
-            {groupedTodos.quick_win.map(todo => {
-              const completed = isCompleted(todo.id);
-              return (
-                <div key={todo.id} className="flex items-center gap-3 p-3 bg-background/80 rounded-lg">
-                  <Checkbox
-                    id={todo.id}
-                    checked={completed}
-                    onCheckedChange={(checked) => toggleTodo.mutate({ todoId: todo.id, completed: !!checked })}
-                  />
-                  <label
-                    htmlFor={todo.id}
-                    className={`text-sm font-medium cursor-pointer flex-1 ${completed ? 'line-through text-muted-foreground' : ''}`}
-                  >
-                    {todo.title}
-                  </label>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Quick Wins - hidden for now */}
 
       {/* Daily Tasks */}
       <div>
