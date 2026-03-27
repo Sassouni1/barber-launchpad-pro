@@ -176,6 +176,7 @@ export function useAdminMembers() {
             isComplete,
             isBehind,
             daysOverdue,
+            items: [],
           };
         });
 
