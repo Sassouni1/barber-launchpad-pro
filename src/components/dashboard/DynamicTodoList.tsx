@@ -102,9 +102,11 @@ export const DynamicTodoList = () => {
       {allListsCompleted ? null : currentList ? (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-primary">
-              List {completedListsCount + 1}:
-            </span>
+            {!isOngoingList && (
+              <span className="text-sm font-medium text-primary">
+                List {completedListsCount + 1}:
+              </span>
+            )}
             <span className="text-sm font-semibold text-foreground">{currentList.title}</span>
           </div>
 
