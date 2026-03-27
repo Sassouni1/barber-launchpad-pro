@@ -145,17 +145,28 @@ export const useDynamicTodos = () => {
     },
   });
 
-  // Find the current active list (first incomplete list)
-  const currentListIndex = lists.findIndex(
+  // Separate ongoing lists (never "complete") from regular lists
+  const regularLists = lists.filter((list) => !list.title.toLowerCase().includes('ongoing'));
+  const ongoingLists = lists.filter((list) => list.title.toLowerCase().includes('ongoing'));
+
+  // Find the current active list (first incomplete regular list)
+  const currentRegularIndex = regularLists.findIndex(
     (list) => !list.items.every((item) => item.completed)
   );
 
-  const currentList = currentListIndex >= 0 ? lists[currentListIndex] : null;
-  const completedListsCount = currentListIndex >= 0 ? currentListIndex : lists.length;
-  const totalLists = lists.length;
-  const allListsCompleted = lists.length > 0 && lists.every(
+  const allRegularCompleted = regularLists.length > 0 && regularLists.every(
     (list) => list.items.every((item) => item.completed)
   );
+
+  // If all regular lists done, show the ongoing list; otherwise show current regular list
+  const currentList = allRegularCompleted 
+    ? (ongoingLists[0] || null)
+    : (currentRegularIndex >= 0 ? regularLists[currentRegularIndex] : null);
+  
+  const completedListsCount = currentRegularIndex >= 0 ? currentRegularIndex : regularLists.length;
+  const totalLists = regularLists.length;
+  // Never mark as "all completed" if there are ongoing lists
+  const allListsCompleted = allRegularCompleted && ongoingLists.length === 0;
 
   return {
     lists,
