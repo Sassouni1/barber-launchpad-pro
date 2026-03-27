@@ -295,6 +295,17 @@ export function useAdminMemberDetail(userId: string | null) {
           daysOverdue = daysSinceJoin - dueDays;
         }
 
+        const listItemData = (itemDataByList[list.id] || []).sort((a, b) => a.order_index - b.order_index);
+        const items: DynamicTodoItemStatus[] = listItemData.map(item => {
+          const progress = progressByItemId.get(item.id);
+          return {
+            itemId: item.id,
+            itemTitle: item.title,
+            completed: progress?.completed || false,
+            completedAt: progress?.completed_at || null,
+          };
+        });
+
         return {
           listId: list.id,
           listTitle: list.title,
@@ -304,6 +315,7 @@ export function useAdminMemberDetail(userId: string | null) {
           isComplete,
           isBehind,
           daysOverdue,
+          items,
         };
       });
 
