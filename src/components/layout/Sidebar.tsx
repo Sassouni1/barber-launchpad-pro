@@ -256,9 +256,11 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/training" icon={Target} label="Training Games" />
             </ExpandableNavItem>
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed} defaultOpen>
-              {checklistLists.map(list => (
-                <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
-              ))}
+              {checklistLists
+                .filter(list => !list.title.toLowerCase().includes('consultation') && !list.title.toLowerCase().includes('marketing'))
+                .map(list => (
+                  <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
+                ))}
             </ExpandableNavItem>
             <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
