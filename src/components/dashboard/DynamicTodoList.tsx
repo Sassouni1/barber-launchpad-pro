@@ -11,6 +11,8 @@ export const DynamicTodoList = () => {
     completedListsCount,
     totalLists,
     allListsCompleted,
+    allRegularCompleted,
+    isOngoingList,
     isLoading,
     toggleItem,
   } = useDynamicTodos();
