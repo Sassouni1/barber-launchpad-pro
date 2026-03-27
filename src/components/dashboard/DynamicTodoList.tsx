@@ -88,11 +88,15 @@ export const DynamicTodoList = () => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Dynamic To-Do List</h3>
+          <h3 className="font-semibold text-foreground">
+            {isOngoingList ? 'Ongoing Marketing' : 'Dynamic To-Do List'}
+          </h3>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {completedListsCount} / {totalLists} lists completed
-        </span>
+        {!isOngoingList && (
+          <span className="text-xs text-muted-foreground">
+            {completedListsCount} / {totalLists} lists completed
+          </span>
+        )}
       </div>
 
       {allListsCompleted ? null : currentList ? (
