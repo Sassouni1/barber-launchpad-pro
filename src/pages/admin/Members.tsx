@@ -779,8 +779,9 @@ export default function Members() {
                   <TableHead>Joined</TableHead>
                   <TableHead>Quiz Avg</TableHead>
                   <TableHead>Lessons</TableHead>
-                  <TableHead>Tasks</TableHead>
-                  <TableHead>Status</TableHead>
+                   <TableHead>Current List</TableHead>
+                   <TableHead>Tasks Done</TableHead>
+                   <TableHead>Status</TableHead>
                   <TableHead>Last Active</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
@@ -825,6 +826,23 @@ export default function Members() {
                           {member.lessonsCompleted}/{member.totalLessons}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const nonChecklist = member.dynamicTodoStatus.filter(s => !s.listTitle.toLowerCase().includes('checklist'));
+                        const currentList = nonChecklist.find(s => !s.isComplete);
+                        const allDone = nonChecklist.length > 0 && nonChecklist.every(s => s.isComplete);
+                        if (allDone) return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">All Done</Badge>;
+                        if (!currentList) return <span className="text-sm text-muted-foreground">—</span>;
+                        const listIndex = nonChecklist.indexOf(currentList) + 1;
+                        return (
+                          <div>
+                            <p className="text-sm font-medium">List {listIndex}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[120px]">{currentList.listTitle}</p>
+                            <p className="text-xs text-primary">{currentList.completedItems}/{currentList.totalItems} done</p>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
