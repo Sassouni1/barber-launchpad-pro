@@ -98,6 +98,7 @@ function BehindBadge({ behind }: { behind: number }) {
 }
 
 function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; onClose: () => void; refetch: () => void }) {
+  const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set());
   const { data: detail, isLoading } = useAdminMemberDetail(member.id);
   const toggleAdminRole = useToggleAdminRole();
   const [updatingSkip, setUpdatingSkip] = useState(false);
