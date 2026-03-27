@@ -266,7 +266,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
               {/* Poster + QR Codes hidden for now */}
             </ExpandableNavItem>
-            <NavItem to="/rewards" icon={Gift} label="Rewards Tracker" collapsed={collapsed} />
+            {/* Rewards hidden for now */}
             <ExpandableNavItem icon={Package} label="Products" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
