@@ -24,7 +24,7 @@ export function TodoList() {
     todos: groupedTodos.course.filter(t => t.week_number === week),
   }));
 
-  const isLocked = totalLists > 0 && !allListsCompleted;
+  const isLocked = totalLists > 0 && !allRegularCompleted;
 
   if (isLoading || dynamicLoading) {
     return (
