@@ -2,6 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
 
+export interface DynamicTodoItemStatus {
+  itemId: string;
+  itemTitle: string;
+  completed: boolean;
+  completedAt: string | null;
+}
+
 export interface DynamicTodoStatus {
   listId: string;
   listTitle: string;
@@ -11,6 +18,7 @@ export interface DynamicTodoStatus {
   isComplete: boolean;
   isBehind: boolean;
   daysOverdue: number;
+  items: DynamicTodoItemStatus[];
 }
 
 export interface MemberStats {
