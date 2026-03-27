@@ -66,8 +66,8 @@ export const DynamicTodoList = () => {
     );
   }
 
-  if (totalLists === 0) {
-    return null; // Don't render if no dynamic lists exist
+  if (totalLists === 0 || allListsCompleted) {
+    return null;
   }
 
   return (
