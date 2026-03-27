@@ -255,13 +255,13 @@ export function useAdminMemberDetail(userId: string | null) {
 
       const { data: dynamicItems } = await supabase
         .from('dynamic_todo_items')
-        .select('*');
+        .select('*')
+        .order('order_index');
 
       const { data: dynamicProgress } = await supabase
         .from('user_dynamic_todo_progress')
         .select('*')
-        .eq('user_id', userId)
-        .eq('completed', true);
+        .eq('user_id', userId);
 
       // Build items per list
       const itemsByList: Record<string, string[]> = {};
