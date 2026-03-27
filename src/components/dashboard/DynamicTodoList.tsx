@@ -68,7 +68,7 @@ export const DynamicTodoList = () => {
     );
   }
 
-  if (totalLists === 0 || allListsCompleted) {
+  if (totalLists === 0 || (allListsCompleted && !currentList)) {
     return null;
   }
 
