@@ -486,34 +486,74 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
             </h4>
             {detail?.dynamicTodoStatus && detail.dynamicTodoStatus.length > 0 ? (
               <div className="space-y-2">
-                {detail.dynamicTodoStatus.map((status) => (
-                  <div 
-                    key={status.listId} 
-                    className={`flex items-center justify-between p-3 rounded-lg ${
-                      status.isBehind ? 'bg-red-500/10 border border-red-500/30' : 'bg-secondary/20'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {status.isComplete ? (
-                        <CheckCircle2 className="w-4 h-4 text-green-400" />
-                      ) : status.isBehind ? (
-                        <AlertTriangle className="w-4 h-4 text-red-400" />
-                      ) : (
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <div>
-                        <p className="font-medium text-sm">{status.listTitle}</p>
-                        {status.dueDays && (
-                          <p className="text-xs text-muted-foreground">
-                            Due within {status.dueDays} days
-                            {status.isBehind && <span className="text-red-400 ml-1">({status.daysOverdue} days overdue)</span>}
-                          </p>
+                {detail.dynamicTodoStatus.map((status, idx) => (
+                  <div key={status.listId}>
+                    <div 
+                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                        status.isBehind ? 'bg-red-500/10 border border-red-500/30' : 'bg-secondary/20 hover:bg-secondary/40'
+                      }`}
+                      onClick={() => {
+                        setExpandedLists(prev => {
+                          const next = new Set(prev);
+                          next.has(status.listId) ? next.delete(status.listId) : next.add(status.listId);
+                          return next;
+                        });
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        {status.isComplete ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400" />
+                        ) : status.isBehind ? (
+                          <AlertTriangle className="w-4 h-4 text-red-400" />
+                        ) : (
+                          <Clock className="w-4 h-4 text-muted-foreground" />
                         )}
+                        <div>
+                          <p className="font-medium text-sm">List {idx + 1}: {status.listTitle}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Progress 
+                              value={status.totalItems > 0 ? (status.completedItems / status.totalItems) * 100 : 0} 
+                              className="w-20 h-1.5"
+                            />
+                            {status.dueDays && (
+                              <span className="text-xs text-muted-foreground">
+                                Due {status.dueDays}d
+                                {status.isBehind && <span className="text-red-400 ml-1">({status.daysOverdue}d overdue)</span>}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={status.isComplete ? 'default' : 'secondary'}>
+                          {status.completedItems}/{status.totalItems}
+                        </Badge>
+                        <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${expandedLists.has(status.listId) ? 'rotate-90' : ''}`} />
                       </div>
                     </div>
-                    <Badge variant={status.isComplete ? 'default' : 'secondary'}>
-                      {status.completedItems}/{status.totalItems}
-                    </Badge>
+                    {expandedLists.has(status.listId) && status.items && (
+                      <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-border pl-3 py-1">
+                        {status.items.map(item => (
+                          <div key={item.itemId} className="flex items-center justify-between py-1.5">
+                            <div className="flex items-center gap-2">
+                              {item.completed ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                              ) : (
+                                <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/40 shrink-0" />
+                              )}
+                              <span className={`text-xs ${item.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                                {item.itemTitle}
+                              </span>
+                            </div>
+                            {item.completed && item.completedAt && (
+                              <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                                {format(new Date(item.completedAt), 'MMM d')}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
