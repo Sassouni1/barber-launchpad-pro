@@ -244,7 +244,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                 </PopoverTrigger>
                 <PopoverContent side="top" align="center" className="w-52 p-2 bg-popover border-border">
                   <div className="space-y-1">
-                    {checklistLists.filter(list => !list.title.toLowerCase().includes('consultation') && !list.title.toLowerCase().includes('marketing')).map((list) => (
+                    {checklistLists.filter(list => !list.title.toLowerCase().includes('consultation')).map((list) => (
                       <NavLink
                         key={list.id}
                         to={`/checklist/${list.id}`}
