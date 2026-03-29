@@ -90,15 +90,43 @@ export default function HairSystemChecklist() {
         const isMarketingChecklist = list.title.toLowerCase().includes('marketing checklist');
         let relevantItems: typeof itemsData = [];
         if (isMarketingChecklist && allDynamicLists.length > 0) {
-          // Group all dynamic list items, using source list title as section_title
-          const dynamicListIds = allDynamicLists.map(l => l.id);
-          const dynamicListMap = new Map(allDynamicLists.map(l => [l.id, l.title]));
-          relevantItems = (itemsData || [])
-            .filter(item => dynamicListIds.includes(item.list_id))
-            .map(item => ({
+          // Progressive logic: show one dynamic list at a time (like dashboard)
+          const regularDynLists = allDynamicLists.filter(l => !l.title.toLowerCase().includes('ongoing'));
+          const ongoingDynLists = allDynamicLists.filter(l => l.title.toLowerCase().includes('ongoing'));
+
+          // Build completion map per dynamic list
+          const dynListsWithCompletion = regularDynLists.map(dl => {
+            const dlItems = (itemsData || []).filter(item => item.list_id === dl.id);
+            const allCompleted = dlItems.length > 0 && dlItems.every(item => progressMap.get(item.id));
+            return { ...dl, items: dlItems, allCompleted };
+          });
+
+          const currentRegularIdx = dynListsWithCompletion.findIndex(dl => !dl.allCompleted);
+          const allRegularDone = dynListsWithCompletion.length > 0 && dynListsWithCompletion.every(dl => dl.allCompleted);
+
+          let activeList: { id: string; title: string; items: typeof itemsData } | null = null;
+          if (allRegularDone && ongoingDynLists.length > 0) {
+            const ongoingItems = (itemsData || []).filter(item => item.list_id === ongoingDynLists[0].id);
+            activeList = { ...ongoingDynLists[0], items: ongoingItems };
+          } else if (currentRegularIdx >= 0) {
+            activeList = dynListsWithCompletion[currentRegularIdx];
+          }
+
+          if (activeList) {
+            relevantItems = activeList.items.map(item => ({
               ...item,
-              section_title: item.section_title || dynamicListMap.get(item.list_id) || null,
+              section_title: item.section_title || activeList!.title,
             }));
+          }
+
+          // Store progressive metadata on the list for UI
+          (list as any)._dynMeta = {
+            completedListsCount: currentRegularIdx >= 0 ? currentRegularIdx : regularDynLists.length,
+            totalLists: regularDynLists.length,
+            allRegularDone,
+            isOngoing: allRegularDone && ongoingDynLists.length > 0,
+            activeListTitle: activeList?.title || '',
+          };
         } else {
           relevantItems = (itemsData || []).filter(item => item.list_id === list.id);
         }
@@ -305,14 +333,29 @@ export default function HairSystemChecklist() {
             {lists.map(list => {
               const listCompleted = list.items.filter(i => i.completed).length;
               const listTotal = list.items.length;
+              const dynMeta = (list as any)._dynMeta as { completedListsCount: number; totalLists: number; allRegularDone: boolean; isOngoing: boolean; activeListTitle: string } | undefined;
               return (
                 <div key={list.id} className={listId ? 'space-y-4' : 'glass-card p-6 rounded-xl space-y-4'}>
                   {!listId && (
                     <div className="flex items-center justify-between">
                       <h2 className="font-display text-xl font-semibold">{list.title}</h2>
-                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                        {listCompleted}/{listTotal}
+                      {!dynMeta && (
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          {listCompleted}/{listTotal}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {dynMeta && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-primary">
+                        {dynMeta.isOngoing ? 'Ongoing Marketing' : `Stage ${dynMeta.completedListsCount + 1}: ${dynMeta.activeListTitle}`}
                       </span>
+                      {!dynMeta.isOngoing && (
+                        <span className="text-xs text-muted-foreground">
+                          {dynMeta.completedListsCount} / {dynMeta.totalLists} stages completed
+                        </span>
+                      )}
                     </div>
                   )}
                   <div className="space-y-4">
