@@ -1,55 +1,25 @@
 
 
-## Add Referral Tracking to Rewards Tracker
+# Make Marketing Checklist Show All Dynamic To-Do Items
 
-Track when existing clients refer new ones, with tiered free service rewards based on total referrals.
+## Problem
+The dashboard's dynamic to-do lists (stages 1-5 + Ongoing Marketing) contain all the tasks, but the Marketing Checklist page only pulls items from the "Ongoing Marketing" list. The user wants everything from the dynamic to-do flow to also appear in the Marketing Checklist.
 
-### How It Works
+## Plan
 
-When a new client is added (manually or via self-signup), the member can mark which existing client referred them. The referring client earns credit toward tiered rewards:
+### 1. Update HairSystemChecklist.tsx query logic
+When loading the Marketing Checklist, fetch items from **all** non-checklist dynamic to-do lists (the same ones the dashboard uses), not just the "Ongoing Marketing" list.
 
-- **1 referral** -- Small reward (e.g. free beard trim)
-- **3 referrals** -- Medium reward (e.g. free haircut)  
-- **5 referrals** -- Big reward (e.g. free full service)
+- Change the current logic that only fetches the "Ongoing Marketing" list ID
+- Instead, fetch all `dynamic_todo_lists` where title does NOT contain "checklist" 
+- Include all their item IDs when querying `dynamic_todo_items`
+- Group/display items under their original list titles (e.g., "Hair Training: Week 1-2", "Consultations & Sales", etc.) as section headers within the Marketing Checklist
 
-The tiers are stored in an admin-configurable `app_settings` row so they can be adjusted later.
+### 2. Display structure
+Items will appear grouped by their source list title, preserving the order. Each list becomes a section within the Marketing Checklist, so users see the same progression as the dashboard but in one consolidated view. Progress stays synced since both views use the same `item_id` references in `user_dynamic_todo_progress`.
 
-### Database Changes
-
-1. **Add `referred_by_client_id` column** to `reward_clients` table (nullable UUID, self-referencing FK). This tracks which existing client referred each new client.
-
-2. **Add `app_settings` row** for `referral_tiers` with value like:
-   ```json
-   {
-     "tiers": [
-       { "count": 1, "reward": "Free Beard Trim" },
-       { "count": 3, "reward": "Free Haircut" },
-       { "count": 5, "reward": "Free Full Service" }
-     ]
-   }
-   ```
-
-3. **Add `referral_redeemed_count` column** to `reward_clients` (integer, default 0) to track how many referral rewards they've already claimed.
-
-### Frontend Changes
-
-**`src/hooks/useRewards.ts`**:
-- Extend `useRewardClients` query to include referral count (count of other clients where `referred_by_client_id = this client's id`)
-- Add `useReferralTiers` hook to fetch tier config from `app_settings`
-- Add `useRedeemReferralReward` mutation to increment `referral_redeemed_count`
-
-**`src/pages/Rewards.tsx`**:
-- In the "Add Client" dialog (and self-signup flow), add an optional "Referred by" dropdown listing existing clients
-- On each client card, show referral count and their current tier/reward earned
-- Add a "Claim Referral Reward" button when they've hit a new tier they haven't redeemed yet
-- Display referral stats in the stats bar (total referrals alongside total clients / rewards given)
-
-**`src/pages/RewardsJoin.tsx`** (self-signup page):
-- No changes needed here since the member assigns the referrer on their end after the client signs up
-
-### Technical Notes
-
-- Referral count is computed by counting rows in `reward_clients` where `referred_by_client_id` matches the client's ID and the client belongs to the same member (`user_id` match)
-- Tier progression: if a client has 3 referrals and has redeemed 1 tier reward, they can claim the 3-referral tier reward next
-- The `referred_by_client_id` FK is scoped to the same `user_id` to prevent cross-member referral assignments
+### Technical Details
+- In `HairSystemChecklist.tsx` lines 56-66: Replace the "Ongoing Marketing" lookup with a query for all non-checklist lists
+- Lines 88-93: Update the item filtering to map items from all dynamic lists into the Marketing Checklist, grouped by source list title using `section_title` overrides
+- No database changes needed — same items, same progress table
 
