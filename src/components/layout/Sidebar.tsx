@@ -257,7 +257,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             </ExpandableNavItem>
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed} defaultOpen>
               {checklistLists
-                .filter(list => !list.title.toLowerCase().includes('consultation') && !list.title.toLowerCase().includes('marketing'))
+                .filter(list => !list.title.toLowerCase().includes('consultation'))
                 .map(list => (
                   <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
                 ))}
