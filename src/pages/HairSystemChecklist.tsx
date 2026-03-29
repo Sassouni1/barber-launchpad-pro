@@ -53,23 +53,24 @@ export default function HairSystemChecklist() {
       if (listsError) throw listsError;
       if (!listsData || listsData.length === 0) return [];
 
-      // For Marketing Checklist, also load items from Ongoing Marketing (they are reflections)
+      // For Marketing Checklist, load items from ALL non-checklist dynamic lists
       const marketingChecklist = listsData.find(l => l.title.toLowerCase().includes('marketing checklist'));
-      let ongoingListId: string | null = null;
+      let allDynamicLists: { id: string; title: string; order_index: number }[] = [];
       if (marketingChecklist) {
-        const { data: ongoingList } = await supabase
+        const { data: dynLists } = await supabase
           .from('dynamic_todo_lists')
-          .select('id')
-          .ilike('title', '%ongoing%')
-          .single();
-        if (ongoingList) ongoingListId = ongoingList.id;
+          .select('id, title, order_index')
+          .not('title', 'ilike', '%checklist%')
+          .order('order_index');
+        if (dynLists) allDynamicLists = dynLists;
       }
 
-      const itemListIds = [...listsData.map(l => l.id), ...(ongoingListId ? [ongoingListId] : [])];
+      const itemListIds = [...listsData.map(l => l.id), ...allDynamicLists.map(l => l.id)];
+      const uniqueListIds = [...new Set(itemListIds)];
       const { data: itemsData, error: itemsError } = await supabase
         .from('dynamic_todo_items')
         .select('*')
-        .in('list_id', itemListIds)
+        .in('list_id', uniqueListIds)
         .order('order_index');
 
       if (itemsError) throw itemsError;
@@ -86,14 +87,24 @@ export default function HairSystemChecklist() {
       const progressMap = new Map(progressData.map(p => [p.item_id, p.completed]));
 
       return listsData.map(list => {
-        // For Marketing Checklist, include items from Ongoing Marketing list
         const isMarketingChecklist = list.title.toLowerCase().includes('marketing checklist');
-        const relevantItems = (itemsData || []).filter(item => 
-          item.list_id === list.id || (isMarketingChecklist && ongoingListId && item.list_id === ongoingListId)
-        );
+        let relevantItems: typeof itemsData = [];
+        if (isMarketingChecklist && allDynamicLists.length > 0) {
+          // Group all dynamic list items, using source list title as section_title
+          const dynamicListIds = allDynamicLists.map(l => l.id);
+          const dynamicListMap = new Map(allDynamicLists.map(l => [l.id, l.title]));
+          relevantItems = (itemsData || [])
+            .filter(item => dynamicListIds.includes(item.list_id))
+            .map(item => ({
+              ...item,
+              section_title: item.section_title || dynamicListMap.get(item.list_id) || null,
+            }));
+        } else {
+          relevantItems = (itemsData || []).filter(item => item.list_id === list.id);
+        }
         return {
           ...list,
-          items: relevantItems.map(item => ({
+          items: (relevantItems || []).map(item => ({
             ...item,
             completed: progressMap.get(item.id) || false,
           })),
