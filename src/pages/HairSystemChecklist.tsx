@@ -53,11 +53,23 @@ export default function HairSystemChecklist() {
       if (listsError) throw listsError;
       if (!listsData || listsData.length === 0) return [];
 
-      const listIds = listsData.map(l => l.id);
+      // For Marketing Checklist, also load items from Ongoing Marketing (they are reflections)
+      const marketingChecklist = listsData.find(l => l.title.toLowerCase().includes('marketing checklist'));
+      let ongoingListId: string | null = null;
+      if (marketingChecklist) {
+        const { data: ongoingList } = await supabase
+          .from('dynamic_todo_lists')
+          .select('id')
+          .ilike('title', '%ongoing%')
+          .single();
+        if (ongoingList) ongoingListId = ongoingList.id;
+      }
+
+      const itemListIds = [...listsData.map(l => l.id), ...(ongoingListId ? [ongoingListId] : [])];
       const { data: itemsData, error: itemsError } = await supabase
         .from('dynamic_todo_items')
         .select('*')
-        .in('list_id', listIds)
+        .in('list_id', itemListIds)
         .order('order_index');
 
       if (itemsError) throw itemsError;
@@ -73,15 +85,20 @@ export default function HairSystemChecklist() {
 
       const progressMap = new Map(progressData.map(p => [p.item_id, p.completed]));
 
-      return listsData.map(list => ({
-        ...list,
-        items: (itemsData || [])
-          .filter(item => item.list_id === list.id)
-          .map(item => ({
+      return listsData.map(list => {
+        // For Marketing Checklist, include items from Ongoing Marketing list
+        const isMarketingChecklist = list.title.toLowerCase().includes('marketing checklist');
+        const relevantItems = (itemsData || []).filter(item => 
+          item.list_id === list.id || (isMarketingChecklist && ongoingListId && item.list_id === ongoingListId)
+        );
+        return {
+          ...list,
+          items: relevantItems.map(item => ({
             ...item,
             completed: progressMap.get(item.id) || false,
           })),
-      })) as ChecklistList[];
+        };
+      }) as ChecklistList[];
     },
     enabled: true,
   });
