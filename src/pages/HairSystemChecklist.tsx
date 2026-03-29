@@ -85,15 +85,20 @@ export default function HairSystemChecklist() {
 
       const progressMap = new Map(progressData.map(p => [p.item_id, p.completed]));
 
-      return listsData.map(list => ({
-        ...list,
-        items: (itemsData || [])
-          .filter(item => item.list_id === list.id)
-          .map(item => ({
+      return listsData.map(list => {
+        // For Marketing Checklist, include items from Ongoing Marketing list
+        const isMarketingChecklist = list.title.toLowerCase().includes('marketing checklist');
+        const relevantItems = (itemsData || []).filter(item => 
+          item.list_id === list.id || (isMarketingChecklist && ongoingListId && item.list_id === ongoingListId)
+        );
+        return {
+          ...list,
+          items: relevantItems.map(item => ({
             ...item,
             completed: progressMap.get(item.id) || false,
           })),
-      })) as ChecklistList[];
+        };
+      }) as ChecklistList[];
     },
     enabled: true,
   });
