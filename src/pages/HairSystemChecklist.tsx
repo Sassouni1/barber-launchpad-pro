@@ -333,14 +333,29 @@ export default function HairSystemChecklist() {
             {lists.map(list => {
               const listCompleted = list.items.filter(i => i.completed).length;
               const listTotal = list.items.length;
+              const dynMeta = (list as any)._dynMeta as { completedListsCount: number; totalLists: number; allRegularDone: boolean; isOngoing: boolean; activeListTitle: string } | undefined;
               return (
                 <div key={list.id} className={listId ? 'space-y-4' : 'glass-card p-6 rounded-xl space-y-4'}>
                   {!listId && (
                     <div className="flex items-center justify-between">
                       <h2 className="font-display text-xl font-semibold">{list.title}</h2>
-                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                        {listCompleted}/{listTotal}
+                      {!dynMeta && (
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          {listCompleted}/{listTotal}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {dynMeta && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-primary">
+                        {dynMeta.isOngoing ? 'Ongoing Marketing' : `Stage ${dynMeta.completedListsCount + 1}: ${dynMeta.activeListTitle}`}
                       </span>
+                      {!dynMeta.isOngoing && (
+                        <span className="text-xs text-muted-foreground">
+                          {dynMeta.completedListsCount} / {dynMeta.totalLists} stages completed
+                        </span>
+                      )}
                     </div>
                   )}
                   <div className="space-y-4">
