@@ -706,6 +706,94 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
   );
 }
 
+function TemplateSubmissionsSection({ userId }: { userId: string }) {
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: photos = [], isLoading } = useQuery({
+    queryKey: ['member-template-photos', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('certification_photos')
+        .select('id, file_name, file_url, uploaded_at, approved, approved_at')
+        .eq('user_id', userId)
+        .order('uploaded_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const handleApprove = async (id: string) => {
+    setApprovingId(id);
+    try {
+      const { error } = await supabase
+        .from('certification_photos')
+        .update({ approved: true, approved_at: new Date().toISOString() } as any)
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Submission approved');
+      queryClient.invalidateQueries({ queryKey: ['member-template-photos', userId] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to approve');
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const getSignedUrl = async (fileUrl: string) => {
+    const path = fileUrl.includes('/certification-photos/')
+      ? fileUrl.split('/certification-photos/').pop()
+      : fileUrl;
+    if (!path) return null;
+    const { data } = await supabase.storage
+      .from('certification-photos')
+      .createSignedUrl(path, 3600);
+    return data?.signedUrl || null;
+  };
+
+  if (isLoading) return <p className="text-muted-foreground text-sm">Loading...</p>;
+  if (photos.length === 0) return <p className="text-muted-foreground text-sm">No template submissions yet</p>;
+
+  return (
+    <ScrollArea className="h-48">
+      <div className="space-y-2">
+        {photos.map((photo: any) => (
+          <div key={photo.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20">
+            <div className="flex items-center gap-3">
+              <button
+                className="text-primary hover:underline text-sm font-medium"
+                onClick={async () => {
+                  const url = await getSignedUrl(photo.file_url);
+                  if (url) window.open(url, '_blank');
+                  else toast.error('Could not load image');
+                }}
+              >
+                {photo.file_name}
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(photo.uploaded_at), 'MMM d, yyyy')}
+              </span>
+            </div>
+            {photo.approved ? (
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                <CheckCircle2 className="w-3 h-3 mr-1" /> Approved
+              </Badge>
+            ) : (
+              <Button
+                size="sm"
+                disabled={approvingId === photo.id}
+                onClick={() => handleApprove(photo.id)}
+              >
+                {approvingId === photo.id ? 'Approving...' : 'Approve'}
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
+  );
+}
+
 type SortField = 'joined' | 'quizAvg' | 'lessons' | 'tasks' | 'lastActive' | 'behind';
 type SortDir = 'asc' | 'desc';
 
