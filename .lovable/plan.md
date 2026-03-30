@@ -1,52 +1,32 @@
 
 
-# Improve All: Real Progress Tracking + Homework File Deletion Fix
+# Show Full Quiz Status Per Module in Admin Member Detail
 
-## 4 improvements to implement:
+## Problem
+The Quiz History section in the admin member detail only shows modules where the student **has submitted** a quiz. It doesn't show modules with quizzes that haven't been attempted yet — so seeing "2 quizzes" doesn't mean tracking is broken, it means Alec only took 2. But the admin has no way to see which quizzes are still outstanding.
 
-### 1. ProgressOverview — Show real lesson completion percentages
-**Current**: Progress bars hardcoded to `width: '0%'`
-**Fix**: Query `user_progress` table to count completed lessons per course, calculate percentage, display real progress bars.
+## Solution
+Enhance the Quiz History section to show **all modules that have quizzes**, with their attempt status:
+- **Passed**: green badge with score
+- **Failed**: red badge with score  
+- **Not attempted**: grey "Not taken" badge
 
-- In `src/components/dashboard/ProgressOverview.tsx`: import `useAuth` and `supabase`, fetch `user_progress` where `completed = true` for the current user, compute `completedCount / totalLessons` per course, and set the bar width accordingly.
-- Update the "Keep Learning" stat to show actual completed lessons count.
+This gives admins a complete picture of quiz progress per student.
 
-### 2. Todos page — Show real stats instead of hardcoded 0
-**Current**: "Course Tasks Done" and "Personal Goals Done" both show `0`
-**Fix**: Query `user_todos` for the current user to count completed todos by type.
+## Changes
 
-- In `src/pages/Todos.tsx`: import `useAuth`, use the existing `useTodosWithSubtasks` and user todo data to compute:
-  - "Course Tasks Done" = count of completed course-type todos
-  - "Personal Goals Done" = count of completed daily + weekly todos
+### `src/hooks/useAdminMembers.ts` — `useAdminMemberDetail`
+- Fetch all modules where `has_quiz = true`, ordered by course/order_index
+- Cross-reference with the user's `user_quiz_attempts` to find best score per module
+- Return a new `quizStatus` array with: `module_id`, `module_title`, `bestScore`, `totalQuestions`, `passed` (>=80%), `attempted`
 
-### 3. Behind-schedule indicator for users
-**Current**: `due_days` column exists on `dynamic_todo_lists` and admin sees "behind" status, but users never see it.
-**Fix**: Surface a small warning badge on the dashboard `DynamicTodoList` when the user's account age exceeds `due_days` for the current list.
-
-- In `src/hooks/useDynamicTodos.ts`: include `due_days` in the returned list data (already fetched).
-- In `src/components/dashboard/DynamicTodoList.tsx`: compare `due_days` against user's `created_at` from profile. If overdue, show a subtle "You're behind schedule" warning with an `AlertTriangle` icon.
-
-### 4. Fix homework_files RLS — Allow users to delete their own files
-**Current**: No DELETE policy on `homework_files`, so the delete button silently fails.
-**Fix**: Add a DELETE RLS policy matching the existing INSERT/SELECT pattern.
-
-- Database migration:
-```sql
-CREATE POLICY "Users can delete own homework files"
-ON public.homework_files FOR DELETE
-USING (
-  EXISTS (
-    SELECT 1 FROM homework_submissions hs
-    WHERE hs.id = homework_files.submission_id
-    AND hs.user_id = auth.uid()
-  )
-);
-```
+### `src/pages/admin/Members.tsx` — Quiz History UI
+- Replace the current flat list of attempts with a structured list showing every quiz-enabled module
+- Each row shows: module title, best score badge (color-coded), and attempt count
+- Keep the scroll area but show "X/Y passed" summary header
+- Clicking a row could expand to show all attempts for that module (optional, keeps it concise)
 
 ### Files to edit
-- `src/components/dashboard/ProgressOverview.tsx` — real progress bars
-- `src/pages/Todos.tsx` — real stats
-- `src/hooks/useDynamicTodos.ts` — expose `due_days`
-- `src/components/dashboard/DynamicTodoList.tsx` — behind-schedule warning
-- Database migration for `homework_files` DELETE policy
+- `src/hooks/useAdminMembers.ts` — add modules query + quiz status aggregation
+- `src/pages/admin/Members.tsx` — update Quiz History rendering
 
