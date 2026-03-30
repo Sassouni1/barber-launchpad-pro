@@ -14,6 +14,7 @@ import Members from "./pages/admin/Members";
 import CourseBuilder from "./pages/admin/CourseBuilder";
 import TodosManager from "./pages/admin/TodosManager";
 import ProductsManager from "./pages/admin/ProductsManager";
+import TemplateSubmissions from "./pages/admin/TemplateSubmissions";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
 import CreateAccount from "./pages/CreateAccount";
