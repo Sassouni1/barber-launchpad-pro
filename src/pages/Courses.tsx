@@ -466,13 +466,49 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       );
                     })}
                   </div>
+
+                  {/* Level 1 Certification entry for hair-system on desktop */}
+                  {courseType === 'hair-system' && (
+                    <div className="pl-2 mt-2">
+                      <button
+                        onClick={() => {
+                          setShowCertification(true);
+                          setSelectedModule(null);
+                        }}
+                        className={cn(
+                          'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
+                          'border-2 hover:border-primary/50 hover:bg-secondary/20',
+                          showCertification && !selectedModule
+                            ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20'
+                            : 'border-primary/30 bg-primary/5 shadow-md shadow-black/20'
+                        )}
+                      >
+                        <div className={cn(
+                          'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
+                          showCertification && !selectedModule
+                            ? 'gold-gradient text-primary-foreground shadow-md'
+                            : 'gold-gradient text-primary-foreground'
+                        )}>
+                          <Award className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={cn(
+                            "font-semibold text-sm mb-1",
+                            showCertification && !selectedModule ? "text-primary" : "gold-text"
+                          )}>
+                            Level 1 Certification
+                          </h4>
+                          <p className="text-xs text-muted-foreground">Complete all lessons to unlock</p>
+                        </div>
+                        <Award className={cn(
+                          "w-5 h-5 flex-shrink-0",
+                          showCertification && !selectedModule ? "text-primary" : "text-muted-foreground"
+                        )} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
-              
-              {/* Certification Section for hair-system on desktop left panel */}
-              {courseType === 'hair-system' && courses[0]?.id && (
-                <CertificationSection courseId={courses[0].id} />
-              )}
             </div>
             
             {/* Scroll indicator */}
