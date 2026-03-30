@@ -469,7 +469,7 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
           <p className="text-2xl font-bold">{member.quizAverage}%</p>
         </div>
         <div className="p-4 rounded-lg bg-secondary/30">
-          <p className="text-sm text-muted-foreground">Lessons</p>
+          <p className="text-sm text-muted-foreground">Modules</p>
           <p className="text-2xl font-bold">{member.lessonsCompleted}/{member.totalLessons}</p>
         </div>
         <div className="p-4 rounded-lg bg-secondary/30">
