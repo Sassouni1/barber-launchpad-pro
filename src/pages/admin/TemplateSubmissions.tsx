@@ -188,7 +188,7 @@ export default function TemplateSubmissions() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-6 max-w-5xl">
         <div>
           <h1 className="text-2xl font-display font-bold">Template Submissions</h1>
           <p className="text-muted-foreground text-sm mt-1">Review and approve member template photo submissions</p>
