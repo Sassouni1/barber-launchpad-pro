@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -28,37 +28,47 @@ function PosterPreview({ link, posterUrl, qrX, qrY, qrSize }: {
   qrY: number;
   qrSize: number;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const qrRef = useRef<HTMLDivElement>(null);
+  const preparedDownloadUrlRef = useRef<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [isPreparingDownload, setIsPreparingDownload] = useState(true);
   const redirectUrl = getRedirectUrl(link.short_code);
+  const fileName = `${link.label.replace(/\s+/g, '-')}-poster.png`;
 
-  const handleDownload = useCallback(async () => {
+  useEffect(() => {
+    let isCancelled = false;
     let sourceObjectUrl: string | null = null;
-    let downloadObjectUrl: string | null = null;
+    let nextDownloadUrl: string | null = null;
 
-    try {
-      const posterResponse = await fetch(posterUrl);
-      if (!posterResponse.ok) throw new Error('Failed to fetch poster template');
+    const preparePosterDownload = async () => {
+      setIsPreparingDownload(true);
 
-      const posterBlob = await posterResponse.blob();
-      sourceObjectUrl = URL.createObjectURL(posterBlob);
+      try {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
-      const img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load poster image'));
-        img.src = sourceObjectUrl!;
-      });
+        const qrSvg = qrRef.current?.querySelector('svg');
+        if (!qrSvg) throw new Error('QR preview not ready');
 
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Failed to create canvas context');
-      ctx.drawImage(img, 0, 0);
+        const posterResponse = await fetch(posterUrl);
+        if (!posterResponse.ok) throw new Error('Failed to fetch poster template');
 
-      const qrSvg = qrRef.current?.querySelector('svg');
-      if (qrSvg) {
+        const posterBlob = await posterResponse.blob();
+        sourceObjectUrl = URL.createObjectURL(posterBlob);
+
+        const img = new Image();
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Failed to load poster image'));
+          img.src = sourceObjectUrl!;
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Failed to create canvas context');
+        ctx.drawImage(img, 0, 0);
+
         const qrCanvas = document.createElement('canvas');
         const qrSizePx = Math.round((qrSize / 100) * canvas.width);
         qrCanvas.width = qrSizePx;
@@ -78,32 +88,66 @@ function PosterPreview({ link, posterUrl, qrX, qrY, qrSize }: {
         const posX = Math.round((qrX / 100) * canvas.width - qrSizePx / 2);
         const posY = Math.round((qrY / 100) * canvas.height - qrSizePx / 2);
         ctx.drawImage(qrCanvas, posX, posY);
+
+        const finalBlob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Failed to export poster image'));
+          }, 'image/png');
+        });
+
+        nextDownloadUrl = URL.createObjectURL(finalBlob);
+        if (isCancelled) return;
+
+        if (preparedDownloadUrlRef.current) {
+          URL.revokeObjectURL(preparedDownloadUrlRef.current);
+        }
+        preparedDownloadUrlRef.current = nextDownloadUrl;
+        setDownloadUrl(nextDownloadUrl);
+        nextDownloadUrl = null;
+      } catch (error) {
+        console.error(error);
+        if (!isCancelled) {
+          setDownloadUrl(null);
+        }
+      } finally {
+        if (sourceObjectUrl) URL.revokeObjectURL(sourceObjectUrl);
+        if (nextDownloadUrl) URL.revokeObjectURL(nextDownloadUrl);
+        if (!isCancelled) setIsPreparingDownload(false);
       }
+    };
 
-      const finalBlob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error('Failed to export poster image'));
-        }, 'image/png');
-      });
+    preparePosterDownload();
 
-      downloadObjectUrl = URL.createObjectURL(finalBlob);
-      const a = document.createElement('a');
-      a.download = `${link.label.replace(/\s+/g, '-')}-poster.png`;
-      a.href = downloadObjectUrl;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      toast.success('Poster downloaded!');
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to generate poster');
-    } finally {
+    return () => {
+      isCancelled = true;
       if (sourceObjectUrl) URL.revokeObjectURL(sourceObjectUrl);
-      if (downloadObjectUrl) URL.revokeObjectURL(downloadObjectUrl);
+      if (nextDownloadUrl) URL.revokeObjectURL(nextDownloadUrl);
+    };
+  }, [posterUrl, qrX, qrY, qrSize, redirectUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (preparedDownloadUrlRef.current) {
+        URL.revokeObjectURL(preparedDownloadUrlRef.current);
+      }
+    };
+  }, []);
+
+  const handleDownload = useCallback(() => {
+    if (!downloadUrl) {
+      toast.error(isPreparingDownload ? 'Still preparing poster...' : 'Poster is not ready to download yet');
+      return;
     }
-  }, [posterUrl, qrX, qrY, qrSize, link]);
+
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast.success('Poster downloaded!');
+  }, [downloadUrl, fileName, isPreparingDownload]);
 
   return (
     <div className="space-y-4">
@@ -124,8 +168,16 @@ function PosterPreview({ link, posterUrl, qrX, qrY, qrSize }: {
       </div>
 
       <div className="flex justify-center">
-        <Button onClick={handleDownload} size="lg">
-          <Download className="w-4 h-4 mr-2" /> Download Poster
+        <Button onClick={handleDownload} size="lg" disabled={isPreparingDownload || !downloadUrl}>
+          {isPreparingDownload ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Preparing Poster...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4 mr-2" /> Download Poster
+            </>
+          )}
         </Button>
       </div>
     </div>
