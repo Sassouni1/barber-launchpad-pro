@@ -294,7 +294,47 @@ export default function Lesson() {
     () => module?.video_url ? getVimeoEmbedUrl(module.video_url) : '',
     [module?.video_url]
   );
-  
+
+  // Auto-complete video lessons based on time on page
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const elapsedSeconds = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoCompletedRef = useRef(false);
+
+  // Fetch video duration from Vimeo oEmbed API
+  useEffect(() => {
+    if (!module?.video_url || !module.video_url.includes('vimeo')) return;
+    const rawUrl = module.video_url.replace(/player\.vimeo\.com\/video\//, 'vimeo.com/');
+    fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(rawUrl)}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.duration) setVideoDuration(data.duration);
+      })
+      .catch(() => { /* fallback to manual button */ });
+  }, [module?.video_url]);
+
+  // Time-on-page tracker for auto-completion
+  useEffect(() => {
+    if (!videoDuration || isModuleCompleted || !user?.id || !module?.id) return;
+    autoCompletedRef.current = false;
+    elapsedSeconds.current = 0;
+
+    const threshold = Math.max(60, videoDuration * 0.7);
+
+    timerRef.current = setInterval(() => {
+      elapsedSeconds.current += 1;
+      if (elapsedSeconds.current >= threshold && !autoCompletedRef.current) {
+        autoCompletedRef.current = true;
+        if (timerRef.current) clearInterval(timerRef.current);
+        markModuleComplete();
+      }
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [videoDuration, isModuleCompleted, user?.id, module?.id]);
+
   const submitQuiz = useSubmitQuiz();
   const submitHomework = useSubmitHomework();
   const deleteHomeworkFile = useDeleteHomeworkFile();
