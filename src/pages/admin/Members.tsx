@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAdminMembers, useAdminMemberDetail, useAdminStats, MemberStats, QuizModuleStatus } from '@/hooks/useAdminMembers';
+import { useAdminMembers, useAdminMemberDetail, useAdminStats, MemberStats, CourseQuizGroup } from '@/hooks/useAdminMembers';
 import { useToggleAdminRole } from '@/hooks/useAdminRoles';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
