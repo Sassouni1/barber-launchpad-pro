@@ -3,10 +3,26 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { BookOpen, Trophy, Clock, TrendingUp, Loader2 } from 'lucide-react';
+import { differenceInDays } from 'date-fns';
 
 export function ProgressOverview() {
   const { data: courses = [], isLoading } = useCourses();
   const { user } = useAuth();
+
+  // Fetch user's profile created_at for legacy/new determination
+  const { data: profileCreatedAt } = useQuery({
+    queryKey: ['profile-created-at', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('id', user.id)
+        .maybeSingle();
+      return data?.created_at || null;
+    },
+    enabled: !!user,
+  });
 
   // Fetch user's completed lessons (maps to modules via lesson -> module_id)
   const { data: completedLessons = [] } = useQuery({
@@ -59,10 +75,10 @@ export function ProgressOverview() {
     );
   }
 
-  const totalModules = courses.reduce(
-    (acc, course) => acc + (course.modules || []).length,
-    0
-  );
+  // Determine legacy vs new member
+  const isLegacy = profileCreatedAt
+    ? differenceInDays(new Date(), new Date(profileCreatedAt)) > 14
+    : true;
 
   // Build a map: lessonId -> moduleId
   const moduleIdByLessonId = new Map<string, string>();
@@ -71,10 +87,10 @@ export function ProgressOverview() {
   }
 
   // Find modules completed via user_progress (video watch)
-  const completedModuleIdsFromProgress = new Set<string>();
+  const progressModuleIds = new Set<string>();
   for (const l of completedLessons) {
     const modId = moduleIdByLessonId.get(l.lesson_id);
-    if (modId) completedModuleIdsFromProgress.add(modId);
+    if (modId) progressModuleIds.add(modId);
   }
 
   // Find modules completed via quiz pass (best score >= 80%)
@@ -89,13 +105,15 @@ export function ProgressOverview() {
     if (pct >= 80) passedModuleIds.add(modId);
   });
 
-  // Calculate per-course completion (unit = module)
+  // Calculate per-course completion (only modules with has_quiz)
   const courseProgress = courses.map(course => {
-    const moduleIds = (course.modules || []).map(m => m.id);
-    const totalMods = moduleIds.length;
+    const quizModules = (course.modules || []).filter((m: any) => m.has_quiz);
+    const totalMods = quizModules.length;
     let completedCount = 0;
-    for (const mid of moduleIds) {
-      if (completedModuleIdsFromProgress.has(mid) || passedModuleIds.has(mid)) {
+    for (const mod of quizModules) {
+      const passedQuiz = passedModuleIds.has(mod.id);
+      const hasProgress = progressModuleIds.has(mod.id);
+      if (isLegacy ? passedQuiz : (passedQuiz || hasProgress)) {
         completedCount++;
       }
     }
@@ -103,12 +121,13 @@ export function ProgressOverview() {
     return { ...course, totalLessons: totalMods, completedCount, pct };
   });
 
+  const totalModules = courseProgress.reduce((acc, c) => acc + c.totalLessons, 0);
   const totalCompleted = courseProgress.reduce((s, c) => s + c.completedCount, 0);
 
   const stats = [
     { icon: BookOpen, label: 'Total Modules', value: totalModules, color: 'text-primary' },
     { icon: Trophy, label: 'Courses', value: courses.length, color: 'text-primary' },
-    { icon: Clock, label: 'Lessons Done', value: totalCompleted, color: 'text-muted-foreground' },
+    { icon: Clock, label: 'Modules Done', value: totalCompleted, color: 'text-muted-foreground' },
   ];
 
   return (
