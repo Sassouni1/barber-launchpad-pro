@@ -422,6 +422,7 @@ export function useAdminMemberDetail(userId: string | null) {
         })) || [],
         dynamicTodoStatus,
         quizStatus,
+        quizByCoure: quizByCourse,
       } as MemberDetail;
     },
     enabled: !!userId,
