@@ -115,10 +115,21 @@ export function useAdminMembers() {
 
       if (progressError) throw progressError;
 
-      // Fetch total lessons count
-      const { count: totalLessons } = await supabase
+      // Fetch all lessons (id + module_id) for quiz-passed completion logic
+      const { data: allLessons, error: lessonsError } = await supabase
         .from('lessons')
-        .select('*', { count: 'exact', head: true });
+        .select('id, module_id');
+
+      if (lessonsError) throw lessonsError;
+
+      const totalLessons = allLessons?.length || 0;
+
+      // Build lesson IDs per module for quiz-passed completion
+      const lessonIdsByModule: Record<string, string[]> = {};
+      allLessons?.forEach(lesson => {
+        if (!lessonIdsByModule[lesson.module_id]) lessonIdsByModule[lesson.module_id] = [];
+        lessonIdsByModule[lesson.module_id].push(lesson.id);
+      });
 
       // Fetch dynamic todo lists with items
       const { data: dynamicLists, error: listsError } = await supabase
