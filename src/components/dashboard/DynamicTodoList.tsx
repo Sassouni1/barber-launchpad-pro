@@ -138,7 +138,7 @@ export const DynamicTodoList = () => {
         </div>
       )}
 
-
+      {allListsCompleted ? null : currentList ? (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             {!isOngoingList && (
