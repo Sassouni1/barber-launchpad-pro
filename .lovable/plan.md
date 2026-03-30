@@ -1,27 +1,34 @@
 
 
-# Fix Marketing Checklist — Show One List at a Time (Like Dashboard)
+# Show All Dynamic Lists in Marketing Checklist (with Lock/Greyed Out States)
 
-## Problem
-The Marketing Checklist page currently dumps ALL dynamic to-do items at once, broken into weird section categories by source list name. You want it to mirror the dashboard behavior: show one list at a time, progressing to the next when the current one is completed.
+## What Changes
+Update the Marketing Checklist section in `HairSystemChecklist.tsx` to show **all** dynamic lists at once, but with visual states:
 
-## Plan
+- **Completed lists**: Items shown with strikethrough/checkmarks, collapsed or visually marked as done
+- **Current active list**: Fully interactive, normal styling
+- **Future locked lists**: Greyed out, non-interactive, with a lock icon
 
-### Update HairSystemChecklist.tsx for Marketing Checklist
-Reuse the same progressive logic from `useDynamicTodos.ts`:
+## Technical Plan
 
-1. **Fetch all non-checklist dynamic lists** (same as now)
-2. **Find the current active list** — the first list where not all items are completed (same logic as dashboard's `currentRegularIndex`)
-3. **Display only that one list's items** under the Marketing Checklist, with a "List X of Y" indicator and progress bar
-4. **When all items in the current list are checked off**, automatically show the next list (just like the dashboard)
-5. **When all regular lists are done**, show the Ongoing Marketing list
+### Update `src/pages/HairSystemChecklist.tsx` (lines 89-140)
 
-### Technical Details
-- In `HairSystemChecklist.tsx` lines 89-112: Instead of merging all dynamic list items into one flat list, apply the same filtering logic as `useDynamicTodos`:
-  - Separate regular lists from "ongoing" lists
-  - Find first incomplete regular list
-  - Only include that list's items in the Marketing Checklist's items array
-  - Use the active list's title as the section title
-- Add a small "List X of Y completed" indicator above the items (matching dashboard style)
-- Progress bar reflects only the current active list's completion
+Replace the "show only active list" logic with "show all lists, styled by state":
+
+1. **Keep fetching all non-checklist dynamic lists** (already doing this)
+2. **Instead of picking one active list**, map ALL dynamic lists into the Marketing Checklist's items, grouped by list title
+3. **Add a state flag per group**: `completed`, `active`, or `locked`
+   - Walk through regular lists in order; first incomplete one is `active`, everything before is `completed`, everything after is `locked`
+   - Ongoing list: `active` only when all regular lists are done, otherwise `locked`
+
+### Update the rendering section (lines 361-455)
+
+For the Marketing Checklist, render each dynamic list as a distinct section:
+
+- **Completed sections**: Show list title with a green checkmark badge, items with strikethrough text, checkboxes checked and disabled
+- **Active section**: Normal interactive items (current behavior)
+- **Locked sections**: Grey/opacity-50 styling, items visible but checkboxes disabled, subtle lock icon on the section header
+
+### Files to Edit
+- `src/pages/HairSystemChecklist.tsx` — query logic + rendering
 
