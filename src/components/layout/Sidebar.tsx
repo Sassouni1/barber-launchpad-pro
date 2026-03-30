@@ -263,7 +263,9 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                   <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
                 ))}
             </ExpandableNavItem>
-            <NavItem to="/marketing" icon={Megaphone} label="AI Social Media" collapsed={collapsed} />
+            <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
+              <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
+            </ExpandableNavItem>
             {/* Rewards hidden for now */}
             <ExpandableNavItem icon={Package} label="Products" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
