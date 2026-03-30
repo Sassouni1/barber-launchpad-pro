@@ -176,9 +176,25 @@ export function useAdminMembers() {
             return sum + Math.min(pct, 100);
           }, 0);
           quizAverage = Math.round(totalPercentage / memberQuizzes.length);
-        }
+        // Find modules where user passed a quiz (best score >= 80%)
+        const passedModuleIds = new Set<string>();
+        const attemptsByMod = new Map<string, number>();
+        memberQuizzes.forEach(q => {
+          const pct = q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0;
+          const best = attemptsByMod.get(q.module_id) || 0;
+          attemptsByMod.set(q.module_id, Math.max(best, pct));
+        });
+        attemptsByMod.forEach((bestPct, modId) => {
+          if (bestPct >= 80) passedModuleIds.add(modId);
+        });
 
-        // Calculate dynamic todo status per list
+        // Combine explicitly completed lessons + lessons from quiz-passed modules
+        const completedLessonIds = new Set(memberProgress.map(p => p.lesson_id));
+        passedModuleIds.forEach(modId => {
+          (lessonIdsByModule[modId] || []).forEach(lid => completedLessonIds.add(lid));
+        });
+        const lessonsCompleted = completedLessonIds.size;
+
         const completedItemIds = new Set(memberDynamicProgress.map(p => p.item_id));
         const memberJoinDate = new Date(profile.created_at);
         const today = new Date();
