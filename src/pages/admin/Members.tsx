@@ -637,6 +637,14 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
               <p className="text-muted-foreground text-sm">No lessons completed yet</p>
             )}
           </div>
+
+          {/* Template Submissions */}
+          <div>
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Template Submissions
+            </h4>
+            <TemplateSubmissionsSection userId={member.id} />
+          </div>
         </>
       )}
 
