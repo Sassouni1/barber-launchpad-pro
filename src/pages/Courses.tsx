@@ -339,7 +339,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
       </div>
 
       {/* Tablet & Desktop View */}
-      <div className="hidden md:flex gap-6 h-[calc(100vh-8rem)] overflow-hidden">
+      <div className="hidden md:flex gap-6 h-[calc(100vh-5rem)] overflow-hidden">
         {/* Left Panel - Courses & Modules */}
         <div className={cn("flex-shrink-0 overflow-hidden flex flex-col", isDesktop ? "w-96" : "w-full")}>
           <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
