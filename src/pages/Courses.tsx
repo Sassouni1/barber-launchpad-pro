@@ -1,6 +1,6 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses, type Module } from '@/hooks/useCourses';
-import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star } from 'lucide-react';
+import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star, Award } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate, useParams } from 'react-router-dom';
