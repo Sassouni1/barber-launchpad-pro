@@ -337,6 +337,36 @@ export function useAdminMemberDetail(userId: string | null) {
         };
       });
 
+      // Build quiz status per module
+      const attemptsByModule = new Map<string, typeof quizAttempts>();
+      quizAttempts?.forEach(a => {
+        const list = attemptsByModule.get(a.module_id) || [];
+        list.push(a);
+        attemptsByModule.set(a.module_id, list);
+      });
+
+      const quizStatus: QuizModuleStatus[] = (quizModules || []).map(mod => {
+        const attempts = attemptsByModule.get(mod.id) || [];
+        let bestScore: number | null = null;
+        let bestTotal = 0;
+        attempts.forEach(a => {
+          const pct = a.total_questions > 0 ? a.score / a.total_questions : 0;
+          if (bestScore === null || pct > bestScore / (bestTotal || 1)) {
+            bestScore = Math.round(Math.min(pct, 1) * 100);
+            bestTotal = a.total_questions;
+          }
+        });
+        return {
+          module_id: mod.id,
+          module_title: mod.title,
+          bestScore,
+          totalQuestions: bestTotal,
+          passed: bestScore !== null && bestScore >= 80,
+          attempted: attempts.length > 0,
+          attemptCount: attempts.length,
+        };
+      });
+
       return {
         quizAttempts: quizAttempts?.map(q => ({
           module_id: q.module_id,
@@ -351,6 +381,7 @@ export function useAdminMemberDetail(userId: string | null) {
           completed_at: p.completed_at,
         })) || [],
         dynamicTodoStatus,
+        quizStatus,
       } as MemberDetail;
     },
     enabled: !!userId,
