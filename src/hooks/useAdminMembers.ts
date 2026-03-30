@@ -40,6 +40,16 @@ export interface MemberStats {
   skipAgreement: boolean;
 }
 
+export interface QuizModuleStatus {
+  module_id: string;
+  module_title: string;
+  bestScore: number | null;
+  totalQuestions: number;
+  passed: boolean;
+  attempted: boolean;
+  attemptCount: number;
+}
+
 export interface MemberDetail {
   quizAttempts: {
     module_id: string;
@@ -54,6 +64,7 @@ export interface MemberDetail {
     completed_at: string;
   }[];
   dynamicTodoStatus: DynamicTodoStatus[];
+  quizStatus: QuizModuleStatus[];
 }
 
 export function useAdminMembers() {
