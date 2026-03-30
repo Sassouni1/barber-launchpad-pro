@@ -134,7 +134,7 @@ export function ProgressOverview() {
               <div className="flex justify-between items-center">
                 <span className="font-medium text-sm">{course.title}</span>
                 <span className="text-muted-foreground text-sm">
-                  {course.completedCount}/{course.totalLessons} lessons
+                  {course.completedCount}/{course.totalLessons} modules
                 </span>
               </div>
               <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
