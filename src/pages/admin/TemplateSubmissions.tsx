@@ -91,6 +91,14 @@ export default function TemplateSubmissions() {
     }
   }, [groups]);
 
+  const sortedGroups = useMemo(() => {
+    const sorted = [...groups].sort((a, b) => {
+      const diff = new Date(b.latestUpload).getTime() - new Date(a.latestUpload).getTime();
+      return sortNewestFirst ? diff : -diff;
+    });
+    return sorted;
+  }, [groups, sortNewestFirst]);
+
   const allSubmissions = useMemo(() => groups.flatMap(g => g.submissions), [groups]);
 
   useEffect(() => {
