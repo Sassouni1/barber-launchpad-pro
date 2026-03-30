@@ -140,11 +140,6 @@ export default function AdminDashboard() {
           <GHLIntegration />
         </div>
 
-        {/* Poster Template */}
-        <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.6s' }}>
-          <h2 className="font-display text-xl font-semibold mb-4">QR Poster Template</h2>
-          <PosterTemplateManager />
-        </div>
 
         {/* Certificate Template Uploader */}
         <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.7s' }}>
