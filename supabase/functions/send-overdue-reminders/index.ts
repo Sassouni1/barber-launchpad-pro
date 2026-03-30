@@ -16,6 +16,56 @@ const REMINDER_MESSAGES = [
     `Just a friendly reminder — your training tasks are waiting for you. Let's get back on track! Log in here: ${APP_URL}`,
 ];
 
+const GHL_BASE = "https://services.leadconnectorhq.com";
+const GHL_HEADERS = (apiKey: string) => ({
+  Authorization: `Bearer ${apiKey}`,
+  "Content-Type": "application/json",
+  Version: "2021-07-28",
+});
+
+async function resolveGhlContactId(
+  ghlApiKey: string,
+  user: { full_name: string | null; phone: string | null; email: string | null }
+): Promise<string | null> {
+  // 1. Search by email
+  if (user.email) {
+    const res = await fetch(
+      `${GHL_BASE}/contacts/search/duplicate?email=${encodeURIComponent(user.email)}`,
+      { headers: GHL_HEADERS(ghlApiKey) }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.contact?.id) return data.contact.id;
+    }
+  }
+
+  // 2. Not found — create contact
+  const nameParts = (user.full_name || "").trim().split(/\s+/);
+  const firstName = nameParts[0] || "Member";
+  const lastName = nameParts.slice(1).join(" ") || "";
+
+  const createRes = await fetch(`${GHL_BASE}/contacts/`, {
+    method: "POST",
+    headers: GHL_HEADERS(ghlApiKey),
+    body: JSON.stringify({
+      firstName,
+      lastName,
+      phone: user.phone,
+      email: user.email,
+    }),
+  });
+
+  if (createRes.ok) {
+    const created = await createRes.json();
+    return created.contact?.id || null;
+  }
+
+  const errText = await createRes.text();
+  console.error(`Failed to create GHL contact: ${createRes.status} ${errText}`);
+  return null;
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
