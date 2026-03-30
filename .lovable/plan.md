@@ -1,33 +1,40 @@
 
 
-# Fix Lessons Metric to Use Modules as the Unit
+# Module Completion: Two-Tier System (Legacy vs New Members)
 
-## Problem
-The "Lessons" column shows "0/1" because it counts rows in the `lessons` table, but most course content lives directly in the `modules` table (modules have videos, quizzes, etc.). The `lessons` table has almost no rows.
+## Summary
 
-## Solution
-Switch the metric from counting `lessons` rows to counting **modules** as the unit of completion. A module counts as "completed" if:
-- The user **passed the quiz** for that module (best score >= 80%) — sufficient on its own
-- OR the user has a `user_progress` entry for a lesson in that module (video watch completion)
+Members who joined **more than 14 days ago** ("legacy") get module completion based purely on quiz passes. Members who joined **within the last 14 days** ("new") require video watch completion (time-on-page via `user_progress`) OR a quiz pass OR manual "Mark Complete" — any of these counts.
 
-This means quiz passes automatically count as completed modules for all members (old and new).
+The total shown (denominator) will only count modules that have quizzes (`has_quiz = true`), fixing the "32" issue.
 
 ## Changes
 
 ### `src/hooks/useAdminMembers.ts` — `useAdminMembers()`
-1. Fetch all modules (`modules` table) instead of relying on `lessons` for the total count
-2. Set `totalLessons` = total number of published modules (rename internally but keep the field name for UI compatibility)
-3. For each member, a module is "completed" if:
-   - They passed the quiz (>= 80%) for that module, OR
-   - They have a `user_progress` entry for any lesson linked to that module
-4. `lessonsCompleted` = count of completed modules
+1. **Fetch `has_quiz` field**: Change module select to `'id, course_id, has_quiz'`
+2. **Filter total**: `totalLessons = allModules.filter(m => m.has_quiz).length`
+3. **Per-member completion logic** uses `profile.created_at`:
+   - If joined > 14 days ago (legacy): module complete = quiz passed (≥80%) for that module
+   - If joined ≤ 14 days ago (new): module complete = quiz passed OR `user_progress` entry for a lesson in that module (video watch / manual complete)
+   - Only count modules where `has_quiz = true`
 
 ### `src/hooks/useAdminMembers.ts` — `useAdminMemberDetail()`
-Same logic adjustment for the detail view: count completed modules using quiz pass + user_progress union.
+Same two-tier logic applied to the detail view.
 
-### `src/pages/admin/Members.tsx`
-Rename column header from "Lessons" to "Modules" for clarity.
+### `src/hooks/useAdminMembers.ts` — `useAdminStats()`
+Already counts modules with `has_quiz` filter — just verify and align.
 
 ### `src/components/dashboard/ProgressOverview.tsx`
-Also count quiz-passed modules as completed in the user-facing progress overview, using the same logic (fetch quiz attempts, find passed modules, union with user_progress).
+1. Fetch user's profile `created_at` to determine legacy vs new
+2. Only count modules with `has_quiz = true` in the total
+3. Apply same two-tier completion logic:
+   - Legacy (>14 days): quiz pass only
+   - New (≤14 days): quiz pass OR `user_progress` (video/manual complete)
+
+### `src/pages/admin/Members.tsx`
+No changes needed beyond the already-done "Modules" rename.
+
+## Technical Detail
+
+The 14-day cutoff uses `differenceInDays(new Date(), new Date(profile.created_at)) > 14`. The `user_progress` entries are created by: video auto-complete (time-on-page ≥ video duration), quiz submission (edge function auto-upserts), homework submission, or manual "Mark Complete" button — so for new members, any of these paths satisfies completion alongside the quiz requirement.
 
