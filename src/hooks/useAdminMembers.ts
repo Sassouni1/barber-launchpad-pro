@@ -204,10 +204,11 @@ export function useAdminMembers() {
 
         // Find last active date
         const allDates = [
+          profile.last_active_at,
           ...memberQuizzes.map(q => q.completed_at),
           ...memberProgress.map(p => p.completed_at).filter(Boolean),
           ...memberDynamicProgress.map(p => p.completed_at).filter(Boolean),
-        ];
+        ].filter(Boolean);
         const lastActive = allDates.length > 0
           ? allDates.sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0]
           : null;
