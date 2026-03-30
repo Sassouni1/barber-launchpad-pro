@@ -196,12 +196,13 @@ export function useAdminMembers() {
           if (bestPct >= 80) passedModuleIds.add(modId);
         });
 
-        // Combine explicitly completed lessons + lessons from quiz-passed modules
-        const completedLessonIds = new Set(memberProgress.map(p => p.lesson_id));
-        passedModuleIds.forEach(modId => {
-          (lessonIdsByModule[modId] || []).forEach(lid => completedLessonIds.add(lid));
+        // Count completed modules: quiz passed OR has user_progress for a lesson in that module
+        const completedModuleIds = new Set<string>(passedModuleIds);
+        memberProgress.forEach(p => {
+          const modId = moduleIdByLessonId[p.lesson_id];
+          if (modId) completedModuleIds.add(modId);
         });
-        const lessonsCompleted = completedLessonIds.size;
+        const lessonsCompleted = completedModuleIds.size;
 
         const completedItemIds = new Set(memberDynamicProgress.map(p => p.item_id));
         const memberJoinDate = new Date(profile.created_at);

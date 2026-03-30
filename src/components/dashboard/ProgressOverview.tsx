@@ -64,28 +64,43 @@ export function ProgressOverview() {
     0
   );
 
-  // Build a map: moduleId -> Set of lessonIds
-  const lessonsByModule = new Map<string, string[]>();
+  // Build a map: lessonId -> moduleId
+  const moduleIdByLessonId = new Map<string, string>();
   for (const lesson of allLessons) {
-    const arr = lessonsByModule.get(lesson.module_id) || [];
-    arr.push(lesson.id);
-    lessonsByModule.set(lesson.module_id, arr);
+    moduleIdByLessonId.set(lesson.id, lesson.module_id);
   }
 
-  const completedLessonIds = new Set(completedLessons.map(l => l.lesson_id));
+  // Find modules completed via user_progress (video watch)
+  const completedModuleIdsFromProgress = new Set<string>();
+  for (const l of completedLessons) {
+    const modId = moduleIdByLessonId.get(l.lesson_id);
+    if (modId) completedModuleIdsFromProgress.add(modId);
+  }
 
-  // Calculate per-course completion
+  // Find modules completed via quiz pass (best score >= 80%)
+  const bestScoreByModule = new Map<string, number>();
+  for (const q of quizAttempts) {
+    const pct = q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0;
+    const best = bestScoreByModule.get(q.module_id) || 0;
+    bestScoreByModule.set(q.module_id, Math.max(best, pct));
+  }
+  const passedModuleIds = new Set<string>();
+  bestScoreByModule.forEach((pct, modId) => {
+    if (pct >= 80) passedModuleIds.add(modId);
+  });
+
+  // Calculate per-course completion (unit = module)
   const courseProgress = courses.map(course => {
     const moduleIds = (course.modules || []).map(m => m.id);
-    let totalLessons = 0;
+    const totalMods = moduleIds.length;
     let completedCount = 0;
     for (const mid of moduleIds) {
-      const lessons = lessonsByModule.get(mid) || [];
-      totalLessons += lessons.length;
-      completedCount += lessons.filter(lid => completedLessonIds.has(lid)).length;
+      if (completedModuleIdsFromProgress.has(mid) || passedModuleIds.has(mid)) {
+        completedCount++;
+      }
     }
-    const pct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
-    return { ...course, totalLessons, completedCount, pct };
+    const pct = totalMods > 0 ? Math.round((completedCount / totalMods) * 100) : 0;
+    return { ...course, totalLessons: totalMods, completedCount, pct };
   });
 
   const totalCompleted = courseProgress.reduce((s, c) => s + c.completedCount, 0);
