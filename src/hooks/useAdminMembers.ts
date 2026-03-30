@@ -75,6 +75,7 @@ export interface MemberDetail {
   }[];
   dynamicTodoStatus: DynamicTodoStatus[];
   quizStatus: QuizModuleStatus[];
+  quizByCoure: CourseQuizGroup[];
 }
 
 export function useAdminMembers() {
