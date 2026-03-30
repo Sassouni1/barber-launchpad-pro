@@ -27,7 +27,7 @@ import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
 import ManufacturerOrders from "./pages/ManufacturerOrders";
 import Marketing from "./pages/Marketing";
-import QRCodes from "./pages/QRCodes";
+
 import Rewards from "./pages/Rewards";
 import RewardsJoin from "./pages/RewardsJoin";
 import QRRedirect from "./pages/QRRedirect";
