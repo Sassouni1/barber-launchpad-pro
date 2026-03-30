@@ -115,14 +115,16 @@ export function useAdminMembers() {
 
       if (progressError) throw progressError;
 
-      // Fetch all modules as the unit of completion
+      // Fetch all modules as the unit of completion (include has_quiz)
       const { data: allModules, error: modulesError } = await supabase
         .from('modules')
-        .select('id, course_id');
+        .select('id, course_id, has_quiz');
 
       if (modulesError) throw modulesError;
 
-      const totalLessons = allModules?.length || 0;
+      // Only count modules with quizzes as the total
+      const quizModuleIds = new Set((allModules || []).filter(m => m.has_quiz).map(m => m.id));
+      const totalLessons = quizModuleIds.size;
 
       // Fetch all lessons (id + module_id) so user_progress can map to modules
       const { data: allLessons, error: lessonsError } = await supabase
