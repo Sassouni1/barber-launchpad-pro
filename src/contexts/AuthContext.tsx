@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -79,6 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const lastActiveUpdated = useRef(false);
+
+  const updateLastActive = async (userId: string) => {
+    if (lastActiveUpdated.current) return;
+    lastActiveUpdated.current = true;
+    await supabase.from('profiles').update({ last_active_at: new Date().toISOString() }).eq('id', userId);
+  };
+
   const checkUserStatus = async (userId: string) => {
     const [rolesResult, profileResult] = await Promise.all([
       supabase
@@ -97,6 +105,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsManufacturer(roles.includes('manufacturer'));
     setHasSignedAgreement(!!profileResult.data?.agreement_signed_at || !!profileResult.data?.skip_agreement);
     setLoading(false);
+
+    updateLastActive(userId);
   };
 
   useEffect(() => {
