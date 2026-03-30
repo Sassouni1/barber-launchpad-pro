@@ -35,12 +35,24 @@ export default function TemplateSubmissions() {
   const { data: submissions = [], isLoading } = useQuery({
     queryKey: ['admin-template-submissions'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: photos, error } = await supabase
         .from('certification_photos')
-        .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at, profiles!certification_photos_user_id_fkey(full_name, email)')
+        .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at')
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
-      return (data || []) as unknown as SubmissionRow[];
+      
+      const userIds = [...new Set((photos || []).map(p => p.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+      
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      
+      return (photos || []).map(p => ({
+        ...p,
+        profiles: profileMap.get(p.user_id) || null,
+      })) as SubmissionRow[];
     },
   });
 
