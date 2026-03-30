@@ -469,7 +469,7 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
           <p className="text-2xl font-bold">{member.quizAverage}%</p>
         </div>
         <div className="p-4 rounded-lg bg-secondary/30">
-          <p className="text-sm text-muted-foreground">Lessons</p>
+          <p className="text-sm text-muted-foreground">Modules</p>
           <p className="text-2xl font-bold">{member.lessonsCompleted}/{member.totalLessons}</p>
         </div>
         <div className="p-4 rounded-lg bg-secondary/30">
@@ -851,7 +851,7 @@ export default function Members() {
             icon={GraduationCap}
           />
           <StatCard 
-            title="Total Lessons" 
+            title="Total Modules" 
             value={statsLoading ? '...' : stats?.totalLessons || 0} 
             icon={BookOpen}
           />
@@ -901,7 +901,7 @@ export default function Members() {
                   <TableHead>Member</TableHead>
                   <SortableHeader label="Joined" field="joined" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                   <SortableHeader label="Quiz Avg" field="quizAvg" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
-                  <SortableHeader label="Lessons" field="lessons" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Modules" field="lessons" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                   <SortableHeader label="Tasks" field="tasks" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                   <SortableHeader label="Status" field="behind" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                   <SortableHeader label="Last Active" field="lastActive" sortField={sortField} sortDir={sortDir} onSort={handleSort} />

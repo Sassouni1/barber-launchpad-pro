@@ -8,7 +8,7 @@ export function ProgressOverview() {
   const { data: courses = [], isLoading } = useCourses();
   const { user } = useAuth();
 
-  // Fetch user's completed lessons
+  // Fetch user's completed lessons (maps to modules via lesson -> module_id)
   const { data: completedLessons = [] } = useQuery({
     queryKey: ['user-progress', user?.id],
     queryFn: async () => {
@@ -24,7 +24,7 @@ export function ProgressOverview() {
     enabled: !!user,
   });
 
-  // Fetch all lessons to map lesson -> module -> course
+  // Fetch all lessons to map lesson_id -> module_id
   const { data: allLessons = [] } = useQuery({
     queryKey: ['all-lessons'],
     queryFn: async () => {
@@ -34,6 +34,21 @@ export function ProgressOverview() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch user's quiz attempts to find passed modules
+  const { data: quizAttempts = [] } = useQuery({
+    queryKey: ['user-quiz-attempts', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('user_quiz_attempts')
+        .select('module_id, score, total_questions')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
   });
 
   if (isLoading) {
@@ -49,28 +64,43 @@ export function ProgressOverview() {
     0
   );
 
-  // Build a map: moduleId -> Set of lessonIds
-  const lessonsByModule = new Map<string, string[]>();
+  // Build a map: lessonId -> moduleId
+  const moduleIdByLessonId = new Map<string, string>();
   for (const lesson of allLessons) {
-    const arr = lessonsByModule.get(lesson.module_id) || [];
-    arr.push(lesson.id);
-    lessonsByModule.set(lesson.module_id, arr);
+    moduleIdByLessonId.set(lesson.id, lesson.module_id);
   }
 
-  const completedLessonIds = new Set(completedLessons.map(l => l.lesson_id));
+  // Find modules completed via user_progress (video watch)
+  const completedModuleIdsFromProgress = new Set<string>();
+  for (const l of completedLessons) {
+    const modId = moduleIdByLessonId.get(l.lesson_id);
+    if (modId) completedModuleIdsFromProgress.add(modId);
+  }
 
-  // Calculate per-course completion
+  // Find modules completed via quiz pass (best score >= 80%)
+  const bestScoreByModule = new Map<string, number>();
+  for (const q of quizAttempts) {
+    const pct = q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0;
+    const best = bestScoreByModule.get(q.module_id) || 0;
+    bestScoreByModule.set(q.module_id, Math.max(best, pct));
+  }
+  const passedModuleIds = new Set<string>();
+  bestScoreByModule.forEach((pct, modId) => {
+    if (pct >= 80) passedModuleIds.add(modId);
+  });
+
+  // Calculate per-course completion (unit = module)
   const courseProgress = courses.map(course => {
     const moduleIds = (course.modules || []).map(m => m.id);
-    let totalLessons = 0;
+    const totalMods = moduleIds.length;
     let completedCount = 0;
     for (const mid of moduleIds) {
-      const lessons = lessonsByModule.get(mid) || [];
-      totalLessons += lessons.length;
-      completedCount += lessons.filter(lid => completedLessonIds.has(lid)).length;
+      if (completedModuleIdsFromProgress.has(mid) || passedModuleIds.has(mid)) {
+        completedCount++;
+      }
     }
-    const pct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
-    return { ...course, totalLessons, completedCount, pct };
+    const pct = totalMods > 0 ? Math.round((completedCount / totalMods) * 100) : 0;
+    return { ...course, totalLessons: totalMods, completedCount, pct };
   });
 
   const totalCompleted = courseProgress.reduce((s, c) => s + c.completedCount, 0);
@@ -104,7 +134,7 @@ export function ProgressOverview() {
               <div className="flex justify-between items-center">
                 <span className="font-medium text-sm">{course.title}</span>
                 <span className="text-muted-foreground text-sm">
-                  {course.completedCount}/{course.totalLessons} lessons
+                  {course.completedCount}/{course.totalLessons} modules
                 </span>
               </div>
               <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
