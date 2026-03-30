@@ -365,6 +365,9 @@ export default function Lesson() {
 
     setQuizScore({ score: result.score, total: result.total });
     setShowResults(true);
+    // Invalidate completion query since edge function auto-completed lessons
+    queryClient.invalidateQueries({ queryKey: ['lesson-completion', module.id, user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['user-progress', user?.id] });
     toast.success(`Quiz completed! Score: ${result.score}/${result.total}`);
   };
 
