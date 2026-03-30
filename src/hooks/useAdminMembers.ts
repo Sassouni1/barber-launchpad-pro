@@ -198,13 +198,25 @@ export function useAdminMembers() {
           if (bestPct >= 80) passedModuleIds.add(modId);
         });
 
-        // Count completed modules: quiz passed OR has user_progress for a lesson in that module
-        const completedModuleIds = new Set<string>(passedModuleIds);
+        // Two-tier completion: legacy (>14 days) = quiz only; new (<=14 days) = quiz OR user_progress
+        const isLegacy = differenceInDays(new Date(), new Date(profile.created_at)) > 14;
+
+        // Build set of modules with user_progress (via lesson mapping)
+        const progressModuleIds = new Set<string>();
         memberProgress.forEach(p => {
           const modId = moduleIdByLessonId[p.lesson_id];
-          if (modId) completedModuleIds.add(modId);
+          if (modId) progressModuleIds.add(modId);
         });
-        const lessonsCompleted = completedModuleIds.size;
+
+        // Count completed modules (only those with quizzes)
+        let lessonsCompleted = 0;
+        quizModuleIds.forEach(modId => {
+          const passedQuiz = passedModuleIds.has(modId);
+          const hasProgress = progressModuleIds.has(modId);
+          if (isLegacy ? passedQuiz : (passedQuiz || hasProgress)) {
+            lessonsCompleted++;
+          }
+        });
 
         const completedItemIds = new Set(memberDynamicProgress.map(p => p.item_id));
         const memberJoinDate = new Date(profile.created_at);
