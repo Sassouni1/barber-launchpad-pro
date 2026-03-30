@@ -15,6 +15,7 @@ export default function CreateAccount() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,6 +71,16 @@ export default function CreateAccount() {
         }
       } else {
         toast.success('Account created successfully!');
+        // Save phone number to profile if provided
+        if (phone.trim()) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await supabase
+              .from('profiles')
+              .update({ phone: phone.trim() })
+              .eq('id', session.user.id);
+          }
+        }
       }
     } catch (error: any) {
       toast.error('An unexpected error occurred');
@@ -122,6 +133,17 @@ export default function CreateAccount() {
                   className="mt-1"
                 />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+1 (555) 000-0000"
+                className="mt-1"
+              />
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
