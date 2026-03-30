@@ -77,12 +77,16 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const ghlApiKey = Deno.env.get("GHL_API_KEY");
+    const ghlLocationId = Deno.env.get("GHL_LOCATION_ID");
 
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
     }
     if (!ghlApiKey) {
       throw new Error("GHL_API_KEY is not configured");
+    }
+    if (!ghlLocationId) {
+      throw new Error("GHL_LOCATION_ID is not configured");
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
