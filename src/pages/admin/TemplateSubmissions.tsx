@@ -297,7 +297,7 @@ export default function TemplateSubmissions() {
                       >
                         Save Note
                       </Button>
-                      {!allApproved ? (
+                      {!allApproved && (
                         <Button
                           size="sm"
                           disabled={approvingUser === group.userId}
@@ -305,7 +305,8 @@ export default function TemplateSubmissions() {
                         >
                           {approvingUser === group.userId ? 'Approving...' : `Approve All`}
                         </Button>
-                      ) : (
+                      )}
+                      {group.submissions.some(s => s.approved) && (
                         <Button
                           size="sm"
                           variant="destructive"
