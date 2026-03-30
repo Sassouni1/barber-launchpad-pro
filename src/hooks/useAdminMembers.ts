@@ -250,6 +250,14 @@ export function useAdminMemberDetail(userId: string | null) {
         .eq('id', userId)
         .maybeSingle();
 
+      // Fetch all courses for grouping
+      const { data: allCourses } = await supabase
+        .from('courses')
+        .select('id, title')
+        .order('order_index');
+
+      const courseMap = new Map((allCourses || []).map(c => [c.id, c.title]));
+
       // Fetch all modules with quizzes
       const { data: quizModules } = await supabase
         .from('modules')
