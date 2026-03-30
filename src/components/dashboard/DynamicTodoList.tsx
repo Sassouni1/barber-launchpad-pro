@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useDynamicTodos } from "@/hooks/useDynamicTodos";
-import { Sparkles, PartyPopper, CheckCircle2, Play } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Sparkles, PartyPopper, CheckCircle2, Play, AlertTriangle } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export const DynamicTodoList = () => {

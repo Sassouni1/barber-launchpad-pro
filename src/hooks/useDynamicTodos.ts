@@ -15,6 +15,7 @@ interface DynamicTodoList {
   id: string;
   title: string;
   order_index: number;
+  due_days: number | null;
   items: DynamicTodoItem[];
 }
 

@@ -1,8 +1,40 @@
 import { useCourses } from '@/hooks/useCourses';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { BookOpen, Trophy, Clock, TrendingUp, Loader2 } from 'lucide-react';
 
 export function ProgressOverview() {
   const { data: courses = [], isLoading } = useCourses();
+  const { user } = useAuth();
+
+  // Fetch user's completed lessons
+  const { data: completedLessons = [] } = useQuery({
+    queryKey: ['user-progress', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('user_progress')
+        .select('lesson_id')
+        .eq('user_id', user.id)
+        .eq('completed', true);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch all lessons to map lesson -> module -> course
+  const { data: allLessons = [] } = useQuery({
+    queryKey: ['all-lessons'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('id, module_id');
+      if (error) throw error;
+      return data;
+    },
+  });
 
   if (isLoading) {
     return (
@@ -17,10 +49,36 @@ export function ProgressOverview() {
     0
   );
 
+  // Build a map: moduleId -> Set of lessonIds
+  const lessonsByModule = new Map<string, string[]>();
+  for (const lesson of allLessons) {
+    const arr = lessonsByModule.get(lesson.module_id) || [];
+    arr.push(lesson.id);
+    lessonsByModule.set(lesson.module_id, arr);
+  }
+
+  const completedLessonIds = new Set(completedLessons.map(l => l.lesson_id));
+
+  // Calculate per-course completion
+  const courseProgress = courses.map(course => {
+    const moduleIds = (course.modules || []).map(m => m.id);
+    let totalLessons = 0;
+    let completedCount = 0;
+    for (const mid of moduleIds) {
+      const lessons = lessonsByModule.get(mid) || [];
+      totalLessons += lessons.length;
+      completedCount += lessons.filter(lid => completedLessonIds.has(lid)).length;
+    }
+    const pct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+    return { ...course, totalLessons, completedCount, pct };
+  });
+
+  const totalCompleted = courseProgress.reduce((s, c) => s + c.completedCount, 0);
+
   const stats = [
     { icon: BookOpen, label: 'Total Modules', value: totalModules, color: 'text-primary' },
     { icon: Trophy, label: 'Courses', value: courses.length, color: 'text-primary' },
-    { icon: Clock, label: 'Keep Learning', value: '—', color: 'text-muted-foreground' },
+    { icon: Clock, label: 'Lessons Done', value: totalCompleted, color: 'text-muted-foreground' },
   ];
 
   return (
@@ -41,26 +99,25 @@ export function ProgressOverview() {
       {/* Course progress */}
       {courses.length > 0 ? (
         <div className="space-y-5">
-          {courses.map((course) => {
-            const moduleCount = (course.modules || []).length;
-            return (
-              <div key={course.id} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium text-sm">{course.title}</span>
-                  <span className="text-muted-foreground text-sm">{moduleCount} modules</span>
-                </div>
-                <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full gold-gradient rounded-full transition-all duration-500"
-                    style={{ 
-                      width: '0%',
-                      boxShadow: '0 0 10px hsl(var(--gold) / 0.5)'
-                    }}
-                  />
-                </div>
+          {courseProgress.map((course) => (
+            <div key={course.id} className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-sm">{course.title}</span>
+                <span className="text-muted-foreground text-sm">
+                  {course.completedCount}/{course.totalLessons} lessons
+                </span>
               </div>
-            );
-          })}
+              <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
+                <div 
+                  className="h-full gold-gradient rounded-full transition-all duration-500"
+                  style={{ 
+                    width: `${course.pct}%`,
+                    boxShadow: course.pct > 0 ? '0 0 10px hsl(var(--gold) / 0.5)' : 'none'
+                  }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="text-center py-8 text-muted-foreground">
