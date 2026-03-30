@@ -720,6 +720,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          last_active_at: string | null
           signature_data: string | null
           skip_agreement: boolean | null
           updated_at: string
@@ -731,6 +732,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          last_active_at?: string | null
           signature_data?: string | null
           skip_agreement?: boolean | null
           updated_at?: string
@@ -742,6 +744,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          last_active_at?: string | null
           signature_data?: string | null
           skip_agreement?: boolean | null
           updated_at?: string
