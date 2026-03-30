@@ -115,10 +115,21 @@ export function useAdminMembers() {
 
       if (progressError) throw progressError;
 
-      // Fetch total lessons count
-      const { count: totalLessons } = await supabase
+      // Fetch all lessons (id + module_id) for quiz-passed completion logic
+      const { data: allLessons, error: lessonsError } = await supabase
         .from('lessons')
-        .select('*', { count: 'exact', head: true });
+        .select('id, module_id');
+
+      if (lessonsError) throw lessonsError;
+
+      const totalLessons = allLessons?.length || 0;
+
+      // Build lesson IDs per module for quiz-passed completion
+      const lessonIdsByModule: Record<string, string[]> = {};
+      allLessons?.forEach(lesson => {
+        if (!lessonIdsByModule[lesson.module_id]) lessonIdsByModule[lesson.module_id] = [];
+        lessonIdsByModule[lesson.module_id].push(lesson.id);
+      });
 
       // Fetch dynamic todo lists with items
       const { data: dynamicLists, error: listsError } = await supabase
@@ -165,9 +176,25 @@ export function useAdminMembers() {
             return sum + Math.min(pct, 100);
           }, 0);
           quizAverage = Math.round(totalPercentage / memberQuizzes.length);
-        }
+        // Find modules where user passed a quiz (best score >= 80%)
+        const passedModuleIds = new Set<string>();
+        const attemptsByMod = new Map<string, number>();
+        memberQuizzes.forEach(q => {
+          const pct = q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0;
+          const best = attemptsByMod.get(q.module_id) || 0;
+          attemptsByMod.set(q.module_id, Math.max(best, pct));
+        });
+        attemptsByMod.forEach((bestPct, modId) => {
+          if (bestPct >= 80) passedModuleIds.add(modId);
+        });
 
-        // Calculate dynamic todo status per list
+        // Combine explicitly completed lessons + lessons from quiz-passed modules
+        const completedLessonIds = new Set(memberProgress.map(p => p.lesson_id));
+        passedModuleIds.forEach(modId => {
+          (lessonIdsByModule[modId] || []).forEach(lid => completedLessonIds.add(lid));
+        });
+        const lessonsCompleted = completedLessonIds.size;
+
         const completedItemIds = new Set(memberDynamicProgress.map(p => p.item_id));
         const memberJoinDate = new Date(profile.created_at);
         const today = new Date();
@@ -221,8 +248,8 @@ export function useAdminMembers() {
           created_at: profile.created_at,
           quizAverage,
           quizAttempts: memberQuizzes.length,
-          lessonsCompleted: memberProgress.length,
-          totalLessons: totalLessons || 0,
+          lessonsCompleted,
+          totalLessons,
           lastActive,
           dynamicTodosCompleted: memberDynamicProgress.length,
           dynamicTodosTotal: totalDynamicItems,
