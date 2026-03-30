@@ -31,6 +31,7 @@ import Rewards from "./pages/Rewards";
 import RewardsJoin from "./pages/RewardsJoin";
 import QRRedirect from "./pages/QRRedirect";
 import HairSystemChecklist from "./pages/HairSystemChecklist";
+import GHLCallback from "./pages/GHLCallback";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 
