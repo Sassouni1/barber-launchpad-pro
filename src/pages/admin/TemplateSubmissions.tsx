@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, User, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Clock, User, MessageSquare, ArrowUpDown } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 
