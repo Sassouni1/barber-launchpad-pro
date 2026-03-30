@@ -176,6 +176,8 @@ export function useAdminMembers() {
             return sum + Math.min(pct, 100);
           }, 0);
           quizAverage = Math.round(totalPercentage / memberQuizzes.length);
+        }
+
         // Find modules where user passed a quiz (best score >= 80%)
         const passedModuleIds = new Set<string>();
         const attemptsByMod = new Map<string, number>();
