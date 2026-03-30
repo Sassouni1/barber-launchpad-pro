@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, User, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Clock, User, MessageSquare, ArrowUpDown } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -36,6 +36,8 @@ export default function TemplateSubmissions() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [sortNewestFirst, setSortNewestFirst] = useState(true);
+
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['admin-template-submissions'],
@@ -88,6 +90,14 @@ export default function TemplateSubmissions() {
       setNotes(prev => ({ ...existing, ...prev }));
     }
   }, [groups]);
+
+  const sortedGroups = useMemo(() => {
+    const sorted = [...groups].sort((a, b) => {
+      const diff = new Date(b.latestUpload).getTime() - new Date(a.latestUpload).getTime();
+      return sortNewestFirst ? diff : -diff;
+    });
+    return sorted;
+  }, [groups, sortNewestFirst]);
 
   const allSubmissions = useMemo(() => groups.flatMap(g => g.submissions), [groups]);
 
@@ -189,18 +199,29 @@ export default function TemplateSubmissions() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-5xl">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Template Submissions</h1>
-          <p className="text-muted-foreground text-sm mt-1">Review and approve member template photo submissions</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-display font-bold">Template Submissions</h1>
+            <p className="text-muted-foreground text-sm mt-1">Today is {format(new Date(), 'MMMM d, yyyy')}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortNewestFirst(prev => !prev)}
+            className="gap-1.5"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            {sortNewestFirst ? 'Newest First' : 'Oldest First'}
+          </Button>
         </div>
 
         {isLoading ? (
           <p className="text-muted-foreground">Loading submissions...</p>
-        ) : groups.length === 0 ? (
+        ) : sortedGroups.length === 0 ? (
           <p className="text-muted-foreground">No template submissions yet.</p>
         ) : (
           <div className="space-y-6">
-            {groups.map((group) => {
+            {sortedGroups.map((group) => {
               const allApproved = group.submissions.every(s => s.approved);
               const pendingCount = group.submissions.filter(s => !s.approved).length;
 
@@ -214,7 +235,7 @@ export default function TemplateSubmissions() {
                       </div>
                       <div>
                         <p className="font-semibold text-sm">{group.fullName}</p>
-                        <p className="text-xs text-muted-foreground">{group.email}</p>
+                        <p className="text-xs text-muted-foreground">{group.email} · Submitted {format(new Date(group.latestUpload), 'MMM d, yyyy')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
