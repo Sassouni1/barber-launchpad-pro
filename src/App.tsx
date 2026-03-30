@@ -27,7 +27,7 @@ import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
 import ManufacturerOrders from "./pages/ManufacturerOrders";
 import Marketing from "./pages/Marketing";
-import QRCodes from "./pages/QRCodes";
+
 import Rewards from "./pages/Rewards";
 import RewardsJoin from "./pages/RewardsJoin";
 import QRRedirect from "./pages/QRRedirect";
@@ -68,7 +68,7 @@ const App = () => (
             <Route path="/schedule-call" element={<ProtectedRoute><ScheduleCall /></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
             <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
-            <Route path="/qr-codes" element={<ProtectedRoute><QRCodes /></ProtectedRoute>} />
+            
             <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
             <Route path="/checklist" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
             <Route path="/checklist/:listId" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />

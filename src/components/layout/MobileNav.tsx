@@ -299,45 +299,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-              <Popover open={marketingOpen} onOpenChange={setMarketingOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    className={cn(
-                      'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all',
-                      'border border-border/50',
-                      ['/marketing', '/qr-codes'].includes(location.pathname)
-                        ? 'bg-primary/10 text-primary border-primary/30'
-                        : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground'
-                    )}
-                  >
-                    <Megaphone className="w-5 h-5" />
-                    <span className="text-[10px] font-medium leading-tight text-center flex items-center gap-0.5">
-                      Marketing <ChevronDown className="w-3 h-3" />
-                    </span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent side="top" align="center" className="w-48 p-2 bg-popover border-border">
-                  <div className="space-y-1">
-                    <NavLink to="/marketing" onClick={() => setMarketingOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
-                      <Megaphone className="w-4 h-4" />
-                      <span className="font-medium">AI Social Media</span>
-                    </NavLink>
-                    <NavLink
-                      to="/qr-codes"
-                      className={({ isActive }) => cn(
-                        'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all',
-                        'border border-border/50',
-                        isActive
-                          ? 'bg-primary/10 text-primary border-primary/30'
-                          : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground'
-                      )}
-                    >
-                      <QrCode className="w-5 h-5" />
-                      <span className="font-medium">Poster + QR Codes</span>
-                    </NavLink>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <NavButton to="/marketing" icon={Megaphone} label="Marketing" />
             </>
           )}
           {isAdminView && adminLinks.map((link) => (

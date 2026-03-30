@@ -4,7 +4,7 @@ import { useAgreementRequired, useToggleAgreementRequired } from '@/hooks/useApp
 import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2, Settings } from 'lucide-react';
 import { CertificateTemplateUploader } from '@/components/admin/CertificateTemplateUploader';
 import { FontUploader } from '@/components/admin/FontUploader';
-import { PosterTemplateManager } from '@/components/admin/PosterTemplateManager';
+
 import { GHLIntegration } from '@/components/admin/GHLIntegration';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -140,11 +140,6 @@ export default function AdminDashboard() {
           <GHLIntegration />
         </div>
 
-        {/* Poster Template */}
-        <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.6s' }}>
-          <h2 className="font-display text-xl font-semibold mb-4">QR Poster Template</h2>
-          <PosterTemplateManager />
-        </div>
 
         {/* Certificate Template Uploader */}
         <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.7s' }}>
