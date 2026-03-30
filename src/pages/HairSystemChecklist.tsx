@@ -141,7 +141,7 @@ export default function HairSystemChecklist() {
           // All items for progress bar
           relevantItems = [];
           for (const s of dynSections) {
-            relevantItems.push(...s.items);
+            relevantItems.push(...s.items as any);
           }
         } else {
           relevantItems = (itemsData || []).filter(item => item.list_id === list.id);
