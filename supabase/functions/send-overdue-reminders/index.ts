@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     // 1. Get new users (created after cutoff) with phone numbers
     const { data: eligibleUsers, error: usersErr } = await supabase
       .from("profiles")
-      .select("id, full_name, phone, created_at")
+      .select("id, full_name, phone, email, created_at")
       .gt("created_at", CUTOFF_DATE)
       .not("phone", "is", null);
 
