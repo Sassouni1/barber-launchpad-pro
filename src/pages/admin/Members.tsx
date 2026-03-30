@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,9 @@ import {
   FileText,
   Eye,
   Package,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import {
   Table,
@@ -695,22 +698,77 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
   );
 }
 
+type SortField = 'joined' | 'quizAvg' | 'lessons' | 'tasks' | 'lastActive' | 'behind';
+type SortDir = 'asc' | 'desc';
+
+function SortableHeader({ label, field, sortField, sortDir, onSort }: { 
+  label: string; field: SortField; sortField: SortField; sortDir: SortDir; onSort: (f: SortField) => void 
+}) {
+  return (
+    <TableHead className="cursor-pointer select-none" onClick={() => onSort(field)}>
+      <div className="flex items-center gap-1">
+        {label}
+        {sortField === field ? (
+          sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-40" />
+        )}
+      </div>
+    </TableHead>
+  );
+}
+
 export default function Members() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddCode, setShowAddCode] = useState(false);
   const [selectedMember, setSelectedMember] = useState<MemberStats | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<SortField>('joined');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   const { data: members, isLoading: membersLoading, refetch: refetchMembers } = useAdminMembers();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+  };
 
   const filteredMembers = members?.filter(m => 
     m.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.email?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  // Sort to show members behind first
-  const sortedMembers = [...filteredMembers].sort((a, b) => b.dynamicTodosBehind - a.dynamicTodosBehind);
+  const sortedMembers = useMemo(() => {
+    const list = [...filteredMembers];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    list.sort((a, b) => {
+      switch (sortField) {
+        case 'joined':
+          return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        case 'quizAvg':
+          return dir * (a.quizAverage - b.quizAverage);
+        case 'lessons':
+          return dir * (a.lessonsCompleted - b.lessonsCompleted);
+        case 'tasks':
+          return dir * (a.dynamicTodosCompleted - b.dynamicTodosCompleted);
+        case 'lastActive': {
+          const aTime = a.lastActive ? new Date(a.lastActive).getTime() : 0;
+          const bTime = b.lastActive ? new Date(b.lastActive).getTime() : 0;
+          return dir * (aTime - bTime);
+        }
+        case 'behind':
+          return dir * (a.dynamicTodosBehind - b.dynamicTodosBehind);
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }, [filteredMembers, sortField, sortDir]);
 
   return (
     <DashboardLayout isAdminView>
