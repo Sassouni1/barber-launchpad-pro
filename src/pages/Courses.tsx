@@ -298,12 +298,31 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         </button>
                       ))}
+                      {/* Level 1 Certification entry for hair-system */}
+                      {category.id === 'hair-system' && course.id && (
+                        <button
+                          onClick={() => {
+                            setShowCertification(true);
+                            setSelectedModule(null);
+                          }}
+                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/30 bg-primary/5 shadow-md shadow-black/20 active:scale-[0.98]"
+                        >
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
+                            <Award className="w-5 h-5 text-primary-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm truncate gold-text">Level 1 Certification</h4>
+                            <p className="text-xs text-muted-foreground">Complete all lessons to unlock</p>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
                 
-                {/* Certification Section for hair-system courses on mobile */}
-                {expandedCourse === 'hair-system' && (
+                {/* Certification Section when selected on mobile */}
+                {showCertification && expandedCourse === 'hair-system' && (
                   <div className="pl-2">
                     {courseCategories.find(c => c.id === 'hair-system')?.courses[0]?.id && (
                       <CertificationSection 
