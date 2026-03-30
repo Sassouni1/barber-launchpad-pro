@@ -1,24 +1,33 @@
 
 
-# Fix "Last Active" to Track Real Activity
+# Fix Lessons Metric to Use Modules as the Unit
 
 ## Problem
-"Last Active" only checks timestamps from quiz attempts, lesson completions, and todo completions. If a user is actively browsing the app but hasn't completed anything recently, it shows stale data.
+The "Lessons" column shows "0/1" because it counts rows in the `lessons` table, but most course content lives directly in the `modules` table (modules have videos, quizzes, etc.). The `lessons` table has almost no rows.
 
 ## Solution
-Track the user's last login/session by updating a `last_active_at` column on the `profiles` table whenever they load the app.
+Switch the metric from counting `lessons` rows to counting **modules** as the unit of completion. A module counts as "completed" if:
+- The user **passed the quiz** for that module (best score >= 80%) — sufficient on its own
+- OR the user has a `user_progress` entry for a lesson in that module (video watch completion)
 
-### Database Migration
-- Add `last_active_at timestamptz` column to `profiles` table
+This means quiz passes automatically count as completed modules for all members (old and new).
 
-### `src/contexts/AuthContext.tsx` (or wherever the auth session is established)
-- When a user session is detected (on login or app load), update `profiles.last_active_at = now()` for the current user
-- Throttle this to once per session (use a ref or sessionStorage flag so it doesn't fire on every re-render)
+## Changes
 
-### `src/hooks/useAdminMembers.ts`
-- In the `lastActive` calculation (lines 205-213), also include `profile.last_active_at` in the `allDates` array
-- This way the most recent of login, quiz, lesson, or todo activity wins
+### `src/hooks/useAdminMembers.ts` — `useAdminMembers()`
+1. Fetch all modules (`modules` table) instead of relying on `lessons` for the total count
+2. Set `totalLessons` = total number of published modules (rename internally but keep the field name for UI compatibility)
+3. For each member, a module is "completed" if:
+   - They passed the quiz (>= 80%) for that module, OR
+   - They have a `user_progress` entry for any lesson linked to that module
+4. `lessonsCompleted` = count of completed modules
 
-### No other changes needed
-- The Members table already displays `lastActive` and sorting already works on it
+### `src/hooks/useAdminMembers.ts` — `useAdminMemberDetail()`
+Same logic adjustment for the detail view: count completed modules using quiz pass + user_progress union.
+
+### `src/pages/admin/Members.tsx`
+Rename column header from "Lessons" to "Modules" for clarity.
+
+### `src/components/dashboard/ProgressOverview.tsx`
+Also count quiz-passed modules as completed in the user-facing progress overview, using the same logic (fetch quiz attempts, find passed modules, union with user_progress).
 
