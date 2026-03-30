@@ -16,6 +16,56 @@ const REMINDER_MESSAGES = [
     `Just a friendly reminder — your training tasks are waiting for you. Let's get back on track! Log in here: ${APP_URL}`,
 ];
 
+const GHL_BASE = "https://services.leadconnectorhq.com";
+const GHL_HEADERS = (apiKey: string) => ({
+  Authorization: `Bearer ${apiKey}`,
+  "Content-Type": "application/json",
+  Version: "2021-07-28",
+});
+
+async function resolveGhlContactId(
+  ghlApiKey: string,
+  user: { full_name: string | null; phone: string | null; email: string | null }
+): Promise<string | null> {
+  // 1. Search by email
+  if (user.email) {
+    const res = await fetch(
+      `${GHL_BASE}/contacts/search/duplicate?email=${encodeURIComponent(user.email)}`,
+      { headers: GHL_HEADERS(ghlApiKey) }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.contact?.id) return data.contact.id;
+    }
+  }
+
+  // 2. Not found — create contact
+  const nameParts = (user.full_name || "").trim().split(/\s+/);
+  const firstName = nameParts[0] || "Member";
+  const lastName = nameParts.slice(1).join(" ") || "";
+
+  const createRes = await fetch(`${GHL_BASE}/contacts/`, {
+    method: "POST",
+    headers: GHL_HEADERS(ghlApiKey),
+    body: JSON.stringify({
+      firstName,
+      lastName,
+      phone: user.phone,
+      email: user.email,
+    }),
+  });
+
+  if (createRes.ok) {
+    const created = await createRes.json();
+    return created.contact?.id || null;
+  }
+
+  const errText = await createRes.text();
+  console.error(`Failed to create GHL contact: ${createRes.status} ${errText}`);
+  return null;
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,7 +88,7 @@ Deno.serve(async (req) => {
     // 1. Get new users (created after cutoff) with phone numbers
     const { data: eligibleUsers, error: usersErr } = await supabase
       .from("profiles")
-      .select("id, full_name, phone, created_at")
+      .select("id, full_name, phone, email, created_at")
       .gt("created_at", CUTOFF_DATE)
       .not("phone", "is", null);
 
@@ -153,7 +203,17 @@ Deno.serve(async (req) => {
         if (reminder.reminder_count >= 2) continue; // Max reached
       }
 
-      // 6. Send SMS via GHL API v2
+      // 6. Resolve GHL contact ID
+      const contactId = await resolveGhlContactId(ghlApiKey, {
+        full_name: user.full_name,
+        phone: user.phone,
+        email: user.email,
+      });
+      if (!contactId) {
+        console.warn(`Could not resolve GHL contact for user ${user.id}, skipping`);
+        continue;
+      }
+
       const reminderIndex = reminder ? reminder.reminder_count : 0;
       const messageText = REMINDER_MESSAGES[reminderIndex](
         user.full_name || "there"
@@ -161,18 +221,15 @@ Deno.serve(async (req) => {
 
       try {
         const ghlResponse = await fetch(
-          "https://services.leadconnectorhq.com/conversations/messages",
+          `${GHL_BASE}/conversations/messages`,
           {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${ghlApiKey}`,
-              "Content-Type": "application/json",
-              Version: "2021-07-28",
-            },
+            headers: GHL_HEADERS(ghlApiKey),
             body: JSON.stringify({
               type: "SMS",
-              contactId: user.phone, // GHL uses phone as contact lookup
+              contactId,
               message: messageText,
+              phone: user.phone, // Always use membership phone
             }),
           }
         );
