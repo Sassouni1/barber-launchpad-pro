@@ -5,6 +5,7 @@ import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2, Settings } 
 import { CertificateTemplateUploader } from '@/components/admin/CertificateTemplateUploader';
 import { FontUploader } from '@/components/admin/FontUploader';
 import { PosterTemplateManager } from '@/components/admin/PosterTemplateManager';
+import { GHLIntegration } from '@/components/admin/GHLIntegration';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
