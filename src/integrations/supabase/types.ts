@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_secrets: {
+        Row: {
+          created_at: string
+          id: string
+          secret_value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          secret_value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          secret_value?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -278,6 +296,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ghl_oauth_tokens: {
+        Row: {
+          access_token_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          location_id: string
+          location_name: string
+          organization_id: string | null
+          refresh_token_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          location_id: string
+          location_name?: string
+          organization_id?: string | null
+          refresh_token_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_token_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          location_id?: string
+          location_name?: string
+          organization_id?: string | null
+          refresh_token_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ghl_oauth_tokens_access_token_id_fkey"
+            columns: ["access_token_id"]
+            isOneToOne: false
+            referencedRelation: "app_secrets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ghl_oauth_tokens_refresh_token_id_fkey"
+            columns: ["refresh_token_id"]
+            isOneToOne: false
+            referencedRelation: "app_secrets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       homework_files: {
         Row: {
@@ -1387,6 +1456,10 @@ export type Database = {
     }
     Functions: {
       cleanup_old_marketing_images: { Args: never; Returns: undefined }
+      decrypt_token: {
+        Args: { encryption_key: string; token_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1399,6 +1472,10 @@ export type Database = {
         Returns: {
           destination_url: string
         }[]
+      }
+      store_encrypted_token: {
+        Args: { encryption_key: string; token_value: string }
+        Returns: string
       }
     }
     Enums: {
