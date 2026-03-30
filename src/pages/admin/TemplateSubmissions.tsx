@@ -148,6 +148,28 @@ export default function TemplateSubmissions() {
     }
   };
 
+  const handleDisapproveAll = async (group: MemberGroup) => {
+    setApprovingUser(group.userId);
+    try {
+      const approvedIds = group.submissions.filter(s => s.approved).map(s => s.id);
+      if (approvedIds.length === 0) {
+        toast.info('No approved photos to disapprove');
+        return;
+      }
+      const { error } = await supabase
+        .from('certification_photos')
+        .update({ approved: false, approved_at: null } as any)
+        .in('id', approvedIds);
+      if (error) throw error;
+      toast.success(`Disapproved submissions for ${group.fullName}`);
+      queryClient.invalidateQueries({ queryKey: ['admin-template-submissions'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to disapprove');
+    } finally {
+      setApprovingUser(null);
+    }
+  };
+
   const handleSaveNote = async (group: MemberGroup) => {
     const note = notes[group.userId]?.trim() || null;
     try {
