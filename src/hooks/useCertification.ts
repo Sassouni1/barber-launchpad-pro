@@ -101,11 +101,43 @@ export function useCertificationEligibility(courseId: string | undefined) {
 
       const hasPhotos = (photos?.length || 0) > 0;
 
+      // Check if all lessons are completed
+      const allModuleIds = modules?.map(m => m.id) || [];
+      let allLessonsCompleted = false;
+
+      if (allModuleIds.length > 0) {
+        const { data: lessons, error: lessonsError } = await supabase
+          .from('lessons')
+          .select('id, module_id')
+          .in('module_id', allModuleIds);
+
+        if (lessonsError) throw lessonsError;
+
+        const lessonIds = lessons?.map(l => l.id) || [];
+        const totalLessons = lessonIds.length;
+
+        if (totalLessons === 0) {
+          allLessonsCompleted = true;
+        } else {
+          const { data: progress, error: progressError } = await supabase
+            .from('user_progress')
+            .select('lesson_id')
+            .eq('user_id', user.id)
+            .eq('completed', true)
+            .in('lesson_id', lessonIds);
+
+          if (progressError) throw progressError;
+
+          allLessonsCompleted = (progress?.length || 0) >= totalLessons;
+        }
+      }
+
       return {
         quizProgress,
         allQuizzesPassed,
         hasPhotos,
-        isEligible: allQuizzesPassed && hasPhotos,
+        allLessonsCompleted,
+        isEligible: allQuizzesPassed && hasPhotos && allLessonsCompleted,
       };
     },
     enabled: !!user?.id && !!courseId,
