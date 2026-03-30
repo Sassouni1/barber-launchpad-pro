@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
       }
 
       // 6. Resolve GHL contact ID
-      const contactId = await resolveGhlContactId(ghlApiKey, {
+      const contactId = await resolveGhlContactId(ghlApiKey, ghlLocationId, {
         full_name: user.full_name,
         phone: user.phone,
         email: user.email,
