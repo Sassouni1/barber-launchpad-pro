@@ -43,11 +43,21 @@ export interface MemberStats {
 export interface QuizModuleStatus {
   module_id: string;
   module_title: string;
+  course_id: string;
+  course_title: string;
   bestScore: number | null;
   totalQuestions: number;
   passed: boolean;
   attempted: boolean;
   attemptCount: number;
+}
+
+export interface CourseQuizGroup {
+  course_id: string;
+  course_title: string;
+  modules: QuizModuleStatus[];
+  passedCount: number;
+  totalCount: number;
 }
 
 export interface MemberDetail {
