@@ -31,6 +31,7 @@ import Rewards from "./pages/Rewards";
 import RewardsJoin from "./pages/RewardsJoin";
 import QRRedirect from "./pages/QRRedirect";
 import HairSystemChecklist from "./pages/HairSystemChecklist";
+import GHLCallback from "./pages/GHLCallback";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/checklist/:listId" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
             <Route path="/rewards/join/:userId" element={<RewardsJoin />} />
             <Route path="/r/:shortCode" element={<QRRedirect />} />
+            <Route path="/integrations/ghl/callback" element={<GHLCallback />} />
             <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />
             
             {/* Protected Admin Routes */}

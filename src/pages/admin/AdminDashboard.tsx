@@ -5,6 +5,7 @@ import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2, Settings } 
 import { CertificateTemplateUploader } from '@/components/admin/CertificateTemplateUploader';
 import { FontUploader } from '@/components/admin/FontUploader';
 import { PosterTemplateManager } from '@/components/admin/PosterTemplateManager';
+import { GHLIntegration } from '@/components/admin/GHLIntegration';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -128,6 +129,15 @@ export default function AdminDashboard() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Integrations */}
+        <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.55s' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="w-5 h-5 text-primary" />
+            <h2 className="font-display text-xl font-semibold">Integrations</h2>
+          </div>
+          <GHLIntegration />
         </div>
 
         {/* Poster Template */}
