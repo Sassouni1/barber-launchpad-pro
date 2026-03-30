@@ -398,6 +398,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                               navigate(`/courses/${courseType}/lesson/${module.id}`);
                             } else if (isDesktop) {
                               setSelectedModule(module.id);
+                              setShowCertification(false);
                             } else {
                               navigate(`/courses/${courseType}/lesson/${module.id}`);
                             }
