@@ -19,6 +19,33 @@ export const DynamicTodoList = () => {
     isLoading,
     toggleItem,
   } = useDynamicTodos();
+  const { user } = useAuth();
+
+  // Fetch user's profile created_at to check if behind schedule
+  const { data: profile } = useQuery({
+    queryKey: ['profile-created', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('id', user.id)
+        .single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Calculate if user is behind schedule
+  const isBehindSchedule = (() => {
+    if (!currentList || !profile?.created_at || !currentList.due_days) return false;
+    const accountCreated = new Date(profile.created_at);
+    const now = new Date();
+    const daysSinceCreation = Math.floor((now.getTime() - accountCreated.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceCreation > currentList.due_days;
+  })();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [previousListId, setPreviousListId] = useState<string | null>(null);
@@ -101,6 +128,15 @@ export const DynamicTodoList = () => {
           </span>
         )}
       </div>
+
+      {isBehindSchedule && !isOngoingList && (
+        <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-xs text-destructive">
+            You're behind schedule on this list. Try to catch up!
+          </p>
+        </div>
+      )}
 
       {allListsCompleted ? null : currentList ? (
         <div className="space-y-4">
