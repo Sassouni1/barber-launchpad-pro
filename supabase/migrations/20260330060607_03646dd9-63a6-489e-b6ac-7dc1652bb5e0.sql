@@ -1,0 +1,1 @@
+DELETE FROM certification_photos WHERE id = '2790ebf6-5ef7-4fa7-9f7e-f6f2875af7c0';
