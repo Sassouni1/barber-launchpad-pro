@@ -385,6 +385,8 @@ export default function Lesson() {
       files: selectedFiles,
     });
     setSelectedFiles([]);
+    // Auto-mark lesson as complete on homework submit
+    await markModuleComplete();
     toast.success('Homework submitted successfully!');
   };
 
