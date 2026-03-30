@@ -413,6 +413,25 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
             <QuizProgressList quizProgress={eligibility?.quizProgress || []} />
           </div>
 
+          {/* Lessons Completed Requirement */}
+          <div className="p-4 rounded-lg bg-secondary/20 border border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <h4 className="font-semibold text-sm">All Lessons Completed</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {eligibility?.allLessonsCompleted ? 'All lessons completed' : 'Complete all course lessons'}
+                  </p>
+                </div>
+              </div>
+              {eligibility?.allLessonsCompleted ? (
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              ) : (
+                <span className="text-xs text-muted-foreground">In progress</span>
+              )}
+            </div>
+          </div>
           {/* Photo Requirement Status */}
           <div className="p-4 rounded-lg bg-secondary/20 border border-border">
             <div className="flex items-center justify-between">
