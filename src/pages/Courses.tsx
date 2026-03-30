@@ -526,9 +526,13 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         {isDesktop && (
         <div className={cn(
           "flex-1 min-w-0 overflow-y-auto",
-          !moduleData?.module.video_url?.trim() && "flex items-center justify-center"
+          !showCertification && !moduleData?.module.video_url?.trim() && "flex items-center justify-center"
         )}>
-          {moduleData ? (
+          {showCertification && !selectedModule && courseType === 'hair-system' && courses[0]?.id ? (
+            <div className="p-4">
+              <CertificationSection courseId={courses[0].id} />
+            </div>
+          ) : moduleData ? (
             <div className={cn(
               "glass-card rounded-xl overflow-hidden w-full",
               !moduleData.module.video_url?.trim() && "max-w-lg"
