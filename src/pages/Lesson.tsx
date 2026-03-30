@@ -237,6 +237,57 @@ export default function Lesson() {
   const { data: questions = [] } = useQuizQuestions(module?.id);
   const { data: attempts = [] } = useQuizAttempts(module?.id);
   const { data: existingSubmission } = useHomeworkSubmission(module?.id);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Check if module's lessons are already completed
+  const { data: lessonCompletionData } = useQuery({
+    queryKey: ['lesson-completion', module?.id, user?.id],
+    queryFn: async () => {
+      if (!module?.id || !user?.id) return { lessons: [], completedIds: new Set<string>() };
+      const { data: lessons } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('module_id', module.id);
+      const lessonIds = (lessons || []).map(l => l.id);
+      if (lessonIds.length === 0) return { lessons: lessonIds, completedIds: new Set<string>() };
+      const { data: progress } = await supabase
+        .from('user_progress')
+        .select('lesson_id')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .in('lesson_id', lessonIds);
+      return {
+        lessons: lessonIds,
+        completedIds: new Set((progress || []).map(p => p.lesson_id)),
+      };
+    },
+    enabled: !!module?.id && !!user?.id,
+  });
+
+  const isModuleCompleted = lessonCompletionData
+    ? lessonCompletionData.lessons.length > 0 && lessonCompletionData.lessons.every(id => lessonCompletionData.completedIds.has(id))
+    : false;
+
+  const markModuleComplete = async () => {
+    if (!module?.id || !user?.id) return;
+    const { data: lessons } = await supabase
+      .from('lessons')
+      .select('id')
+      .eq('module_id', module.id);
+    if (!lessons || lessons.length === 0) return;
+    for (const lesson of lessons) {
+      await supabase
+        .from('user_progress')
+        .upsert(
+          { user_id: user.id, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() },
+          { onConflict: 'user_id,lesson_id' }
+        );
+    }
+    queryClient.invalidateQueries({ queryKey: ['lesson-completion', module.id, user.id] });
+    queryClient.invalidateQueries({ queryKey: ['user-progress', user.id] });
+    toast.success('Lesson marked as complete!');
+  };
 
   // Memoize the embed URL so the iframe src stays stable across re-renders
   const vimeoEmbedUrl = useMemo(
