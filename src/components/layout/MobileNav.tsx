@@ -322,7 +322,19 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                       <Megaphone className="w-4 h-4" />
                       <span className="font-medium">AI Social Media</span>
                     </NavLink>
-                    {/* Poster + QR Codes hidden for now */}
+                    <NavLink
+                      to="/qr-codes"
+                      className={({ isActive }) => cn(
+                        'flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all',
+                        'border border-border/50',
+                        isActive
+                          ? 'bg-primary/10 text-primary border-primary/30'
+                          : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground'
+                      )}
+                    >
+                      <QrCode className="w-5 h-5" />
+                      <span className="font-medium">Poster + QR Codes</span>
+                    </NavLink>
                   </div>
                 </PopoverContent>
               </Popover>
