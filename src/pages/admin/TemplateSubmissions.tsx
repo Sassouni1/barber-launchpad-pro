@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -6,15 +6,8 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, Image as ImageIcon } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { CheckCircle2, Clock, User } from 'lucide-react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface SubmissionRow {
   id: string;
@@ -25,14 +18,23 @@ interface SubmissionRow {
   uploaded_at: string;
   approved: boolean;
   approved_at: string | null;
-  profiles: { full_name: string | null; email: string | null } | null;
+}
+
+interface MemberGroup {
+  userId: string;
+  fullName: string;
+  email: string;
+  submissions: SubmissionRow[];
+  latestUpload: string;
 }
 
 export default function TemplateSubmissions() {
   const queryClient = useQueryClient();
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const { data: submissions = [], isLoading } = useQuery({
+  const { data: groups = [], isLoading } = useQuery({
     queryKey: ['admin-template-submissions'],
     queryFn: async () => {
       const { data: photos, error } = await supabase
@@ -40,21 +42,65 @@ export default function TemplateSubmissions() {
         .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at')
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
-      
+
       const userIds = [...new Set((photos || []).map(p => p.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .in('id', userIds);
-      
+
       const profileMap = new Map((profiles || []).map(p => [p.id, p]));
-      
-      return (photos || []).map(p => ({
-        ...p,
-        profiles: profileMap.get(p.user_id) || null,
-      })) as SubmissionRow[];
+
+      // Group by user
+      const groupMap = new Map<string, MemberGroup>();
+      for (const p of photos || []) {
+        const profile = profileMap.get(p.user_id);
+        if (!groupMap.has(p.user_id)) {
+          groupMap.set(p.user_id, {
+            userId: p.user_id,
+            fullName: profile?.full_name || 'Unknown',
+            email: profile?.email || '',
+            submissions: [],
+            latestUpload: p.uploaded_at,
+          });
+        }
+        groupMap.get(p.user_id)!.submissions.push(p);
+      }
+
+      // Sort groups by latest upload desc
+      return Array.from(groupMap.values()).sort(
+        (a, b) => new Date(b.latestUpload).getTime() - new Date(a.latestUpload).getTime()
+      );
     },
   });
+
+  // Pre-load signed URLs for all photos
+  const allSubmissions = useMemo(() => groups.flatMap(g => g.submissions), [groups]);
+
+  useEffect(() => {
+    const loadUrls = async () => {
+      const missing = allSubmissions.filter(s => !signedUrls[s.id]);
+      if (missing.length === 0) return;
+
+      const results: Record<string, string> = {};
+      await Promise.all(
+        missing.map(async (s) => {
+          const path = s.file_url.includes('/certification-photos/')
+            ? s.file_url.split('/certification-photos/').pop()
+            : s.file_url;
+          if (!path) return;
+          const { data } = await supabase.storage
+            .from('certification-photos')
+            .createSignedUrl(path, 3600);
+          if (data?.signedUrl) results[s.id] = data.signedUrl;
+        })
+      );
+      if (Object.keys(results).length > 0) {
+        setSignedUrls(prev => ({ ...prev, ...results }));
+      }
+    };
+    loadUrls();
+  }, [allSubmissions]);
 
   const handleApprove = async (id: string) => {
     setApprovingId(id);
@@ -73,19 +119,6 @@ export default function TemplateSubmissions() {
     }
   };
 
-  const getSignedUrl = async (fileUrl: string) => {
-    const path = fileUrl.includes('/certification-photos/') 
-      ? fileUrl.split('/certification-photos/').pop() 
-      : fileUrl;
-    if (!path) return null;
-    const { data } = await supabase.storage
-      .from('certification-photos')
-      .createSignedUrl(path, 3600);
-    return data?.signedUrl || null;
-  };
-
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -96,75 +129,106 @@ export default function TemplateSubmissions() {
 
         {isLoading ? (
           <p className="text-muted-foreground">Loading submissions...</p>
-        ) : submissions.length === 0 ? (
+        ) : groups.length === 0 ? (
           <p className="text-muted-foreground">No template submissions yet.</p>
         ) : (
-          <div className="rounded-lg border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Member</TableHead>
-                  <TableHead>Photo</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {submissions.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-sm">{s.profiles?.full_name || 'Unknown'}</p>
-                        <p className="text-xs text-muted-foreground">{s.profiles?.email || ''}</p>
+          <div className="space-y-6">
+            {groups.map((group) => {
+              const allApproved = group.submissions.every(s => s.approved);
+              const pendingCount = group.submissions.filter(s => !s.approved).length;
+
+              return (
+                <div key={group.userId} className="rounded-xl border bg-card p-5 space-y-4">
+                  {/* Member header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-4 h-4 text-primary" />
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          const url = await getSignedUrl(s.file_url);
-                          if (url) {
-                            setPreviewUrl(url);
-                          } else {
-                            toast.error('Could not load image');
-                          }
-                        }}
-                      >
-                        <ImageIcon className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {format(new Date(s.uploaded_at), 'MMM d, yyyy h:mm a')}
-                    </TableCell>
-                    <TableCell>
-                      {s.approved ? (
+                      <div>
+                        <p className="font-semibold text-sm">{group.fullName}</p>
+                        <p className="text-xs text-muted-foreground">{group.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {group.submissions.length} photo{group.submissions.length !== 1 ? 's' : ''}
+                      </span>
+                      {allApproved ? (
                         <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> Approved
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> All Approved
                         </Badge>
                       ) : (
                         <Badge variant="secondary">
-                          <Clock className="w-3 h-3 mr-1" /> Pending
+                          <Clock className="w-3 h-3 mr-1" /> {pendingCount} Pending
                         </Badge>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {!s.approved && (
-                        <Button
-                          size="sm"
-                          disabled={approvingId === s.id}
-                          onClick={() => handleApprove(s.id)}
+                    </div>
+                  </div>
+
+                  {/* Photo grid */}
+                  <ScrollArea className="w-full">
+                    <div className="flex gap-3 pb-2">
+                      {group.submissions.map((s) => (
+                        <div
+                          key={s.id}
+                          className="flex-shrink-0 w-40 rounded-lg border bg-secondary/20 overflow-hidden"
                         >
-                          {approvingId === s.id ? 'Approving...' : 'Approve'}
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          {/* Thumbnail */}
+                          <div
+                            className="w-full h-32 bg-muted/50 cursor-pointer relative group"
+                            onClick={() => {
+                              const url = signedUrls[s.id];
+                              if (url) setPreviewUrl(url);
+                              else toast.error('Image still loading...');
+                            }}
+                          >
+                            {signedUrls[s.id] ? (
+                              <img
+                                src={signedUrls[s.id]}
+                                alt={s.file_name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                                Loading...
+                              </div>
+                            )}
+                            {s.approved && (
+                              <div className="absolute top-1 right-1">
+                                <CheckCircle2 className="w-5 h-5 text-green-400 drop-shadow-md" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="p-2 space-y-1.5">
+                            <p className="text-xs text-muted-foreground truncate" title={s.file_name}>
+                              {format(new Date(s.uploaded_at), 'MMM d, yyyy')}
+                            </p>
+                            {s.approved ? (
+                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px] px-1.5 py-0">
+                                Approved
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="w-full h-7 text-xs"
+                                disabled={approvingId === s.id}
+                                onClick={() => handleApprove(s.id)}
+                              >
+                                {approvingId === s.id ? '...' : 'Approve'}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </div>
+              );
+            })}
           </div>
         )}
 
