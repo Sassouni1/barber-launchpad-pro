@@ -36,6 +36,15 @@ export default function TemplateSubmissions() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [sortNewestFirst, setSortNewestFirst] = useState(true);
+
+  const sortedGroups = useMemo(() => {
+    const sorted = [...groups].sort((a, b) => {
+      const diff = new Date(b.latestUpload).getTime() - new Date(a.latestUpload).getTime();
+      return sortNewestFirst ? diff : -diff;
+    });
+    return sorted;
+  }, [groups, sortNewestFirst]);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['admin-template-submissions'],
