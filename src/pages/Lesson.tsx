@@ -319,7 +319,7 @@ export default function Lesson() {
     autoCompletedRef.current = false;
     elapsedSeconds.current = 0;
 
-    const threshold = Math.max(60, videoDuration * 0.7);
+    const threshold = Math.max(60, videoDuration);
 
     timerRef.current = setInterval(() => {
       elapsedSeconds.current += 1;
