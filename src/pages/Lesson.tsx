@@ -6,6 +6,9 @@ import { useModuleFiles } from '@/hooks/useModuleFiles';
 import { useQuizQuestions, useQuizAttempts, useSubmitQuiz, type QuizQuestion } from '@/hooks/useQuiz';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useHomeworkSubmission, useSubmitHomework, useDeleteHomeworkFile } from '@/hooks/useHomework';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
@@ -234,6 +237,57 @@ export default function Lesson() {
   const { data: questions = [] } = useQuizQuestions(module?.id);
   const { data: attempts = [] } = useQuizAttempts(module?.id);
   const { data: existingSubmission } = useHomeworkSubmission(module?.id);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Check if module's lessons are already completed
+  const { data: lessonCompletionData } = useQuery({
+    queryKey: ['lesson-completion', module?.id, user?.id],
+    queryFn: async () => {
+      if (!module?.id || !user?.id) return { lessons: [], completedIds: new Set<string>() };
+      const { data: lessons } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('module_id', module.id);
+      const lessonIds = (lessons || []).map(l => l.id);
+      if (lessonIds.length === 0) return { lessons: lessonIds, completedIds: new Set<string>() };
+      const { data: progress } = await supabase
+        .from('user_progress')
+        .select('lesson_id')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .in('lesson_id', lessonIds);
+      return {
+        lessons: lessonIds,
+        completedIds: new Set((progress || []).map(p => p.lesson_id)),
+      };
+    },
+    enabled: !!module?.id && !!user?.id,
+  });
+
+  const isModuleCompleted = lessonCompletionData
+    ? lessonCompletionData.lessons.length > 0 && lessonCompletionData.lessons.every(id => lessonCompletionData.completedIds.has(id))
+    : false;
+
+  const markModuleComplete = async () => {
+    if (!module?.id || !user?.id) return;
+    const { data: lessons } = await supabase
+      .from('lessons')
+      .select('id')
+      .eq('module_id', module.id);
+    if (!lessons || lessons.length === 0) return;
+    for (const lesson of lessons) {
+      await supabase
+        .from('user_progress')
+        .upsert(
+          { user_id: user.id, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() },
+          { onConflict: 'user_id,lesson_id' }
+        );
+    }
+    queryClient.invalidateQueries({ queryKey: ['lesson-completion', module.id, user.id] });
+    queryClient.invalidateQueries({ queryKey: ['user-progress', user.id] });
+    toast.success('Lesson marked as complete!');
+  };
 
   // Memoize the embed URL so the iframe src stays stable across re-renders
   const vimeoEmbedUrl = useMemo(
@@ -311,6 +365,9 @@ export default function Lesson() {
 
     setQuizScore({ score: result.score, total: result.total });
     setShowResults(true);
+    // Invalidate completion query since edge function auto-completed lessons
+    queryClient.invalidateQueries({ queryKey: ['lesson-completion', module.id, user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['user-progress', user?.id] });
     toast.success(`Quiz completed! Score: ${result.score}/${result.total}`);
   };
 
@@ -331,6 +388,8 @@ export default function Lesson() {
       files: selectedFiles,
     });
     setSelectedFiles([]);
+    // Auto-mark lesson as complete on homework submit
+    await markModuleComplete();
     toast.success('Homework submitted successfully!');
   };
 
@@ -349,14 +408,31 @@ export default function Lesson() {
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-4 pb-8">
         {/* Header */}
-        <div className="flex items-center gap-4 animate-fade-up">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/courses')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <p className="text-sm text-muted-foreground">{module.courseName}</p>
-            <h1 className="font-display text-3xl font-bold">{module.title}</h1>
+        <div className="flex items-center justify-between animate-fade-up">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/courses')}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <p className="text-sm text-muted-foreground">{module.courseName}</p>
+              <h1 className="font-display text-3xl font-bold">{module.title}</h1>
+            </div>
           </div>
+          {isModuleCompleted ? (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-sm font-medium">Completed</span>
+            </div>
+          ) : (
+            <Button
+              onClick={markModuleComplete}
+              className="gold-gradient"
+              size="sm"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Mark Complete
+            </Button>
+          )}
         </div>
 
         {/* Video Player - only show if video exists and not a certification requirement lesson */}
