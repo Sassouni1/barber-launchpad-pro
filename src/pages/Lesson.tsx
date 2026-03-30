@@ -405,14 +405,31 @@ export default function Lesson() {
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-4 pb-8">
         {/* Header */}
-        <div className="flex items-center gap-4 animate-fade-up">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/courses')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <p className="text-sm text-muted-foreground">{module.courseName}</p>
-            <h1 className="font-display text-3xl font-bold">{module.title}</h1>
+        <div className="flex items-center justify-between animate-fade-up">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/courses')}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <p className="text-sm text-muted-foreground">{module.courseName}</p>
+              <h1 className="font-display text-3xl font-bold">{module.title}</h1>
+            </div>
           </div>
+          {isModuleCompleted ? (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-sm font-medium">Completed</span>
+            </div>
+          ) : (
+            <Button
+              onClick={markModuleComplete}
+              className="gold-gradient"
+              size="sm"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Mark Complete
+            </Button>
+          )}
         </div>
 
         {/* Video Player - only show if video exists and not a certification requirement lesson */}
