@@ -129,7 +129,16 @@ export const DynamicTodoList = () => {
         )}
       </div>
 
-      {allListsCompleted ? null : currentList ? (
+      {isBehindSchedule && !isOngoingList && (
+        <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-xs text-destructive">
+            You're behind schedule on this list. Try to catch up!
+          </p>
+        </div>
+      )}
+
+
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             {!isOngoingList && (
