@@ -71,6 +71,16 @@ export default function CreateAccount() {
         }
       } else {
         toast.success('Account created successfully!');
+        // Save phone number to profile if provided
+        if (phone.trim()) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await supabase
+              .from('profiles')
+              .update({ phone: phone.trim() })
+              .eq('id', session.user.id);
+          }
+        }
       }
     } catch (error: any) {
       toast.error('An unexpected error occurred');
