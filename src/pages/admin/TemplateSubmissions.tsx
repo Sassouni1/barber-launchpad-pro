@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -235,7 +235,7 @@ export default function TemplateSubmissions() {
                       </div>
                       <div>
                         <p className="font-semibold text-sm">{group.fullName}</p>
-                        <p className="text-xs text-muted-foreground">{group.email} · Submitted {format(new Date(group.latestUpload), 'MMM d, yyyy')}</p>
+                        <p className="text-xs text-muted-foreground">{group.email} · Submitted {format(new Date(group.latestUpload), 'MMM d, yyyy')} ({differenceInDays(new Date(), new Date(group.latestUpload))} days ago)</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
