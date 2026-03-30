@@ -299,7 +299,7 @@ export default function TemplateSubmissions() {
                       </Button>
                       <Button
                         size="sm"
-                        disabled={approvingUser === group.userId || allApproved}
+                        disabled={approvingUser === group.userId}
                         onClick={() => handleApproveAll(group)}
                       >
                         {approvingUser === group.userId ? 'Approving...' : 'Approve All'}
@@ -307,7 +307,7 @@ export default function TemplateSubmissions() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        disabled={approvingUser === group.userId || !group.submissions.some(s => s.approved)}
+                        disabled={approvingUser === group.userId}
                         onClick={() => handleDisapproveAll(group)}
                       >
                         {approvingUser === group.userId ? 'Updating...' : 'Disapprove'}
