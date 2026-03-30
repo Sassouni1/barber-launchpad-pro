@@ -6,8 +6,9 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, User } from 'lucide-react';
+import { CheckCircle2, Clock, User, MessageSquare } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 
 interface SubmissionRow {
   id: string;
@@ -18,6 +19,7 @@ interface SubmissionRow {
   uploaded_at: string;
   approved: boolean;
   approved_at: string | null;
+  admin_note: string | null;
 }
 
 interface MemberGroup {
@@ -30,7 +32,8 @@ interface MemberGroup {
 
 export default function TemplateSubmissions() {
   const queryClient = useQueryClient();
-  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approvingUser, setApprovingUser] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -39,7 +42,7 @@ export default function TemplateSubmissions() {
     queryFn: async () => {
       const { data: photos, error } = await supabase
         .from('certification_photos')
-        .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at')
+        .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at, admin_note')
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
 
@@ -51,7 +54,6 @@ export default function TemplateSubmissions() {
 
       const profileMap = new Map((profiles || []).map(p => [p.id, p]));
 
-      // Group by user
       const groupMap = new Map<string, MemberGroup>();
       for (const p of photos || []) {
         const profile = profileMap.get(p.user_id);
@@ -64,24 +66,35 @@ export default function TemplateSubmissions() {
             latestUpload: p.uploaded_at,
           });
         }
-        groupMap.get(p.user_id)!.submissions.push(p);
+        groupMap.get(p.user_id)!.submissions.push(p as SubmissionRow);
       }
 
-      // Sort groups by latest upload desc
       return Array.from(groupMap.values()).sort(
         (a, b) => new Date(b.latestUpload).getTime() - new Date(a.latestUpload).getTime()
       );
     },
   });
 
-  // Pre-load signed URLs for all photos
+  // Initialize notes from existing data
+  useEffect(() => {
+    const existing: Record<string, string> = {};
+    for (const g of groups) {
+      const savedNote = g.submissions.find(s => s.admin_note)?.admin_note;
+      if (savedNote && !notes[g.userId]) {
+        existing[g.userId] = savedNote;
+      }
+    }
+    if (Object.keys(existing).length > 0) {
+      setNotes(prev => ({ ...existing, ...prev }));
+    }
+  }, [groups]);
+
   const allSubmissions = useMemo(() => groups.flatMap(g => g.submissions), [groups]);
 
   useEffect(() => {
     const loadUrls = async () => {
       const missing = allSubmissions.filter(s => !signedUrls[s.id]);
       if (missing.length === 0) return;
-
       const results: Record<string, string> = {};
       await Promise.all(
         missing.map(async (s) => {
@@ -102,20 +115,52 @@ export default function TemplateSubmissions() {
     loadUrls();
   }, [allSubmissions]);
 
-  const handleApprove = async (id: string) => {
-    setApprovingId(id);
+  const handleApproveAll = async (group: MemberGroup) => {
+    setApprovingUser(group.userId);
+    const note = notes[group.userId]?.trim() || null;
     try {
+      const pendingIds = group.submissions.filter(s => !s.approved).map(s => s.id);
+      if (pendingIds.length === 0) {
+        toast.info('All photos already approved');
+        return;
+      }
       const { error } = await supabase
         .from('certification_photos')
-        .update({ approved: true, approved_at: new Date().toISOString() } as any)
-        .eq('id', id);
+        .update({ approved: true, approved_at: new Date().toISOString(), admin_note: note } as any)
+        .in('id', pendingIds);
       if (error) throw error;
-      toast.success('Submission approved');
+      // Also save note on already-approved ones if note changed
+      if (note) {
+        const approvedIds = group.submissions.filter(s => s.approved).map(s => s.id);
+        if (approvedIds.length > 0) {
+          await supabase
+            .from('certification_photos')
+            .update({ admin_note: note } as any)
+            .in('id', approvedIds);
+        }
+      }
+      toast.success(`Approved all submissions for ${group.fullName}`);
       queryClient.invalidateQueries({ queryKey: ['admin-template-submissions'] });
     } catch (err: any) {
       toast.error(err.message || 'Failed to approve');
     } finally {
-      setApprovingId(null);
+      setApprovingUser(null);
+    }
+  };
+
+  const handleSaveNote = async (group: MemberGroup) => {
+    const note = notes[group.userId]?.trim() || null;
+    try {
+      const ids = group.submissions.map(s => s.id);
+      const { error } = await supabase
+        .from('certification_photos')
+        .update({ admin_note: note } as any)
+        .in('id', ids);
+      if (error) throw error;
+      toast.success('Note saved');
+      queryClient.invalidateQueries({ queryKey: ['admin-template-submissions'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save note');
     }
   };
 
@@ -156,7 +201,7 @@ export default function TemplateSubmissions() {
                       </span>
                       {allApproved ? (
                         <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> All Approved
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Approved
                         </Badge>
                       ) : (
                         <Badge variant="secondary">
@@ -172,17 +217,14 @@ export default function TemplateSubmissions() {
                       {group.submissions.map((s) => (
                         <div
                           key={s.id}
-                          className="flex-shrink-0 w-40 rounded-lg border bg-secondary/20 overflow-hidden"
+                          className="flex-shrink-0 w-40 rounded-lg border bg-secondary/20 overflow-hidden cursor-pointer"
+                          onClick={() => {
+                            const url = signedUrls[s.id];
+                            if (url) setPreviewUrl(url);
+                            else toast.error('Image still loading...');
+                          }}
                         >
-                          {/* Thumbnail */}
-                          <div
-                            className="w-full h-32 bg-muted/50 cursor-pointer relative group"
-                            onClick={() => {
-                              const url = signedUrls[s.id];
-                              if (url) setPreviewUrl(url);
-                              else toast.error('Image still loading...');
-                            }}
-                          >
+                          <div className="w-full h-32 bg-muted/50 relative">
                             {signedUrls[s.id] ? (
                               <img
                                 src={signedUrls[s.id]}
@@ -200,32 +242,57 @@ export default function TemplateSubmissions() {
                               </div>
                             )}
                           </div>
-
-                          {/* Info */}
-                          <div className="p-2 space-y-1.5">
-                            <p className="text-xs text-muted-foreground truncate" title={s.file_name}>
+                          <div className="p-2">
+                            <p className="text-xs text-muted-foreground truncate">
                               {format(new Date(s.uploaded_at), 'MMM d, yyyy')}
                             </p>
-                            {s.approved ? (
-                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px] px-1.5 py-0">
-                                Approved
-                              </Badge>
-                            ) : (
-                              <Button
-                                size="sm"
-                                className="w-full h-7 text-xs"
-                                disabled={approvingId === s.id}
-                                onClick={() => handleApprove(s.id)}
-                              >
-                                {approvingId === s.id ? '...' : 'Approve'}
-                              </Button>
-                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>
+
+                  {/* Note + Approve */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Admin Note</span>
+                      </div>
+                      <Textarea
+                        placeholder="Add a note about this submission..."
+                        className="min-h-[60px] text-sm resize-none"
+                        value={notes[group.userId] || ''}
+                        onChange={(e) => setNotes(prev => ({ ...prev, [group.userId]: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 pt-5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSaveNote(group)}
+                      >
+                        Save Note
+                      </Button>
+                      {!allApproved && (
+                        <Button
+                          size="sm"
+                          disabled={approvingUser === group.userId}
+                          onClick={() => handleApproveAll(group)}
+                        >
+                          {approvingUser === group.userId ? 'Approving...' : `Approve All`}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Show existing note if saved */}
+                  {group.submissions[0]?.admin_note && !notes[group.userId] && (
+                    <p className="text-xs text-muted-foreground italic border-l-2 border-primary/30 pl-2">
+                      {group.submissions[0].admin_note}
+                    </p>
+                  )}
                 </div>
               );
             })}

@@ -112,6 +112,7 @@ export type Database = {
       }
       certification_photos: {
         Row: {
+          admin_note: string | null
           approved: boolean
           approved_at: string | null
           course_id: string
@@ -123,6 +124,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_note?: string | null
           approved?: boolean
           approved_at?: string | null
           course_id: string
@@ -134,6 +136,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_note?: string | null
           approved?: boolean
           approved_at?: string | null
           course_id?: string
