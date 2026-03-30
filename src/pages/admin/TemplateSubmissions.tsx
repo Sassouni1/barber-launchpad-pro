@@ -199,18 +199,29 @@ export default function TemplateSubmissions() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-5xl">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Template Submissions</h1>
-          <p className="text-muted-foreground text-sm mt-1">Review and approve member template photo submissions</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-display font-bold">Template Submissions</h1>
+            <p className="text-muted-foreground text-sm mt-1">Today is {format(new Date(), 'MMMM d, yyyy')}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortNewestFirst(prev => !prev)}
+            className="gap-1.5"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            {sortNewestFirst ? 'Newest First' : 'Oldest First'}
+          </Button>
         </div>
 
         {isLoading ? (
           <p className="text-muted-foreground">Loading submissions...</p>
-        ) : groups.length === 0 ? (
+        ) : sortedGroups.length === 0 ? (
           <p className="text-muted-foreground">No template submissions yet.</p>
         ) : (
           <div className="space-y-6">
-            {groups.map((group) => {
+            {sortedGroups.map((group) => {
               const allApproved = group.submissions.every(s => s.approved);
               const pendingCount = group.submissions.filter(s => !s.approved).length;
 
