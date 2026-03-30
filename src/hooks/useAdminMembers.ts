@@ -115,20 +115,26 @@ export function useAdminMembers() {
 
       if (progressError) throw progressError;
 
-      // Fetch all lessons (id + module_id) for quiz-passed completion logic
+      // Fetch all modules as the unit of completion
+      const { data: allModules, error: modulesError } = await supabase
+        .from('modules')
+        .select('id, course_id');
+
+      if (modulesError) throw modulesError;
+
+      const totalLessons = allModules?.length || 0;
+
+      // Fetch all lessons (id + module_id) so user_progress can map to modules
       const { data: allLessons, error: lessonsError } = await supabase
         .from('lessons')
         .select('id, module_id');
 
       if (lessonsError) throw lessonsError;
 
-      const totalLessons = allLessons?.length || 0;
-
-      // Build lesson IDs per module for quiz-passed completion
-      const lessonIdsByModule: Record<string, string[]> = {};
+      // Build module_id lookup from lesson_id
+      const moduleIdByLessonId: Record<string, string> = {};
       allLessons?.forEach(lesson => {
-        if (!lessonIdsByModule[lesson.module_id]) lessonIdsByModule[lesson.module_id] = [];
-        lessonIdsByModule[lesson.module_id].push(lesson.id);
+        moduleIdByLessonId[lesson.id] = lesson.module_id;
       });
 
       // Fetch dynamic todo lists with items
