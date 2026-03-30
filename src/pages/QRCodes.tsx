@@ -33,53 +33,75 @@ function PosterPreview({ link, posterUrl, qrX, qrY, qrSize }: {
   const redirectUrl = getRedirectUrl(link.short_code);
 
   const handleDownload = useCallback(async () => {
+    let sourceObjectUrl: string | null = null;
+    let downloadObjectUrl: string | null = null;
+
     try {
-      // Load poster image
+      const posterResponse = await fetch(posterUrl);
+      if (!posterResponse.ok) throw new Error('Failed to fetch poster template');
+
+      const posterBlob = await posterResponse.blob();
+      sourceObjectUrl = URL.createObjectURL(posterBlob);
+
       const img = new Image();
-      img.crossOrigin = 'anonymous';
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = reject;
-        img.src = posterUrl;
+        img.onerror = () => reject(new Error('Failed to load poster image'));
+        img.src = sourceObjectUrl!;
       });
 
       const canvas = document.createElement('canvas');
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d')!;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Failed to create canvas context');
       ctx.drawImage(img, 0, 0);
 
-      // Render QR to canvas
       const qrSvg = qrRef.current?.querySelector('svg');
       if (qrSvg) {
         const qrCanvas = document.createElement('canvas');
-        const qrSize_px = Math.round((qrSize / 100) * canvas.width);
-        qrCanvas.width = qrSize_px;
-        qrCanvas.height = qrSize_px;
-        const qrCtx = qrCanvas.getContext('2d')!;
+        const qrSizePx = Math.round((qrSize / 100) * canvas.width);
+        qrCanvas.width = qrSizePx;
+        qrCanvas.height = qrSizePx;
+        const qrCtx = qrCanvas.getContext('2d');
+        if (!qrCtx) throw new Error('Failed to create QR canvas context');
 
         const svgData = new XMLSerializer().serializeToString(qrSvg);
         const qrImg = new Image();
         await new Promise<void>((resolve, reject) => {
           qrImg.onload = () => resolve();
-          qrImg.onerror = reject;
+          qrImg.onerror = () => reject(new Error('Failed to render QR image'));
           qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
         });
-        qrCtx.drawImage(qrImg, 0, 0, qrSize_px, qrSize_px);
+        qrCtx.drawImage(qrImg, 0, 0, qrSizePx, qrSizePx);
 
-        // Position QR on poster (centered on the x/y point)
-        const posX = Math.round((qrX / 100) * canvas.width - qrSize_px / 2);
-        const posY = Math.round((qrY / 100) * canvas.height - qrSize_px / 2);
+        const posX = Math.round((qrX / 100) * canvas.width - qrSizePx / 2);
+        const posY = Math.round((qrY / 100) * canvas.height - qrSizePx / 2);
         ctx.drawImage(qrCanvas, posX, posY);
       }
 
+      const finalBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to export poster image'));
+        }, 'image/png');
+      });
+
+      downloadObjectUrl = URL.createObjectURL(finalBlob);
       const a = document.createElement('a');
       a.download = `${link.label.replace(/\s+/g, '-')}-poster.png`;
-      a.href = canvas.toDataURL('image/png');
+      a.href = downloadObjectUrl;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
+
       toast.success('Poster downloaded!');
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error('Failed to generate poster');
+    } finally {
+      if (sourceObjectUrl) URL.revokeObjectURL(sourceObjectUrl);
+      if (downloadObjectUrl) URL.revokeObjectURL(downloadObjectUrl);
     }
   }, [posterUrl, qrX, qrY, qrSize, link]);
 
