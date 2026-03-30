@@ -1,32 +1,32 @@
 
 
-# Show Full Quiz Status Per Module in Admin Member Detail
+# Auto-Track Lesson Completion (No Vimeo SDK)
 
-## Problem
-The Quiz History section in the admin member detail only shows modules where the student **has submitted** a quiz. It doesn't show modules with quizzes that haven't been attempted yet — so seeing "2 quizzes" doesn't mean tracking is broken, it means Alec only took 2. But the admin has no way to see which quizzes are still outstanding.
+## Approach
+Use three completion triggers that cover all lesson types without any video SDK integration:
 
-## Solution
-Enhance the Quiz History section to show **all modules that have quizzes**, with their attempt status:
-- **Passed**: green badge with score
-- **Failed**: red badge with score  
-- **Not attempted**: grey "Not taken" badge
+1. **Quiz submission** — auto-marks the module's lessons complete when a quiz is submitted (in the edge function)
+2. **Homework submission** — auto-marks complete when homework is submitted (client-side)
+3. **Manual "Mark Complete" button** — for video-only modules with no quiz/homework, user clicks a button after watching
 
-This gives admins a complete picture of quiz progress per student.
+This covers every module type: quiz modules, homework modules, and plain video modules.
 
 ## Changes
 
-### `src/hooks/useAdminMembers.ts` — `useAdminMemberDetail`
-- Fetch all modules where `has_quiz = true`, ordered by course/order_index
-- Cross-reference with the user's `user_quiz_attempts` to find best score per module
-- Return a new `quizStatus` array with: `module_id`, `module_title`, `bestScore`, `totalQuestions`, `passed` (>=80%), `attempted`
+### 1. `supabase/functions/verify-quiz/index.ts`
+After recording the quiz attempt, query `lessons` for all lessons with matching `module_id`, then upsert into `user_progress` with `completed = true` for each. Uses the service role client so no RLS issues.
 
-### `src/pages/admin/Members.tsx` — Quiz History UI
-- Replace the current flat list of attempts with a structured list showing every quiz-enabled module
-- Each row shows: module title, best score badge (color-coded), and attempt count
-- Keep the scroll area but show "X/Y passed" summary header
-- Clicking a row could expand to show all attempts for that module (optional, keeps it concise)
+### 2. `src/pages/Lesson.tsx`
+- Add a query to check if current module's lessons are already completed (`user_progress` where `completed = true`)
+- After `handleHomeworkSubmit`, also upsert `user_progress` for the module's lessons
+- Add a "Mark as Complete" / "Completed" button in the lesson header area, visible for all modules
+- Button is green with checkmark if already completed, gold "Mark Complete" if not
+- On click, upsert into `user_progress` for all lessons in this module
+
+### 3. No database changes needed
+The `user_progress` table already has INSERT and UPDATE RLS policies for authenticated users. The edge function uses the service role key.
 
 ### Files to edit
-- `src/hooks/useAdminMembers.ts` — add modules query + quiz status aggregation
-- `src/pages/admin/Members.tsx` — update Quiz History rendering
+- `supabase/functions/verify-quiz/index.ts` — add lesson completion upsert after quiz attempt
+- `src/pages/Lesson.tsx` — add completion query, "Mark Complete" button, auto-complete on homework submit
 
