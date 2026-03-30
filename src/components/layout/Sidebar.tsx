@@ -191,6 +191,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/courses', icon: FileEdit, label: 'Course Builder' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos Manager' },
     { to: '/admin/products', icon: Package, label: 'Products Manager' },
+    { to: '/admin/templates', icon: Award, label: 'Template Submissions' },
   ];
 
   const links = isAdminView ? adminLinks : memberLinks;
