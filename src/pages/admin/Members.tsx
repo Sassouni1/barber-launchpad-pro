@@ -564,28 +564,52 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
 
           <div>
             <h4 className="font-semibold mb-3 flex items-center gap-2">
-              <GraduationCap className="w-4 h-4" /> Quiz History
+              <GraduationCap className="w-4 h-4" /> Quiz Progress
+              {detail?.quizStatus && detail.quizStatus.length > 0 && (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  detail.quizStatus.filter(q => q.passed).length === detail.quizStatus.length
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-amber-500/20 text-amber-400'
+                }`}>
+                  {detail.quizStatus.filter(q => q.passed).length}/{detail.quizStatus.length} passed
+                </span>
+              )}
             </h4>
-            {detail?.quizAttempts && detail.quizAttempts.length > 0 ? (
-              <ScrollArea className="h-36">
+            {detail?.quizStatus && detail.quizStatus.length > 0 ? (
+              <ScrollArea className="h-48">
                 <div className="space-y-2">
-                  {detail.quizAttempts.map((attempt, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20">
-                      <div>
-                        <p className="font-medium text-sm">{attempt.module_title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(attempt.completed_at), 'MMM d, yyyy h:mm a')}
-                        </p>
+                  {detail.quizStatus.map((quiz) => (
+                    <div key={quiz.module_id} className={`flex items-center justify-between p-3 rounded-lg border ${
+                      quiz.passed
+                        ? 'bg-green-500/5 border-green-500/20'
+                        : quiz.attempted
+                          ? 'bg-red-500/5 border-red-500/20'
+                          : 'bg-secondary/20 border-border'
+                    }`}>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {quiz.passed ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                        ) : quiz.attempted ? (
+                          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                        ) : (
+                          <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{quiz.module_title}</p>
+                          {quiz.attemptCount > 0 && (
+                            <p className="text-xs text-muted-foreground">{quiz.attemptCount} attempt{quiz.attemptCount !== 1 ? 's' : ''}</p>
+                          )}
+                        </div>
                       </div>
-                      <Badge variant={Math.min(attempt.score / attempt.total_questions, 1) >= 0.8 ? 'default' : 'secondary'}>
-                        {Math.min(attempt.score, attempt.total_questions)}/{attempt.total_questions}
+                      <Badge variant={quiz.passed ? 'default' : quiz.attempted ? 'destructive' : 'secondary'} className="ml-2">
+                        {quiz.bestScore !== null ? `${quiz.bestScore}%` : 'Not taken'}
                       </Badge>
                     </div>
                   ))}
                 </div>
               </ScrollArea>
             ) : (
-              <p className="text-muted-foreground text-sm">No quiz attempts yet</p>
+              <p className="text-muted-foreground text-sm">No quizzes configured</p>
             )}
           </div>
 
