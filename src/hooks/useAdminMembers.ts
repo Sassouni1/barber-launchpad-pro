@@ -378,6 +378,8 @@ export function useAdminMemberDetail(userId: string | null) {
         return {
           module_id: mod.id,
           module_title: mod.title,
+          course_id: mod.course_id,
+          course_title: courseMap.get(mod.course_id) || 'Unknown Course',
           bestScore,
           totalQuestions: bestTotal,
           passed: bestScore !== null && bestScore >= 80,
@@ -385,6 +387,25 @@ export function useAdminMemberDetail(userId: string | null) {
           attemptCount: attempts.length,
         };
       });
+
+      // Group by course
+      const courseGroups = new Map<string, CourseQuizGroup>();
+      quizStatus.forEach(qs => {
+        if (!courseGroups.has(qs.course_id)) {
+          courseGroups.set(qs.course_id, {
+            course_id: qs.course_id,
+            course_title: qs.course_title,
+            modules: [],
+            passedCount: 0,
+            totalCount: 0,
+          });
+        }
+        const group = courseGroups.get(qs.course_id)!;
+        group.modules.push(qs);
+        group.totalCount++;
+        if (qs.passed) group.passedCount++;
+      });
+      const quizByCourse = Array.from(courseGroups.values());
 
       return {
         quizAttempts: quizAttempts?.map(q => ({
