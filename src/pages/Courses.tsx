@@ -1,6 +1,6 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses, type Module } from '@/hooks/useCourses';
-import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star } from 'lucide-react';
+import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star, Award } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -62,6 +62,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
     (course as any).category === courseType
   );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [showCertification, setShowCertification] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
@@ -297,12 +298,31 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         </button>
                       ))}
+                      {/* Level 1 Certification entry for hair-system */}
+                      {category.id === 'hair-system' && course.id && (
+                        <button
+                          onClick={() => {
+                            setShowCertification(true);
+                            setSelectedModule(null);
+                          }}
+                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/30 bg-primary/5 shadow-md shadow-black/20 active:scale-[0.98]"
+                        >
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
+                            <Award className="w-5 h-5 text-primary-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm truncate gold-text">Level 1 Certification</h4>
+                            <p className="text-xs text-muted-foreground">Complete all lessons to unlock</p>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
                 
-                {/* Certification Section for hair-system courses on mobile */}
-                {expandedCourse === 'hair-system' && (
+                {/* Certification Section when selected on mobile */}
+                {showCertification && expandedCourse === 'hair-system' && (
                   <div className="pl-2">
                     {courseCategories.find(c => c.id === 'hair-system')?.courses[0]?.id && (
                       <CertificationSection 
@@ -378,6 +398,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                               navigate(`/courses/${courseType}/lesson/${module.id}`);
                             } else if (isDesktop) {
                               setSelectedModule(module.id);
+                              setShowCertification(false);
                             } else {
                               navigate(`/courses/${courseType}/lesson/${module.id}`);
                             }
@@ -446,13 +467,49 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       );
                     })}
                   </div>
+
+                  {/* Level 1 Certification entry for hair-system on desktop */}
+                  {courseType === 'hair-system' && (
+                    <div className="pl-2 mt-2">
+                      <button
+                        onClick={() => {
+                          setShowCertification(true);
+                          setSelectedModule(null);
+                        }}
+                        className={cn(
+                          'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
+                          'border-2 hover:border-primary/50 hover:bg-secondary/20',
+                          showCertification && !selectedModule
+                            ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20'
+                            : 'border-primary/30 bg-primary/5 shadow-md shadow-black/20'
+                        )}
+                      >
+                        <div className={cn(
+                          'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
+                          showCertification && !selectedModule
+                            ? 'gold-gradient text-primary-foreground shadow-md'
+                            : 'gold-gradient text-primary-foreground'
+                        )}>
+                          <Award className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={cn(
+                            "font-semibold text-sm mb-1",
+                            showCertification && !selectedModule ? "text-primary" : "gold-text"
+                          )}>
+                            Level 1 Certification
+                          </h4>
+                          <p className="text-xs text-muted-foreground">Complete all lessons to unlock</p>
+                        </div>
+                        <Award className={cn(
+                          "w-5 h-5 flex-shrink-0",
+                          showCertification && !selectedModule ? "text-primary" : "text-muted-foreground"
+                        )} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
-              
-              {/* Certification Section for hair-system on desktop left panel */}
-              {courseType === 'hair-system' && courses[0]?.id && (
-                <CertificationSection courseId={courses[0].id} />
-              )}
             </div>
             
             {/* Scroll indicator */}
@@ -470,9 +527,13 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         {isDesktop && (
         <div className={cn(
           "flex-1 min-w-0 overflow-y-auto",
-          !moduleData?.module.video_url?.trim() && "flex items-center justify-center"
+          !showCertification && !moduleData?.module.video_url?.trim() && "flex items-center justify-center"
         )}>
-          {moduleData ? (
+          {showCertification && !selectedModule && courseType === 'hair-system' && courses[0]?.id ? (
+            <div className="p-4">
+              <CertificationSection courseId={courses[0].id} />
+            </div>
+          ) : moduleData ? (
             <div className={cn(
               "glass-card rounded-xl overflow-hidden w-full",
               !moduleData.module.video_url?.trim() && "max-w-lg"
