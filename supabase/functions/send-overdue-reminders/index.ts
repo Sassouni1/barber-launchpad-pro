@@ -203,7 +203,17 @@ Deno.serve(async (req) => {
         if (reminder.reminder_count >= 2) continue; // Max reached
       }
 
-      // 6. Send SMS via GHL API v2
+      // 6. Resolve GHL contact ID
+      const contactId = await resolveGhlContactId(ghlApiKey, {
+        full_name: user.full_name,
+        phone: user.phone,
+        email: user.email,
+      });
+      if (!contactId) {
+        console.warn(`Could not resolve GHL contact for user ${user.id}, skipping`);
+        continue;
+      }
+
       const reminderIndex = reminder ? reminder.reminder_count : 0;
       const messageText = REMINDER_MESSAGES[reminderIndex](
         user.full_name || "there"
@@ -211,18 +221,15 @@ Deno.serve(async (req) => {
 
       try {
         const ghlResponse = await fetch(
-          "https://services.leadconnectorhq.com/conversations/messages",
+          `${GHL_BASE}/conversations/messages`,
           {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${ghlApiKey}`,
-              "Content-Type": "application/json",
-              Version: "2021-07-28",
-            },
+            headers: GHL_HEADERS(ghlApiKey),
             body: JSON.stringify({
               type: "SMS",
-              contactId: user.phone, // GHL uses phone as contact lookup
+              contactId,
               message: messageText,
+              phone: user.phone, // Always use membership phone
             }),
           }
         );
