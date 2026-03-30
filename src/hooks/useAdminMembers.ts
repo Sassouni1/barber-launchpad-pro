@@ -503,10 +503,11 @@ export function useAdminStats() {
         avgQuizScore = Math.round(totalPercentage / quizAttempts.length);
       }
 
-      // Get total modules (the unit of completion)
+      // Get total modules with quizzes (the unit of completion)
       const { count: totalLessons } = await supabase
         .from('modules')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('has_quiz', true);
 
       const { count: totalCompletions } = await supabase
         .from('user_progress')
