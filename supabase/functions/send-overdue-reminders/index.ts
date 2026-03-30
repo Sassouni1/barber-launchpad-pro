@@ -25,12 +25,13 @@ const GHL_HEADERS = (apiKey: string) => ({
 
 async function resolveGhlContactId(
   ghlApiKey: string,
+  locationId: string,
   user: { full_name: string | null; phone: string | null; email: string | null }
 ): Promise<string | null> {
   // 1. Search by email
   if (user.email) {
     const res = await fetch(
-      `${GHL_BASE}/contacts/search/duplicate?email=${encodeURIComponent(user.email)}`,
+      `${GHL_BASE}/contacts/search/duplicate?locationId=${locationId}&email=${encodeURIComponent(user.email)}`,
       { headers: GHL_HEADERS(ghlApiKey) }
     );
     if (res.ok) {
@@ -48,6 +49,7 @@ async function resolveGhlContactId(
     method: "POST",
     headers: GHL_HEADERS(ghlApiKey),
     body: JSON.stringify({
+      locationId,
       firstName,
       lastName,
       phone: user.phone,
