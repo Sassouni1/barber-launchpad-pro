@@ -119,8 +119,9 @@ export const DynamicTodoList = () => {
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-foreground">
-            {isOngoingList ? 'Ongoing Marketing' : 'Dynamic To-Do List'}
+            {isOngoingList ? 'Ongoing Marketing' : 'Your To-Do List'}
           </h3>
+          <span className="text-xs text-primary font-medium ml-1">— Please complete these!</span>
         </div>
         {!isOngoingList && (
           <span className="text-xs text-muted-foreground">
