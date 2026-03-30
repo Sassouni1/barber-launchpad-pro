@@ -90,11 +90,9 @@ export default function HairSystemChecklist() {
         const isMarketingChecklist = list.title.toLowerCase().includes('marketing checklist');
         let relevantItems: typeof itemsData = [];
         if (isMarketingChecklist && allDynamicLists.length > 0) {
-          // Progressive logic: show one dynamic list at a time (like dashboard)
           const regularDynLists = allDynamicLists.filter(l => !l.title.toLowerCase().includes('ongoing'));
           const ongoingDynLists = allDynamicLists.filter(l => l.title.toLowerCase().includes('ongoing'));
 
-          // Build completion map per dynamic list
           const dynListsWithCompletion = regularDynLists.map(dl => {
             const dlItems = (itemsData || []).filter(item => item.list_id === dl.id);
             const allCompleted = dlItems.length > 0 && dlItems.every(item => progressMap.get(item.id));
@@ -104,29 +102,47 @@ export default function HairSystemChecklist() {
           const currentRegularIdx = dynListsWithCompletion.findIndex(dl => !dl.allCompleted);
           const allRegularDone = dynListsWithCompletion.length > 0 && dynListsWithCompletion.every(dl => dl.allCompleted);
 
-          let activeList: { id: string; title: string; items: typeof itemsData } | null = null;
-          if (allRegularDone && ongoingDynLists.length > 0) {
+          // Build ALL sections with state flags
+          const dynSections: { listTitle: string; state: 'completed' | 'active' | 'locked'; items: ChecklistItem[] }[] = [];
+
+          dynListsWithCompletion.forEach((dl, idx) => {
+            let state: 'completed' | 'active' | 'locked' = 'locked';
+            if (dl.allCompleted) state = 'completed';
+            else if (idx === currentRegularIdx) state = 'active';
+            dynSections.push({
+              listTitle: dl.title,
+              state,
+              items: dl.items.map(item => ({
+                ...item,
+                completed: progressMap.get(item.id) || false,
+              })),
+            });
+          });
+
+          if (ongoingDynLists.length > 0) {
             const ongoingItems = (itemsData || []).filter(item => item.list_id === ongoingDynLists[0].id);
-            activeList = { ...ongoingDynLists[0], items: ongoingItems };
-          } else if (currentRegularIdx >= 0) {
-            activeList = dynListsWithCompletion[currentRegularIdx];
+            dynSections.push({
+              listTitle: ongoingDynLists[0].title,
+              state: allRegularDone ? 'active' : 'locked',
+              items: ongoingItems.map(item => ({
+                ...item,
+                completed: progressMap.get(item.id) || false,
+              })),
+            });
           }
 
-          if (activeList) {
-            relevantItems = activeList.items.map(item => ({
-              ...item,
-              section_title: item.section_title || activeList!.title,
-            }));
-          }
-
-          // Store progressive metadata on the list for UI
+          (list as any)._dynSections = dynSections;
           (list as any)._dynMeta = {
             completedListsCount: currentRegularIdx >= 0 ? currentRegularIdx : regularDynLists.length,
             totalLists: regularDynLists.length,
             allRegularDone,
-            isOngoing: allRegularDone && ongoingDynLists.length > 0,
-            activeListTitle: activeList?.title || '',
           };
+
+          // All items for progress bar
+          relevantItems = [];
+          for (const s of dynSections) {
+            relevantItems.push(...s.items);
+          }
         } else {
           relevantItems = (itemsData || []).filter(item => item.list_id === list.id);
         }
