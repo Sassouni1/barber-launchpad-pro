@@ -131,6 +131,15 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Integrations */}
+        <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.55s' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="w-5 h-5 text-primary" />
+            <h2 className="font-display text-xl font-semibold">Integrations</h2>
+          </div>
+          <GHLIntegration />
+        </div>
+
         {/* Poster Template */}
         <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.6s' }}>
           <h2 className="font-display text-xl font-semibold mb-4">QR Poster Template</h2>
