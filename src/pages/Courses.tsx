@@ -62,6 +62,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
     (course as any).category === courseType
   );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [showCertification, setShowCertification] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
