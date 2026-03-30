@@ -239,6 +239,13 @@ export function useAdminMemberDetail(userId: string | null) {
         .eq('id', userId)
         .maybeSingle();
 
+      // Fetch all modules with quizzes
+      const { data: quizModules } = await supabase
+        .from('modules')
+        .select('id, title, order_index, course_id')
+        .eq('has_quiz', true)
+        .order('order_index');
+
       // Fetch quiz attempts with module info
       const { data: quizAttempts, error: quizError } = await supabase
         .from('user_quiz_attempts')
