@@ -899,12 +899,12 @@ export default function Members() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Member</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Quiz Avg</TableHead>
-                  <TableHead>Lessons</TableHead>
-                   <TableHead>Tasks</TableHead>
-                   <TableHead>Status</TableHead>
-                  <TableHead>Last Active</TableHead>
+                  <SortableHeader label="Joined" field="joined" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Quiz Avg" field="quizAvg" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Lessons" field="lessons" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Tasks" field="tasks" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Status" field="behind" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Last Active" field="lastActive" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
