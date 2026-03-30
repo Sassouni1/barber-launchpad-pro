@@ -8,7 +8,7 @@ export function ProgressOverview() {
   const { data: courses = [], isLoading } = useCourses();
   const { user } = useAuth();
 
-  // Fetch user's completed lessons
+  // Fetch user's completed lessons (maps to modules via lesson -> module_id)
   const { data: completedLessons = [] } = useQuery({
     queryKey: ['user-progress', user?.id],
     queryFn: async () => {
@@ -24,7 +24,7 @@ export function ProgressOverview() {
     enabled: !!user,
   });
 
-  // Fetch all lessons to map lesson -> module -> course
+  // Fetch all lessons to map lesson_id -> module_id
   const { data: allLessons = [] } = useQuery({
     queryKey: ['all-lessons'],
     queryFn: async () => {
@@ -34,6 +34,21 @@ export function ProgressOverview() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch user's quiz attempts to find passed modules
+  const { data: quizAttempts = [] } = useQuery({
+    queryKey: ['user-quiz-attempts', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('user_quiz_attempts')
+        .select('module_id, score, total_questions')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
   });
 
   if (isLoading) {
