@@ -275,13 +275,22 @@ export default function TemplateSubmissions() {
                       >
                         Save Note
                       </Button>
-                      {!allApproved && (
+                      {!allApproved ? (
                         <Button
                           size="sm"
                           disabled={approvingUser === group.userId}
                           onClick={() => handleApproveAll(group)}
                         >
                           {approvingUser === group.userId ? 'Approving...' : `Approve All`}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={approvingUser === group.userId}
+                          onClick={() => handleDisapproveAll(group)}
+                        >
+                          {approvingUser === group.userId ? 'Updating...' : 'Disapprove'}
                         </Button>
                       )}
                     </div>
