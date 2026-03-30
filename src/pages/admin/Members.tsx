@@ -851,7 +851,7 @@ export default function Members() {
             icon={GraduationCap}
           />
           <StatCard 
-            title="Total Lessons" 
+            title="Total Modules" 
             value={statsLoading ? '...' : stats?.totalLessons || 0} 
             icon={BookOpen}
           />
