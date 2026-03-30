@@ -25,12 +25,13 @@ const GHL_HEADERS = (apiKey: string) => ({
 
 async function resolveGhlContactId(
   ghlApiKey: string,
+  locationId: string,
   user: { full_name: string | null; phone: string | null; email: string | null }
 ): Promise<string | null> {
   // 1. Search by email
   if (user.email) {
     const res = await fetch(
-      `${GHL_BASE}/contacts/search/duplicate?email=${encodeURIComponent(user.email)}`,
+      `${GHL_BASE}/contacts/search/duplicate?locationId=${locationId}&email=${encodeURIComponent(user.email)}`,
       { headers: GHL_HEADERS(ghlApiKey) }
     );
     if (res.ok) {
@@ -48,6 +49,7 @@ async function resolveGhlContactId(
     method: "POST",
     headers: GHL_HEADERS(ghlApiKey),
     body: JSON.stringify({
+      locationId,
       firstName,
       lastName,
       phone: user.phone,
@@ -75,12 +77,16 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const ghlApiKey = Deno.env.get("GHL_API_KEY");
+    const ghlLocationId = Deno.env.get("GHL_LOCATION_ID");
 
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
     }
     if (!ghlApiKey) {
       throw new Error("GHL_API_KEY is not configured");
+    }
+    if (!ghlLocationId) {
+      throw new Error("GHL_LOCATION_ID is not configured");
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -204,7 +210,7 @@ Deno.serve(async (req) => {
       }
 
       // 6. Resolve GHL contact ID
-      const contactId = await resolveGhlContactId(ghlApiKey, {
+      const contactId = await resolveGhlContactId(ghlApiKey, ghlLocationId, {
         full_name: user.full_name,
         phone: user.phone,
         email: user.email,
