@@ -721,6 +721,7 @@ export type Database = {
           full_name: string | null
           id: string
           last_active_at: string | null
+          phone: string | null
           signature_data: string | null
           skip_agreement: boolean | null
           updated_at: string
@@ -733,6 +734,7 @@ export type Database = {
           full_name?: string | null
           id: string
           last_active_at?: string | null
+          phone?: string | null
           signature_data?: string | null
           skip_agreement?: boolean | null
           updated_at?: string
@@ -745,6 +747,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_active_at?: string | null
+          phone?: string | null
           signature_data?: string | null
           skip_agreement?: boolean | null
           updated_at?: string
@@ -935,6 +938,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sms_reminders: {
+        Row: {
+          created_at: string
+          id: string
+          last_list_id: string | null
+          last_progress_snapshot: number
+          last_sent_at: string | null
+          reminder_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_list_id?: string | null
+          last_progress_snapshot?: number
+          last_sent_at?: string | null
+          reminder_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_list_id?: string | null
+          last_progress_snapshot?: number
+          last_sent_at?: string | null
+          reminder_count?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       todo_subtasks: {
         Row: {
