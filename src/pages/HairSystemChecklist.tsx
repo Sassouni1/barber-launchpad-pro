@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, ClipboardCheck, Loader2, Play, AlertTriangle, Copy, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Download, ClipboardCheck, Loader2, Play, AlertTriangle, Copy, MessageSquare, ArrowLeft, Lock, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
@@ -90,11 +90,9 @@ export default function HairSystemChecklist() {
         const isMarketingChecklist = list.title.toLowerCase().includes('marketing checklist');
         let relevantItems: typeof itemsData = [];
         if (isMarketingChecklist && allDynamicLists.length > 0) {
-          // Progressive logic: show one dynamic list at a time (like dashboard)
           const regularDynLists = allDynamicLists.filter(l => !l.title.toLowerCase().includes('ongoing'));
           const ongoingDynLists = allDynamicLists.filter(l => l.title.toLowerCase().includes('ongoing'));
 
-          // Build completion map per dynamic list
           const dynListsWithCompletion = regularDynLists.map(dl => {
             const dlItems = (itemsData || []).filter(item => item.list_id === dl.id);
             const allCompleted = dlItems.length > 0 && dlItems.every(item => progressMap.get(item.id));
@@ -104,29 +102,47 @@ export default function HairSystemChecklist() {
           const currentRegularIdx = dynListsWithCompletion.findIndex(dl => !dl.allCompleted);
           const allRegularDone = dynListsWithCompletion.length > 0 && dynListsWithCompletion.every(dl => dl.allCompleted);
 
-          let activeList: { id: string; title: string; items: typeof itemsData } | null = null;
-          if (allRegularDone && ongoingDynLists.length > 0) {
+          // Build ALL sections with state flags
+          const dynSections: { listTitle: string; state: 'completed' | 'active' | 'locked'; items: ChecklistItem[] }[] = [];
+
+          dynListsWithCompletion.forEach((dl, idx) => {
+            let state: 'completed' | 'active' | 'locked' = 'locked';
+            if (dl.allCompleted) state = 'completed';
+            else if (idx === currentRegularIdx) state = 'active';
+            dynSections.push({
+              listTitle: dl.title,
+              state,
+              items: dl.items.map(item => ({
+                ...item,
+                completed: progressMap.get(item.id) || false,
+              })),
+            });
+          });
+
+          if (ongoingDynLists.length > 0) {
             const ongoingItems = (itemsData || []).filter(item => item.list_id === ongoingDynLists[0].id);
-            activeList = { ...ongoingDynLists[0], items: ongoingItems };
-          } else if (currentRegularIdx >= 0) {
-            activeList = dynListsWithCompletion[currentRegularIdx];
+            dynSections.push({
+              listTitle: ongoingDynLists[0].title,
+              state: allRegularDone ? 'active' : 'locked',
+              items: ongoingItems.map(item => ({
+                ...item,
+                completed: progressMap.get(item.id) || false,
+              })),
+            });
           }
 
-          if (activeList) {
-            relevantItems = activeList.items.map(item => ({
-              ...item,
-              section_title: item.section_title || activeList!.title,
-            }));
-          }
-
-          // Store progressive metadata on the list for UI
+          (list as any)._dynSections = dynSections;
           (list as any)._dynMeta = {
             completedListsCount: currentRegularIdx >= 0 ? currentRegularIdx : regularDynLists.length,
             totalLists: regularDynLists.length,
             allRegularDone,
-            isOngoing: allRegularDone && ongoingDynLists.length > 0,
-            activeListTitle: activeList?.title || '',
           };
+
+          // All items for progress bar
+          relevantItems = [];
+          for (const s of dynSections) {
+            relevantItems.push(...s.items as any);
+          }
         } else {
           relevantItems = (itemsData || []).filter(item => item.list_id === list.id);
         }
@@ -333,7 +349,9 @@ export default function HairSystemChecklist() {
             {lists.map(list => {
               const listCompleted = list.items.filter(i => i.completed).length;
               const listTotal = list.items.length;
-              const dynMeta = (list as any)._dynMeta as { completedListsCount: number; totalLists: number; allRegularDone: boolean; isOngoing: boolean; activeListTitle: string } | undefined;
+              const dynMeta = (list as any)._dynMeta as { completedListsCount: number; totalLists: number; allRegularDone: boolean } | undefined;
+              const dynSections = (list as any)._dynSections as { listTitle: string; state: 'completed' | 'active' | 'locked'; items: ChecklistItem[] }[] | undefined;
+
               return (
                 <div key={list.id} className={listId ? 'space-y-4' : 'glass-card p-6 rounded-xl space-y-4'}>
                   {!listId && (
@@ -348,111 +366,208 @@ export default function HairSystemChecklist() {
                   )}
                   {dynMeta && (
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-primary">
-                        {dynMeta.isOngoing ? 'Ongoing Marketing' : `Stage ${dynMeta.completedListsCount + 1}: ${dynMeta.activeListTitle}`}
+                      <span className="text-xs text-muted-foreground">
+                        {dynMeta.completedListsCount} / {dynMeta.totalLists} stages completed
                       </span>
-                      {!dynMeta.isOngoing && (
-                        <span className="text-xs text-muted-foreground">
-                          {dynMeta.completedListsCount} / {dynMeta.totalLists} stages completed
-                        </span>
-                      )}
                     </div>
                   )}
-                  <div className="space-y-4">
-                    {(() => {
-                      const sections: { title: string | null; items: ChecklistItem[] }[] = [];
-                      list.items.forEach(item => {
-                        const last = sections[sections.length - 1];
-                        if (last && last.title === (item.section_title || null)) {
-                          last.items.push(item);
-                        } else {
-                          sections.push({ title: item.section_title || null, items: [item] });
-                        }
-                      });
-                      let globalIdx = 0;
-                      return sections.map((section, sIdx) => {
-                        const sectionIsImportant = section.items.every(i => i.is_important);
+
+                  {/* Dynamic sections: show all lists with state */}
+                  {dynSections ? (
+                    <div className="space-y-6">
+                      {dynSections.map((dynSection, dsIdx) => {
+                        const isCompleted = dynSection.state === 'completed';
+                        const isLocked = dynSection.state === 'locked';
+                        const sectionCompletedCount = dynSection.items.filter(i => i.completed).length;
+                        const sectionTotalCount = dynSection.items.length;
+
                         return (
-                        <div key={sIdx} className={`space-y-2 ${sectionIsImportant ? 'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-5 shadow-lg shadow-primary/5 animate-wiggle' : ''}`}>
-                          {section.title && !sectionIsImportant && (
-                            <h3 className={`pt-1 flex items-center gap-2 ${
-                              section.title.toLowerCase().includes('(instructions)')
-                                ? 'text-xs font-medium text-primary italic'
-                                : 'text-sm font-semibold text-primary uppercase tracking-wide'
-                            }`}>
-                              {section.title.toLowerCase().includes('(instructions)') ? `— ${section.title}` : section.title}
-                            </h3>
-                          )}
-                          {sectionIsImportant && section.title && (
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                                <AlertTriangle className="w-5 h-5 text-primary" />
+                          <div key={dsIdx} className={`rounded-xl border p-4 space-y-3 transition-all ${
+                            isCompleted
+                              ? 'border-green-500/30 bg-green-500/5'
+                              : isLocked
+                                ? 'border-border/50 bg-muted/30 opacity-50'
+                                : 'border-primary/30 bg-primary/5'
+                          }`}>
+                            {/* Section header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {isCompleted && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                                {isLocked && <Lock className="w-4 h-4 text-muted-foreground" />}
+                                <h3 className={`text-sm font-semibold ${
+                                  isCompleted ? 'text-green-500' : isLocked ? 'text-muted-foreground' : 'text-primary'
+                                }`}>
+                                  {dynSection.listTitle}
+                                </h3>
                               </div>
-                              <div>
-                                <h3 className="text-base font-bold text-primary">{section.title}</h3>
-                                <p className="text-xs text-muted-foreground">This grows your business — don't skip it!</p>
-                              </div>
-                              <span className="ml-auto text-[10px] font-bold bg-primary text-primary-foreground px-2.5 py-1 rounded-full uppercase tracking-wider">Don't Skip</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                isCompleted
+                                  ? 'bg-green-500/20 text-green-500'
+                                  : isLocked
+                                    ? 'bg-muted text-muted-foreground'
+                                    : 'bg-primary/20 text-primary'
+                              }`}>
+                                {sectionCompletedCount}/{sectionTotalCount}
+                              </span>
                             </div>
-                          )}
-                          {section.items.map(item => {
-                            const idx = globalIdx++;
-                            const important = item.is_important && !sectionIsImportant;
-                            return (
-                              <div
-                                key={item.id}
-                                className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                                  important
-                                    ? 'bg-primary/10 border border-primary/30 hover:bg-primary/15'
-                                    : 'bg-background/50 hover:bg-background/80'
-                                }`}
-                              >
-                                <Checkbox
-                                  id={`checklist-${item.id}`}
-                                  checked={item.completed}
-                                  onCheckedChange={(checked) =>
-                                    toggleMutation.mutate({ itemId: item.id, completed: !!checked })
-                                  }
-                                />
-                                {important && <AlertTriangle className="w-4 h-4 text-primary shrink-0" />}
-                                <label
-                                  htmlFor={`checklist-${item.id}`}
-                                  className={`text-sm cursor-pointer flex-1 ${
-                                    item.completed
-                                      ? 'line-through text-muted-foreground font-medium'
-                                      : important
-                                        ? 'font-bold text-primary'
-                                        : 'font-medium'
+
+                            {/* Items */}
+                            <div className="space-y-2">
+                              {dynSection.items.map((item, itemIdx) => {
+                                const important = item.is_important;
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                                      isLocked
+                                        ? 'bg-muted/20'
+                                        : isCompleted
+                                          ? 'bg-background/30'
+                                          : important
+                                            ? 'bg-primary/10 border border-primary/30 hover:bg-primary/15'
+                                            : 'bg-background/50 hover:bg-background/80'
+                                    }`}
+                                  >
+                                    <Checkbox
+                                      id={`checklist-${item.id}`}
+                                      checked={item.completed}
+                                      disabled={isLocked || isCompleted}
+                                      onCheckedChange={(checked) =>
+                                        toggleMutation.mutate({ itemId: item.id, completed: !!checked })
+                                      }
+                                    />
+                                    {important && !isLocked && !isCompleted && (
+                                      <AlertTriangle className="w-4 h-4 text-primary shrink-0" />
+                                    )}
+                                    <label
+                                      htmlFor={`checklist-${item.id}`}
+                                      className={`text-sm flex-1 ${
+                                        isLocked
+                                          ? 'text-muted-foreground cursor-default'
+                                          : isCompleted || item.completed
+                                            ? 'line-through text-muted-foreground cursor-default'
+                                            : important
+                                              ? 'font-bold text-primary cursor-pointer'
+                                              : 'font-medium cursor-pointer'
+                                      }`}
+                                    >
+                                      {itemIdx + 1}. {item.title}
+                                    </label>
+                                    {item.module_id && !isLocked && (
+                                      <Link
+                                        to={`/courses/lesson/${item.module_id}`}
+                                        className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                                      >
+                                        <Play className="w-3 h-3" />
+                                        Watch
+                                      </Link>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* Regular checklist rendering (non-marketing) */
+                    <div className="space-y-4">
+                      {(() => {
+                        const sections: { title: string | null; items: ChecklistItem[] }[] = [];
+                        list.items.forEach(item => {
+                          const last = sections[sections.length - 1];
+                          if (last && last.title === (item.section_title || null)) {
+                            last.items.push(item);
+                          } else {
+                            sections.push({ title: item.section_title || null, items: [item] });
+                          }
+                        });
+                        let globalIdx = 0;
+                        return sections.map((section, sIdx) => {
+                          const sectionIsImportant = section.items.every(i => i.is_important);
+                          return (
+                          <div key={sIdx} className={`space-y-2 ${sectionIsImportant ? 'bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-2xl p-5 shadow-lg shadow-primary/5 animate-wiggle' : ''}`}>
+                            {section.title && !sectionIsImportant && (
+                              <h3 className={`pt-1 flex items-center gap-2 ${
+                                section.title.toLowerCase().includes('(instructions)')
+                                  ? 'text-xs font-medium text-primary italic'
+                                  : 'text-sm font-semibold text-primary uppercase tracking-wide'
+                              }`}>
+                                {section.title.toLowerCase().includes('(instructions)') ? `— ${section.title}` : section.title}
+                              </h3>
+                            )}
+                            {sectionIsImportant && section.title && (
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                                  <AlertTriangle className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                  <h3 className="text-base font-bold text-primary">{section.title}</h3>
+                                  <p className="text-xs text-muted-foreground">This grows your business — don't skip it!</p>
+                                </div>
+                                <span className="ml-auto text-[10px] font-bold bg-primary text-primary-foreground px-2.5 py-1 rounded-full uppercase tracking-wider">Don't Skip</span>
+                              </div>
+                            )}
+                            {section.items.map(item => {
+                              const idx = globalIdx++;
+                              const important = item.is_important && !sectionIsImportant;
+                              return (
+                                <div
+                                  key={item.id}
+                                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                                    important
+                                      ? 'bg-primary/10 border border-primary/30 hover:bg-primary/15'
+                                      : 'bg-background/50 hover:bg-background/80'
                                   }`}
                                 >
-                                  {idx + 1}. {item.title}
-                                </label>
-                                {item.module_id && (
-                                  <Link
-                                    to={`/courses/lesson/${item.module_id}`}
-                                    className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                                  <Checkbox
+                                    id={`checklist-${item.id}`}
+                                    checked={item.completed}
+                                    onCheckedChange={(checked) =>
+                                      toggleMutation.mutate({ itemId: item.id, completed: !!checked })
+                                    }
+                                  />
+                                  {important && <AlertTriangle className="w-4 h-4 text-primary shrink-0" />}
+                                  <label
+                                    htmlFor={`checklist-${item.id}`}
+                                    className={`text-sm cursor-pointer flex-1 ${
+                                      item.completed
+                                        ? 'line-through text-muted-foreground font-medium'
+                                        : important
+                                          ? 'font-bold text-primary'
+                                          : 'font-medium'
+                                    }`}
                                   >
-                                    <Play className="w-3 h-3" />
-                                    Watch
-                                  </Link>
-                                )}
-                                {item.title.toLowerCase().includes('text client checklist') && (
-                                  <Link
-                                    to="/checklist/345e249b-5f4f-4191-b140-c5cae86aac54"
-                                    className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md flex items-center gap-1 shrink-0 font-medium"
-                                  >
-                                    <ClipboardCheck className="w-3 h-3" />
-                                    Click Here
-                                  </Link>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                        );
-                      });
-                    })()}
-                  </div>
+                                    {idx + 1}. {item.title}
+                                  </label>
+                                  {item.module_id && (
+                                    <Link
+                                      to={`/courses/lesson/${item.module_id}`}
+                                      className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                                    >
+                                      <Play className="w-3 h-3" />
+                                      Watch
+                                    </Link>
+                                  )}
+                                  {item.title.toLowerCase().includes('text client checklist') && (
+                                    <Link
+                                      to="/checklist/345e249b-5f4f-4191-b140-c5cae86aac54"
+                                      className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-md flex items-center gap-1 shrink-0 font-medium"
+                                    >
+                                      <ClipboardCheck className="w-3 h-3" />
+                                      Click Here
+                                    </Link>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </div>
               );
             })}
