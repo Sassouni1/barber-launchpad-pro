@@ -235,7 +235,7 @@ export default function TemplateSubmissions() {
                       </div>
                       <div>
                         <p className="font-semibold text-sm">{group.fullName}</p>
-                        <p className="text-xs text-muted-foreground">{group.email} · Submitted {format(new Date(group.latestUpload), 'MMM d, yyyy')}</p>
+                        <p className="text-xs text-muted-foreground">{group.email} · Submitted {format(new Date(group.latestUpload), 'MMM d, yyyy')} ({differenceInDays(new Date(), new Date(group.latestUpload))} days ago)</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
