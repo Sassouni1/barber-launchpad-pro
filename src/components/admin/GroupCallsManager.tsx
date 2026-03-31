@@ -28,7 +28,7 @@ export function GroupCallsManager() {
   const [callHour, setCallHour] = useState(7);
   const [callMinute, setCallMinute] = useState(0);
   const [callAmpm, setCallAmpm] = useState('PM');
-  const [callTimezone, setCallTimezone] = useState('EST');
+  const [callTimezone, setCallTimezone] = useState('US/Eastern');
   const [zoomLink, setZoomLink] = useState('');
   const [isActive, setIsActive] = useState(true);
 
