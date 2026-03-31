@@ -1,36 +1,66 @@
 
 
-# Add Template Submissions to Admin
+# Join Live Call Feature
 
-## What We're Building
-1. Add an `approved` column to the `certification_photos` table (default `false`) -- for future use, won't affect frontend yet
-2. In the **Member Detail Panel**, add a "Template Submissions" section showing that member's uploaded certification photos with timestamps and an Approve button
-3. Create a new **Template Submissions** admin page (`/admin/templates`) that shows ALL submissions across all members, ordered by upload date (newest first), with member name, photo preview, date, and an Approve button
-4. Add a sidebar link to the new page
+## Overview
+Add a "Join Live Call" navigation item above "Barber Launch Calls" in the sidebar that links to a new page showing the next upcoming group call (e.g. "Monday at 7pm EST") with a Zoom join button. Admins can manage the call schedule and Zoom link from the admin dashboard.
+
+## Database
+
+Create a `group_calls` table:
+- `id` (uuid, PK)
+- `title` (text) — e.g. "Group Call"
+- `day_of_week` (text) — e.g. "Monday"
+- `time_label` (text) — e.g. "7pm EST"
+- `zoom_link` (text) — the Zoom URL
+- `is_active` (boolean, default true) — show/hide from members
+- `order_index` (integer, default 0)
+- `created_at`, `updated_at` (timestamptz)
+
+RLS: Anyone can SELECT. Admins can INSERT/UPDATE/DELETE.
+
+## New Files
+
+1. **`src/pages/LiveCalls.tsx`** — Member-facing page
+   - Fetches active calls from `group_calls` ordered by `order_index`
+   - Shows each call as a card: title, day/time, and a "Join Zoom Call" button linking to the Zoom URL
+   - Shows "No upcoming calls scheduled" if empty
+
+2. **`src/components/admin/GroupCallsManager.tsx`** — Admin component
+   - List existing calls with inline edit/delete
+   - Add new call form: title, day of week (dropdown), time label, zoom link, active toggle
+   - Reorder support
+
+3. **`src/hooks/useGroupCalls.ts`** — Data hook
+   - `useGroupCalls()` — fetch all active calls (member view)
+   - `useGroupCallsAdmin()` — fetch all calls + mutations for create/update/delete
+
+## Modified Files
+
+4. **`src/App.tsx`** — Add `/live-calls` route (protected)
+
+5. **`src/components/layout/Sidebar.tsx`** — Add `NavItem` for "Join Group Call" with `Video` icon above "Barber Launch Calls". Fetch first active call to show dynamic label like "Monday at 7pm EST" as subtitle.
+
+6. **`src/components/layout/MobileNav.tsx`** — Add matching mobile nav entry
+
+7. **`src/pages/admin/AdminDashboard.tsx`** — Add `GroupCallsManager` component section for managing calls
+
+## Navigation Structure (Sidebar)
+```text
+...
+Marketing Tools ▾
+  AI Social Media
+Products ▾
+  ...
+Join Group Call        ← NEW (Video icon, links to /live-calls)
+Barber Launch Calls ▾
+  Schedule Call 1 on 1
+Level 1 Cert
+```
 
 ## Technical Details
-
-### Database Migration
-- Add `approved` boolean column (default `false`) and `approved_at` timestamp to `certification_photos` table
-- Admin UPDATE policy already exists via the `has_role` check, but we need to add one since currently admins can only SELECT, not UPDATE. Add an UPDATE policy for admins.
-
-### Files to Change
-
-**1. `src/pages/admin/Members.tsx`**
-- After the "Completed Lessons" section (~line 639), add a "Template Submissions" section
-- Fetch `certification_photos` for the selected member using supabase query in `MemberDetailPanel`
-- Show each photo with thumbnail, filename, upload date, and an Approve/Approved button
-- Approve button calls `supabase.from('certification_photos').update({ approved: true, approved_at: new Date() })`
-
-**2. New file: `src/pages/admin/TemplateSubmissions.tsx`**
-- Admin page with `DashboardLayout`
-- Fetches all `certification_photos` joined with `profiles` (for member name/email), ordered by `uploaded_at desc`
-- Table with columns: Member Name, Photo (thumbnail/link), Submitted Date, Status (Approved/Pending), Approve button
-- Approve button updates the row
-
-**3. `src/App.tsx`**
-- Add route: `/admin/templates` -> `TemplateSubmissions` (protected, requireAdmin)
-
-**4. `src/components/layout/Sidebar.tsx`**
-- Add "Template Submissions" nav item in the admin section
+- The sidebar will show the next call info dynamically from the `group_calls` table
+- Zoom link opens in a new tab (`target="_blank"`)
+- Admin can add multiple scheduled calls (recurring schedule display)
+- Uses existing `app_settings`-style patterns for simple CRUD
 
