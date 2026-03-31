@@ -1,36 +1,41 @@
 
 
-# Add Countdown Timer to Group Calls
+# Fix Countdown Accuracy — Structured Time Input
 
-## Overview
-Add a live countdown timer to each group call card showing days, hours, minutes, and seconds until the next occurrence of that call's scheduled day/time.
+## Problem
+The countdown parses free-text `time_label` (e.g. "7pm EST") with regex, which is fragile and leads to inaccurate countdowns.
 
-## Approach
-Since calls are recurring weekly (e.g. "Monday at 7pm EST"), calculate the next occurrence of that day+time from now, then count down with a `setInterval` every second.
+## Solution
+Replace the free-text time input in the admin form with structured selectors: hour, minute, AM/PM, and timezone dropdowns. Store these as separate columns so the countdown logic never needs to parse text.
 
-## Changes
+## Database Changes
 
-### 1. `src/pages/LiveCalls.tsx`
-- Add a `useCountdown` helper hook that:
-  - Parses `day_of_week` + `time_label` to find the next occurrence datetime
-  - Uses `setInterval(1000)` to update days/hours/minutes/seconds remaining
-  - Shows "Live Now!" or "Starting soon!" when within a few minutes
-- Display countdown below each call's day/time text as styled segments (e.g. `2d 14h 32m 18s`)
-- Parse time_label loosely (e.g. "7pm EST", "3:30pm CST") — best-effort since it's free-text
+Add columns to `group_calls`:
+- `call_hour` (integer, 1-12)
+- `call_minute` (integer, 0 or 30)
+- `call_ampm` (text, 'AM' or 'PM')
+- `call_timezone` (text, e.g. 'EST', 'CST', 'PST')
 
-### 2. Time parsing strategy
-- Extract hour/minute/am-pm from `time_label` using regex
-- Map `day_of_week` string to JS day number (0=Sun, 6=Sat)
-- Calculate next occurrence: if that day+time is in the past this week, add 7 days
-- Handle timezone from the label (EST/CST/PST) by converting to UTC offset
+Keep `time_label` as a computed display string (e.g. "7:00 PM EST") generated on save, so the member-facing page still has a readable label.
 
-### Visual design
-Each call card gets a countdown row with styled number blocks:
-```
-┌─────────────────────────────────────────────────┐
-│ 🎥  Group Call                    [Join Zoom] │
-│     Monday at 7pm EST                          │
-│     ⏱ 2d  14h  32m  18s                       │
-└─────────────────────────────────────────────────┘
-```
+## File Changes
+
+### 1. `src/components/admin/GroupCallsManager.tsx`
+- Replace free-text "Time" input with 3 dropdowns: Hour (1-12), Minute (00/15/30/45), AM/PM
+- Add timezone dropdown: EST, EDT, CST, CDT, MST, MDT, PST, PDT
+- Auto-generate `time_label` from selections on save (e.g. "7:00 PM EST")
+- Save structured fields (`call_hour`, `call_minute`, `call_ampm`, `call_timezone`) alongside `time_label`
+
+### 2. `src/pages/LiveCalls.tsx`
+- Update `parseNextOccurrence` to read structured columns (`call_hour`, `call_minute`, `call_ampm`, `call_timezone`) instead of regex-parsing `time_label`
+- Direct integer math — no parsing needed, no ambiguity
+- Keep display using `time_label` for the UI text
+
+### 3. `src/hooks/useGroupCalls.ts`
+- Update `GroupCall` interface to include `call_hour`, `call_minute`, `call_ampm`, `call_timezone`
+
+## Result
+- Admin picks time with dropdowns — no typos possible
+- Countdown uses exact integers — no regex parsing, always accurate
+- Member page still shows readable "Monday at 7:00 PM EST"
 
