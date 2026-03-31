@@ -1,29 +1,48 @@
 
 
-# Smart Relative Day Labels for Next Group Call
+# Dashboard Contact/Feedback Section
 
-## What It Does Now
-The widget always shows the raw day name from the database — e.g. "Tuesday at 8:00 PM" — regardless of whether that's today, tomorrow, or 5 days away.
+## What It Does
+Adds a card below the group call + continue learning row with a simple form where members can reach out. It auto-fills their name and email from their profile, and they pick a topic and write a message. Submissions are saved to a new `dashboard_feedback` table and the admin can view them.
 
-## What Changes
-Replace the static day name with a smart relative label based on how far away the call is:
+## Topics (radio/select)
+- Suggestion topic for group call
+- I need help or have a question
+- How can we make your experience better / what would help you more
 
-- **"Today"** — if the call is scheduled for today
-- **"Tomorrow"** — if the call is scheduled for tomorrow  
-- **"This Wednesday"** — if it's 2-6 days away (uses "This" + day name)
+## UI
+- New component `src/components/dashboard/ContactSection.tsx`
+- Glass-card style matching the rest of the dashboard
+- Name + email fields pre-filled (read-only or editable) from the user's profile
+- Topic selector (radio group or select)
+- Message textarea
+- Submit button with gold-gradient styling
+- Success toast on submit
 
-This makes the widget feel more natural and urgent — "Tomorrow at 8:00 PM" hits differently than "Tuesday at 8:00 PM".
+## Database
+- New table `dashboard_feedback`:
+  - `id` (uuid, PK)
+  - `user_id` (uuid, references profiles)
+  - `name` (text)
+  - `email` (text)
+  - `topic` (text)
+  - `message` (text)
+  - `created_at` (timestamptz)
+- RLS: authenticated users can insert their own rows (`user_id = auth.uid()`), admins can select all
+
+## Dashboard Layout (`src/pages/Dashboard.tsx`)
+Add `<ContactSection />` after the two-column grid:
+```text
+ShippingNotification
+WelcomeHero
+DynamicTodoList
+[NextCallCountdown | ContinueLearning]
+ContactSection          <-- new
+```
 
 ## Technical Details
-
-### `src/components/dashboard/NextCallCountdown.tsx`
-- The `useMemo` that finds `nextCall` already computes the next occurrence date via `parseNextOccurrence`. Store that date alongside the call object.
-- Add a helper function `getRelativeDayLabel(date: Date)` that compares the call date to today:
-  - Same calendar day → `"Today"`
-  - Next calendar day → `"Tomorrow"`  
-  - Otherwise → `"This " + dayName` (e.g. "This Wednesday")
-- Replace `{nextCall.day_of_week}` in the heading with the computed relative label.
-
-### `src/hooks/useCallCountdown.ts`
-- No changes needed — `parseNextOccurrence` already returns the correct `Date` object.
+- Component reads `user` from `useAuth()` and queries `profiles` for `full_name` and `email` to pre-fill
+- On submit, inserts into `dashboard_feedback` with `supabase.from('dashboard_feedback').insert(...)`
+- Toast confirmation: "Your message has been sent!"
+- No email sending for now — admins view submissions in the database (can add admin view or email notification later)
 
