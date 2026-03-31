@@ -26,15 +26,14 @@ export function NextCallCountdown() {
   return (
     <div className="glass-card rounded-2xl overflow-hidden">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-1">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 rounded-full gold-gradient flex items-center justify-center text-primary-foreground">
             <Video className="w-4 h-4" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">Next Group Call:</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            Next Group Call: <span className="text-primary">{nextCall.day_of_week} at {nextCall.time_label}</span>
+          </h3>
         </div>
-        <p className="text-base font-semibold text-primary ml-11 mb-4">
-          {nextCall.day_of_week} at {nextCall.time_label}
-        </p>
 
         {isLive ? (
           <div className="flex items-center gap-2 mb-4 ml-11">
