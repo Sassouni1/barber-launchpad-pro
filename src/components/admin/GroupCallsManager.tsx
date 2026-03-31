@@ -10,6 +10,9 @@ import { Video, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTES = [0, 15, 30, 45];
+const TIMEZONES = ['EST', 'EDT', 'CST', 'CDT', 'MST', 'MDT', 'PST', 'PDT'];
 
 export function GroupCallsManager() {
   const { data: calls = [], isLoading, createCall, updateCall, deleteCall } = useGroupCallsAdmin();
@@ -17,14 +20,20 @@ export function GroupCallsManager() {
   const [editingCall, setEditingCall] = useState<GroupCall | null>(null);
   const [title, setTitle] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState('Monday');
-  const [timeLabel, setTimeLabel] = useState('');
+  const [callHour, setCallHour] = useState(7);
+  const [callMinute, setCallMinute] = useState(0);
+  const [callAmpm, setCallAmpm] = useState('PM');
+  const [callTimezone, setCallTimezone] = useState('EST');
   const [zoomLink, setZoomLink] = useState('');
   const [isActive, setIsActive] = useState(true);
 
   const resetForm = () => {
     setTitle('');
     setDayOfWeek('Monday');
-    setTimeLabel('');
+    setCallHour(7);
+    setCallMinute(0);
+    setCallAmpm('PM');
+    setCallTimezone('EST');
     setZoomLink('');
     setIsActive(true);
     setEditingCall(null);
@@ -34,18 +43,34 @@ export function GroupCallsManager() {
     setEditingCall(call);
     setTitle(call.title);
     setDayOfWeek(call.day_of_week);
-    setTimeLabel(call.time_label);
+    setCallHour(call.call_hour);
+    setCallMinute(call.call_minute);
+    setCallAmpm(call.call_ampm);
+    setCallTimezone(call.call_timezone);
     setZoomLink(call.zoom_link);
     setIsActive(call.is_active);
     setIsOpen(true);
   };
 
   const handleSubmit = () => {
-    if (!title || !timeLabel || !zoomLink) {
+    if (!title || !zoomLink) {
       toast.error('Please fill in all fields');
       return;
     }
-    const payload = { title, day_of_week: dayOfWeek, time_label: timeLabel, zoom_link: zoomLink, is_active: isActive, order_index: editingCall?.order_index ?? calls.length };
+    const minuteStr = callMinute.toString().padStart(2, '0');
+    const timeLabel = `${callHour}:${minuteStr} ${callAmpm} ${callTimezone}`;
+    const payload = {
+      title,
+      day_of_week: dayOfWeek,
+      time_label: timeLabel,
+      zoom_link: zoomLink,
+      is_active: isActive,
+      order_index: editingCall?.order_index ?? calls.length,
+      call_hour: callHour,
+      call_minute: callMinute,
+      call_ampm: callAmpm,
+      call_timezone: callTimezone,
+    };
 
     if (editingCall) {
       updateCall.mutate({ id: editingCall.id, ...payload }, {
@@ -98,7 +123,36 @@ export function GroupCallsManager() {
               </div>
               <div className="space-y-2">
                 <Label>Time</Label>
-                <Input value={timeLabel} onChange={(e) => setTimeLabel(e.target.value)} placeholder="e.g. 7pm EST" />
+                <div className="flex gap-2">
+                  <Select value={String(callHour)} onValueChange={(v) => setCallHour(Number(v))}>
+                    <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {HOURS.map(h => <SelectItem key={h} value={String(h)}>{h}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={String(callMinute)} onValueChange={(v) => setCallMinute(Number(v))}>
+                    <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MINUTES.map(m => <SelectItem key={m} value={String(m)}>{String(m).padStart(2, '0')}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={callAmpm} onValueChange={setCallAmpm}>
+                    <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AM">AM</SelectItem>
+                      <SelectItem value="PM">PM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Timezone</Label>
+                <Select value={callTimezone} onValueChange={setCallTimezone}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONES.map(tz => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Zoom Link</Label>

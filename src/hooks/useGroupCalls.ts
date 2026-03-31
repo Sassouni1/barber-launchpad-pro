@@ -9,6 +9,10 @@ export interface GroupCall {
   zoom_link: string;
   is_active: boolean;
   order_index: number;
+  call_hour: number;
+  call_minute: number;
+  call_ampm: string;
+  call_timezone: string;
   created_at: string;
   updated_at: string;
 }

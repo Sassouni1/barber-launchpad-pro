@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useGroupCalls } from '@/hooks/useGroupCalls';
+import { useGroupCalls, GroupCall } from '@/hooks/useGroupCalls';
 import { Video, ExternalLink, Loader2, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -14,68 +14,53 @@ const TZ_OFFSETS: Record<string, number> = {
   MST: -7, MDT: -6, PST: -8, PDT: -7,
 };
 
-function parseNextOccurrence(dayOfWeek: string, timeLabel: string): Date | null {
-  const dayNum = DAY_MAP[dayOfWeek.toLowerCase()];
+function parseNextOccurrence(call: GroupCall): Date | null {
+  const dayNum = DAY_MAP[call.day_of_week.toLowerCase()];
   if (dayNum === undefined) return null;
 
-  const timeMatch = timeLabel.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
-  if (!timeMatch) return null;
+  // Convert 12-hour to 24-hour
+  let hour24 = call.call_hour;
+  const ampm = (call.call_ampm || 'PM').toUpperCase();
+  if (ampm === 'PM' && hour24 !== 12) hour24 += 12;
+  if (ampm === 'AM' && hour24 === 12) hour24 = 0;
 
-  let hour = parseInt(timeMatch[1]);
-  const minute = parseInt(timeMatch[2] || '0');
-  const ampm = timeMatch[3].toLowerCase();
-  if (ampm === 'pm' && hour !== 12) hour += 12;
-  if (ampm === 'am' && hour === 12) hour = 0;
-
-  const tzMatch = timeLabel.match(/\b([A-Z]{2,4}T?)\b/i);
-  const tzAbbr = tzMatch ? tzMatch[1].toUpperCase() : null;
-  const tzOffset = tzAbbr && TZ_OFFSETS[tzAbbr] !== undefined ? TZ_OFFSETS[tzAbbr] : null;
+  const minute = call.call_minute || 0;
+  const tzOffset = TZ_OFFSETS[call.call_timezone] ?? -5; // default EST
 
   const now = new Date();
 
-  if (tzOffset !== null) {
-    // Build target in UTC using the timezone offset
-    const nowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
-      now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
-    
-    // Find next occurrence of this day
-    const todayUtc = new Date(nowUtc);
-    const currentDayUtc = todayUtc.getUTCDay();
-    let daysUntil = dayNum - currentDayUtc;
-    if (daysUntil < 0) daysUntil += 7;
+  // Figure out current day/time in the call's timezone
+  const nowInTzMs = now.getTime() + (now.getTimezoneOffset() * 60000) + (tzOffset * 3600000);
+  const nowInTz = new Date(nowInTzMs);
+  const currentDay = nowInTz.getDay();
 
-    const target = new Date(todayUtc);
-    target.setUTCDate(target.getUTCDate() + daysUntil);
-    target.setUTCHours(hour - tzOffset, minute, 0, 0);
+  let daysUntil = dayNum - currentDay;
+  if (daysUntil < 0) daysUntil += 7;
 
-    if (target.getTime() < now.getTime()) {
-      target.setUTCDate(target.getUTCDate() + 7);
-    }
-    return target;
-  } else {
-    // Fallback: use local time
-    const currentDay = now.getDay();
-    let daysUntil = dayNum - currentDay;
-    if (daysUntil < 0) daysUntil += 7;
+  // Build target in the call's timezone, then convert to UTC
+  const targetInTz = new Date(nowInTz);
+  targetInTz.setDate(nowInTz.getDate() + daysUntil);
+  targetInTz.setHours(hour24, minute, 0, 0);
 
-    const target = new Date(now);
-    target.setDate(now.getDate() + daysUntil);
-    target.setHours(hour, minute, 0, 0);
+  // Convert back to UTC: subtract the timezone offset
+  const targetUtcMs = targetInTz.getTime() - (tzOffset * 3600000) - (now.getTimezoneOffset() * 60000);
+  let target = new Date(targetUtcMs);
 
-    if (target.getTime() < now.getTime()) {
-      target.setDate(target.getDate() + 7);
-    }
-    return target;
+  // If target is in the past, move to next week
+  if (target.getTime() <= now.getTime()) {
+    target = new Date(target.getTime() + 7 * 86400000);
   }
+
+  return target;
 }
 
-function useCountdown(dayOfWeek: string, timeLabel: string) {
+function useCountdown(call: GroupCall) {
   const [remaining, setRemaining] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
   const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     function update() {
-      const target = parseNextOccurrence(dayOfWeek, timeLabel);
+      const target = parseNextOccurrence(call);
       if (!target) { setRemaining(null); return; }
 
       const diff = target.getTime() - Date.now();
@@ -96,13 +81,13 @@ function useCountdown(dayOfWeek: string, timeLabel: string) {
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, [dayOfWeek, timeLabel]);
+  }, [call.day_of_week, call.call_hour, call.call_minute, call.call_ampm, call.call_timezone]);
 
   return { remaining, isLive };
 }
 
-function CountdownDisplay({ dayOfWeek, timeLabel }: { dayOfWeek: string; timeLabel: string }) {
-  const { remaining, isLive } = useCountdown(dayOfWeek, timeLabel);
+function CountdownDisplay({ call }: { call: GroupCall }) {
+  const { remaining, isLive } = useCountdown(call);
 
   if (isLive) {
     return (
@@ -170,7 +155,7 @@ export default function LiveCalls() {
                     <p className="text-muted-foreground">
                       {call.day_of_week} at {call.time_label}
                     </p>
-                    <CountdownDisplay dayOfWeek={call.day_of_week} timeLabel={call.time_label} />
+                    <CountdownDisplay call={call} />
                   </div>
                   <Button asChild className="gap-2">
                     <a href={call.zoom_link} target="_blank" rel="noopener noreferrer">
