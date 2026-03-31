@@ -156,7 +156,7 @@ export function GroupCallsManager() {
                 <Select value={callTimezone} onValueChange={setCallTimezone}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {TIMEZONES.map(tz => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}
+                    {TIMEZONES.map(tz => <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
