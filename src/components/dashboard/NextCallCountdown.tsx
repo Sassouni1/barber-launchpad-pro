@@ -61,7 +61,7 @@ export function NextCallCountdown() {
 
         <Button asChild className="w-full h-12 gold-gradient text-primary-foreground font-semibold text-base hover:opacity-90 transition-all group gold-glow gap-2">
           <Link to="/live-calls">
-            View Calls <ArrowRight className="w-3 h-3" />
+            <Video className="w-5 h-5" /> View Calls <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </Button>
       </div>
