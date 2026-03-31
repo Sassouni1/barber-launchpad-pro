@@ -272,6 +272,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
               <SubNavItem to="/orders" icon={Package} label="Order History & Tracking" />
             </ExpandableNavItem>
+            <NavItem to="/live-calls" icon={Video} label="Join Group Call" collapsed={collapsed} />
             <ExpandableNavItem icon={Phone} label="Barber Launch Calls" collapsed={collapsed}>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule Call 1 on 1" />
             </ExpandableNavItem>
