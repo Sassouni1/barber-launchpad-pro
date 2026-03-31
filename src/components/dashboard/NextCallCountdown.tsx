@@ -43,7 +43,7 @@ export function NextCallCountdown() {
             <Video className="w-4 h-4" />
           </div>
           <h3 className="text-lg font-semibold text-foreground">
-            Next Group Call: <span className="text-primary">{nextCall.day_of_week} at {nextCall.time_label}</span>
+            Next Group Call: <span className="text-primary">{dayLabel} at {nextCall.time_label}</span>
           </h3>
         </div>
 
