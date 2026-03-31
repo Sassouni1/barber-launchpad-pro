@@ -44,24 +44,24 @@ export function NextCallCountdown() {
             <span className="text-green-500 font-semibold text-sm">Live Now!</span>
           </div>
         ) : remaining ? (
-          <div className="flex items-center gap-1.5 mb-4 ml-11">
-            <Clock className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 mb-4 ml-11">
+            <Clock className="w-4 h-4 text-primary" />
             {[
               { v: remaining.d, l: 'd' },
               { v: remaining.h, l: 'h' },
               { v: remaining.m, l: 'm' },
               { v: remaining.s, l: 's' },
             ].map((s) => (
-              <span key={s.l} className="text-sm font-mono bg-muted/50 px-2 py-1 rounded text-foreground">
-                {String(s.v).padStart(2, '0')}<span className="text-muted-foreground">{s.l}</span>
+              <span key={s.l} className="text-lg font-bold font-mono bg-primary/10 border border-primary/30 px-3 py-1.5 rounded-lg text-foreground">
+                {String(s.v).padStart(2, '0')}<span className="text-primary text-xs ml-0.5">{s.l}</span>
               </span>
             ))}
           </div>
         ) : null}
 
-        <Button asChild size="lg" className="w-full gap-2 text-base font-semibold">
+        <Button asChild size="sm" className="gap-2 gold-gradient text-primary-foreground font-semibold ml-11">
           <Link to="/live-calls">
-            View Calls <ArrowRight className="w-4 h-4" />
+            View Calls <ArrowRight className="w-3 h-3" />
           </Link>
         </Button>
       </div>
