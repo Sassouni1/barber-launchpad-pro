@@ -1,21 +1,21 @@
 
 
-# Add Next Call Countdown to Dashboard
+# Dashboard Layout: Side-by-Side Cards + Countdown Polish
 
-## What
-Show a compact "next group call" countdown widget on the Dashboard page, positioned below the DynamicTodoList.
+## What Changes
+1. **Two-column layout on desktop** — Place "Continue Learning" and "Next Call Countdown" side by side (grid) on screens ≥ 1024px; stack on mobile.
+2. **Bigger countdown** — Increase the countdown numbers from `text-sm` to `text-lg`/`text-xl` with more padding and a subtle gold border/glow so they pop.
+3. **Smaller button** — Change the "View Calls" button from full-width `size="lg"` to a compact inline button (`size="sm"` or `size="default"`, not full-width).
 
-## How
+## Technical Details
 
-### New component: `src/components/dashboard/NextCallCountdown.tsx`
-- Extract and reuse the countdown logic (`parseNextOccurrence`, `useCountdown`, timezone helpers) from `LiveCalls.tsx` into a shared utility or duplicate the small helpers inline.
-- Fetch group calls via `useGroupCalls()`, find the one with the soonest next occurrence.
-- Render a compact card showing: call title, day/time label, countdown (or "Live Now!"), and a "Join" link to `/live-calls`.
-- Return `null` if no calls are scheduled.
+### `src/pages/Dashboard.tsx`
+- Wrap `<ContinueLearning />` and `<NextCallCountdown />` in a `<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">` so they sit side by side on desktop.
 
-### Update: `src/pages/Dashboard.tsx`
-- Import and render `<NextCallCountdown />` after `<DynamicTodoList />`.
+### `src/components/dashboard/NextCallCountdown.tsx`
+- Countdown digits: bump to `text-lg font-bold`, add `border border-primary/30` and `bg-primary/10` for gold-tinted pill styling.
+- Button: remove `w-full`, use `size="default"` with `gold-gradient` styling, keep it compact.
 
-### Refactor: Extract shared countdown utils
-- Move `DAY_MAP`, `TZ_TO_IANA`, `getTimezoneOffsetMs`, `parseNextOccurrence`, and `useCountdown` from `LiveCalls.tsx` into a shared file (e.g. `src/hooks/useCallCountdown.ts`) so both `LiveCalls.tsx` and the new dashboard widget reuse the same logic without duplication.
+### `src/components/dashboard/ContinueLearning.tsx`
+- No major changes needed; it already has a full card layout that will flex into the grid column.
 
