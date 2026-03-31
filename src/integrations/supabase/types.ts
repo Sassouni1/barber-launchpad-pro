@@ -231,6 +231,36 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_feedback: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dynamic_todo_items: {
         Row: {
           created_at: string
