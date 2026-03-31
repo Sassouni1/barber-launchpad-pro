@@ -15,9 +15,11 @@ export default function Dashboard() {
         
         <div className="space-y-6">
           <DynamicTodoList />
-          <NextCallCountdown />
           
-          <ContinueLearning />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ContinueLearning />
+            <NextCallCountdown />
+          </div>
         </div>
       </div>
     </DashboardLayout>
