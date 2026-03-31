@@ -67,7 +67,7 @@ export function ContactSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <MessageSquare className="h-5 w-5 text-primary" />
-          Get In Touch
+          How Can We Help?
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           Have a suggestion, need help, or want to share feedback? We'd love to hear from you.
