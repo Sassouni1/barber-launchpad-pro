@@ -12,7 +12,12 @@ import { toast } from 'sonner';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
 const MINUTES = [0, 15, 30, 45];
-const TIMEZONES = ['EST', 'EDT', 'CST', 'CDT', 'MST', 'MDT', 'PST', 'PDT'];
+const TIMEZONES = [
+  { value: 'US/Eastern', label: 'Eastern' },
+  { value: 'US/Central', label: 'Central' },
+  { value: 'US/Mountain', label: 'Mountain' },
+  { value: 'US/Pacific', label: 'Pacific' },
+];
 
 export function GroupCallsManager() {
   const { data: calls = [], isLoading, createCall, updateCall, deleteCall } = useGroupCallsAdmin();
