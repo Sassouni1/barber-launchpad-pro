@@ -3,6 +3,7 @@ import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
 import { TodoList } from '@/components/dashboard/TodoList';
 import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
+import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 
 export default function Dashboard() {
