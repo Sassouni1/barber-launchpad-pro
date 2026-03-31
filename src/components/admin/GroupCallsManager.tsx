@@ -38,7 +38,7 @@ export function GroupCallsManager() {
     setCallHour(7);
     setCallMinute(0);
     setCallAmpm('PM');
-    setCallTimezone('EST');
+    setCallTimezone('US/Eastern');
     setZoomLink('');
     setIsActive(true);
     setEditingCall(null);
