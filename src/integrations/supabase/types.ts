@@ -357,6 +357,42 @@ export type Database = {
           },
         ]
       }
+      group_calls: {
+        Row: {
+          created_at: string
+          day_of_week: string
+          id: string
+          is_active: boolean
+          order_index: number
+          time_label: string
+          title: string
+          updated_at: string
+          zoom_link: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          time_label: string
+          title: string
+          updated_at?: string
+          zoom_link: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          time_label?: string
+          title?: string
+          updated_at?: string
+          zoom_link?: string
+        }
+        Relationships: []
+      }
       homework_files: {
         Row: {
           created_at: string

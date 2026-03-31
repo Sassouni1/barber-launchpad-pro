@@ -6,6 +6,7 @@ import { CertificateTemplateUploader } from '@/components/admin/CertificateTempl
 import { FontUploader } from '@/components/admin/FontUploader';
 
 import { GHLIntegration } from '@/components/admin/GHLIntegration';
+import { GroupCallsManager } from '@/components/admin/GroupCallsManager';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -129,6 +130,11 @@ export default function AdminDashboard() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Group Calls */}
+        <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.52s' }}>
+          <GroupCallsManager />
         </div>
 
         {/* Integrations */}

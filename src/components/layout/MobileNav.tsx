@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Gift,
   ClipboardCheck,
+  Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -309,6 +310,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
 
         {/* Bottom row: View switcher + Sign out */}
         <div className="grid grid-cols-4 gap-2 mt-2">
+          <NavButton to="/live-calls" icon={Video} label="Group Call" />
           <NavButton to="/schedule-call" icon={Phone} label="1 on 1 Call" />
           {/* Rewards hidden for now */}
           {userIsAdmin && (
