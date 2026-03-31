@@ -26,20 +26,18 @@ export function NextCallCountdown() {
   return (
     <div className="glass-card rounded-2xl overflow-hidden">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-1">
           <div className="w-8 h-8 rounded-full gold-gradient flex items-center justify-center text-primary-foreground">
             <Video className="w-4 h-4" />
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">
-              Next Group Call: {nextCall.title}
-            </h3>
-            <p className="text-sm text-muted-foreground">{nextCall.day_of_week} at {nextCall.time_label}</p>
-          </div>
+          <h3 className="text-lg font-semibold text-foreground">Next Group Call:</h3>
         </div>
+        <p className="text-base font-semibold text-primary ml-11 mb-4">
+          {nextCall.day_of_week} at {nextCall.time_label}
+        </p>
 
         {isLive ? (
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 ml-11">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
@@ -47,7 +45,7 @@ export function NextCallCountdown() {
             <span className="text-green-500 font-semibold text-sm">Live Now!</span>
           </div>
         ) : remaining ? (
-          <div className="flex items-center gap-1.5 mb-4">
+          <div className="flex items-center gap-1.5 mb-4 ml-11">
             <Clock className="w-4 h-4 text-muted-foreground" />
             {[
               { v: remaining.d, l: 'd' },
