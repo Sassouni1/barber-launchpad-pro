@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { MessageSquare, Send } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MessageSquare, Send, Bot, UserRound } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { AionChat } from './AionChat';
 
 const TOPICS = [
   'Suggestion topic for group call',
@@ -56,7 +58,7 @@ export function ContactSection() {
     if (error) {
       toast({ title: 'Something went wrong', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Message sent!', description: 'We\'ll get back to you soon.' });
+      toast({ title: 'Message sent!', description: "We'll get back to you soon." });
       setMessage('');
       setTopic('');
     }
@@ -70,73 +72,92 @@ export function ContactSection() {
           How Can We Help?
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Have a suggestion, need help, or want to share feedback? We'd love to hear from you.
+          Get instant answers from Aion or send a message to our team.
         </p>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="contact-name">Name</Label>
-              <Input
-                id="contact-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-                required
-                maxLength={100}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact-email">Email</Label>
-              <Input
-                id="contact-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email"
-                required
-                maxLength={255}
-              />
-            </div>
-          </div>
+        <Tabs defaultValue="aion" className="w-full">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="aion" className="flex-1 gap-2">
+              <Bot className="h-4 w-4" />
+              Ask Aion
+            </TabsTrigger>
+            <TabsTrigger value="contact" className="flex-1 gap-2">
+              <UserRound className="h-4 w-4" />
+              Contact a Person
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-2">
-            <Label>Topic</Label>
-            <RadioGroup value={topic} onValueChange={setTopic} className="space-y-2">
-              {TOPICS.map((t) => (
-                <div key={t} className="flex items-center space-x-2">
-                  <RadioGroupItem value={t} id={`topic-${t}`} />
-                  <Label htmlFor={`topic-${t}`} className="cursor-pointer font-normal">
-                    {t}
-                  </Label>
+          <TabsContent value="aion">
+            <AionChat />
+          </TabsContent>
+
+          <TabsContent value="contact">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contact-name">Name</Label>
+                  <Input
+                    id="contact-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    required
+                    maxLength={100}
+                  />
                 </div>
-              ))}
-            </RadioGroup>
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact-email">Email</Label>
+                  <Input
+                    id="contact-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Your email"
+                    required
+                    maxLength={255}
+                  />
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contact-message">Message</Label>
-            <Textarea
-              id="contact-message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Tell us what's on your mind..."
-              required
-              maxLength={1000}
-              rows={4}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label>Topic</Label>
+                <RadioGroup value={topic} onValueChange={setTopic} className="space-y-2">
+                  {TOPICS.map((t) => (
+                    <div key={t} className="flex items-center space-x-2">
+                      <RadioGroupItem value={t} id={`topic-${t}`} />
+                      <Label htmlFor={`topic-${t}`} className="cursor-pointer font-normal">
+                        {t}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
 
-          <Button
-            type="submit"
-            disabled={submitting || !topic || !message.trim()}
-            className="w-full gold-gradient text-primary-foreground font-semibold"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            {submitting ? 'Sending...' : 'Send Message'}
-          </Button>
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="contact-message">Message</Label>
+                <Textarea
+                  id="contact-message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Tell us what's on your mind..."
+                  required
+                  maxLength={1000}
+                  rows={4}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={submitting || !topic || !message.trim()}
+                className="w-full gold-gradient text-primary-foreground font-semibold"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {submitting ? 'Sending...' : 'Send Message'}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
