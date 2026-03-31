@@ -30,45 +30,43 @@ export function NextCallCountdown() {
           <div className="w-8 h-8 rounded-full gold-gradient flex items-center justify-center text-primary-foreground">
             <Video className="w-4 h-4" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">Next Group Call</h3>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-base font-medium text-foreground">{nextCall.title}</p>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">
+              Next Group Call: {nextCall.title}
+            </h3>
             <p className="text-sm text-muted-foreground">{nextCall.day_of_week} at {nextCall.time_label}</p>
           </div>
+        </div>
 
-          {isLive ? (
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+        {isLive ? (
+          <div className="flex items-center gap-2 mb-4">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+            </span>
+            <span className="text-green-500 font-semibold text-sm">Live Now!</span>
+          </div>
+        ) : remaining ? (
+          <div className="flex items-center gap-1.5 mb-4">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            {[
+              { v: remaining.d, l: 'd' },
+              { v: remaining.h, l: 'h' },
+              { v: remaining.m, l: 'm' },
+              { v: remaining.s, l: 's' },
+            ].map((s) => (
+              <span key={s.l} className="text-sm font-mono bg-muted/50 px-2 py-1 rounded text-foreground">
+                {String(s.v).padStart(2, '0')}<span className="text-muted-foreground">{s.l}</span>
               </span>
-              <span className="text-green-500 font-semibold text-sm">Live Now!</span>
-            </div>
-          ) : remaining ? (
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              {[
-                { v: remaining.d, l: 'd' },
-                { v: remaining.h, l: 'h' },
-                { v: remaining.m, l: 'm' },
-                { v: remaining.s, l: 's' },
-              ].map((s) => (
-                <span key={s.l} className="text-sm font-mono bg-muted/50 px-2 py-1 rounded text-foreground">
-                  {String(s.v).padStart(2, '0')}<span className="text-muted-foreground">{s.l}</span>
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
+            ))}
+          </div>
+        ) : null}
 
-        <div className="mt-4 pt-4 border-t border-border">
-          <Link to="/live-calls" className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium transition-colors">
-            {isLive ? 'Join Now' : 'View All Calls'} <ArrowRight className="w-3.5 h-3.5" />
+        <Button asChild size="lg" className="w-full gap-2 text-base font-semibold">
+          <Link to="/live-calls">
+            View Calls <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </Button>
       </div>
     </div>
   );
