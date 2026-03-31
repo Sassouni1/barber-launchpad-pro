@@ -63,7 +63,8 @@ export function GroupCallsManager() {
       return;
     }
     const minuteStr = callMinute.toString().padStart(2, '0');
-    const timeLabel = `${callHour}:${minuteStr} ${callAmpm} ${callTimezone}`;
+    const tzLabel = TIMEZONES.find(t => t.value === callTimezone)?.label ?? callTimezone;
+    const timeLabel = `${callHour}:${minuteStr} ${callAmpm} ${tzLabel}`;
     const payload = {
       title,
       day_of_week: dayOfWeek,
