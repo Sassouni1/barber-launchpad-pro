@@ -5,6 +5,7 @@ import { TodoList } from '@/components/dashboard/TodoList';
 import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
 import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
+import { ContactSection } from '@/components/dashboard/ContactSection';
 
 export default function Dashboard() {
   return (
@@ -20,6 +21,8 @@ export default function Dashboard() {
             <NextCallCountdown />
             <ContinueLearning />
           </div>
+
+          <ContactSection />
         </div>
       </div>
     </DashboardLayout>
