@@ -359,6 +359,10 @@ export type Database = {
       }
       group_calls: {
         Row: {
+          call_ampm: string
+          call_hour: number
+          call_minute: number
+          call_timezone: string
           created_at: string
           day_of_week: string
           id: string
@@ -370,6 +374,10 @@ export type Database = {
           zoom_link: string
         }
         Insert: {
+          call_ampm?: string
+          call_hour?: number
+          call_minute?: number
+          call_timezone?: string
           created_at?: string
           day_of_week: string
           id?: string
@@ -381,6 +389,10 @@ export type Database = {
           zoom_link: string
         }
         Update: {
+          call_ampm?: string
+          call_hour?: number
+          call_minute?: number
+          call_timezone?: string
           created_at?: string
           day_of_week?: string
           id?: string
