@@ -12,7 +12,12 @@ import { toast } from 'sonner';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
 const MINUTES = [0, 15, 30, 45];
-const TIMEZONES = ['EST', 'EDT', 'CST', 'CDT', 'MST', 'MDT', 'PST', 'PDT'];
+const TIMEZONES = [
+  { value: 'US/Eastern', label: 'Eastern' },
+  { value: 'US/Central', label: 'Central' },
+  { value: 'US/Mountain', label: 'Mountain' },
+  { value: 'US/Pacific', label: 'Pacific' },
+];
 
 export function GroupCallsManager() {
   const { data: calls = [], isLoading, createCall, updateCall, deleteCall } = useGroupCallsAdmin();
@@ -23,7 +28,7 @@ export function GroupCallsManager() {
   const [callHour, setCallHour] = useState(7);
   const [callMinute, setCallMinute] = useState(0);
   const [callAmpm, setCallAmpm] = useState('PM');
-  const [callTimezone, setCallTimezone] = useState('EST');
+  const [callTimezone, setCallTimezone] = useState('US/Eastern');
   const [zoomLink, setZoomLink] = useState('');
   const [isActive, setIsActive] = useState(true);
 
@@ -33,7 +38,7 @@ export function GroupCallsManager() {
     setCallHour(7);
     setCallMinute(0);
     setCallAmpm('PM');
-    setCallTimezone('EST');
+    setCallTimezone('US/Eastern');
     setZoomLink('');
     setIsActive(true);
     setEditingCall(null);
@@ -58,7 +63,8 @@ export function GroupCallsManager() {
       return;
     }
     const minuteStr = callMinute.toString().padStart(2, '0');
-    const timeLabel = `${callHour}:${minuteStr} ${callAmpm} ${callTimezone}`;
+    const tzLabel = TIMEZONES.find(t => t.value === callTimezone)?.label ?? callTimezone;
+    const timeLabel = `${callHour}:${minuteStr} ${callAmpm} ${tzLabel}`;
     const payload = {
       title,
       day_of_week: dayOfWeek,
@@ -150,7 +156,7 @@ export function GroupCallsManager() {
                 <Select value={callTimezone} onValueChange={setCallTimezone}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {TIMEZONES.map(tz => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}
+                    {TIMEZONES.map(tz => <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

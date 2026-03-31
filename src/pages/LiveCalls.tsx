@@ -9,44 +9,56 @@ const DAY_MAP: Record<string, number> = {
   thursday: 4, friday: 5, saturday: 6,
 };
 
-const TZ_OFFSETS: Record<string, number> = {
-  EST: -5, EDT: -4, CST: -6, CDT: -5,
-  MST: -7, MDT: -6, PST: -8, PDT: -7,
+// Map legacy abbreviations to IANA timezone names
+const TZ_TO_IANA: Record<string, string> = {
+  'US/Eastern': 'America/New_York',
+  'US/Central': 'America/Chicago',
+  'US/Mountain': 'America/Denver',
+  'US/Pacific': 'America/Los_Angeles',
+  EST: 'America/New_York', EDT: 'America/New_York',
+  CST: 'America/Chicago', CDT: 'America/Chicago',
+  MST: 'America/Denver', MDT: 'America/Denver',
+  PST: 'America/Los_Angeles', PDT: 'America/Los_Angeles',
 };
+
+function getTimezoneOffsetMs(iana: string, date: Date): number {
+  // Get the UTC offset for a specific IANA timezone at a given date
+  const utcStr = date.toLocaleString('en-US', { timeZone: 'UTC' });
+  const tzStr = date.toLocaleString('en-US', { timeZone: iana });
+  return new Date(tzStr).getTime() - new Date(utcStr).getTime();
+}
 
 function parseNextOccurrence(call: GroupCall): Date | null {
   const dayNum = DAY_MAP[call.day_of_week.toLowerCase()];
   if (dayNum === undefined) return null;
 
-  // Convert 12-hour to 24-hour
   let hour24 = call.call_hour;
   const ampm = (call.call_ampm || 'PM').toUpperCase();
   if (ampm === 'PM' && hour24 !== 12) hour24 += 12;
   if (ampm === 'AM' && hour24 === 12) hour24 = 0;
 
   const minute = call.call_minute || 0;
-  const tzOffset = TZ_OFFSETS[call.call_timezone] ?? -5; // default EST
-
+  const iana = TZ_TO_IANA[call.call_timezone] ?? 'America/New_York';
   const now = new Date();
 
-  // Figure out current day/time in the call's timezone
-  const nowInTzMs = now.getTime() + (now.getTimezoneOffset() * 60000) + (tzOffset * 3600000);
-  const nowInTz = new Date(nowInTzMs);
-  const currentDay = nowInTz.getDay();
+  // Get current day-of-week in the call's timezone
+  const offsetMs = getTimezoneOffsetMs(iana, now);
+  const nowInTz = new Date(now.getTime() + offsetMs);
+  const currentDay = nowInTz.getUTCDay();
 
   let daysUntil = dayNum - currentDay;
   if (daysUntil < 0) daysUntil += 7;
 
-  // Build target in the call's timezone, then convert to UTC
+  // Build target date in call's timezone, then convert to UTC
   const targetInTz = new Date(nowInTz);
-  targetInTz.setDate(nowInTz.getDate() + daysUntil);
-  targetInTz.setHours(hour24, minute, 0, 0);
+  targetInTz.setUTCDate(nowInTz.getUTCDate() + daysUntil);
+  targetInTz.setUTCHours(hour24, minute, 0, 0);
 
-  // Convert back to UTC: subtract the timezone offset
-  const targetUtcMs = targetInTz.getTime() - (tzOffset * 3600000) - (now.getTimezoneOffset() * 60000);
-  let target = new Date(targetUtcMs);
+  // Re-calculate offset at the target date (DST might differ)
+  const approxTarget = new Date(targetInTz.getTime() - offsetMs);
+  const targetOffsetMs = getTimezoneOffsetMs(iana, approxTarget);
+  let target = new Date(targetInTz.getTime() - targetOffsetMs);
 
-  // If target is in the past, move to next week
   if (target.getTime() <= now.getTime()) {
     target = new Date(target.getTime() + 7 * 86400000);
   }
