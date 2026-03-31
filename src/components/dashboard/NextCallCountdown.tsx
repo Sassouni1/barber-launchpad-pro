@@ -5,10 +5,21 @@ import { Video, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
+function getRelativeDayLabel(date: Date): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  return 'This ' + date.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
 export function NextCallCountdown() {
   const { data: calls = [] } = useGroupCalls();
 
-  const nextCall = useMemo(() => {
+  const { call: nextCall, label: dayLabel } = useMemo(() => {
     let soonest: { call: typeof calls[0]; date: Date } | null = null;
     for (const call of calls) {
       const date = parseNextOccurrence(call);
@@ -16,7 +27,8 @@ export function NextCallCountdown() {
         soonest = { call, date };
       }
     }
-    return soonest?.call ?? null;
+    if (!soonest) return { call: null, label: '' };
+    return { call: soonest.call, label: getRelativeDayLabel(soonest.date) };
   }, [calls]);
 
   const { remaining, isLive } = useCountdown(nextCall);
