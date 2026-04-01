@@ -103,7 +103,7 @@ You're overthinking this. The fastest way to get a client this week isn't a perf
 "Hey, I'm now doing hair replacement systems for men. Know anyone dealing with thinning?" That's it. Say it to every single client today.
 
 **2. Update your bio right now ⚡**
-Add "Hair System Specialist" and a "Book Free Consultation" link. If it's not in your bio, you don't officially offer it.
+Add "Hair System Specialist" and a "Book Free Hair System Consultation" link. If it's not in your bio, you don't officially offer it.
 
 **3. DM 10 people on Facebook tonight**
 Not a sales pitch. Just: "Hey, wanted to let you know I'm now offering hair systems for men dealing with hair loss. Know anyone who might be interested?"
