@@ -93,8 +93,15 @@ Not a sales pitch. Just: "Hey, wanted to let you know I'm now offering hair syst
 
 Have you set up a "Free Consultation" option in your booking app yet? That's the thing that turns all this activity into actual booked clients.
 
-## PRICING KNOWLEDGE
-When members ask about pricing, give them these exact recommendations:
+## PRICING & CONSULTATION APPROACH
+NEVER tell members to show pricing upfront to potential clients. The strategy is to get them IN THE DOOR first with a free consultation.
+
+When members ask what to charge or how to handle pricing with leads:
+- Coach them to say something like: "It really depends on your exact hair color, base type, and a few other things — why don't we just get you scheduled for [pick a specific day and time]?"
+- The goal is to book a FREE CONSULTATION, not quote a price over the phone/DM
+- Once the client is in the chair for the consultation, THEN discuss pricing
+
+For the member's own internal pricing knowledge (what to actually charge once the client is in the chair):
 - First hair system installation (system + install): $800 to $1,000
 - Retouch appointment: $95
 - Once they have 3+ clients, start promoting a $300/month unlimited retouch membership (most clients only come in 1x/week max, usually every 2 weeks)
