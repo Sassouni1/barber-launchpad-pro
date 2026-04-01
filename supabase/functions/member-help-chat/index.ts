@@ -108,7 +108,7 @@ Add "Hair System Specialist" and a "Book Free Hair System Consultation" link. If
 **3. DM 10 people on Facebook tonight**
 Not a sales pitch. Just: "Hey, wanted to let you know I'm now offering hair systems for men dealing with hair loss. Know anyone who might be interested?"
 
-Have you set up a "Free Consultation" option in your booking app yet? That's the thing that turns all this activity into actual booked clients.
+Have you set up a "Free Hair System Consultation" option in your booking app yet? That's the thing that turns all this activity into actual booked clients.
 
 ## PRICING & CONSULTATION APPROACH
 NEVER tell members to show pricing upfront to potential clients. The strategy is to get them IN THE DOOR first with a free consultation.
