@@ -278,7 +278,7 @@ async function buildUserContext(userId: string): Promise<string> {
       // Fetch all items and lists to map progress
       const [listsRes, itemsRes] = await Promise.all([
         supabase.from("dynamic_todo_lists").select("id, title, order_index").order("order_index"),
-        supabase.from("dynamic_todo_items").select("id, list_id, title").order("order_index"),
+        supabase.from("dynamic_todo_items").select("id, list_id, title, is_important").order("order_index"),
       ]);
       const lists = listsRes.data || [];
       const items = itemsRes.data || [];
@@ -304,6 +304,24 @@ async function buildUserContext(userId: string): Promise<string> {
           if (incomplete.length > 5) {
             context += `    ... and ${incomplete.length - 5} more\n`;
           }
+        }
+      }
+
+      // Recently completed tasks (last 7 days) — so Aion can congratulate progress
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const recentlyCompleted = dynamicProgress.filter(
+        (p: any) => p.completed && p.completed_at && new Date(p.completed_at) >= sevenDaysAgo
+      );
+      if (recentlyCompleted.length > 0) {
+        const itemMap = new Map(items.map((i: any) => [i.id, i]));
+        context += `\nRecently completed tasks (last 7 days):\n`;
+        for (const p of recentlyCompleted) {
+          const item = itemMap.get(p.item_id);
+          if (!item) continue;
+          const completedDate = new Date(p.completed_at);
+          const daysAgo = Math.floor((Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
+          const timeLabel = daysAgo === 0 ? "today" : daysAgo === 1 ? "yesterday" : `${daysAgo} days ago`;
+          context += `  ✅ "${item.title}"${item.is_important ? " ⚡" : ""} — completed ${timeLabel}\n`;
         }
       }
     } else {
