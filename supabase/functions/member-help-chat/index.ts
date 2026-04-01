@@ -303,9 +303,24 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build system prompt with real curriculum data
-    const curriculumContext = await buildCurriculumContext();
-    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext;
+    // Extract user from auth token
+    let userId: string | null = null;
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    if (token && token !== Deno.env.get("SUPABASE_ANON_KEY")) {
+      try {
+        const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) userId = user.id;
+      } catch { /* proceed without user context */ }
+    }
+
+    // Build system prompt with curriculum + user-specific data in parallel
+    const [curriculumContext, userContext] = await Promise.all([
+      buildCurriculumContext(),
+      userId ? buildUserContext(userId) : Promise.resolve(""),
+    ]);
+    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
