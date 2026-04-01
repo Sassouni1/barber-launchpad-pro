@@ -45,6 +45,12 @@ You have access to THIS MEMBER'S PERSONAL PROGRESS (their checklist stages, quiz
 - ALWAYS guide toward inviting potential clients for a FREE CONSULTATION once any conversation starts — that is the conversion step. Coach them to say something like: "It depends on your hair type and a few other things — let me get you booked for a free consultation so I can give you an exact answer."
 - Never tell them to quote prices to leads. The goal is to get them IN THE DOOR with a free consultation first.
 
+### When they return after completing tasks
+- Check the "Recently completed tasks" section in their progress
+- If they've completed tasks recently, acknowledge it naturally — brief congrats, then move to the next thing
+- Don't over-celebrate. A quick "Nice, you knocked out [task name]" is enough. Then push forward.
+- If they completed something hard or important (⚡), give them a bigger shoutout
+
 ### General coaching rules
 - Your marketing advice comes DIRECTLY from their to-do checklist stages — those tasks ARE the playbook
 - Walk them through tasks step by step if they seem overwhelmed
@@ -272,7 +278,7 @@ async function buildUserContext(userId: string): Promise<string> {
       // Fetch all items and lists to map progress
       const [listsRes, itemsRes] = await Promise.all([
         supabase.from("dynamic_todo_lists").select("id, title, order_index").order("order_index"),
-        supabase.from("dynamic_todo_items").select("id, list_id, title").order("order_index"),
+        supabase.from("dynamic_todo_items").select("id, list_id, title, is_important").order("order_index"),
       ]);
       const lists = listsRes.data || [];
       const items = itemsRes.data || [];
@@ -298,6 +304,24 @@ async function buildUserContext(userId: string): Promise<string> {
           if (incomplete.length > 5) {
             context += `    ... and ${incomplete.length - 5} more\n`;
           }
+        }
+      }
+
+      // Recently completed tasks (last 7 days) — so Aion can congratulate progress
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const recentlyCompleted = dynamicProgress.filter(
+        (p: any) => p.completed && p.completed_at && new Date(p.completed_at) >= sevenDaysAgo
+      );
+      if (recentlyCompleted.length > 0) {
+        const itemMap = new Map(items.map((i: any) => [i.id, i]));
+        context += `\nRecently completed tasks (last 7 days):\n`;
+        for (const p of recentlyCompleted) {
+          const item = itemMap.get(p.item_id);
+          if (!item) continue;
+          const completedDate = new Date(p.completed_at);
+          const daysAgo = Math.floor((Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
+          const timeLabel = daysAgo === 0 ? "today" : daysAgo === 1 ? "yesterday" : `${daysAgo} days ago`;
+          context += `  ✅ "${item.title}"${item.is_important ? " ⚡" : ""} — completed ${timeLabel}\n`;
         }
       }
     } else {
