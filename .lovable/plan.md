@@ -1,58 +1,44 @@
 
 
-# Tabs Inside the Contact Card: Aion + Contact a Person
+## Plan: Improve Aion Response Formatting & Tone
 
-## Why Tabs Work Best
+### Problem
+The AI ignores the existing formatting rules — using bold text instead of `###` headings, skipping numbered lists, writing long paragraphs, and producing a repetitive blog-style tone.
 
-Tabs inside a single card keep it tight — one footprint on the dashboard, no layout bloat. The user picks their path:
+### Changes
 
-- **"Ask Aion"** — instant AI chat for quick questions
-- **"Contact a Person"** — the existing feedback form
+**1. Rewrite formatting rules in the system prompt with concrete examples**
+- File: `supabase/functions/member-help-chat/index.ts`
+- Add a `## RESPONSE FORMAT (MANDATORY)` section with a before/after example showing exactly what good vs bad formatting looks like
+- Include a short template the AI should follow for action-based responses
+- Cap responses at ~150-200 words unless the user asks for detail
+- Tell it to sound like a coach texting, not writing a blog post
 
-No side-by-side columns, no extra cards, no clutter. One glass-card, two tabs.
+**2. Separate the "accountability check-in" format**
+- Instruct the AI to put the check-in question on its own line with a distinct prefix like `---` separator or `> ` blockquote so it visually separates from the advice
 
+**3. Example template to embed in prompt**
 ```text
-┌─────────────────────────────────────────┐
-│  How Can We Help?                       │
-│                                         │
-│  ┌──────────┬───────────────────┐       │
-│  │ Ask Aion │ Contact a Person  │       │
-│  └──────────┴───────────────────┘       │
-│                                         │
-│  (active tab content here)              │
-│                                         │
-└─────────────────────────────────────────┘
+Good response format:
+
+### 1. Update Your Instagram Bio ⚡
+Add "Hair System Specialist" to your bio right now. If it's not there, leads don't know you offer it.
+
+### 2. Tell Every Client Today
+"Hey, I'm now doing hair systems." That's it. Say it to every chair today.
+
+### 3. Start 20 Facebook Conversations
+DM 20 people — friends, past clients, locals. Just let them know.
+
+---
+**Coach check-in:** Have you added a "Free Consultation" button to your booking app yet? That's your #1 task today.
 ```
 
-## What Gets Built
+**4. Tone instructions**
+- "You're a coach sending a quick game plan, not writing an article"
+- "Be direct. Short sentences. No filler motivation unless they ask for encouragement"
+- "Max 3 action items per response unless asked for more"
 
-### 1. Edge Function: `supabase/functions/member-help-chat/index.ts`
-- Lovable AI gateway with `google/gemini-3-flash-preview`
-- System prompt grounded in platform context (hair system training, courses, certification, group calls, rewards)
-- Streams response via SSE
-- Handles 429/402 errors
-
-### 2. New Component: `src/components/dashboard/AionChat.tsx`
-- Compact chat UI: scrollable message area + input bar
-- Streaming token-by-token rendering
-- Markdown rendering via `react-markdown`
-- Conversation is local state only (no DB persistence)
-- Matches existing gold/glass design system
-
-### 3. Edit: `src/components/dashboard/ContactSection.tsx`
-- Wrap everything in a `<Tabs>` component with two triggers: "Ask Aion" and "Contact a Person"
-- "Ask Aion" tab renders `<AionChat />`
-- "Contact a Person" tab renders the existing form (no changes to form logic)
-- Card title stays "How Can We Help?" above the tabs
-- Default tab: "Ask Aion"
-
-### 4. Dashboard (`src/pages/Dashboard.tsx`)
-- No changes needed — `<ContactSection />` is already rendered
-
-## Why It Won't Be Convoluted
-- Single card, single location on dashboard — no new page or sidebar item
-- Tabs clearly separate the two modes
-- AI chat is self-contained (own component, own state)
-- Form logic stays untouched
-- No database changes needed
+### Files to Edit
+- `supabase/functions/member-help-chat/index.ts` — system prompt only
 
