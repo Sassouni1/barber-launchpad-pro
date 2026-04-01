@@ -133,10 +133,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Member Feedback */}
-        <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.5s' }}>
-          <FeedbackViewer />
-        </div>
 
         {/* Group Calls */}
         <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.52s' }}>
