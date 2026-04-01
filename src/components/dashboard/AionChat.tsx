@@ -209,7 +209,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
 
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 pr-3">
+      <ScrollArea className="flex-1 pr-3" ref={scrollAreaRef}>
         <div className="space-y-4 py-2">
           {messages.map((m, i) => (
             <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
