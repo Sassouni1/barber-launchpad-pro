@@ -14,7 +14,7 @@ import {
   ChevronDown,
   Cpu,
   Target,
-  ArrowLeftRight, // kept for potential future use
+  ArrowLeftRight,
   Eye,
   EyeOff,
   GraduationCap,
@@ -27,6 +27,7 @@ import {
   Gift,
   ClipboardCheck,
   Video,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
