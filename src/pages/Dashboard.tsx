@@ -1,11 +1,11 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
-import { TodoList } from '@/components/dashboard/TodoList';
 import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
 import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 import { ContactSection } from '@/components/dashboard/ContactSection';
+import { AionChatCard } from '@/components/dashboard/AionChatCard';
 
 export default function Dashboard() {
   return (
@@ -22,7 +22,10 @@ export default function Dashboard() {
             <ContinueLearning />
           </div>
 
-          <ContactSection />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AionChatCard />
+            <ContactSection />
+          </div>
         </div>
       </div>
     </DashboardLayout>
