@@ -397,6 +397,24 @@ async function buildConversationMemory(userId: string, currentConversationId?: s
   }
 }
 
+// Detect bare greetings — these should NOT go through the full coaching pipeline
+const GREETING_PATTERNS = /^\s*(hey|hi|hello|yo|sup|what'?s\s*up|hiya|howdy|good\s*(morning|afternoon|evening))\s*[!?.]*\s*$/i;
+
+function isBareGreeting(messages: any[]): boolean {
+  if (!messages || messages.length === 0) return false;
+  const lastMsg = messages[messages.length - 1];
+  if (lastMsg.role !== "user") return false;
+  return GREETING_PATTERNS.test(lastMsg.content.trim());
+}
+
+function buildGreetingSSE(text: string): string {
+  // Format as SSE matching the OpenAI streaming format the frontend expects
+  const chunk = JSON.stringify({
+    choices: [{ delta: { content: text } }],
+  });
+  return `data: ${chunk}\n\ndata: [DONE]\n\n`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -412,6 +430,38 @@ serve(async (req) => {
       );
     }
 
+    // --- BARE GREETING SHORT-CIRCUIT ---
+    // If the user just said "hey" / "hi" / "hello" etc. with no actual question,
+    // return a short fixed greeting immediately. No curriculum, no progress dump,
+    // no coaching plan. This prevents the "hard-coded feeling" repeated dump.
+    if (isBareGreeting(messages)) {
+      // Try to get the user's first name for personalization
+      let firstName = "";
+      const authHeader = req.headers.get("authorization") || "";
+      const token = authHeader.replace("Bearer ", "");
+      if (token && token !== Deno.env.get("SUPABASE_ANON_KEY")) {
+        try {
+          const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) {
+            const admin = getSupabaseAdmin();
+            const { data: profile } = await admin.from("profiles").select("full_name").eq("id", user.id).single();
+            if (profile?.full_name) {
+              firstName = profile.full_name.split(" ")[0];
+            }
+          }
+        } catch { /* proceed without name */ }
+      }
+
+      const name = firstName ? ` ${firstName}` : "";
+      const greetingResponse = `Hey${name}! 👋 What's on your mind today?`;
+
+      return new Response(buildGreetingSSE(greetingResponse), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // --- FULL AI PIPELINE (only for real questions / requests) ---
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
