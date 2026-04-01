@@ -15,6 +15,7 @@ import CourseBuilder from "./pages/admin/CourseBuilder";
 import TodosManager from "./pages/admin/TodosManager";
 import ProductsManager from "./pages/admin/ProductsManager";
 import TemplateSubmissions from "./pages/admin/TemplateSubmissions";
+import Feedback from "./pages/admin/Feedback";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
 import CreateAccount from "./pages/CreateAccount";
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/admin/todos" element={<ProtectedRoute requireAdmin><TodosManager /></ProtectedRoute>} />
             <Route path="/admin/products" element={<ProtectedRoute requireAdmin><ProductsManager /></ProtectedRoute>} />
             <Route path="/admin/templates" element={<ProtectedRoute requireAdmin><TemplateSubmissions /></ProtectedRoute>} />
+            <Route path="/admin/feedback" element={<ProtectedRoute requireAdmin><Feedback /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

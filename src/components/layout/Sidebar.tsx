@@ -14,7 +14,7 @@ import {
   ChevronDown,
   Cpu,
   Target,
-  ArrowLeftRight, // kept for potential future use
+  ArrowLeftRight,
   Eye,
   EyeOff,
   GraduationCap,
@@ -27,6 +27,7 @@ import {
   Gift,
   ClipboardCheck,
   Video,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -193,6 +194,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/todos', icon: ListTodo, label: 'Todos Manager' },
     { to: '/admin/products', icon: Package, label: 'Products Manager' },
     { to: '/admin/templates', icon: Award, label: 'Template Submissions' },
+    { to: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
   ];
 
   const links = isAdminView ? adminLinks : memberLinks;
