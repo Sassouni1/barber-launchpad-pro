@@ -16,6 +16,7 @@ import TodosManager from "./pages/admin/TodosManager";
 import ProductsManager from "./pages/admin/ProductsManager";
 import TemplateSubmissions from "./pages/admin/TemplateSubmissions";
 import Feedback from "./pages/admin/Feedback";
+import AionPage from "./pages/AionPage";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
 import CreateAccount from "./pages/CreateAccount";
