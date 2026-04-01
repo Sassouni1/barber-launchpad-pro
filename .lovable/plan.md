@@ -1,44 +1,54 @@
 
 
-## Plan: Improve Aion Response Formatting & Tone
+## Plan: Rewrite Aion's Response Format to Feel Like a Real Coach
 
-### Problem
-The AI ignores the existing formatting rules — using bold text instead of `###` headings, skipping numbered lists, writing long paragraphs, and producing a repetitive blog-style tone.
+### The Problem with the Current Approach
+We've been making Aion *more rigid* with each iteration — forced `###` headings, mandatory `---` separators, hard word caps, `**Coach check-in:**` labels. That's the opposite of what the reference AI does well.
+
+The reference AI feels like a smart person talking to you. Aion feels like a template filling itself in.
+
+### What the Reference AI Actually Does (That We Should Steal)
+
+1. **Opens by reacting to the person** — "You're not crazy for feeling this way" / "Good. Then stop arguing..." — it earns the right to give advice by showing it heard you first
+2. **Uses `**bold text**` for section titles, not `###` headings** — lighter, less "documentation-y"
+3. **Mixes formats freely** — sometimes numbered bold sections, sometimes just paragraphs, sometimes bullets inside sections. It matches the format to the content, not a template
+4. **Gives copy-paste scripts** — actual words to say to clients, put in bios, post on social media
+5. **Varies length by question depth** — simple question = short answer; complex/emotional question = detailed breakdown
+6. **Ends naturally** — just asks a direct question or gives a challenge, no label like "Coach check-in:"
+7. **Uses "you" language and strong opinions** — "Your constraint is volume, not talent" vs generic advice
 
 ### Changes
 
-**1. Rewrite formatting rules in the system prompt with concrete examples**
-- File: `supabase/functions/member-help-chat/index.ts`
-- Add a `## RESPONSE FORMAT (MANDATORY)` section with a before/after example showing exactly what good vs bad formatting looks like
-- Include a short template the AI should follow for action-based responses
-- Cap responses at ~150-200 words unless the user asks for detail
-- Tell it to sound like a coach texting, not writing a blog post
+**File: `supabase/functions/member-help-chat/index.ts` — rewrite the RESPONSE FORMAT section**
 
-**2. Separate the "accountability check-in" format**
-- Instruct the AI to put the check-in question on its own line with a distinct prefix like `---` separator or `> ` blockquote so it visually separates from the advice
+Replace the current rigid template rules with:
 
-**3. Example template to embed in prompt**
-```text
-Good response format:
+- **Open conversationally** — React to what they said in 1-2 sentences before giving any structure. Reframe their problem or validate it.
+- **Use `**bold numbered titles**` for action items** — not `###` markdown headings. Lighter visual weight, feels more like texting.
+- **Mix paragraphs and structure naturally** — Don't force everything into numbered lists. Use short paragraphs (1-3 sentences) between structured parts.
+- **Remove the hard 150-200 word cap** — Replace with "match your depth to their question. Simple = short. Complex = detailed."
+- **Keep max 3 action items** for action-based advice (this rule works)
+- **Remove the `---` separator and `**Coach check-in:**` label** — Instead, just end with a natural question or challenge on its own line
+- **Include copy-paste scripts when relevant** — If telling them to update their bio, give them the exact text. If telling them to talk to clients, give them the exact words.
+- **Update BAD/GOOD examples** to reflect the new natural style
 
-### 1. Update Your Instagram Bio ⚡
-Add "Hair System Specialist" to your bio right now. If it's not there, leads don't know you offer it.
+Example of the new "GOOD" format to embed:
 
-### 2. Tell Every Client Today
-"Hey, I'm now doing hair systems." That's it. Say it to every chair today.
+```
+You're overthinking this. The fastest way to get a client this week isn't a perfect Instagram page — it's opening your mouth.
 
-### 3. Start 20 Facebook Conversations
-DM 20 people — friends, past clients, locals. Just let them know.
+**1. Tell every person in your chair today**
+"Hey, I'm now doing hair replacement systems for men. Know anyone dealing with thinning?" That's it. Say it to every single client today.
 
----
-**Coach check-in:** Have you added a "Free Consultation" button to your booking app yet? That's your #1 task today.
+**2. Update your bio right now ⚡**
+Add "Hair System Specialist" and a "Book Free Consultation" link. If it's not in your bio, you don't officially offer it.
+
+**3. DM 10 people on Facebook tonight**
+Not a sales pitch. Just: "Hey, wanted to let you know I'm now offering hair systems for men dealing with hair loss. Know anyone who might be interested?"
+
+Have you set up a "Free Consultation" option in your booking app yet? That's the thing that turns all this activity into actual booked clients.
 ```
 
-**4. Tone instructions**
-- "You're a coach sending a quick game plan, not writing an article"
-- "Be direct. Short sentences. No filler motivation unless they ask for encouragement"
-- "Max 3 action items per response unless asked for more"
-
 ### Files to Edit
-- `supabase/functions/member-help-chat/index.ts` — system prompt only
+- `supabase/functions/member-help-chat/index.ts` — `BASE_SYSTEM_PROMPT` only (the RESPONSE FORMAT section)
 
