@@ -92,23 +92,40 @@ async function streamChat({
   onDone();
 }
 
-export function AionChat() {
+interface AionChatProps {
+  initialMessage?: string;
+  onInitialSent?: () => void;
+}
+
+export function AionChat({ initialMessage, onInitialSent }: AionChatProps) {
   const [messages, setMessages] = useState<Msg[]>([
     { role: 'assistant', content: "Hey! I'm **Aion**, your Barber Launch support AI. Ask me anything about your training, certification, or hair systems — I'm here to help! 💈" },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const initialSentRef = useRef(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
+  // Handle initial message passed from dashboard
+  useEffect(() => {
+    if (initialMessage && !initialSentRef.current) {
+      initialSentRef.current = true;
+      onInitialSent?.();
+      // Small delay to let the component mount
+      setTimeout(() => {
+        sendMessage(initialMessage);
+      }, 300);
+    }
+  }, [initialMessage]);
 
-    const userMsg: Msg = { role: 'user', content: text };
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || loading) return;
+
+    const userMsg: Msg = { role: 'user', content: text.trim() };
     setInput('');
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
@@ -141,8 +158,10 @@ export function AionChat() {
     }
   };
 
+  const send = () => sendMessage(input);
+
   return (
-    <div className="flex flex-col h-[400px]">
+    <div className="flex flex-col h-full">
       <ScrollArea className="flex-1 pr-3">
         <div className="space-y-4 py-2">
           {messages.map((m, i) => (
