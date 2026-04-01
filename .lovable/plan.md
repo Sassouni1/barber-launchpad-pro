@@ -1,119 +1,47 @@
 
-## Plan: Fix the Real Root Cause of Aion Repeating the Same Greeting Dump
 
-You’re right: this does not look like a “memory” problem first. It looks like the request pipeline is effectively hard-wiring the same output whenever the user sends a bare greeting.
+## Plan: Smart Greeting Handler — Occasionally Mention Wins & Recommendations
 
-### What’s actually happening
-In `supabase/functions/member-help-chat/index.ts`:
+**What changes**: Replace the current static greeting short-circuit with a lightweight AI call that uses a stripped-down prompt. Greetings still skip the heavy curriculum/coaching pipeline, but instead of always returning "Hey! What's on your mind?", Aion gets just enough context to occasionally mention a fresh win or suggest one thing to do — without the giant dump.
 
-- Every request always builds and injects:
-  - full curriculum context
-  - full personal progress context
-  - recent completions
-  - previous conversation memory
-- For a message like `"hey"`, the model still receives all of that heavy coaching/progress data.
-- The prompt also contains a strong canned coaching pattern:
-  - “what can I do today / how do I get clients” rules
-  - a long “GOOD” example with exact actions
-- So on low-information inputs like `"hey"`, the model falls back to the same high-salience coaching block.
+### How it works
 
-That’s why it feels hard coded: not because the exact text is literally stored, but because the backend keeps sending the same ingredients and the same template path for greetings.
+**File: `supabase/functions/member-help-chat/index.ts`**
 
-### Correct fix
-Do not rely on more prompt wording to solve this.
+1. **Keep `isBareGreeting()` detection** — no change there.
 
-Implement deterministic greeting handling in the edge function so simple greetings do **not** go through the full coaching pipeline.
+2. **Replace the static response (lines 437-462) with a lightweight AI call**:
+   - Fetch only: user's first name, tasks completed in the last 48 hours, and 2-3 incomplete tasks from their current stage
+   - Fetch conversation memory (already have `buildConversationMemory`)
+   - Build a short **greeting-only prompt** (~200 words, not the full `BASE_SYSTEM_PROMPT`):
+     ```
+     You are Aion, a casual coaching assistant. The user just said a greeting.
+     
+     Rules:
+     - 2-3 sentences MAX. Never more.
+     - Greet them by name.
+     - You MAY (not must) do ONE of these — pick randomly, or skip all:
+       a) Mention ONE recent win they completed (only if < 48h old and not in PREVIOUS CONVERSATION)
+       b) Suggest ONE quick thing they could do from their incomplete tasks
+       c) Just say hi and ask what's up
+     - NEVER list multiple action items or give a coaching plan
+     - NEVER summarize their overall progress ("you crushed training", "passed all quizzes")
+     - Check PREVIOUS CONVERSATION — don't repeat anything already said there
+     ```
+   - Pass this mini-prompt + the conversation memory + the user's messages to the AI
+   - Stream the response back normally (same SSE format)
 
-### Changes to make
+3. **The full `BASE_SYSTEM_PROMPT` + curriculum + progress pipeline remains untouched** for real questions.
 
-**1. In `supabase/functions/member-help-chat/index.ts`, detect pure greetings before building the big prompt**
-- Inspect the last user message from `messages`
-- If it is only something like:
-  - `hi`
-  - `hey`
-  - `hello`
-  - `yo`
-  - `sup`
-  - `what's up`
-- return a short fixed response immediately
+### Why this works
+- The model can't dump the same coaching block because it never sees the full coaching prompt or the GOOD/BAD examples
+- It has just enough data to be personal (name, 1-2 recent tasks, 1-2 incomplete tasks)
+- The strict "2-3 sentences MAX" rule is much easier for the model to follow when the prompt itself is tiny
+- Variety happens naturally because the model picks from wins/suggestions/plain greeting
+- Real questions still get the full pipeline
 
-Example behavior:
-- `"hey"` → `"Hey! Good to see you. What's on your mind today?"`
-- No progress summary
-- No congratulations
-- No task list
-- No “earning phase” dump
+### Example outputs for "hey"
+- `"Hey Marcus! Saw you finished 'Print Hair System Poster' yesterday — solid move. What do you want to tackle today?"`
+- `"Hey Marcus! 👋 What's on your mind?"`
+- `"Hey Marcus! Have you had a chance to update your Instagram bio yet? That's a quick win. What's up?"`
 
-This is the key fix because it removes the hard-coded-feeling path entirely for bare greetings.
-
-**2. Keep the normal AI path for real questions**
-Messages like:
-- “what should I do today”
-- “should I make a flyer?”
-- “how do I get clients?”
-should still use the full personalized coaching pipeline.
-
-So the routing becomes:
-
-```text
-Bare greeting
-  -> deterministic short greeting response
-
-Actual question / request
-  -> build full context
-  -> call AI
-```
-
-**3. Tighten the greeting boundary**
-Use a strict matcher so this only catches true greetings, not mixed-intent messages.
-
-Examples:
-- Catch: `hey`
-- Catch: `hello`
-- Catch: `yo`
-- Do not catch: `hey what should I do today`
-- Do not catch: `hey should I make a flyer`
-- Do not catch: `hello I need help pricing`
-
-**4. Leave memory as a secondary improvement, not the primary fix**
-Cross-conversation memory can still help with continuity later, but it does not solve the main issue you’re seeing now because the repeated dump is being triggered before memory matters.
-
-### Why this is safer than prompt-only changes
-Prompt-only fixes are fragile because:
-- the same large progress block still gets injected every time
-- the same coaching examples still dominate generation
-- a lightweight greeting gives the model almost no user intent, so it defaults to the same strongest pattern
-
-Deterministic greeting routing is safer because:
-- it isolates bare greetings from the coaching engine
-- it cannot accidentally “welcome them twice” with a giant dump
-- it does not change how Aion answers real questions
-
-### Files involved
-- `supabase/functions/member-help-chat/index.ts`
-  - add last-user-message parsing
-  - add bare-greeting early return
-  - only build full AI prompt when the message is not a bare greeting
-
-### Verification
-Test these cases after implementation:
-
-1. Same conversation:
-- user: `hey`
-- expected: short greeting only
-
-2. Repeated greetings:
-- user: `hey`
-- user: `hey`
-- expected: short greeting only both times, no repeated coaching dump
-
-3. Real question:
-- user: `what should I do today`
-- expected: personalized action plan
-
-4. Mixed greeting + question:
-- user: `hey what should I do today`
-- expected: full AI response, not short-circuited
-
-### Technical note
-If desired, a second pass can later reduce prompt size for low-intent messages instead of full short-circuiting, but the simplest and most reliable first fix is the early return for pure greetings.
