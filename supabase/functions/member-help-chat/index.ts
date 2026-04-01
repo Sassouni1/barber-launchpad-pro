@@ -435,7 +435,15 @@ serve(async (req) => {
     // return a short fixed greeting immediately. No curriculum, no progress dump,
     // no coaching plan. This prevents the "hard-coded feeling" repeated dump.
     if (isBareGreeting(messages)) {
-      // Try to get the user's first name for personalization
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        return new Response(buildGreetingSSE("Hey! 👋 What's on your mind today?"), {
+          headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+        });
+      }
+
+      // Resolve user identity for personalization
+      let userId: string | null = null;
       let firstName = "";
       const authHeader = req.headers.get("authorization") || "";
       const token = authHeader.replace("Bearer ", "");
@@ -443,20 +451,113 @@ serve(async (req) => {
         try {
           const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
           const { data: { user } } = await supabase.auth.getUser(token);
-          if (user) {
-            const admin = getSupabaseAdmin();
-            const { data: profile } = await admin.from("profiles").select("full_name").eq("id", user.id).single();
-            if (profile?.full_name) {
-              firstName = profile.full_name.split(" ")[0];
-            }
-          }
-        } catch { /* proceed without name */ }
+          if (user) userId = user.id;
+        } catch { /* proceed without user */ }
       }
 
-      const name = firstName ? ` ${firstName}` : "";
-      const greetingResponse = `Hey${name}! 👋 What's on your mind today?`;
+      // Fetch lightweight context: name, recent wins (48h), a few incomplete tasks, and conversation memory
+      let greetingContext = "";
+      if (userId) {
+        const admin = getSupabaseAdmin();
+        const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
-      return new Response(buildGreetingSSE(greetingResponse), {
+        const [profileRes, recentProgressRes, itemsRes, listsRes, memoryCtx] = await Promise.all([
+          admin.from("profiles").select("full_name").eq("id", userId).single(),
+          admin.from("user_dynamic_todo_progress")
+            .select("item_id, completed_at")
+            .eq("user_id", userId)
+            .eq("completed", true)
+            .gte("completed_at", fortyEightHoursAgo),
+          admin.from("dynamic_todo_items").select("id, list_id, title, is_important").order("order_index"),
+          admin.from("dynamic_todo_lists").select("id, title, order_index").order("order_index"),
+          buildConversationMemory(userId, conversationId),
+        ]);
+
+        if (profileRes.data?.full_name) {
+          firstName = profileRes.data.full_name.split(" ")[0];
+        }
+
+        const items = itemsRes.data || [];
+        const itemMap = new Map(items.map((i: any) => [i.id, i]));
+
+        // Recent wins (last 48h)
+        const recentWins = (recentProgressRes.data || [])
+          .map((p: any) => itemMap.get(p.item_id)?.title)
+          .filter(Boolean);
+
+        // Find incomplete tasks — get ALL progress to know what's done
+        const { data: allProgress } = await admin
+          .from("user_dynamic_todo_progress")
+          .select("item_id")
+          .eq("user_id", userId)
+          .eq("completed", true);
+        const completedIds = new Set((allProgress || []).map((p: any) => p.item_id));
+        const incompleteTasks = items
+          .filter((i: any) => !completedIds.has(i.id))
+          .slice(0, 3)
+          .map((i: any) => i.title);
+
+        greetingContext += `\nMember name: ${firstName || "there"}\n`;
+        if (recentWins.length > 0) {
+          greetingContext += `\nTasks completed in last 48 hours:\n`;
+          for (const w of recentWins.slice(0, 3)) {
+            greetingContext += `  ✅ "${w}"\n`;
+          }
+        } else {
+          greetingContext += `\nNo tasks completed in the last 48 hours.\n`;
+        }
+        if (incompleteTasks.length > 0) {
+          greetingContext += `\nNext incomplete tasks:\n`;
+          for (const t of incompleteTasks) {
+            greetingContext += `  ⬜ "${t}"\n`;
+          }
+        }
+        if (memoryCtx) {
+          greetingContext += memoryCtx;
+        }
+      }
+
+      const greetingSystemPrompt = `You are Aion, a casual coaching assistant for barbers. The user just said a greeting.
+
+Rules:
+- 2-3 sentences MAX. Never more.
+- Greet them by name${firstName ? ` (${firstName})` : ""}.
+- You MAY (not must) do ONE of these — pick randomly, or skip all:
+  a) Mention ONE recent win they completed (only if in "Tasks completed in last 48 hours" AND not already mentioned in PREVIOUS CONVERSATION CONTEXT)
+  b) Suggest ONE quick thing they could do from their "Next incomplete tasks"
+  c) Just say hi and ask what's up
+- NEVER list multiple action items or give a coaching plan
+- NEVER summarize their overall progress ("you crushed training", "passed all quizzes", "massive head start")
+- NEVER use ### markdown headings — keep it conversational
+- Check PREVIOUS CONVERSATION CONTEXT — don't repeat anything already said there
+- End with a casual question like "What's on your mind?" or "What do you want to tackle today?"
+${greetingContext}`;
+
+      const greetingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: greetingSystemPrompt },
+            ...messages,
+          ],
+          stream: true,
+        }),
+      });
+
+      if (!greetingResponse.ok) {
+        // Fallback to static greeting on AI failure
+        const name = firstName ? ` ${firstName}` : "";
+        return new Response(buildGreetingSSE(`Hey${name}! 👋 What's on your mind today?`), {
+          headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+        });
+      }
+
+      return new Response(greetingResponse.body, {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
       });
     }
