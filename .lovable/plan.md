@@ -1,21 +1,30 @@
 
 
-## Plan: Update Aion Greeting Bullets
+## Plan: Add Recently Completed Tasks to Aion's Context
 
-**File: `src/components/dashboard/AionChat.tsx`** — two identical greeting strings (lines 112 and 127)
+**Problem**: Aion sees what's incomplete but doesn't know what was *recently* completed, so it can't congratulate users on new progress since their last chat.
 
-Replace the current 5 bullets with these 6, ordered by immediacy and ease:
+**Approach**: In `buildUserContext()` inside `supabase/functions/member-help-chat/index.ts`, add a "recently completed" section that shows tasks completed in the last 7 days (with timestamps). Then add a system prompt instruction telling Aion to acknowledge recent completions.
 
-```
-• **"Talk to people in my chair"** — every client is a referral source, just ask if they know anyone
-• **"Post a quick story"** — not polished, just announce you offer hair systems
-• **"DM 20 people"** — message people on Facebook/Instagram, no sales pitch, just let them know
-• **"Message past clients"** — reconnect and let them know what you're offering now
-• **"Set up a referral program"** — reward clients who send people your way
-• **"How do I run Facebook ads?"** — most effective long-term, I'll walk you through it
-```
+### Changes
 
-Keep intro ("Hey! 👋 I'm **Aion**...") and closing ("Think of me like a coach in your pocket...") unchanged. Keep the existing "What should I work on next?" bullet as bullet #1 since it's tied to checklist progress, making 7 total.
+**File: `supabase/functions/member-help-chat/index.ts`**
 
-Also update the system prompt in **`supabase/functions/member-help-chat/index.ts`** to reinforce: once any conversation starts with a potential client, always guide toward inviting them for a free consultation.
+1. **In `buildUserContext()`** (~line 269-305): After building the checklist progress, add a new block that filters `dynamicProgress` for items where `completed = true` and `completed_at` is within the last 7 days. Cross-reference with `items` to get task titles, and output them as:
+   ```
+   Recently completed tasks (last 7 days):
+     ✅ "Post a story on Instagram" — completed 2 days ago
+     ✅ "Update your bio" — completed today
+   ```
+
+2. **In `BASE_SYSTEM_PROMPT`** (~line 48-54, coaching rules section): Add a new rule:
+   ```
+   ### When they return after completing tasks
+   - Check the "Recently completed tasks" section in their progress
+   - If they've completed tasks since the conversation started, acknowledge it naturally — brief congrats, then move to the next thing
+   - Don't over-celebrate. A quick "Nice, you knocked out [task name]" is enough. Then push forward.
+   - If they completed something hard or important (⚡), give them a bigger shoutout
+   ```
+
+This way every time a user opens Aion, the system prompt includes what they recently finished, and Aion is instructed to acknowledge it naturally.
 
