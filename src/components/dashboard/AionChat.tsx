@@ -131,7 +131,10 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   }, [conversationId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
   }, [messages]);
 
   useEffect(() => {
