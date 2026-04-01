@@ -429,12 +429,13 @@ serve(async (req) => {
       } catch { /* proceed without user context */ }
     }
 
-    // Build system prompt with curriculum + user-specific data in parallel
-    const [curriculumContext, userContext] = await Promise.all([
+    // Build system prompt with curriculum + user-specific data + conversation memory in parallel
+    const [curriculumContext, userContext, memoryContext] = await Promise.all([
       buildCurriculumContext(),
       userId ? buildUserContext(userId) : Promise.resolve(""),
+      userId ? buildConversationMemory(userId, conversationId) : Promise.resolve(""),
     ]);
-    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext;
+    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext + memoryContext;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
