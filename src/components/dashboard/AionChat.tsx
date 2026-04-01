@@ -109,7 +109,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   const [messages, setMessages] = useState<Msg[]>(
     initialMessages && initialMessages.length > 0
       ? initialMessages
-      : [{ role: 'assistant', content: "Hey! I'm **Aion**, your Barber Launch support AI. Ask me anything about your training, certification, or hair systems — I'm here to help! 💈" }]
+      : [{ role: 'assistant', content: "Hey! 👋 I'm **Aion**, your personal Barber Launch coach. I already know where you are in your training, so we can skip the small talk and get straight to work.\n\nHere's what I can help you with:\n\n• **\"What should I work on next?\"** — I'll tell you based on your actual checklist\n• **\"How do I get my first client?\"** — step-by-step game plan with exact steps\n• **\"What should I charge?\"** — pricing guidance for installs, retouches & memberships\n• **\"How do I grow on social media?\"** — content ideas, bio updates, posting strategies\n• **\"I have a technical question\"** — adhesives, systems, installation tips, you name it\n\nThink of me like a coach in your pocket. What's on your mind?" }]
   );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
