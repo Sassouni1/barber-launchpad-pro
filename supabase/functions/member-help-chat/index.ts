@@ -94,13 +94,14 @@ Have you set up a "Free Consultation" option in your booking app yet? That's the
 - The CORRECT answers represent the factual knowledge you should teach
 - The INCORRECT answers represent common misconceptions — gently correct users who express these misconceptions`;
 
+function getSupabaseAdmin() {
+  return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+}
+
 async function buildCurriculumContext(): Promise<string> {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, serviceKey);
+  const supabase = getSupabaseAdmin();
 
   try {
-    // Fetch courses, modules, questions, answers, and todo lists in parallel
     const [coursesRes, modulesRes, questionsRes, todoListsRes, todoItemsRes] = await Promise.all([
       supabase.from("courses").select("id, title, description, category").eq("is_published", true).order("order_index"),
       supabase.from("modules").select("id, course_id, title, description").eq("is_published", true).order("order_index"),
@@ -115,7 +116,6 @@ async function buildCurriculumContext(): Promise<string> {
     const todoLists = todoListsRes.data || [];
     const todoItems = todoItemsRes.data || [];
 
-    // Fetch answers for questions
     const questionIds = questions.map((q: any) => q.id);
     let answers: any[] = [];
     if (questionIds.length > 0) {
@@ -129,19 +129,15 @@ async function buildCurriculumContext(): Promise<string> {
 
     let context = "";
 
-    // --- CURRICULUM SECTION ---
     if (courses.length > 0) {
       context += "\n\n--- PLATFORM CURRICULUM KNOWLEDGE ---\n";
-
       for (const course of courses) {
         context += `\n## Course: ${course.title}\n`;
         if (course.description) context += `${course.description}\n`;
-
         const courseModules = modules.filter((m: any) => m.course_id === course.id);
         for (const mod of courseModules) {
           context += `\n### Module: ${mod.title}\n`;
           if (mod.description) context += `${mod.description}\n`;
-
           const modQuestions = questions.filter((q: any) => q.module_id === mod.id);
           if (modQuestions.length > 0) {
             context += `\nKey knowledge from this module's quiz:\n`;
@@ -162,16 +158,13 @@ async function buildCurriculumContext(): Promise<string> {
       }
     }
 
-    // --- TO-DO / MARKETING TASK CHECKLIST SECTION ---
     if (todoLists.length > 0) {
       context += "\n\n--- MEMBER TO-DO CHECKLIST (STAGES) ---\n";
       context += "These are the onboarding stages every member should complete. Use these to ask members about their progress and encourage them.\n";
-
       for (const list of todoLists) {
         context += `\n## Stage: ${list.title}`;
         if (list.due_days) context += ` (target: complete within ${list.due_days} days)`;
         context += "\n";
-
         const listItems = todoItems.filter((i: any) => i.list_id === list.id);
         let currentSection = "";
         for (const item of listItems) {
@@ -187,6 +180,105 @@ async function buildCurriculumContext(): Promise<string> {
     return context;
   } catch (e) {
     console.error("Failed to fetch curriculum context:", e);
+    return "";
+  }
+}
+
+async function buildUserContext(userId: string): Promise<string> {
+  const supabase = getSupabaseAdmin();
+
+  try {
+    // Fetch profile, quiz attempts, todo progress, and dynamic todo progress in parallel
+    const [profileRes, quizAttemptsRes, todoProgressRes, dynamicProgressRes] = await Promise.all([
+      supabase.from("profiles").select("full_name, created_at").eq("id", userId).single(),
+      supabase.from("user_quiz_attempts").select("module_id, score, total_questions, completed_at").eq("user_id", userId).order("completed_at", { ascending: false }),
+      supabase.from("user_todos").select("todo_id, completed, completed_at").eq("user_id", userId),
+      supabase.from("user_dynamic_todo_progress").select("item_id, completed, completed_at").eq("user_id", userId),
+    ]);
+
+    let context = "\n\n--- THIS MEMBER'S PERSONAL PROGRESS ---\n";
+
+    // Name & join date
+    const profile = profileRes.data;
+    if (profile) {
+      const firstName = profile.full_name?.split(" ")[0] || "there";
+      context += `\nMember name: ${profile.full_name || "Unknown"} (call them "${firstName}")\n`;
+      const joinDate = new Date(profile.created_at);
+      const daysSinceJoin = Math.floor((Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24));
+      context += `Joined: ${joinDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} (${daysSinceJoin} days ago)\n`;
+    }
+
+    // Quiz progress — fetch module titles for context
+    const quizAttempts = quizAttemptsRes.data || [];
+    if (quizAttempts.length > 0) {
+      const moduleIds = [...new Set(quizAttempts.map((a: any) => a.module_id))];
+      const { data: modulesData } = await supabase
+        .from("modules")
+        .select("id, title")
+        .in("id", moduleIds);
+      const moduleMap = new Map((modulesData || []).map((m: any) => [m.id, m.title]));
+
+      context += `\nQuiz results:\n`;
+      // Show best attempt per module
+      const bestByModule = new Map<string, any>();
+      for (const attempt of quizAttempts) {
+        const existing = bestByModule.get(attempt.module_id);
+        if (!existing || attempt.score > existing.score) {
+          bestByModule.set(attempt.module_id, attempt);
+        }
+      }
+      for (const [moduleId, attempt] of bestByModule) {
+        const title = moduleMap.get(moduleId) || "Unknown module";
+        const passed = attempt.score >= Math.ceil(attempt.total_questions * 0.8);
+        context += `  - ${title}: ${attempt.score}/${attempt.total_questions} ${passed ? "✅ PASSED" : "❌ NOT YET PASSED"}\n`;
+      }
+    } else {
+      context += `\nQuiz results: No quizzes taken yet.\n`;
+    }
+
+    // Dynamic to-do progress (the main checklist stages)
+    const dynamicProgress = dynamicProgressRes.data || [];
+    if (dynamicProgress.length > 0) {
+      // Fetch all items and lists to map progress
+      const [listsRes, itemsRes] = await Promise.all([
+        supabase.from("dynamic_todo_lists").select("id, title, order_index").order("order_index"),
+        supabase.from("dynamic_todo_items").select("id, list_id, title").order("order_index"),
+      ]);
+      const lists = listsRes.data || [];
+      const items = itemsRes.data || [];
+      const completedIds = new Set(dynamicProgress.filter((p: any) => p.completed).map((p: any) => p.item_id));
+
+      context += `\nTo-Do Checklist progress:\n`;
+      for (const list of lists) {
+        const listItems = items.filter((i: any) => i.list_id === list.id);
+        const done = listItems.filter((i: any) => completedIds.has(i.id)).length;
+        const total = listItems.length;
+        if (total === 0) continue;
+        context += `  Stage "${list.title}": ${done}/${total} tasks done`;
+        if (done === total) context += " ✅ COMPLETE";
+        else if (done === 0) context += " (not started)";
+        context += "\n";
+
+        // Show incomplete tasks so Aion can reference them
+        if (done < total) {
+          const incomplete = listItems.filter((i: any) => !completedIds.has(i.id));
+          for (const item of incomplete.slice(0, 5)) {
+            context += `    ⬜ ${item.title}\n`;
+          }
+          if (incomplete.length > 5) {
+            context += `    ... and ${incomplete.length - 5} more\n`;
+          }
+        }
+      }
+    } else {
+      context += `\nTo-Do Checklist progress: No tasks completed yet (brand new member).\n`;
+    }
+
+    context += `\nUSE THIS DATA to personalize your responses. Reference their actual progress, incomplete tasks, and quiz results. Call them by their first name.\n`;
+
+    return context;
+  } catch (e) {
+    console.error("Failed to fetch user context:", e);
     return "";
   }
 }
@@ -211,9 +303,24 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build system prompt with real curriculum data
-    const curriculumContext = await buildCurriculumContext();
-    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext;
+    // Extract user from auth token
+    let userId: string | null = null;
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    if (token && token !== Deno.env.get("SUPABASE_ANON_KEY")) {
+      try {
+        const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) userId = user.id;
+      } catch { /* proceed without user context */ }
+    }
+
+    // Build system prompt with curriculum + user-specific data in parallel
+    const [curriculumContext, userContext] = await Promise.all([
+      buildCurriculumContext(),
+      userId ? buildUserContext(userId) : Promise.resolve(""),
+    ]);
+    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
