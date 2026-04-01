@@ -114,6 +114,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const initialSentRef = useRef(false);
   const queryClient = useQueryClient();
   const userMsgCountRef = useRef(initialMessages ? initialMessages.filter(m => m.role === 'user').length : 0);
