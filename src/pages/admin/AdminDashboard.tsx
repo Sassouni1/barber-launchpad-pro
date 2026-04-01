@@ -6,7 +6,7 @@ import { CertificateTemplateUploader } from '@/components/admin/CertificateTempl
 import { FontUploader } from '@/components/admin/FontUploader';
 
 import { GHLIntegration } from '@/components/admin/GHLIntegration';
-import { FeedbackViewer } from '@/components/admin/FeedbackViewer';
+
 import { GroupCallsManager } from '@/components/admin/GroupCallsManager';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
