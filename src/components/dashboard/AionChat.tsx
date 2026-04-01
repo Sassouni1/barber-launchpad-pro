@@ -218,7 +218,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
                 }`}
               >
                 {m.role === 'assistant' ? (
-                  <div className="prose prose-sm prose-invert max-w-none [&>p]:my-3 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>ul]:my-2 [&>ol]:my-2 [&>h1]:mt-4 [&>h2]:mt-4 [&>h3]:mt-3 [&>h1]:mb-2 [&>h2]:mb-2 [&>h3]:mb-1 [&_li]:my-1">
+                  <div className="prose prose-sm prose-invert max-w-none [&>p]:my-4 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>ul]:my-3 [&>ol]:my-3 [&>h1]:mt-5 [&>h2]:mt-5 [&>h3]:mt-4 [&>h1]:mb-2 [&>h2]:mb-2 [&>h3]:mb-2 [&_li]:my-1.5">
                     <ReactMarkdown>{m.content}</ReactMarkdown>
                   </div>
                 ) : (
