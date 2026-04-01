@@ -288,7 +288,15 @@ async function buildUserContext(userId: string): Promise<string> {
       const items = itemsRes.data || [];
       const completedIds = new Set(dynamicProgress.filter((p: any) => p.completed).map((p: any) => p.item_id));
 
-      context += `\nTo-Do Checklist progress:\n`;
+      // Calculate overall completion
+      const totalItems = items.length;
+      const totalCompleted = items.filter((i: any) => completedIds.has(i.id)).length;
+      const overallPct = totalItems ? Math.round((totalCompleted / totalItems) * 100) : 0;
+
+      context += `\nACEDEMY PROGRESS (quizzes/modules only — shown above).\n`;
+      context += `\nCHECKLIST PROGRESS (business tasks): ${totalCompleted}/${totalItems} tasks done (${overallPct}%)\n`;
+      context += `⚠️ IMPORTANT: Do NOT say the user "finished all training", "completed everything", "knocked out all their tasks", or similar unless CHECKLIST PROGRESS is 100%. Passing quizzes only means coursework is done — NOT that all business/marketing tasks are done. Be precise about what they completed.\n\n`;
+
       for (const list of lists) {
         const listItems = items.filter((i: any) => i.list_id === list.id);
         const done = listItems.filter((i: any) => completedIds.has(i.id)).length;
