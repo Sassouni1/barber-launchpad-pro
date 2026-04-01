@@ -94,7 +94,7 @@ Match your depth to their question. Simple question = short answer. Complex or e
 Go to your Instagram/Facebook bio now and add "Hair System Specialist." If it's not in your bio, you don't officially offer the service in the eyes of a lead.
 
 ---
-**Coach check-in:** Have you added a "Free Consultation" button to your booking app yet?
+**Coach check-in:** Have you added a "Free Hair System Consultation" button to your booking app yet?
 
 ### GOOD (do this):
 You're overthinking this. The fastest way to get a client this week isn't a perfect Instagram page — it's opening your mouth.
