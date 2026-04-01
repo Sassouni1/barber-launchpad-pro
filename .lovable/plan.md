@@ -1,30 +1,24 @@
 
 
-## Plan: Add Recently Completed Tasks to Aion's Context
+## Plan: Fix Aion's Overreaction to "Hey" + Consultation Terminology
 
-**Problem**: Aion sees what's incomplete but doesn't know what was *recently* completed, so it can't congratulate users on new progress since their last chat.
-
-**Approach**: In `buildUserContext()` inside `supabase/functions/member-help-chat/index.ts`, add a "recently completed" section that shows tasks completed in the last 7 days (with timestamps). Then add a system prompt instruction telling Aion to acknowledge recent completions.
+**Two problems:**
+1. When a user just says "hey", Aion dumps a full coaching plan instead of a casual greeting. The system prompt says "react to what they said" but doesn't explicitly tell Aion to keep it light for greetings.
+2. Every mention of "Free Consultation" should be "Free Hair System Consultation" or "Free Hair Loss Consultation" — never just "Free Consultation."
 
 ### Changes
 
 **File: `supabase/functions/member-help-chat/index.ts`**
 
-1. **In `buildUserContext()`** (~line 269-305): After building the checklist progress, add a new block that filters `dynamicProgress` for items where `completed = true` and `completed_at` is within the last 7 days. Cross-reference with `items` to get task titles, and output them as:
-   ```
-   Recently completed tasks (last 7 days):
-     ✅ "Post a story on Instagram" — completed 2 days ago
-     ✅ "Update your bio" — completed today
-   ```
+1. **Add a greeting rule** (after "How to open" section, ~line 66-68): Add explicit instruction that when the user says something casual like "hey", "hi", "what's up" — Aion should respond casually back, maybe acknowledge recent progress briefly if any, and ask what they want to help with. Do NOT launch into a full action plan unprompted. Only give task-based coaching when they ask for it.
 
-2. **In `BASE_SYSTEM_PROMPT`** (~line 48-54, coaching rules section): Add a new rule:
-   ```
-   ### When they return after completing tasks
-   - Check the "Recently completed tasks" section in their progress
-   - If they've completed tasks since the conversation started, acknowledge it naturally — brief congrats, then move to the next thing
-   - Don't over-celebrate. A quick "Nice, you knocked out [task name]" is enough. Then push forward.
-   - If they completed something hard or important (⚡), give them a bigger shoutout
-   ```
+2. **Replace all "free consultation" references** throughout the `BASE_SYSTEM_PROMPT` with "free hair system consultation" — this applies to:
+   - Line 45: "free consultation" → "free hair system consultation"
+   - Line 94: "Free Consultation" → "Free Hair System Consultation"
+   - Line 103: "Book Free Consultation" → "Book Free Hair System Consultation"
+   - Line 108: "Free Consultation" → "Free Hair System Consultation"
+   - Line 115: "FREE CONSULTATION" → "FREE HAIR SYSTEM CONSULTATION"
+   - Line 114: coaching script should say "free hair system consultation" not just "consultation"
 
-This way every time a user opens Aion, the system prompt includes what they recently finished, and Aion is instructed to acknowledge it naturally.
+3. **Add a terminology rule** in OTHER GUIDELINES (~line 124): "Always say 'free hair system consultation' or 'free hair loss consultation' — NEVER just 'free consultation.' The specificity matters for client trust and SEO."
 
