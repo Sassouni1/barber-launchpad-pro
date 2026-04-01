@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
 import { toast } from '@/hooks/use-toast';
+import { saveAionMessage } from '@/hooks/useAionChat';
+import { useQueryClient } from '@tanstack/react-query';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -73,7 +75,6 @@ async function streamChat({
     }
   }
 
-  // flush
   if (buffer.trim()) {
     for (let raw of buffer.split('\n')) {
       if (!raw) continue;
@@ -93,42 +94,69 @@ async function streamChat({
 }
 
 interface AionChatProps {
+  conversationId: string | null;
+  initialMessages?: Msg[];
   initialMessage?: string;
   onInitialSent?: () => void;
+  onFirstUserMessage?: (text: string) => void;
 }
 
-export function AionChat({ initialMessage, onInitialSent }: AionChatProps) {
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: 'assistant', content: "Hey! I'm **Aion**, your Barber Launch support AI. Ask me anything about your training, certification, or hair systems — I'm here to help! 💈" },
-  ]);
+export function AionChat({ conversationId, initialMessages, initialMessage, onInitialSent, onFirstUserMessage }: AionChatProps) {
+  const [messages, setMessages] = useState<Msg[]>(
+    initialMessages && initialMessages.length > 0
+      ? initialMessages
+      : [{ role: 'assistant', content: "Hey! I'm **Aion**, your Barber Launch support AI. Ask me anything about your training, certification, or hair systems — I'm here to help! 💈" }]
+  );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialSentRef = useRef(false);
+  const queryClient = useQueryClient();
+  const userMsgCountRef = useRef(initialMessages ? initialMessages.filter(m => m.role === 'user').length : 0);
+
+  // Reset messages when conversation changes
+  useEffect(() => {
+    if (initialMessages && initialMessages.length > 0) {
+      setMessages(initialMessages);
+      userMsgCountRef.current = initialMessages.filter(m => m.role === 'user').length;
+    } else {
+      setMessages([{ role: 'assistant', content: "Hey! I'm **Aion**, your Barber Launch support AI. Ask me anything about your training, certification, or hair systems — I'm here to help! 💈" }]);
+      userMsgCountRef.current = 0;
+    }
+  }, [conversationId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle initial message passed from dashboard
   useEffect(() => {
     if (initialMessage && !initialSentRef.current) {
       initialSentRef.current = true;
       onInitialSent?.();
-      // Small delay to let the component mount
       setTimeout(() => {
         sendMessage(initialMessage);
       }, 300);
     }
   }, [initialMessage]);
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
 
     const userMsg: Msg = { role: 'user', content: text.trim() };
     setInput('');
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
+
+    // If this is the first user message, notify parent (to create conversation & auto-title)
+    userMsgCountRef.current += 1;
+    if (userMsgCountRef.current === 1) {
+      onFirstUserMessage?.(text.trim());
+    }
+
+    // Save user message to DB
+    if (conversationId) {
+      try { await saveAionMessage(conversationId, 'user', text.trim()); } catch { /* ignore */ }
+    }
 
     let assistantSoFar = '';
     const upsert = (chunk: string) => {
@@ -142,11 +170,22 @@ export function AionChat({ initialMessage, onInitialSent }: AionChatProps) {
       });
     };
 
+    const allMessages = [...messages, userMsg];
+
     try {
       await streamChat({
-        messages: [...messages, userMsg],
+        messages: allMessages,
         onDelta: upsert,
-        onDone: () => setLoading(false),
+        onDone: async () => {
+          setLoading(false);
+          // Save assistant message to DB
+          if (conversationId && assistantSoFar) {
+            try {
+              await saveAionMessage(conversationId, 'assistant', assistantSoFar);
+              queryClient.invalidateQueries({ queryKey: ['aion-messages', conversationId] });
+            } catch { /* ignore */ }
+          }
+        },
         onError: (msg) => {
           toast({ title: 'Aion is unavailable', description: msg, variant: 'destructive' });
           setLoading(false);
@@ -156,7 +195,7 @@ export function AionChat({ initialMessage, onInitialSent }: AionChatProps) {
       toast({ title: 'Connection error', description: 'Could not reach Aion. Try again.', variant: 'destructive' });
       setLoading(false);
     }
-  };
+  }, [conversationId, messages, loading, onFirstUserMessage, queryClient]);
 
   const send = () => sendMessage(input);
 
