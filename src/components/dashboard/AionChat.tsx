@@ -114,6 +114,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const initialSentRef = useRef(false);
   const queryClient = useQueryClient();
   const userMsgCountRef = useRef(initialMessages ? initialMessages.filter(m => m.role === 'user').length : 0);
@@ -130,7 +131,10 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   }, [conversationId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -205,7 +209,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
 
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 pr-3">
+      <ScrollArea className="flex-1 pr-3" ref={scrollAreaRef}>
         <div className="space-y-4 py-2">
           {messages.map((m, i) => (
             <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
