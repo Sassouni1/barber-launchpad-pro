@@ -33,7 +33,7 @@ async function streamChat({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, conversationId: (window as any).__aionConversationId }),
   });
 
   if (!resp.ok) {
@@ -106,6 +106,11 @@ interface AionChatProps {
 }
 
 export function AionChat({ conversationId, initialMessages, initialMessage, onInitialSent, onFirstUserMessage }: AionChatProps) {
+  // Expose conversationId for the streamChat function
+  useEffect(() => {
+    (window as any).__aionConversationId = conversationId;
+    return () => { (window as any).__aionConversationId = null; };
+  }, [conversationId]);
   const [messages, setMessages] = useState<Msg[]>(
     initialMessages && initialMessages.length > 0
       ? initialMessages

@@ -47,9 +47,11 @@ You have access to THIS MEMBER'S PERSONAL PROGRESS (their checklist stages, quiz
 
 ### When they return after completing tasks
 - Check the "Recently completed tasks" section in their progress
-- If they've completed tasks recently, acknowledge it naturally — brief congrats, then move to the next thing
+- IMPORTANT: Scan your previous messages in THIS conversation AND the PREVIOUS CONVERSATION CONTEXT section below. If you already congratulated them for a specific task, do NOT mention it again. Only acknowledge NEW completions you haven't already referenced.
+- If they've completed tasks you haven't acknowledged yet, mention it naturally — brief congrats, then move to the next thing
 - Don't over-celebrate. A quick "Nice, you knocked out [task name]" is enough. Then push forward.
 - If they completed something hard or important (⚡), give them a bigger shoutout
+- If you've already acknowledged all recent completions in this or a previous conversation, skip the congratulations entirely and just respond to what they said
 
 ### General coaching rules
 - Your marketing advice comes DIRECTLY from their to-do checklist stages — those tasks ARE the playbook
@@ -67,7 +69,7 @@ You're a coach talking to a real person, not a template filling itself in. Match
 Always start by reacting to what they said. 1-2 sentences that show you actually heard them. Reframe their problem, validate their feeling, or challenge their assumption. THEN give structure.
 
 ### Casual greetings ("hey", "hi", "what's up", etc.)
-If the user just says a greeting without asking a question or requesting help, respond casually. Keep it to 2-3 sentences max. You can briefly mention recent progress if they have any (e.g. "Saw you knocked out a few tasks recently — nice work."), then ask what they want help with. Do NOT launch into a full coaching plan or action items unprompted. Wait for them to ask.
+If the user just says a greeting without asking a question or requesting help, respond casually. Keep it to 2-3 sentences max. Check PREVIOUS CONVERSATION CONTEXT before congratulating — if you already acknowledged a task or progress there, don't mention it again. If there's a NEW completion you haven't referenced in any previous conversation, you can briefly mention ONE specific task by name (e.g. "Saw you knocked out 'Update your bio' — nice."). Otherwise just greet them warmly and ask what they want help with. Do NOT launch into a full coaching plan or action items unprompted. Wait for them to ask.
 
 ### How to structure
 - Use **bold numbered titles** for action items (e.g. "**1. Update your bio right now ⚡**") — NOT ### markdown headings. Lighter, more like texting.
@@ -349,13 +351,59 @@ async function buildUserContext(userId: string): Promise<string> {
   }
 }
 
+async function buildConversationMemory(userId: string, currentConversationId?: string): Promise<string> {
+  const supabase = getSupabaseAdmin();
+  try {
+    // Find the most recent conversation that is NOT the current one
+    let query = supabase
+      .from("aion_conversations")
+      .select("id")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(2);
+
+    const { data: convs } = await query;
+    if (!convs || convs.length === 0) return "";
+
+    // Pick the first conversation that isn't the current one
+    const prevConv = convs.find((c: any) => c.id !== currentConversationId) || null;
+    if (!prevConv) return "";
+
+    // Fetch last 8 messages from that conversation
+    const { data: msgs } = await supabase
+      .from("aion_messages")
+      .select("role, content")
+      .eq("conversation_id", prevConv.id)
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (!msgs || msgs.length === 0) return "";
+
+    // Reverse to chronological order
+    msgs.reverse();
+
+    let context = "\n\n--- PREVIOUS CONVERSATION CONTEXT ---\n";
+    context += "(Last conversation with this member — use to avoid repeating congratulations or advice you already gave)\n\n";
+    for (const m of msgs) {
+      const label = m.role === "user" ? "Member" : "Aion";
+      // Truncate long messages to save tokens
+      const content = m.content.length > 300 ? m.content.slice(0, 300) + "..." : m.content;
+      context += `${label}: ${content}\n\n`;
+    }
+    return context;
+  } catch (e) {
+    console.error("Failed to fetch conversation memory:", e);
+    return "";
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, conversationId } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
@@ -381,12 +429,13 @@ serve(async (req) => {
       } catch { /* proceed without user context */ }
     }
 
-    // Build system prompt with curriculum + user-specific data in parallel
-    const [curriculumContext, userContext] = await Promise.all([
+    // Build system prompt with curriculum + user-specific data + conversation memory in parallel
+    const [curriculumContext, userContext, memoryContext] = await Promise.all([
       buildCurriculumContext(),
       userId ? buildUserContext(userId) : Promise.resolve(""),
+      userId ? buildConversationMemory(userId, conversationId) : Promise.resolve(""),
     ]);
-    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext;
+    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext + memoryContext;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
