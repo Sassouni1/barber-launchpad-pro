@@ -351,6 +351,52 @@ async function buildUserContext(userId: string): Promise<string> {
   }
 }
 
+async function buildConversationMemory(userId: string, currentConversationId?: string): Promise<string> {
+  const supabase = getSupabaseAdmin();
+  try {
+    // Find the most recent conversation that is NOT the current one
+    let query = supabase
+      .from("aion_conversations")
+      .select("id")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(2);
+
+    const { data: convs } = await query;
+    if (!convs || convs.length === 0) return "";
+
+    // Pick the first conversation that isn't the current one
+    const prevConv = convs.find((c: any) => c.id !== currentConversationId) || null;
+    if (!prevConv) return "";
+
+    // Fetch last 8 messages from that conversation
+    const { data: msgs } = await supabase
+      .from("aion_messages")
+      .select("role, content")
+      .eq("conversation_id", prevConv.id)
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (!msgs || msgs.length === 0) return "";
+
+    // Reverse to chronological order
+    msgs.reverse();
+
+    let context = "\n\n--- PREVIOUS CONVERSATION CONTEXT ---\n";
+    context += "(Last conversation with this member — use to avoid repeating congratulations or advice you already gave)\n\n";
+    for (const m of msgs) {
+      const label = m.role === "user" ? "Member" : "Aion";
+      // Truncate long messages to save tokens
+      const content = m.content.length > 300 ? m.content.slice(0, 300) + "..." : m.content;
+      context += `${label}: ${content}\n\n`;
+    }
+    return context;
+  } catch (e) {
+    console.error("Failed to fetch conversation memory:", e);
+    return "";
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
