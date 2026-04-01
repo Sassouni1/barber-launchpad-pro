@@ -267,6 +267,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                 ))}
             </ExpandableNavItem>
             <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
+              <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
             </ExpandableNavItem>
             {/* Rewards hidden for now */}
