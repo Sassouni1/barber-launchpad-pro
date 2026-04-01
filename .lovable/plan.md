@@ -1,24 +1,37 @@
 
 
-## Plan: Fix Aion's Overreaction to "Hey" + Consultation Terminology
+## Plan: Strengthen Greeting Handling + Fix Scroll Jump
 
-**Two problems:**
-1. When a user just says "hey", Aion dumps a full coaching plan instead of a casual greeting. The system prompt says "react to what they said" but doesn't explicitly tell Aion to keep it light for greetings.
-2. Every mention of "Free Consultation" should be "Free Hair System Consultation" or "Free Hair Loss Consultation" — never just "Free Consultation."
+### Problem
+The greeting rule (line 69-70) is too weak relative to the surrounding instructions. The `TASK-BASED COACHING` section says "USE IT. Every recommendation should come from their actual data" — that's a strong directive that overrides the softer greeting rule. The model sees incomplete tasks, recently completed tasks, and interprets "hey" as a chance to coach.
 
 ### Changes
 
-**File: `supabase/functions/member-help-chat/index.ts`**
+**1. `supabase/functions/member-help-chat/index.ts` — Restructure prompt priority**
 
-1. **Add a greeting rule** (after "How to open" section, ~line 66-68): Add explicit instruction that when the user says something casual like "hey", "hi", "what's up" — Aion should respond casually back, maybe acknowledge recent progress briefly if any, and ask what they want to help with. Do NOT launch into a full action plan unprompted. Only give task-based coaching when they ask for it.
+Move a **hard rule** to the very top of the prompt (right after line 10's intro paragraph, before TASK-BASED COACHING):
 
-2. **Replace all "free consultation" references** throughout the `BASE_SYSTEM_PROMPT` with "free hair system consultation" — this applies to:
-   - Line 45: "free consultation" → "free hair system consultation"
-   - Line 94: "Free Consultation" → "Free Hair System Consultation"
-   - Line 103: "Book Free Consultation" → "Book Free Hair System Consultation"
-   - Line 108: "Free Consultation" → "Free Hair System Consultation"
-   - Line 115: "FREE CONSULTATION" → "FREE HAIR SYSTEM CONSULTATION"
-   - Line 114: coaching script should say "free hair system consultation" not just "consultation"
+```
+## CRITICAL: MATCH ENERGY TO THEIR MESSAGE
+If the user's entire message is just a greeting (hey, hi, hello, what's up, yo, sup, how's it going), you MUST:
+- Respond in 2-3 sentences MAX
+- Do NOT list action items, tasks, or coaching plans
+- Do NOT reference their checklist or quiz progress in detail
+- Just say hey, optionally mention one recent win in passing, and ask what they need help with
+- ONLY give structured coaching when they ASK a question or request help
 
-3. **Add a terminology rule** in OTHER GUIDELINES (~line 124): "Always say 'free hair system consultation' or 'free hair loss consultation' — NEVER just 'free consultation.' The specificity matters for client trust and SEO."
+This overrides ALL other instructions below. A greeting gets a greeting back — nothing more.
+```
+
+Also update the existing `TASK-BASED COACHING` header (line 24) to add a qualifier:
+- Change "USE IT. Every recommendation should come from their actual data, not generic advice." 
+- To: "USE IT — but ONLY when they ask for help or coaching. Every recommendation should come from their actual data, not generic advice."
+
+Remove the duplicate greeting section at lines 69-70 since it's now covered by the top-level rule.
+
+**2. `src/components/dashboard/AionChat.tsx` — Fix scroll jump on Enter**
+
+The `useEffect` on line 132-134 calls `bottomRef.current?.scrollIntoView({ behavior: 'smooth' })` which scrolls the **entire page**, not just the chat container. Fix by:
+- Adding a ref to the ScrollArea's viewport element
+- Replacing `scrollIntoView` with `viewportRef.current.scrollTop = viewportRef.current.scrollHeight` to scroll only within the chat area
 
