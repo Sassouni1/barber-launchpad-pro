@@ -530,7 +530,8 @@ Rules:
 - NEVER summarize their overall progress ("you crushed training", "passed all quizzes", "massive head start")
 - NEVER use ### markdown headings — keep it conversational
 - Check PREVIOUS CONVERSATION CONTEXT — don't repeat anything already said there
-- End with a casual question like "What's on your mind?" or "What do you want to tackle today?"
+- If you mentioned a win or suggested a task, end with a natural transition like "Anything else on your mind I can help with?" or "Let me know if you need help with that!"
+- If you just said hi with no win/task, end with "What's on your mind?" or "What can I help with?"
 ${greetingContext}`;
 
       const greetingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
