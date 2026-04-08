@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Play } from "lucide-react";
+import { Link } from "react-router-dom";
 import hairColors from "@/assets/hair-colors.jpg";
 import hairCurls from "@/assets/hair-curls.jpg";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +17,13 @@ const OrderHairSystem = () => {
           <ShoppingCart className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Order Hair System</h1>
         </div>
+        <Link
+          to="/courses/hair-system/lesson/60c268c9-5df7-4161-8d91-2c185fc791d0"
+          className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg px-4 py-3 transition-colors w-fit"
+        >
+          <Play className="h-5 w-5 fill-primary" />
+          <span className="font-medium">Click here to watch video: Placing a Hair System Order</span>
+        </Link>
         <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
           <div className="glass-card rounded-lg overflow-hidden">
             <img 
