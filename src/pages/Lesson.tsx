@@ -824,15 +824,16 @@ export default function Lesson() {
                         className="space-y-2 ml-8"
                       >
                         {question.answers?.map((answer) => (
-                          <div
+                          <label
                             key={answer.id}
+                            htmlFor={`mobile-${answer.id}`}
                             className="flex items-center space-x-2 p-2 rounded-lg hover:bg-secondary/30 transition-colors cursor-pointer"
                           >
                             <RadioGroupItem value={answer.id} id={`mobile-${answer.id}`} />
-                            <Label htmlFor={`mobile-${answer.id}`} className="cursor-pointer flex-1 text-sm">
+                            <span className="flex-1 text-sm">
                               {answer.answer_text}
-                            </Label>
-                          </div>
+                            </span>
+                          </label>
                         ))}
                       </RadioGroup>
                     </div>
