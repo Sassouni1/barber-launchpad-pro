@@ -19,10 +19,10 @@ const OrderHairSystem = () => {
         </div>
         <Link
           to="/courses/hair-system/lesson/60c268c9-5df7-4161-8d91-2c185fc791d0"
-          className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg px-4 py-3 transition-colors w-fit"
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-5 py-3 transition-colors font-medium text-sm"
         >
-          <Play className="h-5 w-5 fill-primary" />
-          <span className="font-medium">Click here to watch video: Placing a Hair System Order</span>
+          <Play className="h-4 w-4 fill-primary-foreground" />
+          Watch Video: Placing a Hair System Order
         </Link>
         <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
           <div className="glass-card rounded-lg overflow-hidden">
