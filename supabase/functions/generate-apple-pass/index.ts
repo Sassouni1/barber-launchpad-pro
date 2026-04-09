@@ -143,9 +143,9 @@ Deno.serve(async (req) => {
       foregroundColor: "rgb(255, 255, 255)",
       backgroundColor: "rgb(13, 13, 13)",
       labelColor: "rgb(212, 175, 55)",
-      storeCard: {
-        headerFields: [
-          { key: "title", label: "SPECIALIST", value: displayName },
+      generic: {
+        primaryFields: [
+          { key: "name", label: "SPECIALIST", value: displayName },
         ],
         secondaryFields: [
           ...(card.phone ? [{ key: "phone", label: "PHONE", value: card.phone }] : []),
