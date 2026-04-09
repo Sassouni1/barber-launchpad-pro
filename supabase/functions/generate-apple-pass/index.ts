@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
     const wwdrCert = forge.pki.certificateFromPem(APPLE_WWDR_PEM);
 
     // Build pass.json
+    const displayName = [card.first_name, card.last_name].filter(Boolean).join(' ') || card.business_name;
+
     const passJson = {
       formatVersion: 1,
       passTypeIdentifier: passTypeId,
@@ -143,7 +145,7 @@ Deno.serve(async (req) => {
       labelColor: "rgb(255, 191, 0)",
       generic: {
         primaryFields: [
-          { key: "name", label: "SPECIALIST", value: card.business_name },
+          { key: "name", label: "SPECIALIST", value: displayName },
         ],
         secondaryFields: [
           ...(card.phone ? [{ key: "phone", label: "PHONE", value: card.phone }] : []),
@@ -151,6 +153,7 @@ Deno.serve(async (req) => {
         ],
         auxiliaryFields: [
           { key: "cardurl", label: "MY CARD", value: `barber-launchpad-pro.lovable.app/card/${card.short_code}` },
+          ...(card.instagram_handle ? [{ key: "ig", label: "INSTAGRAM", value: card.instagram_handle }] : []),
         ],
         backFields: [
           { key: "card", label: "My Digital Card", value: `https://barber-launchpad-pro.lovable.app/card/${card.short_code}`, attributedValue: `<a href="https://barber-launchpad-pro.lovable.app/card/${card.short_code}">View & Share My Card</a>` },
@@ -159,6 +162,12 @@ Deno.serve(async (req) => {
             : []),
           ...(card.gallery_url
             ? [{ key: "gallery", label: "See Transformations", value: card.gallery_url, attributedValue: `<a href="${card.gallery_url}">View Gallery</a>` }]
+            : []),
+          ...(card.instagram_handle
+            ? [{ key: "instagram", label: "Instagram", value: `https://instagram.com/${(card.instagram_handle || '').replace(/^@/, '')}`, attributedValue: `<a href="https://instagram.com/${(card.instagram_handle || '').replace(/^@/, '')}">Follow on Instagram</a>` }]
+            : []),
+          ...(card.website_url
+            ? [{ key: "website", label: "Website", value: card.website_url, attributedValue: `<a href="${card.website_url}">Visit Website</a>` }]
             : []),
         ],
       },
