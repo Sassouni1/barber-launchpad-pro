@@ -118,42 +118,54 @@ export type Database = {
           business_name: string
           created_at: string
           email: string | null
+          first_name: string | null
           gallery_url: string
           hero_image_url: string | null
           id: string
+          instagram_handle: string | null
+          last_name: string | null
           logo_url: string | null
           phone: string | null
           short_code: string
           updated_at: string
           user_id: string
+          website_url: string | null
         }
         Insert: {
           booking_url?: string
           business_name?: string
           created_at?: string
           email?: string | null
+          first_name?: string | null
           gallery_url?: string
           hero_image_url?: string | null
           id?: string
+          instagram_handle?: string | null
+          last_name?: string | null
           logo_url?: string | null
           phone?: string | null
           short_code: string
           updated_at?: string
           user_id: string
+          website_url?: string | null
         }
         Update: {
           booking_url?: string
           business_name?: string
           created_at?: string
           email?: string | null
+          first_name?: string | null
           gallery_url?: string
           hero_image_url?: string | null
           id?: string
+          instagram_handle?: string | null
+          last_name?: string | null
           logo_url?: string | null
           phone?: string | null
           short_code?: string
           updated_at?: string
           user_id?: string
+          website_url?: string | null
         }
         Relationships: []
       }
