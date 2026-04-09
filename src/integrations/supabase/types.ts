@@ -112,6 +112,51 @@ export type Database = {
         }
         Relationships: []
       }
+      business_cards: {
+        Row: {
+          booking_url: string
+          business_name: string
+          created_at: string
+          email: string | null
+          gallery_url: string
+          hero_image_url: string | null
+          id: string
+          logo_url: string | null
+          phone: string | null
+          short_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_url?: string
+          business_name?: string
+          created_at?: string
+          email?: string | null
+          gallery_url?: string
+          hero_image_url?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          short_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_url?: string
+          business_name?: string
+          created_at?: string
+          email?: string | null
+          gallery_url?: string
+          hero_image_url?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          short_code?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       certificate_layouts: {
         Row: {
           course_id: string

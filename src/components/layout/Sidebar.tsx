@@ -24,6 +24,7 @@ import {
   Award,
   Megaphone,
   QrCode,
+  CreditCard,
   Gift,
   ClipboardCheck,
   Video,
@@ -270,6 +271,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
+              <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
             </ExpandableNavItem>
             {/* Rewards hidden for now */}
             <ExpandableNavItem icon={Package} label="Products" collapsed={collapsed} defaultOpen>
