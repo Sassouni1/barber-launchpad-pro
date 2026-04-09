@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
           ...(card.email ? [{ key: "email", label: "EMAIL", value: card.email }] : []),
         ],
         auxiliaryFields: [
-          { key: "cardurl", label: "MY CARD", value: `barber-launchpad-pro.lovable.app/card/${card.short_code}` },
+          ...(card.website_url ? [{ key: "website", label: "WEBSITE", value: card.website_url.replace(/^https?:\/\//, '') }] : []),
           ...(card.instagram_handle ? [{ key: "ig", label: "INSTAGRAM", value: card.instagram_handle }] : []),
         ],
         backFields: [
