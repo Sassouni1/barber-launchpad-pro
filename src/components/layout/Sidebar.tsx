@@ -24,6 +24,7 @@ import {
   Award,
   Megaphone,
   QrCode,
+  CreditCard,
   Gift,
   ClipboardCheck,
   Video,
