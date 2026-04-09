@@ -3,7 +3,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as forge from "npm:node-forge@1.3.1";
+import forge from "npm:node-forge@1.3.1";
 import JSZip from "npm:jszip@3.10.1";
 
 // Apple WWDR G4 intermediate certificate (PEM)
