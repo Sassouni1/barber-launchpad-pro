@@ -82,6 +82,8 @@ const App = () => (
             <Route path="/rewards/join/:userId" element={<RewardsJoin />} />
             <Route path="/r/:shortCode" element={<QRRedirect />} />
             <Route path="/integrations/ghl/callback" element={<GHLCallback />} />
+            <Route path="/card/:shortCode" element={<CardView />} />
+            <Route path="/business-card" element={<ProtectedRoute><BusinessCardSetup /></ProtectedRoute>} />
             <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />
             
             {/* Protected Admin Routes */}
