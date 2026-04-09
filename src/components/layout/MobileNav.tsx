@@ -1,5 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { Bot, CreditCard } from 'lucide-react';
 import { 
   LayoutDashboard, 
   BookOpen, 
