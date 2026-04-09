@@ -198,12 +198,21 @@ Deno.serve(async (req) => {
     }
 
     // Strip image: use hero/transformation image, or fall back to branded texture
-    const DEFAULT_STRIP_URL = "https://barber-launchpad-pro.lovable.app/images/wallet-strip.png";
+    const DEFAULT_STRIP_URL = "https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/business-card-assets/wallet-strip.png";
     const stripUrl = card.hero_image_url || DEFAULT_STRIP_URL;
     const stripBytes = await fetchImageAsBytes(stripUrl);
     if (stripBytes) {
       passFiles["strip.png"] = stripBytes;
       passFiles["strip@2x.png"] = stripBytes;
+    }
+
+    // Thumbnail: use logo if available
+    if (card.logo_url) {
+      const thumbBytes = await fetchImageAsBytes(card.logo_url);
+      if (thumbBytes) {
+        passFiles["thumbnail.png"] = thumbBytes;
+        passFiles["thumbnail@2x.png"] = thumbBytes;
+      }
     }
 
     // Build manifest
