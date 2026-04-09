@@ -150,6 +150,7 @@ Deno.serve(async (req) => {
           ...(card.email ? [{ key: "email", label: "EMAIL", value: card.email }] : []),
         ],
         backFields: [
+          { key: "card", label: "My Digital Card", value: `https://barber-launchpad-pro.lovable.app/card/${card.short_code}`, attributedValue: `<a href="https://barber-launchpad-pro.lovable.app/card/${card.short_code}">View & Share My Card</a>` },
           ...(card.booking_url
             ? [{ key: "booking", label: "Book Free Consultation", value: card.booking_url, attributedValue: `<a href="${card.booking_url}">Book Now</a>` }]
             : []),
