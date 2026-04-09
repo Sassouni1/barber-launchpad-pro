@@ -6,8 +6,12 @@ export interface BusinessCard {
   id: string;
   user_id: string;
   business_name: string;
+  first_name: string;
+  last_name: string;
   booking_url: string;
   gallery_url: string;
+  instagram_handle: string;
+  website_url: string;
   phone: string;
   email: string;
   logo_url: string;

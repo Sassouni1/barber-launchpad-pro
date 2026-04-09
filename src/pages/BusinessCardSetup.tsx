@@ -17,8 +17,12 @@ export default function BusinessCardSetup() {
   const uploadMutation = useUploadCardAsset();
 
   const [businessName, setBusinessName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [bookingUrl, setBookingUrl] = useState('');
   const [galleryUrl, setGalleryUrl] = useState('');
+  const [instagramHandle, setInstagramHandle] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -30,8 +34,12 @@ export default function BusinessCardSetup() {
   useEffect(() => {
     if (card) {
       setBusinessName(card.business_name);
+      setFirstName(card.first_name || '');
+      setLastName(card.last_name || '');
       setBookingUrl(card.booking_url);
       setGalleryUrl(card.gallery_url);
+      setInstagramHandle(card.instagram_handle || '');
+      setWebsiteUrl(card.website_url || '');
       setPhone(card.phone || '');
       setEmail(card.email || '');
       setLogoUrl(card.logo_url || '');
@@ -48,8 +56,12 @@ export default function BusinessCardSetup() {
       await saveMutation.mutateAsync({
         ...(card ? { id: card.id } : {}),
         business_name: businessName.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         booking_url: bookingUrl.trim(),
         gallery_url: galleryUrl.trim(),
+        instagram_handle: instagramHandle.trim(),
+        website_url: websiteUrl.trim(),
         phone: phone.trim(),
         email: email.trim(),
         logo_url: logoUrl,
@@ -103,7 +115,6 @@ export default function BusinessCardSetup() {
           </p>
         </div>
 
-        {/* Setup form */}
         <Card className="glass-card border-border/50">
           <CardHeader>
             <CardTitle className="text-lg">Card Details</CardTitle>
@@ -114,6 +125,17 @@ export default function BusinessCardSetup() {
               <Input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="Your Business Name" className="bg-secondary/50" />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>First Name</Label>
+                <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="John" className="bg-secondary/50" />
+              </div>
+              <div className="space-y-2">
+                <Label>Last Name</Label>
+                <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Doe" className="bg-secondary/50" />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>Book Consultation Link</Label>
               <Input value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} placeholder="https://booksy.com/your-link" className="bg-secondary/50" />
@@ -121,9 +143,19 @@ export default function BusinessCardSetup() {
             </div>
 
             <div className="space-y-2">
-              <Label>See Transformations Link</Label>
+              <Label>See More Transformations Link</Label>
               <Input value={galleryUrl} onChange={e => setGalleryUrl(e.target.value)} placeholder="https://instagram.com/yourbiz" className="bg-secondary/50" />
               <p className="text-xs text-muted-foreground">Instagram, gallery page, portfolio, or before/after page</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Instagram Handle</Label>
+              <Input value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} placeholder="@yourbusiness" className="bg-secondary/50" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Website</Label>
+              <Input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://yourbusiness.com" className="bg-secondary/50" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

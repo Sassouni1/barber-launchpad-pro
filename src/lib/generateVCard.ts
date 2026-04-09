@@ -4,14 +4,23 @@ export function generateVCard(card: BusinessCard): string {
   const lines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
-    `FN:${card.business_name}`,
+    `FN:${[card.first_name, card.last_name].filter(Boolean).join(' ') || card.business_name}`,
     `ORG:${card.business_name}`,
   ];
+
+  if (card.first_name || card.last_name) {
+    lines.push(`N:${card.last_name || ''};${card.first_name || ''};;;`);
+  }
 
   if (card.phone) lines.push(`TEL;TYPE=WORK:${card.phone}`);
   if (card.email) lines.push(`EMAIL;TYPE=WORK:${card.email}`);
   if (card.booking_url) lines.push(`item1.URL:${card.booking_url}`, `item1.X-ABLabel:Book Free Consultation`);
   if (card.gallery_url) lines.push(`item2.URL:${card.gallery_url}`, `item2.X-ABLabel:See Transformations`);
+  if (card.instagram_handle) {
+    const handle = card.instagram_handle.replace(/^@/, '');
+    lines.push(`item3.URL:https://instagram.com/${handle}`, `item3.X-ABLabel:Instagram`);
+  }
+  if (card.website_url) lines.push(`item4.URL:${card.website_url}`, `item4.X-ABLabel:Website`);
   if (card.logo_url) lines.push(`PHOTO;VALUE=URI:${card.logo_url}`);
 
   lines.push('END:VCARD');
