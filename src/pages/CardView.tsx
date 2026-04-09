@@ -61,17 +61,20 @@ export default function CardView() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="relative">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
+        </div>
       </div>
     );
   }
 
   if (!card) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a] text-white p-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6">
         <h1 className="text-2xl font-bold mb-2">Card Not Found</h1>
-        <p className="text-gray-400">This business card link is no longer active.</p>
+        <p className="text-muted-foreground">This business card link is no longer active.</p>
       </div>
     );
   }
@@ -79,48 +82,55 @@ export default function CardView() {
   const displayName = [card.first_name, card.last_name].filter(Boolean).join(' ');
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#1a1a1a] to-[#111] border border-amber-900/30 shadow-2xl shadow-amber-900/10">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background effects */}
+      <div className="cyber-grid fixed inset-0 pointer-events-none opacity-30" />
+      <div className="cyber-grid-fade fixed inset-0 pointer-events-none" />
+      
+      <div className="w-full max-w-sm relative z-10">
+        <div className="relative rounded-3xl overflow-hidden glass-card border border-primary/20 shadow-2xl shadow-primary/10">
           
           {/* Hero / Transformation image */}
           {card.hero_image_url ? (
             <div className="relative h-56 overflow-hidden">
               <img src={card.hero_image_url} alt="Transformation" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
             </div>
           ) : (
             <div className="relative h-56 overflow-hidden">
               <img src="/images/default-transformation.jpg" alt="Hair Transformation" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
             </div>
           )}
 
           <div className="px-6 pb-8 pt-4 space-y-6">
+            {/* Identity */}
             <div className="text-center space-y-3">
               {card.logo_url && (
-                <img src={card.logo_url} alt={card.business_name} className="h-14 mx-auto object-contain" />
+                <img src={card.logo_url} alt={card.business_name} className="h-14 mx-auto object-contain drop-shadow-lg" />
               )}
-              <h1 className="text-2xl font-bold text-white tracking-tight">
+              <h1 className="text-2xl font-bold text-foreground tracking-tight font-display">
                 {card.business_name}
               </h1>
               {displayName && (
-                <p className="text-white/70 text-base font-medium">{displayName}</p>
+                <p className="text-foreground/70 text-base font-medium">{displayName}</p>
               )}
-              <p className="text-amber-400/80 text-sm font-medium tracking-widest uppercase">
+              <p className="gold-text text-sm font-semibold tracking-[0.2em] uppercase">
                 Hair Restoration Specialist
               </p>
             </div>
 
-            <div className="h-px bg-gradient-to-r from-transparent via-amber-700/40 to-transparent" />
+            {/* Divider */}
+            <div className="neural-lines h-px" />
 
+            {/* Action buttons */}
             <div className="space-y-3">
               {card.booking_url && (
                 <a
                   href={card.booking_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-amber-500 text-black font-semibold text-sm transition-all active:scale-[0.98] hover:bg-amber-400"
+                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-semibold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30"
                 >
                   <Calendar className="w-5 h-5 shrink-0" />
                   Book Your Free Consultation
@@ -131,9 +141,9 @@ export default function CardView() {
                   href={card.gallery_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-white/10 text-white font-semibold text-sm border border-white/10 transition-all active:scale-[0.98] hover:bg-white/15"
+                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"
                 >
-                  <Sparkles className="w-5 h-5 shrink-0 text-amber-400" />
+                  <Sparkles className="w-5 h-5 shrink-0 text-primary" />
                   See More Transformations
                 </a>
               )}
@@ -142,7 +152,7 @@ export default function CardView() {
                   href={instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-white/10 text-white font-semibold text-sm border border-white/10 transition-all active:scale-[0.98] hover:bg-white/15"
+                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"
                 >
                   <Instagram className="w-5 h-5 shrink-0 text-pink-400" />
                   {card.instagram_handle}
@@ -153,42 +163,45 @@ export default function CardView() {
                   href={card.website_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-white/10 text-white font-semibold text-sm border border-white/10 transition-all active:scale-[0.98] hover:bg-white/15"
+                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"
                 >
-                  <Globe className="w-5 h-5 shrink-0 text-blue-400" />
+                  <Globe className="w-5 h-5 shrink-0 text-primary" />
                   Visit Website
                 </a>
               )}
             </div>
 
+            {/* Wallet */}
             {ios && (
               <button
                 onClick={handleAddToWallet}
                 disabled={walletLoading}
-                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-black text-white font-bold text-sm border border-white/20 transition-all active:scale-[0.98] hover:bg-gray-900 disabled:opacity-60"
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-card text-foreground font-bold text-sm border border-border transition-all active:scale-[0.98] hover:border-primary/30 disabled:opacity-60"
               >
                 {walletLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
                 Add to Apple Wallet
               </button>
             )}
 
+            {/* Save contact */}
             <button
               onClick={handleSave}
-              className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 text-black font-bold text-sm transition-all active:scale-[0.98] hover:from-amber-500 hover:to-amber-400 shadow-lg shadow-amber-500/20"
+              className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30"
             >
               <UserPlus className="w-5 h-5" />
               Save to Phone
             </button>
 
+            {/* Contact info */}
             {(card.phone || card.email) && (
               <div className="text-center space-y-1 pt-2">
                 {card.phone && (
-                  <a href={`tel:${card.phone}`} className="block text-gray-400 text-sm hover:text-white transition-colors">
+                  <a href={`tel:${card.phone}`} className="block text-muted-foreground text-sm hover:text-primary transition-colors">
                     {card.phone}
                   </a>
                 )}
                 {card.email && (
-                  <a href={`mailto:${card.email}`} className="block text-gray-400 text-sm hover:text-white transition-colors">
+                  <a href={`mailto:${card.email}`} className="block text-muted-foreground text-sm hover:text-primary transition-colors">
                     {card.email}
                   </a>
                 )}
@@ -197,7 +210,7 @@ export default function CardView() {
           </div>
         </div>
 
-        <p className="text-center text-gray-600 text-xs mt-6">
+        <p className="text-center text-muted-foreground/40 text-xs mt-6 tracking-wider uppercase">
           Powered by Barber Launch
         </p>
       </div>
