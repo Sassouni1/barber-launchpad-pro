@@ -159,9 +159,12 @@ Deno.serve(async (req) => {
             : []),
         ],
       },
-      ...(card.booking_url
-        ? { barcode: { message: card.booking_url, format: "PKBarcodeFormatQR", messageEncoding: "iso-8859-1", altText: "Scan to Book" } }
-        : {}),
+      barcode: {
+        message: `https://barber-launchpad-pro.lovable.app/card/${card.short_code}`,
+        format: "PKBarcodeFormatQR",
+        messageEncoding: "iso-8859-1",
+        altText: "Scan for My Card",
+      },
     };
 
     const passFiles: Record<string, Uint8Array> = {};
