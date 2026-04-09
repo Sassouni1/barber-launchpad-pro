@@ -1,11 +1,59 @@
 import { useParams } from 'react-router-dom';
 import { useBusinessCardByCode } from '@/hooks/useBusinessCard';
 import { downloadVCard } from '@/lib/generateVCard';
-import { Loader2, UserPlus, Calendar, Sparkles } from 'lucide-react';
+import { Loader2, UserPlus, Calendar, Sparkles, Wallet } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
+
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
 
 export default function CardView() {
   const { shortCode } = useParams<{ shortCode: string }>();
   const { data: card, isLoading } = useBusinessCardByCode(shortCode);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const ios = useMemo(() => isIOS(), []);
+
+  const handleSave = () => {
+    if (card) downloadVCard(card);
+  };
+
+  const handleAddToWallet = async () => {
+    if (!card || walletLoading) return;
+    setWalletLoading(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/generate-apple-pass`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ short_code: card.short_code }),
+        }
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to generate pass');
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${card.business_name.replace(/\s+/g, '-')}.pkpass`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Could not generate Wallet pass');
+    } finally {
+      setWalletLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -23,8 +71,6 @@ export default function CardView() {
       </div>
     );
   }
-
-  const handleSave = () => downloadVCard(card);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
@@ -92,7 +138,23 @@ export default function CardView() {
               )}
             </div>
 
-            {/* Save to phone */}
+            {/* Apple Wallet button (iOS only) */}
+            {ios && (
+              <button
+                onClick={handleAddToWallet}
+                disabled={walletLoading}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-black text-white font-bold text-sm border border-white/20 transition-all active:scale-[0.98] hover:bg-gray-900 disabled:opacity-60"
+              >
+                {walletLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Wallet className="w-5 h-5" />
+                )}
+                Add to Apple Wallet
+              </button>
+            )}
+
+            {/* Save to phone (vCard) */}
             <button
               onClick={handleSave}
               className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 text-black font-bold text-sm transition-all active:scale-[0.98] hover:from-amber-500 hover:to-amber-400 shadow-lg shadow-amber-500/20"
