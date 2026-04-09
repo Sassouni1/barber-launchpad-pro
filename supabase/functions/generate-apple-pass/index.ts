@@ -141,11 +141,11 @@ Deno.serve(async (req) => {
       description: `${card.business_name} - Hair Restoration Specialist`,
       logoText: card.business_name,
       foregroundColor: "rgb(255, 255, 255)",
-      backgroundColor: "rgb(30, 30, 30)",
-      labelColor: "rgb(255, 191, 0)",
-      generic: {
-        primaryFields: [
-          { key: "name", label: "SPECIALIST", value: displayName },
+      backgroundColor: "rgb(13, 13, 13)",
+      labelColor: "rgb(212, 175, 55)",
+      storeCard: {
+        headerFields: [
+          { key: "title", label: "SPECIALIST", value: displayName },
         ],
         secondaryFields: [
           ...(card.phone ? [{ key: "phone", label: "PHONE", value: card.phone }] : []),
@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
             ? [{ key: "instagram", label: "Instagram", value: `https://instagram.com/${(card.instagram_handle || '').replace(/^@/, '')}`, attributedValue: `<a href="https://instagram.com/${(card.instagram_handle || '').replace(/^@/, '')}">Follow on Instagram</a>` }]
             : []),
           ...(card.website_url
-            ? [{ key: "website", label: "Website", value: card.website_url, attributedValue: `<a href="${card.website_url}">Visit Website</a>` }]
+            ? [{ key: "websiteback", label: "Website", value: card.website_url, attributedValue: `<a href="${card.website_url}">Visit Website</a>` }]
             : []),
         ],
       },
