@@ -127,40 +127,40 @@ export default function BusinessCardSetup() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>First Name</Label>
+                <Label>First Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="John" className="bg-secondary/50" />
               </div>
               <div className="space-y-2">
-                <Label>Last Name</Label>
+                <Label>Last Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Doe" className="bg-secondary/50" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Book Consultation Link</Label>
+              <Label>Book Consultation Link <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} placeholder="https://booksy.com/your-link" className="bg-secondary/50" />
               <p className="text-xs text-muted-foreground">Booksy, Calendly, Square, Vagaro, StyleSeat, or any booking URL</p>
             </div>
 
             <div className="space-y-2">
-              <Label>See More Transformations Link</Label>
+              <Label>See More Transformations Link <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={galleryUrl} onChange={e => setGalleryUrl(e.target.value)} placeholder="https://instagram.com/yourbiz" className="bg-secondary/50" />
               <p className="text-xs text-muted-foreground">Instagram, gallery page, portfolio, or before/after page</p>
             </div>
 
             <div className="space-y-2">
-              <Label>Instagram Handle</Label>
+              <Label>Instagram Handle <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} placeholder="@yourbusiness" className="bg-secondary/50" />
             </div>
 
             <div className="space-y-2">
-              <Label>Website</Label>
+              <Label>Website <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://yourbusiness.com" className="bg-secondary/50" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Phone</Label>
+                <Label>Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 123-4567" className="bg-secondary/50" />
               </div>
               <div className="space-y-2">
