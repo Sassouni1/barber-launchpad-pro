@@ -129,6 +129,19 @@ export default function BusinessCardSetup() {
               <Input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="Your Business Name" className="bg-secondary/50" />
             </div>
 
+            <div className="space-y-2">
+              <Label>I am a... *</Label>
+              <Select value={title} onValueChange={setTitle}>
+                <SelectTrigger className="bg-secondary/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Barber">Barber</SelectItem>
+                  <SelectItem value="Stylist">Stylist</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>First Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
