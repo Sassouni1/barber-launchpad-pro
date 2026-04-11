@@ -140,9 +140,9 @@ Deno.serve(async (req) => {
       organizationName: card.business_name,
       description: `${card.business_name} - Hair Replacement`,
       logoText: card.business_name,
-      foregroundColor: "rgb(240, 240, 245)",
-      backgroundColor: "rgb(15, 23, 42)",
-      labelColor: "rgb(212, 175, 55)",
+      foregroundColor: "rgb(30, 30, 30)",
+      backgroundColor: "rgb(255, 255, 255)",
+      labelColor: "rgb(180, 140, 20)",
       generic: {
         primaryFields: [
           { key: "name", label: "HAIR REPLACEMENT", value: displayName },
