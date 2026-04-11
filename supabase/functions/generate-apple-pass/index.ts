@@ -138,14 +138,14 @@ Deno.serve(async (req) => {
       teamIdentifier: teamId,
       serialNumber: card.id,
       organizationName: card.business_name,
-      description: `${card.business_name} - Hair Restoration Specialist`,
+      description: `${card.business_name} - Hair Replacement`,
       logoText: card.business_name,
       foregroundColor: "rgb(255, 255, 255)",
       backgroundColor: "rgb(13, 13, 13)",
       labelColor: "rgb(212, 175, 55)",
       generic: {
         primaryFields: [
-          { key: "name", label: "SPECIALIST", value: displayName },
+          { key: "name", label: "HAIR REPLACEMENT", value: displayName },
         ],
         secondaryFields: [
           ...(card.phone ? [{ key: "phone", label: "PHONE", value: card.phone }] : []),
