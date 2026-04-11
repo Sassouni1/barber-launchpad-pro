@@ -183,7 +183,7 @@ export default function BusinessCardSetup() {
 
             {/* Hero image upload */}
             <div className="space-y-2">
-              <Label>Transformation / Hero Image</Label>
+              <Label>Transformation / Hero Image <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <input ref={heroInputRef} type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleUpload(e.target.files[0], 'hero'); }} />
               <div className="space-y-2">
                 {heroImageUrl && <img src={heroImageUrl} alt="Hero" className="w-full max-h-40 object-cover rounded-xl" />}
