@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
 
     // Build pass.json
     const displayName = [card.first_name, card.last_name].filter(Boolean).join(' ') || card.business_name;
+    const cardTitle = card.title || 'Barber';
 
     const passJson = {
       formatVersion: 1,
@@ -145,7 +146,7 @@ Deno.serve(async (req) => {
       labelColor: "rgb(180, 140, 20)",
       generic: {
         primaryFields: [
-          { key: "name", label: "HAIR REPLACEMENT", value: displayName },
+          { key: "name", label: cardTitle.toUpperCase(), value: displayName },
         ],
         secondaryFields: [
           ...(card.phone ? [{ key: "phone", label: "PHONE", value: card.phone }] : []),
@@ -172,10 +173,10 @@ Deno.serve(async (req) => {
         ],
       },
       barcode: {
-        message: `https://barber-launchpad-pro.lovable.app/card/${card.short_code}`,
+        message: `https://barber-launchpad-pro.lovable.app/rewards/join/${card.user_id}`,
         format: "PKBarcodeFormatQR",
         messageEncoding: "iso-8859-1",
-        altText: "Scan for My Card",
+        altText: "Scan to Join Rewards",
       },
     };
 
