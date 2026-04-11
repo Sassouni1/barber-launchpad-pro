@@ -216,6 +216,16 @@ export default function CardView() {
                 Add to Apple Wallet
               </button>
             )}
+            {android && (
+              <button
+                onClick={handleAddToGoogleWallet}
+                disabled={googleWalletLoading}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-card text-foreground font-bold text-sm border border-border transition-all active:scale-[0.98] hover:border-primary/30 disabled:opacity-60"
+              >
+                {googleWalletLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
+                Add to Google Wallet
+              </button>
+            )}
 
             {/* Save contact */}
             <button
