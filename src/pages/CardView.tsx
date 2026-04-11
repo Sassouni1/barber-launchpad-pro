@@ -20,7 +20,9 @@ export default function CardView() {
   const { shortCode } = useParams<{ shortCode: string }>();
   const { data: card, isLoading } = useBusinessCardByCode(shortCode);
   const [walletLoading, setWalletLoading] = useState(false);
+  const [googleWalletLoading, setGoogleWalletLoading] = useState(false);
   const ios = useMemo(() => isIOS(), []);
+  const android = useMemo(() => isAndroid(), []);
 
   const handleSave = () => {
     if (card) downloadVCard(card);
