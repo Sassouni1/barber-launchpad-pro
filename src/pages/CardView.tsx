@@ -62,6 +62,33 @@ export default function CardView() {
     }
   };
 
+  const handleAddToGoogleWallet = async () => {
+    if (!card || googleWalletLoading) return;
+    setGoogleWalletLoading(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/generate-google-wallet-pass`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ short_code: card.short_code }),
+        }
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to generate pass');
+      }
+      const { saveUrl } = await resp.json();
+      window.open(saveUrl, '_blank');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Could not generate Google Wallet pass');
+    } finally {
+      setGoogleWalletLoading(false);
+    }
+  };
+
   const instagramUrl = card?.instagram_handle
     ? `https://instagram.com/${card.instagram_handle.replace(/^@/, '')}`
     : null;
