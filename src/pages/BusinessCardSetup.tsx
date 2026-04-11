@@ -164,14 +164,14 @@ export default function BusinessCardSetup() {
                 <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 123-4567" className="bg-secondary/50" />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>Email <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" className="bg-secondary/50" />
               </div>
             </div>
 
             {/* Logo upload */}
             <div className="space-y-2">
-              <Label>Logo</Label>
+              <Label>Logo <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleUpload(e.target.files[0], 'logo'); }} />
               <div className="flex items-center gap-3">
                 {logoUrl && <img src={logoUrl} alt="Logo" className="h-10 object-contain rounded" />}
