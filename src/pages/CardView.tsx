@@ -11,6 +11,11 @@ function isIOS(): boolean {
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
+function isAndroid(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
 export default function CardView() {
   const { shortCode } = useParams<{ shortCode: string }>();
   const { data: card, isLoading } = useBusinessCardByCode(shortCode);
