@@ -19,7 +19,7 @@ export default function RewardsJoin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !userId) return;
+    if (!phone.trim() || !userId) return;
 
     setSubmitting(true);
     setError('');
