@@ -127,51 +127,51 @@ export default function BusinessCardSetup() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>First Name</Label>
+                <Label>First Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="John" className="bg-secondary/50" />
               </div>
               <div className="space-y-2">
-                <Label>Last Name</Label>
+                <Label>Last Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Doe" className="bg-secondary/50" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Book Consultation Link</Label>
+              <Label>Book Consultation Link <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} placeholder="https://booksy.com/your-link" className="bg-secondary/50" />
               <p className="text-xs text-muted-foreground">Booksy, Calendly, Square, Vagaro, StyleSeat, or any booking URL</p>
             </div>
 
             <div className="space-y-2">
-              <Label>See More Transformations Link</Label>
+              <Label>See More Transformations Link <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={galleryUrl} onChange={e => setGalleryUrl(e.target.value)} placeholder="https://instagram.com/yourbiz" className="bg-secondary/50" />
               <p className="text-xs text-muted-foreground">Instagram, gallery page, portfolio, or before/after page</p>
             </div>
 
             <div className="space-y-2">
-              <Label>Instagram Handle</Label>
+              <Label>Instagram Handle <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} placeholder="@yourbusiness" className="bg-secondary/50" />
             </div>
 
             <div className="space-y-2">
-              <Label>Website</Label>
+              <Label>Website <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://yourbusiness.com" className="bg-secondary/50" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Phone</Label>
+                <Label>Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 123-4567" className="bg-secondary/50" />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>Email <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" className="bg-secondary/50" />
               </div>
             </div>
 
             {/* Logo upload */}
             <div className="space-y-2">
-              <Label>Logo</Label>
+              <Label>Logo <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleUpload(e.target.files[0], 'logo'); }} />
               <div className="flex items-center gap-3">
                 {logoUrl && <img src={logoUrl} alt="Logo" className="h-10 object-contain rounded" />}
@@ -183,7 +183,7 @@ export default function BusinessCardSetup() {
 
             {/* Hero image upload */}
             <div className="space-y-2">
-              <Label>Transformation / Hero Image</Label>
+              <Label>Transformation / Hero Image <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <input ref={heroInputRef} type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleUpload(e.target.files[0], 'hero'); }} />
               <div className="space-y-2">
                 {heroImageUrl && <img src={heroImageUrl} alt="Hero" className="w-full max-h-40 object-cover rounded-xl" />}
