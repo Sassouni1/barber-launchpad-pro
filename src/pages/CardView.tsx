@@ -116,7 +116,7 @@ export default function CardView() {
                 <p className="text-foreground/70 text-base font-medium">{displayName}</p>
               )}
               <p className="gold-text text-sm font-semibold tracking-[0.2em] uppercase">
-                Hair Restoration Specialist
+                Hair Replacement
               </p>
             </div>
 
