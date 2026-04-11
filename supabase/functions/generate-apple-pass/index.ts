@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
       teamIdentifier: teamId,
       serialNumber: card.id,
       organizationName: card.business_name,
-      description: `${card.business_name} - Hair Replacement`,
+      description: `${card.business_name} - ${cardTitle}`,
       logoText: card.business_name,
       foregroundColor: "rgb(30, 30, 30)",
       backgroundColor: "rgb(255, 255, 255)",
