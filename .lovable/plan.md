@@ -1,53 +1,40 @@
-## Digital Business Card — Build Plan
 
-### What we're building
-A premium digital business card page that members can share via QR code. When scanned, it offers a smooth "save to phone" experience with tappable links for **Book Your Free Consultation** and **See Transformations**.
 
-### Architecture
+## Plan: Make Phone Number the Primary Client Identifier
 
-#### 1. Bridge Page (`/card/:userId`)
-- Beautiful, premium landing page showing business name, logo, transformation image
-- Detects iOS vs Android
-- Primary CTA: "Save to Phone" (downloads vCard contact)
-- Secondary: "Book Free Consultation" + "See Transformations" buttons
+Right now, phone number is optional and duplicate detection uses name + phone. The system should treat phone number as the main way to identify and track clients.
 
-#### 2. vCard (.vcf) Contact Card — The Core
-This is the **simplest method that works on ALL phones without any API keys**:
-- Saves as a phone contact with business name, logo photo, and **tappable URL links**
-- Once saved, the user opens their Contacts app → taps the contact → sees both links right there
-- Works on iPhone AND Android natively, no developer accounts needed
+### Changes
 
-The vCard will contain:
-- Business name (as contact name)
-- Logo (embedded as photo)
-- Booking URL (as a labeled URL field)
-- Transformations URL (as a labeled URL field)
-- Phone number, email if provided
+**1. Update the rewards join page (`RewardsJoin.tsx`)**
+- Make phone number required (marked with *)
+- Make name optional (still collected but not required)
+- Change the submit button to require phone instead of name
+- Update placeholder text to make phone the primary field
 
-#### 3. Admin/Member Setup Page
-- Members configure: business name, booking link, transformations link, phone, email
-- Upload logo + transformation image
-- Auto-generates QR code pointing to their card page
+**2. Update the edge function (`register-reward-client/index.ts`)**
+- Make `client_phone` required instead of `client_name`
+- Change duplicate detection to match on `user_id` + `client_phone` (instead of name + phone)
+- Keep name as optional but encouraged
 
-### What works WITHOUT custom APIs
-✅ vCard contact save (both iOS & Android)
-✅ Embedded URLs in contact card (tappable from saved contact)
-✅ Logo as contact photo
-✅ QR code generation
-✅ Bridge page with direct save flow
-✅ Any booking link (Booksy, Calendly, Square, etc.)
-✅ Any gallery link (Instagram, website, etc.)
+**3. Update the Add Client dialog in `Rewards.tsx`**
+- Make phone the required field (with *) and move it above name
+- Make name optional
+- Update validation to require phone instead of name
 
-### What would require APIs (optional enhancements, NOT built now)
-- ❌ Apple Wallet `.pkpass` → requires Apple Developer account ($99/yr) + server-side certificate signing
-- ❌ Google Wallet pass → requires Google Wallet API + service account setup
+**4. Update the hook (`useRewards.ts` > `useAddClient`)**
+- Adjust the mutation to require `client_phone` and make `client_name` optional
 
-### Database changes
-- New `business_cards` table storing member card details (name, booking_url, gallery_url, phone, email, logo, image)
+### What stays the same
+- Database schema (no migration needed — `client_phone` is already a text column, just needs the edge function/UI to enforce it)
+- Actually, we need a migration to make `client_phone` NOT NULL and `client_name` nullable
 
-### Flow
-1. Member fills out card details in settings
-2. System generates QR code → member prints/shares it
-3. Someone scans QR → lands on premium bridge page
-4. Taps "Save to Phone" → vCard downloads → saved as contact
-5. Later, opens contact → taps "Book Consultation" or "See Transformations"
+**5. Database migration**
+- `ALTER TABLE reward_clients ALTER COLUMN client_phone SET NOT NULL;`
+- `ALTER TABLE reward_clients ALTER COLUMN client_name DROP NOT NULL;`
+- Set a default for client_name so existing inserts don't break: `ALTER TABLE reward_clients ALTER COLUMN client_name SET DEFAULT '';`
+
+### Technical detail
+- Duplicate detection key becomes: `user_id` + `client_phone` (unique per specialist)
+- Display in the rewards dashboard will show phone as the identifier, with name shown when available
+
