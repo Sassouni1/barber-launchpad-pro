@@ -127,6 +127,7 @@ export type Database = {
           logo_url: string | null
           phone: string | null
           short_code: string
+          title: string
           updated_at: string
           user_id: string
           website_url: string | null
@@ -145,6 +146,7 @@ export type Database = {
           logo_url?: string | null
           phone?: string | null
           short_code: string
+          title?: string
           updated_at?: string
           user_id: string
           website_url?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           logo_url?: string | null
           phone?: string | null
           short_code?: string
+          title?: string
           updated_at?: string
           user_id?: string
           website_url?: string | null

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBusinessCard, useSaveBusinessCard, useUploadCardAsset } from '@/hooks/useBusinessCard';
 import { toast } from 'sonner';
 import { Loader2, Save, Upload, CreditCard, QrCode, ExternalLink, Copy } from 'lucide-react';
@@ -17,6 +18,7 @@ export default function BusinessCardSetup() {
   const uploadMutation = useUploadCardAsset();
 
   const [businessName, setBusinessName] = useState('');
+  const [title, setTitle] = useState('Barber');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [bookingUrl, setBookingUrl] = useState('');
@@ -34,6 +36,7 @@ export default function BusinessCardSetup() {
   useEffect(() => {
     if (card) {
       setBusinessName(card.business_name);
+      setTitle(card.title || 'Barber');
       setFirstName(card.first_name || '');
       setLastName(card.last_name || '');
       setBookingUrl(card.booking_url);
@@ -56,6 +59,7 @@ export default function BusinessCardSetup() {
       await saveMutation.mutateAsync({
         ...(card ? { id: card.id } : {}),
         business_name: businessName.trim(),
+        title,
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         booking_url: bookingUrl.trim(),
@@ -123,6 +127,19 @@ export default function BusinessCardSetup() {
             <div className="space-y-2">
               <Label>Business Name *</Label>
               <Input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="Your Business Name" className="bg-secondary/50" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>I am a... *</Label>
+              <Select value={title} onValueChange={setTitle}>
+                <SelectTrigger className="bg-secondary/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Barber">Barber</SelectItem>
+                  <SelectItem value="Stylist">Stylist</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

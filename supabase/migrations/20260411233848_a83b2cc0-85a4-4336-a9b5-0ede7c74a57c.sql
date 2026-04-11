@@ -1,0 +1,1 @@
+ALTER TABLE public.business_cards ADD COLUMN title text NOT NULL DEFAULT 'Barber';
