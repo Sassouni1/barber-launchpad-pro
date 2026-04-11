@@ -6,6 +6,7 @@ export interface BusinessCard {
   id: string;
   user_id: string;
   business_name: string;
+  title: string;
   first_name: string;
   last_name: string;
   booking_url: string;
