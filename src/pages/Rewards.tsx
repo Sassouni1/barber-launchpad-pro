@@ -365,7 +365,7 @@ export default function Rewards() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base font-semibold text-foreground">
-                        {client.client_name}
+                        {client.client_name || client.client_phone}
                       </CardTitle>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -375,7 +375,7 @@ export default function Rewards() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete {client.client_name}?</AlertDialogTitle>
+                            <AlertDialogTitle>Delete {client.client_name || client.client_phone}?</AlertDialogTitle>
                             <AlertDialogDescription>
                               This will remove the client and all their visit history. This cannot be undone.
                             </AlertDialogDescription>
