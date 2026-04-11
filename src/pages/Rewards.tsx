@@ -107,11 +107,11 @@ function AddClientDialog({
   const [showDetails, setShowDetails] = useState(false);
 
   const handleAdd = async () => {
-    if (!name.trim()) return;
+    if (!phone.trim()) return;
     try {
       await addClient.mutateAsync({
-        client_name: name.trim(),
-        client_phone: phone.trim() || undefined,
+        client_name: name.trim() || undefined,
+        client_phone: phone.trim(),
         client_email: email.trim() || undefined,
         referred_by_client_id: referredBy || undefined,
       });
@@ -135,12 +135,12 @@ function AddClientDialog({
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div>
-            <Label htmlFor="client-name">Name *</Label>
+            <Label htmlFor="client-phone">Phone *</Label>
             <Input
-              id="client-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Client name"
+              id="client-phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Client phone number"
               autoFocus
             />
           </div>
@@ -156,7 +156,7 @@ function AddClientDialog({
                   <SelectItem value="none">No referral</SelectItem>
                   {existingClients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.client_name}
+                      {c.client_name || c.client_phone}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -173,8 +173,8 @@ function AddClientDialog({
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-3 pt-2">
               <div>
-                <Label htmlFor="client-phone">Phone</Label>
-                <Input id="client-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" />
+                <Label htmlFor="client-name">Name</Label>
+                <Input id="client-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Optional" />
               </div>
               <div>
                 <Label htmlFor="client-email">Email</Label>
@@ -183,7 +183,7 @@ function AddClientDialog({
             </CollapsibleContent>
           </Collapsible>
 
-          <Button onClick={handleAdd} disabled={!name.trim() || addClient.isPending} className="w-full">
+          <Button onClick={handleAdd} disabled={!phone.trim() || addClient.isPending} className="w-full">
             {addClient.isPending ? 'Adding...' : 'Add Client'}
           </Button>
         </div>
