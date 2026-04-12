@@ -1138,8 +1138,8 @@ export type Database = {
       reward_clients: {
         Row: {
           client_email: string | null
-          client_name: string
-          client_phone: string | null
+          client_name: string | null
+          client_phone: string
           created_at: string
           id: string
           referral_redeemed_count: number
@@ -1148,8 +1148,8 @@ export type Database = {
         }
         Insert: {
           client_email?: string | null
-          client_name: string
-          client_phone?: string | null
+          client_name?: string | null
+          client_phone: string
           created_at?: string
           id?: string
           referral_redeemed_count?: number
@@ -1158,8 +1158,8 @@ export type Database = {
         }
         Update: {
           client_email?: string | null
-          client_name?: string
-          client_phone?: string | null
+          client_name?: string | null
+          client_phone?: string
           created_at?: string
           id?: string
           referral_redeemed_count?: number

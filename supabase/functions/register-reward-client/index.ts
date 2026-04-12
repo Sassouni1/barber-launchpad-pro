@@ -22,19 +22,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    const name = (client_name || "").trim();
-    if (!name || name.length > 200) {
+    const phone = (client_phone || "").trim();
+    if (!phone || phone.length > 50) {
       return new Response(
-        JSON.stringify({ error: "Name is required and must be under 200 characters" }),
+        JSON.stringify({ error: "Phone number is required and must be under 50 characters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const phone = (client_phone || "").trim() || null;
+    const name = (client_name || "").trim() || "";
     const email = (client_email || "").trim() || null;
 
-    if (phone && phone.length > 50) {
-      return new Response(JSON.stringify({ error: "Phone must be under 50 characters" }), {
+    if (name.length > 200) {
+      return new Response(JSON.stringify({ error: "Name must be under 200 characters" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -51,20 +51,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Duplicate detection: same name + phone for same user
-    let query = supabase
+    // Duplicate detection: same phone for same user
+    const { data: existing } = await supabase
       .from("reward_clients")
       .select("id")
       .eq("user_id", user_id)
-      .eq("client_name", name);
-
-    if (phone) {
-      query = query.eq("client_phone", phone);
-    } else {
-      query = query.is("client_phone", null);
-    }
-
-    const { data: existing } = await query.maybeSingle();
+      .eq("client_phone", phone)
+      .maybeSingle();
 
     if (existing) {
       return new Response(

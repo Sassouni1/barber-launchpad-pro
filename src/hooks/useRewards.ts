@@ -135,16 +135,16 @@ export function useAddClient() {
 
   return useMutation({
     mutationFn: async (data: {
-      client_name: string;
-      client_phone?: string;
+      client_name?: string;
+      client_phone: string;
       client_email?: string;
       referred_by_client_id?: string;
     }) => {
       const { error } = await supabase
         .from('reward_clients' as any)
         .insert({
-          client_name: data.client_name,
-          client_phone: data.client_phone || null,
+          client_name: data.client_name || '',
+          client_phone: data.client_phone,
           client_email: data.client_email || null,
           referred_by_client_id: data.referred_by_client_id || null,
           user_id: user!.id,

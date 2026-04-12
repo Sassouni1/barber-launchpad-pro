@@ -19,7 +19,7 @@ export default function RewardsJoin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !userId) return;
+    if (!phone.trim() || !userId) return;
 
     setSubmitting(true);
     setError('');
@@ -28,8 +28,8 @@ export default function RewardsJoin() {
       const { data, error: fnError } = await supabase.functions.invoke('register-reward-client', {
         body: {
           user_id: userId,
-          client_name: name.trim(),
-          client_phone: phone.trim() || undefined,
+          client_name: name.trim() || undefined,
+          client_phone: phone.trim(),
           client_email: email.trim() || undefined,
         },
       });
@@ -82,24 +82,24 @@ export default function RewardsJoin() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Your Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-                required
-                maxLength={200}
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">Phone Number *</Label>
               <Input
                 id="phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Optional"
+                placeholder="Enter your phone number"
+                required
                 maxLength={50}
+              />
+            </div>
+            <div>
+              <Label htmlFor="name">Your Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Optional"
+                maxLength={200}
               />
             </div>
             <div>
@@ -114,7 +114,7 @@ export default function RewardsJoin() {
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={!name.trim() || submitting}>
+            <Button type="submit" className="w-full" disabled={!phone.trim() || submitting}>
               {submitting ? 'Signing up...' : 'Sign Up'}
             </Button>
           </form>
