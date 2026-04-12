@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBusinessCard, useSaveBusinessCard, useUploadCardAsset } from '@/hooks/useBusinessCard';
+import { useCardScans } from '@/hooks/useCardScans';
 import { toast } from 'sonner';
-import { Loader2, Save, Upload, CreditCard, QrCode, ExternalLink, Copy } from 'lucide-react';
+import { Loader2, Save, Upload, CreditCard, QrCode, ExternalLink, Copy, Eye, TrendingUp } from 'lucide-react';
 
 const BASE_URL = 'https://barber-launchpad-pro.lovable.app';
 
@@ -16,6 +17,7 @@ export default function BusinessCardSetup() {
   const { data: card, isLoading } = useBusinessCard();
   const saveMutation = useSaveBusinessCard();
   const uploadMutation = useUploadCardAsset();
+  const { data: scanData } = useCardScans(card?.id);
 
   const [businessName, setBusinessName] = useState('');
   const [title, setTitle] = useState('Barber');
@@ -247,6 +249,53 @@ export default function BusinessCardSetup() {
               <p className="text-xs text-muted-foreground text-center">
                 Share this QR code or link. When scanned, clients can save your card directly to their phone contacts with tappable links.
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Scan History */}
+        {card && scanData && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                Card Scan Analytics
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-xl bg-secondary/50 border border-primary/10">
+                  <p className="text-2xl font-bold text-foreground">{scanData.totalScans}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Total Scans</p>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-secondary/50 border border-primary/10">
+                  <p className="text-2xl font-bold text-foreground">{scanData.last7Days}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Last 7 Days</p>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-secondary/50 border border-primary/10">
+                  <p className="text-2xl font-bold text-foreground">{scanData.last30Days}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Last 30 Days</p>
+                </div>
+              </div>
+
+              {scanData.recentScans.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Recent Scans</p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {scanData.recentScans.map((scan) => (
+                      <div key={scan.id} className="flex items-center justify-between text-sm p-2 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-muted-foreground capitalize">{scan.source}</span>
+                        </div>
+                        <span className="text-muted-foreground text-xs">
+                          {new Date(scan.scanned_at).toLocaleDateString()} {new Date(scan.scanned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
