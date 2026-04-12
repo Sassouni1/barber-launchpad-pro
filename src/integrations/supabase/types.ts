@@ -172,6 +172,33 @@ export type Database = {
         }
         Relationships: []
       }
+      card_scans: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          scanned_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id?: string
+          scanned_at?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          scanned_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       certificate_layouts: {
         Row: {
           course_id: string
