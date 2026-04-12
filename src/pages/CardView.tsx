@@ -1,9 +1,10 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useBusinessCardByCode } from '@/hooks/useBusinessCard';
 import { downloadVCard } from '@/lib/generateVCard';
-import { Loader2, UserPlus, Calendar, Sparkles, Wallet, Instagram, Globe } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Loader2, UserPlus, Calendar, Sparkles, Wallet, Instagram, Globe, Gift, Users } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -18,11 +19,22 @@ function isAndroid(): boolean {
 
 export default function CardView() {
   const { shortCode } = useParams<{ shortCode: string }>();
+  const [searchParams] = useSearchParams();
   const { data: card, isLoading } = useBusinessCardByCode(shortCode);
   const [walletLoading, setWalletLoading] = useState(false);
   const [googleWalletLoading, setGoogleWalletLoading] = useState(false);
   const ios = useMemo(() => isIOS(), []);
   const android = useMemo(() => isAndroid(), []);
+
+  // Log scan when card loads
+  useEffect(() => {
+    if (!card) return;
+    const source = searchParams.get('src') || 'direct';
+    (supabase as any)
+      .from('card_scans')
+      .insert({ card_id: card.id, user_id: card.user_id, source })
+      .then(() => {});
+  }, [card?.id]);
 
   const handleSave = () => {
     if (card) downloadVCard(card);
@@ -92,6 +104,8 @@ export default function CardView() {
   const instagramUrl = card?.instagram_handle
     ? `https://instagram.com/${card.instagram_handle.replace(/^@/, '')}`
     : null;
+
+  const rewardsJoinUrl = card ? `/rewards/join/${card.user_id}` : '#';
 
   if (isLoading) {
     return (
@@ -203,6 +217,30 @@ export default function CardView() {
                   Visit Website
                 </a>
               )}
+            </div>
+
+            {/* Divider */}
+            <div className="neural-lines h-px" />
+
+            {/* Rewards & Referral Section */}
+            <div className="space-y-3">
+              <p className="text-center text-xs text-muted-foreground uppercase tracking-widest font-semibold">
+                Loyalty & Referrals
+              </p>
+              <a
+                href={rewardsJoinUrl}
+                className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-primary/10 text-foreground font-semibold text-sm border border-primary/20 transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
+              >
+                <Gift className="w-5 h-5 shrink-0 text-primary" />
+                Join Rewards Program
+              </a>
+              <a
+                href={`${rewardsJoinUrl}?ref=true`}
+                className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"
+              >
+                <Users className="w-5 h-5 shrink-0 text-primary" />
+                Refer a Friend
+              </a>
             </div>
 
             {/* Wallet */}
