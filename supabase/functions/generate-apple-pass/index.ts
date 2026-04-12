@@ -173,10 +173,10 @@ Deno.serve(async (req) => {
         ],
       },
       barcode: {
-        message: `https://barber-launchpad-pro.lovable.app/rewards/join/${card.user_id}`,
+        message: `https://barber-launchpad-pro.lovable.app/card/${card.short_code}`,
         format: "PKBarcodeFormatQR",
         messageEncoding: "iso-8859-1",
-        altText: "Scan to Join Rewards",
+        altText: "Scan to View Card",
       },
     };
 
