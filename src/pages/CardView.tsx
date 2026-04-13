@@ -40,6 +40,16 @@ export default function CardView() {
     if (card) downloadVCard(card);
   };
 
+  const handleSaveAll = async () => {
+    if (!card) return;
+    downloadVCard(card);
+    if (ios) {
+      await handleAddToWallet();
+    } else if (android) {
+      await handleAddToGoogleWallet();
+    }
+  };
+
   const handleAddToWallet = async () => {
     if (!card || walletLoading) return;
     setWalletLoading(true);
