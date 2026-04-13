@@ -40,6 +40,16 @@ export default function CardView() {
     if (card) downloadVCard(card);
   };
 
+  const handleSaveAll = async () => {
+    if (!card) return;
+    downloadVCard(card);
+    if (ios) {
+      await handleAddToWallet();
+    } else if (android) {
+      await handleAddToGoogleWallet();
+    }
+  };
+
   const handleAddToWallet = async () => {
     if (!card || walletLoading) return;
     setWalletLoading(true);
@@ -243,35 +253,14 @@ export default function CardView() {
               </a>
             </div>
 
-            {/* Wallet */}
-            {ios && (
-              <button
-                onClick={handleAddToWallet}
-                disabled={walletLoading}
-                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-card text-foreground font-bold text-sm border border-border transition-all active:scale-[0.98] hover:border-primary/30 disabled:opacity-60"
-              >
-                {walletLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
-                Add to Apple Wallet
-              </button>
-            )}
-            {android && (
-              <button
-                onClick={handleAddToGoogleWallet}
-                disabled={googleWalletLoading}
-                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-card text-foreground font-bold text-sm border border-border transition-all active:scale-[0.98] hover:border-primary/30 disabled:opacity-60"
-              >
-                {googleWalletLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
-                Add to Google Wallet
-              </button>
-            )}
-
-            {/* Save contact */}
+            {/* Combined save: vCard + wallet */}
             <button
-              onClick={handleSave}
-              className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30"
+              onClick={handleSaveAll}
+              disabled={walletLoading || googleWalletLoading}
+              className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60"
             >
-              <UserPlus className="w-5 h-5" />
-              Save to Phone
+              {(walletLoading || googleWalletLoading) ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
+              Save Contact
             </button>
 
             {/* Contact info */}
