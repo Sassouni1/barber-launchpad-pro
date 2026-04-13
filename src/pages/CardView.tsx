@@ -249,15 +249,29 @@ export default function CardView() {
               </a>
             </div>
 
-            {/* Combined save: vCard + wallet */}
-            <button
-              onClick={handleSaveAll}
-              disabled={walletLoading || googleWalletLoading}
-              className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60"
-            >
-              {(walletLoading || googleWalletLoading) ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
-              Save Contact
-            </button>
+            {/* Save contact / Add to Wallet */}
+            {!contactSaved ? (
+              <button
+                onClick={handleSaveContact}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30"
+              >
+                <UserPlus className="w-5 h-5" />
+                Save Contact
+              </button>
+            ) : (
+              <button
+                onClick={ios ? handleAddToWallet : handleAddToGoogleWallet}
+                disabled={walletLoading || googleWalletLoading}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60 animate-in fade-in duration-300"
+              >
+                {(walletLoading || googleWalletLoading) ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Wallet className="w-5 h-5" />
+                )}
+                {ios ? 'Add to Apple Wallet' : 'Add to Google Wallet'}
+              </button>
+            )}
 
             {/* Contact info */}
             {(card.phone || card.email) && (
