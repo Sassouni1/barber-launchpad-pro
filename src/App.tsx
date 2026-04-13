@@ -35,6 +35,7 @@ import Rewards from "./pages/Rewards";
 import RewardsJoin from "./pages/RewardsJoin";
 import QRRedirect from "./pages/QRRedirect";
 import CardView from "./pages/CardView";
+import ClientHub from "./pages/ClientHub";
 import BusinessCardSetup from "./pages/BusinessCardSetup";
 import HairSystemChecklist from "./pages/HairSystemChecklist";
 import GHLCallback from "./pages/GHLCallback";
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/r/:shortCode" element={<QRRedirect />} />
             <Route path="/integrations/ghl/callback" element={<GHLCallback />} />
             <Route path="/card/:shortCode" element={<CardView />} />
+            <Route path="/client/:userId" element={<ClientHub />} />
             <Route path="/business-card" element={<ProtectedRoute><BusinessCardSetup /></ProtectedRoute>} />
             <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />
             
