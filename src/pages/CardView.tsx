@@ -23,8 +23,10 @@ export default function CardView() {
   const { data: card, isLoading } = useBusinessCardByCode(shortCode);
   const [walletLoading, setWalletLoading] = useState(false);
   const [googleWalletLoading, setGoogleWalletLoading] = useState(false);
+  const [contactSaved, setContactSaved] = useState(false);
   const ios = useMemo(() => isIOS(), []);
   const android = useMemo(() => isAndroid(), []);
+  const showWalletStep = ios || android;
 
   // Log scan when card loads
   useEffect(() => {
