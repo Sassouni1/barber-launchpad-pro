@@ -23,8 +23,10 @@ export default function CardView() {
   const { data: card, isLoading } = useBusinessCardByCode(shortCode);
   const [walletLoading, setWalletLoading] = useState(false);
   const [googleWalletLoading, setGoogleWalletLoading] = useState(false);
+  const [contactSaved, setContactSaved] = useState(false);
   const ios = useMemo(() => isIOS(), []);
   const android = useMemo(() => isAndroid(), []);
+  const showWalletStep = ios || android;
 
   // Log scan when card loads
   useEffect(() => {
@@ -36,27 +38,23 @@ export default function CardView() {
       .then(() => {});
   }, [card?.id]);
 
-  const handleSave = () => {
-    if (card) downloadVCard(card);
-  };
-
-  const handleSaveAll = async () => {
+  const handleSaveContact = () => {
     if (!card) return;
-
-    // Wallet pass first (opens native dialog / redirect), then vCard after delay
-    if (ios) {
-      await handleAddToWallet();
-      // Small delay so the .pkpass dialog appears before vCard download
-      setTimeout(() => downloadVCard(card), 1500);
-    } else if (android) {
-      await handleAddToGoogleWallet();
-      // Google Wallet opens in new tab, safe to download vCard right after
-      setTimeout(() => downloadVCard(card), 500);
+    downloadVCard(card);
+    if (showWalletStep) {
+      setContactSaved(true);
+      toast.success('Contact saved! Tap below to add to your Wallet.');
     } else {
-      // Desktop — just download vCard
-      downloadVCard(card);
+      toast.success('Contact saved!');
     }
   };
+
+  // Auto-reset wallet prompt after 30s
+  useEffect(() => {
+    if (!contactSaved) return;
+    const t = setTimeout(() => setContactSaved(false), 30000);
+    return () => clearTimeout(t);
+  }, [contactSaved]);
 
   const handleAddToWallet = async () => {
     if (!card || walletLoading) return;
@@ -251,15 +249,29 @@ export default function CardView() {
               </a>
             </div>
 
-            {/* Combined save: vCard + wallet */}
-            <button
-              onClick={handleSaveAll}
-              disabled={walletLoading || googleWalletLoading}
-              className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60"
-            >
-              {(walletLoading || googleWalletLoading) ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
-              Save Contact
-            </button>
+            {/* Save contact / Add to Wallet */}
+            {!contactSaved ? (
+              <button
+                onClick={handleSaveContact}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30"
+              >
+                <UserPlus className="w-5 h-5" />
+                Save Contact
+              </button>
+            ) : (
+              <button
+                onClick={ios ? handleAddToWallet : handleAddToGoogleWallet}
+                disabled={walletLoading || googleWalletLoading}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60 animate-in fade-in duration-300"
+              >
+                {(walletLoading || googleWalletLoading) ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Wallet className="w-5 h-5" />
+                )}
+                {ios ? 'Add to Apple Wallet' : 'Add to Google Wallet'}
+              </button>
+            )}
 
             {/* Contact info */}
             {(card.phone || card.email) && (
