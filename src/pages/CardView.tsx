@@ -38,27 +38,23 @@ export default function CardView() {
       .then(() => {});
   }, [card?.id]);
 
-  const handleSave = () => {
-    if (card) downloadVCard(card);
-  };
-
-  const handleSaveAll = async () => {
+  const handleSaveContact = () => {
     if (!card) return;
-
-    // Wallet pass first (opens native dialog / redirect), then vCard after delay
-    if (ios) {
-      await handleAddToWallet();
-      // Small delay so the .pkpass dialog appears before vCard download
-      setTimeout(() => downloadVCard(card), 1500);
-    } else if (android) {
-      await handleAddToGoogleWallet();
-      // Google Wallet opens in new tab, safe to download vCard right after
-      setTimeout(() => downloadVCard(card), 500);
+    downloadVCard(card);
+    if (showWalletStep) {
+      setContactSaved(true);
+      toast.success('Contact saved! Tap below to add to your Wallet.');
     } else {
-      // Desktop — just download vCard
-      downloadVCard(card);
+      toast.success('Contact saved!');
     }
   };
+
+  // Auto-reset wallet prompt after 30s
+  useEffect(() => {
+    if (!contactSaved) return;
+    const t = setTimeout(() => setContactSaved(false), 30000);
+    return () => clearTimeout(t);
+  }, [contactSaved]);
 
   const handleAddToWallet = async () => {
     if (!card || walletLoading) return;
