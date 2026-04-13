@@ -232,24 +232,14 @@ export default function CardView() {
             {/* Divider */}
             <div className="neural-lines h-px" />
 
-            {/* Rewards & Referral Section */}
+            {/* Client Hub */}
             <div className="space-y-3">
-              <p className="text-center text-xs text-muted-foreground uppercase tracking-widest font-semibold">
-                Loyalty & Referrals
-              </p>
               <a
-                href={rewardsJoinUrl}
+                href={`/client/${card.user_id}`}
                 className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-primary/10 text-foreground font-semibold text-sm border border-primary/20 transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
               >
                 <Gift className="w-5 h-5 shrink-0 text-primary" />
-                Join Rewards Program
-              </a>
-              <a
-                href={`${rewardsJoinUrl}?ref=true`}
-                className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"
-              >
-                <Users className="w-5 h-5 shrink-0 text-primary" />
-                Refer a Friend
+                Rewards & Referrals
               </a>
             </div>
 

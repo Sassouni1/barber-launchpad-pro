@@ -35,6 +35,7 @@ import Rewards from "./pages/Rewards";
 import RewardsJoin from "./pages/RewardsJoin";
 import QRRedirect from "./pages/QRRedirect";
 import CardView from "./pages/CardView";
+import ClientHub from "./pages/ClientHub";
 import BusinessCardSetup from "./pages/BusinessCardSetup";
 import HairSystemChecklist from "./pages/HairSystemChecklist";
 import GHLCallback from "./pages/GHLCallback";
