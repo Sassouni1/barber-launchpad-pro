@@ -1,5 +1,8 @@
 project_id = "ynooatjtgstgwfssnira"
 
+[functions.geocode-zip]
+verify_jwt = false
+
 [functions.download-file]
 verify_jwt = false
 

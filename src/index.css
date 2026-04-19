@@ -62,6 +62,32 @@
     --sidebar-ring: 45 100% 50%;
   }
 
+  /* Light theme — used on find.menshairexpert.com (public directory) */
+  .light-theme {
+    --background: 0 0% 100%;
+    --foreground: 220 15% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 12%;
+    --primary: 38 70% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 15% 12%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 40%;
+    --accent: 38 70% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 38 70% 42%;
+    --gold: 38 70% 42%;
+    --gold-light: 38 70% 55%;
+    --gold-dark: 35 75% 32%;
+  }
+
   .dark {
     /* Same as root - dark by default */
     --background: 220 20% 4%;
