@@ -48,8 +48,13 @@ import { AuthProvider } from "./contexts/AuthContext";
 const queryClient = new QueryClient();
 
 const DIRECTORY_HOST = "find.menshairexpert.com";
-const isDirectoryHost = () =>
-  typeof window !== "undefined" && window.location.hostname === DIRECTORY_HOST;
+const isDirectoryHost = () => {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  const search = window.location.search;
+  // Allow ?directory=1 query param to preview the directory app on any domain
+  return host === DIRECTORY_HOST || search.includes("directory=1");
+};
 
 const DirectoryApp = () => (
   <BrowserRouter>
