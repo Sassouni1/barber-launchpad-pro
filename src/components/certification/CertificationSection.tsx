@@ -4,6 +4,7 @@ import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, Chevron
 import { Button } from '@/components/ui/button';
 import { QuizProgressList } from './QuizProgressList';
 import { CertificationModal } from './CertificationModal';
+import { DirectoryEnrollmentStep } from './DirectoryEnrollmentStep';
 import {
   useCertificationEligibility,
   useCertificationPhotos,
@@ -34,6 +35,7 @@ interface CertificationSectionProps {
 export function CertificationSection({ courseId }: CertificationSectionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   const [nudgeAmount, setNudgeAmount] = useState(20);
@@ -366,12 +368,17 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
         <CertificationModal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false);
+            // Already-certified users: offer to update directory listing
+            setIsDirectoryOpen(true);
+          }}
           onSubmit={handleSubmitCertification}
           certificateUrl={generatedCertificateUrl}
           isGenerating={issueCertification.isPending}
           defaultName={existingCertification.certificate_name}
         />
+        <DirectoryEnrollmentStep open={isDirectoryOpen} onClose={() => setIsDirectoryOpen(false)} />
       </>
     );
   }
@@ -496,11 +503,16 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
       <CertificationModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          // After first-time certification, prompt to join the public directory
+          if (generatedCertificateUrl) setIsDirectoryOpen(true);
+        }}
         onSubmit={handleSubmitCertification}
         certificateUrl={generatedCertificateUrl}
         isGenerating={issueCertification.isPending}
       />
+      <DirectoryEnrollmentStep open={isDirectoryOpen} onClose={() => setIsDirectoryOpen(false)} />
     </>
   );
 }
