@@ -61,10 +61,10 @@ export function useMyListing(userId: string | undefined) {
 export function useUpsertListing() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: Partial<SpecialistListing> & { user_id: string }) => {
+    mutationFn: async (payload: Partial<SpecialistListing> & { user_id: string; business_name: string; city: string; state: string; zip_code: string }) => {
       const { data, error } = await supabase
         .from("specialist_directory")
-        .upsert(payload, { onConflict: "user_id" })
+        .upsert(payload as any, { onConflict: "user_id" })
         .select()
         .single();
       if (error) throw error;
