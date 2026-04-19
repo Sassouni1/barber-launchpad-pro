@@ -1268,6 +1268,78 @@ export type Database = {
         }
         Relationships: []
       }
+      specialist_directory: {
+        Row: {
+          approved: boolean
+          approved_at: string | null
+          bio: string | null
+          booking_url: string | null
+          business_name: string
+          city: string
+          created_at: string
+          email: string | null
+          first_name: string | null
+          hero_photo_url: string | null
+          id: string
+          instagram_handle: string | null
+          last_name: string | null
+          latitude: number | null
+          longitude: number | null
+          phone: string | null
+          state: string
+          updated_at: string
+          user_id: string
+          visible: boolean
+          zip_code: string
+        }
+        Insert: {
+          approved?: boolean
+          approved_at?: string | null
+          bio?: string | null
+          booking_url?: string | null
+          business_name: string
+          city: string
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          hero_photo_url?: string | null
+          id?: string
+          instagram_handle?: string | null
+          last_name?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          phone?: string | null
+          state: string
+          updated_at?: string
+          user_id: string
+          visible?: boolean
+          zip_code: string
+        }
+        Update: {
+          approved?: boolean
+          approved_at?: string | null
+          bio?: string | null
+          booking_url?: string | null
+          business_name?: string
+          city?: string
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          hero_photo_url?: string | null
+          id?: string
+          instagram_handle?: string | null
+          last_name?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          phone?: string | null
+          state?: string
+          updated_at?: string
+          user_id?: string
+          visible?: boolean
+          zip_code?: string
+        }
+        Relationships: []
+      }
       todo_subtasks: {
         Row: {
           created_at: string
@@ -1701,6 +1773,24 @@ export type Database = {
         Args: { code: string }
         Returns: {
           destination_url: string
+        }[]
+      }
+      search_specialists: {
+        Args: { radius_miles?: number; search_lat: number; search_lng: number }
+        Returns: {
+          bio: string
+          booking_url: string
+          business_name: string
+          city: string
+          distance_miles: number
+          email: string
+          first_name: string
+          hero_photo_url: string
+          id: string
+          instagram_handle: string
+          last_name: string
+          phone: string
+          state: string
         }[]
       }
       store_encrypted_token: {
