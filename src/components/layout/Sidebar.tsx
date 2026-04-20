@@ -30,6 +30,7 @@ import {
   Video,
   MessageSquare,
   Bot,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -196,6 +197,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/todos', icon: ListTodo, label: 'Todos Manager' },
     { to: '/admin/products', icon: Package, label: 'Products Manager' },
     { to: '/admin/templates', icon: Award, label: 'Template Submissions' },
+    { to: '/admin/directory', icon: MapPin, label: 'Directory' },
     { to: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
   ];
 
