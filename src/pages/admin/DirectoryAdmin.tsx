@@ -3,12 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAllListings, useApproveListing } from "@/hooks/useSpecialistDirectory";
-import { Check, X, MapPin, ExternalLink } from "lucide-react";
+import { Check, X, MapPin, ExternalLink, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
+import { AddSpecialistDialog } from "@/components/admin/AddSpecialistDialog";
 
 const DirectoryAdmin = () => {
   const { data: listings = [], isLoading } = useAllListings();
   const approve = useApproveListing();
+  const [addOpen, setAddOpen] = useState(false);
 
   const pending = listings.filter((l) => !l.approved);
   const approved = listings.filter((l) => l.approved);
@@ -74,10 +77,17 @@ const DirectoryAdmin = () => {
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto p-6 space-y-8">
-        <div>
-          <h1 className="text-3xl font-display font-bold gold-text">Specialist Directory</h1>
-          <p className="text-muted-foreground">Approve listings shown on find.menshairexpert.com</p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-display font-bold gold-text">Specialist Directory</h1>
+            <p className="text-muted-foreground">Approve listings shown on find.menshairexpert.com</p>
+          </div>
+          <Button onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Add Specialist
+          </Button>
         </div>
+
+        <AddSpecialistDialog open={addOpen} onClose={() => setAddOpen(false)} />
 
         {isLoading && <p className="text-muted-foreground">Loading…</p>}
 
