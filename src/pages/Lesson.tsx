@@ -38,6 +38,7 @@ import {
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
+import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 
 // Memoized video player – survives parent re-renders
 const VideoPlayer = React.memo(({ src, title }: { src: string; title: string }) => (
@@ -475,15 +476,24 @@ export default function Lesson() {
           )}
         </div>
 
-        {/* Video Player - only show if video exists and not a certification requirement lesson */}
-        {module.video_url?.trim() && !(module as any).is_certification_requirement && (
-          <VideoPlayer src={vimeoEmbedUrl} title={module.title} />
-        )}
+        {/* Video Player - only show if video exists and not a special lesson */}
+        {module.video_url?.trim() &&
+          !(module as any).is_certification_requirement &&
+          !(module as any).is_directory_enrollment && (
+            <VideoPlayer src={vimeoEmbedUrl} title={module.title} />
+          )}
 
         {/* Photo Upload Section for certification requirement modules */}
         {(module as any).is_certification_requirement && (
           <div className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <PhotoUploadSection courseId={module.courseId} />
+          </div>
+        )}
+
+        {/* Directory enrollment lesson */}
+        {(module as any).is_directory_enrollment && (
+          <div className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
+            <DirectoryEnrollmentLesson />
           </div>
         )}
 

@@ -81,17 +81,26 @@ export function useSetHeroPhoto() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ userId, photoId }: { userId: string; photoId: string }) => {
-      // unset all
       await supabase
         .from("directory_photos")
         .update({ is_hero: false })
         .eq("user_id", userId);
-      const { error } = await supabase
+      const { data: photo, error } = await supabase
         .from("directory_photos")
         .update({ is_hero: true })
-        .eq("id", photoId);
+        .eq("id", photoId)
+        .select()
+        .single();
       if (error) throw error;
+      // sync to specialist_directory.hero_photo_url
+      await supabase
+        .from("specialist_directory")
+        .update({ hero_photo_url: photo.file_url })
+        .eq("user_id", userId);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["directory-photos"] }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["directory-photos", vars.userId] });
+      qc.invalidateQueries({ queryKey: ["specialist-listing", vars.userId] });
+    },
   });
 }
