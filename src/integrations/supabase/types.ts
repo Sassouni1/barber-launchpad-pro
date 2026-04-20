@@ -404,6 +404,53 @@ export type Database = {
         }
         Relationships: []
       }
+      directory_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          file_path: string
+          file_url: string
+          id: string
+          is_hero: boolean
+          is_proof: boolean
+          listing_id: string | null
+          order_index: number
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          file_path: string
+          file_url: string
+          id?: string
+          is_hero?: boolean
+          is_proof?: boolean
+          listing_id?: string | null
+          order_index?: number
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          file_path?: string
+          file_url?: string
+          id?: string
+          is_hero?: boolean
+          is_proof?: boolean
+          listing_id?: string | null
+          order_index?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_photos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "specialist_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dynamic_todo_items: {
         Row: {
           created_at: string
@@ -862,6 +909,7 @@ export type Database = {
           has_quiz: boolean
           id: string
           is_certification_requirement: boolean
+          is_directory_enrollment: boolean
           is_published: boolean
           notes_content: string | null
           order_index: number
@@ -879,6 +927,7 @@ export type Database = {
           has_quiz?: boolean
           id?: string
           is_certification_requirement?: boolean
+          is_directory_enrollment?: boolean
           is_published?: boolean
           notes_content?: string | null
           order_index?: number
@@ -896,6 +945,7 @@ export type Database = {
           has_quiz?: boolean
           id?: string
           is_certification_requirement?: boolean
+          is_directory_enrollment?: boolean
           is_published?: boolean
           notes_content?: string | null
           order_index?: number
