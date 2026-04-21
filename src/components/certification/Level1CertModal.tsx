@@ -208,8 +208,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       date_x: layout.date_x,
       date_y: layout.date_y,
       date_font_size: layout.date_font_size,
+      date_font_family: layout.date_font_family || 'name',
     });
-  }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size]);
+  }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size, layout?.date_font_family]);
 
   const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingCert;
 
