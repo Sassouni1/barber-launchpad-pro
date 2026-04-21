@@ -210,16 +210,7 @@ function ProofStep({
         <div>
           <h3 className="font-semibold">Take a photo holding your certification</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            This is how you get listed on the public Men's Hair Expert directory at{" "}
-            <a
-              href="https://find.menshairexpert.com"
-              target="_blank"
-              rel="noreferrer"
-              className="text-primary underline underline-offset-2 hover:opacity-80"
-            >
-              find.menshairexpert.com
-            </a>{" "}
-            so new clients can find and book you.
+            How you get listed so new clients can find and book you.
           </p>
           <ol className="text-sm text-muted-foreground mt-3 space-y-2 list-decimal list-inside">
             <li>Print your certificate or pull it up on another screen.</li>
