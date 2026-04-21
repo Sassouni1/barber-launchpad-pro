@@ -124,7 +124,15 @@ function Header({ step }: { step: Step }) {
             Get Added to the Men's Hair Expert Search Database
           </h2>
           <p className="text-sm text-muted-foreground">
-            Build your public profile on find.menshairexpert.com
+            Build your public profile on{" "}
+            <a
+              href="https://find.menshairexpert.com"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline underline-offset-2 hover:opacity-80"
+            >
+              find.menshairexpert.com
+            </a>
           </p>
         </div>
       </div>
