@@ -82,7 +82,7 @@ function useAllLessonsCompleted() {
         return { completed: true, completedCount: totalCount, totalCount };
       }
 
-      // Get user's completed lessons
+      // Get user's completed lessons (from video watch tracking)
       const { data: progress, error: progressError } = await supabase
         .from('user_progress')
         .select('lesson_id')
@@ -92,11 +92,32 @@ function useAllLessonsCompleted() {
 
       if (progressError) throw progressError;
 
-      const completedCount = progress?.length || 0;
-      return { 
-        completed: completedCount >= totalLessons, 
-        completedCount, 
-        totalCount: totalLessons 
+      // Also: any lesson belonging to a module whose quiz the user passed (≥80%)
+      // counts as completed — passing the quiz proves mastery of that lesson.
+      const { data: attempts } = await supabase
+        .from('user_quiz_attempts')
+        .select('module_id, score, total_questions')
+        .eq('user_id', user.id)
+        .in('module_id', moduleIds);
+
+      const passedModules = new Set<string>();
+      for (const a of attempts || []) {
+        const pct = a.total_questions > 0 ? (a.score / a.total_questions) * 100 : 0;
+        if (pct >= 80) passedModules.add(a.module_id);
+      }
+
+      const completedLessonIds = new Set<string>(
+        (progress || []).map((p) => p.lesson_id)
+      );
+      for (const l of lessons || []) {
+        if (passedModules.has(l.module_id)) completedLessonIds.add(l.id);
+      }
+
+      const completedCount = completedLessonIds.size;
+      return {
+        completed: completedCount >= totalLessons,
+        completedCount,
+        totalCount: totalLessons,
       };
     },
     enabled: !!user?.id,
