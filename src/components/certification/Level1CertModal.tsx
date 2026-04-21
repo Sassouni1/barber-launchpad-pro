@@ -372,6 +372,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     date_x: layout.date_x,
     date_y: layout.date_y,
     date_font_size: layout.date_font_size,
+    date_font_family: layout.date_font_family || 'name',
   } : null);
 
   const formattedPreviewDate = new Date().toLocaleDateString('en-US', {
