@@ -286,7 +286,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const handleSetFontSize = (value: number) => {
     setDraftLayout((current) => {
       if (!current) return current;
-      return { ...current, name_font_size: Math.max(8, value) };
+      return { ...current, name_font_size: value };
     });
   };
 
