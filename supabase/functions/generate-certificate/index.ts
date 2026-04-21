@@ -11,16 +11,17 @@ const corsHeaders = {
 const DEFAULT_NAME_CONFIG = {
   baseFontSize: 72,
   minFontSize: 48,
-  color: '#CEA77C',
+  color: '#1A1A1A',
 };
 
 const DEFAULT_DATE_CONFIG = {
   fontSize: 24,
-  color: '#CEA77C',
+  color: '#1A1A1A',
 };
 
-// Font will be fetched from Supabase storage (uploaded by admin)
-const FONT_PATH = 'fonts/OldeEnglish.ttf';
+// Google Fonts URLs (direct TTF) — Cinzel SemiBold for name, Montserrat Medium for date
+const NAME_FONT_URL = 'https://github.com/google/fonts/raw/main/ofl/cinzel/static/Cinzel-SemiBold.ttf';
+const DATE_FONT_URL = 'https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Medium.ttf';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
