@@ -252,9 +252,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
 
   const handleNudgePosition = async (direction: 'left' | 'right' | 'center' | 'up' | 'down') => {
     if (!layout || !courseId) return;
-    
+
     let updates: { name_x?: number; name_y?: number } = {};
-    
+
     if (direction === 'center') {
       updates.name_x = 684; // Template center (1368 / 2)
     } else if (direction === 'left' || direction === 'right') {
@@ -262,11 +262,21 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     } else if (direction === 'up' || direction === 'down') {
       updates.name_y = direction === 'up' ? layout.name_y - nudgeAmount : layout.name_y + nudgeAmount;
     }
-    
+
     await updateLayout.mutateAsync({ courseId, updates });
-    
-    // Auto-regenerate if user has a certificate
+    // No auto-regenerate. Use "Apply & Regenerate" to rebuild the certificate.
+  };
+
+  const handleSetExactPosition = async (axis: 'x' | 'y', value: number) => {
+    if (!layout || !courseId) return;
+    const updates: { name_x?: number; name_y?: number } =
+      axis === 'x' ? { name_x: value } : { name_y: value };
+    await updateLayout.mutateAsync({ courseId, updates });
+  };
+
+  const handleApplyAndRegenerate = () => {
     if (existingCertification) {
+      setGeneratedCertificateUrl(null);
       handleSubmitCertification(existingCertification.certificate_name);
     }
   };
@@ -477,9 +487,17 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                         
                         {/* X Position Controls */}
                         <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            X = {layout.name_x}px
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">X =</span>
+                            <input
+                              type="number"
+                              value={layout.name_x}
+                              onChange={(e) => handleSetExactPosition('x', Number(e.target.value) || 0)}
+                              className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              disabled={updateLayout.isPending}
+                            />
+                            <span className="text-xs text-muted-foreground">px</span>
+                          </div>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -510,12 +528,20 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                             </Button>
                           </div>
                         </div>
-                        
+
                         {/* Y Position Controls */}
                         <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Y = {layout.name_y}px
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Y =</span>
+                            <input
+                              type="number"
+                              value={layout.name_y}
+                              onChange={(e) => handleSetExactPosition('y', Number(e.target.value) || 0)}
+                              className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              disabled={updateLayout.isPending}
+                            />
+                            <span className="text-xs text-muted-foreground">px</span>
+                          </div>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -537,11 +563,29 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                             </Button>
                           </div>
                         </div>
-                        
-                        {(updateLayout.isPending || issueCertification.isPending) && (
+
+                        {existingCertification && (
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={handleApplyAndRegenerate}
+                            disabled={updateLayout.isPending || issueCertification.isPending}
+                          >
+                            {issueCertification.isPending ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Regenerating...
+                              </>
+                            ) : (
+                              'Apply & Regenerate Preview'
+                            )}
+                          </Button>
+                        )}
+
+                        {updateLayout.isPending && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Regenerating...
+                            Saving position...
                           </div>
                         )}
                       </div>
