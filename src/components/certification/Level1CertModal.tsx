@@ -687,18 +687,6 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                               </Button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium text-muted-foreground">Date Font Family:</span>
-                            <select
-                              value={previewLayout.date_font_family}
-                              onChange={(e) => setDraftLayout((c) => c ? { ...c, date_font_family: e.target.value } : c)}
-                              className="h-8 px-2 text-sm rounded-md border border-input bg-background"
-                            >
-                              <option value="name">Same as Name (recommended)</option>
-                              <option value="serif">Serif (EB Garamond)</option>
-                              <option value="sans-serif">Sans-Serif (Montserrat)</option>
-                            </select>
-                          </div>
                         </div>
 
                         {existingCertification && (
