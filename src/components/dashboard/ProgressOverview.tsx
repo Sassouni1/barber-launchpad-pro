@@ -113,7 +113,9 @@ export function ProgressOverview() {
     for (const mod of quizModules) {
       const passedQuiz = passedModuleIds.has(mod.id);
       const hasProgress = progressModuleIds.has(mod.id);
-      if (isLegacy ? passedQuiz : (passedQuiz || hasProgress)) {
+      // Passing the quiz always counts as completion. For new members,
+      // watching the video also counts (legacy members must pass the quiz).
+      if (passedQuiz || (!isLegacy && hasProgress)) {
         completedCount++;
       }
     }
