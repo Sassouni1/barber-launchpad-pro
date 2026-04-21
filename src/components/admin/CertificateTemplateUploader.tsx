@@ -70,7 +70,7 @@ export function CertificateTemplateUploader() {
       )}
 
       {uploadedUrl && !error && (
-        <div className="flex items-center gap-2 text-green-500 text-sm">
+        <div className="flex items-center gap-2 text-primary text-sm">
           <Check className="w-4 h-4" />
           Template uploaded
         </div>
