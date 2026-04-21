@@ -198,6 +198,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/products', icon: Package, label: 'Products Manager' },
     { to: '/admin/templates', icon: Award, label: 'Template Submissions' },
     { to: '/admin/directory', icon: MapPin, label: 'Directory' },
+    { to: '/admin/qr-codes', icon: QrCode, label: 'QR Codes' },
     { to: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
   ];
 

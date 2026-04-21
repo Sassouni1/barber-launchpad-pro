@@ -18,6 +18,7 @@ import ProductsManager from "./pages/admin/ProductsManager";
 import TemplateSubmissions from "./pages/admin/TemplateSubmissions";
 import Feedback from "./pages/admin/Feedback";
 import DirectoryAdmin from "./pages/admin/DirectoryAdmin";
+import QRCodesAdmin from "./pages/admin/QRCodes";
 import AionPage from "./pages/AionPage";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
@@ -113,6 +114,7 @@ const MemberApp = () => (
         <Route path="/admin/templates" element={<ProtectedRoute requireAdmin><TemplateSubmissions /></ProtectedRoute>} />
         <Route path="/admin/feedback" element={<ProtectedRoute requireAdmin><Feedback /></ProtectedRoute>} />
         <Route path="/admin/directory" element={<ProtectedRoute requireAdmin><DirectoryAdmin /></ProtectedRoute>} />
+        <Route path="/admin/qr-codes" element={<ProtectedRoute requireAdmin><QRCodesAdmin /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
