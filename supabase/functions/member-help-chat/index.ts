@@ -445,7 +445,7 @@ serve(async (req) => {
     if (isBareGreeting(messages)) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) {
-        return new Response(buildGreetingSSE("Hey! 👋 What's on your mind today?"), {
+        return new Response(buildGreetingSSE("Hi there 👋 How can I help you today?"), {
           headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
         });
       }
