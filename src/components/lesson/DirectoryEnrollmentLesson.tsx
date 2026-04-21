@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import directoryProofExample from "@/assets/directory-proof-example.png";
 
 type Step = "proof" | "details" | "gallery";
 
@@ -216,6 +217,20 @@ function ProofStep({
         </div>
       </div>
 
+      {!existingProof && (
+        <div className="flex items-center gap-3 pl-8">
+          <div className="rounded-lg overflow-hidden border border-primary/40 ring-1 ring-primary/20 w-24 h-24 flex-shrink-0">
+            <img
+              src={directoryProofExample}
+              alt="Example of someone holding their certification"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Example — take a photo like this
+          </p>
+        </div>
+      )}
       {existingProof ? (
         <div className="space-y-3">
           <div className="rounded-lg overflow-hidden border border-primary/30">
