@@ -6,6 +6,8 @@ import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   Collapsible,
@@ -56,16 +58,50 @@ interface CoursesProps {
 }
 
 export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
-  const { data: allCourses = [], isLoading } = useCourses();
+  const { data: allCoursesRaw = [], isLoading } = useCourses();
+  const { user } = useAuth();
+  const { isAdmin } = useAuth();
+
+  // Check if user has earned a Level 1 certification for any hair-system course.
+  // Until certified, the "Get Added to the Database" module is hidden.
+  const { data: hasHairSystemCert } = useQuery({
+    queryKey: ['has-hair-system-cert', user?.id],
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: hsCourses } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('category', 'hair-system');
+      const ids = (hsCourses || []).map((c) => c.id);
+      if (ids.length === 0) return false;
+      const { data: certs } = await supabase
+        .from('certifications')
+        .select('id')
+        .eq('user_id', user!.id)
+        .in('course_id', ids)
+        .limit(1);
+      return (certs || []).length > 0;
+    },
+  });
+
+  // Hide the directory enrollment module from the lesson list until the user
+  // is certified (admins always see it for management).
+  const allCourses = allCoursesRaw.map((c) => ({
+    ...c,
+    modules: (c.modules || []).filter((m: any) =>
+      !m.is_directory_enrollment || hasHairSystemCert || isAdmin
+    ),
+  }));
+
   // For desktop: filter by courseType prop
-  const courses = allCourses.filter(course => 
+  const courses = allCourses.filter(course =>
     (course as any).category === courseType
   );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [showCertification, setShowCertification] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isTabletOrDesktop = useIsTabletOrDesktop();
