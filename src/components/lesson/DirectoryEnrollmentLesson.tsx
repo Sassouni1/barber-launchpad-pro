@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import directoryProofExample from "@/assets/directory-proof-example.png";
 
 type Step = "proof" | "details" | "gallery";
 
