@@ -538,7 +538,7 @@ export default function Lesson() {
                 )}
               </Button>
             )}
-            {nextModule && (
+            {nextModule && !(module as any).is_directory_enrollment && (
               <Button
                 variant="outline"
                 onClick={() => navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
