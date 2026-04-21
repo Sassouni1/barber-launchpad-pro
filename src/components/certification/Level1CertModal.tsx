@@ -623,6 +623,58 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                           </div>
                         </div>
 
+                        <div className="pt-3 mt-2 border-t border-border space-y-2">
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date Position</div>
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-muted-foreground">Date X =</span>
+                              <input
+                                type="number"
+                                value={previewLayout.date_x}
+                                onChange={(e) => setDraftLayout((c) => c ? { ...c, date_x: Number(e.target.value) || 0 } : c)}
+                                className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              />
+                              <span className="text-xs text-muted-foreground">px</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-muted-foreground">Date Y =</span>
+                              <input
+                                type="number"
+                                value={previewLayout.date_y}
+                                onChange={(e) => setDraftLayout((c) => c ? { ...c, date_y: Number(e.target.value) || 0 } : c)}
+                                className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              />
+                              <span className="text-xs text-muted-foreground">px</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-muted-foreground">Date Font:</span>
+                              <input
+                                type="number"
+                                value={previewLayout.date_font_size}
+                                onChange={(e) => setDraftLayout((c) => c ? { ...c, date_font_size: Number(e.target.value) || 0 } : c)}
+                                className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              />
+                              <span className="text-xs text-muted-foreground">px</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button variant="outline" size="sm" onClick={() => setDraftLayout((c) => c ? { ...c, date_x: c.date_x - nudgeAmount } : c)}>
+                                <ChevronLeft className="w-4 h-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => setDraftLayout((c) => c ? { ...c, date_x: c.date_x + nudgeAmount } : c)}>
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => setDraftLayout((c) => c ? { ...c, date_y: c.date_y - nudgeAmount } : c)}>
+                                <ChevronLeft className="w-4 h-4 rotate-90" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => setDraftLayout((c) => c ? { ...c, date_y: c.date_y + nudgeAmount } : c)}>
+                                <ChevronRight className="w-4 h-4 rotate-90" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
                         {existingCertification && (
                           <Button
                             size="sm"
