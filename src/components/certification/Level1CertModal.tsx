@@ -466,7 +466,23 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       {existingCertification?.certificate_name || 'Your Name'}
                     </div>
                   )}
-                </div>
+                  {showAdminControls && previewLayout && naturalSize.w > 0 && renderedSize.w > 0 && (
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${(previewLayout.date_x / naturalSize.w) * 100}%`,
+                        top: `${(previewLayout.date_y / naturalSize.h) * 100}%`,
+                        transform: 'translateY(-50%)',
+                        fontFamily: 'sans-serif',
+                        fontSize: `${(previewLayout.date_font_size / naturalSize.w) * renderedSize.w}px`,
+                        color: layout?.date_color || '#1A1A1A',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {formattedPreviewDate}
+                    </div>
+                  )}
 
                 <div className="flex gap-2">
                   <Button className="flex-1 gold-gradient" onClick={handleDownload}>
