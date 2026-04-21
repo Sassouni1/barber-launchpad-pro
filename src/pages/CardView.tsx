@@ -25,9 +25,9 @@ export default function CardView() {
   const [walletLoading, setWalletLoading] = useState(false);
   const [googleWalletLoading, setGoogleWalletLoading] = useState(false);
   const [contactSaved, setContactSaved] = useState(false);
+  const [walletPromptOpen, setWalletPromptOpen] = useState(false);
   const ios = useMemo(() => isIOS(), []);
   const android = useMemo(() => isAndroid(), []);
-  const showWalletStep = ios || android;
 
   // Log scan when card loads
   useEffect(() => {
@@ -42,18 +42,14 @@ export default function CardView() {
   const handleSaveContact = () => {
     if (!card) return;
     downloadVCard(card);
-    if (showWalletStep) {
-      setContactSaved(true);
-      toast.success('Contact saved! Tap below to add to your Wallet.');
-    } else {
-      toast.success('Contact saved!');
-    }
+    setContactSaved(true);
+    toast.success("Contact saved! We'll prompt you to add to Wallet shortly.");
   };
 
-  // Auto-reset wallet prompt after 30s
+  // Auto-open the wallet prompt 10 seconds after the contact is saved
   useEffect(() => {
     if (!contactSaved) return;
-    const t = setTimeout(() => setContactSaved(false), 30000);
+    const t = setTimeout(() => setWalletPromptOpen(true), 10000);
     return () => clearTimeout(t);
   }, [contactSaved]);
 
