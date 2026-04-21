@@ -311,23 +311,6 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         </button>
                       ))}
-                      {/* Directory enrollment as final highlighted step */}
-                      {directoryModule && (
-                        <button
-                          key={directoryModule.id}
-                          onClick={() => navigate(`/courses/${category.id}/lesson/${directoryModule.id}`)}
-                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 active:scale-[0.98]"
-                        >
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
-                            <Globe className="w-5 h-5 text-primary-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm truncate gold-text">{directoryModule.title}</h4>
-                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{directoryModule.description || 'Final step before certification'}</p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
-                        </button>
-                      )}
                       {/* Level 1 Certification entry for hair-system */}
                       {category.id === 'hair-system' && course.id && (
                         <button
@@ -343,6 +326,23 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-sm truncate gold-text">Level 1 Certification</h4>
                             <p className="text-xs text-muted-foreground">Complete all lessons to unlock</p>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+                        </button>
+                      )}
+                      {/* Directory enrollment as final highlighted step (after certification) */}
+                      {directoryModule && (
+                        <button
+                          key={directoryModule.id}
+                          onClick={() => navigate(`/courses/${category.id}/lesson/${directoryModule.id}`)}
+                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 active:scale-[0.98]"
+                        >
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
+                            <Globe className="w-5 h-5 text-primary-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm truncate gold-text">{directoryModule.title}</h4>
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{directoryModule.description || 'Final step before certification'}</p>
                           </div>
                           <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
                         </button>
@@ -501,33 +501,16 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                               </button>
                             );
                           })}
-                          {/* Directory enrollment as final highlighted step */}
-                          {directoryModule && (
-                            <button
-                              key={directoryModule.id}
-                              onClick={() => navigate(`/courses/${courseType}/lesson/${directoryModule.id}`)}
-                              className="w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 hover:border-primary/60"
-                            >
-                              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient text-primary-foreground shadow-md">
-                                <Globe className="w-5 h-5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm mb-1 gold-text">{directoryModule.title}</h4>
-                                {directoryModule.description && (
-                                  <p className="text-xs text-muted-foreground line-clamp-2">{directoryModule.description}</p>
-                                )}
-                              </div>
-                              <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
-                            </button>
-                          )}
                         </>
                       );
                     })()}
                   </div>
 
                   {/* Level 1 Certification entry for hair-system on desktop */}
-                  {courseType === 'hair-system' && (
-                    <div className="pl-2 mt-2">
+                  {courseType === 'hair-system' && (() => {
+                    const directoryModule = (course.modules || []).find((m: any) => m.is_directory_enrollment);
+                    return (
+                    <div className="pl-2 mt-2 space-y-2">
                       <button
                         onClick={() => {
                           setShowCertification(true);
@@ -541,12 +524,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                             : 'border-primary/30 bg-primary/5 shadow-md shadow-black/20'
                         )}
                       >
-                        <div className={cn(
-                          'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
-                          showCertification && !selectedModule
-                            ? 'gold-gradient text-primary-foreground shadow-md'
-                            : 'gold-gradient text-primary-foreground'
-                        )}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all gold-gradient text-primary-foreground shadow-md">
                           <Award className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -563,8 +541,27 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           showCertification && !selectedModule ? "text-primary" : "text-muted-foreground"
                         )} />
                       </button>
+                      {/* Directory enrollment after certification */}
+                      {directoryModule && (
+                        <button
+                          onClick={() => navigate(`/courses/${courseType}/lesson/${directoryModule.id}`)}
+                          className="w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 hover:border-primary/60"
+                        >
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient text-primary-foreground shadow-md">
+                            <Globe className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm mb-1 gold-text">{directoryModule.title}</h4>
+                            {directoryModule.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-2">{directoryModule.description}</p>
+                            )}
+                          </div>
+                          <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
+                        </button>
+                      )}
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
               ))}
             </div>
