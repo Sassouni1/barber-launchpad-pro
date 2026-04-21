@@ -160,7 +160,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   const [renderedSize, setRenderedSize] = useState({ w: 0, h: 0 });
   const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
-  const [draftLayout, setDraftLayout] = useState<{ name_x: number; name_y: number; name_font_size: number } | null>(null);
+  const [draftLayout, setDraftLayout] = useState<{ name_x: number; name_y: number; name_font_size: number; date_x: number; date_y: number; date_font_size: number } | null>(null);
 
   const { isAdmin, isAdminModeActive } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
@@ -205,8 +205,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       name_x: layout.name_x,
       name_y: layout.name_y,
       name_font_size: layout.name_font_size,
+      date_x: layout.date_x,
+      date_y: layout.date_y,
+      date_font_size: layout.date_font_size,
     });
-  }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size]);
+  }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size]);
 
   const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingCert;
 
@@ -299,6 +302,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
         name_x: draftLayout.name_x,
         name_y: draftLayout.name_y,
         name_font_size: draftLayout.name_font_size,
+        date_x: draftLayout.date_x,
+        date_y: draftLayout.date_y,
+        date_font_size: draftLayout.date_font_size,
       },
     });
 
@@ -361,7 +367,16 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     name_x: layout.name_x,
     name_y: layout.name_y,
     name_font_size: layout.name_font_size,
+    date_x: layout.date_x,
+    date_y: layout.date_y,
+    date_font_size: layout.date_font_size,
   } : null);
+
+  const formattedPreviewDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   const requirements = [
     {
@@ -449,6 +464,23 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       }}
                     >
                       {existingCertification?.certificate_name || 'Your Name'}
+                    </div>
+                  )}
+                  {showAdminControls && previewLayout && naturalSize.w > 0 && renderedSize.w > 0 && (
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${(previewLayout.date_x / naturalSize.w) * 100}%`,
+                        top: `${(previewLayout.date_y / naturalSize.h) * 100}%`,
+                        transform: 'translateY(-50%)',
+                        fontFamily: 'sans-serif',
+                        fontSize: `${(previewLayout.date_font_size / naturalSize.w) * renderedSize.w}px`,
+                        color: layout?.date_color || '#1A1A1A',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {formattedPreviewDate}
                     </div>
                   )}
                 </div>
@@ -588,6 +620,58 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                               {nudgeAmount}px
                               <ChevronRight className="w-4 h-4 ml-1 rotate-90" />
                             </Button>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 mt-2 border-t border-border space-y-2">
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date Position</div>
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-muted-foreground">Date X =</span>
+                              <input
+                                type="number"
+                                value={previewLayout.date_x}
+                                onChange={(e) => setDraftLayout((c) => c ? { ...c, date_x: Number(e.target.value) || 0 } : c)}
+                                className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              />
+                              <span className="text-xs text-muted-foreground">px</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-muted-foreground">Date Y =</span>
+                              <input
+                                type="number"
+                                value={previewLayout.date_y}
+                                onChange={(e) => setDraftLayout((c) => c ? { ...c, date_y: Number(e.target.value) || 0 } : c)}
+                                className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              />
+                              <span className="text-xs text-muted-foreground">px</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-muted-foreground">Date Font:</span>
+                              <input
+                                type="number"
+                                value={previewLayout.date_font_size}
+                                onChange={(e) => setDraftLayout((c) => c ? { ...c, date_font_size: Number(e.target.value) || 0 } : c)}
+                                className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              />
+                              <span className="text-xs text-muted-foreground">px</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button variant="outline" size="sm" onClick={() => setDraftLayout((c) => c ? { ...c, date_x: c.date_x - nudgeAmount } : c)}>
+                                <ChevronLeft className="w-4 h-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => setDraftLayout((c) => c ? { ...c, date_x: c.date_x + nudgeAmount } : c)}>
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => setDraftLayout((c) => c ? { ...c, date_y: c.date_y - nudgeAmount } : c)}>
+                                <ChevronLeft className="w-4 h-4 rotate-90" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => setDraftLayout((c) => c ? { ...c, date_y: c.date_y + nudgeAmount } : c)}>
+                                <ChevronRight className="w-4 h-4 rotate-90" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
 
