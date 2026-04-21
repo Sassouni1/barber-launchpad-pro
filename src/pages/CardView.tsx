@@ -5,6 +5,7 @@ import { Loader2, UserPlus, Calendar, Sparkles, Wallet, Instagram, Globe, Gift, 
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -24,9 +25,9 @@ export default function CardView() {
   const [walletLoading, setWalletLoading] = useState(false);
   const [googleWalletLoading, setGoogleWalletLoading] = useState(false);
   const [contactSaved, setContactSaved] = useState(false);
+  const [walletPromptOpen, setWalletPromptOpen] = useState(false);
   const ios = useMemo(() => isIOS(), []);
   const android = useMemo(() => isAndroid(), []);
-  const showWalletStep = ios || android;
 
   // Log scan when card loads
   useEffect(() => {
@@ -41,18 +42,14 @@ export default function CardView() {
   const handleSaveContact = () => {
     if (!card) return;
     downloadVCard(card);
-    if (showWalletStep) {
-      setContactSaved(true);
-      toast.success('Contact saved! Tap below to add to your Wallet.');
-    } else {
-      toast.success('Contact saved!');
-    }
+    setContactSaved(true);
+    toast.success("Contact saved! We'll prompt you to add to Wallet shortly.");
   };
 
-  // Auto-reset wallet prompt after 30s
+  // Auto-open the wallet prompt 10 seconds after the contact is saved
   useEffect(() => {
     if (!contactSaved) return;
-    const t = setTimeout(() => setContactSaved(false), 30000);
+    const t = setTimeout(() => setWalletPromptOpen(true), 10000);
     return () => clearTimeout(t);
   }, [contactSaved]);
 
@@ -249,8 +246,8 @@ export default function CardView() {
               </a>
             </div>
 
-            {/* Save contact / Add to Wallet */}
-            {!contactSaved ? (
+            {/* Save contact + manual Add to Wallet (always visible) */}
+            <div className="space-y-3">
               <button
                 onClick={handleSaveContact}
                 className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30"
@@ -258,20 +255,19 @@ export default function CardView() {
                 <UserPlus className="w-5 h-5" />
                 Save Contact
               </button>
-            ) : (
               <button
                 onClick={ios ? handleAddToWallet : handleAddToGoogleWallet}
                 disabled={walletLoading || googleWalletLoading}
-                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60 animate-in fade-in duration-300"
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/20 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/40 disabled:opacity-60"
               >
                 {(walletLoading || googleWalletLoading) ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <Wallet className="w-5 h-5" />
+                  <Wallet className="w-5 h-5 text-primary" />
                 )}
-                {ios ? 'Add to Apple Wallet' : 'Add to Google Wallet'}
+                {ios ? 'Add to Apple Wallet' : android ? 'Add to Google Wallet' : 'Add to Wallet'}
               </button>
-            )}
+            </div>
 
             {/* Contact info */}
             {(card.phone || card.email) && (
@@ -295,6 +291,49 @@ export default function CardView() {
           Powered by Barber Launch
         </p>
       </div>
+
+      {/* Auto wallet prompt — opens 10s after Save Contact */}
+      <Dialog open={walletPromptOpen} onOpenChange={setWalletPromptOpen}>
+        <DialogContent className="bg-card border border-primary/20 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              Add to Wallet
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Keep this card handy — add a branded pass to your phone's Wallet for one-tap access anytime.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            {(ios || (!ios && !android)) && (
+              <button
+                onClick={handleAddToWallet}
+                disabled={walletLoading}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60"
+              >
+                {walletLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
+                Add to Apple Wallet
+              </button>
+            )}
+            {(android || (!ios && !android)) && (
+              <button
+                onClick={handleAddToGoogleWallet}
+                disabled={googleWalletLoading}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60"
+              >
+                {googleWalletLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
+                Add to Google Wallet
+              </button>
+            )}
+            <button
+              onClick={() => setWalletPromptOpen(false)}
+              className="w-full px-5 py-3 rounded-2xl bg-secondary/50 text-secondary-foreground text-sm font-medium border border-primary/10 hover:bg-secondary/70 transition-all"
+            >
+              Maybe later
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
