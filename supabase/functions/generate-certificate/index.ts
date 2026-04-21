@@ -65,10 +65,9 @@ serve(async (req) => {
     // Fetch the certificate template
     console.log('Fetching template...');
     const templatePath = layout.template_path || 'template/certificate-template.png';
-    // Cache-bust so newly uploaded templates are picked up immediately
-    const templateUrl = `${supabaseUrl}/storage/v1/object/public/certificates/${templatePath}?t=${Date.now()}`;
+    const templateUrl = `${supabaseUrl}/storage/v1/object/public/certificates/${templatePath}`;
     
-    const templateResponse = await fetch(templateUrl, { cache: 'no-store' });
+    const templateResponse = await fetch(templateUrl);
     console.log('Template fetch:', { path: templatePath, status: templateResponse.status });
     
     if (!templateResponse.ok) {
