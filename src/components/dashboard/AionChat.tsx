@@ -148,7 +148,10 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   }, [conversationId]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = bottomRef.current;
+    if (!el) return;
+    // Scroll only the nearest scrollable ancestor (the chat ScrollArea), not the page.
+    el.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
   }, [messages]);
 
   useEffect(() => {
