@@ -286,7 +286,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const handleSetFontSize = (value: number) => {
     setDraftLayout((current) => {
       if (!current) return current;
-      return { ...current, name_font_size: Math.max(8, value) };
+      return { ...current, name_font_size: value };
     });
   };
 
@@ -534,9 +534,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                             <input
                               type="number"
                               value={previewLayout.name_font_size}
-                              onChange={(e) => handleSetFontSize(Number(e.target.value) || 8)}
+                              onChange={(e) => handleSetFontSize(e.target.value === '' ? 0 : Number(e.target.value))}
                               className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
-                              min={8}
                             />
                             <span className="text-xs text-muted-foreground">px</span>
                           </div>
