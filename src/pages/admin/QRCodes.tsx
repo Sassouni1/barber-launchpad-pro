@@ -152,7 +152,7 @@ function QRCodeRow({
             <QRCodeCanvas
               value={qrUrl}
               size={180}
-              level="H"
+              level="L"
               includeMargin={false}
               fgColor={fgColor}
               bgColor="rgba(0,0,0,0)"
