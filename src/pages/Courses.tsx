@@ -349,7 +349,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 
                 {/* Certification Section when selected on mobile */}
                 {showCertification && expandedCourse === 'hair-system' && (
