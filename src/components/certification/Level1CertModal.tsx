@@ -282,23 +282,36 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   };
 
   const handleDownload = async () => {
-    const url = generatedCertificateUrl || existingCertification?.certificate_url;
-    if (!url) return;
-    
+    const baseUrl = generatedCertificateUrl || existingCertification?.certificate_url;
+    if (!baseUrl) return;
+
+    const ts = Date.now();
+    const downloadUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${ts}`;
+    const fileName = `certificate-${existingCertification?.certificate_name?.replace(/\s+/g, '-') || 'level1'}.png`;
+
     try {
-      const response = await fetch(url);
+      const response = await fetch(downloadUrl, { cache: 'no-store', mode: 'cors' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `certificate-${existingCertification?.certificate_name?.replace(/\s+/g, '-') || 'level1'}.png`;
+      a.download = fileName;
+      a.rel = 'noopener';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
     } catch (error) {
       console.error('Download failed:', error);
-      window.open(url, '_blank');
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
   };
 
