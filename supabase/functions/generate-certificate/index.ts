@@ -193,15 +193,21 @@ serve(async (req) => {
     }
     console.log('Name drawn with mixed-case sizing at:', { x: nameX, y: nameY });
 
-    // Draw date
+    // Draw date - default to using the name font/color when configured as 'name'
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
-    ctx.font = `${dateFontSize}px ${dateFontFamily}`;
+    const dateFamilyChoice = layout.date_font_family || 'name';
+    const resolvedDateFamily = dateFamilyChoice === 'name' ? nameFontFamily : dateFontFamily;
+    const resolvedDateColor = dateFamilyChoice === 'name'
+      ? (layout.name_color || DEFAULT_NAME_CONFIG.color)
+      : (layout.date_color || DEFAULT_DATE_CONFIG.color);
+
+    ctx.font = `${dateFontSize}px ${resolvedDateFamily}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = layout.date_color || DEFAULT_DATE_CONFIG.color;
-    
+    ctx.fillStyle = resolvedDateColor;
+
     ctx.fillText(formattedDate, dateX, dateY);
-    console.log('Date font:', { family: dateFontFamily, size: dateFontSize });
+    console.log('Date font:', { family: resolvedDateFamily, size: dateFontSize, color: resolvedDateColor });
     console.log('Date drawn at:', { x: dateX, y: dateY });
 
     // DEBUG MODE: Draw ONE vertical line at name_x

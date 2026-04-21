@@ -160,7 +160,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   const [renderedSize, setRenderedSize] = useState({ w: 0, h: 0 });
   const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
-  const [draftLayout, setDraftLayout] = useState<{ name_x: number; name_y: number; name_font_size: number; date_x: number; date_y: number; date_font_size: number } | null>(null);
+  const [draftLayout, setDraftLayout] = useState<{ name_x: number; name_y: number; name_font_size: number; date_x: number; date_y: number; date_font_size: number; date_font_family: string } | null>(null);
 
   const { isAdmin, isAdminModeActive } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
@@ -208,8 +208,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       date_x: layout.date_x,
       date_y: layout.date_y,
       date_font_size: layout.date_font_size,
+      date_font_family: layout.date_font_family || 'name',
     });
-  }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size]);
+  }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size, layout?.date_font_family]);
 
   const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingCert;
 
@@ -305,6 +306,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
         date_x: draftLayout.date_x,
         date_y: draftLayout.date_y,
         date_font_size: draftLayout.date_font_size,
+        date_font_family: draftLayout.date_font_family,
       },
     });
 
@@ -370,6 +372,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     date_x: layout.date_x,
     date_y: layout.date_y,
     date_font_size: layout.date_font_size,
+    date_font_family: layout.date_font_family || 'name',
   } : null);
 
   const formattedPreviewDate = new Date().toLocaleDateString('en-US', {
@@ -473,9 +476,20 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                         left: `${(previewLayout.date_x / naturalSize.w) * 100}%`,
                         top: `${(previewLayout.date_y / naturalSize.h) * 100}%`,
                         transform: 'translateY(-50%)',
-                        fontFamily: 'sans-serif',
+                        fontFamily:
+                          previewLayout.date_font_family === 'name'
+                            ? '"Cinzel", serif'
+                            : previewLayout.date_font_family === 'sans-serif'
+                            ? 'sans-serif'
+                            : previewLayout.date_font_family === 'serif'
+                            ? 'serif'
+                            : `"${previewLayout.date_font_family}", sans-serif`,
+                        fontWeight: previewLayout.date_font_family === 'name' ? 600 : 400,
                         fontSize: `${(previewLayout.date_font_size / naturalSize.w) * renderedSize.w}px`,
-                        color: layout?.date_color || '#1A1A1A',
+                        color:
+                          previewLayout.date_font_family === 'name'
+                            ? layout?.name_color || '#1A1A1A'
+                            : layout?.date_color || '#1A1A1A',
                         whiteSpace: 'nowrap',
                         lineHeight: 1,
                       }}
@@ -672,6 +686,18 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                                 <ChevronRight className="w-4 h-4 rotate-90" />
                               </Button>
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-muted-foreground">Date Font Family:</span>
+                            <select
+                              value={previewLayout.date_font_family}
+                              onChange={(e) => setDraftLayout((c) => c ? { ...c, date_font_family: e.target.value } : c)}
+                              className="h-8 px-2 text-sm rounded-md border border-input bg-background"
+                            >
+                              <option value="name">Same as Name (recommended)</option>
+                              <option value="serif">Serif (EB Garamond)</option>
+                              <option value="sans-serif">Sans-Serif (Montserrat)</option>
+                            </select>
                           </div>
                         </div>
 
