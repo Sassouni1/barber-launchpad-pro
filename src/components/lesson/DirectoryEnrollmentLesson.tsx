@@ -219,7 +219,7 @@ function ProofStep({
 
       {!existingProof && (
         <div className="flex items-center gap-3 pl-8">
-          <div className="rounded-lg overflow-hidden border border-primary/40 ring-1 ring-primary/20 w-24 h-24 flex-shrink-0">
+          <div className="rounded-lg overflow-hidden border border-primary/40 ring-1 ring-primary/20 w-40 h-40 flex-shrink-0">
             <img
               src={directoryProofExample}
               alt="Example of someone holding their certification"
