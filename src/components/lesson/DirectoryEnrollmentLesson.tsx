@@ -193,10 +193,10 @@ function ProofStep({
       {existingProof ? (
         <div className="space-y-3">
           <div className="rounded-lg overflow-hidden border border-primary/30">
-            <img src={existingProof.file_url} alt="Your proof" className="w-full" />
+            <img src={existingProof.file_url} alt="Holding certification" className="w-full" />
           </div>
           <div className="flex items-center gap-2 text-green-400 text-sm">
-            <CheckCircle2 className="w-4 h-4" /> Proof photo on file
+            <CheckCircle2 className="w-4 h-4" /> Picture on file
           </div>
           <Button onClick={onUploaded} className="w-full gold-gradient">
             Continue to your listing details
@@ -226,7 +226,7 @@ function ProofStep({
               </>
             ) : (
               <>
-                <Camera className="w-4 h-4 mr-2" /> Upload proof photo
+                <Camera className="w-4 h-4 mr-2" /> Upload picture holding certification
               </>
             )}
           </Button>
