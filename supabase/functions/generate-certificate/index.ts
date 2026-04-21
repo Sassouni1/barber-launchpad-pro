@@ -162,17 +162,36 @@ serve(async (req) => {
     
     ctx.font = `${fontSize}px ${nameFontFamily}`;
     
-    // Auto-size font to fit within max width
-    while (ctx.measureText(certificateName).width > nameMaxWidth && fontSize > minFontSize) {
+    // Auto-size font to fit within max width (measured with bigger caps factored in)
+    const CAP_SCALE = 1.18; // capital letters 18% bigger
+    const measureMixed = (text: string, baseSize: number) => {
+      let total = 0;
+      for (const ch of text) {
+        const isUpper = ch >= 'A' && ch <= 'Z';
+        ctx.font = `${isUpper ? Math.round(baseSize * CAP_SCALE) : baseSize}px ${nameFontFamily}`;
+        total += ctx.measureText(ch).width;
+      }
+      return total;
+    };
+    
+    while (measureMixed(certificateName, fontSize) > nameMaxWidth && fontSize > minFontSize) {
       fontSize -= 4;
-      ctx.font = `${fontSize}px ${nameFontFamily}`;
     }
     
-    console.log('Name font:', { family: nameFontFamily, size: fontSize });
+    console.log('Name font:', { family: nameFontFamily, size: fontSize, capScale: CAP_SCALE });
     
-    // Draw name centered at nameX (Canvas handles centering with textAlign='center')
-    ctx.fillText(certificateName, nameX, nameY);
-    console.log('Name drawn at:', { x: nameX, y: nameY, textAlign: 'center' });
+    // Draw name char-by-char, centered, with capitals slightly larger
+    const totalWidth = measureMixed(certificateName, fontSize);
+    let cursorX = nameX - totalWidth / 2;
+    ctx.textAlign = 'left';
+    for (const ch of certificateName) {
+      const isUpper = ch >= 'A' && ch <= 'Z';
+      const sz = isUpper ? Math.round(fontSize * CAP_SCALE) : fontSize;
+      ctx.font = `${sz}px ${nameFontFamily}`;
+      ctx.fillText(ch, cursorX, nameY);
+      cursorX += ctx.measureText(ch).width;
+    }
+    console.log('Name drawn with mixed-case sizing at:', { x: nameX, y: nameY });
 
     // Draw date
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
