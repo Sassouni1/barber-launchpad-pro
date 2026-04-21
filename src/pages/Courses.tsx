@@ -1,6 +1,6 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses, type Module } from '@/hooks/useCourses';
-import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star, Award } from 'lucide-react';
+import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star, Award, Globe } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -318,14 +318,14 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           onClick={() => navigate(`/courses/${category.id}/lesson/${directoryModule.id}`)}
                           className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 active:scale-[0.98]"
                         >
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm gold-gradient text-primary-foreground">
-                            {regularModules.length + 1}
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
+                            <Globe className="w-5 h-5 text-primary-foreground" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-sm truncate gold-text">{directoryModule.title}</h4>
                             <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{directoryModule.description || 'Final step before certification'}</p>
                           </div>
-                          <Play className="w-4 h-4 text-primary flex-shrink-0" />
+                          <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
                         </button>
                       )}
                       {/* Level 1 Certification entry for hair-system */}
@@ -508,8 +508,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                               onClick={() => navigate(`/courses/${courseType}/lesson/${directoryModule.id}`)}
                               className="w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 hover:border-primary/60"
                             >
-                              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm gold-gradient text-primary-foreground shadow-md">
-                                {regularModules.length + 1}
+                              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient text-primary-foreground shadow-md">
+                                <Globe className="w-5 h-5" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-semibold text-sm mb-1 gold-text">{directoryModule.title}</h4>
@@ -517,7 +517,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                   <p className="text-xs text-muted-foreground line-clamp-2">{directoryModule.description}</p>
                                 )}
                               </div>
-                              <Play className="w-5 h-5 text-primary flex-shrink-0" />
+                              <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
                             </button>
                           )}
                         </>
