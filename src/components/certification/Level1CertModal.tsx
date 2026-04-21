@@ -476,9 +476,20 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                         left: `${(previewLayout.date_x / naturalSize.w) * 100}%`,
                         top: `${(previewLayout.date_y / naturalSize.h) * 100}%`,
                         transform: 'translateY(-50%)',
-                        fontFamily: 'sans-serif',
+                        fontFamily:
+                          previewLayout.date_font_family === 'name'
+                            ? '"Cinzel", serif'
+                            : previewLayout.date_font_family === 'sans-serif'
+                            ? 'sans-serif'
+                            : previewLayout.date_font_family === 'serif'
+                            ? 'serif'
+                            : `"${previewLayout.date_font_family}", sans-serif`,
+                        fontWeight: previewLayout.date_font_family === 'name' ? 600 : 400,
                         fontSize: `${(previewLayout.date_font_size / naturalSize.w) * renderedSize.w}px`,
-                        color: layout?.date_color || '#1A1A1A',
+                        color:
+                          previewLayout.date_font_family === 'name'
+                            ? layout?.name_color || '#1A1A1A'
+                            : layout?.date_color || '#1A1A1A',
                         whiteSpace: 'nowrap',
                         lineHeight: 1,
                       }}
