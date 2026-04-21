@@ -160,7 +160,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   const [renderedSize, setRenderedSize] = useState({ w: 0, h: 0 });
   const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
-  const [draftLayout, setDraftLayout] = useState<{ name_x: number; name_y: number; name_font_size: number } | null>(null);
+  const [draftLayout, setDraftLayout] = useState<{ name_x: number; name_y: number; name_font_size: number; date_x: number; date_y: number; date_font_size: number } | null>(null);
 
   const { isAdmin, isAdminModeActive } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
