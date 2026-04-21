@@ -43,7 +43,7 @@ export function useUpdateCertificateLayout() {
   return useMutation({
     mutationFn: async ({ courseId, updates }: { 
       courseId: string; 
-      updates: Partial<Pick<CertificateLayout, 'name_x' | 'name_y' | 'name_font_size' | 'name_max_width' | 'name_min_font_size' | 'date_x' | 'date_y' | 'date_font_size'>> 
+      updates: Partial<Pick<CertificateLayout, 'name_x' | 'name_y' | 'name_font_size' | 'name_max_width' | 'name_min_font_size' | 'date_x' | 'date_y' | 'date_font_size' | 'date_font_family'>> 
     }) => {
       const { data, error } = await supabase
         .from('certificate_layouts')
