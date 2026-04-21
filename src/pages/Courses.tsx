@@ -268,7 +268,11 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 mt-3">
-                {category.courses.map((course) => (
+                {category.courses.map((course) => {
+                  const allModules = course.modules || [];
+                  const regularModules = allModules.filter((m: any) => !m.is_directory_enrollment);
+                  const directoryModule = allModules.find((m: any) => m.is_directory_enrollment);
+                  return (
                   <div key={course.id} className="space-y-2">
                     {category.courses.length > 1 && (
                       <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50 ml-2">
@@ -276,7 +280,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       </div>
                     )}
                     <div className="space-y-2 pl-2">
-                      {(course.modules || []).map((module, index) => (
+                      {regularModules.map((module, index) => (
                         <button
                           key={module.id}
                           onClick={() => navigate(`/courses/${category.id}/lesson/${module.id}`)}
@@ -307,6 +311,23 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         </button>
                       ))}
+                      {/* Directory enrollment as final highlighted step */}
+                      {directoryModule && (
+                        <button
+                          key={directoryModule.id}
+                          onClick={() => navigate(`/courses/${category.id}/lesson/${directoryModule.id}`)}
+                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 active:scale-[0.98]"
+                        >
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm gold-gradient text-primary-foreground">
+                            {regularModules.length + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm truncate gold-text">{directoryModule.title}</h4>
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{directoryModule.description || 'Final step before certification'}</p>
+                          </div>
+                          <Play className="w-4 h-4 text-primary flex-shrink-0" />
+                        </button>
+                      )}
                       {/* Level 1 Certification entry for hair-system */}
                       {category.id === 'hair-system' && course.id && (
                         <button
@@ -328,7 +349,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 
                 {/* Certification Section when selected on mobile */}
                 {showCertification && expandedCourse === 'hair-system' && (
@@ -395,86 +417,112 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
 
                   {/* Modules */}
                   <div className="space-y-2 pl-2">
-                    {(course.modules || []).map((module, index) => {
-                      const isSelected = selectedModule === module.id;
-
+                    {(() => {
+                      const allModules = course.modules || [];
+                      const regularModules = allModules.filter((m: any) => !m.is_directory_enrollment);
+                      const directoryModule = allModules.find((m: any) => m.is_directory_enrollment);
                       return (
-                        <button
-                          key={module.id}
-                          onClick={() => {
-                            // If no video, go directly to lesson; otherwise show preview (desktop) or navigate (mobile/tablet)
-                            if (!module.video_url?.trim()) {
-                              navigate(`/courses/${courseType}/lesson/${module.id}`);
-                            } else if (isDesktop) {
-                              setSelectedModule(module.id);
-                              setShowCertification(false);
-                            } else {
-                              navigate(`/courses/${courseType}/lesson/${module.id}`);
-                            }
-                          }}
-                          className={cn(
-                            'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
-                            'border-2 hover:border-primary/50 hover:bg-secondary/20',
-                            isSelected 
-                              ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20' 
-                              : 'border-border bg-secondary/10 shadow-md shadow-black/20'
+                        <>
+                          {regularModules.map((module, index) => {
+                            const isSelected = selectedModule === module.id;
+                            return (
+                              <button
+                                key={module.id}
+                                onClick={() => {
+                                  if (!module.video_url?.trim()) {
+                                    navigate(`/courses/${courseType}/lesson/${module.id}`);
+                                  } else if (isDesktop) {
+                                    setSelectedModule(module.id);
+                                    setShowCertification(false);
+                                  } else {
+                                    navigate(`/courses/${courseType}/lesson/${module.id}`);
+                                  }
+                                }}
+                                className={cn(
+                                  'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
+                                  'border-2 hover:border-primary/50 hover:bg-secondary/20',
+                                  isSelected
+                                    ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20'
+                                    : 'border-border bg-secondary/10 shadow-md shadow-black/20'
+                                )}
+                              >
+                                <div className={cn(
+                                  'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
+                                  isSelected
+                                    ? 'gold-gradient text-primary-foreground shadow-md'
+                                    : 'bg-secondary border border-border text-muted-foreground'
+                                )}>
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className={cn(
+                                    "font-semibold text-sm mb-1 flex items-center gap-1.5",
+                                    isSelected && "text-primary"
+                                  )}>
+                                    {module.title}
+                                    {(module as any).is_certification_requirement && (
+                                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                                    )}
+                                  </h4>
+                                  {module.description && (
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {module.duration && (
+                                      <span className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
+                                        <Clock className="w-3 h-3" />
+                                        {module.duration}
+                                      </span>
+                                    )}
+                                    {module.has_download && (
+                                      <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                        <FileText className="w-3 h-3" />
+                                        Files
+                                      </span>
+                                    )}
+                                    {module.has_quiz && (
+                                      <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                                        <HelpCircle className="w-3 h-3" />
+                                        Quiz
+                                      </span>
+                                    )}
+                                    {module.has_homework && (
+                                      <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                                        <ClipboardList className="w-3 h-3" />
+                                        Homework
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <Play className={cn(
+                                  "w-5 h-5 flex-shrink-0 transition-transform",
+                                  isSelected ? "text-primary scale-110" : "text-muted-foreground"
+                                )} />
+                              </button>
+                            );
+                          })}
+                          {/* Directory enrollment as final highlighted step */}
+                          {directoryModule && (
+                            <button
+                              key={directoryModule.id}
+                              onClick={() => navigate(`/courses/${courseType}/lesson/${directoryModule.id}`)}
+                              className="w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 hover:border-primary/60"
+                            >
+                              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm gold-gradient text-primary-foreground shadow-md">
+                                {regularModules.length + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm mb-1 gold-text">{directoryModule.title}</h4>
+                                {directoryModule.description && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">{directoryModule.description}</p>
+                                )}
+                              </div>
+                              <Play className="w-5 h-5 text-primary flex-shrink-0" />
+                            </button>
                           )}
-                        >
-                          <div className={cn(
-                            'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
-                            isSelected
-                              ? 'gold-gradient text-primary-foreground shadow-md'
-                              : 'bg-secondary border border-border text-muted-foreground'
-                          )}>
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className={cn(
-                              "font-semibold text-sm mb-1 flex items-center gap-1.5",
-                              isSelected && "text-primary"
-                            )}>
-                              {module.title}
-                              {(module as any).is_certification_requirement && (
-                                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
-                              )}
-                            </h4>
-                            {module.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
-                            )}
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {module.duration && (
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
-                                  <Clock className="w-3 h-3" />
-                                  {module.duration}
-                                </span>
-                              )}
-                              {module.has_download && (
-                                <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                                  <FileText className="w-3 h-3" />
-                                  Files
-                                </span>
-                              )}
-                              {module.has_quiz && (
-                                <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                  <HelpCircle className="w-3 h-3" />
-                                  Quiz
-                                </span>
-                              )}
-                              {module.has_homework && (
-                                <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                                  <ClipboardList className="w-3 h-3" />
-                                  Homework
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <Play className={cn(
-                            "w-5 h-5 flex-shrink-0 transition-transform",
-                            isSelected ? "text-primary scale-110" : "text-muted-foreground"
-                          )} />
-                        </button>
+                        </>
                       );
-                    })}
+                    })()}
                   </div>
 
                   {/* Level 1 Certification entry for hair-system on desktop */}
