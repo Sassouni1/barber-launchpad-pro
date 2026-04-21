@@ -247,20 +247,33 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
               <Button
                 className="w-full gold-gradient"
                 onClick={async () => {
+                  if (!baseCertificateUrl) return;
+                  const downloadUrl = getCertificateUrlWithCacheBuster(baseCertificateUrl);
+                  const fileName = `certificate-${existingCertification.certificate_name.replace(/\s+/g, '-')}.png`;
                   try {
-                    const response = await fetch(baseCertificateUrl!);
+                    const response = await fetch(downloadUrl, { cache: 'no-store', mode: 'cors' });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `certificate-${existingCertification.certificate_name.replace(/\s+/g, '-')}.png`;
+                    a.download = fileName;
+                    a.rel = 'noopener';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
+                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
                   } catch (error) {
                     console.error('Download failed:', error);
-                    window.open(baseCertificateUrl!, '_blank');
+                    // Fallback: open in new tab so user can long-press / save-as
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = fileName;
+                    a.target = '_blank';
+                    a.rel = 'noopener';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
                   }
                 }}
               >
