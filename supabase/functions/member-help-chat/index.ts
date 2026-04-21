@@ -564,7 +564,7 @@ ${greetingContext}`;
       if (!greetingResponse.ok) {
         // Fallback to static greeting on AI failure
         const name = firstName ? ` ${firstName}` : "";
-        return new Response(buildGreetingSSE(`Hey${name}! 👋 What's on your mind today?`), {
+        return new Response(buildGreetingSSE(`Hi${name} 👋 How can I help you today?`), {
           headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
         });
       }
