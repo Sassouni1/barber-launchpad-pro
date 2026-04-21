@@ -166,13 +166,21 @@ function ProofStep({
   return (
     <div className="glass-card rounded-xl p-6 space-y-4">
       <div className="flex items-start gap-3">
-        <Award className="w-5 h-5 text-primary mt-0.5" />
+        <Award className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
         <div>
           <h3 className="font-semibold">Take a photo holding your certification</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            This proves you completed the program and unlocks your public listing on
-            find.menshairexpert.com. We'll use this photo as your default profile picture
-            (you can change it later).
+            This is how you get listed on the public Men's Hair Expert directory at
+            find.menshairexpert.com so new clients can find and book you.
+          </p>
+          <ol className="text-sm text-muted-foreground mt-3 space-y-2 list-decimal list-inside">
+            <li>Print your certificate or pull it up on another screen.</li>
+            <li>Hold it up next to your face so both you and the certificate are clearly visible.</li>
+            <li>Snap a clear, well-lit photo and upload it below.</li>
+          </ol>
+          <p className="text-xs text-muted-foreground mt-3">
+            We'll use this photo as your default profile picture on the directory — you can swap it
+            out or add more photos in the next steps.
           </p>
         </div>
       </div>
