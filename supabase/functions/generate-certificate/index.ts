@@ -19,8 +19,8 @@ const DEFAULT_DATE_CONFIG = {
   color: '#1A1A1A',
 };
 
-// Google Fonts URLs (direct TTF) — Cinzel SemiBold for name, Montserrat Medium for date
-const NAME_FONT_URL = 'https://github.com/google/fonts/raw/main/ofl/cinzel/static/Cinzel-SemiBold.ttf';
+// Font URLs — prefer uploaded MinionPro.ttf in storage, fallback to EB Garamond SemiBold (closest free equivalent)
+const NAME_FONT_FALLBACK_URL = 'https://github.com/google/fonts/raw/main/ofl/ebgaramond/static/EBGaramond-SemiBold.ttf';
 const DATE_FONT_URL = 'https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Medium.ttf';
 
 serve(async (req) => {
