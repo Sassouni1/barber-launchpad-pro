@@ -166,6 +166,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [nudgeAmount, setNudgeAmount] = useState(20);
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
+  const [renderedSize, setRenderedSize] = useState({ w: 0, h: 0 });
+  const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
 
   const { isAdmin, isAdminModeActive } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
