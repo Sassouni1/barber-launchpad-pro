@@ -150,8 +150,11 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   useEffect(() => {
     const el = bottomRef.current;
     if (!el) return;
-    // Scroll only the nearest scrollable ancestor (the chat ScrollArea), not the page.
-    el.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+    // Find the Radix ScrollArea viewport ancestor and scroll only it (not the page).
+    const viewport = el.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    if (viewport) {
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+    }
   }, [messages]);
 
   useEffect(() => {
