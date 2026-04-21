@@ -231,6 +231,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     });
     if (result?.certificateUrl) {
       setGeneratedCertificateUrl(result.certificateUrl);
+      setIsCertModalOpen(false);
     }
     if (result?.debug) {
       setDebugInfo(result.debug);
@@ -649,14 +650,16 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       </Dialog>
 
       {/* Certificate Generation Modal */}
-      <CertificationModal
-        isOpen={isCertModalOpen}
-        onClose={() => setIsCertModalOpen(false)}
-        onSubmit={handleSubmitCertification}
-        certificateUrl={generatedCertificateUrl}
-        isGenerating={issueCertification.isPending}
-        defaultName={existingCertification?.certificate_name}
-      />
+      {isCertModalOpen && (
+        <CertificationModal
+          isOpen={isCertModalOpen}
+          onClose={() => setIsCertModalOpen(false)}
+          onSubmit={handleSubmitCertification}
+          certificateUrl={generatedCertificateUrl}
+          isGenerating={issueCertification.isPending}
+          defaultName={existingCertification?.certificate_name}
+        />
+      )}
     </>
   );
 }
