@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw } from 'lucide-react';
+import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw, ZoomIn, ZoomOut, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
