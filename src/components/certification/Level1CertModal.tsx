@@ -40,7 +40,7 @@ interface Level1CertModalProps {
   onClose: () => void;
 }
 
-// Hook to check if user has completed all lessons
+// Hook to check if user has completed all lessons (modules) of the course
 function useAllLessonsCompleted() {
   const { user } = useAuth();
 
@@ -49,11 +49,13 @@ function useAllLessonsCompleted() {
     queryFn: async () => {
       if (!user?.id) return { completed: false, completedCount: 0, totalCount: 0 };
 
-      // Get all modules for hair-system courses
+      // Get all published modules in the hair-system course
       const { data: modules, error: modulesError } = await supabase
         .from('modules')
         .select(`
           id,
+          has_quiz,
+          is_directory_enrollment,
           course:courses!inner(id, category)
         `)
         .eq('courses.category', 'hair-system')
@@ -61,39 +63,15 @@ function useAllLessonsCompleted() {
 
       if (modulesError) throw modulesError;
 
-      const moduleIds = modules?.map(m => m.id) || [];
+      // Treat each module as a "lesson" for the purposes of certification.
+      // Exclude the directory enrollment module — it's a post-cert action, not curriculum.
+      const curriculumModules = (modules || []).filter((m: any) => !m.is_directory_enrollment);
+      const moduleIds = curriculumModules.map((m: any) => m.id);
       const totalCount = moduleIds.length;
 
       if (totalCount === 0) return { completed: true, completedCount: 0, totalCount: 0 };
 
-      // Get lessons for these modules
-      const { data: lessons, error: lessonsError } = await supabase
-        .from('lessons')
-        .select('id, module_id')
-        .in('module_id', moduleIds);
-
-      if (lessonsError) throw lessonsError;
-
-      const lessonIds = lessons?.map(l => l.id) || [];
-      const totalLessons = lessonIds.length;
-
-      if (totalLessons === 0) {
-        // No lessons, just count modules with video as "lessons"
-        return { completed: true, completedCount: totalCount, totalCount };
-      }
-
-      // Get user's completed lessons (from video watch tracking)
-      const { data: progress, error: progressError } = await supabase
-        .from('user_progress')
-        .select('lesson_id')
-        .eq('user_id', user.id)
-        .eq('completed', true)
-        .in('lesson_id', lessonIds);
-
-      if (progressError) throw progressError;
-
-      // Also: any lesson belonging to a module whose quiz the user passed (≥80%)
-      // counts as completed — passing the quiz proves mastery of that lesson.
+      // Modules with passed quiz (≥80%)
       const { data: attempts } = await supabase
         .from('user_quiz_attempts')
         .select('module_id, score, total_questions')
@@ -106,18 +84,42 @@ function useAllLessonsCompleted() {
         if (pct >= 80) passedModules.add(a.module_id);
       }
 
-      const completedLessonIds = new Set<string>(
-        (progress || []).map((p) => p.lesson_id)
-      );
-      for (const l of lessons || []) {
-        if (passedModules.has(l.module_id)) completedLessonIds.add(l.id);
+      // Modules with video watch progress (via legacy lessons table)
+      const { data: lessons } = await supabase
+        .from('lessons')
+        .select('id, module_id')
+        .in('module_id', moduleIds);
+      const lessonIdToModule = new Map<string, string>();
+      for (const l of lessons || []) lessonIdToModule.set(l.id, l.module_id);
+
+      const lessonIds = (lessons || []).map((l) => l.id);
+      let watchedModules = new Set<string>();
+      if (lessonIds.length > 0) {
+        const { data: progress } = await supabase
+          .from('user_progress')
+          .select('lesson_id')
+          .eq('user_id', user.id)
+          .eq('completed', true)
+          .in('lesson_id', lessonIds);
+        for (const p of progress || []) {
+          const mid = lessonIdToModule.get(p.lesson_id);
+          if (mid) watchedModules.add(mid);
+        }
       }
 
-      const completedCount = completedLessonIds.size;
+      // A module counts as complete if quiz is passed, or its video was watched,
+      // or it has no quiz requirement (e.g. live-client modules without a quiz).
+      let completedCount = 0;
+      for (const m of curriculumModules as any[]) {
+        if (passedModules.has(m.id) || watchedModules.has(m.id) || !m.has_quiz) {
+          completedCount++;
+        }
+      }
+
       return {
-        completed: completedCount >= totalLessons,
+        completed: completedCount >= totalCount,
         completedCount,
-        totalCount: totalLessons,
+        totalCount,
       };
     },
     enabled: !!user?.id,
