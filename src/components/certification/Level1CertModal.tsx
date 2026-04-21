@@ -393,7 +393,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
 
                 <div className="rounded-lg overflow-hidden border border-primary/30 relative">
                   <img
-                    src={certificateUrlWithCache}
+                    src={
+                      showAdminControls && layout
+                        ? `https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/${layout.template_path || 'template/certificate-template.png'}`
+                        : certificateUrlWithCache
+                    }
                     alt="Your Certificate"
                     className="w-full block"
                     onLoad={(e) => {
@@ -402,7 +406,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
                     }}
                   />
-                  {/* Live position marker — shows where name will be drawn after regenerating */}
+                  {/* Live name overlay — moves instantly with X/Y changes (admin only) */}
                   {showAdminControls && layout && naturalSize.w > 0 && renderedSize.w > 0 && (
                     <div
                       className="absolute pointer-events-none"
@@ -410,13 +414,15 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                         left: `${(layout.name_x / naturalSize.w) * 100}%`,
                         top: `${(layout.name_y / naturalSize.h) * 100}%`,
                         transform: 'translate(-50%, -50%)',
+                        fontFamily: '"Cinzel", serif',
+                        fontWeight: 600,
+                        fontSize: `${(layout.name_font_size / naturalSize.w) * renderedSize.w}px`,
+                        color: layout.name_color || '#1A1A1A',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1,
                       }}
                     >
-                      {/* Crosshair + coordinate label */}
-                      <div className="w-4 h-4 rounded-full bg-red-500/80 border-2 border-white shadow-md" />
-                      <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[10px] font-mono bg-black/70 text-white px-1.5 py-0.5 rounded">
-                        {layout.name_x}, {layout.name_y}
-                      </div>
+                      {existingCertification?.certificate_name || 'Your Name'}
                     </div>
                   )}
                 </div>
