@@ -123,22 +123,9 @@ function Header({ step }: { step: Step }) {
             Get Added to the Men's Hair Expert Search Database
           </h2>
           <p className="text-sm text-muted-foreground">
-            Step {stepNum} of 3 ·{" "}
-            {step === "proof"
-              ? "Verify your certification"
-              : step === "details"
-              ? "Build your public profile"
-              : "Manage your photos"}
+            Build your public profile on find.menshairexpert.com
           </p>
         </div>
-      </div>
-      <div className="flex gap-1.5">
-        {[1, 2, 3].map((n) => (
-          <div
-            key={n}
-            className={`h-1.5 flex-1 rounded-full ${n <= stepNum ? "bg-primary" : "bg-secondary/40"}`}
-          />
-        ))}
       </div>
     </div>
   );
