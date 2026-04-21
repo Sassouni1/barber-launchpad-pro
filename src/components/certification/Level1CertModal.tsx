@@ -328,16 +328,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     }
   };
 
-  // Cache-busted certificate URL
-  const getCertificateUrlWithCacheBuster = (url: string) => {
-    const timestamp = Date.now();
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}v=${timestamp}`;
-  };
-
+  // Cache-buster only changes when the certificate is actually regenerated
   const baseCertificateUrl = generatedCertificateUrl || existingCertification?.certificate_url;
+  const certCacheKey = generatedCertificateUrl || existingCertification?.issued_at || '';
   const certificateUrlWithCache = baseCertificateUrl
-    ? getCertificateUrlWithCacheBuster(baseCertificateUrl)
+    ? `${baseCertificateUrl}${baseCertificateUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(certCacheKey)}`
     : null;
 
   const requirements = [
@@ -407,7 +402,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
                     }}
                   />
-                  {/* Live preview overlay — shows name position in real-time as admin adjusts */}
+                  {/* Live position marker — shows where name will be drawn after regenerating */}
                   {showAdminControls && layout && naturalSize.w > 0 && renderedSize.w > 0 && (
                     <div
                       className="absolute pointer-events-none"
@@ -417,21 +412,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                         transform: 'translate(-50%, -50%)',
                       }}
                     >
-                      <div
-                        style={{
-                          fontFamily: '"Cinzel", serif',
-                          fontWeight: 600,
-                          fontSize: `${(layout.name_font_size / naturalSize.w) * renderedSize.w}px`,
-                          color: layout.name_color || '#1A1A1A',
-                          whiteSpace: 'nowrap',
-                          textAlign: 'center',
-                          lineHeight: 1,
-                        }}
-                      >
-                        {existingCertification?.certificate_name || 'Your Name'}
+                      {/* Crosshair + coordinate label */}
+                      <div className="w-4 h-4 rounded-full bg-red-500/80 border-2 border-white shadow-md" />
+                      <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[10px] font-mono bg-black/70 text-white px-1.5 py-0.5 rounded">
+                        {layout.name_x}, {layout.name_y}
                       </div>
-                      {/* Crosshair marker */}
-                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-red-500/70 border border-white" />
                     </div>
                   )}
                 </div>
