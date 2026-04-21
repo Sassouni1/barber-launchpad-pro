@@ -252,9 +252,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
 
   const handleNudgePosition = async (direction: 'left' | 'right' | 'center' | 'up' | 'down') => {
     if (!layout || !courseId) return;
-    
+
     let updates: { name_x?: number; name_y?: number } = {};
-    
+
     if (direction === 'center') {
       updates.name_x = 684; // Template center (1368 / 2)
     } else if (direction === 'left' || direction === 'right') {
@@ -262,11 +262,21 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     } else if (direction === 'up' || direction === 'down') {
       updates.name_y = direction === 'up' ? layout.name_y - nudgeAmount : layout.name_y + nudgeAmount;
     }
-    
+
     await updateLayout.mutateAsync({ courseId, updates });
-    
-    // Auto-regenerate if user has a certificate
+    // No auto-regenerate. Use "Apply & Regenerate" to rebuild the certificate.
+  };
+
+  const handleSetExactPosition = async (axis: 'x' | 'y', value: number) => {
+    if (!layout || !courseId) return;
+    const updates: { name_x?: number; name_y?: number } =
+      axis === 'x' ? { name_x: value } : { name_y: value };
+    await updateLayout.mutateAsync({ courseId, updates });
+  };
+
+  const handleApplyAndRegenerate = () => {
     if (existingCertification) {
+      setGeneratedCertificateUrl(null);
       handleSubmitCertification(existingCertification.certificate_name);
     }
   };
