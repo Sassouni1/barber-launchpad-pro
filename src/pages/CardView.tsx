@@ -5,6 +5,7 @@ import { Loader2, UserPlus, Calendar, Sparkles, Wallet, Instagram, Globe, Gift, 
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;
