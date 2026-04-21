@@ -111,7 +111,19 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
     (window as any).__aionConversationId = conversationId;
     return () => { (window as any).__aionConversationId = null; };
   }, [conversationId]);
-  const GREETING = "Hey 👋 I'm **Aion**. What do you want to work on?";
+  const GREETINGS = [
+    "What's up? 👋",
+    "Yo, what's on your mind?",
+    "Hey 👋 what we working on?",
+    "What's good?",
+    "Sup — what do you need?",
+    "Hey, what's the move?",
+    "Talk to me.",
+    "What can I help with?",
+    "Ready when you are.",
+    "Hey 👋",
+  ];
+  const GREETING = useRef(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]).current;
   const [messages, setMessages] = useState<Msg[]>(
     initialMessages && initialMessages.length > 0
       ? initialMessages
