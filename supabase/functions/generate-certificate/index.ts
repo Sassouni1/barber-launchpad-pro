@@ -86,28 +86,32 @@ serve(async (req) => {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Load custom TTF font from Supabase storage
-    let fontFamily = 'serif';
+    // Load Cinzel SemiBold (name) + Montserrat Medium (date) from Google Fonts
+    let nameFontFamily = 'serif';
+    let dateFontFamily = 'sans-serif';
     try {
-      const fontUrl = `${supabaseUrl}/storage/v1/object/public/certificates/${FONT_PATH}`;
-      console.log('Loading font from:', fontUrl);
-      const fontResponse = await fetch(fontUrl);
-      console.log('Font response:', { 
-        status: fontResponse.status, 
-        contentType: fontResponse.headers.get('content-type'),
-      });
-      
-      if (fontResponse.ok) {
-        const fontData = await fontResponse.arrayBuffer();
-        console.log('Font bytes loaded:', fontData.byteLength);
-        canvas.loadFont(new Uint8Array(fontData), { family: 'OldEnglish' });
-        fontFamily = 'OldEnglish';
-        console.log('Custom font loaded successfully: OldEnglish');
+      const [nameRes, dateRes] = await Promise.all([
+        fetch(NAME_FONT_URL),
+        fetch(DATE_FONT_URL),
+      ]);
+      if (nameRes.ok) {
+        const data = await nameRes.arrayBuffer();
+        canvas.loadFont(new Uint8Array(data), { family: 'Cinzel' });
+        nameFontFamily = 'Cinzel';
+        console.log('Cinzel SemiBold loaded:', data.byteLength);
       } else {
-        console.warn('Font fetch failed:', fontResponse.status);
+        console.warn('Cinzel fetch failed:', nameRes.status);
+      }
+      if (dateRes.ok) {
+        const data = await dateRes.arrayBuffer();
+        canvas.loadFont(new Uint8Array(data), { family: 'Montserrat' });
+        dateFontFamily = 'Montserrat';
+        console.log('Montserrat Medium loaded:', data.byteLength);
+      } else {
+        console.warn('Montserrat fetch failed:', dateRes.status);
       }
     } catch (fontError) {
-      console.warn('Font loading failed, using fallback serif:', fontError);
+      console.warn('Font loading failed, using fallbacks:', fontError);
     }
 
     // Draw template
@@ -139,15 +143,15 @@ serve(async (req) => {
     let fontSize = layout.name_font_size || DEFAULT_NAME_CONFIG.baseFontSize;
     const minFontSize = layout.name_min_font_size || DEFAULT_NAME_CONFIG.minFontSize;
     
-    ctx.font = `${fontSize}px ${fontFamily}`;
+    ctx.font = `${fontSize}px ${nameFontFamily}`;
     
     // Auto-size font to fit within max width
     while (ctx.measureText(certificateName).width > nameMaxWidth && fontSize > minFontSize) {
       fontSize -= 4;
-      ctx.font = `${fontSize}px ${fontFamily}`;
+      ctx.font = `${fontSize}px ${nameFontFamily}`;
     }
     
-    console.log('Name font:', { family: fontFamily, size: fontSize });
+    console.log('Name font:', { family: nameFontFamily, size: fontSize });
     
     // Draw name centered at nameX (Canvas handles centering with textAlign='center')
     ctx.fillText(certificateName, nameX, nameY);
@@ -155,13 +159,13 @@ serve(async (req) => {
 
     // Draw date
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
-    ctx.font = `${dateFontSize}px ${fontFamily}`;
+    ctx.font = `${dateFontSize}px ${dateFontFamily}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = layout.date_color || DEFAULT_DATE_CONFIG.color;
     
     ctx.fillText(formattedDate, dateX, dateY);
-    console.log('Date font:', { family: fontFamily, size: dateFontSize });
+    console.log('Date font:', { family: dateFontFamily, size: dateFontSize });
     console.log('Date drawn at:', { x: dateX, y: dateY });
 
     // DEBUG MODE: Draw ONE vertical line at name_x
