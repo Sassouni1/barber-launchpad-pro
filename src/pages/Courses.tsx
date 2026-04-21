@@ -268,7 +268,11 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 mt-3">
-                {category.courses.map((course) => (
+                {category.courses.map((course) => {
+                  const allModules = course.modules || [];
+                  const regularModules = allModules.filter((m: any) => !m.is_directory_enrollment);
+                  const directoryModule = allModules.find((m: any) => m.is_directory_enrollment);
+                  return (
                   <div key={course.id} className="space-y-2">
                     {category.courses.length > 1 && (
                       <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50 ml-2">
@@ -276,7 +280,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       </div>
                     )}
                     <div className="space-y-2 pl-2">
-                      {(course.modules || []).map((module, index) => (
+                      {regularModules.map((module, index) => (
                         <button
                           key={module.id}
                           onClick={() => navigate(`/courses/${category.id}/lesson/${module.id}`)}
@@ -307,6 +311,23 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                           <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         </button>
                       ))}
+                      {/* Directory enrollment as final highlighted step */}
+                      {directoryModule && (
+                        <button
+                          key={directoryModule.id}
+                          onClick={() => navigate(`/courses/${category.id}/lesson/${directoryModule.id}`)}
+                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 active:scale-[0.98]"
+                        >
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm gold-gradient text-primary-foreground">
+                            {regularModules.length + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm truncate gold-text">{directoryModule.title}</h4>
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{directoryModule.description || 'Final step before certification'}</p>
+                          </div>
+                          <Play className="w-4 h-4 text-primary flex-shrink-0" />
+                        </button>
+                      )}
                       {/* Level 1 Certification entry for hair-system */}
                       {category.id === 'hair-system' && course.id && (
                         <button
