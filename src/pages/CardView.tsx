@@ -291,6 +291,49 @@ export default function CardView() {
           Powered by Barber Launch
         </p>
       </div>
+
+      {/* Auto wallet prompt — opens 10s after Save Contact */}
+      <Dialog open={walletPromptOpen} onOpenChange={setWalletPromptOpen}>
+        <DialogContent className="bg-card border border-primary/20 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              Add to Wallet
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Keep this card handy — add a branded pass to your phone's Wallet for one-tap access anytime.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            {(ios || (!ios && !android)) && (
+              <button
+                onClick={handleAddToWallet}
+                disabled={walletLoading}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60"
+              >
+                {walletLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
+                Add to Apple Wallet
+              </button>
+            )}
+            {(android || (!ios && !android)) && (
+              <button
+                onClick={handleAddToGoogleWallet}
+                disabled={googleWalletLoading}
+                className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-bold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60"
+              >
+                {googleWalletLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
+                Add to Google Wallet
+              </button>
+            )}
+            <button
+              onClick={() => setWalletPromptOpen(false)}
+              className="w-full px-5 py-3 rounded-2xl bg-secondary/50 text-secondary-foreground text-sm font-medium border border-primary/10 hover:bg-secondary/70 transition-all"
+            >
+              Maybe later
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
