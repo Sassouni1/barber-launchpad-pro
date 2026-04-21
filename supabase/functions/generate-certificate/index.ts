@@ -263,7 +263,7 @@ serve(async (req) => {
       success: true, 
       certificateUrl,
       dimensions: { width, height },
-      fontUsed: fontFamily,
+      fontUsed: nameFontFamily,
       layoutUsed: { nameX, nameY, dateX, dateY },
     };
 
