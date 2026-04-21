@@ -879,7 +879,7 @@ export default function Lesson() {
           </div>
         )}
 
-        {isMobile && nextModule && (
+        {isMobile && nextModule && !(module as any).is_directory_enrollment && (
           <div className="animate-fade-up" style={{ animationDelay: '0.5s' }}>
             <Button 
               className="w-full gold-gradient text-primary-foreground font-semibold"
