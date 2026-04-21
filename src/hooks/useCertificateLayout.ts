@@ -12,6 +12,7 @@ interface CertificateLayout {
   date_x: number;
   date_y: number;
   date_font_size: number;
+  date_font_family: string;
   name_color: string;
   date_color: string;
   template_path: string;
