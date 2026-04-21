@@ -204,6 +204,7 @@ export type Database = {
           course_id: string
           created_at: string
           date_color: string
+          date_font_family: string
           date_font_size: number
           date_x: number
           date_y: number
@@ -221,6 +222,7 @@ export type Database = {
           course_id: string
           created_at?: string
           date_color?: string
+          date_font_family?: string
           date_font_size?: number
           date_x?: number
           date_y?: number
@@ -238,6 +240,7 @@ export type Database = {
           course_id?: string
           created_at?: string
           date_color?: string
+          date_font_family?: string
           date_font_size?: number
           date_x?: number
           date_y?: number
