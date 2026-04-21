@@ -437,7 +437,6 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                   <span className="text-green-500 font-medium">You are certified!</span>
                 </div>
 
-                <div className="rounded-lg overflow-hidden border border-primary/30 relative">
                 <div className="flex items-center gap-2 px-1">
                   <Search className="w-4 h-4 text-muted-foreground" />
                   <Button variant="outline" size="sm" onClick={() => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)))} disabled={zoom <= 1}>
