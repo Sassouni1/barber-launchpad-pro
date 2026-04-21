@@ -217,7 +217,7 @@ function ProofStep({
         </div>
       </div>
 
-      {!existingProof && (
+      {!existingProof && userId !== "f4d1104c-1f77-4c24-a936-5419462f9e92" && (
         <div className="flex items-center gap-3 pl-8">
           <div className="rounded-lg overflow-hidden border border-primary/40 ring-1 ring-primary/20 w-40 h-40 flex-shrink-0">
             <img
