@@ -3,9 +3,10 @@ import { useLocation } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AionChat } from '@/components/dashboard/AionChat';
 import { useAionConversations, useAionMessages } from '@/hooks/useAionChat';
-import { Bot, Plus, Trash2, MessageSquare, Loader2 } from 'lucide-react';
+import { Bot, Plus, Trash2, MessageSquare, Loader2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -131,14 +132,68 @@ export default function AionPage() {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile conversation picker */}
           <div className="md:hidden flex items-center gap-2 mb-3">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-1">
+                  <Menu className="w-4 h-4" /> Chats
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 p-0 flex flex-col">
+                <SheetHeader className="p-4 border-b border-border/50">
+                  <SheetTitle className="flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-primary" /> Aion Chats
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="p-3 border-b border-border/50">
+                  <Button
+                    size="sm"
+                    className="w-full gap-1 gold-gradient"
+                    onClick={() => { setPendingInitial(undefined); handleNewChat(); }}
+                  >
+                    <Plus className="w-4 h-4" /> New Chat
+                  </Button>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="p-2 space-y-1">
+                    {conversations.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground text-sm">No conversations yet</div>
+                    ) : (
+                      conversations.map(conv => (
+                        <div
+                          key={conv.id}
+                          className={cn(
+                            'flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer group transition-all',
+                            activeId === conv.id
+                              ? 'bg-primary/10 text-foreground'
+                              : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+                          )}
+                          onClick={() => { setPendingInitial(undefined); setActiveId(conv.id); }}
+                        >
+                          <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{conv.title}</p>
+                            <p className="text-[10px] text-muted-foreground">{format(new Date(conv.updated_at), 'MMM d')}</p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(conv.id); }}
+                            className="opacity-60 hover:opacity-100 transition-opacity p-1 hover:text-destructive"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
             <Button
               size="sm"
               variant="outline"
               onClick={() => { setPendingInitial(undefined); handleNewChat(); }}
               className="gap-1"
             >
-              <Plus className="w-4 h-4" />
-              New Chat
+              <Plus className="w-4 h-4" /> New
             </Button>
             <span className="text-sm text-muted-foreground truncate flex-1">
               {conversations.find(c => c.id === activeId)?.title || 'New Chat'}
