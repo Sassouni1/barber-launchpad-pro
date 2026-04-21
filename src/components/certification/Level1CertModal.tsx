@@ -328,16 +328,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     }
   };
 
-  // Cache-busted certificate URL
-  const getCertificateUrlWithCacheBuster = (url: string) => {
-    const timestamp = Date.now();
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}v=${timestamp}`;
-  };
-
+  // Cache-buster only changes when the certificate is actually regenerated
   const baseCertificateUrl = generatedCertificateUrl || existingCertification?.certificate_url;
+  const certCacheKey = generatedCertificateUrl || existingCertification?.issued_at || '';
   const certificateUrlWithCache = baseCertificateUrl
-    ? getCertificateUrlWithCacheBuster(baseCertificateUrl)
+    ? `${baseCertificateUrl}${baseCertificateUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(certCacheKey)}`
     : null;
 
   const requirements = [
