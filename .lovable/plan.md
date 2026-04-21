@@ -1,37 +1,39 @@
 
 
-## Plan: Light Theme for Find a Specialist Site
+## Add example photo to Directory Enrollment step
 
-The public directory at `find.menshairexpert.com` will use a clean **white/light theme** instead of the dark cyber-gold look. The member app at `member.thebarberlaunch.com` stays dark — only the public directory changes.
+Add the uploaded reference image as a small example thumbnail inside the "Take a photo holding your certification" step on the Get Added to the Men's Hair Expert lesson, so members see exactly what their submission should look like.
 
-### Approach
+### What will change
 
-1. **Add a `.light-theme` CSS class** in `src/index.css` that overrides the core HSL variables (`--background`, `--foreground`, `--card`, `--border`, `--muted`, etc.) with light values:
-   - Background: white
-   - Text: near-black
-   - Cards: white with soft shadows (no glass/glow effects)
-   - Accent: refined gold for CTAs
+- Save the uploaded image into the project as a real asset:
+  - `src/assets/directory-proof-example.png`
+- Update `src/components/lesson/DirectoryEnrollmentLesson.tsx` (`ProofStep`) to:
+  - Import the new asset.
+  - Render it as a small thumbnail (around 96–128px) below the step instructions, only when the user has NOT yet uploaded their proof photo (so it acts as guidance, not clutter).
+  - Add a small caption underneath: "Example — take a photo like this".
+  - Keep the dark/metallic-gold luxury aesthetic (rounded border, subtle gold ring, no heavy filters per mobile performance rules).
 
-2. **Apply the class conditionally** in `App.tsx` based on hostname:
-   - `find.menshairexpert.com` → add `light-theme` to `<html>`, remove `dark`
-   - All other domains → keep current dark theme untouched
+### Layout
 
-3. **Directory pages styled for light theme**:
-   - `/find-a-pro` search page: white background, clean cards, gold accent buttons
-   - Result cards: white with soft shadow, photo on top, name/city below
-   - Skip `cyber-grid`, `glass-card`, `gold-glow`, `spotlight-pulse` on directory routes
+```text
+[Award icon]  Take a photo holding your certification
+              1. Print your certificate...
+              2. Hold it up next to your face...
+              3. Snap a clear, well-lit photo...
 
-### Pick the vibe before I build
+              ┌──────────┐
+              │  example │   Example — take a
+              │  photo   │   photo like this
+              └──────────┘
 
-**Light style options:**
-- **A. Clean white + gold accents** — pure white bg, black text, gold buttons. Premium and minimal.
-- **B. Warm off-white + gold** — cream background, charcoal text, gold accents. Editorial luxury feel.
-- **C. White + black only** — no gold at all. Modern Apple-style minimalism.
+[ Upload picture holding certification ]
+```
 
-**Accent color:**
-- Same bright gold as member app (consistent brand)
-- Darker/richer gold (reads better on white — bright gold can wash out)
-- Different color entirely (tell me which)
+### Files touched
 
-Reply with your picks and I'll build the directory + light theme together.
+- `src/assets/directory-proof-example.png` (new — copied from upload)
+- `src/components/lesson/DirectoryEnrollmentLesson.tsx` (small JSX addition in `ProofStep`)
+
+No DB, edge function, or routing changes.
 
