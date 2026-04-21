@@ -226,7 +226,7 @@ function ProofStep({
               </>
             ) : (
               <>
-                <Camera className="w-4 h-4 mr-2" /> Upload proof photo
+                <Camera className="w-4 h-4 mr-2" /> Upload picture holding certification
               </>
             )}
           </Button>
