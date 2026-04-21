@@ -306,6 +306,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
         date_x: draftLayout.date_x,
         date_y: draftLayout.date_y,
         date_font_size: draftLayout.date_font_size,
+        date_font_family: draftLayout.date_font_family,
       },
     });
 
