@@ -497,17 +497,31 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                     {/* Position Controls */}
                     {layout && (
                       <div className="p-3 rounded-lg bg-secondary/30 border border-border space-y-3">
-                        {/* Nudge amount input */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">Nudge:</span>
-                          <input
-                            type="number"
-                            value={nudgeAmount}
-                            onChange={(e) => setNudgeAmount(Math.max(1, Number(e.target.value) || 1))}
-                            className="w-16 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
-                            min={1}
-                          />
-                          <span className="text-xs text-muted-foreground">px</span>
+                        {/* Nudge amount + Font size */}
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Nudge:</span>
+                            <input
+                              type="number"
+                              value={nudgeAmount}
+                              onChange={(e) => setNudgeAmount(Math.max(1, Number(e.target.value) || 1))}
+                              className="w-16 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              min={1}
+                            />
+                            <span className="text-xs text-muted-foreground">px</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Font:</span>
+                            <input
+                              type="number"
+                              value={layout.name_font_size}
+                              onChange={(e) => courseId && updateLayout.mutate({ courseId, updates: { name_font_size: Math.max(8, Number(e.target.value) || 8) } })}
+                              className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
+                              min={8}
+                              disabled={updateLayout.isPending}
+                            />
+                            <span className="text-xs text-muted-foreground">px</span>
+                          </div>
                         </div>
                         
                         {/* X Position Controls */}
