@@ -107,9 +107,13 @@ function QRCodeRow({ link }: { link: QRLink }) {
 
   const [label, setLabel] = useState(link.label);
   const [destination, setDestination] = useState(link.destination_url);
+  const [fgColor, setFgColor] = useState('#000000');
+  const [bgColor, setBgColor] = useState('#ffffff');
+  const [transparent, setTransparent] = useState(true);
 
   const qrUrl = `${REDIRECT_BASE}/${link.short_code}`;
   const dirty = label !== link.label || destination !== link.destination_url;
+  const previewBg = transparent ? 'transparent' : bgColor;
 
   const handleSave = async () => {
     try {
@@ -126,10 +130,29 @@ function QRCodeRow({ link }: { link: QRLink }) {
   };
 
   const handleDownloadPNG = () => {
-    const canvas = canvasRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
-    if (!canvas) return;
+    // Render a high-res off-screen canvas for crisp print quality
+    const SIZE = 1024;
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = SIZE;
+    offCanvas.height = SIZE;
+    const ctx = offCanvas.getContext('2d');
+    if (!ctx) return;
+
+    // Find the on-screen QR canvas to use as a source
+    const sourceCanvas = canvasRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
+    if (!sourceCanvas) return;
+
+    if (!transparent) {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, SIZE, SIZE);
+    }
+    // Draw QR scaled up — qrcode.react renders with the bg color we passed,
+    // so when transparent=true we set bg to 'transparent' on the component.
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sourceCanvas, 0, 0, SIZE, SIZE);
+
     const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
+    a.href = offCanvas.toDataURL('image/png');
     a.download = `qr-${link.label.replace(/\s+/g, '-').toLowerCase()}-${link.short_code}.png`;
     a.click();
   };
@@ -147,12 +170,27 @@ function QRCodeRow({ link }: { link: QRLink }) {
   return (
     <Card>
       <CardContent className="pt-6 grid md:grid-cols-[auto_1fr] gap-6">
-        <div ref={canvasRef} className="flex flex-col items-center gap-2">
-          <div className="bg-background p-3 rounded-lg border border-border">
-            <QRCodeCanvas value={qrUrl} size={160} level="H" includeMargin={false} />
+        <div className="flex flex-col items-center gap-3">
+          <div
+            ref={canvasRef}
+            className="p-3 rounded-lg border border-border"
+            style={{
+              background: transparent
+                ? 'repeating-conic-gradient(hsl(var(--muted)) 0% 25%, hsl(var(--background)) 0% 50%) 50% / 16px 16px'
+                : bgColor,
+            }}
+          >
+            <QRCodeCanvas
+              value={qrUrl}
+              size={160}
+              level="H"
+              includeMargin={false}
+              fgColor={fgColor}
+              bgColor={transparent ? 'rgba(0,0,0,0)' : bgColor}
+            />
           </div>
           <Button variant="outline" size="sm" onClick={handleDownloadPNG}>
-            <Download className="w-3.5 h-3.5 mr-1.5" /> PNG
+            <Download className="w-3.5 h-3.5 mr-1.5" /> Download PNG
           </Button>
         </div>
 
@@ -165,6 +203,52 @@ function QRCodeRow({ link }: { link: QRLink }) {
             <Label className="text-xs text-muted-foreground">Destination URL (you can change this anytime)</Label>
             <Input value={destination} onChange={(e) => setDestination(e.target.value)} />
           </div>
+
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">QR color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={fgColor}
+                  onChange={(e) => setFgColor(e.target.value)}
+                  className="h-9 w-12 rounded border border-border bg-transparent cursor-pointer"
+                />
+                <Input value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="font-mono text-xs" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Background</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  disabled={transparent}
+                  className="h-9 w-12 rounded border border-border bg-transparent cursor-pointer disabled:opacity-40"
+                />
+                <Input
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  disabled={transparent}
+                  className="font-mono text-xs"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Transparent BG</Label>
+              <label className="flex items-center gap-2 h-9 px-3 rounded border border-border cursor-pointer hover:bg-muted/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={transparent}
+                  onChange={(e) => setTransparent(e.target.checked)}
+                  className="accent-primary"
+                />
+                <span className="text-xs">{transparent ? 'On (true PNG)' : 'Off'}</span>
+              </label>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Permanent QR URL (encoded in the image)</Label>
             <div className="flex items-center gap-2">
