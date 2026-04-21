@@ -124,7 +124,15 @@ function Header({ step }: { step: Step }) {
             Get Added to the Men's Hair Expert Search Database
           </h2>
           <p className="text-sm text-muted-foreground">
-            Build your public profile on find.menshairexpert.com
+            Build your public profile on{" "}
+            <a
+              href="https://find.menshairexpert.com"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline underline-offset-2 hover:opacity-80"
+            >
+              find.menshairexpert.com
+            </a>
           </p>
         </div>
       </div>
@@ -202,8 +210,16 @@ function ProofStep({
         <div>
           <h3 className="font-semibold">Take a photo holding your certification</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            This is how you get listed on the public Men's Hair Expert directory at
-            find.menshairexpert.com so new clients can find and book you.
+            This is how you get listed on the public Men's Hair Expert directory at{" "}
+            <a
+              href="https://find.menshairexpert.com"
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline underline-offset-2 hover:opacity-80"
+            >
+              find.menshairexpert.com
+            </a>{" "}
+            so new clients can find and book you.
           </p>
           <ol className="text-sm text-muted-foreground mt-3 space-y-2 list-decimal list-inside">
             <li>Print your certificate or pull it up on another screen.</li>
@@ -494,7 +510,15 @@ function GalleryStep({
           <div>
             <p className="font-semibold">You're live on the directory! 🎉</p>
             <p className="text-sm text-muted-foreground">
-              Clients can now find you on find.menshairexpert.com
+              Clients can now find you on{" "}
+              <a
+                href="https://find.menshairexpert.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline underline-offset-2 hover:opacity-80"
+              >
+                find.menshairexpert.com
+              </a>
             </p>
           </div>
         </div>
