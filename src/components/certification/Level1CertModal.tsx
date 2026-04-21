@@ -166,6 +166,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [nudgeAmount, setNudgeAmount] = useState(20);
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
+  const [renderedSize, setRenderedSize] = useState({ w: 0, h: 0 });
+  const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
 
   const { isAdmin, isAdminModeActive } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
@@ -394,12 +396,44 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                   <span className="text-green-500 font-medium">You are certified!</span>
                 </div>
 
-                <div className="rounded-lg overflow-hidden border border-primary/30">
+                <div className="rounded-lg overflow-hidden border border-primary/30 relative">
                   <img
                     src={certificateUrlWithCache}
                     alt="Your Certificate"
-                    className="w-full"
+                    className="w-full block"
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      setRenderedSize({ w: img.clientWidth, h: img.clientHeight });
+                      setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+                    }}
                   />
+                  {/* Live preview overlay — shows name position in real-time as admin adjusts */}
+                  {showAdminControls && layout && naturalSize.w > 0 && renderedSize.w > 0 && (
+                    <div
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${(layout.name_x / naturalSize.w) * 100}%`,
+                        top: `${(layout.name_y / naturalSize.h) * 100}%`,
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: '"Cinzel", serif',
+                          fontWeight: 600,
+                          fontSize: `${(layout.name_font_size / naturalSize.w) * renderedSize.w}px`,
+                          color: layout.name_color || '#1A1A1A',
+                          whiteSpace: 'nowrap',
+                          textAlign: 'center',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {existingCertification?.certificate_name || 'Your Name'}
+                      </div>
+                      {/* Crosshair marker */}
+                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-red-500/70 border border-white" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
