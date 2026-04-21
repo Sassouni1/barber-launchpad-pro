@@ -62,63 +62,10 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const { user } = useAuth();
   const { isAdmin } = useAuth();
 
-  // Check if user has effectively completed Level 1 certification for the
-  // hair-system track. They qualify if they have an issued certificate OR they've
-  // passed every required quiz module with ≥80%. Until then, the
-  // "Get Added to the Database" module is hidden.
-  const { data: hasHairSystemCert } = useQuery({
-    queryKey: ['has-hair-system-cert', user?.id],
-    enabled: !!user?.id,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data: hsCourses } = await supabase
-        .from('courses')
-        .select('id')
-        .eq('category', 'hair-system');
-      const courseIds = (hsCourses || []).map((c) => c.id);
-      if (courseIds.length === 0) return false;
-
-      // 1) Issued certificate?
-      const { data: certs } = await supabase
-        .from('certifications')
-        .select('id')
-        .eq('user_id', user!.id)
-        .in('course_id', courseIds)
-        .limit(1);
-      if ((certs || []).length > 0) return true;
-
-      // 2) Passed all quiz-bearing modules?
-      const { data: mods } = await supabase
-        .from('modules')
-        .select('id, has_quiz, is_directory_enrollment, is_published')
-        .in('course_id', courseIds);
-      const quizModules = (mods || []).filter(
-        (m: any) => m.has_quiz && m.is_published && !m.is_directory_enrollment,
-      );
-      if (quizModules.length === 0) return false;
-
-      const { data: attempts } = await supabase
-        .from('user_quiz_attempts')
-        .select('module_id, score, total_questions')
-        .eq('user_id', user!.id)
-        .in('module_id', quizModules.map((m: any) => m.id));
-      const passed = new Set(
-        (attempts || [])
-          .filter((a: any) => a.total_questions > 0 && a.score / a.total_questions >= 0.8)
-          .map((a: any) => a.module_id),
-      );
-      return quizModules.every((m: any) => passed.has(m.id));
-    },
-  });
-
-  // Hide the directory enrollment module from the lesson list until the user
-  // is certified (admins always see it for management).
-  const allCourses = allCoursesRaw.map((c) => ({
-    ...c,
-    modules: (c.modules || []).filter((m: any) =>
-      !m.is_directory_enrollment || hasHairSystemCert || isAdmin
-    ),
-  }));
+  // Directory enrollment module is always visible to everyone.
+  // Verification that the user is holding the certificate happens at upload time
+  // via AI image analysis in the analyze-certificate-template edge function.
+  const allCourses = allCoursesRaw;
 
   // For desktop: filter by courseType prop
   const courses = allCourses.filter(course =>

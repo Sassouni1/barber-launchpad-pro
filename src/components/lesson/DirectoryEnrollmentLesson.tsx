@@ -148,13 +148,44 @@ function ProofStep({
   const handleFile = async (file: File) => {
     setUploading(true);
     try {
+      // Step 1: AI verification — make sure they're holding a certificate
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1] || "");
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      toast.loading("Verifying your photo...", { id: "verify" });
+      const { data: verifyData, error: verifyErr } = await supabase.functions.invoke(
+        "verify-certification-photo",
+        { body: { imageBase64: base64 } },
+      );
+      toast.dismiss("verify");
+
+      if (verifyErr) {
+        toast.error("Could not verify photo. Please try again.");
+        return;
+      }
+      if (!verifyData?.valid) {
+        toast.error(
+          verifyData?.reason ||
+            "We couldn't see you holding a certificate. Please retake the photo.",
+        );
+        return;
+      }
+
+      // Step 2: Upload to storage + DB
       await uploadDirectoryPhoto({
         userId,
         file,
         isProof: true,
-        isHero: true, // default proof photo as hero
+        isHero: true,
       });
-      toast.success("Proof photo uploaded!");
+      toast.success("Verified! Photo uploaded.");
       onUploaded();
     } catch (e: any) {
       toast.error(e.message || "Upload failed");
