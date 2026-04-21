@@ -483,6 +483,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       {formattedPreviewDate}
                     </div>
                   )}
+                </div>
 
                 <div className="flex gap-2">
                   <Button className="flex-1 gold-gradient" onClick={handleDownload}>
