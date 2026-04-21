@@ -438,6 +438,36 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                 </div>
 
                 <div className="rounded-lg overflow-hidden border border-primary/30 relative">
+                <div className="flex items-center gap-2 px-1">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                  <Button variant="outline" size="sm" onClick={() => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)))} disabled={zoom <= 1}>
+                    <ZoomOut className="w-4 h-4" />
+                  </Button>
+                  <input
+                    type="range"
+                    min={1}
+                    max={4}
+                    step={0.1}
+                    value={zoom}
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="flex-1 accent-primary"
+                  />
+                  <Button variant="outline" size="sm" onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))} disabled={zoom >= 4}>
+                    <ZoomIn className="w-4 h-4" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">{zoom.toFixed(1)}x</span>
+                  {zoom > 1 && (
+                    <Button variant="ghost" size="sm" onClick={() => setZoom(1)}>Reset</Button>
+                  )}
+                </div>
+
+                <div className={cn("rounded-lg border border-primary/30 relative bg-background", zoom > 1 ? "overflow-auto max-h-[70vh]" : "overflow-hidden")}>
+                  <div
+                    className="relative"
+                    style={{
+                      width: `${zoom * 100}%`,
+                    }}
+                  >
                   <img
                     src={
                       showAdminControls && layout
@@ -461,7 +491,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                         transform: 'translate(-50%, -50%)',
                         fontFamily: '"Cinzel", serif',
                         fontWeight: 600,
-                        fontSize: `${(previewLayout.name_font_size / naturalSize.w) * renderedSize.w}px`,
+                        fontSize: `${(previewLayout.name_font_size / naturalSize.w) * renderedSize.w * zoom}px`,
                         color: layout?.name_color || '#1A1A1A',
                         whiteSpace: 'nowrap',
                         lineHeight: 1,
@@ -486,7 +516,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                             ? 'serif'
                             : `"${previewLayout.date_font_family}", sans-serif`,
                         fontWeight: previewLayout.date_font_family === 'name' ? 600 : 400,
-                        fontSize: `${(previewLayout.date_font_size / naturalSize.w) * renderedSize.w}px`,
+                        fontSize: `${(previewLayout.date_font_size / naturalSize.w) * renderedSize.w * zoom}px`,
                         color:
                           previewLayout.date_font_family === 'name'
                             ? layout?.name_color || '#1A1A1A'
@@ -498,6 +528,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       {formattedPreviewDate}
                     </div>
                   )}
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
