@@ -510,7 +510,15 @@ function GalleryStep({
           <div>
             <p className="font-semibold">You're live on the directory! 🎉</p>
             <p className="text-sm text-muted-foreground">
-              Clients can now find you on find.menshairexpert.com
+              Clients can now find you on{" "}
+              <a
+                href="https://find.menshairexpert.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline underline-offset-2 hover:opacity-80"
+              >
+                find.menshairexpert.com
+              </a>
             </p>
           </div>
         </div>
