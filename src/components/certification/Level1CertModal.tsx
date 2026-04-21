@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,7 +49,6 @@ function useAllLessonsCompleted() {
     queryFn: async () => {
       if (!user?.id) return { completed: false, completedCount: 0, totalCount: 0 };
 
-      // Get all published modules in the hair-system course
       const { data: modules, error: modulesError } = await supabase
         .from('modules')
         .select(`
@@ -63,15 +62,12 @@ function useAllLessonsCompleted() {
 
       if (modulesError) throw modulesError;
 
-      // Treat each module as a "lesson" for the purposes of certification.
-      // Exclude the directory enrollment module — it's a post-cert action, not curriculum.
       const curriculumModules = (modules || []).filter((m: any) => !m.is_directory_enrollment);
       const moduleIds = curriculumModules.map((m: any) => m.id);
       const totalCount = moduleIds.length;
 
       if (totalCount === 0) return { completed: true, completedCount: 0, totalCount: 0 };
 
-      // Modules with passed quiz (≥80%)
       const { data: attempts } = await supabase
         .from('user_quiz_attempts')
         .select('module_id, score, total_questions')
@@ -84,7 +80,6 @@ function useAllLessonsCompleted() {
         if (pct >= 80) passedModules.add(a.module_id);
       }
 
-      // Modules with video watch progress (via legacy lessons table)
       const { data: lessons } = await supabase
         .from('lessons')
         .select('id, module_id')
@@ -107,8 +102,6 @@ function useAllLessonsCompleted() {
         }
       }
 
-      // A module counts as complete if quiz is passed, or its video was watched,
-      // or it has no quiz requirement (e.g. live-client modules without a quiz).
       let completedCount = 0;
       for (const m of curriculumModules as any[]) {
         if (passedModules.has(m.id) || watchedModules.has(m.id) || !m.has_quiz) {
@@ -127,7 +120,6 @@ function useAllLessonsCompleted() {
   });
 }
 
-// Hook to check training games completion
 function useTrainingGamesCompleted() {
   const { user } = useAuth();
 
@@ -148,10 +140,10 @@ function useTrainingGamesCompleted() {
       const completedGames = data?.map(p => p.game_type) || [];
       const completedCount = requiredGames.filter(g => completedGames.includes(g)).length;
       
-      return { 
-        completed: completedCount >= 3, 
-        completedCount, 
-        totalCount: 3 
+      return {
+        completed: completedCount >= 3,
+        completedCount,
+        totalCount: 3
       };
     },
     enabled: !!user?.id,
@@ -168,11 +160,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
   const [renderedSize, setRenderedSize] = useState({ w: 0, h: 0 });
   const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
+  const [draftLayout, setDraftLayout] = useState<{ name_x: number; name_y: number; name_font_size: number } | null>(null);
 
   const { isAdmin, isAdminModeActive } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
 
-  // Get the hair-system course ID
   const { data: hairSystemCourse } = useQuery({
     queryKey: ['hair-system-course'],
     queryFn: async () => {
@@ -182,7 +174,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
         .eq('category', 'hair-system')
         .limit(1)
         .maybeSingle();
-      
+
       if (error) throw error;
       return data;
     },
@@ -190,12 +182,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
 
   const courseId = hairSystemCourse?.id;
 
-  // Check all requirements
   const { data: lessonsProgress, isLoading: isLoadingLessons } = useAllLessonsCompleted();
   const { data: trainingGames, isLoading: isLoadingTraining } = useTrainingGamesCompleted();
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
-  const { 
-    photos, 
+  const {
+    photos,
     isLoading: isLoadingPhotos,
     uploadPhoto,
     isUploading,
@@ -208,6 +199,15 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const issueCertification = useIssueCertification();
   const resetCertification = useResetCertification();
 
+  useEffect(() => {
+    if (!layout) return;
+    setDraftLayout({
+      name_x: layout.name_x,
+      name_y: layout.name_y,
+      name_font_size: layout.name_font_size,
+    });
+  }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size]);
+
   const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingCert;
 
   const allLessonsDone = lessonsProgress?.completed ?? false;
@@ -215,8 +215,6 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const photoSubmitted = (photos?.length ?? 0) > 0;
   const allQuizzesPassed = eligibility?.allQuizzesPassed ?? false;
   const isCertified = !!existingCertification;
-  
-  // All requirements must be met to be eligible
   const allRequirementsMet = allLessonsDone && trainingGamesDone && photoSubmitted && allQuizzesPassed;
 
   const handleGetCertified = () => {
@@ -252,42 +250,67 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     setDebugInfo(null);
   };
 
-  const handleNudgePosition = async (direction: 'left' | 'right' | 'center' | 'up' | 'down') => {
-    if (!layout || !courseId) return;
+  const handleNudgePosition = (direction: 'left' | 'right' | 'center' | 'up' | 'down') => {
+    if (!draftLayout) return;
 
-    let updates: { name_x?: number; name_y?: number } = {};
+    setDraftLayout((current) => {
+      if (!current) return current;
 
-    if (direction === 'center') {
-      updates.name_x = 684; // Template center (1368 / 2)
-    } else if (direction === 'left' || direction === 'right') {
-      updates.name_x = direction === 'left' ? layout.name_x - nudgeAmount : layout.name_x + nudgeAmount;
-    } else if (direction === 'up' || direction === 'down') {
-      updates.name_y = direction === 'up' ? layout.name_y - nudgeAmount : layout.name_y + nudgeAmount;
-    }
+      if (direction === 'center') {
+        return { ...current, name_x: 684 };
+      }
 
-    await updateLayout.mutateAsync({ courseId, updates });
-    // No auto-regenerate. Use "Apply & Regenerate" to rebuild the certificate.
+      if (direction === 'left' || direction === 'right') {
+        return {
+          ...current,
+          name_x: direction === 'left' ? current.name_x - nudgeAmount : current.name_x + nudgeAmount,
+        };
+      }
+
+      return {
+        ...current,
+        name_y: direction === 'up' ? current.name_y - nudgeAmount : current.name_y + nudgeAmount,
+      };
+    });
   };
 
-  const handleSetExactPosition = async (axis: 'x' | 'y', value: number) => {
-    if (!layout || !courseId) return;
-    const updates: { name_x?: number; name_y?: number } =
-      axis === 'x' ? { name_x: value } : { name_y: value };
-    await updateLayout.mutateAsync({ courseId, updates });
+  const handleSetExactPosition = (axis: 'x' | 'y', value: number) => {
+    setDraftLayout((current) => {
+      if (!current) return current;
+      return axis === 'x'
+        ? { ...current, name_x: value }
+        : { ...current, name_y: value };
+    });
   };
 
-  const handleApplyAndRegenerate = () => {
-    if (existingCertification) {
-      setGeneratedCertificateUrl(null);
-      handleSubmitCertification(existingCertification.certificate_name);
-    }
+  const handleSetFontSize = (value: number) => {
+    setDraftLayout((current) => {
+      if (!current) return current;
+      return { ...current, name_font_size: Math.max(8, value) };
+    });
+  };
+
+  const handleApplyAndRegenerate = async () => {
+    if (!courseId || !draftLayout || !existingCertification) return;
+
+    await updateLayout.mutateAsync({
+      courseId,
+      updates: {
+        name_x: draftLayout.name_x,
+        name_y: draftLayout.name_y,
+        name_font_size: draftLayout.name_font_size,
+      },
+    });
+
+    setGeneratedCertificateUrl(null);
+    await handleSubmitCertification(existingCertification.certificate_name);
   };
 
   const toggleDebugMode = () => {
     const nextIsDebug = !isDebugMode;
     setIsDebugMode(nextIsDebug);
     setDebugInfo(null);
-    
+
     if (existingCertification) {
       setGeneratedCertificateUrl(null);
       handleSubmitCertification(existingCertification.certificate_name, nextIsDebug);
@@ -328,12 +351,17 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     }
   };
 
-  // Cache-buster only changes when the certificate is actually regenerated
   const baseCertificateUrl = generatedCertificateUrl || existingCertification?.certificate_url;
   const certCacheKey = generatedCertificateUrl || existingCertification?.issued_at || '';
   const certificateUrlWithCache = baseCertificateUrl
     ? `${baseCertificateUrl}${baseCertificateUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(certCacheKey)}`
     : null;
+
+  const previewLayout = draftLayout ?? (layout ? {
+    name_x: layout.name_x,
+    name_y: layout.name_y,
+    name_font_size: layout.name_font_size,
+  } : null);
 
   const requirements = [
     {
@@ -384,7 +412,6 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : isCertified && certificateUrlWithCache ? (
-              // Show certificate when certified
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                   <CheckCircle className="w-5 h-5 text-green-500" />
@@ -406,18 +433,17 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
                     }}
                   />
-                  {/* Live name overlay — moves instantly with X/Y changes (admin only) */}
-                  {showAdminControls && layout && naturalSize.w > 0 && renderedSize.w > 0 && (
+                  {showAdminControls && previewLayout && naturalSize.w > 0 && renderedSize.w > 0 && (
                     <div
                       className="absolute pointer-events-none"
                       style={{
-                        left: `${(layout.name_x / naturalSize.w) * 100}%`,
-                        top: `${(layout.name_y / naturalSize.h) * 100}%`,
+                        left: `${(previewLayout.name_x / naturalSize.w) * 100}%`,
+                        top: `${(previewLayout.name_y / naturalSize.h) * 100}%`,
                         transform: 'translate(-50%, -50%)',
                         fontFamily: '"Cinzel", serif',
                         fontWeight: 600,
-                        fontSize: `${(layout.name_font_size / naturalSize.w) * renderedSize.w}px`,
-                        color: layout.name_color || '#1A1A1A',
+                        fontSize: `${(previewLayout.name_font_size / naturalSize.w) * renderedSize.w}px`,
+                        color: layout?.name_color || '#1A1A1A',
                         whiteSpace: 'nowrap',
                         lineHeight: 1,
                       }}
@@ -428,14 +454,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button 
-                    className="flex-1 gold-gradient"
-                    onClick={handleDownload}
-                  >
+                  <Button className="flex-1 gold-gradient" onClick={handleDownload}>
                     <Download className="w-4 h-4 mr-2" />
                     Download
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={handleRegenerateCertification}
                     disabled={issueCertification.isPending}
@@ -445,10 +468,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                   </Button>
                 </div>
 
-                {/* Admin Controls */}
                 {showAdminControls && (
                   <div className="space-y-3 overflow-hidden">
-                    {/* Admin Action Buttons */}
                     <div className="flex flex-wrap gap-2">
                       <Button
                         variant="outline"
@@ -458,7 +479,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       >
                         {isDebugMode ? 'Debug ON' : 'Debug OFF'}
                       </Button>
-                      
+
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" size="sm" className="text-muted-foreground">
@@ -494,10 +515,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                       </AlertDialog>
                     </div>
 
-                    {/* Position Controls */}
-                    {layout && (
+                    {layout && previewLayout && (
                       <div className="p-3 rounded-lg bg-secondary/30 border border-border space-y-3">
-                        {/* Nudge amount + Font size */}
                         <div className="flex items-center gap-4 flex-wrap">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">Nudge:</span>
@@ -514,89 +533,59 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                             <span className="text-sm font-medium text-muted-foreground">Font:</span>
                             <input
                               type="number"
-                              value={layout.name_font_size}
-                              onChange={(e) => courseId && updateLayout.mutate({ courseId, updates: { name_font_size: Math.max(8, Number(e.target.value) || 8) } })}
+                              value={previewLayout.name_font_size}
+                              onChange={(e) => handleSetFontSize(Number(e.target.value) || 8)}
                               className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
                               min={8}
-                              disabled={updateLayout.isPending}
                             />
                             <span className="text-xs text-muted-foreground">px</span>
                           </div>
                         </div>
-                        
-                        {/* X Position Controls */}
+
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-muted-foreground">X =</span>
                             <input
                               type="number"
-                              value={layout.name_x}
+                              value={previewLayout.name_x}
                               onChange={(e) => handleSetExactPosition('x', Number(e.target.value) || 0)}
                               className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
-                              disabled={updateLayout.isPending}
                             />
                             <span className="text-xs text-muted-foreground">px</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleNudgePosition('left')}
-                              disabled={updateLayout.isPending || issueCertification.isPending}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleNudgePosition('left')} disabled={issueCertification.isPending}>
                               <ChevronLeft className="w-4 h-4 mr-1" />
                               {nudgeAmount}px
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleNudgePosition('center')}
-                              disabled={updateLayout.isPending || issueCertification.isPending}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleNudgePosition('center')} disabled={issueCertification.isPending}>
                               <RotateCw className="w-4 h-4" />
                               Center
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleNudgePosition('right')}
-                              disabled={updateLayout.isPending || issueCertification.isPending}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleNudgePosition('right')} disabled={issueCertification.isPending}>
                               {nudgeAmount}px
                               <ChevronRight className="w-4 h-4 ml-1" />
                             </Button>
                           </div>
                         </div>
 
-                        {/* Y Position Controls */}
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-muted-foreground">Y =</span>
                             <input
                               type="number"
-                              value={layout.name_y}
+                              value={previewLayout.name_y}
                               onChange={(e) => handleSetExactPosition('y', Number(e.target.value) || 0)}
                               className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
-                              disabled={updateLayout.isPending}
                             />
                             <span className="text-xs text-muted-foreground">px</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleNudgePosition('up')}
-                              disabled={updateLayout.isPending || issueCertification.isPending}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleNudgePosition('up')} disabled={issueCertification.isPending}>
                               <ChevronLeft className="w-4 h-4 mr-1 rotate-90" />
                               {nudgeAmount}px
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleNudgePosition('down')}
-                              disabled={updateLayout.isPending || issueCertification.isPending}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleNudgePosition('down')} disabled={issueCertification.isPending}>
                               {nudgeAmount}px
                               <ChevronRight className="w-4 h-4 ml-1 rotate-90" />
                             </Button>
@@ -610,27 +599,19 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                             onClick={handleApplyAndRegenerate}
                             disabled={updateLayout.isPending || issueCertification.isPending}
                           >
-                            {issueCertification.isPending ? (
+                            {updateLayout.isPending || issueCertification.isPending ? (
                               <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Regenerating...
+                                Saving...
                               </>
                             ) : (
                               'Apply & Regenerate Preview'
                             )}
                           </Button>
                         )}
-
-                        {updateLayout.isPending && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Saving position...
-                          </div>
-                        )}
                       </div>
                     )}
 
-                    {/* Debug Info Panel */}
                     {isDebugMode && debugInfo && (
                       <div className="p-3 rounded-lg bg-black/80 border border-yellow-500/50 font-mono text-xs text-green-400 overflow-x-auto">
                         <div className="text-yellow-400 mb-2 font-bold">DEBUG INFO</div>
