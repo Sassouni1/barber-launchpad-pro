@@ -121,10 +121,10 @@ function Header({ step }: { step: Step }) {
         </div>
         <div className="flex-1">
           <h2 className="font-display text-lg font-bold gold-text">
-            Get Added to the Men's Hair Expert Search Database
+            Get listed on Men's Hair Expert
           </h2>
           <p className="text-sm text-muted-foreground">
-            Build your public profile on{" "}
+            Your public profile on{" "}
             <a
               href="https://find.menshairexpert.com"
               target="_blank"
