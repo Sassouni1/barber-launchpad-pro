@@ -86,22 +86,39 @@ serve(async (req) => {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Load Cinzel SemiBold (name) + Montserrat Medium (date) from Google Fonts
+    // Try uploaded MinionPro.ttf first, fall back to EB Garamond SemiBold
     let nameFontFamily = 'serif';
     let dateFontFamily = 'sans-serif';
     try {
-      const [nameRes, dateRes] = await Promise.all([
-        fetch(NAME_FONT_URL),
-        fetch(DATE_FONT_URL),
-      ]);
-      if (nameRes.ok) {
-        const data = await nameRes.arrayBuffer();
-        canvas.loadFont(new Uint8Array(data), { family: 'Cinzel' });
-        nameFontFamily = 'Cinzel';
-        console.log('Cinzel SemiBold loaded:', data.byteLength);
-      } else {
-        console.warn('Cinzel fetch failed:', nameRes.status);
+      // Try Minion Pro from storage
+      const minionUrl = `${supabaseUrl}/storage/v1/object/public/certificates/fonts/MinionPro.ttf`;
+      let nameFontLoaded = false;
+      try {
+        const minionRes = await fetch(minionUrl);
+        if (minionRes.ok) {
+          const data = await minionRes.arrayBuffer();
+          canvas.loadFont(new Uint8Array(data), { family: 'MinionPro' });
+          nameFontFamily = 'MinionPro';
+          nameFontLoaded = true;
+          console.log('Minion Pro loaded from storage:', data.byteLength);
+        }
+      } catch (e) {
+        console.log('Minion Pro not in storage, using fallback');
       }
+
+      if (!nameFontLoaded) {
+        const nameRes = await fetch(NAME_FONT_FALLBACK_URL);
+        if (nameRes.ok) {
+          const data = await nameRes.arrayBuffer();
+          canvas.loadFont(new Uint8Array(data), { family: 'EBGaramond' });
+          nameFontFamily = 'EBGaramond';
+          console.log('EB Garamond SemiBold loaded:', data.byteLength);
+        } else {
+          console.warn('EB Garamond fetch failed:', nameRes.status);
+        }
+      }
+
+      const dateRes = await fetch(DATE_FONT_URL);
       if (dateRes.ok) {
         const data = await dateRes.arrayBuffer();
         canvas.loadFont(new Uint8Array(data), { family: 'Montserrat' });
