@@ -1,0 +1,1 @@
+UPDATE public.certifications SET certificate_name = 'Michael Campbell' WHERE user_id = '3e1ef09d-5d8d-4c79-ad2c-f68d4d46bb86' AND course_id = 'a2810c27-f8f3-4930-8ae9-a6f5f659d097';
