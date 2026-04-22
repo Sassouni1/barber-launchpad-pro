@@ -52,6 +52,7 @@ function useProofPhotos() {
 
 const DirectoryAdmin = () => {
   const { data: listings = [], isLoading } = useAllListings();
+  const { data: proofPhotos = [], isLoading: loadingProofs } = useProofPhotos();
   const approve = useApproveListing();
   const [addOpen, setAddOpen] = useState(false);
 
