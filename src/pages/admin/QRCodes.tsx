@@ -9,7 +9,8 @@ import { useQRLinks, useCreateQRLink, useUpdateQRLink, type QRLink } from '@/hoo
 import { Loader2, Download, Copy, Save, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 
-const REDIRECT_BASE = `${window.location.origin}/r`;
+// Always encode the production domain so scanned QRs work regardless of where they were generated.
+const REDIRECT_BASE = 'https://member.thebarberlaunch.com/r';
 
 // The two permanent QR slots — colors are locked to brand spec.
 const SLOTS = [
