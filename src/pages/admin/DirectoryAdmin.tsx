@@ -3,13 +3,56 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAllListings, useApproveListing } from "@/hooks/useSpecialistDirectory";
-import { Check, X, MapPin, ExternalLink, Plus } from "lucide-react";
+import { Check, X, MapPin, ExternalLink, Plus, Award } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { AddSpecialistDialog } from "@/components/admin/AddSpecialistDialog";
+
+interface ProofPhotoRow {
+  id: string;
+  user_id: string;
+  file_url: string;
+  created_at: string;
+  caption: string | null;
+  full_name: string | null;
+  email: string | null;
+}
+
+function useProofPhotos() {
+  return useQuery({
+    queryKey: ["admin-proof-photos"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: photos, error } = await supabase
+        .from("directory_photos")
+        .select("id, user_id, file_url, created_at, caption")
+        .eq("is_proof", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const ids = Array.from(new Set((photos || []).map((p) => p.user_id)));
+      if (ids.length === 0) return [] as ProofPhotoRow[];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      const byId = new Map((profiles || []).map((p) => [p.id, p]));
+      return (photos || []).map((p) => {
+        const prof = byId.get(p.user_id);
+        return {
+          ...p,
+          full_name: prof?.full_name ?? null,
+          email: prof?.email ?? null,
+        } as ProofPhotoRow;
+      });
+    },
+  });
+}
 
 const DirectoryAdmin = () => {
   const { data: listings = [], isLoading } = useAllListings();
+  const { data: proofPhotos = [], isLoading: loadingProofs } = useProofPhotos();
   const approve = useApproveListing();
   const [addOpen, setAddOpen] = useState(false);
 
@@ -90,6 +133,52 @@ const DirectoryAdmin = () => {
         <AddSpecialistDialog open={addOpen} onClose={() => setAddOpen(false)} />
 
         {isLoading && <p className="text-muted-foreground">Loading…</p>}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary" />
+              Certification Proof Photos ({proofPhotos.length})
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Every photo a member uploads holding their certification.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {loadingProofs ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : proofPhotos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No proof photos yet.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {proofPhotos.map((p) => (
+                  <a
+                    key={p.id}
+                    href={p.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                  >
+                    <img
+                      src={p.file_url}
+                      alt={p.full_name || "Certification proof"}
+                      className="w-full aspect-square object-cover"
+                      loading="lazy"
+                    />
+                    <div className="p-2 text-xs">
+                      <p className="font-medium truncate">
+                        {p.full_name || p.email || "Unknown member"}
+                      </p>
+                      <p className="text-muted-foreground truncate">
+                        {new Date(p.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
