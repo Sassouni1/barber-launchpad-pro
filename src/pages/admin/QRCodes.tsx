@@ -98,7 +98,7 @@ function QRCodeRow({
 
   const [destination, setDestination] = useState(link.destination_url);
 
-  const qrUrl = `${REDIRECT_BASE}/${link.short_code}`;
+  const qrUrl = `${REDIRECT_BASE}${link.short_code}`;
   const dirty = destination !== link.destination_url;
 
   const handleSave = async () => {
