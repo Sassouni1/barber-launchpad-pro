@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Redirecting…</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui,-apple-system,sans-serif}
+  .wrap{min-height:100%;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="msg"></div>
+<script>
+(function(){
+  var SUPABASE_URL = "https://ynooatjtgstgwfssnira.supabase.co";
+  var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlub29hdGp0Z3N0Z3dmc3NuaXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0MjIyMzAsImV4cCI6MjA4MDk5ODIzMH0.iyoy81sovUVMa7YfNUOo-mxaTipBGWX166V9QCZ3w3A";
+
+  // Code can come from ?c=XXXX (preferred) or trailing path segment fallback.
+  var params = new URLSearchParams(location.search);
+  var code = params.get("c");
+  if (!code) {
+    var parts = location.pathname.split("/").filter(Boolean);
+    code = parts[parts.length - 1];
+    if (code === "r.html") code = null;
+  }
+
+  function fail(text){
+    document.getElementById("msg").textContent = text || "Link not found.";
+  }
+
+  if (!code) { fail(); return; }
+
+  fetch(SUPABASE_URL + "/rest/v1/rpc/resolve_qr_link", {
+    method: "POST",
+    headers: {
+      "apikey": ANON,
+      "Authorization": "Bearer " + ANON,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ code: code })
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(data){
+    if (!data || !data.length || !data[0].destination_url) { fail(); return; }
+    location.replace(data[0].destination_url);
+  })
+  .catch(function(){ fail(); });
+})();
+</script>
+</body>
+</html>
