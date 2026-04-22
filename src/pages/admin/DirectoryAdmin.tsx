@@ -3,10 +3,52 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAllListings, useApproveListing } from "@/hooks/useSpecialistDirectory";
-import { Check, X, MapPin, ExternalLink, Plus } from "lucide-react";
+import { Check, X, MapPin, ExternalLink, Plus, Award } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { AddSpecialistDialog } from "@/components/admin/AddSpecialistDialog";
+
+interface ProofPhotoRow {
+  id: string;
+  user_id: string;
+  file_url: string;
+  created_at: string;
+  caption: string | null;
+  full_name: string | null;
+  email: string | null;
+}
+
+function useProofPhotos() {
+  return useQuery({
+    queryKey: ["admin-proof-photos"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: photos, error } = await supabase
+        .from("directory_photos")
+        .select("id, user_id, file_url, created_at, caption")
+        .eq("is_proof", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const ids = Array.from(new Set((photos || []).map((p) => p.user_id)));
+      if (ids.length === 0) return [] as ProofPhotoRow[];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      const byId = new Map((profiles || []).map((p) => [p.id, p]));
+      return (photos || []).map((p) => {
+        const prof = byId.get(p.user_id);
+        return {
+          ...p,
+          full_name: prof?.full_name ?? null,
+          email: prof?.email ?? null,
+        } as ProofPhotoRow;
+      });
+    },
+  });
+}
 
 const DirectoryAdmin = () => {
   const { data: listings = [], isLoading } = useAllListings();
