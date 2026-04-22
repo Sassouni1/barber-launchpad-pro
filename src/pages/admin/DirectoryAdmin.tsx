@@ -136,6 +136,52 @@ const DirectoryAdmin = () => {
 
         <Card>
           <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary" />
+              Certification Proof Photos ({proofPhotos.length})
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Every photo a member uploads holding their certification.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {loadingProofs ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : proofPhotos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No proof photos yet.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {proofPhotos.map((p) => (
+                  <a
+                    key={p.id}
+                    href={p.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                  >
+                    <img
+                      src={p.file_url}
+                      alt={p.full_name || "Certification proof"}
+                      className="w-full aspect-square object-cover"
+                      loading="lazy"
+                    />
+                    <div className="p-2 text-xs">
+                      <p className="font-medium truncate">
+                        {p.full_name || p.email || "Unknown member"}
+                      </p>
+                      <p className="text-muted-foreground truncate">
+                        {new Date(p.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Pending Approval ({pending.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
