@@ -126,7 +126,7 @@ function Header({ step }: { step: Step }) {
           <p className="text-sm text-muted-foreground">
             Your public profile on{" "}
             <a
-              href="/find-a-pro"
+              href="https://find.menshairexpert.com"
               target="_blank"
               rel="noreferrer"
               className="text-primary underline underline-offset-2 hover:opacity-80"
@@ -503,7 +503,7 @@ function GalleryStep({
             <p className="text-sm text-muted-foreground">
               Clients can now find you on{" "}
               <a
-                href="/find-a-pro"
+                href="https://find.menshairexpert.com"
                 target="_blank"
                 rel="noreferrer"
                 className="text-primary underline underline-offset-2 hover:opacity-80"
@@ -515,7 +515,7 @@ function GalleryStep({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
-            <a href="/find-a-pro" target="_blank" rel="noreferrer">
+            <a href="https://find.menshairexpert.com" target="_blank" rel="noreferrer">
               <ExternalLink className="w-4 h-4 mr-2" /> View directory
             </a>
           </Button>
