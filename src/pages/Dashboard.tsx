@@ -17,10 +17,7 @@ export default function Dashboard() {
         <div className="space-y-6">
           <DynamicTodoList />
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <NextCallCountdown />
-            <ContinueLearning />
-          </div>
+          <ContinueLearning />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <AionChatCard />
