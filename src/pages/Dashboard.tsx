@@ -2,7 +2,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
 import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
-import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
+
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 import { ContactSection } from '@/components/dashboard/ContactSection';
 import { AionChatCard } from '@/components/dashboard/AionChatCard';
