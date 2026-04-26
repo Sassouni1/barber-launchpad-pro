@@ -27,7 +27,7 @@ import NotFound from "./pages/NotFound";
 import OrderHairSystem from "./pages/OrderHairSystem";
 import Products from "./pages/Products";
 import Training from "./pages/Training";
-import LiveCalls from "./pages/LiveCalls";
+
 import Agreement from "./pages/Agreement";
 import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
@@ -88,7 +88,7 @@ const MemberApp = () => (
         <Route path="/order-hair-system" element={<ProtectedRoute><OrderHairSystem /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
         <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
-        <Route path="/live-calls" element={<ProtectedRoute><LiveCalls /></ProtectedRoute>} />
+        
         <Route path="/schedule-call" element={<ProtectedRoute><ScheduleCall /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
