@@ -27,7 +27,7 @@ import NotFound from "./pages/NotFound";
 import OrderHairSystem from "./pages/OrderHairSystem";
 import Products from "./pages/Products";
 import Training from "./pages/Training";
-import LiveCalls from "./pages/LiveCalls";
+
 import Agreement from "./pages/Agreement";
 import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
