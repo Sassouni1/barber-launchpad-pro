@@ -6,6 +6,7 @@ import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 import { ContactSection } from '@/components/dashboard/ContactSection';
 import { AionChatCard } from '@/components/dashboard/AionChatCard';
+import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
 
 export default function Dashboard() {
   return (
@@ -13,6 +14,8 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto space-y-8">
         <ShippingNotification />
         <WelcomeHero />
+        <NextCallCountdown />
+
         
         <div className="space-y-6">
           <DynamicTodoList />
