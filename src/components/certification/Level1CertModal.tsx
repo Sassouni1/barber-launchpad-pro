@@ -220,7 +220,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const photoSubmitted = (photos?.length ?? 0) > 0;
   const allQuizzesPassed = eligibility?.allQuizzesPassed ?? false;
   const isCertified = !!existingCertification;
-  const allRequirementsMet = allLessonsDone && trainingGamesDone && photoSubmitted && allQuizzesPassed;
+  // Training games are no longer required for certification (still tracked for reference)
+  const allRequirementsMet = allLessonsDone && photoSubmitted && allQuizzesPassed;
 
   const handleGetCertified = () => {
     setGeneratedCertificateUrl(null);
