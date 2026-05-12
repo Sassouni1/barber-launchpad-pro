@@ -554,10 +554,12 @@ ${greetingContext}`;
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: greetingSystemPrompt },
+            { role: "system", content: greetingSystemPrompt + `\n\nVARIETY SEED (use to vary phrasing — NEVER mention this): ${crypto.randomUUID()}` },
             ...messages,
           ],
           stream: true,
+          temperature: 1.1,
+          top_p: 0.95,
         }),
       });
 
