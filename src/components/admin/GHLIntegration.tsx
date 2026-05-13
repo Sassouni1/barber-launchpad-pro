@@ -9,7 +9,7 @@ import { toast } from "sonner";
 const CALLBACK_PATH = "/integrations/crm/callback";
 
 function getRedirectUri() {
-  return `https://barber-launchpad-pro.lovable.app${CALLBACK_PATH}`;
+  return `${window.location.origin}${CALLBACK_PATH}`;
 }
 
 async function invokeGhlOAuth(action: string, params: Record<string, string> = {}) {
