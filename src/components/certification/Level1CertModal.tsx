@@ -395,7 +395,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       expandable: true,
     },
     {
-      label: 'Training games (optional)',
+      label: 'Training games',
       completed: true,
       detail: trainingGames ? `${trainingGames.completedCount}/${trainingGames.totalCount}` : undefined,
     },
