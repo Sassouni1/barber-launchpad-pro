@@ -554,12 +554,10 @@ ${greetingContext}`;
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: greetingSystemPrompt + `\n\nVARIETY SEED (use to vary phrasing — NEVER mention this): ${crypto.randomUUID()}` },
+            { role: "system", content: greetingSystemPrompt },
             ...messages,
           ],
           stream: true,
-          temperature: 1.1,
-          top_p: 0.95,
         }),
       });
 
@@ -611,12 +609,10 @@ ${greetingContext}`;
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: systemPrompt + `\n\nVARIETY SEED (use to vary phrasing and word choice across users and conversations — NEVER mention this seed): ${crypto.randomUUID()}` },
+          { role: "system", content: systemPrompt },
           ...messages,
         ],
         stream: true,
-        temperature: 1.0,
-        top_p: 0.95,
       }),
     });
 
