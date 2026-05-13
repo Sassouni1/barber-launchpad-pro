@@ -219,10 +219,46 @@ This photo is a provided photo layer. You are placing it into your design withou
 - You may not alter the person's face, hair, skin, clothing, lighting, or background
 - Place text and design elements around or beside the photo, never over faces
 - The final result must look like a professionally designed social media post with the real photo composited in
-=== end provided photo layer instructions ===` : `Photography instructions:
-Generate original cinematic photography that fits a barbershop/hair replacement business.
-- Professional barbershop scenes, natural high-end studio lighting, shallow depth of field
-- The photography should feel authentic and high-end`;
+=== end provided photo layer instructions ===` : `=== PHOTOGRAPHY INSTRUCTIONS — HYPER-REALISTIC EDITORIAL PORTRAITURE ===
+
+CRITICAL AESTHETIC: This must look like a REAL PHOTOGRAPH shot by a professional editorial photographer (think Peter Hapak, Platon, Annie Leibovitz). NOT an AI-rendered, stylized, or "studio stock" image. NOT a barbershop scene with a barber posing. The viewer must believe a real camera captured a real human being.
+
+SUBJECT — choose ONE of these two formats:
+A) SINGLE PORTRAIT: One real-looking man, mid-30s to mid-50s, photographed from the chest up, head tilted slightly down or looking directly at camera. He should have visible hair loss / receding hairline / thinning crown — REAL hair loss patterns, NOT exaggerated cartoon baldness. Optional short beard / stubble.
+B) BEFORE-AND-AFTER: The SAME man shown side-by-side. Left side = visible hair loss (thinning crown, receding M-shape, or balding patches). Right side = full natural hair system installed. Identical pose, identical lighting, identical wardrobe, identical background. The transformation must be believable — not a wig-helmet, not a different person.
+
+LIGHTING — non-negotiable signature look:
+- Deep black background (#000000 to #0A0A0A), cinematic and moody
+- Strong WARM GOLDEN RIM LIGHT raking the edges of the face, hair, beard, and shoulders from behind/above. This is the brand's signature light. Color temperature ~2800-3200K, intensity strong enough to outline the silhouette in molten gold
+- Soft fill light on the front of the face — subtle, not flat
+- Sharp focus on the eyes and hairline
+- Shallow depth of field, full-frame camera look (think 85mm f/1.4 or 50mm f/1.8)
+
+REALISM CHECKLIST — every one of these is mandatory:
+- Visible skin texture: pores, fine lines, natural blemishes, stubble shadows on the jaw
+- Asymmetrical face — real human proportions, not AI-perfect symmetry
+- Eyes have real moisture and a real catchlight; NOT glassy, dead, or doll-like
+- Hair shows individual strands, root variation, and real density variance — NOT a painted-on helmet
+- Skin tone has natural color variance (slight redness around the nose, ears, under-eye shadow)
+- Wardrobe: simple plain black or charcoal t-shirt or henley, no logos, no chains
+- NO props (no scissors, no clippers, no spray bottles, no capes, no barber tools)
+- NO second person (no barber in frame)
+- NO mirror, NO reflections, NO barbershop counter, NO bottles, NO chairs, NO interior
+
+FORBIDDEN — these are the AI tells we are eliminating:
+- Plastic, smoothed, airbrushed skin
+- Cartoon-symmetrical faces or "instagram filter" perfection
+- Glassy, soulless, or asymmetric eyes
+- Floating/incoherent background objects (mirror reflections that don't match, gibberish bottles, malformed chairs)
+- A "barber" character holding tools — REMOVE the second person entirely
+- Steam, mist, sparks, or floating particles
+- Hands holding scissors or any prop
+- Painted, helmeted, or wig-like hair
+- Any cartoon, illustration, 3D render, or stylized look
+- Bright, light, daytime, or studio-white backgrounds
+
+The final image must be indistinguishable from a high-end editorial photograph shot for GQ or Esquire — single male subject, dark background, dramatic golden rim light, brutally honest skin detail, real hair loss shown without shame.
+=== end photography instructions ===`;
 
     const prompt = `${stopAndReadPreamble}${criticalRulesBlock}
 ${storyReferenceBlock}
