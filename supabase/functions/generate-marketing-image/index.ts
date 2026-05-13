@@ -223,9 +223,13 @@ This photo is a provided photo layer. You are placing it into your design withou
 
 CRITICAL AESTHETIC: This must look like a REAL PHOTOGRAPH shot by a professional editorial photographer (think Peter Hapak, Platon, Annie Leibovitz). NOT an AI-rendered, stylized, or "studio stock" image. NOT a barbershop scene with a barber posing. The viewer must believe a real camera captured a real human being.
 
-SUBJECT — choose ONE of these two formats:
-A) SINGLE PORTRAIT: One real-looking man, mid-30s to mid-50s, photographed from the chest up, head tilted slightly down or looking directly at camera. He should have visible hair loss / receding hairline / thinning crown — REAL hair loss patterns, NOT exaggerated cartoon baldness. Optional short beard / stubble.
-B) BEFORE-AND-AFTER: The SAME man shown side-by-side. Left side = visible hair loss (thinning crown, receding M-shape, or balding patches). Right side = full natural hair system installed. Identical pose, identical lighting, identical wardrobe, identical background. The transformation must be believable — not a wig-helmet, not a different person.
+SUBJECT — AFTER-RESULT LED, NOT BALD-ONLY:
+- The image must clearly show the successful AFTER result: a real-looking man, mid-30s to mid-50s, with a natural full hair system installed and barber-blended.
+- Preferred format: BEFORE-AND-AFTER of the SAME man side-by-side. Left side = mild-to-moderate thinning or receding hairline only. Right side = the true after result with a full, natural, dense-but-believable head of hair.
+- If using a single portrait, it must be the AFTER result only: natural full hair, restored hairline, clean blend, not bald, not thinning, not shaved.
+- The before side may show recession or thinning, but it must never be completely bald, shiny scalp, shaved bald, severe alopecia, or cartoon-level hair loss.
+- The after side must never still look bald or sparse. It needs visible coverage across the front hairline, temples, top, and crown with individual strands and realistic density variation.
+- Before and after must look like the same person: same facial structure, same beard/stubble, same skin tone, same wardrobe, same pose, same lighting. Do not make the after a different younger model.
 
 LIGHTING — non-negotiable signature look:
 - Deep black background (#000000 to #0A0A0A), cinematic and moody
@@ -233,6 +237,12 @@ LIGHTING — non-negotiable signature look:
 - Soft fill light on the front of the face — subtle, not flat
 - Sharp focus on the eyes and hairline
 - Shallow depth of field, full-frame camera look (think 85mm f/1.4 or 50mm f/1.8)
+
+TRUE AFTER RESULT CHECKLIST — mandatory:
+- The AFTER person has a natural, complete hairline and visible styled hair across the full top of the head.
+- Hairline is age-appropriate and slightly imperfect: soft recession at temples is okay, but no bald forehead-to-crown scalp on the after.
+- Hair has individual strands, root direction, subtle cowlicks, density variation, and a barber-finished shape-up. It cannot look like painted fibers, a wig cap, a helmet, or a plastic toupee.
+- The after result should look like a high-end non-surgical hair replacement / hair system installation photographed immediately after a professional cut-in.
 
 REALISM CHECKLIST — every one of these is mandatory:
 - Visible skin texture: pores, fine lines, natural blemishes, stubble shadows on the jaw
@@ -254,10 +264,14 @@ FORBIDDEN — these are the AI tells we are eliminating:
 - Steam, mist, sparks, or floating particles
 - Hands holding scissors or any prop
 - Painted, helmeted, or wig-like hair
+- A bald or nearly bald AFTER result
+- A fully bald, shiny, shaved, or severe-hair-loss man as the main final result
+- Before-and-after images where both sides are bald, sparse, or nearly identical
+- An after result with exposed crown scalp, bald temples, or no visible hairline restoration
 - Any cartoon, illustration, 3D render, or stylized look
 - Bright, light, daytime, or studio-white backgrounds
 
-The final image must be indistinguishable from a high-end editorial photograph shot for GQ or Esquire — single male subject, dark background, dramatic golden rim light, brutally honest skin detail, real hair loss shown without shame.
+The final image must be indistinguishable from a high-end editorial photograph shot for GQ or Esquire — same real male subject, dark background, dramatic golden rim light, brutally honest skin detail, and a believable premium AFTER hair restoration result that is visibly not bald.
 === end photography instructions ===`;
 
     const prompt = `${stopAndReadPreamble}${criticalRulesBlock}
