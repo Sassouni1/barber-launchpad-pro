@@ -220,8 +220,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const photoSubmitted = (photos?.length ?? 0) > 0;
   const allQuizzesPassed = eligibility?.allQuizzesPassed ?? false;
   const isCertified = !!existingCertification;
-  // Training games are no longer required for certification (still tracked for reference)
-  const allRequirementsMet = allLessonsDone && photoSubmitted && allQuizzesPassed;
+  // Only quizzes + photo are required. Lessons and training games tracked for reference only.
+  const allRequirementsMet = photoSubmitted && allQuizzesPassed;
 
   const handleGetCertified = () => {
     setGeneratedCertificateUrl(null);
@@ -386,7 +386,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const requirements = [
     {
       label: 'Complete all lessons',
-      completed: allLessonsDone,
+      completed: true,
       detail: lessonsProgress ? `${lessonsProgress.completedCount}/${lessonsProgress.totalCount}` : undefined,
     },
     {
