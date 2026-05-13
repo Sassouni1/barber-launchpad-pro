@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Link2, Unlink, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-const CALLBACK_PATH = "/integrations/ghl/callback";
+const CALLBACK_PATH = "/integrations/crm/callback";
 
 function getRedirectUri() {
   return `https://barber-launchpad-pro.lovable.app${CALLBACK_PATH}`;
