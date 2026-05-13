@@ -4,6 +4,7 @@ export function openOAuthPopup(url: string, callbackPath: string): Promise<{ cod
     const height = 700;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
+    let settled = false;
 
     const popup = window.open(
       url,
@@ -16,11 +17,43 @@ export function openOAuthPopup(url: string, callbackPath: string): Promise<{ cod
       return;
     }
 
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearInterval(interval);
+      clearTimeout(timeout);
+      window.removeEventListener("message", handleMessage);
+      callback();
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+
+      const data = event.data as {
+        type?: string;
+        callbackPath?: string;
+        code?: string;
+        error?: string;
+      };
+
+      if (data?.type !== "oauth-callback" || data.callbackPath !== callbackPath) return;
+
+      finish(() => {
+        if (!popup.closed) popup.close();
+        if (data.code) {
+          resolve({ code: data.code });
+        } else {
+          reject(new Error(data.error || "No authorization code received"));
+        }
+      });
+    };
+
+    window.addEventListener("message", handleMessage);
+
     const interval = setInterval(() => {
       try {
         if (popup.closed) {
-          clearInterval(interval);
-          reject(new Error("OAuth window was closed"));
+          finish(() => reject(new Error("OAuth window was closed")));
           return;
         }
 
@@ -29,14 +62,14 @@ export function openOAuthPopup(url: string, callbackPath: string): Promise<{ cod
           const url = new URL(popupUrl);
           const code = url.searchParams.get("code");
 
-          clearInterval(interval);
-          popup.close();
-
-          if (code) {
-            resolve({ code });
-          } else {
-            reject(new Error("No authorization code received"));
-          }
+          finish(() => {
+            if (!popup.closed) popup.close();
+            if (code) {
+              resolve({ code });
+            } else {
+              reject(new Error("No authorization code received"));
+            }
+          });
         }
       } catch {
         // Cross-origin — ignore until redirect back
@@ -44,10 +77,11 @@ export function openOAuthPopup(url: string, callbackPath: string): Promise<{ cod
     }, 400);
 
     // Timeout after 5 minutes
-    setTimeout(() => {
-      clearInterval(interval);
-      if (!popup.closed) popup.close();
-      reject(new Error("OAuth timed out"));
+    const timeout = setTimeout(() => {
+      finish(() => {
+        if (!popup.closed) popup.close();
+        reject(new Error("OAuth timed out"));
+      });
     }, 300000);
   });
 }
