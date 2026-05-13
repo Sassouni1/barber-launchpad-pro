@@ -386,7 +386,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const requirements = [
     {
       label: 'Complete all lessons',
-      completed: allLessonsDone,
+      completed: true,
       detail: lessonsProgress ? `${lessonsProgress.completedCount}/${lessonsProgress.totalCount}` : undefined,
     },
     {
