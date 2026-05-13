@@ -99,6 +99,7 @@ const MemberApp = () => (
         <Route path="/checklist/:listId" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
         <Route path="/rewards/join/:userId" element={<RewardsJoin />} />
         <Route path="/r/:shortCode" element={<QRRedirect />} />
+        <Route path="/integrations/crm/callback" element={<GHLCallback />} />
         <Route path="/integrations/ghl/callback" element={<GHLCallback />} />
         <Route path="/card/:shortCode" element={<CardView />} />
         <Route path="/client/:userId" element={<ClientHub />} />
