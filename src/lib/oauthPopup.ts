@@ -17,6 +17,9 @@ export function openOAuthPopup(url: string, callbackPath: string): Promise<{ cod
       return;
     }
 
+    let interval: ReturnType<typeof setInterval>;
+    let timeout: ReturnType<typeof setTimeout>;
+
     const finish = (callback: () => void) => {
       if (settled) return;
       settled = true;
@@ -50,7 +53,7 @@ export function openOAuthPopup(url: string, callbackPath: string): Promise<{ cod
 
     window.addEventListener("message", handleMessage);
 
-    const interval = setInterval(() => {
+    interval = setInterval(() => {
       try {
         if (popup.closed) {
           finish(() => reject(new Error("OAuth window was closed")));
@@ -77,7 +80,7 @@ export function openOAuthPopup(url: string, callbackPath: string): Promise<{ cod
     }, 400);
 
     // Timeout after 5 minutes
-    const timeout = setTimeout(() => {
+    timeout = setTimeout(() => {
       finish(() => {
         if (!popup.closed) popup.close();
         reject(new Error("OAuth timed out"));
