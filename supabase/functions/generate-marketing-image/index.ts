@@ -328,14 +328,13 @@ The final image must be indistinguishable from a high-end editorial photograph s
       ? `Brand name: "${brandProfile.title}" — render small and refined.`
       : `Do NOT invent or display any brand name on the image.`;
 
-    // Per-image face variation so the 4 generations don't share the same face
+    // Per-image face variation so the 3 generations don't share the same face
     const faceVariations = [
       'Age 32, square jawline, full well-groomed beard, thick eyebrows, medium-toned skin for his ethnicity, warm brown eyes, subtle smile.',
       'Age 27, leaner oval face, light stubble (3-day growth), sharper cheekbones, lighter skin for his ethnicity, deep-set eyes, calm closed-mouth expression.',
       'Age 38, broader face with slight crow\'s feet, clean-shaven or very short stubble, stronger brow, deeper/darker skin for his ethnicity, direct confident gaze.',
-      'Age 24, rounder youthful face, no facial hair, smooth skin, bright eyes, slightly upturned mouth. Skin tone shifts again from the others for his ethnicity.',
     ];
-    const faceVariation = faceVariations[layoutIndex % 4];
+    const faceVariation = faceVariations[layoutIndex % 3];
 
     // AFTER hairstyle variation — different finished look for each generation, ethnicity-appropriate
     const blackHairstyles = [
