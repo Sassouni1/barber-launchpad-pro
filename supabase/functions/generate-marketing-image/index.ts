@@ -364,55 +364,39 @@ One man only. ${ethnicityDesc}. ${faceVariation} Confident, relaxed expression. 
 - Watermarks, clip art, emoji, instructional text, category labels
 - Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`;
 
-    const leanAiPrompt = `Editorial portrait ad for a premium men's barbershop / hair restoration studio. Pure AI synthesis — never reference any uploaded image. ${aspectInstruction}
+    const promoStyles = [
+      `STYLE: "ATTENTION CITY MEN" stat-flyer. Tiny gold "— ATTENTION —" eyebrow tag with thin gold side rules at top. Massive bold white condensed display headline below it (one or two key words in metallic gold gradient). Three stacked icon-stat rows with circular gold-outlined badges containing simple gold line icons (people silhouettes, cap, calendar-check) and short bold uppercase 2-line statements (first 1-2 words gold, rest white). Thin gold dividers between rows. Gold geometric diamond accents in the corners. Bottom: wide pill-shaped METALLIC GOLD GRADIENT CTA button with a small calendar icon, bold black uppercase text, and a chevron ">".`,
+      `STYLE: "GUARANTEED RESULTS" brushstroke poster. Tiny gold "— SAME DAY —" eyebrow tag at top. Huge distressed/textured WHITE display word with grain. Below it, a HUGE handwritten brushstroke-script word in metallic gold gradient, looks hand-painted with rough edges and paint spatter. Rough gold brushstroke underline. "BEFORE" and "AFTER" labels in white brushstroke script with small gold brush underlines, placed over the photo corners. A diagonal gold light streak between the two sides. Three small brushstroke feature rings at the bottom with gold icons + brushstroke gold word + small white uppercase subtitle. Bottom CTA: a rough hand-painted gold brushstroke banner with bold black uppercase text.`,
+      `STYLE: "ENGINEERED HAIRLINES" thin gold double-frame editorial card. A thin double metallic gold rule frame inset 5% from each edge. Headline top-left inside the frame, broken across 2 lines, alternating white and gold gradient words (heavy condensed display, tight letter spacing). Small white "BEFORE" label bottom-left of the left half, "AFTER" bottom-right of the right half. Centered metallic gold gradient pill CTA button at the bottom with bold black uppercase text. Three small gold pagination dots below the frame.`,
+    ];
+    const promoStyle = promoStyles[layoutIndex % 3];
 
-${subjectBlock}
+    const leanAiPrompt = `Premium barbershop / hair-restoration promo graphic on pure black (#0A0A0A). ${aspectInstruction}
 
-HAIR (the hero of the shot):
-Fresh, premium men's cut matching the ethnicity's natural texture — sharp lineup, clean fade or taper, styled top. Hair must look freshly finished: defined edges, crisp neckline, product sheen, individual visible strands.
+THE ONLY THING THAT MATTERS: a beautifully designed BEFORE/AFTER promo that looks like a high-end Instagram ad.
 
-MANDATORY FORMAT — ALWAYS render a SPLIT before/after of the SAME man side-by-side. This is required on EVERY image regardless of headline. Never output a single portrait.
-  LEFT (BEFORE): diffuse thinning crown, receding temples, visible scalp — but NEVER fully bald or shiny shaved.
-  RIGHT (AFTER): full natural density restored, seamless rebuilt hairline, barber-blended. NEVER bald in the AFTER. NEVER painted-on or wig-like.
-  Both sides: same face, same beard, same skin tone, same wardrobe, same lighting${isChairScene ? ', BOTH sides seated in the same barber chair wearing the same barber cape with the same blurred barbershop background' : ''}. Both heads fully visible with breathing room — never crop hair, ears, or chin on either side.
-  ${isChairScene ? 'The barber-chair + cape setting is MANDATORY on both the BEFORE and the AFTER sides — do not switch to a plain dark background for either side.' : ''}
+PHOTO (the centerpiece, ~60% of the canvas):
+A side-by-side BEFORE/AFTER of the SAME real-looking man.
+- ${ethnicityDesc}. ${faceVariation}
+- BEFORE (left): mild thinning crown / receding temples — never fully bald or shaved.
+- AFTER (right): full natural restored hair, seamless hairline, barber-blended. Never bald, never wig-like.
+- Both sides: same face, same beard, same wardrobe (plain dark shirt), same warm golden rim-lit lighting on a deep black background. Both heads fully visible with breathing room — never crop hair, ears, or chin.
+- Hyper-real photo quality: visible skin pores, individual hair strands, single eye catchlight. NO second person, NO barber tools, NO props.
 
-${shotBlock}
+DESIGN — pick this one promo style and execute it cleanly:
+${promoStyle}
 
-${forbiddenBlock}
-
-DESIGN:
-${brandColorBlock}
-
-LAYOUT:
-${layoutInstruction}
-
-TEXT ON THE IMAGE:
-Pick ONE headline from this list and adapt it (5–8 words, bold, uppercase). Do NOT invent your own. Do NOT copy any other text onto the image:
+Headline text — pick ONE and adapt to 5-8 bold uppercase words:
 ${headlineExamples}
 
 ${brandNameLine}
-${ctaInstruction}
 
-Typography & design rules (this is a richly designed promotional FLYER, not a minimalist portrait):
-- Bold heavy condensed display sans-serif for the main headline (think Anton, Bebas Neue, Druk Wide). All caps. Mix WHITE words with METALLIC GOLD GRADIENT words (deep bronze #8B6914 → rich gold #D4AF37 → bright gold #F0D060) — every gold element must show 3D shimmer like polished foil, never flat.
-- At least one secondary brushstroke or distressed/textured display word in gold OR a small gold "— EYEBROW —" tag with thin gold side rules, so the type has hierarchy and personality.
-- Decorative gold elements REQUIRED on every image: thin gold rule dividers, small gold diamond markers, circular gold-outlined icon badges with simple flat gold line icons (people silhouettes, cap, calendar-check, hair follicle, stopwatch, shield-check), and/or hand-painted brushstroke accents.
-- A prominent bottom CTA: either a wide pill-shaped METALLIC GOLD GRADIENT button with bold black uppercase text and a small icon + chevron, OR a rough gold brushstroke banner with bold black text. Never just plain underlined text — the CTA must look like a real clickable button.
-- Subtle background texture: faint grain, geometric corner accents (thin diamonds, brackets), or soft brushstroke marks — never a flat empty black background.
-- Thin metallic gold outer frame border around the entire image (gold only, never white).
+ABSOLUTE RULES:
+- Black background only. No white backgrounds, no studio white, no white frames or boxes.
+- Gold = metallic gradient (deep bronze #8B6914 → rich gold #D4AF37 → bright gold #F0D060), never flat.
+- Real photographic man — no cartoon, no 3D render, no illustration.
 - Never place text over faces.
-- Reference aesthetic: think premium boxing-match poster, luxury barbershop flyer, GQ ad — heavily designed with multiple layers of typography, icons, dividers, and CTA. NOT a minimalist portrait with one line of text.
-
-FINAL CHECK before outputting:
-1. Subject ethnicity unmistakably matches: ${ethnicityDesc}
-2. Exactly one person (or one person twice in before/after split). No barber, no tools.
-3. Full head, all hair, ears, chin visible on every edge with breathing room.
-4. Real skin texture, individual hair strands, single eye catchlight.
-5. AFTER side (if before/after) shows visible hair coverage — NOT bald.
-6. Headline + CTA legible. Brand name only if provided above.
-7. Black background, white + metallic gold typography, gold border present.
-If any check fails, redo from scratch.`;
+- Output one finished promo image, no instructional text or labels.`;
 
     const prompt = hasReference
       ? `${stopAndReadPreamble}${criticalRulesBlock}
