@@ -593,7 +593,7 @@ export default function Lesson() {
           const MobileFileCard = ({ file }: { file: typeof files[0] }) => {
             const [downloading, setDownloading] = useState(false);
             return (
-            <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[120px] max-w-[140px] flex-shrink-0">
+            <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden w-full">
               {isImage(file.file_type) ? (
                 <div className="aspect-square bg-black/20 relative">
                   <img 
@@ -654,10 +654,7 @@ export default function Lesson() {
                     <ImageIcon className="w-4 h-4" />
                     <span>Media ({mediaFiles.length})</span>
                   </div>
-                  <div
-                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin"
-                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
-                  >
+                  <div className="grid grid-cols-3 gap-2 pb-2">
                     {mediaFiles.map((file) => (
                       <MobileFileCard key={file.id} file={file} />
                     ))}
@@ -671,10 +668,7 @@ export default function Lesson() {
                     <FileText className="w-4 h-4" />
                     <span>Other Files ({others.length})</span>
                   </div>
-                  <div
-                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin"
-                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
-                  >
+                  <div className="grid grid-cols-3 gap-2 pb-2">
                     {others.map((file) => (
                       <MobileFileCard key={file.id} file={file} />
                     ))}
