@@ -307,12 +307,12 @@ The final image must be indistinguishable from a high-end editorial photograph s
 === end photography instructions ===`;
 
     const ethnicityMap: Record<string, string> = {
-      black: 'Black man, dark brown skin, coily/4C natural hair texture',
-      white: 'White man (European descent), fair skin, straight or wavy hair',
-      hispanic: 'Hispanic/Latino man, olive-tan skin, dark wavy or straight hair, dark eyes',
-      asian: 'East Asian man, straight black hair, medium-fair skin',
-      middle_eastern: 'Middle Eastern man (Arab/Persian/Levantine), olive skin, thick dark wavy hair, beard',
-      mixed: 'Visibly mixed-race man, ambiguous handsome features, textured wavy or curly hair',
+      black: 'Black/African-American man, deep dark brown skin, coily/4C natural hair texture, broad nose, full lips. MUST be visibly Black — NOT white, NOT light-skinned, NOT racially ambiguous.',
+      white: 'White man of European descent, fair pale skin, straight or wavy light-to-medium brown hair, European facial features. MUST be visibly white European.',
+      hispanic: 'Hispanic/Latino man (Mexican, Puerto Rican, Dominican, or Central/South American descent), warm olive-tan to light-brown skin, jet-black or dark-brown thick hair (wavy or straight), dark brown eyes, Latino facial features. MUST be visibly Hispanic/Latino — NOT white, NOT European, NOT racially ambiguous, NOT a tanned white man.',
+      asian: 'East Asian man (Chinese/Korean/Japanese descent), straight jet-black hair, medium-fair skin with warm undertones, monolid or single-fold eyes, Asian facial features. MUST be visibly East Asian — NOT white, NOT mixed.',
+      middle_eastern: 'Middle Eastern man (Arab/Persian/Levantine descent), olive to medium-tan skin, thick jet-black wavy hair, full dark beard, prominent nose, dark eyes. MUST be visibly Middle Eastern — NOT white European.',
+      mixed: 'Visibly mixed-race man with warm medium-brown skin, ambiguous handsome features, textured wavy or curly dark hair.',
     };
     const ethnicityDesc = ethnicityMap[ethnicity] ?? ethnicityMap.mixed;
 
