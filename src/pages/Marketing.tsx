@@ -126,7 +126,7 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => downloadImage(url, `image-${i + 1}.png`)}
+                  onClick={() => downloadImage(url, `${seoNameForIndex(i)}.png`)}
                   className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Download className="w-3 h-3 mr-1" /> Save
