@@ -654,7 +654,7 @@ export default function Lesson() {
                     <ImageIcon className="w-4 h-4" />
                     <span>Media ({mediaFiles.length})</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 pb-2">
+                  <div className="grid grid-cols-3 gap-2 pb-2 overflow-visible">
                     {mediaFiles.map((file) => (
                       <MobileFileCard key={file.id} file={file} />
                     ))}
@@ -668,7 +668,7 @@ export default function Lesson() {
                     <FileText className="w-4 h-4" />
                     <span>Other Files ({others.length})</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 pb-2">
+                  <div className="grid grid-cols-3 gap-2 pb-2 overflow-visible">
                     {others.map((file) => (
                       <MobileFileCard key={file.id} file={file} />
                     ))}
@@ -1000,7 +1000,7 @@ export default function Lesson() {
                             <ImageIcon className="w-4 h-4" />
                             <span>Media ({mediaFiles.length})</span>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-2">
+                          <div className="grid grid-cols-3 gap-3 pb-2 overflow-visible">
                             {mediaFiles.map((file) => (
                               <FileCard key={file.id} file={file} />
                             ))}
@@ -1014,7 +1014,7 @@ export default function Lesson() {
                             <FileText className="w-4 h-4" />
                             <span>Other Files ({others.length})</span>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-2">
+                          <div className="grid grid-cols-3 gap-3 pb-2 overflow-visible">
                             {others.map((file) => (
                               <FileCard key={file.id} file={file} />
                             ))}
