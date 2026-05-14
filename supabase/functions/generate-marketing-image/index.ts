@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl, ethnicity } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
