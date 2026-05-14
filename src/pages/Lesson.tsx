@@ -945,7 +945,7 @@ export default function Lesson() {
                   const FileCard = ({ file }: { file: typeof files[0] }) => {
                     const [downloading, setDownloading] = useState(false);
                     return (
-                    <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden min-w-[140px] max-w-[160px] flex-shrink-0">
+                    <div className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden w-full">
                       {isImage(file.file_type) ? (
                         <div className="aspect-square bg-black/20 relative">
                           <img 
