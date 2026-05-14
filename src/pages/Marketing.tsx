@@ -468,8 +468,9 @@ export default function Marketing() {
   };
 
   const downloadImage = (url: string, filename: string) => {
+    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
     const link = document.createElement('a');
-    link.href = url;
+    link.href = proxyUrl;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
