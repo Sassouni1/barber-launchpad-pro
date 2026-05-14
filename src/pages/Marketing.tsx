@@ -265,7 +265,7 @@ export default function Marketing() {
     }
   };
 
-  const generateContent = async (profile?: BrandProfile) => {
+  const generateContent = async (profile?: BrandProfile, ethnicityOverride?: string) => {
     const bp = profile || brandProfile || {
       title: '',
       description: '',
