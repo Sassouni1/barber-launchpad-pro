@@ -476,6 +476,17 @@ export default function Marketing() {
     document.body.removeChild(link);
   };
 
+  const seoNameForIndex = (i: number) => {
+    const names = [
+      'Hair System',
+      'Hair Units for Men',
+      'Hair Replacement',
+      'Hair Loss Solutions',
+      'Hair Systems for Men',
+    ];
+    return names[i % names.length];
+  };
+
   const isLoading = isScraping || isGenerating;
 
   const getAspectClass = (type: VariationType) => {
