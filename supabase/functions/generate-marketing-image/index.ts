@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const layoutIndex = typeof index === 'number' ? index % 4 : 0;
+    const layoutIndex = typeof index === 'number' ? index % 3 : 0;
     const isStory = size === 'story';
     const useGold = palette !== 'website';
 
