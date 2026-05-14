@@ -688,7 +688,13 @@ export default function Marketing() {
           </div>
 
           {/* AI Avatar — only when AI generation is involved */}
-          {(imageMode === 'ai' || imageMode === 'both') && <AudienceSettingsCard />}
+          {(imageMode === 'ai' || imageMode === 'both') && (
+            <AudienceSettingsCard
+              onGenerate={() => generateContent()}
+              canGenerate={!!brandProfile}
+              isGenerating={isLoading}
+            />
+          )}
 
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground uppercase tracking-wider">Format</label>
