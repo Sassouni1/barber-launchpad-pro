@@ -336,12 +336,12 @@ The final image must be indistinguishable from a high-end editorial photograph s
 === end photography instructions ===`;
 
     const ethnicityMap: Record<string, string> = {
-      black: 'Black/African-American man, deep dark brown skin, coily/4C natural hair texture, broad nose, full lips. MUST be visibly Black — NOT white, NOT light-skinned, NOT racially ambiguous.',
+      black: 'Black/African-American man. Skin tone MUST genuinely vary across generations (medium-brown, deep brown, very dark brown — never the same shade twice). Authentic Black facial features: broad nose, full lips. MUST be visibly Black — NOT white, NOT racially ambiguous. Face shape, age, build, and hairstyle MUST clearly differ from the other generations — never repeat the same man.',
       white: 'White man of European descent, fair pale skin, straight or wavy light-to-medium brown hair, European facial features. MUST be visibly white European.',
       hispanic: 'Hispanic/Latino man (Mexican, Puerto Rican, Dominican, or Central/South American descent), warm olive-tan to light-brown skin, jet-black or dark-brown thick hair (wavy or straight), dark brown eyes, Latino facial features. MUST be visibly Hispanic/Latino — NOT white, NOT European, NOT racially ambiguous, NOT a tanned white man.',
       asian: 'East Asian man (Chinese/Korean/Japanese descent), straight jet-black hair, medium-fair skin with warm undertones, monolid or single-fold eyes, Asian facial features. MUST be visibly East Asian — NOT white, NOT mixed.',
       middle_eastern: 'Middle Eastern man (Arab/Persian/Levantine descent), olive to medium-tan skin, thick jet-black wavy hair, full dark beard, prominent nose, dark eyes. MUST be visibly Middle Eastern — NOT white European.',
-      mixed: 'Visibly mixed-race man with warm medium-brown skin, ambiguous handsome features, textured wavy or curly dark hair.',
+      mixed: 'Visibly mixed-race man with warm medium-brown skin, ambiguous handsome features, textured wavy or curly dark hair. Vary the look across generations — sometimes lean more Black/Latino, sometimes more Asian/White mix — NEVER repeat the same face.',
     };
     const ethnicityDesc = ethnicityMap[ethnicity] ?? ethnicityMap.mixed;
 
@@ -350,16 +350,56 @@ The final image must be indistinguishable from a high-end editorial photograph s
       ? `Brand name: "${brandProfile.title}" — render small and refined.`
       : `Do NOT invent or display any brand name on the image.`;
 
-    // Per-image face variation so the 3 generations don't share the same face
+    // Per-image face variation so the 4 generations don't share the same face
     const faceVariations = [
-      'Age 32, square jawline, full well-groomed beard, thick eyebrows, slightly tanned skin tone for his ethnicity, warm brown eyes, subtle smile.',
-      'Age 27, leaner oval face, light stubble (3-day growth), sharper cheekbones, neutral skin tone for his ethnicity, deep-set eyes, calm closed-mouth expression.',
-      'Age 38, broader face with slight crow\'s feet, clean-shaven or very short stubble, stronger brow, slightly cooler skin tone for his ethnicity, direct confident gaze.',
+      'Age 32, square jawline, full well-groomed beard, thick eyebrows, medium-toned skin for his ethnicity, warm brown eyes, subtle smile.',
+      'Age 27, leaner oval face, light stubble (3-day growth), sharper cheekbones, lighter skin for his ethnicity, deep-set eyes, calm closed-mouth expression.',
+      'Age 38, broader face with slight crow\'s feet, clean-shaven or very short stubble, stronger brow, deeper/darker skin for his ethnicity, direct confident gaze.',
+      'Age 24, rounder youthful face, no facial hair, smooth skin, bright eyes, slightly upturned mouth. Skin tone shifts again from the others for his ethnicity.',
     ];
-    const faceVariation = faceVariations[layoutIndex % 3];
+    const faceVariation = faceVariations[layoutIndex % 4];
 
-    // Scene variation: index 0 = natural barber-chair, indices 1 & 2 = cinematic dark editorial
-    const isChairScene = layoutIndex % 3 === 0;
+    // AFTER hairstyle variation — different finished look for each generation, ethnicity-appropriate
+    const blackHairstyles = [
+      'AFTER hairstyle: 360 waves with a sharp tapered fade and crisp lined-up edge-up.',
+      'AFTER hairstyle: short twists / two-strand twists on top with a low taper fade and clean line-up.',
+      'AFTER hairstyle: curly sponge-twist coils on top with a mid drop fade.',
+      'AFTER hairstyle: textured afro top with a high skin fade and razor-sharp line-up.',
+    ];
+    const hispanicHairstyles = [
+      'AFTER hairstyle: slick-back with a mid fade and sharp line-up.',
+      'AFTER hairstyle: textured fringe / messy crop with a low taper fade.',
+      'AFTER hairstyle: high-volume pompadour with a skin fade.',
+      'AFTER hairstyle: clean side-part comb-over with a mid fade.',
+    ];
+    const asianHairstyles = [
+      'AFTER hairstyle: K-pop style two-block cut with longer top.',
+      'AFTER hairstyle: textured fringe with a low taper fade.',
+      'AFTER hairstyle: middle-part medium-length style.',
+      'AFTER hairstyle: short crop with a mid fade and natural hairline.',
+    ];
+    const middleEasternHairstyles = [
+      'AFTER hairstyle: slicked-back medium-length with a mid fade and beard-blend line-up.',
+      'AFTER hairstyle: textured side-swept top with a low taper.',
+      'AFTER hairstyle: short modern crop with a skin fade.',
+      'AFTER hairstyle: medium pompadour with a mid fade and connected beard.',
+    ];
+    const genericHairstyles = [
+      'AFTER hairstyle: modern textured crop with a low taper fade and natural hairline.',
+      'AFTER hairstyle: medium-length swept-back style with a mid fade.',
+      'AFTER hairstyle: short pompadour with skin fade on the sides.',
+      'AFTER hairstyle: classic side-part with a clean low taper.',
+    ];
+    const hairstylePool =
+      ethnicity === 'black' || ethnicity === 'mixed' ? blackHairstyles
+      : ethnicity === 'hispanic' ? hispanicHairstyles
+      : ethnicity === 'asian' ? asianHairstyles
+      : ethnicity === 'middle_eastern' ? middleEasternHairstyles
+      : genericHairstyles;
+    const hairstyleVariation = hairstylePool[layoutIndex % 4];
+
+    // Scene variation: index 0 = natural barber-chair, indices 1-3 = cinematic dark editorial
+    const isChairScene = layoutIndex % 4 === 0;
 
     const subjectBlock = isChairScene
       ? `SUBJECT (must match exactly, no exceptions):
