@@ -760,6 +760,33 @@ export type Database = {
           },
         ]
       }
+      marketing_audience_settings: {
+        Row: {
+          created_at: string
+          id: string
+          target_age_range: string
+          target_ethnicities: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          target_age_range?: string
+          target_ethnicities?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          target_age_range?: string
+          target_ethnicities?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       marketing_images: {
         Row: {
           caption: string | null
