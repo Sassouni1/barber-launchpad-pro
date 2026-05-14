@@ -131,17 +131,17 @@ BOTTOM (15% of canvas):
   - Three small feature callouts in a row: each = a circular gold brushstroke ring containing a small gold icon (stopwatch, hair-follicle, calendar-check), with a brushstroke-script gold word underneath ("SAME DAY", "NATURAL", "FREE") and a small white uppercase subtitle ("TRANSFORMATION", "LOOK & FEEL", "CONSULTATION")
   - Bottom CTA: a rough gold brushstroke banner with bold black uppercase text ("SCHEDULE YOUR FREE CONSULTATION >") — looks hand-painted, not a clean rectangle.`,
 
-      // LAYOUT C — "ENGINEERED HAIRLINES" thin-frame editorial card (matches the framed reference)
-      `Editorial framed card on pure black (#000000).
-A thin double gold rule frame inset ~5% from each edge of the canvas — the frame is ALWAYS thin metallic gold, NEVER white.
+      // LAYOUT C — "ENGINEERED HAIRLINES" minimal editorial card (no border)
+      `Sophisticated minimal editorial layout on pure black (#000000). NO border, NO frame, NO double-rule outline around the canvas — the design must breathe edge-to-edge with generous internal margins instead.
 TOP (25%):
-  - Inside the frame, top-left aligned: bold uppercase display headline broken across 2 lines, alternating white and metallic-gold-gradient words (e.g. "ENGINEERED HAIRLINES." in white + "BARBER-FINISHED." with key words in gold). Tight letter spacing, heavy weight.
+  - Top-left aligned: bold uppercase display headline broken across 2 lines, alternating white and metallic-gold-gradient words (e.g. "ENGINEERED HAIRLINES." in white + "BARBER-FINISHED." with key words in gold). Tight letter spacing, heavy weight. Comfortable margin from the canvas edge (~6%).
+  - Tiny gold "—" rule under the headline (just a short horizontal line, not a full-width frame).
 MIDDLE (60%):
-  ${hasReference ? 'Reference photo placed inside the frame with no modifications, both heads fully visible with breathing room. If before/after, the photo already contains both sides — do not add a second divider.' : 'Two equal portrait panels side-by-side inside the frame: LEFT = BEFORE (same man, mild thinning/recession), RIGHT = AFTER (same man, full restored hair). A thin vertical gold rule between them. Small white "BEFORE" label bottom-left of the left panel and "AFTER" bottom-right of the right panel.'}
+  ${hasReference ? 'Reference photo placed centered with no modifications, both heads fully visible with breathing room. No frame around the photo — let it sit on the black background cleanly. If before/after, the photo already contains both sides — do not add a divider.' : 'Two equal portrait panels side-by-side: LEFT = BEFORE (same man, mild thinning/recession), RIGHT = AFTER (same man, full restored hair). A single thin vertical gold hairline between them — that is the ONLY gold line allowed. Small white "BEFORE" label bottom-left of the left panel and "AFTER" bottom-right of the right panel.'}
 BOTTOM (15%):
   - Centered metallic gold gradient pill CTA button ("BOOK A FREE CONSULTATION") with bold black uppercase text inside.
-  - Below the frame, three small gold dot pagination markers (one larger gold pill in the middle).
-Sophisticated, calm, premium — the layout breathes. The frame is the hero design element.`,
+  - Below the CTA, three small gold dot pagination markers (one larger gold pill in the middle).
+Sophisticated, calm, premium — the layout breathes. White space and typography do the work. ABSOLUTELY NO border, frame, double-rule, or outlined card around the canvas edges.`,
 
       // LAYOUT D — "MAGAZINE COLLAGE" bold sticker-pack editorial (fresh / modern / scroll-stopping)
       isStory ? `Bold modern magazine-collage poster designed specifically for a 9:16 VERTICAL story (1080x1920). Near-black (#0A0A0A) base with a subtle off-white paper-grain vignette in the corners. Feels like a torn-out GQ / Highsnobiety editorial spread crossed with a sticker pack — layered, intentional, NOT minimalist. Use the full vertical canvas with generous breathing room between zones; nothing should feel cramped or cropped.
@@ -429,7 +429,9 @@ One man only. ${ethnicityDesc}. ${faceVariation} ${hairstyleVariation} The BEFOR
 - Bald, shaved, or shiny scalp as the AFTER result
 - Bright / light / studio-white backgrounds
 - Watermarks, clip art, emoji, instructional text, category labels
-- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`
+- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo
+- DOUBLE-LINED gold borders / double gold rule frames around the canvas — strictly forbidden in every layout
+- Full-canvas decorative borders or outlined card frames are discouraged; prefer letting the design breathe edge-to-edge with internal margins instead`
       : `ABSOLUTELY FORBIDDEN:
 - Second person (no barber in frame), no hands, no scissors, no clippers, no cape, no chair, no salon, no mirror, no bottles
 - Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
@@ -437,12 +439,14 @@ One man only. ${ethnicityDesc}. ${faceVariation} ${hairstyleVariation} The BEFOR
 - Bald, shaved, or shiny scalp as the AFTER result
 - Bright / light / studio-white backgrounds
 - Watermarks, clip art, emoji, instructional text, category labels
-- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`;
+- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo
+- DOUBLE-LINED gold borders / double gold rule frames around the canvas — strictly forbidden in every layout
+- Full-canvas decorative borders or outlined card frames are discouraged; prefer letting the design breathe edge-to-edge with internal margins instead`;
 
     const promoStyles = [
       `STYLE: "ATTENTION CITY MEN" stat-flyer. Tiny gold "— ATTENTION —" eyebrow tag with thin gold side rules at top. Massive bold white condensed display headline below it (one or two key words in metallic gold gradient). Three stacked icon-stat rows with circular gold-outlined badges containing simple gold line icons (people silhouettes, cap, calendar-check) and short bold uppercase 2-line statements (first 1-2 words gold, rest white). Thin gold dividers between rows. Gold geometric diamond accents in the corners. Bottom: wide pill-shaped METALLIC GOLD GRADIENT CTA button with a small calendar icon, bold black uppercase text, and a chevron ">".`,
       `STYLE: "GUARANTEED RESULTS" brushstroke poster. Tiny gold "— SAME DAY —" eyebrow tag at top. Huge distressed/textured WHITE display word with grain. Below it, a HUGE handwritten brushstroke-script word in metallic gold gradient, looks hand-painted with rough edges and paint spatter. Rough gold brushstroke underline. "BEFORE" and "AFTER" labels in white brushstroke script with small gold brush underlines, placed over the photo corners. A diagonal gold light streak between the two sides. Three small brushstroke feature rings at the bottom with gold icons + brushstroke gold word + small white uppercase subtitle. Bottom CTA: a rough hand-painted gold brushstroke banner with bold black uppercase text.`,
-      `STYLE: "ENGINEERED HAIRLINES" thin gold double-frame editorial card. A thin double metallic gold rule frame inset 5% from each edge. Headline top-left inside the frame, broken across 2 lines, alternating white and gold gradient words (heavy condensed display, tight letter spacing). Small white "BEFORE" label bottom-left of the left half, "AFTER" bottom-right of the right half. Centered metallic gold gradient pill CTA button at the bottom with bold black uppercase text. Three small gold pagination dots below the frame.`,
+      `STYLE: "ENGINEERED HAIRLINES" minimal editorial — NO border, NO frame around the canvas. Headline top-left, broken across 2 lines, alternating white and gold gradient words (heavy condensed display, tight letter spacing). Tiny short gold rule under the headline. Small white "BEFORE" label bottom-left of the left half, "AFTER" bottom-right of the right half. Centered metallic gold gradient pill CTA button at the bottom with bold black uppercase text. Three small gold pagination dots below. Lots of negative space — typography is the hero.`,
       `STYLE: "MAGAZINE COLLAGE" editorial sticker-pack. Subtle paper-grain vignette over near-black. Huge oversized italic white serif-display power word at top (Domaine/Canela vibe) with ONE letter enlarged in metallic gold gradient breaking the baseline. A small rotated (-6deg) gold rectangular sticker tag underneath with tiny black mono-uppercase text ("ISSUE 01 / HAIR DEPT."). Tiny gold barcode + 3-digit number top-right. Photo placed mid-canvas with a slight 3deg tilt, thin gold outline, soft black drop shadow — looks pasted onto the page; the BEFORE half has a subtle gold-and-black DUOTONE halftone-dot treatment, AFTER is full color with warm rim light. A short hand-drawn gold arrow with tiny script "AFTER" points from before→after. Around the photo, 3-4 scattered editorial stickers (never over faces): circular gold "100% NATURAL" stamp rotated -12deg, a soft yellow highlighter swipe behind a short uppercase phrase, a small gold 4-point starburst, a thin gold dotted line connecting two stickers, and a short white italic serif pull-quote with oversized gold quotation marks. Bottom: bold black-on-gold rectangular CTA bar full-width with bold uppercase condensed sans text and a slight -1deg rotation, plus a tiny mono "— P. 04 / HAIR SYSTEMS —" caption underneath. Mix of serif display + condensed sans + mono. Layered, intentional, scroll-stopping.`,
     ];
     const promoStyle = promoStyles[layoutIndex % 4];
