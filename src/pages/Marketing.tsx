@@ -691,7 +691,6 @@ export default function Marketing() {
           {(imageMode === 'ai' || imageMode === 'both') && (
             <AudienceSettingsCard
               onGenerate={() => generateContent()}
-              canGenerate={!!brandProfile}
               isGenerating={isLoading}
             />
           )}
