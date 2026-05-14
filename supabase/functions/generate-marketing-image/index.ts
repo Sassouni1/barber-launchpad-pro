@@ -289,10 +289,50 @@ The final image must be indistinguishable from a high-end editorial photograph s
       ? `Brand name: "${brandProfile.title}" — render small and refined.`
       : `Do NOT invent or display any brand name on the image.`;
 
+    // Per-image face variation so the 3 generations don't share the same face
+    const faceVariations = [
+      'Age 32, square jawline, full well-groomed beard, thick eyebrows, slightly tanned skin tone for his ethnicity, warm brown eyes, subtle smile.',
+      'Age 27, leaner oval face, light stubble (3-day growth), sharper cheekbones, neutral skin tone for his ethnicity, deep-set eyes, calm closed-mouth expression.',
+      'Age 38, broader face with slight crow\'s feet, clean-shaven or very short stubble, stronger brow, slightly cooler skin tone for his ethnicity, direct confident gaze.',
+    ];
+    const faceVariation = faceVariations[layoutIndex % 3];
+
+    // Scene variation: index 0 = natural barber-chair, indices 1 & 2 = cinematic dark editorial
+    const isChairScene = layoutIndex % 3 === 0;
+
+    const subjectBlock = isChairScene
+      ? `SUBJECT (must match exactly, no exceptions):
+One man only, seated naturally in a real leather barber chair, wearing a black or charcoal barber cape draped over his shoulders. ${ethnicityDesc}. ${faceVariation} Relaxed posture, looking slightly off-camera or directly at camera. The subject's skin tone, facial structure, and hair texture must authentically represent the specified ethnicity.`
+      : `SUBJECT (must match exactly, no exceptions):
+One man only. ${ethnicityDesc}. ${faceVariation} Confident, relaxed expression. Fitted dark shirt, no logos. The subject's skin tone, facial structure, and hair texture must authentically represent the specified ethnicity.`;
+
+    const shotBlock = isChairScene
+      ? `SHOT:
+85mm lens, f/2.0. The subject is in a barber chair with a barber cape — show the cape clearly across his shoulders/chest. Background is INTENTIONALLY MINIMAL: deeply blurred, dark and out-of-focus so you can only sense it's a barbershop (suggested warm tungsten bokeh, hint of a mirror frame edge). DO NOT render a literal full barbershop scene — no visible bottles, scissors, clippers, station counters, posters, or other people. Warm golden rim light (~2800–3200K) from camera-right wrapping the silhouette. Soft front-left key. Cinematic falloff. Hyper-real skin texture: visible pores, micro-asymmetry, stubble shadows, single eye catchlight, individual hair strands. Vogue Hommes / GQ grade. Very shallow depth of field so the chair and cape stay sharp but the room dissolves.`
+      : `SHOT:
+85mm lens, f/2.0, deep matte black background (#0A0A0A). Warm golden rim light (~2800–3200K) from camera-right wrapping the silhouette. Soft front-left key. Cinematic falloff. Hyper-real skin texture: visible pores, micro-asymmetry, stubble shadows, single eye catchlight, individual hair strands. Vogue Hommes / GQ grade. Shallow depth of field.`;
+
+    const forbiddenBlock = isChairScene
+      ? `ABSOLUTELY FORBIDDEN:
+- A second person in frame (no barber, no client, no hands reaching in)
+- Visible barbershop props: scissors, clippers, spray bottles, combs, capes on hooks, station counters, product shelves, posters, signage
+- A literal sharp-focus barbershop interior — the room must remain a soft blurred suggestion only
+- Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
+- Wig-cap or helmet hair, painted-on hairline
+- Bald, shaved, or shiny scalp as the AFTER result
+- Bright / light / studio-white backgrounds
+- Watermarks, clip art, emoji, instructional text, category labels`
+      : `ABSOLUTELY FORBIDDEN:
+- Second person (no barber in frame), no hands, no scissors, no clippers, no cape, no chair, no salon, no mirror, no bottles
+- Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
+- Wig-cap or helmet hair, painted-on hairline
+- Bald, shaved, or shiny scalp as the AFTER result
+- Bright / light / studio-white backgrounds
+- Watermarks, clip art, emoji, instructional text, category labels`;
+
     const leanAiPrompt = `Editorial portrait ad for a premium men's barbershop / hair restoration studio. Pure AI synthesis — never reference any uploaded image. ${aspectInstruction}
 
-SUBJECT (must match exactly, no exceptions):
-One man only. ${ethnicityDesc}. Age 22–38. Confident, relaxed expression. Fitted dark shirt, no logos. The subject's skin tone, facial structure, and hair texture must authentically represent the specified ethnicity.
+${subjectBlock}
 
 HAIR (the hero of the shot):
 Fresh, premium men's cut matching the ethnicity's natural texture — sharp lineup, clean fade or taper, styled top. Hair must look freshly finished: defined edges, crisp neckline, product sheen, individual visible strands.
@@ -304,16 +344,9 @@ IF the headline below is about thinning, balding, hair restoration, hair systems
 
 OTHERWISE (fresh-cut / confidence headline) → single hyper-realistic portrait of the man with his finished cut. Full head in frame, never cropped.
 
-SHOT:
-85mm lens, f/2.0, deep matte black background (#0A0A0A). Warm golden rim light (~2800–3200K) from camera-right wrapping the silhouette. Soft front-left key. Cinematic falloff. Hyper-real skin texture: visible pores, micro-asymmetry, stubble shadows, single eye catchlight, individual hair strands. Vogue Hommes / GQ grade. Shallow depth of field.
+${shotBlock}
 
-ABSOLUTELY FORBIDDEN:
-- Second person (no barber in frame), no hands, no scissors, no clippers, no cape, no chair, no salon, no mirror, no bottles
-- Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
-- Wig-cap or helmet hair, painted-on hairline
-- Bald, shaved, or shiny scalp as the AFTER result
-- Bright / light / studio-white backgrounds
-- Watermarks, clip art, emoji, instructional text, category labels
+${forbiddenBlock}
 
 DESIGN:
 ${brandColorBlock}
