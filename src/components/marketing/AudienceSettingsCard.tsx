@@ -58,10 +58,10 @@ export function AudienceSettingsCard() {
     <Card className="glass-card p-6 space-y-5">
       <div className="space-y-1">
         <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-          <Users className="w-4 h-4 text-primary" /> Your Typical Clients
+          <Users className="w-4 h-4 text-primary" /> Choose AI Avatar
         </h2>
         <p className="text-xs text-muted-foreground">
-          We'll generate models that look like the clients walking into your shop. Pick all that apply — most barbers serve a mix.
+          Pick the client types your AI-generated models should look like. Choose all that apply — most shops serve a mix.
         </p>
       </div>
 
