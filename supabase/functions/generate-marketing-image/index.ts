@@ -339,13 +339,11 @@ ${subjectBlock}
 HAIR (the hero of the shot):
 Fresh, premium men's cut matching the ethnicity's natural texture — sharp lineup, clean fade or taper, styled top. Hair must look freshly finished: defined edges, crisp neckline, product sheen, individual visible strands.
 
-IF the headline below is about thinning, balding, hair restoration, hair systems, or receding hair → render a SPLIT before/after of the SAME man side-by-side:
-  LEFT: diffuse thinning crown, receding temples, visible scalp — but NEVER fully bald or shiny shaved.
-  RIGHT: full natural density restored, seamless rebuilt hairline, barber-blended. NEVER bald in the AFTER. NEVER painted-on or wig-like.
+MANDATORY FORMAT — ALWAYS render a SPLIT before/after of the SAME man side-by-side. This is required on EVERY image regardless of headline. Never output a single portrait.
+  LEFT (BEFORE): diffuse thinning crown, receding temples, visible scalp — but NEVER fully bald or shiny shaved.
+  RIGHT (AFTER): full natural density restored, seamless rebuilt hairline, barber-blended. NEVER bald in the AFTER. NEVER painted-on or wig-like.
   Both sides: same face, same beard, same skin tone, same wardrobe, same lighting${isChairScene ? ', BOTH sides seated in the same barber chair wearing the same barber cape with the same blurred barbershop background' : ''}. Both heads fully visible with breathing room — never crop hair, ears, or chin on either side.
   ${isChairScene ? 'The barber-chair + cape setting is MANDATORY on both the BEFORE and the AFTER sides — do not switch to a plain dark background for either side.' : ''}
-
-OTHERWISE (fresh-cut / confidence headline) → single hyper-realistic portrait of the man with his finished cut${isChairScene ? ', seated in the barber chair with cape as described above' : ''}. Full head in frame, never cropped.
 
 ${shotBlock}
 
