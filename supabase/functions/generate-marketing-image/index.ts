@@ -87,7 +87,13 @@ Brand fonts: ${fontFamily}
 `;
 
     const aspectInstruction = isStory
-      ? 'The output MUST be a 9:16 vertical portrait image (1080x1920 pixels). Tall and narrow like an Instagram Story or TikTok.'
+      ? `The output MUST be a 9:16 vertical portrait image (1080x1920 pixels). Tall and narrow like an Instagram Story or TikTok.
+
+CRITICAL INSTAGRAM STORY SAFE ZONES — these are NON-NEGOTIABLE:
+- TOP 15% of the canvas must be EMPTY padding (just the dark background, no text, no logos, no headlines, no photo content) — this is reserved for the Instagram profile/username UI overlay.
+- BOTTOM 20% of the canvas must be EMPTY padding (just the dark background, no text, no CTAs, no photo content) — this is reserved for the Instagram reply/typing bar and "Send message" UI.
+- ALL design content (headlines, photo, stickers, CTA, captions) MUST live inside the MIDDLE 65% of the canvas (between the 15% top safe-zone and the 20% bottom safe-zone).
+- Compose every element inside this middle band. The top and bottom safe zones extend the existing dark background only — same color, no decoration, no edge accents, no fades.`
       : 'The output MUST be a 1:1 square image (1080x1080 pixels).';
 
     const hasReference = !!referenceImageUrl;
