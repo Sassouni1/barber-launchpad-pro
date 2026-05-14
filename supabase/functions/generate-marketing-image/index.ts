@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl } = await req.json();
+    const { brandProfile, variationTitle, variationContent, contentType, tone, index, palette, size, referenceImageUrl, ethnicity } = await req.json();
 
     if (!brandProfile || !variationContent) {
       return new Response(
@@ -274,7 +274,74 @@ FORBIDDEN — these are the AI tells we are eliminating:
 The final image must be indistinguishable from a high-end editorial photograph shot for GQ or Esquire — same real male subject, dark background, dramatic golden rim light, brutally honest skin detail, and a believable premium AFTER hair restoration result that is visibly not bald.
 === end photography instructions ===`;
 
-    const prompt = `${stopAndReadPreamble}${criticalRulesBlock}
+    const ethnicityMap: Record<string, string> = {
+      black: 'Black man, dark brown skin, coily/4C natural hair texture',
+      white: 'White man (European descent), fair skin, straight or wavy hair',
+      hispanic: 'Hispanic/Latino man, olive-tan skin, dark wavy or straight hair, dark eyes',
+      asian: 'East Asian man, straight black hair, medium-fair skin',
+      middle_eastern: 'Middle Eastern man (Arab/Persian/Levantine), olive skin, thick dark wavy hair, beard',
+      mixed: 'Visibly mixed-race man, ambiguous handsome features, textured wavy or curly hair',
+    };
+    const ethnicityDesc = ethnicityMap[ethnicity] ?? ethnicityMap.mixed;
+
+    const ctaInstruction = `CTA: pick a clear call-to-action ("BOOK A FREE CONSULTATION", "DM TO SCHEDULE", "LINK IN BIO", or "CALL NOW") — render in gold or white as a button or underlined text near the bottom.`;
+    const brandNameLine = brandProfile.title
+      ? `Brand name: "${brandProfile.title}" — render small and refined.`
+      : `Do NOT invent or display any brand name on the image.`;
+
+    const leanAiPrompt = `Editorial portrait ad for a premium men's barbershop / hair restoration studio. Pure AI synthesis — never reference any uploaded image. ${aspectInstruction}
+
+SUBJECT (must match exactly, no exceptions):
+One man only. ${ethnicityDesc}. Age 22–38. Confident, relaxed expression. Fitted dark shirt, no logos. The subject's skin tone, facial structure, and hair texture must authentically represent the specified ethnicity.
+
+HAIR (the hero of the shot):
+Fresh, premium men's cut matching the ethnicity's natural texture — sharp lineup, clean fade or taper, styled top. Hair must look freshly finished: defined edges, crisp neckline, product sheen, individual visible strands.
+
+IF the headline below is about thinning, balding, hair restoration, hair systems, or receding hair → render a SPLIT before/after of the SAME man side-by-side:
+  LEFT: diffuse thinning crown, receding temples, visible scalp — but NEVER fully bald or shiny shaved.
+  RIGHT: full natural density restored, seamless rebuilt hairline, barber-blended. NEVER bald in the AFTER. NEVER painted-on or wig-like.
+  Both sides: same face, same beard, same skin tone, same wardrobe, same lighting. Both heads fully visible with breathing room — never crop hair, ears, or chin on either side.
+
+OTHERWISE (fresh-cut / confidence headline) → single hyper-realistic portrait of the man with his finished cut. Full head in frame, never cropped.
+
+SHOT:
+85mm lens, f/2.0, deep matte black background (#0A0A0A). Warm golden rim light (~2800–3200K) from camera-right wrapping the silhouette. Soft front-left key. Cinematic falloff. Hyper-real skin texture: visible pores, micro-asymmetry, stubble shadows, single eye catchlight, individual hair strands. Vogue Hommes / GQ grade. Shallow depth of field.
+
+ABSOLUTELY FORBIDDEN:
+- Second person (no barber in frame), no hands, no scissors, no clippers, no cape, no chair, no salon, no mirror, no bottles
+- Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
+- Wig-cap or helmet hair, painted-on hairline
+- Bald, shaved, or shiny scalp as the AFTER result
+- Bright / light / studio-white backgrounds
+- Watermarks, clip art, emoji, instructional text, category labels
+
+DESIGN:
+${brandColorBlock}
+
+LAYOUT:
+${layoutInstruction}
+
+TEXT ON THE IMAGE:
+Pick ONE headline from this list and adapt it (5–8 words, bold, uppercase). Do NOT invent your own. Do NOT copy any other text onto the image:
+${headlineExamples}
+
+${brandNameLine}
+${ctaInstruction}
+
+Typography rules: Bold uppercase sans-serif headline. Alternate WHITE and METALLIC GOLD GRADIENT (deep bronze #8B6914 → rich gold #D4AF37 → bright gold #F0D060) across words — gold on key impactful words, white on the rest. Every gold element must show the gradient shimmer, never flat single-tone gold. Thin metallic gold outer border framing the entire image. Never place text over the face.
+
+FINAL CHECK before outputting:
+1. Subject ethnicity unmistakably matches: ${ethnicityDesc}
+2. Exactly one person (or one person twice in before/after split). No barber, no tools.
+3. Full head, all hair, ears, chin visible on every edge with breathing room.
+4. Real skin texture, individual hair strands, single eye catchlight.
+5. AFTER side (if before/after) shows visible hair coverage — NOT bald.
+6. Headline + CTA legible. Brand name only if provided above.
+7. Black background, white + metallic gold typography, gold border present.
+If any check fails, redo from scratch.`;
+
+    const prompt = hasReference
+      ? `${stopAndReadPreamble}${criticalRulesBlock}
 ${storyReferenceBlock}
 You are a world-class graphic designer creating a premium marketing image for a barbershop/hair replacement business. ${aspectInstruction}
 
@@ -300,13 +367,12 @@ DESIGN RULES:
 2. Background should be DARK and PREMIUM — ranging from deep black (#0D0D0D) to rich charcoal (#1A1A1A). Dark moody tones are welcome. The overall feel should be luxurious and cinematic. Avoid any light, bright, or medium-toned backgrounds.
 3. Text must have extremely high contrast against the black background. Alternate between WHITE and GOLD (#D4AF37) text for visual punch — gold on key impactful words, white on the rest. This white-and-gold alternating pattern is MANDATORY for every headline.
 4. Include subtle decorative elements: thin line dividers, small geometric accents, or minimal border frames. Use gold/metallic tones for these accents.
-${hasReference ? '' : `5. COLOR GRADING: Apply subtle cinematic color grading — slightly warm highlights, slightly cool shadows, natural-looking contrast. The look should feel polished and editorial, NOT over-processed or heavy-handed. Avoid extreme teal-and-orange looks. The photo should still look natural and real. Never leave photos completely flat, but do NOT push contrast to extremes.
-`}6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
+6. No watermarks, no placeholder text, no clip art, no illustrations, no cartoons.
 7. ${isStory ? 'VERTICAL 9:16 format — content stacked top to bottom, optimized for mobile full-screen viewing.' : 'SQUARE format — perfectly balanced composition.'}
 8. Never display category labels, slugs, or metadata (like "hair-system") as visible text on the image. Category context should inform the design style, not appear as text.
 9. Person framing: Never crop or cut off a person's head, hair, forehead, or face at any edge of the image — top, bottom, left, or right. The full head including all hair must be visible with breathing room on every side. Scale the photo smaller if needed to achieve this. In before-and-after photos, this applies to both the 'before' person and the 'after' person independently.
 10. Never place text over faces — headlines, brand names, and decorative elements must be positioned in areas that do not overlap with any person's face.
-${hasReference ? `11. The reference photo is a provided photo layer — preserve every pixel exactly as provided. Do not apply color grading, filters, or lighting changes to the person in the photo.` : `11. When generating photography: preserve natural lighting and skin tones.`}
+11. The reference photo is a provided photo layer — preserve every pixel exactly as provided. Do not apply color grading, filters, or lighting changes to the person in the photo.
 12. Never invent, fabricate, or use placeholder business names. If no brand name was provided above, do not write any made-up name on the image. Leave the brand name area empty or omit it entirely. Only display a brand name if one was explicitly provided.
 13. GOLD ACCENTS — MANDATORY: Every image MUST prominently feature METALLIC GOLD GRADIENT (transitioning from deep bronze #8B6914 through rich gold #D4AF37 to bright gold #F0D060) as a signature design element. Every gold element must have this gradient shimmer like polished gold foil — never flat single-tone gold. AT MINIMUM: (a) a thin metallic gold outer border/frame around the entire image, AND (b) metallic gold gradient text on at least 2-3 key headline words, AND (c) at least one additional metallic gold element such as a gold dotted-line divider, gold CTA button/banner, or gold decorative accent.
 
@@ -319,7 +385,8 @@ Make this look like something a premium brand would actually post on Instagram.
 4. Does the reference photo show a before-and-after transformation (two people/views)? If yes, check each person's head separately — can you see the complete hair, forehead, and face of both people with space around them? If either person's head is cropped at any edge, scale the entire photo smaller and redo.
 5. Pixel check: Compare every human face in your output to the reference photo. The face must be identical — same lighting, same angle, same skin texture, same background behind them. If any face looks "cleaner", "sharper", or "different" from the reference, you generated a fake person. Remove it and use the real photo.
 6. Important: Do not render any instructional text, labels, or keywords as visible text on the image. The only visible text should be the headline, brand name (if provided), and the call-to-action.
-7. If you failed any check above, do not output the image. Redo it from scratch.`;
+7. If you failed any check above, do not output the image. Redo it from scratch.`
+      : leanAiPrompt;
 
     console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
 

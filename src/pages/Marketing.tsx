@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, ChevronRight, Check, Image as ImageIcon, Plus, X, Scissors, User, Store, Sparkle, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAudienceSettings } from '@/hooks/useAudienceSettings';
 import { format } from 'date-fns';
 import { AudienceSettingsCard } from '@/components/marketing/AudienceSettingsCard';
 
@@ -187,6 +188,7 @@ function CaptionBlock({ caption, onCopy }: { caption: string; onCopy: () => void
 }
 
 export default function Marketing() {
+  const { data: audienceSettings } = useAudienceSettings();
   const [url, setUrl] = useState('');
   const [contentType, setContentType] = useState('instagram');
   const [tone, setTone] = useState('professional');
@@ -334,6 +336,7 @@ export default function Marketing() {
             index: imgIdx,
             palette: paletteChoice,
             size,
+            ethnicity: audienceSettings?.target_ethnicity ?? 'mixed',
             ...(refUrl ? { referenceImageUrl: refUrl } : {}),
           },
         });
