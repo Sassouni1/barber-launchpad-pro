@@ -1020,7 +1020,7 @@ export default function Lesson() {
                             <FileText className="w-4 h-4" />
                             <span>Other Files ({others.length})</span>
                           </div>
-                          <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-2">
                             {others.map((file) => (
                               <FileCard key={file.id} file={file} />
                             ))}
