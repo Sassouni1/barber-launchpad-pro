@@ -14,35 +14,22 @@ export function AudienceSettingsCard() {
   const { data, isLoading } = useAudienceSettings();
   const update = useUpdateAudienceSettings();
 
-  const [ethnicities, setEthnicities] = useState<Ethnicity[]>([]);
+  const [ethnicity, setEthnicity] = useState<Ethnicity>('mixed');
 
   useEffect(() => {
-    if (data) setEthnicities(data.target_ethnicities);
+    if (data) setEthnicity(data.target_ethnicity);
   }, [data]);
 
-  const toggle = (val: Ethnicity) => {
-    setEthnicities((prev) =>
-      prev.includes(val) ? prev.filter((e) => e !== val) : [...prev, val]
-    );
-  };
-
   const handleSave = async () => {
-    if (ethnicities.length === 0) {
-      toast.error('Pick at least one client type');
-      return;
-    }
     try {
-      await update.mutateAsync({ target_ethnicities: ethnicities });
+      await update.mutateAsync({ target_ethnicity: ethnicity });
       toast.success('Saved');
     } catch (e: any) {
       toast.error(e.message || 'Failed to save');
     }
   };
 
-  const dirty =
-    !!data &&
-    JSON.stringify([...(ethnicities ?? [])].sort()) !==
-      JSON.stringify([...(data.target_ethnicities ?? [])].sort());
+  const dirty = !!data && ethnicity !== data.target_ethnicity;
 
   return (
     <Card className="glass-card p-6 space-y-5">
@@ -51,22 +38,22 @@ export function AudienceSettingsCard() {
           <Users className="w-4 h-4 text-primary" /> Choose AI Avatar
         </h2>
         <p className="text-xs text-muted-foreground">
-          Pick the client types your AI-generated models should look like. Choose all that apply — most shops serve a mix.
+          Pick the client type your AI-generated model should look like.
         </p>
       </div>
 
       <div className="space-y-2">
         <label className="text-xs text-muted-foreground uppercase tracking-wider">
-          Client Type (multi-select)
+          Client Type
         </label>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {ETHNICITY_OPTIONS.map((opt) => {
-            const selected = ethnicities.includes(opt.value);
+            const selected = ethnicity === opt.value;
             return (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => toggle(opt.value)}
+                onClick={() => setEthnicity(opt.value)}
                 disabled={isLoading}
                 className={`relative flex items-center justify-center text-center px-3 py-3 rounded-lg border text-xs font-medium transition-all ${
                   selected

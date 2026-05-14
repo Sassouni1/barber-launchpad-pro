@@ -11,11 +11,11 @@ export type Ethnicity =
   | 'mixed';
 
 export interface AudienceSettings {
-  target_ethnicities: Ethnicity[];
+  target_ethnicity: Ethnicity;
 }
 
 const DEFAULT: AudienceSettings = {
-  target_ethnicities: ['mixed'],
+  target_ethnicity: 'mixed',
 };
 
 export function useAudienceSettings() {
@@ -33,9 +33,9 @@ export function useAudienceSettings() {
         .maybeSingle();
       if (error) throw error;
       if (!data) return DEFAULT;
+      const arr = (data.target_ethnicities as Ethnicity[]) ?? [];
       return {
-        target_ethnicities:
-          (data.target_ethnicities as Ethnicity[]) ?? DEFAULT.target_ethnicities,
+        target_ethnicity: arr[0] ?? DEFAULT.target_ethnicity,
       };
     },
   });
@@ -53,7 +53,7 @@ export function useUpdateAudienceSettings() {
         .upsert(
           {
             user_id: user.id,
-            target_ethnicities: settings.target_ethnicities,
+            target_ethnicities: [settings.target_ethnicity],
             target_age_range: 'mixed',
           },
           { onConflict: 'user_id' }
