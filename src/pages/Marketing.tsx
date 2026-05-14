@@ -102,6 +102,17 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
     document.body.removeChild(link);
   };
 
+  const seoNameForIndex = (i: number) => {
+    const names = [
+      'Hair System',
+      'Hair Units for Men',
+      'Hair Replacement',
+      'Hair Loss Solutions',
+      'Hair Systems for Men',
+    ];
+    return names[i % names.length];
+  };
+
   if (validSlides.length === 0) return null;
 
   return (
