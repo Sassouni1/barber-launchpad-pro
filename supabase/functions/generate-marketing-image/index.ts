@@ -340,9 +340,9 @@ One man only. ${ethnicityDesc}. ${faceVariation} Confident, relaxed expression. 
 
     const shotBlock = isChairScene
       ? `SHOT:
-85mm lens, f/2.0. The subject is in a barber chair with a barber cape — show the cape clearly across his shoulders/chest. Background is INTENTIONALLY MINIMAL: deeply blurred, dark and out-of-focus so you can only sense it's a barbershop (suggested warm tungsten bokeh, hint of a mirror frame edge). DO NOT render a literal full barbershop scene — no visible bottles, scissors, clippers, station counters, posters, or other people. Warm golden rim light (~2800–3200K) from camera-right wrapping the silhouette. Soft front-left key. Cinematic falloff. Hyper-real skin texture: visible pores, micro-asymmetry, stubble shadows, single eye catchlight, individual hair strands. Vogue Hommes / GQ grade. Very shallow depth of field so the chair and cape stay sharp but the room dissolves.`
+85mm lens, f/2.0. The subject is in a barber chair with a barber cape — show the cape clearly across his shoulders/chest. Background is INTENTIONALLY MINIMAL: deeply blurred, dark and out-of-focus so you can only sense it's a barbershop. DO NOT render a literal full barbershop scene — no visible bottles, scissors, clippers, station counters, posters, or other people. Soft cinematic rim light wrapping the silhouette. Soft front-left key. Hyper-real skin texture: visible pores, micro-asymmetry, stubble shadows, single eye catchlight, individual hair strands. Vogue Hommes / GQ grade. Very shallow depth of field so the chair and cape stay sharp but the room dissolves.`
       : `SHOT:
-85mm lens, f/2.0, deep matte black background (#0A0A0A). Warm golden rim light (~2800–3200K) from camera-right wrapping the silhouette. Soft front-left key. Cinematic falloff. Hyper-real skin texture: visible pores, micro-asymmetry, stubble shadows, single eye catchlight, individual hair strands. Vogue Hommes / GQ grade. Shallow depth of field.`;
+85mm lens, f/2.0, deep matte background. Soft cinematic rim light wrapping the silhouette. Soft front-left key. Hyper-real skin texture: visible pores, micro-asymmetry, stubble shadows, single eye catchlight, individual hair strands. Vogue Hommes / GQ grade. Shallow depth of field.`;
 
     const forbiddenBlock = isChairScene
       ? `ABSOLUTELY FORBIDDEN:
@@ -352,39 +352,27 @@ One man only. ${ethnicityDesc}. ${faceVariation} Confident, relaxed expression. 
 - Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
 - Wig-cap or helmet hair, painted-on hairline
 - Bald, shaved, or shiny scalp as the AFTER result
-- Bright / light / studio-white backgrounds
 - Watermarks, clip art, emoji, instructional text, category labels
-- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`
+- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo`
       : `ABSOLUTELY FORBIDDEN:
 - Second person (no barber in frame), no hands, no scissors, no clippers, no cape, no chair, no salon, no mirror, no bottles
 - Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
 - Wig-cap or helmet hair, painted-on hairline
 - Bald, shaved, or shiny scalp as the AFTER result
-- Bright / light / studio-white backgrounds
 - Watermarks, clip art, emoji, instructional text, category labels
-- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`;
+- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo`;
 
-    const promoStyles = [
-      `STYLE: "ATTENTION CITY MEN" stat-flyer. Tiny gold "— ATTENTION —" eyebrow tag with thin gold side rules at top. Massive bold white condensed display headline below it (one or two key words in metallic gold gradient). Three stacked icon-stat rows with circular gold-outlined badges containing simple gold line icons (people silhouettes, cap, calendar-check) and short bold uppercase 2-line statements (first 1-2 words gold, rest white). Thin gold dividers between rows. Gold geometric diamond accents in the corners. Bottom: wide pill-shaped METALLIC GOLD GRADIENT CTA button with a small calendar icon, bold black uppercase text, and a chevron ">".`,
-      `STYLE: "GUARANTEED RESULTS" brushstroke poster. Tiny gold "— SAME DAY —" eyebrow tag at top. Huge distressed/textured WHITE display word with grain. Below it, a HUGE handwritten brushstroke-script word in metallic gold gradient, looks hand-painted with rough edges and paint spatter. Rough gold brushstroke underline. "BEFORE" and "AFTER" labels in white brushstroke script with small gold brush underlines, placed over the photo corners. A diagonal gold light streak between the two sides. Three small brushstroke feature rings at the bottom with gold icons + brushstroke gold word + small white uppercase subtitle. Bottom CTA: a rough hand-painted gold brushstroke banner with bold black uppercase text.`,
-      `STYLE: "ENGINEERED HAIRLINES" thin gold double-frame editorial card. A thin double metallic gold rule frame inset 5% from each edge. Headline top-left inside the frame, broken across 2 lines, alternating white and gold gradient words (heavy condensed display, tight letter spacing). Small white "BEFORE" label bottom-left of the left half, "AFTER" bottom-right of the right half. Centered metallic gold gradient pill CTA button at the bottom with bold black uppercase text. Three small gold pagination dots below the frame.`,
-    ];
-    const promoStyle = promoStyles[layoutIndex % 3];
+    const leanAiPrompt = `Premium barbershop / hair-restoration BEFORE/AFTER promo graphic. ${aspectInstruction}
 
-    const leanAiPrompt = `Premium barbershop / hair-restoration promo graphic on pure black (#0A0A0A). ${aspectInstruction}
-
-THE ONLY THING THAT MATTERS: a beautifully designed BEFORE/AFTER promo that looks like a high-end Instagram ad.
+THE ONLY THING THAT MATTERS: a beautifully designed BEFORE/AFTER promo that looks like a high-end Instagram ad. You (the designer) have full creative freedom for the layout, typography, color palette, and decorative treatment — make it look modern, premium, and scroll-stopping. Vary the design between generations.
 
 PHOTO (the centerpiece, ~60% of the canvas):
 A side-by-side BEFORE/AFTER of the SAME real-looking man.
 - ${ethnicityDesc}. ${faceVariation}
 - BEFORE (left): mild thinning crown / receding temples — never fully bald or shaved.
 - AFTER (right): full natural restored hair, seamless hairline, barber-blended. Never bald, never wig-like.
-- Both sides: same face, same beard, same wardrobe (plain dark shirt), same warm golden rim-lit lighting on a deep black background. Both heads fully visible with breathing room — never crop hair, ears, or chin.
+- Both sides: same face, same beard, same wardrobe, consistent lighting. Both heads fully visible with breathing room — never crop hair, ears, or chin.
 - Hyper-real photo quality: visible skin pores, individual hair strands, single eye catchlight. NO second person, NO barber tools, NO props.
-
-DESIGN — pick this one promo style and execute it cleanly:
-${promoStyle}
 
 Headline text — pick ONE and adapt to 5-8 bold uppercase words:
 ${headlineExamples}
@@ -392,10 +380,9 @@ ${headlineExamples}
 ${brandNameLine}
 
 ABSOLUTE RULES:
-- Black background only. No white backgrounds, no studio white, no white frames or boxes.
-- Gold = metallic gradient (deep bronze #8B6914 → rich gold #D4AF37 → bright gold #F0D060), never flat.
 - Real photographic man — no cartoon, no 3D render, no illustration.
 - Never place text over faces.
+- Clearly labeled BEFORE and AFTER.
 - Output one finished promo image, no instructional text or labels.`;
 
     const prompt = hasReference
