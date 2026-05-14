@@ -321,14 +321,16 @@ One man only. ${ethnicityDesc}. ${faceVariation} Confident, relaxed expression. 
 - Wig-cap or helmet hair, painted-on hairline
 - Bald, shaved, or shiny scalp as the AFTER result
 - Bright / light / studio-white backgrounds
-- Watermarks, clip art, emoji, instructional text, category labels`
+- Watermarks, clip art, emoji, instructional text, category labels
+- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`
       : `ABSOLUTELY FORBIDDEN:
 - Second person (no barber in frame), no hands, no scissors, no clippers, no cape, no chair, no salon, no mirror, no bottles
 - Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
 - Wig-cap or helmet hair, painted-on hairline
 - Bald, shaved, or shiny scalp as the AFTER result
 - Bright / light / studio-white backgrounds
-- Watermarks, clip art, emoji, instructional text, category labels`;
+- Watermarks, clip art, emoji, instructional text, category labels
+- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`;
 
     const leanAiPrompt = `Editorial portrait ad for a premium men's barbershop / hair restoration studio. Pure AI synthesis — never reference any uploaded image. ${aspectInstruction}
 
