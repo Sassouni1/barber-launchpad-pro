@@ -668,10 +668,7 @@ export default function Lesson() {
                     <FileText className="w-4 h-4" />
                     <span>Other Files ({others.length})</span>
                   </div>
-                  <div
-                    className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin"
-                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'auto' }}
-                  >
+                  <div className="grid grid-cols-3 gap-2 pb-2">
                     {others.map((file) => (
                       <MobileFileCard key={file.id} file={file} />
                     ))}
