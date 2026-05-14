@@ -51,7 +51,7 @@ export function SocialMediaPostAssets() {
 
   const download = (file: AssetFile) => {
     setSavingId(file.id);
-    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
+    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(file.file_url)}&name=${encodeURIComponent(file.file_name)}`;
     const link = document.createElement('a');
     link.href = proxyUrl;
     link.download = file.file_name;
