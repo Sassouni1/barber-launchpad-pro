@@ -550,9 +550,6 @@ export default function Marketing() {
           )}
         </Card>
 
-        {/* Audience Targeting (one-time setup) */}
-        <AudienceSettingsCard />
-
         {/* Business Category Selector */}
         <Card className="glass-card p-6 space-y-4">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Business Category</h2>
@@ -684,10 +681,11 @@ export default function Marketing() {
                   <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
                 </button>
               ))}
-            </div>
           </div>
 
-          {/* Format Selector */}
+          {/* AI Avatar — only when AI generation is involved */}
+          {(imageMode === 'ai' || imageMode === 'both') && <AudienceSettingsCard />}
+
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground uppercase tracking-wider">Format</label>
             <div className="grid grid-cols-2 gap-3">
