@@ -296,7 +296,7 @@ export default function Marketing() {
       // Compute fresh image list to avoid stale closure
       const freshScraped = (bp.images || []).filter((u: string) => u.startsWith('http'));
       const freshAllImages = [...freshScraped, ...uploadedImages].filter(u => !removedImages.has(u));
-      buildVariations(bp, caption, freshAllImages);
+      buildVariations(bp, caption, freshAllImages, ethnicityOverride);
     } catch (err: any) {
       toast.error(err.message || 'Failed to generate content');
     } finally {
