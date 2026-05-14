@@ -102,6 +102,17 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
     document.body.removeChild(link);
   };
 
+  const seoNameForIndex = (i: number) => {
+    const names = [
+      'Hair System',
+      'Hair Units for Men',
+      'Hair Replacement',
+      'Hair Loss Solutions',
+      'Hair Systems for Men',
+    ];
+    return names[i % names.length];
+  };
+
   if (validSlides.length === 0) return null;
 
   return (
@@ -115,7 +126,7 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => downloadImage(url, `image-${i + 1}.png`)}
+                  onClick={() => downloadImage(url, `${seoNameForIndex(i)}.png`)}
                   className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Download className="w-3 h-3 mr-1" /> Save
@@ -465,6 +476,17 @@ export default function Marketing() {
     document.body.removeChild(link);
   };
 
+  const seoNameForIndex = (i: number) => {
+    const names = [
+      'Hair System',
+      'Hair Units for Men',
+      'Hair Replacement',
+      'Hair Loss Solutions',
+      'Hair Systems for Men',
+    ];
+    return names[i % names.length];
+  };
+
   const isLoading = isScraping || isGenerating;
 
   const getAspectClass = (type: VariationType) => {
@@ -620,7 +642,7 @@ export default function Marketing() {
                   <Button
                     variant="secondary"
                     size="icon"
-                    onClick={() => downloadImage(imgUrl, `brand-image-${i + 1}.jpg`)}
+                    onClick={() => downloadImage(imgUrl, `${seoNameForIndex(i)}.jpg`)}
                     className="absolute bottom-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Download className="w-3 h-3" />
