@@ -22,9 +22,16 @@ export function SocialMediaPostAssets() {
         .select('id, file_name, file_url, file_type')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data as AssetFile[]).filter(
+      const images = (data as AssetFile[]).filter(
         (f) => f.file_type && IMAGE_EXTS.includes(f.file_type.toLowerCase())
       );
+      const seen = new Set<string>();
+      return images.filter((f) => {
+        const key = f.file_name.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     },
     staleTime: 300000,
   });
@@ -75,7 +82,7 @@ export function SocialMediaPostAssets() {
                 variant="secondary"
                 size="icon"
                 onClick={() => download(f.file_url, f.file_name)}
-                className="absolute bottom-1.5 right-1.5 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute bottom-1.5 right-1.5 h-7 w-7"
               >
                 <Download className="w-3 h-3" />
               </Button>
