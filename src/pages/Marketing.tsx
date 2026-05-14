@@ -681,6 +681,7 @@ export default function Marketing() {
                   <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
                 </button>
               ))}
+            </div>
           </div>
 
           {/* AI Avatar — only when AI generation is involved */}
