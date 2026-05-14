@@ -33,6 +33,7 @@ import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
 import ManufacturerOrders from "./pages/ManufacturerOrders";
 import Marketing from "./pages/Marketing";
+import SocialMediaPost from "./pages/SocialMediaPost";
 
 import Rewards from "./pages/Rewards";
 import RewardsJoin from "./pages/RewardsJoin";
@@ -92,6 +93,7 @@ const MemberApp = () => (
         <Route path="/schedule-call" element={<ProtectedRoute><ScheduleCall /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
+        <Route path="/social-media-post" element={<ProtectedRoute><SocialMediaPost /></ProtectedRoute>} />
         <Route path="/aion" element={<ProtectedRoute><AionPage /></ProtectedRoute>} />
 
         <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
