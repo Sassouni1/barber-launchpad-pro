@@ -11,7 +11,7 @@ import {
 } from '@/hooks/useAudienceSettings';
 
 interface Props {
-  onGenerate?: () => void | Promise<void>;
+  onGenerate?: (ethnicity: Ethnicity) => void | Promise<void>;
   canGenerate?: boolean;
   isGenerating?: boolean;
 }
