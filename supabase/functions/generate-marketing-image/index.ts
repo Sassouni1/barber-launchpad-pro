@@ -439,7 +439,9 @@ One man only. ${ethnicityDesc}. ${faceVariation} ${hairstyleVariation} The BEFOR
 - Bald, shaved, or shiny scalp as the AFTER result
 - Bright / light / studio-white backgrounds
 - Watermarks, clip art, emoji, instructional text, category labels
-- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`;
+- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo
+- DOUBLE-LINED gold borders / double gold rule frames around the canvas — strictly forbidden in every layout
+- Full-canvas decorative borders or outlined card frames are discouraged; prefer letting the design breathe edge-to-edge with internal margins instead`;
 
     const promoStyles = [
       `STYLE: "ATTENTION CITY MEN" stat-flyer. Tiny gold "— ATTENTION —" eyebrow tag with thin gold side rules at top. Massive bold white condensed display headline below it (one or two key words in metallic gold gradient). Three stacked icon-stat rows with circular gold-outlined badges containing simple gold line icons (people silhouettes, cap, calendar-check) and short bold uppercase 2-line statements (first 1-2 words gold, rest white). Thin gold dividers between rows. Gold geometric diamond accents in the corners. Bottom: wide pill-shaped METALLIC GOLD GRADIENT CTA button with a small calendar icon, bold black uppercase text, and a chevron ">".`,
