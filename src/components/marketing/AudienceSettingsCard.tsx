@@ -1,38 +1,38 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Scissors, Loader2 } from 'lucide-react';
+import { Check, Users, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useAudienceSettings,
   useUpdateAudienceSettings,
-  HAIR_TYPE_OPTIONS,
-  type HairType,
+  ETHNICITY_OPTIONS,
+  type Ethnicity,
 } from '@/hooks/useAudienceSettings';
 
 export function AudienceSettingsCard() {
   const { data, isLoading } = useAudienceSettings();
   const update = useUpdateAudienceSettings();
 
-  const [hairTypes, setHairTypes] = useState<HairType[]>([]);
+  const [ethnicities, setEthnicities] = useState<Ethnicity[]>([]);
 
   useEffect(() => {
-    if (data) setHairTypes(data.hair_types);
+    if (data) setEthnicities(data.target_ethnicities);
   }, [data]);
 
-  const toggle = (val: HairType) => {
-    setHairTypes((prev) =>
+  const toggle = (val: Ethnicity) => {
+    setEthnicities((prev) =>
       prev.includes(val) ? prev.filter((e) => e !== val) : [...prev, val]
     );
   };
 
   const handleSave = async () => {
-    if (hairTypes.length === 0) {
-      toast.error('Pick at least one hair type');
+    if (ethnicities.length === 0) {
+      toast.error('Pick at least one client type');
       return;
     }
     try {
-      await update.mutateAsync({ hair_types: hairTypes });
+      await update.mutateAsync({ target_ethnicities: ethnicities });
       toast.success('Saved');
     } catch (e: any) {
       toast.error(e.message || 'Failed to save');
@@ -41,27 +41,27 @@ export function AudienceSettingsCard() {
 
   const dirty =
     !!data &&
-    JSON.stringify([...(hairTypes ?? [])].sort()) !==
-      JSON.stringify([...(data.hair_types ?? [])].sort());
+    JSON.stringify([...(ethnicities ?? [])].sort()) !==
+      JSON.stringify([...(data.target_ethnicities ?? [])].sort());
 
   return (
     <Card className="glass-card p-6 space-y-5">
       <div className="space-y-1">
         <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-          <Scissors className="w-4 h-4 text-primary" /> Choose AI Avatar
+          <Users className="w-4 h-4 text-primary" /> Choose AI Avatar
         </h2>
         <p className="text-xs text-muted-foreground">
-          Pick the hair types your clients have. The AI will generate models that match — choose all that apply.
+          Pick the client types your AI-generated models should look like. Choose all that apply — most shops serve a mix.
         </p>
       </div>
 
       <div className="space-y-2">
         <label className="text-xs text-muted-foreground uppercase tracking-wider">
-          Client Hair Type (multi-select)
+          Client Type (multi-select)
         </label>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {HAIR_TYPE_OPTIONS.map((opt) => {
-            const selected = hairTypes.includes(opt.value);
+          {ETHNICITY_OPTIONS.map((opt) => {
+            const selected = ethnicities.includes(opt.value);
             return (
               <button
                 key={opt.value}

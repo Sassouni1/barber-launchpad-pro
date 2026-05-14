@@ -2,20 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-export type HairType =
-  | 'straight'
-  | 'wavy'
-  | 'curly'
-  | 'coily'
-  | 'thinning'
+export type Ethnicity =
+  | 'black'
+  | 'white'
+  | 'hispanic'
+  | 'asian'
+  | 'middle_eastern'
   | 'mixed';
 
 export interface AudienceSettings {
-  hair_types: HairType[];
+  target_ethnicities: Ethnicity[];
 }
 
 const DEFAULT: AudienceSettings = {
-  hair_types: ['mixed'],
+  target_ethnicities: ['mixed'],
 };
 
 export function useAudienceSettings() {
@@ -34,7 +34,8 @@ export function useAudienceSettings() {
       if (error) throw error;
       if (!data) return DEFAULT;
       return {
-        hair_types: (data.target_ethnicities as HairType[]) ?? DEFAULT.hair_types,
+        target_ethnicities:
+          (data.target_ethnicities as Ethnicity[]) ?? DEFAULT.target_ethnicities,
       };
     },
   });
@@ -52,7 +53,7 @@ export function useUpdateAudienceSettings() {
         .upsert(
           {
             user_id: user.id,
-            target_ethnicities: settings.hair_types,
+            target_ethnicities: settings.target_ethnicities,
             target_age_range: 'mixed',
           },
           { onConflict: 'user_id' }
@@ -65,11 +66,11 @@ export function useUpdateAudienceSettings() {
   });
 }
 
-export const HAIR_TYPE_OPTIONS: { value: HairType; label: string }[] = [
-  { value: 'straight', label: 'Straight' },
-  { value: 'wavy', label: 'Wavy' },
-  { value: 'curly', label: 'Curly' },
-  { value: 'coily', label: 'Coily / Afro' },
-  { value: 'thinning', label: 'Thinning / Balding' },
-  { value: 'mixed', label: 'Mixed / All types' },
+export const ETHNICITY_OPTIONS: { value: Ethnicity; label: string }[] = [
+  { value: 'black', label: 'Black / African American' },
+  { value: 'white', label: 'White / Caucasian' },
+  { value: 'hispanic', label: 'Hispanic / Latino' },
+  { value: 'asian', label: 'Asian' },
+  { value: 'middle_eastern', label: 'Middle Eastern' },
+  { value: 'mixed', label: 'Mixed / Diverse' },
 ];
