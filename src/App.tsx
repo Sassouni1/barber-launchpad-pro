@@ -33,6 +33,7 @@ import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
 import ManufacturerOrders from "./pages/ManufacturerOrders";
 import Marketing from "./pages/Marketing";
+import SocialMediaPost from "./pages/SocialMediaPost";
 
 import Rewards from "./pages/Rewards";
 import RewardsJoin from "./pages/RewardsJoin";
