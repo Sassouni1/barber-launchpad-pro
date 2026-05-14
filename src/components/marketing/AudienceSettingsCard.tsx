@@ -41,8 +41,8 @@ export function AudienceSettingsCard() {
 
   const dirty =
     !!data &&
-    JSON.stringify([...hairTypes].sort()) !==
-      JSON.stringify([...data.hair_types].sort());
+    JSON.stringify([...(hairTypes ?? [])].sort()) !==
+      JSON.stringify([...(data.hair_types ?? [])].sort());
 
   return (
     <Card className="glass-card p-6 space-y-5">
