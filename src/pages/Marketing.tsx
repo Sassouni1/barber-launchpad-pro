@@ -336,7 +336,7 @@ export default function Marketing() {
             index: imgIdx,
             palette: paletteChoice,
             size,
-            ethnicity: audienceSettings?.target_ethnicity ?? 'mixed',
+            ethnicity: ethnicityOverride ?? audienceSettings?.target_ethnicity ?? 'mixed',
             ...(refUrl ? { referenceImageUrl: refUrl } : {}),
           },
         });
