@@ -394,7 +394,15 @@ ${headlineExamples}
 ${brandNameLine}
 ${ctaInstruction}
 
-Typography rules: Bold uppercase sans-serif headline. Alternate WHITE and METALLIC GOLD GRADIENT (deep bronze #8B6914 → rich gold #D4AF37 → bright gold #F0D060) across words — gold on key impactful words, white on the rest. Every gold element must show the gradient shimmer, never flat single-tone gold. Thin metallic gold outer border framing the entire image. Never place text over the face.
+Typography & design rules (this is a richly designed promotional FLYER, not a minimalist portrait):
+- Bold heavy condensed display sans-serif for the main headline (think Anton, Bebas Neue, Druk Wide). All caps. Mix WHITE words with METALLIC GOLD GRADIENT words (deep bronze #8B6914 → rich gold #D4AF37 → bright gold #F0D060) — every gold element must show 3D shimmer like polished foil, never flat.
+- At least one secondary brushstroke or distressed/textured display word in gold OR a small gold "— EYEBROW —" tag with thin gold side rules, so the type has hierarchy and personality.
+- Decorative gold elements REQUIRED on every image: thin gold rule dividers, small gold diamond markers, circular gold-outlined icon badges with simple flat gold line icons (people silhouettes, cap, calendar-check, hair follicle, stopwatch, shield-check), and/or hand-painted brushstroke accents.
+- A prominent bottom CTA: either a wide pill-shaped METALLIC GOLD GRADIENT button with bold black uppercase text and a small icon + chevron, OR a rough gold brushstroke banner with bold black text. Never just plain underlined text — the CTA must look like a real clickable button.
+- Subtle background texture: faint grain, geometric corner accents (thin diamonds, brackets), or soft brushstroke marks — never a flat empty black background.
+- Thin metallic gold outer frame border around the entire image (gold only, never white).
+- Never place text over faces.
+- Reference aesthetic: think premium boxing-match poster, luxury barbershop flyer, GQ ad — heavily designed with multiple layers of typography, icons, dividers, and CTA. NOT a minimalist portrait with one line of text.
 
 FINAL CHECK before outputting:
 1. Subject ethnicity unmistakably matches: ${ethnicityDesc}
