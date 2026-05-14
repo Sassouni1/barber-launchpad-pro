@@ -131,17 +131,17 @@ BOTTOM (15% of canvas):
   - Three small feature callouts in a row: each = a circular gold brushstroke ring containing a small gold icon (stopwatch, hair-follicle, calendar-check), with a brushstroke-script gold word underneath ("SAME DAY", "NATURAL", "FREE") and a small white uppercase subtitle ("TRANSFORMATION", "LOOK & FEEL", "CONSULTATION")
   - Bottom CTA: a rough gold brushstroke banner with bold black uppercase text ("SCHEDULE YOUR FREE CONSULTATION >") — looks hand-painted, not a clean rectangle.`,
 
-      // LAYOUT C — "ENGINEERED HAIRLINES" thin-frame editorial card (matches the framed reference)
-      `Editorial framed card on pure black (#000000).
-A thin double gold rule frame inset ~5% from each edge of the canvas — the frame is ALWAYS thin metallic gold, NEVER white.
+      // LAYOUT C — "ENGINEERED HAIRLINES" minimal editorial card (no border)
+      `Sophisticated minimal editorial layout on pure black (#000000). NO border, NO frame, NO double-rule outline around the canvas — the design must breathe edge-to-edge with generous internal margins instead.
 TOP (25%):
-  - Inside the frame, top-left aligned: bold uppercase display headline broken across 2 lines, alternating white and metallic-gold-gradient words (e.g. "ENGINEERED HAIRLINES." in white + "BARBER-FINISHED." with key words in gold). Tight letter spacing, heavy weight.
+  - Top-left aligned: bold uppercase display headline broken across 2 lines, alternating white and metallic-gold-gradient words (e.g. "ENGINEERED HAIRLINES." in white + "BARBER-FINISHED." with key words in gold). Tight letter spacing, heavy weight. Comfortable margin from the canvas edge (~6%).
+  - Tiny gold "—" rule under the headline (just a short horizontal line, not a full-width frame).
 MIDDLE (60%):
-  ${hasReference ? 'Reference photo placed inside the frame with no modifications, both heads fully visible with breathing room. If before/after, the photo already contains both sides — do not add a second divider.' : 'Two equal portrait panels side-by-side inside the frame: LEFT = BEFORE (same man, mild thinning/recession), RIGHT = AFTER (same man, full restored hair). A thin vertical gold rule between them. Small white "BEFORE" label bottom-left of the left panel and "AFTER" bottom-right of the right panel.'}
+  ${hasReference ? 'Reference photo placed centered with no modifications, both heads fully visible with breathing room. No frame around the photo — let it sit on the black background cleanly. If before/after, the photo already contains both sides — do not add a divider.' : 'Two equal portrait panels side-by-side: LEFT = BEFORE (same man, mild thinning/recession), RIGHT = AFTER (same man, full restored hair). A single thin vertical gold hairline between them — that is the ONLY gold line allowed. Small white "BEFORE" label bottom-left of the left panel and "AFTER" bottom-right of the right panel.'}
 BOTTOM (15%):
   - Centered metallic gold gradient pill CTA button ("BOOK A FREE CONSULTATION") with bold black uppercase text inside.
-  - Below the frame, three small gold dot pagination markers (one larger gold pill in the middle).
-Sophisticated, calm, premium — the layout breathes. The frame is the hero design element.`,
+  - Below the CTA, three small gold dot pagination markers (one larger gold pill in the middle).
+Sophisticated, calm, premium — the layout breathes. White space and typography do the work. ABSOLUTELY NO border, frame, double-rule, or outlined card around the canvas edges.`,
 
       // LAYOUT D — "MAGAZINE COLLAGE" bold sticker-pack editorial (fresh / modern / scroll-stopping)
       isStory ? `Bold modern magazine-collage poster designed specifically for a 9:16 VERTICAL story (1080x1920). Near-black (#0A0A0A) base with a subtle off-white paper-grain vignette in the corners. Feels like a torn-out GQ / Highsnobiety editorial spread crossed with a sticker pack — layered, intentional, NOT minimalist. Use the full vertical canvas with generous breathing room between zones; nothing should feel cramped or cropped.
