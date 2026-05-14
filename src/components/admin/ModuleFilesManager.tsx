@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useModuleFiles, useUploadModuleFile, useDeleteModuleFile } from '@/hooks/useModuleFiles';
-import { Upload, Trash2, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Upload, Trash2, FileText, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
