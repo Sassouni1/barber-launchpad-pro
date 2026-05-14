@@ -677,7 +677,7 @@ export default function Lesson() {
               )}
 
               <p className="text-xs text-muted-foreground text-center">
-                Swipe to see more • Tap Save to download
+                Tap Save to download
               </p>
             </div>
           );
@@ -1023,7 +1023,7 @@ export default function Lesson() {
                       )}
 
                       <p className="text-xs text-muted-foreground text-center">
-                        Tip: Swipe to see more • Tap Save to download
+                        Tap Save to download
                       </p>
                     </div>
                   );
