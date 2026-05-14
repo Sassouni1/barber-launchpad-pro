@@ -143,34 +143,6 @@ BOTTOM (15%):
   - Below the CTA, three small gold dot pagination markers (one larger gold pill in the middle).
 Sophisticated, calm, premium — the layout breathes. White space and typography do the work. ABSOLUTELY NO border, frame, double-rule, or outlined card around the canvas edges.`,
 
-      // LAYOUT D — "MAGAZINE COLLAGE" bold sticker-pack editorial (fresh / modern / scroll-stopping)
-      isStory ? `Bold modern magazine-collage poster designed specifically for a 9:16 VERTICAL story (1080x1920). Near-black (#0A0A0A) base with a subtle off-white paper-grain vignette in the corners. Feels like a torn-out GQ / Highsnobiety editorial spread crossed with a sticker pack — layered, intentional, NOT minimalist. Use the full vertical canvas with generous breathing room between zones; nothing should feel cramped or cropped.
-TOP ZONE (top ~28% of the tall canvas):
-  - Stack TWO huge serif-display words on TWO separate lines (e.g. "FRESH" on line 1, "START." on line 2) in italic high-contrast serif (Domaine / Canela vibe), white, leaning slightly, each line taking nearly full width but with safe margin (~6%) on the sides. One letter on either line is rendered in metallic gold gradient and slightly larger, breaking the baseline.
-  - Directly under the second word: a small rotated (-6deg) gold rectangular sticker tag with tiny black uppercase mono text ("ISSUE 01 / HAIR DEPT." or "VOL.04 — RESTORED"), soft drop shadow, looks adhered.
-  - Tiny gold barcode graphic in the top-right corner with a 3-digit number underneath. Keep it small so it doesn't compete with the headline.
-MIDDLE ZONE (middle ~50% of the tall canvas) — collage:
-  ${hasReference ? 'Reference photo as the centerpiece, slightly tilted (~3deg), placed WITHOUT modifications, sized to fit comfortably within the middle zone with breathing room on all sides — DO NOT crop heads. Thin gold outline and soft black drop shadow so it looks like a printed photo pasted onto the page.' : 'Before/After of the SAME man side-by-side, treated as a printed editorial photo pasted onto the page — slight tilt (~3deg), thin gold outline, soft black drop shadow. The before half has a subtle gold-and-black DUOTONE / halftone-dot treatment overlaid; the after half is full color with warm golden rim light. Both heads fully visible with breathing room — never cropped.'}
-  - Scatter 3-4 small editorial stickers AROUND the photo (never overlapping the face): a circular gold "100% NATURAL" stamp rotated -12deg in one corner, a yellow highlighter swipe behind a short uppercase phrase ("SAME DAY.") above or below the photo, a small 4-point gold starburst, and a thin gold dotted line connecting two stickers.
-  - One short pull-quote in white italic serif placed in the open vertical space beside or below the photo ("\\"no one knew.\\""), with oversized gold quotation marks.
-BOTTOM ZONE (bottom ~22% of the tall canvas):
-  - A bold black-on-gold rectangular CTA bar spanning the full width (with safe margin) with bold uppercase condensed sans text ("BOOK YOUR FREE CONSULT →"), slight rotation (-1deg), thin black inner border so it looks like a printed sticker. The CTA must be large and legible — at least 8% of the canvas height.
-  - Below the CTA, a tiny white mono-font line "— P. 04 / HAIR SYSTEMS —" centered with thin gold rules either side.
-CRITICAL VERTICAL RULES: Treat this as a TALL portrait poster. Never stretch elements horizontally to fill width that doesn't exist. Stack the headline on multiple lines. Keep ~6% safe margins on left/right. Photo must NOT be cropped at top or bottom. Use the extra vertical height for breathing room and sticker placement, not for enlarging the photo edge-to-edge.
-Overall feel: editorial, layered, designer-made, scroll-stopping. Mix of serif display + condensed uppercase sans + tiny mono caption. Slight imperfect rotations. Premium dark base, gold + white as primary ink, one small accent of cream/yellow highlighter for warmth.`
-      : `Bold modern magazine-collage poster on near-black (#0A0A0A) with a subtle off-white paper-grain texture vignette in the corners. Feels like a torn-out GQ / Highsnobiety editorial spread crossed with a sticker pack — busy, layered, intentional, NOT minimalist.
-TOP (25%):
-  - HUGE oversized white serif-display word ("FRESH", "REBUILT", "RESTORED", or similar power word) in an editorial high-contrast serif (think Domaine Display / Canela), italic, leaning slightly, taking nearly the full width. One letter is rendered in metallic gold gradient and visibly larger than the rest, breaking the baseline.
-  - Tucked under the serif word: a small rotated (-6deg) gold rectangular sticker tag with tiny black uppercase mono-font text ("ISSUE 01 / HAIR DEPT.", "VOL.04 — RESTORED", or similar), drop-shadow, looks adhered.
-  - Tiny gold barcode graphic top-right corner with a 3-digit number under it.
-MIDDLE (55%) — collage:
-  ${hasReference ? 'Reference photo as the centerpiece, slightly tilted (~3deg), placed without modifications, with a thin gold outline and a soft black drop shadow so it looks like a printed photo pasted onto the page. Both heads fully visible.' : 'Before/After of the SAME man side-by-side, treated as if it were a printed editorial photo pasted onto the page — slight tilt (~3deg), thin gold outline, soft black drop shadow. The before half has a subtle gold-and-black DUOTONE / halftone-dot treatment overlaid; the after half is full color with the warm golden rim light. A short rough hand-drawn gold arrow points from before → after with a tiny script gold word "AFTER" near the arrowhead. Both heads fully visible with breathing room.'}
-  - Around the photo, scatter small editorial sticker elements (max 4, never overlapping faces): a circular gold "100% NATURAL" stamp rotated -12deg, a yellow highlighter-style swipe behind one short uppercase phrase ("SAME DAY."), a small gold star burst (4-point), and a thin gold dotted line connecting two of the stickers.
-  - One short pull-quote in white italic serif beside the photo ("\\"no one knew.\\""), with gold quotation marks larger than the text.
-BOTTOM (20%):
-  - A bold black-on-gold rectangular CTA bar across the full width with bold uppercase condensed sans text ("BOOK YOUR FREE CONSULT →"), slight rotation (-1deg), with a thin black inner border so it looks like a printed sticker.
-  - Below the bar, a tiny white mono-font line: page-number style "— P. 04 / HAIR SYSTEMS —" centered, with thin gold rules either side.
-Overall feel: editorial, layered, designer-made, "scroll-stopping". Mix of serif display + condensed uppercase sans + tiny mono caption font. Multiple rotations and slight imperfections — nothing perfectly aligned to a grid. Premium dark base, gold + white as primary ink, with one small accent of soft cream/yellow highlighter for warmth.`,
     ];
 
     const layoutInstruction = layouts[layoutIndex];
