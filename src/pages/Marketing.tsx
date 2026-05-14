@@ -304,7 +304,7 @@ export default function Marketing() {
     }
   };
 
-  const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
+  const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[], ethnicityOverride?: string) => {
     const realImages = imagesForGeneration.slice(0, 3);
     const sizeVal = formatChoice;
     const sizeLabel = formatChoice === 'square' ? 'Square' : 'Stories';
