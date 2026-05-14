@@ -373,10 +373,10 @@ The final image must be indistinguishable from a high-end editorial photograph s
       : ethnicity === 'asian' ? asianHairstyles
       : ethnicity === 'middle_eastern' ? middleEasternHairstyles
       : genericHairstyles;
-    const hairstyleVariation = hairstylePool[layoutIndex % 4];
+    const hairstyleVariation = hairstylePool[layoutIndex % 3];
 
-    // Scene variation: index 0 = natural barber-chair, indices 1-3 = cinematic dark editorial
-    const isChairScene = layoutIndex % 4 === 0;
+    // Scene variation: index 0 = natural barber-chair, indices 1-2 = cinematic dark editorial
+    const isChairScene = layoutIndex % 3 === 0;
 
     const subjectBlock = isChairScene
       ? `SUBJECT (must match exactly, no exceptions):
