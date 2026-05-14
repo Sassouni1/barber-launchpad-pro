@@ -690,7 +690,7 @@ export default function Marketing() {
           {/* AI Avatar — only when AI generation is involved */}
           {(imageMode === 'ai' || imageMode === 'both') && (
             <AudienceSettingsCard
-              onGenerate={() => generateContent()}
+              onGenerate={(ethnicity) => generateContent(undefined, ethnicity)}
               isGenerating={isLoading}
             />
           )}
