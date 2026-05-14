@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const layoutIndex = typeof index === 'number' ? index % 3 : 0;
+    const layoutIndex = typeof index === 'number' ? index % 4 : 0;
     const isStory = size === 'story';
     const useGold = palette !== 'website';
 
@@ -136,6 +136,21 @@ BOTTOM (15%):
   - Centered metallic gold gradient pill CTA button ("BOOK A FREE CONSULTATION") with bold black uppercase text inside.
   - Below the frame, three small gold dot pagination markers (one larger gold pill in the middle).
 Sophisticated, calm, premium — the layout breathes. The frame is the hero design element.`,
+
+      // LAYOUT D — "MAGAZINE COLLAGE" bold sticker-pack editorial (fresh / modern / scroll-stopping)
+      `Bold modern magazine-collage poster on near-black (#0A0A0A) with a subtle off-white paper-grain texture vignette in the corners. Feels like a torn-out GQ / Highsnobiety editorial spread crossed with a sticker pack — busy, layered, intentional, NOT minimalist.
+TOP (25%):
+  - HUGE oversized white serif-display word ("FRESH", "REBUILT", "RESTORED", or similar power word) in an editorial high-contrast serif (think Domaine Display / Canela), italic, leaning slightly, taking nearly the full width. One letter is rendered in metallic gold gradient and visibly larger than the rest, breaking the baseline.
+  - Tucked under the serif word: a small rotated (-6deg) gold rectangular sticker tag with tiny black uppercase mono-font text ("ISSUE 01 / HAIR DEPT.", "VOL.04 — RESTORED", or similar), drop-shadow, looks adhered.
+  - Tiny gold barcode graphic top-right corner with a 3-digit number under it.
+MIDDLE (55%) — collage:
+  ${hasReference ? 'Reference photo as the centerpiece, slightly tilted (~3deg), placed without modifications, with a thin gold outline and a soft black drop shadow so it looks like a printed photo pasted onto the page. Both heads fully visible.' : 'Before/After of the SAME man side-by-side, treated as if it were a printed editorial photo pasted onto the page — slight tilt (~3deg), thin gold outline, soft black drop shadow. The before half has a subtle gold-and-black DUOTONE / halftone-dot treatment overlaid; the after half is full color with the warm golden rim light. A short rough hand-drawn gold arrow points from before → after with a tiny script gold word "AFTER" near the arrowhead. Both heads fully visible with breathing room.'}
+  - Around the photo, scatter small editorial sticker elements (max 4, never overlapping faces): a circular gold "100% NATURAL" stamp rotated -12deg, a yellow highlighter-style swipe behind one short uppercase phrase ("SAME DAY."), a small gold star burst (4-point), and a thin gold dotted line connecting two of the stickers.
+  - One short pull-quote in white italic serif beside the photo ("\"no one knew.\""), with gold quotation marks larger than the text.
+BOTTOM (20%):
+  - A bold black-on-gold rectangular CTA bar across the full width with bold uppercase condensed sans text ("BOOK YOUR FREE CONSULT →"), slight rotation (-1deg), with a thin black inner border so it looks like a printed sticker.
+  - Below the bar, a tiny white mono-font line: page-number style "— P. 04 / HAIR SYSTEMS —" centered, with thin gold rules either side.
+Overall feel: editorial, layered, designer-made, "scroll-stopping". Mix of serif display + condensed uppercase sans + tiny mono caption font. Multiple rotations and slight imperfections — nothing perfectly aligned to a grid. Premium dark base, gold + white as primary ink, with one small accent of soft cream/yellow highlighter for warmth.`,
     ];
 
     const layoutInstruction = layouts[layoutIndex];
@@ -368,8 +383,9 @@ One man only. ${ethnicityDesc}. ${faceVariation} Confident, relaxed expression. 
       `STYLE: "ATTENTION CITY MEN" stat-flyer. Tiny gold "— ATTENTION —" eyebrow tag with thin gold side rules at top. Massive bold white condensed display headline below it (one or two key words in metallic gold gradient). Three stacked icon-stat rows with circular gold-outlined badges containing simple gold line icons (people silhouettes, cap, calendar-check) and short bold uppercase 2-line statements (first 1-2 words gold, rest white). Thin gold dividers between rows. Gold geometric diamond accents in the corners. Bottom: wide pill-shaped METALLIC GOLD GRADIENT CTA button with a small calendar icon, bold black uppercase text, and a chevron ">".`,
       `STYLE: "GUARANTEED RESULTS" brushstroke poster. Tiny gold "— SAME DAY —" eyebrow tag at top. Huge distressed/textured WHITE display word with grain. Below it, a HUGE handwritten brushstroke-script word in metallic gold gradient, looks hand-painted with rough edges and paint spatter. Rough gold brushstroke underline. "BEFORE" and "AFTER" labels in white brushstroke script with small gold brush underlines, placed over the photo corners. A diagonal gold light streak between the two sides. Three small brushstroke feature rings at the bottom with gold icons + brushstroke gold word + small white uppercase subtitle. Bottom CTA: a rough hand-painted gold brushstroke banner with bold black uppercase text.`,
       `STYLE: "ENGINEERED HAIRLINES" thin gold double-frame editorial card. A thin double metallic gold rule frame inset 5% from each edge. Headline top-left inside the frame, broken across 2 lines, alternating white and gold gradient words (heavy condensed display, tight letter spacing). Small white "BEFORE" label bottom-left of the left half, "AFTER" bottom-right of the right half. Centered metallic gold gradient pill CTA button at the bottom with bold black uppercase text. Three small gold pagination dots below the frame.`,
+      `STYLE: "MAGAZINE COLLAGE" editorial sticker-pack. Subtle paper-grain vignette over near-black. Huge oversized italic white serif-display power word at top (Domaine/Canela vibe) with ONE letter enlarged in metallic gold gradient breaking the baseline. A small rotated (-6deg) gold rectangular sticker tag underneath with tiny black mono-uppercase text ("ISSUE 01 / HAIR DEPT."). Tiny gold barcode + 3-digit number top-right. Photo placed mid-canvas with a slight 3deg tilt, thin gold outline, soft black drop shadow — looks pasted onto the page; the BEFORE half has a subtle gold-and-black DUOTONE halftone-dot treatment, AFTER is full color with warm rim light. A short hand-drawn gold arrow with tiny script "AFTER" points from before→after. Around the photo, 3-4 scattered editorial stickers (never over faces): circular gold "100% NATURAL" stamp rotated -12deg, a soft yellow highlighter swipe behind a short uppercase phrase, a small gold 4-point starburst, a thin gold dotted line connecting two stickers, and a short white italic serif pull-quote with oversized gold quotation marks. Bottom: bold black-on-gold rectangular CTA bar full-width with bold uppercase condensed sans text and a slight -1deg rotation, plus a tiny mono "— P. 04 / HAIR SYSTEMS —" caption underneath. Mix of serif display + condensed sans + mono. Layered, intentional, scroll-stopping.`,
     ];
-    const promoStyle = promoStyles[layoutIndex % 3];
+    const promoStyle = promoStyles[layoutIndex % 4];
 
     const leanAiPrompt = `Premium barbershop / hair-restoration promo graphic on pure black (#0A0A0A). ${aspectInstruction}
 

@@ -305,7 +305,7 @@ export default function Marketing() {
   };
 
   const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[], ethnicityOverride?: string) => {
-    const realImages = imagesForGeneration.slice(0, 3);
+    const realImages = imagesForGeneration.slice(0, 4);
     const sizeVal = formatChoice;
     const sizeLabel = formatChoice === 'square' ? 'Square' : 'Stories';
     const brandType: VariationType = `brand-${sizeVal}` as VariationType;
@@ -313,10 +313,10 @@ export default function Marketing() {
 
     const cards: VariationCard[] = [];
     if (imageMode === 'both' || imageMode === 'brand') {
-      cards.push({ type: brandType, label: `Brand Images (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true });
+      cards.push({ type: brandType, label: `Brand Images (${sizeLabel})`, caption, images: [null, null, null, null], imagesLoading: true });
     }
     if (imageMode === 'both' || imageMode === 'ai') {
-      cards.push({ type: aiType, label: `AI Generated (${sizeLabel})`, caption, images: [null, null, null], imagesLoading: true });
+      cards.push({ type: aiType, label: `AI Generated (${sizeLabel})`, caption, images: [null, null, null, null], imagesLoading: true });
     }
     setVariations(cards);
 
@@ -398,7 +398,7 @@ export default function Marketing() {
           const newImgs = [...v.images];
           newImgs[imgIdx] = imageUrl ?? 'failed';
           const done = newImgs.filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: done < 3 };
+          return { ...v, images: newImgs, imagesLoading: done < 4 };
         }));
       } catch {
         setVariations(prev => prev.map(v => {
@@ -406,7 +406,7 @@ export default function Marketing() {
           const newImgs = [...v.images];
           newImgs[imgIdx] = 'failed';
           const done = newImgs.filter(x => x !== null).length;
-          return { ...v, images: newImgs, imagesLoading: done < 3 };
+          return { ...v, images: newImgs, imagesLoading: done < 4 };
         }));
       }
     };
@@ -414,15 +414,15 @@ export default function Marketing() {
     // Build jobs based on imageMode
     const jobs: Array<() => Promise<void>> = [];
     if (imageMode === 'both' || imageMode === 'brand') {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 4; i++) {
         const idx = i;
-        // Reuse reference images cyclically if fewer than 3
+        // Reuse reference images cyclically if fewer than 4
         const refUrl = realImages.length > 0 ? realImages[i % realImages.length] : undefined;
         jobs.push(() => generateSlot(brandType, idx, sizeVal, refUrl));
       }
     }
     if (imageMode === 'both' || imageMode === 'ai') {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 4; i++) {
         const idx = i;
         jobs.push(() => generateSlot(aiType, idx, sizeVal));
       }
