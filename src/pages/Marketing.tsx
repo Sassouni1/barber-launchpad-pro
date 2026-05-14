@@ -188,6 +188,7 @@ function CaptionBlock({ caption, onCopy }: { caption: string; onCopy: () => void
 }
 
 export default function Marketing() {
+  const { data: audienceSettings } = useAudienceSettings();
   const [url, setUrl] = useState('');
   const [contentType, setContentType] = useState('instagram');
   const [tone, setTone] = useState('professional');
