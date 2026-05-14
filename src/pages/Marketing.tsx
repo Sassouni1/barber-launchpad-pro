@@ -510,6 +510,8 @@ export default function Marketing() {
           </p>
         </div>
 
+        <SocialMediaPostAssets />
+
         {/* Input Section */}
         <Card className="glass-card p-6 space-y-6">
           <div className="space-y-4">
