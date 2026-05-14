@@ -429,7 +429,9 @@ One man only. ${ethnicityDesc}. ${faceVariation} ${hairstyleVariation} The BEFOR
 - Bald, shaved, or shiny scalp as the AFTER result
 - Bright / light / studio-white backgrounds
 - Watermarks, clip art, emoji, instructional text, category labels
-- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo — borders may only be thin metallic gold, never white`
+- Any white border, white frame, white matte, white inner padding, or white box around the subject or photo
+- DOUBLE-LINED gold borders / double gold rule frames around the canvas — strictly forbidden in every layout
+- Full-canvas decorative borders or outlined card frames are discouraged; prefer letting the design breathe edge-to-edge with internal margins instead`
       : `ABSOLUTELY FORBIDDEN:
 - Second person (no barber in frame), no hands, no scissors, no clippers, no cape, no chair, no salon, no mirror, no bottles
 - Plastic / airbrushed / waxy skin, cartoon-symmetric faces, doll-like eyes
