@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Users, Loader2 } from 'lucide-react';
+import { Check, Users, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useAudienceSettings,
@@ -10,7 +10,13 @@ import {
   type Ethnicity,
 } from '@/hooks/useAudienceSettings';
 
-export function AudienceSettingsCard() {
+interface Props {
+  onGenerate?: () => void | Promise<void>;
+  canGenerate?: boolean;
+  isGenerating?: boolean;
+}
+
+export function AudienceSettingsCard({ onGenerate, canGenerate = true, isGenerating = false }: Props) {
   const { data, isLoading } = useAudienceSettings();
   const update = useUpdateAudienceSettings();
 
@@ -20,16 +26,17 @@ export function AudienceSettingsCard() {
     if (data) setEthnicity(data.target_ethnicity);
   }, [data]);
 
-  const handleSave = async () => {
+  const dirty = !!data && ethnicity !== data.target_ethnicity;
+
+  const handleGenerate = async () => {
     try {
-      await update.mutateAsync({ target_ethnicity: ethnicity });
-      toast.success('Saved');
+      if (dirty) await update.mutateAsync({ target_ethnicity: ethnicity });
+      if (onGenerate) await onGenerate();
+      else toast.success('Saved');
     } catch (e: any) {
-      toast.error(e.message || 'Failed to save');
+      toast.error(e.message || 'Failed');
     }
   };
-
-  const dirty = !!data && ethnicity !== data.target_ethnicity;
 
   return (
     <Card className="glass-card p-6 space-y-5">
@@ -72,20 +79,21 @@ export function AudienceSettingsCard() {
       </div>
 
       <Button
-        onClick={handleSave}
-        disabled={!dirty || update.isPending || isLoading}
+        onClick={handleGenerate}
+        disabled={isLoading || update.isPending || isGenerating || !canGenerate}
         className="w-full gold-gradient text-primary-foreground font-semibold"
       >
-        {update.isPending ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" /> Saving…
-          </>
-        ) : dirty ? (
-          'Save'
+        {update.isPending || isGenerating ? (
+          <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
         ) : (
-          'Saved'
+          <><Sparkles className="w-4 h-4" /> Generate</>
         )}
       </Button>
+      {!canGenerate && (
+        <p className="text-xs text-muted-foreground text-center">
+          Analyze a website first to enable generation.
+        </p>
+      )}
     </Card>
   );
 }
