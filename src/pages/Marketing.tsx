@@ -265,7 +265,7 @@ export default function Marketing() {
     }
   };
 
-  const generateContent = async (profile?: BrandProfile) => {
+  const generateContent = async (profile?: BrandProfile, ethnicityOverride?: string) => {
     const bp = profile || brandProfile || {
       title: '',
       description: '',
@@ -296,7 +296,7 @@ export default function Marketing() {
       // Compute fresh image list to avoid stale closure
       const freshScraped = (bp.images || []).filter((u: string) => u.startsWith('http'));
       const freshAllImages = [...freshScraped, ...uploadedImages].filter(u => !removedImages.has(u));
-      buildVariations(bp, caption, freshAllImages);
+      buildVariations(bp, caption, freshAllImages, ethnicityOverride);
     } catch (err: any) {
       toast.error(err.message || 'Failed to generate content');
     } finally {
@@ -304,7 +304,7 @@ export default function Marketing() {
     }
   };
 
-  const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[]) => {
+  const buildVariations = (bp: BrandProfile, caption: string, imagesForGeneration: string[], ethnicityOverride?: string) => {
     const realImages = imagesForGeneration.slice(0, 3);
     const sizeVal = formatChoice;
     const sizeLabel = formatChoice === 'square' ? 'Square' : 'Stories';
@@ -336,7 +336,7 @@ export default function Marketing() {
             index: imgIdx,
             palette: paletteChoice,
             size,
-            ethnicity: audienceSettings?.target_ethnicity ?? 'mixed',
+            ethnicity: ethnicityOverride ?? audienceSettings?.target_ethnicity ?? 'mixed',
             ...(refUrl ? { referenceImageUrl: refUrl } : {}),
           },
         });
@@ -690,7 +690,7 @@ export default function Marketing() {
           {/* AI Avatar — only when AI generation is involved */}
           {(imageMode === 'ai' || imageMode === 'both') && (
             <AudienceSettingsCard
-              onGenerate={() => generateContent()}
+              onGenerate={(ethnicity) => generateContent(undefined, ethnicity)}
               isGenerating={isLoading}
             />
           )}
