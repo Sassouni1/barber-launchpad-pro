@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -13,9 +14,17 @@ interface AssetFile {
   file_type: string | null;
 }
 
+const normalizeAssetKey = (file: AssetFile) => {
+  const decodedUrl = decodeURIComponent(file.file_url).toLowerCase().split('?')[0];
+  const storagePath = decodedUrl.split('/course-files/').pop() || decodedUrl;
+  const normalizedPath = storagePath.replace(/^\/?[^/]+\/\d{10,}-/, '').replace(/^\/?shared-marketing\//, '');
+  return `${normalizedPath}|${file.file_name.toLowerCase().trim()}`;
+};
+
 export function SocialMediaPostAssets() {
+  const [savingId, setSavingId] = useState<string | null>(null);
   const { data: files = [], isLoading } = useQuery({
-    queryKey: ['social-media-post-assets'],
+    queryKey: ['social-media-post-assets', 'deduped-v2'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('module_files')
@@ -23,11 +32,15 @@ export function SocialMediaPostAssets() {
         .order('created_at', { ascending: false });
       if (error) throw error;
       const images = (data as AssetFile[]).filter(
-        (f) => f.file_type && IMAGE_EXTS.includes(f.file_type.toLowerCase())
+        (f) => {
+          const type = f.file_type?.toLowerCase();
+          const ext = f.file_url.split('?')[0].split('.').pop()?.toLowerCase();
+          return (type && IMAGE_EXTS.includes(type)) || (ext && IMAGE_EXTS.includes(ext));
+        }
       );
       const seen = new Set<string>();
       return images.filter((f) => {
-        const key = f.file_name.toLowerCase();
+        const key = normalizeAssetKey(f);
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -36,14 +49,16 @@ export function SocialMediaPostAssets() {
     staleTime: 300000,
   });
 
-  const download = (url: string, name: string) => {
-    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
+  const download = (file: AssetFile) => {
+    setSavingId(file.id);
+    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(file.file_url)}&name=${encodeURIComponent(file.file_name)}`;
     const link = document.createElement('a');
     link.href = proxyUrl;
-    link.download = name;
+    link.download = file.file_name;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    window.setTimeout(() => setSavingId(null), 600);
   };
 
   return (
@@ -66,10 +81,7 @@ export function SocialMediaPostAssets() {
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
           {files.map((f) => (
-            <div
-              key={f.id}
-              className="group relative rounded-lg overflow-hidden border border-border/50 bg-secondary/30"
-            >
+            <div key={f.id} className="rounded-lg overflow-hidden border border-border/50 bg-secondary/30">
               <div className="aspect-square">
                 <img
                   src={f.file_url}
@@ -80,11 +92,13 @@ export function SocialMediaPostAssets() {
               </div>
               <Button
                 variant="secondary"
-                size="icon"
-                onClick={() => download(f.file_url, f.file_name)}
-                className="absolute bottom-1.5 right-1.5 h-7 w-7"
+                size="sm"
+                onClick={() => download(f)}
+                disabled={savingId === f.id}
+                className="h-9 w-full rounded-none border-t border-border/50"
               >
-                <Download className="w-3 h-3" />
+                {savingId === f.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                {savingId === f.id ? 'Saving...' : 'Save'}
               </Button>
             </div>
           ))}
