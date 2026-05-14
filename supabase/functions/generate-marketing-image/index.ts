@@ -388,7 +388,7 @@ Make this look like something a premium brand would actually post on Instagram.
 7. If you failed any check above, do not output the image. Redo it from scratch.`
       : leanAiPrompt;
 
-    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference });
+    console.log('Generating marketing image via Google AI Studio:', { index: layoutIndex, contentType, tone, brand: brandProfile.title, palette, size, hasReference, ethnicity, ethnicityDesc });
 
     // CRITICAL: Push text prompt FIRST, then reference image
     // This ensures the model reads instructions before seeing the photo
