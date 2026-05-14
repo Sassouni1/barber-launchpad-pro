@@ -93,6 +93,7 @@ const MemberApp = () => (
         <Route path="/schedule-call" element={<ProtectedRoute><ScheduleCall /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
+        <Route path="/social-media-post" element={<ProtectedRoute><SocialMediaPost /></ProtectedRoute>} />
         <Route path="/aion" element={<ProtectedRoute><AionPage /></ProtectedRoute>} />
 
         <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
