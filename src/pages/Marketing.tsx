@@ -11,6 +11,7 @@ import { Globe, Sparkles, Copy, RefreshCw, Loader2, Download, ChevronLeft, Chevr
 import useEmblaCarousel from 'embla-carousel-react';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { AudienceSettingsCard } from '@/components/marketing/AudienceSettingsCard';
 
 type PaletteChoice = 'gold' | 'website';
 type FormatChoice = 'square' | 'story';
@@ -548,6 +549,9 @@ export default function Marketing() {
             </div>
           )}
         </Card>
+
+        {/* Audience Targeting (one-time setup) */}
+        <AudienceSettingsCard />
 
         {/* Business Category Selector */}
         <Card className="glass-card p-6 space-y-4">
