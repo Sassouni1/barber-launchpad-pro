@@ -31,7 +31,7 @@ export function AudienceSettingsCard({ onGenerate, canGenerate = true, isGenerat
   const handleGenerate = async () => {
     try {
       if (dirty) await update.mutateAsync({ target_ethnicity: ethnicity });
-      if (onGenerate) await onGenerate();
+      if (onGenerate) await onGenerate(ethnicity);
       else toast.success('Saved');
     } catch (e: any) {
       toast.error(e.message || 'Failed');
