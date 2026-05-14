@@ -403,9 +403,9 @@ The final image must be indistinguishable from a high-end editorial photograph s
 
     const subjectBlock = isChairScene
       ? `SUBJECT (must match exactly, no exceptions):
-One man only, seated naturally in a real leather barber chair, wearing a black or charcoal barber cape draped over his shoulders. ${ethnicityDesc}. ${faceVariation} Relaxed posture, looking slightly off-camera or directly at camera. The subject's skin tone, facial structure, and hair texture must authentically represent the specified ethnicity.`
+One man only, seated naturally in a real leather barber chair, wearing a black or charcoal barber cape draped over his shoulders. ${ethnicityDesc}. ${faceVariation} ${hairstyleVariation} The BEFORE side shows the same man with thinning/receding hair or a bald crown — the AFTER side shows the hairstyle described above, fully restored, barber-finished. Relaxed posture, looking slightly off-camera or directly at camera. Skin tone, facial structure, and hair texture must authentically represent the specified ethnicity AND clearly differ from previous generations.`
       : `SUBJECT (must match exactly, no exceptions):
-One man only. ${ethnicityDesc}. ${faceVariation} Confident, relaxed expression. Fitted dark shirt, no logos. The subject's skin tone, facial structure, and hair texture must authentically represent the specified ethnicity.`;
+One man only. ${ethnicityDesc}. ${faceVariation} ${hairstyleVariation} The BEFORE side shows the same man with thinning/receding hair or a bald crown — the AFTER side shows the hairstyle described above, fully restored, barber-finished. Confident, relaxed expression. Fitted dark shirt, no logos. Skin tone, facial structure, and hair texture must authentically represent the specified ethnicity AND clearly differ from previous generations.`;
 
     const shotBlock = isChairScene
       ? `SHOT:
