@@ -95,15 +95,47 @@ Brand fonts: ${fontFamily}
     const hasBrandName = !!brandProfile.title;
 
     const layouts = [
-      hasReference
-        ? `Split layout: left 25% is a sophisticated dark panel with the headline stacked vertically in bold white and gold alternating words. Right 75% contains the reference photo — place it without any modifications so the entire photo is visible (including both sides if it is a before-and-after). The photo must fit fully within the right panel with no cropping on any edge. If the photo contains two people (before-and-after), scale it so that both heads occupy no more than 70% of the available panel height, leaving at least 15% padding above the tallest head. Thin gold border around the entire image. Decorative gold dotted-line divider between the text panel and photo.`
-        : `Split layout: left 40% is a sophisticated dark panel with the headline${hasBrandName ? ' and brand name' : ''} stacked vertically in bold white and gold alternating words, right 60% features cinematic photography. Thin gold border around the entire image. Decorative gold dotted-line divider between text and photo.`,
-      hasReference
-        ? `Reference photo placed as a large background element that covers most of the canvas while keeping every person's full head, hair, and face visible with breathing room on all sides — without any modifications, preserving the original pixels. If the photo does not naturally fill the entire canvas without cropping any person's head, use a dark premium background (#0D0D0D) behind the photo and let the photo sit within the frame at the largest size that keeps all heads fully visible. It is better to have dark padding around the edges than to crop any part of a person's head or hair — scale the photo down 10-20% if needed to guarantee full head visibility. If the photo contains two people (before-and-after), scale it so that both heads occupy no more than 70% of the available panel height, leaving at least 15% padding above the tallest head. Headline in bold uppercase positioned in the upper-left or upper area with a subtle dark gradient behind the text for readability (max 40% opacity).${hasBrandName ? ' Brand name + CTA at bottom.' : ''} Thin gold outer frame border wrapping the entire composition.`
-        : `Full-bleed cinematic photography background. Headline in bold uppercase positioned in the upper-left or upper area with a subtle dark gradient behind the text for readability (max 40% opacity).${hasBrandName ? ' Brand name + CTA at bottom.' : ''} Thin gold outer frame border wrapping the entire composition.`,
-      hasReference
-        ? `Dark background with the reference photo placed as a large centered element without any modifications, preserving original pixels, with a thin gold border around just the photo. Scale it so the entire photo is visible (including both sides if it is a before-and-after). If the photo contains two people (before-and-after), scale it so that both heads occupy no more than 70% of the available panel height, leaving at least 15% padding above the tallest head. Headline ABOVE the photo in large bold white and gold text.${hasBrandName ? ' Brand name and tagline BELOW the photo.' : ''} Clean, editorial layout. The photo should be prominent and large — the focal point of the composition.`
-        : `Dark background with cinematic photography as a large centered element with a thin gold border around just the photo. Headline ABOVE the photo in large bold white and gold text.${hasBrandName ? ' Brand name and tagline BELOW the photo.' : ''} Clean, editorial layout.`,
+      // LAYOUT A — "ATTENTION CITY MEN" stat-callout flyer (matches Danville reference)
+      `Vertical-stack flyer layout on deep matte black (#0A0A0A) with subtle gold geometric line accents (thin diamonds, corner brackets) ghosted in the background corners.
+TOP THIRD — HEADER:
+  - Tiny gold "— ATTENTION —" eyebrow tag with thin gold rules on either side, centered
+  - MASSIVE bold white display headline directly under it, taking the full width (e.g. a city/audience name in chunky condensed sans, all caps), with one or two key words rendered in metallic gold gradient
+  - Thin gold horizontal rule with a small gold diamond marker in the middle
+MIDDLE THIRD — 3 ICON STAT ROWS:
+  - Three stacked rows. Each row = (left) a perfectly circular gold-outlined icon badge (~80px) containing a SIMPLE flat gold line icon (people silhouettes, baseball cap, calendar with checkmark, hair follicle, stopwatch, shield-check), (right) a 2-line bold uppercase statement where the FIRST 1-2 words are gold and the rest is white. Thin gold horizontal divider between rows.
+BOTTOM THIRD — IMAGERY + CTA:
+  ${hasReference ? 'Reference photo placed full-width here with no modifications, both heads (if before/after) fully visible with breathing room.' : 'Before/After split of the SAME man side-by-side, both heads fully visible.'}
+  - Thin row of 3 small feature badges directly under the image: small gold icon + short uppercase label (e.g. "FULL HAIR.", "NATURAL.", "NON SURGICAL."), separated by thin vertical gold rules
+  - Bottom CTA: a wide pill-shaped METALLIC GOLD GRADIENT button (bronze→gold→bright-gold shimmer) with a small calendar icon on the left, bold black uppercase text in the middle ("BOOK YOUR FREE HAIR SYSTEM CONSULT"), and a chevron ">" on the right.
+This is a richly designed promotional flyer — busy, layered, premium. NOT minimalist.`,
+
+      // LAYOUT B — "GUARANTEED RESULTS" brushstroke poster (matches the brushstroke reference)
+      `Cinematic dark poster layout on near-black textured background (#0A0A0A with subtle grunge/grain texture).
+TOP — TITLE BLOCK (40% of canvas):
+  - Tiny gold "— SAME DAY —" eyebrow tag with thin gold side rules, centered
+  - Massive distressed/textured WHITE word in heavy condensed display font ("GUARANTEED" or similar power word), with subtle grain/scratch texture overlay
+  - Below it, a HUGE handwritten brushstroke-style word in METALLIC GOLD GRADIENT script ("RESULTS" or similar) — looks hand-painted with a thick paint brush, rough edges, paint spatter, slight tilt
+  - A short rough gold brushstroke underline
+MIDDLE — BEFORE/AFTER (45% of canvas):
+  ${hasReference ? 'Reference photo as the centerpiece, placed without modifications, both heads fully visible with breathing room.' : 'Before/After split of the SAME man side-by-side. The before side may be desaturated to monochrome for contrast; the after side is full color with the warm golden rim light. Both heads fully visible.'}
+  - "BEFORE" label top-left of the before side and "AFTER" label top-right of the after side — both rendered in white handwritten brushstroke style with a small gold brush underline
+  - A diagonal gold brushstroke or thin gold light-streak divides the two sides through the middle
+  - Rough painted black brush-frame edges around the photo (torn-edge effect)
+BOTTOM (15% of canvas):
+  - Three small feature callouts in a row: each = a circular gold brushstroke ring containing a small gold icon (stopwatch, hair-follicle, calendar-check), with a brushstroke-script gold word underneath ("SAME DAY", "NATURAL", "FREE") and a small white uppercase subtitle ("TRANSFORMATION", "LOOK & FEEL", "CONSULTATION")
+  - Bottom CTA: a rough gold brushstroke banner with bold black uppercase text ("SCHEDULE YOUR FREE CONSULTATION >") — looks hand-painted, not a clean rectangle.`,
+
+      // LAYOUT C — "ENGINEERED HAIRLINES" thin-frame editorial card (matches the framed reference)
+      `Editorial framed card on pure black (#000000).
+A thin double gold rule frame inset ~5% from each edge of the canvas — the frame is ALWAYS thin metallic gold, NEVER white.
+TOP (25%):
+  - Inside the frame, top-left aligned: bold uppercase display headline broken across 2 lines, alternating white and metallic-gold-gradient words (e.g. "ENGINEERED HAIRLINES." in white + "BARBER-FINISHED." with key words in gold). Tight letter spacing, heavy weight.
+MIDDLE (60%):
+  ${hasReference ? 'Reference photo placed inside the frame with no modifications, both heads fully visible with breathing room. If before/after, the photo already contains both sides — do not add a second divider.' : 'Two equal portrait panels side-by-side inside the frame: LEFT = BEFORE (same man, mild thinning/recession), RIGHT = AFTER (same man, full restored hair). A thin vertical gold rule between them. Small white "BEFORE" label bottom-left of the left panel and "AFTER" bottom-right of the right panel.'}
+BOTTOM (15%):
+  - Centered metallic gold gradient pill CTA button ("BOOK A FREE CONSULTATION") with bold black uppercase text inside.
+  - Below the frame, three small gold dot pagination markers (one larger gold pill in the middle).
+Sophisticated, calm, premium — the layout breathes. The frame is the hero design element.`,
     ];
 
     const layoutInstruction = layouts[layoutIndex];
