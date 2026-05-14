@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useModuleFiles, useUploadModuleFile, useDeleteModuleFile } from '@/hooks/useModuleFiles';
-import { Upload, Trash2, FileText, Loader2, X } from 'lucide-react';
+import { Upload, Trash2, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -44,9 +44,10 @@ export function ModuleFilesManager({ moduleId, moduleName, open, onOpenChange }:
     await deleteFile.mutateAsync({ fileId, moduleId, fileUrl });
   };
 
-  const getFileIcon = (fileType: string | null) => {
-    return <FileText className="w-5 h-5" />;
-  };
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+
+  const isImage = (fileType: string | null) =>
+    !!fileType && imageExtensions.includes(fileType.toLowerCase());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -93,34 +94,46 @@ export function ModuleFilesManager({ moduleId, moduleName, open, onOpenChange }:
               <p>No files uploaded yet</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-1">
               {files.map((file) => (
                 <div
                   key={file.id}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30"
+                  className="flex flex-col rounded-lg bg-secondary/30 border border-border/30 overflow-hidden"
                 >
-                  <div className="text-primary">{getFileIcon(file.file_type)}</div>
-                  <div className="flex-1 min-w-0">
+                  {isImage(file.file_type) ? (
+                    <div className="aspect-square bg-secondary/50">
+                      <img src={file.file_url} alt={file.file_name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="aspect-square bg-secondary/50 flex items-center justify-center text-primary">
+                      <FileText className="w-8 h-8" />
+                    </div>
+                  )}
+                  <div className="p-2 min-w-0 space-y-2">
                     <p className="font-medium text-sm truncate">{file.file_name}</p>
-                    <p className="text-xs text-muted-foreground uppercase">{file.file_type || 'unknown'}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground uppercase truncate">{file.file_type || 'unknown'}</p>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <a
+                          href={file.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Preview
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(file.id, file.file_url)}
+                          disabled={deleteFile.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <a
-                    href={file.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Preview
-                  </a>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(file.id, file.file_url)}
-                    disabled={deleteFile.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               ))}
             </div>
