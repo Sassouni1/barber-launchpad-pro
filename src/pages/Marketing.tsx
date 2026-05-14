@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAudienceSettings } from '@/hooks/useAudienceSettings';
 import { format } from 'date-fns';
 import { AudienceSettingsCard } from '@/components/marketing/AudienceSettingsCard';
+import { SocialMediaPostAssets } from '@/components/marketing/SocialMediaPostAssets';
 
 type PaletteChoice = 'gold' | 'website';
 type FormatChoice = 'square' | 'story';
@@ -508,6 +509,8 @@ export default function Marketing() {
             Paste your website URL and get AI-generated marketing content & visuals tailored to your brand.
           </p>
         </div>
+
+        <SocialMediaPostAssets />
 
         {/* Input Section */}
         <Card className="glass-card p-6 space-y-6">
