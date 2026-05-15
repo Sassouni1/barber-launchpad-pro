@@ -683,6 +683,21 @@ export default function Lesson() {
           );
         })()}
 
+        {/* Sub-lesson quizzes (mobile + desktop) */}
+        {module.lessons?.some((l) => l.has_quiz) && (
+          <div className="space-y-2 animate-fade-up" style={{ animationDelay: '0.25s' }}>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Sub-Lesson Quizzes
+            </h3>
+            {[...(module.lessons || [])]
+              .sort((a, b) => a.order_index - b.order_index)
+              .filter((l) => l.has_quiz)
+              .map((l) => (
+                <SubLessonQuiz key={l.id} lessonId={l.id} lessonTitle={l.title} />
+              ))}
+          </div>
+        )}
+
         {/* Mobile: Quiz header with Next Lesson button */}
         {isMobile && module.has_quiz && (
           <div className="flex items-center justify-between animate-fade-up" style={{ animationDelay: '0.3s' }}>
