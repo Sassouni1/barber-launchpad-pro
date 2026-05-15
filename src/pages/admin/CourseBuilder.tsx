@@ -110,6 +110,16 @@ export default function CourseBuilder() {
     has_homework: false,
     is_published: true,
   });
+  const [lessonForm, setLessonForm] = useState({
+    title: '',
+    description: '',
+    video_url: '',
+    duration: '',
+    type: 'video',
+    has_download: false,
+    has_quiz: false,
+    has_homework: false,
+  });
 
   // Course handlers
   const openNewCourse = () => {
