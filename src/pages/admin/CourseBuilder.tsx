@@ -897,6 +897,16 @@ export default function CourseBuilder() {
         />
       )}
 
+      {/* Lesson Quiz Manager */}
+      {quizManagerLesson && (
+        <QuizManager
+          lessonId={quizManagerLesson.id}
+          moduleName={quizManagerLesson.name}
+          open={!!quizManagerLesson}
+          onOpenChange={(open) => !open && setQuizManagerLesson(null)}
+        />
+      )}
+
       {/* Notes Manager */}
       <Dialog open={!!notesManagerModule} onOpenChange={(open) => !open && setNotesManagerModule(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto glass-card border-border/50">
