@@ -280,37 +280,52 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                       </div>
                     )}
                     <div className="space-y-2 pl-2">
-                      {regularModules.map((module, index) => (
-                        <button
-                          key={module.id}
-                          onClick={() => navigate(`/courses/${category.id}/lesson/${module.id}`)}
-                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-border bg-secondary/10 shadow-md shadow-black/20 active:scale-[0.98]"
-                        >
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-secondary border border-border text-muted-foreground">
-                            {index + 1}
+                      {regularModules.map((module, index) => {
+                        const moduleLessons = [...(((module as any).lessons || []) as { id: string; title: string; order_index: number }[])].sort((a, b) => a.order_index - b.order_index);
+                        return (
+                          <div key={module.id} className="space-y-1">
+                            <button
+                              onClick={() => navigate(`/courses/${category.id}/lesson/${module.id}`)}
+                              className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-border bg-secondary/10 shadow-md shadow-black/20 active:scale-[0.98]"
+                            >
+                              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-secondary border border-border text-muted-foreground">
+                                {index + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm truncate flex items-center gap-1.5">
+                                  {module.title}
+                                  {(module as any).is_certification_requirement && (
+                                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                                  )}
+                                </h4>
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                  {module.duration && (
+                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <Clock className="w-3 h-3" />
+                                      {module.duration}
+                                    </span>
+                                  )}
+                                  {moduleLessons.length > 0 && <span className="text-xs text-primary">{moduleLessons.length} sub-lessons</span>}
+                                  {module.has_quiz && <HelpCircle className="w-3 h-3 text-amber-400" />}
+                                  {module.has_homework && <ClipboardList className="w-3 h-3 text-green-400" />}
+                                  {module.has_download && <FileText className="w-3 h-3 text-blue-400" />}
+                                </div>
+                              </div>
+                              <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            </button>
+                            {moduleLessons.length > 0 && (
+                              <div className="ml-12 space-y-1 border-l border-border/40 pl-3">
+                                {moduleLessons.map((lesson) => (
+                                  <div key={lesson.id} className="text-xs text-muted-foreground py-1 flex items-center gap-2">
+                                    <FileText className="w-3 h-3 text-primary flex-shrink-0" />
+                                    <span className="truncate">{lesson.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm truncate flex items-center gap-1.5">
-                              {module.title}
-                              {(module as any).is_certification_requirement && (
-                                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
-                              )}
-                            </h4>
-                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                              {module.duration && (
-                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Clock className="w-3 h-3" />
-                                  {module.duration}
-                                </span>
-                              )}
-                              {module.has_quiz && <HelpCircle className="w-3 h-3 text-amber-400" />}
-                              {module.has_homework && <ClipboardList className="w-3 h-3 text-green-400" />}
-                              {module.has_download && <FileText className="w-3 h-3 text-blue-400" />}
-                            </div>
-                          </div>
-                          <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        </button>
-                      ))}
+                        );
+                      })}
                       {/* Level 1 Certification entry for hair-system */}
                       {category.id === 'hair-system' && course.id && (
                         <button
