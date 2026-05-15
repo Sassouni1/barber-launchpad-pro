@@ -562,7 +562,12 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                     isSelected ? "text-primary scale-110" : "text-muted-foreground"
                                   )} />
                                 </button>
-                                <SubLessonTrack lessons={moduleLessons} />
+                                <SubLessonTrack
+                                  lessons={moduleLessons}
+                                  onLessonClick={(lessonId) =>
+                                    navigate(`/courses/${courseType}/lesson/${module.id}?sublesson=${lessonId}`)
+                                  }
+                                />
                               </div>
                             );
                           })}
