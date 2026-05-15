@@ -175,7 +175,7 @@ export function QuizManager({ moduleId, lessonId, moduleName, open, onOpenChange
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await deleteQuestion.mutateAsync({ questionId: deleteTarget.id, moduleId });
+    await deleteQuestion.mutateAsync({ questionId: deleteTarget.id });
     setDeleteTarget(null);
   };
 
