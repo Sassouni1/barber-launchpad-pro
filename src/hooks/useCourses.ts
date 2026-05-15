@@ -169,3 +169,51 @@ export function useDeleteModule() {
     },
   });
 }
+
+// Lesson (sub-lesson) mutations
+export function useCreateLesson() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (lesson: TablesInsert<'lessons'>) => {
+      const { data, error } = await supabase.from('lessons').insert(lesson).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast.success('Sub-lesson created');
+    },
+    onError: (error) => toast.error('Failed to create sub-lesson: ' + error.message),
+  });
+}
+
+export function useUpdateLesson() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: TablesUpdate<'lessons'> & { id: string }) => {
+      const { data, error } = await supabase.from('lessons').update(updates).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast.success('Sub-lesson updated');
+    },
+    onError: (error) => toast.error('Failed to update sub-lesson: ' + error.message),
+  });
+}
+
+export function useDeleteLesson() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('lessons').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast.success('Sub-lesson deleted');
+    },
+    onError: (error) => toast.error('Failed to delete sub-lesson: ' + error.message),
+  });
+}
