@@ -39,6 +39,7 @@ import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
+import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
 
 // Memoized video player – survives parent re-renders
 const VideoPlayer = React.memo(({ src, title }: { src: string; title: string }) => (
