@@ -440,49 +440,50 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                         <>
                           {regularModules.map((module, index) => {
                             const isSelected = selectedModule === module.id;
+                            const moduleLessons = [...(((module as any).lessons || []) as { id: string; title: string; order_index: number }[])].sort((a, b) => a.order_index - b.order_index);
                             return (
-                              <button
-                                key={module.id}
-                                onClick={() => {
-                                  if (!module.video_url?.trim()) {
-                                    navigate(`/courses/${courseType}/lesson/${module.id}`);
-                                  } else if (isDesktop) {
-                                    setSelectedModule(module.id);
-                                    setShowCertification(false);
-                                  } else {
-                                    navigate(`/courses/${courseType}/lesson/${module.id}`);
-                                  }
-                                }}
-                                className={cn(
-                                  'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
-                                  'border-2 hover:border-primary/50 hover:bg-secondary/20',
-                                  isSelected
-                                    ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20'
-                                    : 'border-border bg-secondary/10 shadow-md shadow-black/20'
-                                )}
-                              >
-                                <div className={cn(
-                                  'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
-                                  isSelected
-                                    ? 'gold-gradient text-primary-foreground shadow-md'
-                                    : 'bg-secondary border border-border text-muted-foreground'
-                                )}>
-                                  {index + 1}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className={cn(
-                                    "font-semibold text-sm mb-1 flex items-center gap-1.5",
-                                    isSelected && "text-primary"
-                                  )}>
-                                    {module.title}
-                                    {(module as any).is_certification_requirement && (
-                                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
-                                    )}
-                                  </h4>
-                                  {module.description && (
-                                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
+                              <div key={module.id} className="space-y-1">
+                                <button
+                                  onClick={() => {
+                                    if (!module.video_url?.trim()) {
+                                      navigate(`/courses/${courseType}/lesson/${module.id}`);
+                                    } else if (isDesktop) {
+                                      setSelectedModule(module.id);
+                                      setShowCertification(false);
+                                    } else {
+                                      navigate(`/courses/${courseType}/lesson/${module.id}`);
+                                    }
+                                  }}
+                                  className={cn(
+                                    'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
+                                    'border-2 hover:border-primary/50 hover:bg-secondary/20',
+                                    isSelected
+                                      ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20'
+                                      : 'border-border bg-secondary/10 shadow-md shadow-black/20'
                                   )}
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                >
+                                  <div className={cn(
+                                    'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
+                                    isSelected
+                                      ? 'gold-gradient text-primary-foreground shadow-md'
+                                      : 'bg-secondary border border-border text-muted-foreground'
+                                  )}>
+                                    {index + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className={cn(
+                                      "font-semibold text-sm mb-1 flex items-center gap-1.5",
+                                      isSelected && "text-primary"
+                                    )}>
+                                      {module.title}
+                                      {(module as any).is_certification_requirement && (
+                                        <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                                      )}
+                                    </h4>
+                                    {module.description && (
+                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
+                                    )}
+                                    <div className="flex items-center gap-2 flex-wrap">
                                     {module.duration && (
                                       <span className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
                                         <Clock className="w-3 h-3" />
@@ -493,6 +494,12 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                       <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
                                         <FileText className="w-3 h-3" />
                                         Files
+                                      </span>
+                                    )}
+                                    {moduleLessons.length > 0 && (
+                                      <span className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                        <FileText className="w-3 h-3" />
+                                        {moduleLessons.length} sub-lessons
                                       </span>
                                     )}
                                     {module.has_quiz && (
@@ -507,13 +514,24 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                         Homework
                                       </span>
                                     )}
+                                    </div>
                                   </div>
-                                </div>
-                                <Play className={cn(
-                                  "w-5 h-5 flex-shrink-0 transition-transform",
-                                  isSelected ? "text-primary scale-110" : "text-muted-foreground"
-                                )} />
-                              </button>
+                                  <Play className={cn(
+                                    "w-5 h-5 flex-shrink-0 transition-transform",
+                                    isSelected ? "text-primary scale-110" : "text-muted-foreground"
+                                  )} />
+                                </button>
+                                {moduleLessons.length > 0 && (
+                                  <div className="ml-14 space-y-1 border-l border-border/40 pl-3">
+                                    {moduleLessons.map((lesson) => (
+                                      <div key={lesson.id} className="text-xs text-muted-foreground py-1 flex items-center gap-2">
+                                        <FileText className="w-3 h-3 text-primary flex-shrink-0" />
+                                        <span className="truncate">{lesson.title}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </>
