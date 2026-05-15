@@ -184,14 +184,50 @@ export default function CourseBuilder() {
     setShowModuleDialog(false);
   };
 
+  // Lesson handlers
+  const openNewLesson = (moduleId: string) => {
+    setSelectedModuleId(moduleId);
+    setEditingLesson(null);
+    setLessonForm({ title: '', description: '', video_url: '', duration: '', type: 'video', has_download: false, has_quiz: false, has_homework: false });
+    setShowLessonDialog(true);
+  };
+
+  const openEditLesson = (lesson: Lesson) => {
+    setEditingLesson(lesson);
+    setLessonForm({
+      title: lesson.title,
+      description: lesson.description || '',
+      video_url: lesson.video_url || '',
+      duration: lesson.duration || '',
+      type: lesson.type || 'video',
+      has_download: lesson.has_download ?? false,
+      has_quiz: lesson.has_quiz ?? false,
+      has_homework: lesson.has_homework ?? false,
+    });
+    setShowLessonDialog(true);
+  };
+
+  const handleSaveLesson = async () => {
+    if (editingLesson) {
+      await updateLesson.mutateAsync({ id: editingLesson.id, ...lessonForm });
+    } else if (selectedModuleId) {
+      const mod = courses?.flatMap((c) => c.modules).find((m) => m.id === selectedModuleId);
+      const maxOrder = mod?.lessons.reduce((max, l) => Math.max(max, l.order_index), -1) ?? -1;
+      await createLesson.mutateAsync({ module_id: selectedModuleId, ...lessonForm, order_index: maxOrder + 1 });
+    }
+    setShowLessonDialog(false);
+  };
+
   // Delete handlers
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    
+
     if (deleteTarget.type === 'course') {
       await deleteCourse.mutateAsync(deleteTarget.id);
-    } else {
+    } else if (deleteTarget.type === 'module') {
       await deleteModule.mutateAsync(deleteTarget.id);
+    } else {
+      await deleteLesson.mutateAsync(deleteTarget.id);
     }
     setDeleteTarget(null);
   };
