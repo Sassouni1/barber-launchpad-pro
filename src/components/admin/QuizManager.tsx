@@ -40,7 +40,8 @@ import {
 } from 'lucide-react';
 
 interface QuizManagerProps {
-  moduleId: string;
+  moduleId?: string;
+  lessonId?: string;
   moduleName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -48,9 +49,11 @@ interface QuizManagerProps {
 
 type AnswerInput = { id?: string; answer_text: string; is_correct: boolean };
 
-export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizManagerProps) {
+export function QuizManager({ moduleId, lessonId, moduleName, open, onOpenChange }: QuizManagerProps) {
+  const scope = lessonId ? { lessonId } : { moduleId: moduleId! };
   // Admin view - include correct answers so admins can see/edit them
-  const { data: questions = [], isLoading } = useQuizQuestions(moduleId, true);
+  const { data: questions = [], isLoading } = useQuizQuestions(scope, true);
+
   const createQuestion = useCreateQuizQuestion();
   const updateQuestion = useUpdateQuizQuestion();
   const deleteQuestion = useDeleteQuizQuestion();
