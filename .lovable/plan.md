@@ -1,39 +1,39 @@
+# Per-Sub-Lesson Quizzes
 
+Right now quizzes are attached to **modules** only. This change lets you attach an independent quiz to any **sub-lesson** as well.
 
-## Fix: Separate "Save Contact" from "Add to Wallet" flow
+## What you'll get
 
-### The problem
-Right now on `/card/:shortCode`, the "Save Contact" action only downloads the vCard (`.vcf` file) — it never actually triggers the Apple/Google Wallet pass generation. When we combined them into one button, the wallet step got dropped. Users get a contact saved to their phone but never get the branded wallet pass.
+- Restore the **Has Quiz** toggle on the sub-lesson form in the Course Builder.
+- When enabled, a **Manage Quiz** button appears on that sub-lesson (same editor as the module quiz, but scoped to the sub-lesson).
+- On the member lesson page, each sub-lesson with a quiz gets its own **Take Quiz** section inline in the sub-lesson list, with score tracking separate from the module quiz.
 
-### Recommended approach: Sequential auto-prompt (best UX)
+## Technical changes
 
-One tap on **"Save Contact"** → vCard downloads immediately → 10 seconds later a wallet prompt automatically slides up → user taps once more to add the branded pass to Apple/Google Wallet. Manual fallback button stays visible the whole time in case they dismiss the prompt or want to do it later.
+1. **Database**
+   - Add `lesson_id uuid` (nullable) to `quiz_questions`.
+   - Add `lesson_id uuid` (nullable) to `user_quiz_attempts`.
+   - Make `module_id` nullable on both (a question/attempt belongs to *either* a module or a lesson).
+   - Add a check constraint via trigger: exactly one of `module_id` / `lesson_id` must be set.
 
-This is better than a single combined button because:
-- iOS/Android block "two downloads in one tap" (the second gets silently killed by the browser)
-- Saving a contact and adding a wallet pass are two distinct OS-level actions that need their own user gesture
-- The 10-second delay gives the contact-save sheet time to close before the wallet sheet opens
+2. **Hooks (`src/hooks/useQuiz.ts`)**
+   - `useQuizQuestions`, `useQuizAttempts`, `useSubmitQuiz` accept either `{ moduleId }` or `{ lessonId }`.
+   - All CRUD mutations (create/update question) accept `lesson_id` alternative.
 
-### Changes to `src/pages/CardView.tsx`
+3. **Admin (`src/components/admin/QuizManager.tsx` + `CourseBuilder.tsx`)**
+   - QuizManager takes `{ moduleId?, lessonId? }`.
+   - Re-add the **Has Quiz** switch on the sub-lesson form.
+   - Add a **Manage Quiz** button per sub-lesson row when `lesson.has_quiz` is true.
 
-1. **`handleSaveContact`** — keep it focused: just download the vCard and set `contactSaved = true`. Remove any wallet-trigger side effects.
-2. **New auto-prompt effect** — when `contactSaved` flips to `true`, start a 10-second timer that opens a modal/sheet titled "Add to Wallet" with platform-aware buttons (Apple Wallet on iOS, Google Wallet on Android, both on desktop). Cleanup on unmount.
-3. **Manual fallback** — the existing "Add to Wallet" button stays visible below "Save Contact" so users who dismiss the prompt (or want to skip the contact step) can still trigger it directly.
-4. **Wallet handlers** — `handleAddToWallet` (Apple) and `handleAddToGoogleWallet` (Google) already exist and call the right edge functions. Just verify they're wired to both the auto-prompt modal buttons AND the manual fallback button.
+4. **Member UI (`src/pages/Lesson.tsx`)**
+   - In the sub-lesson list, when `lesson.has_quiz` is true, render a collapsible quiz block (same UI as the existing module quiz, just scoped by `lessonId`).
 
-### Files touched
-- `src/pages/CardView.tsx` — flow logic + auto-prompt modal (using existing `Dialog` component)
+5. **Edge function (`supabase/functions/verify-quiz/index.ts`)**
+   - Accept `lessonId` as an alternative to `moduleId`; verify and record the attempt against whichever was passed.
 
-### Files NOT touched
-- `supabase/functions/generate-apple-pass/index.ts` — already works
-- `supabase/functions/generate-google-wallet-pass/index.ts` — already works
-- `src/lib/generateVCard.ts` — already works
-- `src/hooks/useBusinessCard.ts` — no changes needed
+## Out of scope
 
-### Acceptance check
-- Tap "Save Contact" → `.vcf` downloads, contact-save sheet appears
-- ~10 seconds later → "Add to Wallet" prompt auto-opens
-- Tap Apple/Google Wallet button → branded pass downloads/opens
-- Manual "Add to Wallet" button still works independently at any time
-- Dismissing the auto-prompt does not break the manual button
+- Routing to a dedicated per-sub-lesson page. Quizzes will appear inline within the existing module lesson page.
+- Migrating existing module quizzes to lesson quizzes (existing module quizzes keep working unchanged).
 
+Confirm and I'll run the migration and ship the code.
