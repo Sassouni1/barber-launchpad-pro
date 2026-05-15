@@ -458,18 +458,46 @@ export default function CourseBuilder() {
                             </span>
                           )}
                         </div>
-                        {((module as any).lessons || []).length > 0 && (
-                          <div className="mt-2 space-y-1 border-l border-border/40 pl-3">
-                            {[...((module as any).lessons || [])]
-                              .sort((a: any, b: any) => a.order_index - b.order_index)
-                              .map((lesson: any) => (
-                                <div key={lesson.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <FileText className="w-3 h-3 text-primary flex-shrink-0" />
-                                  <span className="truncate">{lesson.title}</span>
-                                </div>
-                              ))}
-                          </div>
-                        )}
+                        <div className="mt-2 border-l border-border/40 pl-3 space-y-1">
+                          {[...(module.lessons || [])]
+                            .sort((a, b) => a.order_index - b.order_index)
+                            .map((lesson) => (
+                              <div key={lesson.id} className="flex items-center gap-2 group">
+                                <FileText className="w-3 h-3 text-primary flex-shrink-0" />
+                                <button
+                                  onClick={() => openEditLesson(lesson)}
+                                  className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate"
+                                >
+                                  {lesson.title}
+                                </button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                  onClick={() => openEditLesson(lesson)}
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100"
+                                  onClick={() => setDeleteTarget({ type: 'lesson', id: lesson.id, name: lesson.title })}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-primary hover:text-primary"
+                            onClick={() => openNewLesson(module.id)}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add sub-lesson
+                          </Button>
+                        </div>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Video className="w-3 h-3" />
