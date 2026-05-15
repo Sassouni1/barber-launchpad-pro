@@ -144,23 +144,36 @@ serve(async (req) => {
       // Don't throw - the attempt was saved successfully
     }
 
-    // Auto-mark module's lessons as completed
-    const { data: moduleLessons, error: lessonsError } = await supabase
-      .from('lessons')
-      .select('id')
-      .eq('module_id', moduleId);
+    // Auto-mark progress
+    if (lessonId) {
+      // Lesson-level quiz: mark just this sub-lesson complete
+      await supabase
+        .from('user_progress')
+        .upsert(
+          { user_id: user.id, lesson_id: lessonId, completed: true, completed_at: new Date().toISOString() },
+          { onConflict: 'user_id,lesson_id' }
+        );
+      console.log(`Auto-completed lesson ${lessonId}`);
+    } else if (moduleId) {
+      // Module-level quiz: mark all sub-lessons complete
+      const { data: moduleLessons, error: lessonsError } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('module_id', moduleId);
 
-    if (!lessonsError && moduleLessons && moduleLessons.length > 0) {
-      for (const lesson of moduleLessons) {
-        await supabase
-          .from('user_progress')
-          .upsert(
-            { user_id: user.id, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() },
-            { onConflict: 'user_id,lesson_id' }
-          );
+      if (!lessonsError && moduleLessons && moduleLessons.length > 0) {
+        for (const lesson of moduleLessons) {
+          await supabase
+            .from('user_progress')
+            .upsert(
+              { user_id: user.id, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() },
+              { onConflict: 'user_id,lesson_id' }
+            );
+        }
+        console.log(`Auto-completed ${moduleLessons.length} lessons for module ${moduleId}`);
       }
-      console.log(`Auto-completed ${moduleLessons.length} lessons for module ${moduleId}`);
     }
+
 
     // Return the score and the correct answer map for review
     return new Response(JSON.stringify({
