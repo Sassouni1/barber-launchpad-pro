@@ -459,7 +459,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                         <>
                           {regularModules.map((module, index) => {
                             const isSelected = selectedModule === module.id;
-                            const moduleLessons = [...(((module as any).lessons || []) as { id: string; title: string; order_index: number }[])].sort((a, b) => a.order_index - b.order_index);
+                            const moduleLessons = getModuleLessons(module);
                             return (
                               <div key={module.id} className="space-y-1">
                                 <button
@@ -540,16 +540,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                     isSelected ? "text-primary scale-110" : "text-muted-foreground"
                                   )} />
                                 </button>
-                                {moduleLessons.length > 0 && (
-                                  <div className="ml-14 space-y-1 border-l border-border/40 pl-3">
-                                    {moduleLessons.map((lesson) => (
-                                      <div key={lesson.id} className="text-xs text-muted-foreground py-1 flex items-center gap-2">
-                                        <FileText className="w-3 h-3 text-primary flex-shrink-0" />
-                                        <span className="truncate">{lesson.title}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                <SubLessonTrack lessons={moduleLessons} />
                               </div>
                             );
                           })}
