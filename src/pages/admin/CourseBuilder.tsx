@@ -83,12 +83,15 @@ export default function CourseBuilder() {
   // Dialog states
   const [showCourseDialog, setShowCourseDialog] = useState(false);
   const [showModuleDialog, setShowModuleDialog] = useState(false);
+  const [showLessonDialog, setShowLessonDialog] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseWithModules | null>(null);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
 
   // Delete confirmation
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module'; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module' | 'lesson'; id: string; name: string } | null>(null);
 
   // Files/Quiz manager
   const [filesManagerModule, setFilesManagerModule] = useState<{ id: string; name: string } | null>(null);
