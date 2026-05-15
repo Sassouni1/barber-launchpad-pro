@@ -153,7 +153,6 @@ export function QuizManager({ moduleId, lessonId, moduleName, open, onOpenChange
     if (editingQuestion) {
       await updateQuestion.mutateAsync({
         id: editingQuestion.id,
-        module_id: moduleId,
         question_text: questionText,
         question_image_url: questionImageUrl || undefined,
         question_type: questionType,
@@ -161,7 +160,8 @@ export function QuizManager({ moduleId, lessonId, moduleName, open, onOpenChange
       });
     } else {
       await createQuestion.mutateAsync({
-        module_id: moduleId,
+        module_id: lessonId ? null : moduleId,
+        lesson_id: lessonId ?? null,
         question_text: questionText,
         question_image_url: questionImageUrl || undefined,
         question_type: questionType,
