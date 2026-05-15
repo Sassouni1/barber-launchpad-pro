@@ -471,6 +471,17 @@ export default function CourseBuilder() {
                                 >
                                   {lesson.title}
                                 </button>
+                                {lesson.has_quiz && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-primary opacity-70 hover:opacity-100"
+                                    title="Manage Quiz"
+                                    onClick={() => setQuizManagerLesson({ id: lesson.id, name: lesson.title })}
+                                  >
+                                    <HelpCircle className="w-3 h-3" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="ghost"
                                   size="icon"
