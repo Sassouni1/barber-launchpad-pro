@@ -96,6 +96,7 @@ export default function CourseBuilder() {
   // Files/Quiz manager
   const [filesManagerModule, setFilesManagerModule] = useState<{ id: string; name: string } | null>(null);
   const [quizManagerModule, setQuizManagerModule] = useState<{ id: string; name: string } | null>(null);
+  const [quizManagerLesson, setQuizManagerLesson] = useState<{ id: string; name: string } | null>(null);
   const [notesManagerModule, setNotesManagerModule] = useState<{ id: string; name: string } | null>(null);
 
   // Form states
