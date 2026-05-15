@@ -1205,7 +1205,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          module_id: string
+          lesson_id: string | null
+          module_id: string | null
           order_index: number
           question_image_url: string | null
           question_text: string
@@ -1215,7 +1216,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          module_id: string
+          lesson_id?: string | null
+          module_id?: string | null
           order_index?: number
           question_image_url?: string | null
           question_text: string
@@ -1225,7 +1227,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          module_id?: string
+          lesson_id?: string | null
+          module_id?: string | null
           order_index?: number
           question_image_url?: string | null
           question_text?: string
@@ -1591,7 +1594,8 @@ export type Database = {
           completed_at: string
           created_at: string
           id: string
-          module_id: string
+          lesson_id: string | null
+          module_id: string | null
           score: number
           total_questions: number
           user_id: string
@@ -1600,7 +1604,8 @@ export type Database = {
           completed_at?: string
           created_at?: string
           id?: string
-          module_id: string
+          lesson_id?: string | null
+          module_id?: string | null
           score?: number
           total_questions?: number
           user_id: string
@@ -1609,7 +1614,8 @@ export type Database = {
           completed_at?: string
           created_at?: string
           id?: string
-          module_id?: string
+          lesson_id?: string | null
+          module_id?: string | null
           score?: number
           total_questions?: number
           user_id?: string
