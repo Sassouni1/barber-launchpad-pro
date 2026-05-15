@@ -824,13 +824,6 @@ export default function CourseBuilder() {
               />
             </div>
             <div className="flex items-center justify-between py-2">
-              <Label>Has Quiz</Label>
-              <Switch
-                checked={lessonForm.has_quiz}
-                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_quiz: checked }))}
-              />
-            </div>
-            <div className="flex items-center justify-between py-2">
               <Label>Has Homework</Label>
               <Switch
                 checked={lessonForm.has_homework}
