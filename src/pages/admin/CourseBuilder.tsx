@@ -402,6 +402,18 @@ export default function CourseBuilder() {
                             </span>
                           )}
                         </div>
+                        {((module as any).lessons || []).length > 0 && (
+                          <div className="mt-2 space-y-1 border-l border-border/40 pl-3">
+                            {[...((module as any).lessons || [])]
+                              .sort((a: any, b: any) => a.order_index - b.order_index)
+                              .map((lesson: any) => (
+                                <div key={lesson.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <FileText className="w-3 h-3 text-primary flex-shrink-0" />
+                                  <span className="truncate">{lesson.title}</span>
+                                </div>
+                              ))}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Video className="w-3 h-3" />

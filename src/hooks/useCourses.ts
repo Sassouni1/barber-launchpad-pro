@@ -5,9 +5,14 @@ import { toast } from 'sonner';
 
 export type Course = Tables<'courses'>;
 export type Module = Tables<'modules'>;
+export type Lesson = Tables<'lessons'>;
+
+export type ModuleWithLessons = Module & {
+  lessons: Lesson[];
+};
 
 export type CourseWithModules = Course & {
-  modules: Module[];
+  modules: ModuleWithLessons[];
 };
 
 export function useCourses(options?: { includeUnpublished?: boolean }) {
@@ -16,6 +21,7 @@ export function useCourses(options?: { includeUnpublished?: boolean }) {
     queryFn: async () => {
       let coursesQuery = supabase.from('courses').select('*').order('order_index');
       let modulesQuery = supabase.from('modules').select('*').order('order_index');
+      const lessonsQuery = supabase.from('lessons').select('*').order('order_index');
 
       // Filter unpublished content unless explicitly including it (admin view)
       if (!options?.includeUnpublished) {
@@ -29,10 +35,18 @@ export function useCourses(options?: { includeUnpublished?: boolean }) {
       const { data: modules, error: modulesError } = await modulesQuery;
       if (modulesError) throw modulesError;
 
+      const { data: lessons, error: lessonsError } = await lessonsQuery;
+      if (lessonsError) throw lessonsError;
+
       // Combine data
       const coursesWithModules: CourseWithModules[] = courses.map((course) => ({
         ...course,
-        modules: modules.filter((m) => m.course_id === course.id),
+        modules: modules
+          .filter((m) => m.course_id === course.id)
+          .map((module) => ({
+            ...module,
+            lessons: lessons.filter((lesson) => lesson.module_id === module.id),
+          })),
       }));
 
       return coursesWithModules;
