@@ -309,7 +309,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                     )}
                     <div className="space-y-2 pl-2">
                       {regularModules.map((module, index) => {
-                        const moduleLessons = [...(((module as any).lessons || []) as { id: string; title: string; order_index: number }[])].sort((a, b) => a.order_index - b.order_index);
+                        const moduleLessons = getModuleLessons(module);
                         return (
                           <div key={module.id} className="space-y-1">
                             <button
@@ -341,16 +341,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                               </div>
                               <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </button>
-                            {moduleLessons.length > 0 && (
-                              <div className="ml-12 space-y-1 border-l border-border/40 pl-3">
-                                {moduleLessons.map((lesson) => (
-                                  <div key={lesson.id} className="text-xs text-muted-foreground py-1 flex items-center gap-2">
-                                    <FileText className="w-3 h-3 text-primary flex-shrink-0" />
-                                    <span className="truncate">{lesson.title}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            <SubLessonTrack lessons={moduleLessons} compact />
                           </div>
                         );
                       })}
