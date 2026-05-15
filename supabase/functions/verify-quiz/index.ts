@@ -42,23 +42,23 @@ serve(async (req) => {
       });
     }
 
-    const { moduleId, answers } = await req.json();
-    console.log(`Processing quiz submission for user ${user.id}, module ${moduleId}`);
+    const { moduleId, lessonId, answers } = await req.json();
+    console.log(`Processing quiz submission for user ${user.id}, module ${moduleId}, lesson ${lessonId}`);
     console.log(`Received ${answers?.length || 0} answers`);
 
-    if (!moduleId || !answers || !Array.isArray(answers)) {
-      console.error('Invalid request body:', { moduleId, answers });
+    if ((!moduleId && !lessonId) || (moduleId && lessonId) || !answers || !Array.isArray(answers)) {
+      console.error('Invalid request body:', { moduleId, lessonId, answers });
       return new Response(JSON.stringify({ error: 'Invalid request body' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get questions for this module
-    const { data: questions, error: questionsError } = await supabase
-      .from('quiz_questions')
-      .select('id')
-      .eq('module_id', moduleId);
+    // Get questions for this module or lesson
+    const questionsQuery = supabase.from('quiz_questions').select('id');
+    const { data: questions, error: questionsError } = lessonId
+      ? await questionsQuery.eq('lesson_id', lessonId)
+      : await questionsQuery.eq('module_id', moduleId);
 
     if (questionsError) {
       console.error('Failed to fetch questions:', questionsError);
@@ -66,7 +66,7 @@ serve(async (req) => {
     }
 
     const questionIds = questions.map(q => q.id);
-    console.log(`Found ${questionIds.length} questions for module`);
+    console.log(`Found ${questionIds.length} questions`);
 
     // Get all correct answers for these questions (server-side access to full table)
     const { data: correctAnswers, error: answersError } = await supabase
