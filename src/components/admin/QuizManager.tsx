@@ -139,7 +139,7 @@ export function QuizManager({ moduleId, lessonId, moduleName, open, onOpenChange
 
     setUploadingImage(true);
     try {
-      const url = await uploadImage.mutateAsync({ moduleId, file });
+      const url = await uploadImage.mutateAsync({ ownerId: lessonId ?? moduleId ?? 'shared', file });
       setQuestionImageUrl(url);
     } finally {
       setUploadingImage(false);
