@@ -74,6 +74,9 @@ export default function CourseBuilder() {
   const createModule = useCreateModule();
   const updateModule = useUpdateModule();
   const deleteModule = useDeleteModule();
+  const createLesson = useCreateLesson();
+  const updateLesson = useUpdateLesson();
+  const deleteLesson = useDeleteLesson();
 
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
 
