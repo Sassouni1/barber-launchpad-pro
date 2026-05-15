@@ -57,6 +57,34 @@ interface CoursesProps {
   courseType?: 'hair-system' | 'business';
 }
 
+type ModuleLessonPreview = { id: string; title: string; order_index: number };
+
+const getModuleLessons = (module: Module): ModuleLessonPreview[] =>
+  [...(((module as any).lessons || []) as ModuleLessonPreview[])].sort((a, b) => a.order_index - b.order_index);
+
+const SubLessonTrack = ({ lessons, compact = false }: { lessons: ModuleLessonPreview[]; compact?: boolean }) => {
+  if (lessons.length === 0) return null;
+
+  return (
+    <div className={cn(
+      "relative overflow-hidden rounded-xl border border-border/60 bg-secondary/20",
+      compact ? "ml-10 p-2.5" : "ml-14 p-3"
+    )}>
+      <div className="absolute left-5 top-4 bottom-4 w-px bg-border/70" />
+      <div className="space-y-1.5">
+        {lessons.map((lesson, lessonIndex) => (
+          <div key={lesson.id} className="relative flex items-center gap-3 rounded-lg px-2 py-2 text-muted-foreground transition-colors hover:bg-secondary/40 hover:text-foreground">
+            <div className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-primary/30 bg-background text-[11px] font-semibold text-primary">
+              {lessonIndex + 1}
+            </div>
+            <span className={cn("min-w-0 truncate font-medium", compact ? "text-xs" : "text-sm")}>{lesson.title}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const { data: allCoursesRaw = [], isLoading } = useCourses();
   const { user } = useAuth();
