@@ -48,8 +48,12 @@ import {
   useCreateModule,
   useUpdateModule,
   useDeleteModule,
+  useCreateLesson,
+  useUpdateLesson,
+  useDeleteLesson,
   type CourseWithModules,
   type Module,
+  type Lesson,
 } from '@/hooks/useCourses';
 import {
   AlertDialog,
