@@ -357,7 +357,13 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                               </div>
                               <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             </button>
-                            <SubLessonTrack lessons={moduleLessons} compact />
+                            <SubLessonTrack
+                              lessons={moduleLessons}
+                              compact
+                              onLessonClick={(lessonId) =>
+                                navigate(`/courses/${category.id}/lesson/${module.id}?sublesson=${lessonId}`)
+                              }
+                            />
                           </div>
                         );
                       })}
