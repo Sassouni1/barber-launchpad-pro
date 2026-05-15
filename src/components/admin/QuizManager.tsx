@@ -40,7 +40,8 @@ import {
 } from 'lucide-react';
 
 interface QuizManagerProps {
-  moduleId: string;
+  moduleId?: string;
+  lessonId?: string;
   moduleName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -48,9 +49,11 @@ interface QuizManagerProps {
 
 type AnswerInput = { id?: string; answer_text: string; is_correct: boolean };
 
-export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizManagerProps) {
+export function QuizManager({ moduleId, lessonId, moduleName, open, onOpenChange }: QuizManagerProps) {
+  const scope = lessonId ? { lessonId } : { moduleId: moduleId! };
   // Admin view - include correct answers so admins can see/edit them
-  const { data: questions = [], isLoading } = useQuizQuestions(moduleId, true);
+  const { data: questions = [], isLoading } = useQuizQuestions(scope, true);
+
   const createQuestion = useCreateQuizQuestion();
   const updateQuestion = useUpdateQuizQuestion();
   const deleteQuestion = useDeleteQuizQuestion();
@@ -136,7 +139,7 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
 
     setUploadingImage(true);
     try {
-      const url = await uploadImage.mutateAsync({ moduleId, file });
+      const url = await uploadImage.mutateAsync({ ownerId: lessonId ?? moduleId ?? 'shared', file });
       setQuestionImageUrl(url);
     } finally {
       setUploadingImage(false);
@@ -150,7 +153,6 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
     if (editingQuestion) {
       await updateQuestion.mutateAsync({
         id: editingQuestion.id,
-        module_id: moduleId,
         question_text: questionText,
         question_image_url: questionImageUrl || undefined,
         question_type: questionType,
@@ -158,7 +160,8 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
       });
     } else {
       await createQuestion.mutateAsync({
-        module_id: moduleId,
+        module_id: lessonId ? null : moduleId,
+        lesson_id: lessonId ?? null,
         question_text: questionText,
         question_image_url: questionImageUrl || undefined,
         question_type: questionType,
@@ -172,7 +175,7 @@ export function QuizManager({ moduleId, moduleName, open, onOpenChange }: QuizMa
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await deleteQuestion.mutateAsync({ questionId: deleteTarget.id, moduleId });
+    await deleteQuestion.mutateAsync({ questionId: deleteTarget.id });
     setDeleteTarget(null);
   };
 

@@ -42,23 +42,23 @@ serve(async (req) => {
       });
     }
 
-    const { moduleId, answers } = await req.json();
-    console.log(`Processing quiz submission for user ${user.id}, module ${moduleId}`);
+    const { moduleId, lessonId, answers } = await req.json();
+    console.log(`Processing quiz submission for user ${user.id}, module ${moduleId}, lesson ${lessonId}`);
     console.log(`Received ${answers?.length || 0} answers`);
 
-    if (!moduleId || !answers || !Array.isArray(answers)) {
-      console.error('Invalid request body:', { moduleId, answers });
+    if ((!moduleId && !lessonId) || (moduleId && lessonId) || !answers || !Array.isArray(answers)) {
+      console.error('Invalid request body:', { moduleId, lessonId, answers });
       return new Response(JSON.stringify({ error: 'Invalid request body' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get questions for this module
-    const { data: questions, error: questionsError } = await supabase
-      .from('quiz_questions')
-      .select('id')
-      .eq('module_id', moduleId);
+    // Get questions for this module or lesson
+    const questionsQuery = supabase.from('quiz_questions').select('id');
+    const { data: questions, error: questionsError } = lessonId
+      ? await questionsQuery.eq('lesson_id', lessonId)
+      : await questionsQuery.eq('module_id', moduleId);
 
     if (questionsError) {
       console.error('Failed to fetch questions:', questionsError);
@@ -66,7 +66,7 @@ serve(async (req) => {
     }
 
     const questionIds = questions.map(q => q.id);
-    console.log(`Found ${questionIds.length} questions for module`);
+    console.log(`Found ${questionIds.length} questions`);
 
     // Get all correct answers for these questions (server-side access to full table)
     const { data: correctAnswers, error: answersError } = await supabase
@@ -111,12 +111,14 @@ serve(async (req) => {
       .from('user_quiz_attempts')
       .insert({
         user_id: user.id,
-        module_id: moduleId,
+        module_id: moduleId ?? null,
+        lesson_id: lessonId ?? null,
         score,
         total_questions: questions.length,
       })
       .select()
       .single();
+
 
     if (attemptError) {
       console.error('Failed to insert attempt:', attemptError);
@@ -142,23 +144,36 @@ serve(async (req) => {
       // Don't throw - the attempt was saved successfully
     }
 
-    // Auto-mark module's lessons as completed
-    const { data: moduleLessons, error: lessonsError } = await supabase
-      .from('lessons')
-      .select('id')
-      .eq('module_id', moduleId);
+    // Auto-mark progress
+    if (lessonId) {
+      // Lesson-level quiz: mark just this sub-lesson complete
+      await supabase
+        .from('user_progress')
+        .upsert(
+          { user_id: user.id, lesson_id: lessonId, completed: true, completed_at: new Date().toISOString() },
+          { onConflict: 'user_id,lesson_id' }
+        );
+      console.log(`Auto-completed lesson ${lessonId}`);
+    } else if (moduleId) {
+      // Module-level quiz: mark all sub-lessons complete
+      const { data: moduleLessons, error: lessonsError } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('module_id', moduleId);
 
-    if (!lessonsError && moduleLessons && moduleLessons.length > 0) {
-      for (const lesson of moduleLessons) {
-        await supabase
-          .from('user_progress')
-          .upsert(
-            { user_id: user.id, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() },
-            { onConflict: 'user_id,lesson_id' }
-          );
+      if (!lessonsError && moduleLessons && moduleLessons.length > 0) {
+        for (const lesson of moduleLessons) {
+          await supabase
+            .from('user_progress')
+            .upsert(
+              { user_id: user.id, lesson_id: lesson.id, completed: true, completed_at: new Date().toISOString() },
+              { onConflict: 'user_id,lesson_id' }
+            );
+        }
+        console.log(`Auto-completed ${moduleLessons.length} lessons for module ${moduleId}`);
       }
-      console.log(`Auto-completed ${moduleLessons.length} lessons for module ${moduleId}`);
     }
+
 
     // Return the score and the correct answer map for review
     return new Response(JSON.stringify({

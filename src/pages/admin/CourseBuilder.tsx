@@ -96,6 +96,7 @@ export default function CourseBuilder() {
   // Files/Quiz manager
   const [filesManagerModule, setFilesManagerModule] = useState<{ id: string; name: string } | null>(null);
   const [quizManagerModule, setQuizManagerModule] = useState<{ id: string; name: string } | null>(null);
+  const [quizManagerLesson, setQuizManagerLesson] = useState<{ id: string; name: string } | null>(null);
   const [notesManagerModule, setNotesManagerModule] = useState<{ id: string; name: string } | null>(null);
 
   // Form states
@@ -470,6 +471,17 @@ export default function CourseBuilder() {
                                 >
                                   {lesson.title}
                                 </button>
+                                {lesson.has_quiz && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-primary opacity-70 hover:opacity-100"
+                                    title="Manage Quiz"
+                                    onClick={() => setQuizManagerLesson({ id: lesson.id, name: lesson.title })}
+                                  >
+                                    <HelpCircle className="w-3 h-3" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -824,6 +836,27 @@ export default function CourseBuilder() {
               />
             </div>
             <div className="flex items-center justify-between py-2">
+              <Label>Has Quiz</Label>
+              <Switch
+                checked={lessonForm.has_quiz}
+                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_quiz: checked }))}
+              />
+            </div>
+            {lessonForm.has_quiz && editingLesson && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setShowLessonDialog(false);
+                  setQuizManagerLesson({ id: editingLesson.id, name: editingLesson.title });
+                }}
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Manage Quiz Questions
+              </Button>
+            )}
+            <div className="flex items-center justify-between py-2">
               <Label>Has Homework</Label>
               <Switch
                 checked={lessonForm.has_homework}
@@ -882,6 +915,16 @@ export default function CourseBuilder() {
           moduleName={quizManagerModule.name}
           open={!!quizManagerModule}
           onOpenChange={(open) => !open && setQuizManagerModule(null)}
+        />
+      )}
+
+      {/* Lesson Quiz Manager */}
+      {quizManagerLesson && (
+        <QuizManager
+          lessonId={quizManagerLesson.id}
+          moduleName={quizManagerLesson.name}
+          open={!!quizManagerLesson}
+          onOpenChange={(open) => !open && setQuizManagerLesson(null)}
         />
       )}
 
