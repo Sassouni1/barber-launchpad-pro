@@ -48,8 +48,12 @@ import {
   useCreateModule,
   useUpdateModule,
   useDeleteModule,
+  useCreateLesson,
+  useUpdateLesson,
+  useDeleteLesson,
   type CourseWithModules,
   type Module,
+  type Lesson,
 } from '@/hooks/useCourses';
 import {
   AlertDialog,
@@ -70,18 +74,24 @@ export default function CourseBuilder() {
   const createModule = useCreateModule();
   const updateModule = useUpdateModule();
   const deleteModule = useDeleteModule();
+  const createLesson = useCreateLesson();
+  const updateLesson = useUpdateLesson();
+  const deleteLesson = useDeleteLesson();
 
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
 
   // Dialog states
   const [showCourseDialog, setShowCourseDialog] = useState(false);
   const [showModuleDialog, setShowModuleDialog] = useState(false);
+  const [showLessonDialog, setShowLessonDialog] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseWithModules | null>(null);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
 
   // Delete confirmation
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module'; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'course' | 'module' | 'lesson'; id: string; name: string } | null>(null);
 
   // Files/Quiz manager
   const [filesManagerModule, setFilesManagerModule] = useState<{ id: string; name: string } | null>(null);
@@ -99,6 +109,16 @@ export default function CourseBuilder() {
     has_quiz: false,
     has_homework: false,
     is_published: true,
+  });
+  const [lessonForm, setLessonForm] = useState({
+    title: '',
+    description: '',
+    video_url: '',
+    duration: '',
+    type: 'video',
+    has_download: false,
+    has_quiz: false,
+    has_homework: false,
   });
 
   // Course handlers
@@ -164,14 +184,50 @@ export default function CourseBuilder() {
     setShowModuleDialog(false);
   };
 
+  // Lesson handlers
+  const openNewLesson = (moduleId: string) => {
+    setSelectedModuleId(moduleId);
+    setEditingLesson(null);
+    setLessonForm({ title: '', description: '', video_url: '', duration: '', type: 'video', has_download: false, has_quiz: false, has_homework: false });
+    setShowLessonDialog(true);
+  };
+
+  const openEditLesson = (lesson: Lesson) => {
+    setEditingLesson(lesson);
+    setLessonForm({
+      title: lesson.title,
+      description: lesson.description || '',
+      video_url: lesson.video_url || '',
+      duration: lesson.duration || '',
+      type: lesson.type || 'video',
+      has_download: lesson.has_download ?? false,
+      has_quiz: lesson.has_quiz ?? false,
+      has_homework: lesson.has_homework ?? false,
+    });
+    setShowLessonDialog(true);
+  };
+
+  const handleSaveLesson = async () => {
+    if (editingLesson) {
+      await updateLesson.mutateAsync({ id: editingLesson.id, ...lessonForm });
+    } else if (selectedModuleId) {
+      const mod = courses?.flatMap((c) => c.modules).find((m) => m.id === selectedModuleId);
+      const maxOrder = mod?.lessons.reduce((max, l) => Math.max(max, l.order_index), -1) ?? -1;
+      await createLesson.mutateAsync({ module_id: selectedModuleId, ...lessonForm, order_index: maxOrder + 1 });
+    }
+    setShowLessonDialog(false);
+  };
+
   // Delete handlers
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    
+
     if (deleteTarget.type === 'course') {
       await deleteCourse.mutateAsync(deleteTarget.id);
-    } else {
+    } else if (deleteTarget.type === 'module') {
       await deleteModule.mutateAsync(deleteTarget.id);
+    } else {
+      await deleteLesson.mutateAsync(deleteTarget.id);
     }
     setDeleteTarget(null);
   };
@@ -402,18 +458,46 @@ export default function CourseBuilder() {
                             </span>
                           )}
                         </div>
-                        {((module as any).lessons || []).length > 0 && (
-                          <div className="mt-2 space-y-1 border-l border-border/40 pl-3">
-                            {[...((module as any).lessons || [])]
-                              .sort((a: any, b: any) => a.order_index - b.order_index)
-                              .map((lesson: any) => (
-                                <div key={lesson.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <FileText className="w-3 h-3 text-primary flex-shrink-0" />
-                                  <span className="truncate">{lesson.title}</span>
-                                </div>
-                              ))}
-                          </div>
-                        )}
+                        <div className="mt-2 border-l border-border/40 pl-3 space-y-1">
+                          {[...(module.lessons || [])]
+                            .sort((a, b) => a.order_index - b.order_index)
+                            .map((lesson) => (
+                              <div key={lesson.id} className="flex items-center gap-2 group">
+                                <FileText className="w-3 h-3 text-primary flex-shrink-0" />
+                                <button
+                                  onClick={() => openEditLesson(lesson)}
+                                  className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate"
+                                >
+                                  {lesson.title}
+                                </button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                  onClick={() => openEditLesson(lesson)}
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100"
+                                  onClick={() => setDeleteTarget({ type: 'lesson', id: lesson.id, name: lesson.title })}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-primary hover:text-primary"
+                            onClick={() => openNewLesson(module.id)}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add sub-lesson
+                          </Button>
+                        </div>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Video className="w-3 h-3" />
@@ -666,6 +750,102 @@ export default function CourseBuilder() {
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : null}
               {editingModule ? 'Save Changes' : 'Create Module'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lesson (Sub-lesson) Dialog */}
+      <Dialog open={showLessonDialog} onOpenChange={setShowLessonDialog}>
+        <DialogContent className="glass-card border-border/50 max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              {editingLesson ? 'Edit Sub-lesson' : 'New Sub-lesson'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                value={lessonForm.title}
+                onChange={(e) => setLessonForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="e.g., Making Your First Post"
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={lessonForm.description}
+                onChange={(e) => setLessonForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="What will the student learn?"
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Video URL</Label>
+              <Input
+                value={lessonForm.video_url}
+                onChange={(e) => setLessonForm((f) => ({ ...f, video_url: e.target.value }))}
+                placeholder="https://..."
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Duration</Label>
+              <Input
+                value={lessonForm.duration}
+                onChange={(e) => setLessonForm((f) => ({ ...f, duration: e.target.value }))}
+                placeholder="e.g., 5:30"
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select
+                value={lessonForm.type}
+                onValueChange={(value) => setLessonForm((f) => ({ ...f, type: value }))}
+              >
+                <SelectTrigger className="bg-secondary/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="text">Text</SelectItem>
+                  <SelectItem value="quiz">Quiz</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Downloadable Files</Label>
+              <Switch
+                checked={lessonForm.has_download}
+                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_download: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Quiz</Label>
+              <Switch
+                checked={lessonForm.has_quiz}
+                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_quiz: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Homework</Label>
+              <Switch
+                checked={lessonForm.has_homework}
+                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_homework: checked }))}
+              />
+            </div>
+            <Button
+              className="w-full gold-gradient text-primary-foreground"
+              onClick={handleSaveLesson}
+              disabled={!lessonForm.title || createLesson.isPending || updateLesson.isPending}
+            >
+              {createLesson.isPending || updateLesson.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
+              {editingLesson ? 'Save Changes' : 'Create Sub-lesson'}
             </Button>
           </div>
         </DialogContent>
