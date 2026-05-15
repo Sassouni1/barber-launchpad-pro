@@ -755,6 +755,102 @@ export default function CourseBuilder() {
         </DialogContent>
       </Dialog>
 
+      {/* Lesson (Sub-lesson) Dialog */}
+      <Dialog open={showLessonDialog} onOpenChange={setShowLessonDialog}>
+        <DialogContent className="glass-card border-border/50 max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              {editingLesson ? 'Edit Sub-lesson' : 'New Sub-lesson'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                value={lessonForm.title}
+                onChange={(e) => setLessonForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="e.g., Making Your First Post"
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={lessonForm.description}
+                onChange={(e) => setLessonForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="What will the student learn?"
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Video URL</Label>
+              <Input
+                value={lessonForm.video_url}
+                onChange={(e) => setLessonForm((f) => ({ ...f, video_url: e.target.value }))}
+                placeholder="https://..."
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Duration</Label>
+              <Input
+                value={lessonForm.duration}
+                onChange={(e) => setLessonForm((f) => ({ ...f, duration: e.target.value }))}
+                placeholder="e.g., 5:30"
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select
+                value={lessonForm.type}
+                onValueChange={(value) => setLessonForm((f) => ({ ...f, type: value }))}
+              >
+                <SelectTrigger className="bg-secondary/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="text">Text</SelectItem>
+                  <SelectItem value="quiz">Quiz</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Downloadable Files</Label>
+              <Switch
+                checked={lessonForm.has_download}
+                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_download: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Quiz</Label>
+              <Switch
+                checked={lessonForm.has_quiz}
+                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_quiz: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <Label>Has Homework</Label>
+              <Switch
+                checked={lessonForm.has_homework}
+                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_homework: checked }))}
+              />
+            </div>
+            <Button
+              className="w-full gold-gradient text-primary-foreground"
+              onClick={handleSaveLesson}
+              disabled={!lessonForm.title || createLesson.isPending || updateLesson.isPending}
+            >
+              {createLesson.isPending || updateLesson.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
+              {editingLesson ? 'Save Changes' : 'Create Sub-lesson'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent className="glass-card border-border/50">
