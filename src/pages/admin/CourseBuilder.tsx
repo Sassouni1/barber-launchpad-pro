@@ -836,6 +836,27 @@ export default function CourseBuilder() {
               />
             </div>
             <div className="flex items-center justify-between py-2">
+              <Label>Has Quiz</Label>
+              <Switch
+                checked={lessonForm.has_quiz}
+                onCheckedChange={(checked) => setLessonForm((f) => ({ ...f, has_quiz: checked }))}
+              />
+            </div>
+            {lessonForm.has_quiz && editingLesson && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setShowLessonDialog(false);
+                  setQuizManagerLesson({ id: editingLesson.id, name: editingLesson.title });
+                }}
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Manage Quiz Questions
+              </Button>
+            )}
+            <div className="flex items-center justify-between py-2">
               <Label>Has Homework</Label>
               <Switch
                 checked={lessonForm.has_homework}
