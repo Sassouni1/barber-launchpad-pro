@@ -111,12 +111,14 @@ serve(async (req) => {
       .from('user_quiz_attempts')
       .insert({
         user_id: user.id,
-        module_id: moduleId,
+        module_id: moduleId ?? null,
+        lesson_id: lessonId ?? null,
         score,
         total_questions: questions.length,
       })
       .select()
       .single();
+
 
     if (attemptError) {
       console.error('Failed to insert attempt:', attemptError);
