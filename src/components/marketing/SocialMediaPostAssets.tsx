@@ -65,7 +65,7 @@ export function SocialMediaPostAssets() {
     <Card className="glass-card p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-          <ImageIcon className="w-4 h-4 text-primary" /> Social Media Post
+          <ImageIcon className="w-4 h-4 text-primary" /> Hair System Content
         </h2>
         {!isLoading && (
           <span className="text-xs text-muted-foreground">{files.length} assets</span>
