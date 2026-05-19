@@ -213,7 +213,7 @@ export default function Marketing() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<Set<string>>(new Set());
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
-  const [imageMode, setImageMode] = useState<ImageMode>('brand');
+  const [imageMode, setImageMode] = useState<ImageMode>('both');
   const [businessCategory, setBusinessCategory] = useState<string>('hair-system');
   const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
