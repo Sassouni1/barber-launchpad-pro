@@ -46,6 +46,8 @@ const OrderHairSystem = () => {
             src={formUrl}
             style={{ width: "100%", height: "1345px", border: "none", borderRadius: "3px" }}
             id="inline-DUMrKXsSUz4Q6N59izDU"
+            allow="payment *; publickey-credentials-get *"
+            allowFullScreen
             data-layout='{"id":"INLINE"}'
             data-trigger-type="alwaysShow"
             data-trigger-value=""
