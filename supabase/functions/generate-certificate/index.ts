@@ -100,9 +100,9 @@ function resolveCertificateLayout(layout: Record<string, unknown>, width: number
   };
 }
 
-// Font URLs — prefer uploaded MinionPro.ttf in storage, fallback to EB Garamond (variable wght TTF from google/fonts)
+// Font URLs — prefer the uploaded Old English certificate font in storage, fallback only if missing.
 const NAME_FONT_FALLBACK_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/ebgaramond/EBGaramond%5Bwght%5D.ttf';
-const DATE_FONT_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf';
+const DATE_FONT_URL = 'https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtZ6Ew-.ttf';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -168,24 +168,23 @@ serve(async (req) => {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Try uploaded MinionPro.ttf first, fall back to EB Garamond SemiBold
+    // Try the uploaded Old English font first; this is the configured certificate font.
     let nameFontFamily = 'serif';
     let dateFontFamily = 'sans-serif';
     try {
-      // Try Minion Pro from storage
-      const minionUrl = `${supabaseUrl}/storage/v1/object/public/certificates/fonts/MinionPro.ttf`;
+      const oldEnglishUrl = `${supabaseUrl}/storage/v1/object/public/certificates/fonts/OldeEnglish.ttf`;
       let nameFontLoaded = false;
       try {
-        const minionRes = await fetch(minionUrl);
-        if (minionRes.ok) {
-          const data = await minionRes.arrayBuffer();
-          canvas.loadFont(new Uint8Array(data), { family: 'MinionPro' });
-          nameFontFamily = 'MinionPro';
+        const oldEnglishRes = await fetch(oldEnglishUrl);
+        if (oldEnglishRes.ok) {
+          const data = await oldEnglishRes.arrayBuffer();
+          canvas.loadFont(new Uint8Array(data), { family: 'OldeEnglish' });
+          nameFontFamily = 'OldeEnglish';
           nameFontLoaded = true;
-          console.log('Minion Pro loaded from storage:', data.byteLength);
+          console.log('Old English loaded from storage:', data.byteLength);
         }
       } catch (e) {
-        console.log('Minion Pro not in storage, using fallback');
+        console.log('Old English not in storage, using fallback');
       }
 
       if (!nameFontLoaded) {
@@ -194,7 +193,7 @@ serve(async (req) => {
           const data = await nameRes.arrayBuffer();
           canvas.loadFont(new Uint8Array(data), { family: 'EBGaramond' });
           nameFontFamily = 'EBGaramond';
-          console.log('EB Garamond SemiBold loaded:', data.byteLength);
+          console.log('EB Garamond fallback loaded:', data.byteLength);
         } else {
           console.warn('EB Garamond fetch failed:', nameRes.status);
         }
