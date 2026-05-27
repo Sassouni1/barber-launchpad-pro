@@ -100,9 +100,9 @@ function resolveCertificateLayout(layout: Record<string, unknown>, width: number
   };
 }
 
-// Font URLs — prefer uploaded MinionPro.ttf in storage, fallback to EB Garamond SemiBold (closest free equivalent)
-const NAME_FONT_FALLBACK_URL = 'https://github.com/google/fonts/raw/main/ofl/ebgaramond/static/EBGaramond-SemiBold.ttf';
-const DATE_FONT_URL = 'https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Medium.ttf';
+// Font URLs — prefer uploaded MinionPro.ttf in storage, fallback to EB Garamond (variable wght TTF from google/fonts)
+const NAME_FONT_FALLBACK_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/ebgaramond/EBGaramond%5Bwght%5D.ttf';
+const DATE_FONT_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
