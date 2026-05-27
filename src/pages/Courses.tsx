@@ -683,7 +683,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               {moduleData.module.video_url?.trim() && (
                 <div className="relative aspect-video bg-black border-b border-border/30">
                   <iframe
-                    src={getVimeoEmbedUrl(moduleData.module.video_url)}
+                    src={getVimeoEmbedUrl(resolveVideoUrl(moduleData.module.id, moduleData.module.video_url, locale))}
                     className="absolute inset-0 w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
