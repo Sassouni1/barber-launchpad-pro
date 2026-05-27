@@ -71,7 +71,7 @@ export function CertificateLayoutEditor() {
     return () => ro.disconnect();
   }, [zoom, templateUrl]);
 
-  const previewDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const previewDate = testDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   const patch = (p: Partial<Draft>) => setDraft((c) => (c ? { ...c, ...p } : c));
 
