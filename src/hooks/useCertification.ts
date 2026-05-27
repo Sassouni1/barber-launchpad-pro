@@ -3,6 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
+interface CertificateShippingAddress {
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: string;
+}
+
+
 interface CertificationPhoto {
   id: string;
   user_id: string;

@@ -4,18 +4,44 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Download, Loader2, Award, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+export interface CertificateShippingAddress {
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: string;
+}
+
+export interface CertificationSubmissionPayload {
+  certificateName: string;
+  shippingAddress: CertificateShippingAddress;
+}
 
 interface CertificationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string) => Promise<void>;
+  onSubmit: (payload: CertificationSubmissionPayload) => Promise<void>;
   certificateUrl?: string | null;
   isGenerating: boolean;
   defaultName?: string;
 }
 
 type Step = 'analyzing' | 'name-entry' | 'complete';
+
+const emptyAddress = (recipient = ''): CertificateShippingAddress => ({
+  recipientName: recipient,
+  phone: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  countryCode: 'US',
+});
 
 export function CertificationModal({
   isOpen,
@@ -28,26 +54,32 @@ export function CertificationModal({
   const [step, setStep] = useState<Step>('name-entry');
   const [progress, setProgress] = useState(0);
   const [name, setName] = useState(defaultName || '');
+  const [shippingAddress, setShippingAddress] = useState<CertificateShippingAddress>(
+    emptyAddress(defaultName || '')
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset name when defaultName changes or modal opens
   useEffect(() => {
     if (isOpen && defaultName) {
       setName(defaultName);
+      setShippingAddress(prev => ({
+        ...prev,
+        recipientName: prev.recipientName || defaultName,
+      }));
     }
   }, [isOpen, defaultName]);
 
-  // Analysis animation - 2 minutes
   useEffect(() => {
     if (!isOpen) {
       setStep('analyzing');
       setProgress(0);
       setName('');
+      setShippingAddress(emptyAddress(defaultName || ''));
       return;
     }
 
     if (step === 'analyzing') {
-      const duration = 2000; // 2 seconds for testing
+      const duration = 2000;
       const interval = 100;
       const increment = (interval / duration) * 100;
 
@@ -65,20 +97,47 @@ export function CertificationModal({
 
       return () => clearInterval(timer);
     }
-  }, [isOpen, step]);
+  }, [defaultName, isOpen, step]);
 
-  // Move to complete when certificate URL is available
   useEffect(() => {
     if (certificateUrl && step === 'name-entry') {
       setStep('complete');
     }
   }, [certificateUrl, step]);
 
+  const updateAddress = (key: keyof CertificateShippingAddress, value: string) => {
+    setShippingAddress(prev => ({ ...prev, [key]: value }));
+  };
+
+  const normalizedAddress: CertificateShippingAddress = {
+    recipientName: shippingAddress.recipientName.trim(),
+    phone: shippingAddress.phone.trim(),
+    addressLine1: shippingAddress.addressLine1.trim(),
+    addressLine2: shippingAddress.addressLine2?.trim() || '',
+    city: shippingAddress.city.trim(),
+    state: shippingAddress.state.trim(),
+    postalCode: shippingAddress.postalCode.trim(),
+    countryCode: (shippingAddress.countryCode.trim() || 'US').toUpperCase(),
+  };
+
+  const isAddressComplete = Boolean(
+    normalizedAddress.recipientName &&
+      normalizedAddress.phone &&
+      normalizedAddress.addressLine1 &&
+      normalizedAddress.city &&
+      normalizedAddress.state &&
+      normalizedAddress.postalCode &&
+      normalizedAddress.countryCode
+  );
+
   const handleSubmit = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !isAddressComplete) return;
     setIsSubmitting(true);
     try {
-      await onSubmit(name.trim());
+      await onSubmit({
+        certificateName: name.trim(),
+        shippingAddress: normalizedAddress,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -102,7 +161,7 @@ export function CertificationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Award className="w-5 h-5 text-primary" />
@@ -122,12 +181,8 @@ export function CertificationModal({
                 </div>
               </div>
               <div className="text-center space-y-2">
-                <p className="text-sm text-muted-foreground animate-pulse">
-                  {currentMessage}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {Math.round(progress)}% complete
-                </p>
+                <p className="text-sm text-muted-foreground animate-pulse">{currentMessage}</p>
+                <p className="text-xs text-muted-foreground">{Math.round(progress)}% complete</p>
               </div>
               <div className="flex justify-center">
                 <div className="relative">
@@ -139,10 +194,11 @@ export function CertificationModal({
           )}
 
           {step === 'name-entry' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <p className="text-sm text-muted-foreground text-center">
-                Congratulations! Enter your name as you want it to appear on your certificate.
+                Congratulations! Enter your certificate name and the mailing address for your printed certificate.
               </p>
+
               <div className="space-y-2">
                 <Input
                   value={name}
@@ -151,14 +207,72 @@ export function CertificationModal({
                   className="text-center text-lg font-certificate"
                   autoFocus
                 />
-                <p className="text-center font-certificate text-2xl text-primary mt-4">
+                <p className="text-center font-certificate text-2xl text-primary mt-2">
                   {name || 'Your Name Here'}
                 </p>
               </div>
+
+              <div className="space-y-3 border-t border-border/40 pt-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Mailing Address</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    value={shippingAddress.recipientName}
+                    onChange={(e) => updateAddress('recipientName', e.target.value)}
+                    placeholder="Mailing name"
+                  />
+                  <Input
+                    value={shippingAddress.phone}
+                    onChange={(e) => updateAddress('phone', e.target.value)}
+                    placeholder="Phone number"
+                    inputMode="tel"
+                  />
+                </div>
+                <Input
+                  value={shippingAddress.addressLine1}
+                  onChange={(e) => updateAddress('addressLine1', e.target.value)}
+                  placeholder="Address line 1"
+                  autoComplete="shipping address-line1"
+                />
+                <Input
+                  value={shippingAddress.addressLine2}
+                  onChange={(e) => updateAddress('addressLine2', e.target.value)}
+                  placeholder="Address line 2 (optional)"
+                  autoComplete="shipping address-line2"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    value={shippingAddress.city}
+                    onChange={(e) => updateAddress('city', e.target.value)}
+                    placeholder="City"
+                    autoComplete="shipping address-level2"
+                  />
+                  <Input
+                    value={shippingAddress.state}
+                    onChange={(e) => updateAddress('state', e.target.value)}
+                    placeholder="State"
+                    autoComplete="shipping address-level1"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    value={shippingAddress.postalCode}
+                    onChange={(e) => updateAddress('postalCode', e.target.value)}
+                    placeholder="ZIP"
+                    autoComplete="shipping postal-code"
+                  />
+                  <Input
+                    value={shippingAddress.countryCode}
+                    onChange={(e) => updateAddress('countryCode', e.target.value)}
+                    placeholder="Country"
+                    autoComplete="shipping country"
+                  />
+                </div>
+              </div>
+
               <Button
                 className="w-full gold-gradient"
                 onClick={handleSubmit}
-                disabled={!name.trim() || isSubmitting || isGenerating}
+                disabled={!name.trim() || !isAddressComplete || isSubmitting || isGenerating}
               >
                 {isSubmitting || isGenerating ? (
                   <>
@@ -172,6 +286,11 @@ export function CertificationModal({
                   </>
                 )}
               </Button>
+              {!isAddressComplete && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Mailing name, phone, street, city, state, ZIP, and country are required for physical certificate fulfillment.
+                </p>
+              )}
               {(isSubmitting || isGenerating) && (
                 <p className="text-xs text-center text-muted-foreground">
                   This may take a few seconds. Please don't close this window.
@@ -183,25 +302,15 @@ export function CertificationModal({
           {step === 'complete' && certificateUrl && (
             <div className="space-y-4">
               <div className="relative rounded-lg overflow-hidden border border-primary/30 shadow-lg">
-                <img
-                  src={certificateUrl}
-                  alt="Your Certificate"
-                  className="w-full"
-                />
+                <img src={certificateUrl} alt="Your Certificate" className="w-full" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
               </div>
               <div className="flex gap-3">
-                <Button
-                  className="flex-1 gold-gradient"
-                  onClick={handleDownload}
-                >
+                <Button className="flex-1 gold-gradient" onClick={handleDownload}>
                   <Download className="w-4 h-4 mr-2" />
                   Download Certificate
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                >
+                <Button variant="outline" onClick={onClose}>
                   Close
                 </Button>
               </div>
