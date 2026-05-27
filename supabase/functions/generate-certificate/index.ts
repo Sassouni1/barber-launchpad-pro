@@ -361,22 +361,66 @@ serve(async (req) => {
 
     console.log('Certification saved:', certData);
 
-    // Build response
-    const response: Record<string, unknown> = { 
-      success: true, 
+    let fulfillmentRequest = null;
+    if (normalizedShippingAddress) {
+      const { data: latestPhoto } = await supabase
+        .from('certification_photos')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('course_id', courseId)
+        .order('uploaded_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const { data: fulfillmentData, error: fulfillmentError } = await supabase
+        .from('certification_fulfillment_requests')
+        .upsert({
+          user_id: userId,
+          course_id: courseId,
+          certification_id: certData.id,
+          certification_photo_id: latestPhoto?.id ?? null,
+          certificate_name: certificateName,
+          certificate_url: certificateUrl,
+          recipient_name: normalizedShippingAddress.recipientName,
+          phone: normalizedShippingAddress.phone,
+          address_line1: normalizedShippingAddress.addressLine1,
+          address_line2: normalizedShippingAddress.addressLine2 || null,
+          city: normalizedShippingAddress.city,
+          state: normalizedShippingAddress.state,
+          postal_code: normalizedShippingAddress.postalCode,
+          country_code: normalizedShippingAddress.countryCode,
+          status: 'pending_review',
+          provider: 'printful',
+          provider_variant_id: '20256',
+          estimated_base_cost: 35.70,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,course_id' })
+        .select()
+        .single();
+
+      if (fulfillmentError) {
+        console.error('Fulfillment request save error:', fulfillmentError);
+      } else {
+        fulfillmentRequest = fulfillmentData;
+      }
+    }
+
+    const response: Record<string, unknown> = {
+      success: true,
       certificateUrl,
+      fulfillmentRequest,
       dimensions: { width, height },
       fontUsed: nameFontFamily,
       layoutUsed: { nameX, nameY, dateX, dateY },
     };
 
-    // Include debug info in response if debug mode
     if (debug) {
       response.debug = {
         templateWidth: width,
         templateHeight: height,
-        nameX,
-        nameY,
+        nameX, nameY, dateX, dateY,
+        usedFallbackLayout: resolvedLayout.usedFallback,
+        storedLayout: resolvedLayout.stored,
         fontSizeUsed: fontSize,
         textAlign: 'center',
       };
