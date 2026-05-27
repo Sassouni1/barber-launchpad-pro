@@ -32,8 +32,11 @@ export function CertificateLayoutEditor() {
   const [natural, setNatural] = useState({ w: 0, h: 0 });
   const [baseRendered, setBaseRendered] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);
+  const [testName, setTestName] = useState('Recipient Name');
+  const [testDate, setTestDate] = useState('');
   const imgRef = useRef<HTMLImageElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     if (layout) {
