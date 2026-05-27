@@ -37,6 +37,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { resolveVideoUrl } from '@/lib/i18n/spanishVideos';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
