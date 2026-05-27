@@ -184,15 +184,14 @@ function applyTranslations(root: Node, dict: Record<string, string>) {
       }
     } else if (n.nodeType === Node.ELEMENT_NODE) {
       const e = n as HTMLElement;
+      const attrRec = getAttrRecord(e);
       for (const attr of TRANSLATABLE_ATTRS) {
         const val = e.getAttribute(attr);
         if (!val) continue;
         const trimmed = val.trim();
         if (shouldSkipText(trimmed)) continue;
-        const key = `__attr_${attr}__`;
-        // store original on the element via dataset
-        if (!e.dataset[key]) e.dataset[key] = trimmed;
-        const original = e.dataset[key]!;
+        if (!attrRec[attr]) attrRec[attr] = trimmed;
+        const original = attrRec[attr];
         const translated = dict[original];
         if (translated && translated !== original && e.getAttribute(attr) !== translated) {
           e.setAttribute(attr, translated);
