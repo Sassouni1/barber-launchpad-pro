@@ -19,6 +19,87 @@ const DEFAULT_DATE_CONFIG = {
   color: '#1A1A1A',
 };
 
+const FALLBACK_LAYOUT_RATIOS = {
+  nameX: 0.5,
+  nameY: 0.485,
+  nameMaxWidth: 0.52,
+  dateX: 0.24,
+  dateY: 0.825,
+};
+
+type ShippingAddress = {
+  recipientName?: string;
+  phone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  countryCode?: string;
+};
+
+function cleanString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeShippingAddress(value: unknown) {
+  if (!value || typeof value !== 'object') return null;
+  const address = value as ShippingAddress;
+  const normalized = {
+    recipientName: cleanString(address.recipientName),
+    phone: cleanString(address.phone),
+    addressLine1: cleanString(address.addressLine1),
+    addressLine2: cleanString(address.addressLine2),
+    city: cleanString(address.city),
+    state: cleanString(address.state),
+    postalCode: cleanString(address.postalCode),
+    countryCode: cleanString(address.countryCode || 'US').toUpperCase(),
+  };
+  const missing = Object.entries(normalized)
+    .filter(([key, v]) => key !== 'addressLine2' && !v)
+    .map(([key]) => key);
+  if (missing.length > 0) {
+    throw new Error(`Missing required shipping address fields: ${missing.join(', ')}`);
+  }
+  return normalized;
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function isCoordinateVisible(value: number | null, limit: number): value is number {
+  return value !== null && value > 0 && value < limit;
+}
+
+function resolveCertificateLayout(layout: Record<string, unknown>, width: number, height: number) {
+  const storedNameX = numberOrNull(layout.name_x);
+  const storedNameY = numberOrNull(layout.name_y);
+  const storedNameMaxWidth = numberOrNull(layout.name_max_width);
+  const storedDateX = numberOrNull(layout.date_x);
+  const storedDateY = numberOrNull(layout.date_y);
+
+  const nameVisible = isCoordinateVisible(storedNameX, width) && isCoordinateVisible(storedNameY, height);
+  const dateVisible = isCoordinateVisible(storedDateX, width) && isCoordinateVisible(storedDateY, height);
+
+  const nameX = nameVisible ? storedNameX! : Math.round(width * FALLBACK_LAYOUT_RATIOS.nameX);
+  const nameY = nameVisible ? storedNameY! : Math.round(height * FALLBACK_LAYOUT_RATIOS.nameY);
+  const dateX = dateVisible ? storedDateX! : Math.round(width * FALLBACK_LAYOUT_RATIOS.dateX);
+  const dateY = dateVisible ? storedDateY! : Math.round(height * FALLBACK_LAYOUT_RATIOS.dateY);
+
+  const fallbackNameMaxWidth = Math.round(width * FALLBACK_LAYOUT_RATIOS.nameMaxWidth);
+  const nameMaxWidth =
+    storedNameMaxWidth && storedNameMaxWidth > 0 && storedNameMaxWidth <= width
+      ? storedNameMaxWidth
+      : fallbackNameMaxWidth;
+
+  return {
+    nameX, nameY, nameMaxWidth, dateX, dateY,
+    usedFallback: !nameVisible || !dateVisible || nameMaxWidth !== storedNameMaxWidth,
+    stored: { nameX: storedNameX, nameY: storedNameY, nameMaxWidth: storedNameMaxWidth, dateX: storedDateX, dateY: storedDateY },
+  };
+}
+
 // Font URLs — prefer uploaded MinionPro.ttf in storage, fallback to EB Garamond SemiBold (closest free equivalent)
 const NAME_FONT_FALLBACK_URL = 'https://github.com/google/fonts/raw/main/ofl/ebgaramond/static/EBGaramond-SemiBold.ttf';
 const DATE_FONT_URL = 'https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Medium.ttf';
@@ -29,9 +110,10 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, courseId, certificateName, debug = false } = await req.json();
-    
-    console.log('Generating certificate for:', { userId, courseId, certificateName, debug });
+    const { userId, courseId, certificateName, shippingAddress, debug = false } = await req.json();
+    const normalizedShippingAddress = normalizeShippingAddress(shippingAddress);
+
+    console.log('Generating certificate for:', { userId, courseId, certificateName, hasShippingAddress: !!normalizedShippingAddress, debug });
 
     if (!userId || !courseId || !certificateName) {
       throw new Error('Missing required fields: userId, courseId, or certificateName');
@@ -143,14 +225,10 @@ serve(async (req) => {
       day: 'numeric'
     });
 
-    // Use stored coordinates
-    const nameX = layout.name_x;
-    const nameY = layout.name_y;
-    const nameMaxWidth = layout.name_max_width;
-    const dateX = layout.date_x;
-    const dateY = layout.date_y;
+    const resolvedLayout = resolveCertificateLayout(layout, width, height);
+    const { nameX, nameY, nameMaxWidth, dateX, dateY } = resolvedLayout;
 
-    console.log('Using pixel coordinates:', { nameX, nameY, nameMaxWidth, dateX, dateY });
+    console.log('Using pixel coordinates:', { nameX, nameY, nameMaxWidth, dateX, dateY, usedFallback: resolvedLayout.usedFallback, stored: resolvedLayout.stored, template: { width, height } });
 
     // Draw name with auto-sizing - LET CANVAS CENTER IT
     ctx.fillStyle = layout.name_color || DEFAULT_NAME_CONFIG.color;
@@ -283,22 +361,66 @@ serve(async (req) => {
 
     console.log('Certification saved:', certData);
 
-    // Build response
-    const response: Record<string, unknown> = { 
-      success: true, 
+    let fulfillmentRequest = null;
+    if (normalizedShippingAddress) {
+      const { data: latestPhoto } = await supabase
+        .from('certification_photos')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('course_id', courseId)
+        .order('uploaded_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const { data: fulfillmentData, error: fulfillmentError } = await supabase
+        .from('certification_fulfillment_requests')
+        .upsert({
+          user_id: userId,
+          course_id: courseId,
+          certification_id: certData.id,
+          certification_photo_id: latestPhoto?.id ?? null,
+          certificate_name: certificateName,
+          certificate_url: certificateUrl,
+          recipient_name: normalizedShippingAddress.recipientName,
+          phone: normalizedShippingAddress.phone,
+          address_line1: normalizedShippingAddress.addressLine1,
+          address_line2: normalizedShippingAddress.addressLine2 || null,
+          city: normalizedShippingAddress.city,
+          state: normalizedShippingAddress.state,
+          postal_code: normalizedShippingAddress.postalCode,
+          country_code: normalizedShippingAddress.countryCode,
+          status: 'pending_review',
+          provider: 'printful',
+          provider_variant_id: '20256',
+          estimated_base_cost: 35.70,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,course_id' })
+        .select()
+        .single();
+
+      if (fulfillmentError) {
+        console.error('Fulfillment request save error:', fulfillmentError);
+      } else {
+        fulfillmentRequest = fulfillmentData;
+      }
+    }
+
+    const response: Record<string, unknown> = {
+      success: true,
       certificateUrl,
+      fulfillmentRequest,
       dimensions: { width, height },
       fontUsed: nameFontFamily,
       layoutUsed: { nameX, nameY, dateX, dateY },
     };
 
-    // Include debug info in response if debug mode
     if (debug) {
       response.debug = {
         templateWidth: width,
         templateHeight: height,
-        nameX,
-        nameY,
+        nameX, nameY, dateX, dateY,
+        usedFallbackLayout: resolvedLayout.usedFallback,
+        storedLayout: resolvedLayout.stored,
         fontSizeUsed: fontSize,
         textAlign: 'center',
       };

@@ -6,7 +6,7 @@ import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, User, MessageSquare, ArrowUpDown } from 'lucide-react';
+import { CheckCircle2, Clock, User, MessageSquare, ArrowUpDown, MapPin, Package } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -22,12 +22,35 @@ interface SubmissionRow {
   admin_note: string | null;
 }
 
+interface FulfillmentRequest {
+  id: string;
+  user_id: string;
+  course_id: string;
+  recipient_name: string;
+  phone: string;
+  address_line1: string;
+  address_line2: string | null;
+  city: string;
+  state: string;
+  postal_code: string;
+  country_code: string;
+  status: string;
+  provider: string | null;
+  provider_variant_id: string | null;
+  estimated_base_cost: number | null;
+}
+
 interface MemberGroup {
   userId: string;
   fullName: string;
   email: string;
   submissions: SubmissionRow[];
+  fulfillmentRequests: FulfillmentRequest[];
   latestUpload: string;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function TemplateSubmissions() {
@@ -56,6 +79,18 @@ export default function TemplateSubmissions() {
 
       const profileMap = new Map((profiles || []).map(p => [p.id, p]));
 
+      const { data: fulfillmentRequests } = await supabase
+        .from('certification_fulfillment_requests')
+        .select('*')
+        .in('user_id', userIds);
+
+      const fulfillmentByUser = new Map<string, FulfillmentRequest[]>();
+      for (const request of (fulfillmentRequests || []) as FulfillmentRequest[]) {
+        const current = fulfillmentByUser.get(request.user_id) || [];
+        current.push(request);
+        fulfillmentByUser.set(request.user_id, current);
+      }
+
       const groupMap = new Map<string, MemberGroup>();
       for (const p of photos || []) {
         const profile = profileMap.get(p.user_id);
@@ -65,6 +100,7 @@ export default function TemplateSubmissions() {
             fullName: profile?.full_name || 'Unknown',
             email: profile?.email || '',
             submissions: [],
+            fulfillmentRequests: fulfillmentByUser.get(p.user_id) || [],
             latestUpload: p.uploaded_at,
           });
         }
@@ -136,23 +172,31 @@ export default function TemplateSubmissions() {
       }
       const { error } = await supabase
         .from('certification_photos')
-        .update({ approved: true, approved_at: new Date().toISOString(), admin_note: note } as any)
+        .update({ approved: true, approved_at: new Date().toISOString(), admin_note: note })
         .in('id', pendingIds);
       if (error) throw error;
-      // Also save note on already-approved ones if note changed
       if (note) {
         const approvedIds = group.submissions.filter(s => s.approved).map(s => s.id);
         if (approvedIds.length > 0) {
           await supabase
             .from('certification_photos')
-            .update({ admin_note: note } as any)
+            .update({ admin_note: note })
             .in('id', approvedIds);
         }
       }
+
+      const fulfillmentIds = group.fulfillmentRequests.map(r => r.id);
+      if (fulfillmentIds.length > 0) {
+        const { error: fulfillmentError } = await supabase
+          .from('certification_fulfillment_requests')
+          .update({ status: 'approved_ready_to_order', admin_note: note })
+          .in('id', fulfillmentIds);
+        if (fulfillmentError) throw fulfillmentError;
+      }
       toast.success(`Approved all submissions for ${group.fullName}`);
       queryClient.invalidateQueries({ queryKey: ['admin-template-submissions'] });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to approve');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to approve'));
     } finally {
       setApprovingUser(null);
     }
@@ -168,13 +212,13 @@ export default function TemplateSubmissions() {
       }
       const { error } = await supabase
         .from('certification_photos')
-        .update({ approved: false, approved_at: null } as any)
+        .update({ approved: false, approved_at: null })
         .in('id', approvedIds);
       if (error) throw error;
       toast.success(`Disapproved submissions for ${group.fullName}`);
       queryClient.invalidateQueries({ queryKey: ['admin-template-submissions'] });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to disapprove');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to disapprove'));
     } finally {
       setApprovingUser(null);
     }
@@ -186,13 +230,13 @@ export default function TemplateSubmissions() {
       const ids = group.submissions.map(s => s.id);
       const { error } = await supabase
         .from('certification_photos')
-        .update({ admin_note: note } as any)
+        .update({ admin_note: note })
         .in('id', ids);
       if (error) throw error;
       toast.success('Note saved');
       queryClient.invalidateQueries({ queryKey: ['admin-template-submissions'] });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save note');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to save note'));
     }
   };
 
@@ -224,6 +268,8 @@ export default function TemplateSubmissions() {
             {sortedGroups.map((group) => {
               const allApproved = group.submissions.every(s => s.approved);
               const pendingCount = group.submissions.filter(s => !s.approved).length;
+              const primaryFulfillment = group.fulfillmentRequests[0];
+              const hasAddress = !!primaryFulfillment;
 
               return (
                 <div key={group.userId} className="rounded-xl border bg-card p-5 space-y-4">
@@ -238,7 +284,7 @@ export default function TemplateSubmissions() {
                         <p className="text-xs text-muted-foreground">{group.email} · Submitted {format(new Date(group.latestUpload), 'MMM d, yyyy')} ({differenceInDays(new Date(), new Date(group.latestUpload))} days ago)</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs text-muted-foreground">
                         {group.submissions.length} photo{group.submissions.length !== 1 ? 's' : ''}
                       </span>
@@ -251,8 +297,54 @@ export default function TemplateSubmissions() {
                           <Clock className="w-3 h-3 mr-1" /> {pendingCount} Pending
                         </Badge>
                       )}
+                      {hasAddress ? (
+                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                          <MapPin className="w-3 h-3 mr-1" /> Address
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          <MapPin className="w-3 h-3 mr-1" /> Missing Address
+                        </Badge>
+                      )}
                     </div>
                   </div>
+
+                  {/* Fulfillment block */}
+                  <div className="rounded-lg border border-border bg-secondary/20 p-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Package className="w-3.5 h-3.5" />
+                        Certificate Fulfillment
+                      </div>
+                      <Badge variant="outline" className="text-[10px]">
+                        {primaryFulfillment?.status || 'missing_shipping_address'}
+                      </Badge>
+                    </div>
+                    {primaryFulfillment ? (
+                      <div className="text-xs space-y-1">
+                        <p className="font-medium">{primaryFulfillment.recipient_name} · {primaryFulfillment.phone}</p>
+                        <p className="text-muted-foreground">
+                          {primaryFulfillment.provider || 'printful'}{' '}
+                          {primaryFulfillment.provider_variant_id ? `variant ${primaryFulfillment.provider_variant_id}` : ''}
+                        </p>
+                        <p className="text-muted-foreground">
+                          {primaryFulfillment.address_line1}
+                          {primaryFulfillment.address_line2 ? `, ${primaryFulfillment.address_line2}` : ''}, {primaryFulfillment.city}, {primaryFulfillment.state} {primaryFulfillment.postal_code}, {primaryFulfillment.country_code}
+                        </p>
+                        {primaryFulfillment.estimated_base_cost !== null && (
+                          <p className="text-muted-foreground">
+                            Estimated base print/frame cost: ${Number(primaryFulfillment.estimated_base_cost).toFixed(2)} before shipping/tax
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        This member submitted proof before the certification form collected a shipping address. Ask them to regenerate/request their certificate after the address fields are live.
+                      </p>
+                    )}
+                  </div>
+
+
 
                   {/* Photo grid */}
                   <ScrollArea className="w-full">

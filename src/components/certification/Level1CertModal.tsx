@@ -33,7 +33,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { PhotoUploader } from './PhotoUploader';
 import { QuizProgressList } from './QuizProgressList';
-import { CertificationModal } from './CertificationModal';
+import { CertificationModal, type CertificationSubmissionPayload } from './CertificationModal';
 
 interface Level1CertModalProps {
   isOpen: boolean;
@@ -228,11 +228,17 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     setIsCertModalOpen(true);
   };
 
-  const handleSubmitCertification = async (name: string, debugOverride?: boolean) => {
+  const handleSubmitCertification = async (
+    input: string | CertificationSubmissionPayload,
+    debugOverride?: boolean
+  ) => {
+    const certificateName = typeof input === 'string' ? input : input.certificateName;
+    const shippingAddress = typeof input === 'string' ? undefined : input.shippingAddress;
     setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId: courseId!,
-      certificateName: name,
+      certificateName,
+      shippingAddress,
       debug: debugOverride ?? isDebugMode,
     });
     if (result?.certificateUrl) {
