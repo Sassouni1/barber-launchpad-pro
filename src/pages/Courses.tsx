@@ -3,6 +3,8 @@ import { useCourses, type Module } from '@/hooks/useCourses';
 import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star, Award, Globe } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { resolveVideoUrl } from '@/lib/i18n/spanishVideos';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
