@@ -102,7 +102,7 @@ function resolveCertificateLayout(layout: Record<string, unknown>, width: number
 
 // Font URLs — prefer the uploaded Old English certificate font in storage, fallback only if missing.
 const NAME_FONT_FALLBACK_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/ebgaramond/EBGaramond%5Bwght%5D.ttf';
-const DATE_FONT_URL = 'https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm453hRx3gTD-vx3rCubqg.woff2';
+const DATE_FONT_URL = 'https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtZ6Ew-.ttf';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
