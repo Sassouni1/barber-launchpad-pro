@@ -272,17 +272,8 @@ export function CertificateLayoutEditor() {
                     className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Date (leave empty for today)</label>
-                  <input
-                    type="text"
-                    value={testDate}
-                    onChange={(e) => setTestDate(e.target.value)}
-                    placeholder="e.g. December 31, 2025"
-                    className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background"
-                  />
-                </div>
-                <p className="text-[10px] text-muted-foreground">Preview only — does not save.</p>
+                <p className="text-[10px] text-muted-foreground">Preview only — does not save. Date auto-fills with today.</p>
+
               </div>
             </div>
 
