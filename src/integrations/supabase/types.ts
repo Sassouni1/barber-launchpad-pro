@@ -256,6 +256,121 @@ export type Database = {
         }
         Relationships: []
       }
+      certification_fulfillment_requests: {
+        Row: {
+          actual_total_cost: number | null
+          address_line1: string
+          address_line2: string | null
+          admin_note: string | null
+          certificate_name: string
+          certificate_url: string | null
+          certification_id: string | null
+          certification_photo_id: string | null
+          city: string
+          country_code: string
+          course_id: string
+          created_at: string
+          estimated_base_cost: number | null
+          estimated_shipping_cost: number | null
+          estimated_tax: number | null
+          id: string
+          phone: string
+          postal_code: string
+          provider: string | null
+          provider_order_id: string | null
+          provider_order_status: string | null
+          provider_variant_id: string | null
+          recipient_name: string
+          state: string
+          status: string
+          tracking_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_total_cost?: number | null
+          address_line1: string
+          address_line2?: string | null
+          admin_note?: string | null
+          certificate_name: string
+          certificate_url?: string | null
+          certification_id?: string | null
+          certification_photo_id?: string | null
+          city: string
+          country_code?: string
+          course_id: string
+          created_at?: string
+          estimated_base_cost?: number | null
+          estimated_shipping_cost?: number | null
+          estimated_tax?: number | null
+          id?: string
+          phone: string
+          postal_code: string
+          provider?: string | null
+          provider_order_id?: string | null
+          provider_order_status?: string | null
+          provider_variant_id?: string | null
+          recipient_name: string
+          state: string
+          status?: string
+          tracking_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_total_cost?: number | null
+          address_line1?: string
+          address_line2?: string | null
+          admin_note?: string | null
+          certificate_name?: string
+          certificate_url?: string | null
+          certification_id?: string | null
+          certification_photo_id?: string | null
+          city?: string
+          country_code?: string
+          course_id?: string
+          created_at?: string
+          estimated_base_cost?: number | null
+          estimated_shipping_cost?: number | null
+          estimated_tax?: number | null
+          id?: string
+          phone?: string
+          postal_code?: string
+          provider?: string | null
+          provider_order_id?: string | null
+          provider_order_status?: string | null
+          provider_variant_id?: string | null
+          recipient_name?: string
+          state?: string
+          status?: string
+          tracking_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certification_fulfillment_requests_certification_id_fkey"
+            columns: ["certification_id"]
+            isOneToOne: false
+            referencedRelation: "certifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certification_fulfillment_requests_certification_photo_id_fkey"
+            columns: ["certification_photo_id"]
+            isOneToOne: false
+            referencedRelation: "certification_photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certification_fulfillment_requests_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certification_photos: {
         Row: {
           admin_note: string | null
