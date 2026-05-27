@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, RotateCw, Loader2, Move, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
 
 type Draft = {
   name_x: number;
