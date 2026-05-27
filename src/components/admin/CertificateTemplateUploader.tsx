@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, Check, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,17 @@ export function CertificateTemplateUploader() {
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load the currently-stored template from storage on mount so the
+  // preview reflects what's actually being used, not the bundled fallback.
+  useEffect(() => {
+    const { data } = supabase.storage
+      .from('certificates')
+      .getPublicUrl('template/certificate-template.png');
+    if (data?.publicUrl) {
+      setUploadedUrl(`${data.publicUrl}?t=${Date.now()}`);
+    }
+  }, []);
 
   const uploadBlob = async (blob: Blob, contentType: string) => {
     setIsUploading(true);
