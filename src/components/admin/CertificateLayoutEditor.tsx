@@ -233,6 +233,34 @@ export function CertificateLayoutEditor() {
 
           {/* Right: Controls */}
           <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
+            {/* Test preview values */}
+            <div className="p-3 rounded-md border border-border space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Test Preview</div>
+              <div className="space-y-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">Name</label>
+                  <input
+                    type="text"
+                    value={testName}
+                    onChange={(e) => setTestName(e.target.value)}
+                    placeholder="e.g. Jonathan Alexander Rodriguez"
+                    className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Date (leave empty for today)</label>
+                  <input
+                    type="text"
+                    value={testDate}
+                    onChange={(e) => setTestDate(e.target.value)}
+                    placeholder="e.g. December 31, 2025"
+                    className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">Preview only — does not save.</p>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Nudge:</span>
               <input
@@ -244,6 +272,7 @@ export function CertificateLayoutEditor() {
               />
               <span className="text-xs text-muted-foreground">px</span>
             </div>
+
 
             {/* Name controls */}
             <div className="p-3 rounded-md border border-border space-y-2">
