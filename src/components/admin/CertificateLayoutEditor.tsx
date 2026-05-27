@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, RotateCw, Loader2, Move } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, RotateCw, Loader2, Move, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 type Draft = {
   name_x: number;
@@ -29,7 +30,10 @@ export function CertificateLayoutEditor() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [nudge, setNudge] = useState(10);
   const [natural, setNatural] = useState({ w: 0, h: 0 });
-  const [rendered, setRendered] = useState({ w: 0, h: 0 });
+  const [baseRendered, setBaseRendered] = useState({ w: 0, h: 0 });
+  const [zoom, setZoom] = useState(1);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (layout) {
@@ -46,6 +50,19 @@ export function CertificateLayoutEditor() {
       setDraft(null);
     }
   }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size, layout?.date_font_family]);
+
+  // Measure actual rendered size when zoom or image changes
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+    const measure = () => {
+      setBaseRendered({ w: img.clientWidth, h: img.clientHeight });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(img);
+    return () => ro.disconnect();
+  }, [zoom, templateUrl]);
 
   const templateUrl = layout
     ? `https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/${layout.template_path || 'template/certificate-template.png'}?t=${layout.id}`
@@ -64,6 +81,8 @@ export function CertificateLayoutEditor() {
       toast.error('Failed to save layout');
     }
   };
+
+  const rendered = baseRendered;
 
   return (
     <div className="p-4 rounded-lg border border-border bg-secondary/20 space-y-4">
@@ -100,70 +119,116 @@ export function CertificateLayoutEditor() {
           No layout exists for this course yet. Generate a certificate once to create one.
         </div>
       ) : (
-        <>
-          {/* Preview */}
-          <div className="rounded-lg border border-primary/30 overflow-hidden bg-background relative">
-            {templateUrl && (
-              <div className="relative">
-                <img
-                  src={templateUrl}
-                  alt="Certificate template"
-                  className="w-full block"
-                  onLoad={(e) => {
-                    const img = e.currentTarget;
-                    setRendered({ w: img.clientWidth, h: img.clientHeight });
-                    setNatural({ w: img.naturalWidth, h: img.naturalHeight });
-                  }}
-                />
-                {natural.w > 0 && rendered.w > 0 && (
-                  <>
-                    <div
-                      className="absolute pointer-events-none"
-                      style={{
-                        left: `${(draft.name_x / natural.w) * 100}%`,
-                        top: `${(draft.name_y / natural.h) * 100}%`,
-                        transform: 'translate(-50%, -50%)',
-                        fontFamily: '"Cinzel", serif',
-                        fontWeight: 600,
-                        fontSize: `${(draft.name_font_size / natural.w) * rendered.w}px`,
-                        color: layout.name_color || '#1A1A1A',
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1,
-                      }}
-                    >
-                      Recipient Name
-                    </div>
-                    <div
-                      className="absolute pointer-events-none"
-                      style={{
-                        left: `${(draft.date_x / natural.w) * 100}%`,
-                        top: `${(draft.date_y / natural.h) * 100}%`,
-                        transform: 'translateY(-50%)',
-                        fontFamily:
-                          draft.date_font_family === 'name'
-                            ? '"Cinzel", serif'
-                            : draft.date_font_family === 'sans-serif'
-                            ? 'sans-serif'
-                            : draft.date_font_family === 'serif'
-                            ? 'serif'
-                            : `"${draft.date_font_family}", sans-serif`,
-                        fontWeight: draft.date_font_family === 'name' ? 600 : 400,
-                        fontSize: `${(draft.date_font_size / natural.w) * rendered.w}px`,
-                        color: draft.date_font_family === 'name' ? layout.name_color || '#1A1A1A' : layout.date_color || '#1A1A1A',
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {previewDate}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+          {/* Left: Preview */}
+          <div className="space-y-2 min-w-0">
+            {/* Zoom bar */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)))}
+                disabled={zoom <= 1}
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <input
+                type="range"
+                min={1}
+                max={4}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="flex-1 accent-primary"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}
+                disabled={zoom >= 4}
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">{zoom.toFixed(1)}x</span>
+              {zoom > 1 && (
+                <Button variant="ghost" size="sm" onClick={() => setZoom(1)}>Reset</Button>
+              )}
+            </div>
+
+            {/* Preview canvas */}
+            <div
+              className={cn(
+                'rounded-lg border border-primary/30 bg-background relative',
+                zoom > 1 ? 'overflow-auto max-h-[70vh]' : 'overflow-hidden'
+              )}
+              ref={wrapperRef}
+            >
+              {templateUrl && (
+                <div
+                  className="relative"
+                  style={{ width: `${zoom * 100}%` }}
+                >
+                  <img
+                    ref={imgRef}
+                    src={templateUrl}
+                    alt="Certificate template"
+                    className="w-full block"
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      setBaseRendered({ w: img.clientWidth, h: img.clientHeight });
+                      setNatural({ w: img.naturalWidth, h: img.naturalHeight });
+                    }}
+                  />
+                  {natural.w > 0 && rendered.w > 0 && (
+                    <>
+                      <div
+                        className="absolute pointer-events-none"
+                        style={{
+                          left: `${(draft.name_x / natural.w) * 100}%`,
+                          top: `${(draft.name_y / natural.h) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          fontFamily: '"Cinzel", serif',
+                          fontWeight: 600,
+                          fontSize: `${(draft.name_font_size / natural.w) * rendered.w}px`,
+                          color: layout.name_color || '#1A1A1A',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1,
+                        }}
+                      >
+                        Recipient Name
+                      </div>
+                      <div
+                        className="absolute pointer-events-none"
+                        style={{
+                          left: `${(draft.date_x / natural.w) * 100}%`,
+                          top: `${(draft.date_y / natural.h) * 100}%`,
+                          transform: 'translateY(-50%)',
+                          fontFamily:
+                            draft.date_font_family === 'name'
+                              ? '"Cinzel", serif'
+                              : draft.date_font_family === 'sans-serif'
+                              ? 'sans-serif'
+                              : draft.date_font_family === 'serif'
+                              ? 'serif'
+                              : `"${draft.date_font_family}", sans-serif`,
+                          fontWeight: draft.date_font_family === 'name' ? 600 : 400,
+                          fontSize: `${(draft.date_font_size / natural.w) * rendered.w}px`,
+                          color: draft.date_font_family === 'name' ? layout.name_color || '#1A1A1A' : layout.date_color || '#1A1A1A',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {previewDate}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Controls */}
-          <div className="space-y-3">
+          {/* Right: Controls */}
+          <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Nudge:</span>
               <input
@@ -264,7 +329,7 @@ export function CertificateLayoutEditor() {
               Saved positions apply to all newly generated certificates. Existing certificates need to be regenerated to pick up the new layout.
             </p>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
