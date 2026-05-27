@@ -28,8 +28,8 @@ export const SPANISH_VIDEO_BY_MODULE_ID: Record<string, string> = {
   // Hair System Mastery — Live Client Part 2
   "7c4808e9-0b1e-40e8-b188-016d4f9398a4": "https://vimeo.com/1195973824/0c2482e379",
 
-  // ----- Pending Spanish recordings (falls back to English until added) -----
-  // "269e90ae-9320-4a8d-b326-1b9f6c394dd4": "", // The Color Ring
+  // Hair System Mastery — The Color Ring
+  "269e90ae-9320-4a8d-b326-1b9f6c394dd4": "https://vimeo.com/1195980538/cfac4efaf7",
 };
 
 /**
