@@ -3,6 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
+interface CertificateShippingAddress {
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: string;
+}
+
 interface CertificationPhoto {
   id: string;
   user_id: string;
@@ -201,6 +212,15 @@ export function useCertificationPhotos(courseId: string | undefined) {
         .single();
 
       if (error) throw error;
+      supabase.functions.invoke('notify-certification-submission', {
+        body: { submissionId: data.id },
+      }).then(({ error: notifyError }) => {
+        if (notifyError) {
+          console.error('Certification notification error:', notifyError);
+        }
+      }).catch((notifyError) => {
+        console.error('Certification notification error:', notifyError);
+      });
       return data;
     },
     onSuccess: () => {
@@ -273,7 +293,17 @@ export function useIssueCertification() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ courseId, certificateName, debug = false }: { courseId: string; certificateName: string; debug?: boolean }) => {
+    mutationFn: async ({
+      courseId,
+      certificateName,
+      shippingAddress,
+      debug = false,
+    }: {
+      courseId: string;
+      certificateName: string;
+      shippingAddress?: CertificateShippingAddress;
+      debug?: boolean;
+    }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
       try {
@@ -283,6 +313,7 @@ export function useIssueCertification() {
             userId: user.id,
             courseId,
             certificateName,
+            shippingAddress,
             debug,
           },
         });

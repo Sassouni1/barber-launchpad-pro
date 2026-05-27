@@ -42,10 +42,12 @@ verify_jwt = false
 [functions.send-overdue-reminders]
 verify_jwt = false
 
+[functions.notify-certification-submission]
+verify_jwt = false
+
 [functions.generate-apple-pass]
 verify_jwt = false
 
 [functions.admin-reset-password]
 verify_jwt = false
-
 
