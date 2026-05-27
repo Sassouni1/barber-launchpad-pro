@@ -55,7 +55,7 @@ export function CertificateLayoutEditor() {
   const [baseRendered, setBaseRendered] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);
   const [testName, setTestName] = useState('Recipient Name');
-  const [testDate, setTestDate] = useState('');
+  
   const imgRef = useRef<HTMLImageElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -93,7 +93,7 @@ export function CertificateLayoutEditor() {
     return () => ro.disconnect();
   }, [zoom, templateUrl]);
 
-  const previewDate = testDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const previewDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   const patch = (p: Partial<Draft>) => setDraft((c) => (c ? { ...c, ...p } : c));
 
@@ -272,17 +272,8 @@ export function CertificateLayoutEditor() {
                     className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Date (leave empty for today)</label>
-                  <input
-                    type="text"
-                    value={testDate}
-                    onChange={(e) => setTestDate(e.target.value)}
-                    placeholder="e.g. December 31, 2025"
-                    className="w-full h-8 px-2 text-sm rounded-md border border-input bg-background"
-                  />
-                </div>
-                <p className="text-[10px] text-muted-foreground">Preview only — does not save.</p>
+                <p className="text-[10px] text-muted-foreground">Preview only — does not save. Date auto-fills with today.</p>
+
               </div>
             </div>
 
