@@ -107,6 +107,16 @@ interface NodeRecord {
 
 // Weak map from Node -> original English (so EN restore is exact).
 const originalText = new WeakMap<Node, NodeRecord>();
+// Weak map from Element -> { attrName -> originalValue }
+const originalAttrs = new WeakMap<Element, Record<string, string>>();
+function getAttrRecord(e: Element): Record<string, string> {
+  let rec = originalAttrs.get(e);
+  if (!rec) {
+    rec = {};
+    originalAttrs.set(e, rec);
+  }
+  return rec;
+}
 
 function collectStrings(root: Node, into: Set<string>) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
