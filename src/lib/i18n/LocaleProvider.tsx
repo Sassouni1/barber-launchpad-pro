@@ -107,6 +107,16 @@ interface NodeRecord {
 
 // Weak map from Node -> original English (so EN restore is exact).
 const originalText = new WeakMap<Node, NodeRecord>();
+// Weak map from Element -> { attrName -> originalValue }
+const originalAttrs = new WeakMap<Element, Record<string, string>>();
+function getAttrRecord(e: Element): Record<string, string> {
+  let rec = originalAttrs.get(e);
+  if (!rec) {
+    rec = {};
+    originalAttrs.set(e, rec);
+  }
+  return rec;
+}
 
 function collectStrings(root: Node, into: Set<string>) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
@@ -174,15 +184,14 @@ function applyTranslations(root: Node, dict: Record<string, string>) {
       }
     } else if (n.nodeType === Node.ELEMENT_NODE) {
       const e = n as HTMLElement;
+      const attrRec = getAttrRecord(e);
       for (const attr of TRANSLATABLE_ATTRS) {
         const val = e.getAttribute(attr);
         if (!val) continue;
         const trimmed = val.trim();
         if (shouldSkipText(trimmed)) continue;
-        const key = `__attr_${attr}__`;
-        // store original on the element via dataset
-        if (!e.dataset[key]) e.dataset[key] = trimmed;
-        const original = e.dataset[key]!;
+        if (!attrRec[attr]) attrRec[attr] = trimmed;
+        const original = attrRec[attr];
         const translated = dict[original];
         if (translated && translated !== original && e.getAttribute(attr) !== translated) {
           e.setAttribute(attr, translated);
@@ -207,9 +216,10 @@ function restoreOriginals(root: Node) {
       }
     } else if (n.nodeType === Node.ELEMENT_NODE) {
       const e = n as HTMLElement;
+      const attrRec = originalAttrs.get(e);
+      if (!attrRec) continue;
       for (const attr of TRANSLATABLE_ATTRS) {
-        const key = `__attr_${attr}__`;
-        const original = e.dataset[key];
+        const original = attrRec[attr];
         if (original && e.getAttribute(attr) !== original) {
           e.setAttribute(attr, original);
         }
