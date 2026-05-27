@@ -52,6 +52,10 @@ export function CertificateLayoutEditor() {
   }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size, layout?.date_font_family]);
 
   // Measure actual rendered size when zoom or image changes
+  const templateUrl = layout
+    ? `https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/${layout.template_path || 'template/certificate-template.png'}?t=${layout.id}`
+    : null;
+
   useEffect(() => {
     const img = imgRef.current;
     if (!img) return;
@@ -63,10 +67,6 @@ export function CertificateLayoutEditor() {
     ro.observe(img);
     return () => ro.disconnect();
   }, [zoom, templateUrl]);
-
-  const templateUrl = layout
-    ? `https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/${layout.template_path || 'template/certificate-template.png'}?t=${layout.id}`
-    : null;
 
   const previewDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
