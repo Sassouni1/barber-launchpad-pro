@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw, Camera, Star, ArrowRight, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizProgressList } from './QuizProgressList';
-import { CertificationModal } from './CertificationModal';
+import { CertificationModal, type CertificationSubmissionPayload } from './CertificationModal';
 import { DirectoryEnrollmentStep } from './DirectoryEnrollmentStep';
 import {
   useCertificationEligibility,
@@ -85,8 +85,8 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
   // Find the photo upload module (has is_certification_requirement = true)
   const photoUploadModule = courses
-    .flatMap(c => (c.modules || []).map(m => ({ ...m, courseCategory: (c as any).category })))
-    .find(m => (m as any).is_certification_requirement);
+    .flatMap(c => (c.modules || []).map(m => ({ ...m, courseCategory: c.category })))
+    .find(m => m.is_certification_requirement);
 
   const isLoading = isLoadingEligibility || isLoadingCertification || isLoadingPhotos;
 
@@ -95,11 +95,14 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     setIsModalOpen(true);
   };
 
-  const handleSubmitCertification = async (name: string, debugOverride?: boolean) => {
+  const handleSubmitCertification = async (input: string | CertificationSubmissionPayload, debugOverride?: boolean) => {
+    const certificateName = typeof input === 'string' ? input : input.certificateName;
+    const shippingAddress = typeof input === 'string' ? undefined : input.shippingAddress;
     setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId,
-      certificateName: name,
+      certificateName,
+      shippingAddress,
       debug: debugOverride ?? isDebugMode,
     });
     if (result?.certificateUrl) {
@@ -122,7 +125,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   const handleNudgePosition = async (direction: 'left' | 'right' | 'center' | 'up' | 'down') => {
     if (!layout) return;
     
-    let updates: { name_x?: number; name_y?: number } = {};
+    const updates: { name_x?: number; name_y?: number } = {};
     
     if (direction === 'center') {
       updates.name_x = 684; // Template center (1368 / 2)
