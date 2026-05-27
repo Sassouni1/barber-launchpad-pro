@@ -25,9 +25,11 @@ export const SPANISH_VIDEO_BY_MODULE_ID: Record<string, string> = {
   // Hair System Mastery — The Consultation & Questions to Ask
   "7cf461b7-a969-4ec2-8c21-7901d88561a1": "https://vimeo.com/1195982575/6a6fe32051",
 
+  // Hair System Mastery — Live Client Part 2
+  "7c4808e9-0b1e-40e8-b188-016d4f9398a4": "https://vimeo.com/1195973824/0c2482e379",
+
   // ----- Pending Spanish recordings (falls back to English until added) -----
   // "269e90ae-9320-4a8d-b326-1b9f6c394dd4": "", // The Color Ring
-  // "7c4808e9-0b1e-40e8-b188-016d4f9398a4": "", // Live Client Part 2
 };
 
 /**
