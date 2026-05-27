@@ -121,19 +121,22 @@ export function CertificateLayoutEditor() {
         </div>
       </div>
 
-      {/* Course selector */}
-      <div className="flex items-center gap-2">
-        <label className="text-sm text-muted-foreground">Course:</label>
-        <select
-          value={courseId ?? ''}
-          onChange={(e) => setCourseId(e.target.value)}
-          className="flex-1 h-9 px-2 rounded-md border border-input bg-background text-sm"
-        >
-          {courses.map((c) => (
-            <option key={c.id} value={c.id}>{c.title}</option>
-          ))}
-        </select>
-      </div>
+      {/* Course selector — only show when more than one course has a certificate layout */}
+      {courses.length > 1 && (
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-muted-foreground">Course:</label>
+          <select
+            value={courseId ?? ''}
+            onChange={(e) => setCourseId(e.target.value)}
+            className="flex-1 h-9 px-2 rounded-md border border-input bg-background text-sm"
+          >
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
