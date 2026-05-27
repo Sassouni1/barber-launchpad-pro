@@ -3,6 +3,8 @@ import { useCourses, type Module } from '@/hooks/useCourses';
 import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star, Award, Globe } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { resolveVideoUrl } from '@/lib/i18n/spanishVideos';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -105,6 +107,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const { data: allCoursesRaw = [], isLoading } = useCourses();
   const { user } = useAuth();
   const { isAdmin } = useAuth();
+  const { locale } = useLocale();
 
   // Directory enrollment module is always visible to everyone.
   // Verification that the user is holding the certificate happens at upload time
@@ -215,7 +218,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
             {moduleData.module.video_url?.trim() && (
               <div className="relative aspect-video bg-black">
                 <iframe
-                  src={getVimeoEmbedUrl(moduleData.module.video_url)}
+                  src={getVimeoEmbedUrl(resolveVideoUrl(moduleData.module.id, moduleData.module.video_url, locale))}
                   className="absolute inset-0 w-full h-full"
                   allow="autoplay; fullscreen; picture-in-picture"
                   allowFullScreen
@@ -680,7 +683,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               {moduleData.module.video_url?.trim() && (
                 <div className="relative aspect-video bg-black border-b border-border/30">
                   <iframe
-                    src={getVimeoEmbedUrl(moduleData.module.video_url)}
+                    src={getVimeoEmbedUrl(resolveVideoUrl(moduleData.module.id, moduleData.module.video_url, locale))}
                     className="absolute inset-0 w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen

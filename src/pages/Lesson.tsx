@@ -37,6 +37,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { resolveVideoUrl } from '@/lib/i18n/spanishVideos';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
@@ -291,10 +293,17 @@ export default function Lesson() {
     toast.success('Lesson marked as complete!');
   };
 
+  // Resolve the source URL based on active locale (Spanish overrides fall back to English).
+  const { locale } = useLocale();
+  const localizedVideoUrl = useMemo(
+    () => resolveVideoUrl(module?.id, module?.video_url, locale),
+    [module?.id, module?.video_url, locale]
+  );
+
   // Memoize the embed URL so the iframe src stays stable across re-renders
   const vimeoEmbedUrl = useMemo(
-    () => module?.video_url ? getVimeoEmbedUrl(module.video_url) : '',
-    [module?.video_url]
+    () => localizedVideoUrl ? getVimeoEmbedUrl(localizedVideoUrl) : '',
+    [localizedVideoUrl]
   );
 
   // Auto-complete video lessons based on time on page
@@ -305,15 +314,15 @@ export default function Lesson() {
 
   // Fetch video duration from Vimeo oEmbed API
   useEffect(() => {
-    if (!module?.video_url || !module.video_url.includes('vimeo')) return;
-    const rawUrl = module.video_url.replace(/player\.vimeo\.com\/video\//, 'vimeo.com/');
+    if (!localizedVideoUrl || !localizedVideoUrl.includes('vimeo')) return;
+    const rawUrl = localizedVideoUrl.replace(/player\.vimeo\.com\/video\//, 'vimeo.com/');
     fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(rawUrl)}`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.duration) setVideoDuration(data.duration);
       })
       .catch(() => { /* fallback to manual button */ });
-  }, [module?.video_url]);
+  }, [localizedVideoUrl]);
 
   // Time-on-page tracker for auto-completion
   useEffect(() => {
