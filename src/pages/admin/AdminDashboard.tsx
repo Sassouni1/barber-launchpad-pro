@@ -153,6 +153,9 @@ export default function AdminDashboard() {
             <CertificateTemplateUploader />
             <FontUploader />
           </div>
+          <div className="mt-4">
+            <CertificateLayoutEditor />
+          </div>
         </div>
       </div>
     </DashboardLayout>
