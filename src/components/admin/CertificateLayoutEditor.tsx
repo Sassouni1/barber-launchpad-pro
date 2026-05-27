@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, RotateCw, Loader2, Move, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
 
 type Draft = {
   name_x: number;
@@ -17,12 +20,31 @@ type Draft = {
 };
 
 export function CertificateLayoutEditor() {
-  const { data: courses = [] } = useCourses({ includeUnpublished: true });
+  const { data: allCourses = [] } = useCourses({ includeUnpublished: true });
+
+  // Only courses that actually have a certificate layout configured
+  const { data: layoutCourseIds = [] } = useQuery({
+    queryKey: ['certificate-layout-course-ids'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('certificate_layouts')
+        .select('course_id');
+      if (error) throw error;
+      return (data || []).map((r) => r.course_id as string);
+    },
+  });
+
+  const courses = useMemo(
+    () => allCourses.filter((c) => layoutCourseIds.includes(c.id)),
+    [allCourses, layoutCourseIds]
+  );
+
   const [courseId, setCourseId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!courseId && courses.length > 0) setCourseId(courses[0].id);
   }, [courses, courseId]);
+
 
   const { data: layout, isLoading } = useCertificateLayout(courseId);
   const updateLayout = useUpdateCertificateLayout();
@@ -99,19 +121,22 @@ export function CertificateLayoutEditor() {
         </div>
       </div>
 
-      {/* Course selector */}
-      <div className="flex items-center gap-2">
-        <label className="text-sm text-muted-foreground">Course:</label>
-        <select
-          value={courseId ?? ''}
-          onChange={(e) => setCourseId(e.target.value)}
-          className="flex-1 h-9 px-2 rounded-md border border-input bg-background text-sm"
-        >
-          {courses.map((c) => (
-            <option key={c.id} value={c.id}>{c.title}</option>
-          ))}
-        </select>
-      </div>
+      {/* Course selector — only show when more than one course has a certificate layout */}
+      {courses.length > 1 && (
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-muted-foreground">Course:</label>
+          <select
+            value={courseId ?? ''}
+            onChange={(e) => setCourseId(e.target.value)}
+            className="flex-1 h-9 px-2 rounded-md border border-input bg-background text-sm"
+          >
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
