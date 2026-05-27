@@ -20,12 +20,31 @@ type Draft = {
 };
 
 export function CertificateLayoutEditor() {
-  const { data: courses = [] } = useCourses({ includeUnpublished: true });
+  const { data: allCourses = [] } = useCourses({ includeUnpublished: true });
+
+  // Only courses that actually have a certificate layout configured
+  const { data: layoutCourseIds = [] } = useQuery({
+    queryKey: ['certificate-layout-course-ids'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('certificate_layouts')
+        .select('course_id');
+      if (error) throw error;
+      return (data || []).map((r) => r.course_id as string);
+    },
+  });
+
+  const courses = useMemo(
+    () => allCourses.filter((c) => layoutCourseIds.includes(c.id)),
+    [allCourses, layoutCourseIds]
+  );
+
   const [courseId, setCourseId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!courseId && courses.length > 0) setCourseId(courses[0].id);
   }, [courses, courseId]);
+
 
   const { data: layout, isLoading } = useCertificateLayout(courseId);
   const updateLayout = useUpdateCertificateLayout();
