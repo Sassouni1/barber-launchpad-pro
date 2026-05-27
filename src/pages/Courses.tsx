@@ -107,6 +107,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const { data: allCoursesRaw = [], isLoading } = useCourses();
   const { user } = useAuth();
   const { isAdmin } = useAuth();
+  const { locale } = useLocale();
 
   // Directory enrollment module is always visible to everyone.
   // Verification that the user is holding the certificate happens at upload time
