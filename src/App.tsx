@@ -46,6 +46,7 @@ import GHLCallback from "./pages/GHLCallback";
 import FindASpecialist from "./pages/FindASpecialist";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
+import { LocaleProvider, LanguageToggle } from "./lib/i18n/LocaleProvider";
 
 const queryClient = new QueryClient();
 
@@ -138,11 +139,14 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        {isDirectoryHost() ? <DirectoryApp /> : <MemberApp />}
-      </TooltipProvider>
+      <LocaleProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <LanguageToggle />
+          {isDirectoryHost() ? <DirectoryApp /> : <MemberApp />}
+        </TooltipProvider>
+      </LocaleProvider>
     </QueryClientProvider>
   );
 };
