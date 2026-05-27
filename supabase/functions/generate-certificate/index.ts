@@ -100,9 +100,9 @@ function resolveCertificateLayout(layout: Record<string, unknown>, width: number
   };
 }
 
-// Font URLs — prefer uploaded MinionPro.ttf in storage, fallback to EB Garamond SemiBold (closest free equivalent)
-const NAME_FONT_FALLBACK_URL = 'https://github.com/google/fonts/raw/main/ofl/ebgaramond/static/EBGaramond-SemiBold.ttf';
-const DATE_FONT_URL = 'https://github.com/google/fonts/raw/main/ofl/montserrat/static/Montserrat-Medium.ttf';
+// Font URLs — prefer uploaded MinionPro.ttf in storage, fallback to EB Garamond (variable wght TTF from google/fonts)
+const NAME_FONT_FALLBACK_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/ebgaramond/EBGaramond%5Bwght%5D.ttf';
+const DATE_FONT_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -240,36 +240,17 @@ serve(async (req) => {
     
     ctx.font = `${fontSize}px ${nameFontFamily}`;
     
-    // Auto-size font to fit within max width (measured with bigger caps factored in)
-    const CAP_SCALE = 1.18; // capital letters 18% bigger
-    const measureMixed = (text: string, baseSize: number) => {
-      let total = 0;
-      for (const ch of text) {
-        const isUpper = ch >= 'A' && ch <= 'Z';
-        ctx.font = `${isUpper ? Math.round(baseSize * CAP_SCALE) : baseSize}px ${nameFontFamily}`;
-        total += ctx.measureText(ch).width;
-      }
-      return total;
-    };
-    
-    while (measureMixed(certificateName, fontSize) > nameMaxWidth && fontSize > minFontSize) {
-      fontSize -= 4;
+    // Auto-size font to fit within max width (single-pass measure)
+    while (ctx.measureText(certificateName).width > nameMaxWidth && fontSize > minFontSize) {
+      fontSize -= 2;
+      ctx.font = `${fontSize}px ${nameFontFamily}`;
     }
-    
-    console.log('Name font:', { family: nameFontFamily, size: fontSize, capScale: CAP_SCALE });
-    
-    // Draw name char-by-char, centered, with capitals slightly larger
-    const totalWidth = measureMixed(certificateName, fontSize);
-    let cursorX = nameX - totalWidth / 2;
-    ctx.textAlign = 'left';
-    for (const ch of certificateName) {
-      const isUpper = ch >= 'A' && ch <= 'Z';
-      const sz = isUpper ? Math.round(fontSize * CAP_SCALE) : fontSize;
-      ctx.font = `${sz}px ${nameFontFamily}`;
-      ctx.fillText(ch, cursorX, nameY);
-      cursorX += ctx.measureText(ch).width;
-    }
-    console.log('Name drawn with mixed-case sizing at:', { x: nameX, y: nameY });
+
+    console.log('Name font:', { family: nameFontFamily, size: fontSize });
+
+    // Draw the whole name as a single centered string (no per-char hacks)
+    ctx.fillText(certificateName, nameX, nameY);
+    console.log('Name drawn at:', { x: nameX, y: nameY });
 
     // Draw date - default to using the name font/color when configured as 'name'
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
