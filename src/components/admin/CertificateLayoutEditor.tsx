@@ -198,7 +198,8 @@ export function CertificateLayoutEditor() {
                           lineHeight: 1,
                         }}
                       >
-                        Recipient Name
+                        {testName || 'Recipient Name'}
+
                       </div>
                       <div
                         className="absolute pointer-events-none"
