@@ -216,9 +216,10 @@ function restoreOriginals(root: Node) {
       }
     } else if (n.nodeType === Node.ELEMENT_NODE) {
       const e = n as HTMLElement;
+      const attrRec = originalAttrs.get(e);
+      if (!attrRec) continue;
       for (const attr of TRANSLATABLE_ATTRS) {
-        const key = `__attr_${attr}__`;
-        const original = e.dataset[key];
+        const original = attrRec[attr];
         if (original && e.getAttribute(attr) !== original) {
           e.setAttribute(attr, original);
         }
