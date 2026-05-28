@@ -4,7 +4,7 @@ import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, L
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { resolveVideoUrl } from '@/lib/i18n/spanishVideos';
+import { resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -218,7 +218,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
             {moduleData.module.video_url?.trim() && (
               <div className="relative aspect-video bg-black">
                 <iframe
-                  src={getVimeoEmbedUrl(resolveVideoUrl(moduleData.module.id, moduleData.module.video_url, locale))}
+                  key={`${moduleData.module.id}-${locale}`}
+                  src={getVimeoEmbedUrl(resolveVideoUrlForModule(moduleData.module, locale))}
                   className="absolute inset-0 w-full h-full"
                   allow="autoplay; fullscreen; picture-in-picture"
                   allowFullScreen
@@ -683,7 +684,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               {moduleData.module.video_url?.trim() && (
                 <div className="relative aspect-video bg-black border-b border-border/30">
                   <iframe
-                    src={getVimeoEmbedUrl(resolveVideoUrl(moduleData.module.id, moduleData.module.video_url, locale))}
+                    key={`${moduleData.module.id}-${locale}`}
+                    src={getVimeoEmbedUrl(resolveVideoUrlForModule(moduleData.module, locale))}
                     className="absolute inset-0 w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
