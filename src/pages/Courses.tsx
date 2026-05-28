@@ -4,7 +4,7 @@ import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, L
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
+import { localizeCourseTitle, localizeCourseUi, localizeHairSystemLessonTitle, resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -210,8 +210,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         {moduleData && (
           <div className="flex flex-col h-full">
             <SheetHeader className="p-4 border-b border-border/30">
-              <p className="text-xs text-muted-foreground">{moduleData.courseName}</p>
-              <SheetTitle className="text-lg font-bold gold-text text-left">{moduleData.module.title}</SheetTitle>
+              <p className="text-xs text-muted-foreground">{localizeCourseTitle(moduleData.courseName, locale)}</p>
+              <SheetTitle className="text-lg font-bold gold-text text-left">{localizeHairSystemLessonTitle(moduleData.module, locale)}</SheetTitle>
             </SheetHeader>
 
             {/* Video Preview - only show if video exists */}
@@ -223,7 +223,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   className="absolute inset-0 w-full h-full"
                   allow="autoplay; fullscreen; picture-in-picture"
                   allowFullScreen
-                  title={moduleData.module.title}
+                  title={localizeHairSystemLessonTitle(moduleData.module, locale)}
                 />
               </div>
             )}
@@ -240,7 +240,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                 onClick={() => goToLesson(moduleData.module.id, courseType)}
               >
                 <Play className="w-5 h-5 mr-2" />
-                Start Lesson
+                {localizeCourseUi('Start Lesson', locale)}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
 
