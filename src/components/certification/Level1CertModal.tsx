@@ -490,15 +490,13 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                   />
                   {showAdminControls && previewLayout && naturalSize.w > 0 && renderedSize.w > 0 && (
                     <div
-                      className="absolute pointer-events-none"
+                      className="absolute pointer-events-none cert-name-preview"
                       style={{
                         left: `${(previewLayout.name_x / naturalSize.w) * 100}%`,
                         top: `${(previewLayout.name_y / naturalSize.h) * 100}%`,
                         transform: 'translate(-50%, -50%)',
-                        fontFamily: '"Cinzel", serif',
-                        fontWeight: 600,
                         fontSize: `${(previewLayout.name_font_size / naturalSize.w) * renderedSize.w * zoom}px`,
-                        color: layout?.name_color || '#1A1A1A',
+                        color: layout?.name_color || '#000000',
                         whiteSpace: 'nowrap',
                         lineHeight: 1,
                       }}
@@ -508,25 +506,28 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                   )}
                   {showAdminControls && previewLayout && naturalSize.w > 0 && renderedSize.w > 0 && (
                     <div
-                      className="absolute pointer-events-none"
+                      className={
+                        'absolute pointer-events-none ' +
+                        (previewLayout.date_font_family === 'name' ? 'cert-name-preview' : '')
+                      }
                       style={{
                         left: `${(previewLayout.date_x / naturalSize.w) * 100}%`,
                         top: `${(previewLayout.date_y / naturalSize.h) * 100}%`,
                         transform: 'translateY(-50%)',
                         fontFamily:
                           previewLayout.date_font_family === 'name'
-                            ? '"Cinzel", serif'
+                            ? undefined
                             : previewLayout.date_font_family === 'sans-serif'
                             ? 'sans-serif'
                             : previewLayout.date_font_family === 'serif'
                             ? 'serif'
                             : `"${previewLayout.date_font_family}", sans-serif`,
-                        fontWeight: previewLayout.date_font_family === 'name' ? 600 : 400,
+                        fontWeight: previewLayout.date_font_family === 'name' ? undefined : 400,
                         fontSize: `${(previewLayout.date_font_size / naturalSize.w) * renderedSize.w * zoom}px`,
                         color:
                           previewLayout.date_font_family === 'name'
-                            ? layout?.name_color || '#1A1A1A'
-                            : layout?.date_color || '#1A1A1A',
+                            ? layout?.name_color || '#000000'
+                            : layout?.date_color || '#000000',
                         whiteSpace: 'nowrap',
                         lineHeight: 1,
                       }}
