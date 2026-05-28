@@ -38,7 +38,7 @@ import {
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
+import { localizeCourseTitle, localizeHairSystemLessonTitle, resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
@@ -465,8 +465,8 @@ export default function Lesson() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <p className="text-sm text-muted-foreground">{module.courseName}</p>
-              <h1 className="font-display text-3xl font-bold">{module.title}</h1>
+              <p className="text-sm text-muted-foreground">{localizeCourseTitle(module.courseName, locale)}</p>
+              <h1 className="font-display text-3xl font-bold">{localizeHairSystemLessonTitle(module, locale)}</h1>
             </div>
           </div>
           {isModuleCompleted ? (
@@ -490,7 +490,7 @@ export default function Lesson() {
         {module.video_url?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-            <VideoPlayer key={`${module.id}-${locale}`} src={vimeoEmbedUrl} title={module.title} />
+            <VideoPlayer key={`${module.id}-${locale}`} src={vimeoEmbedUrl} title={localizeHairSystemLessonTitle(module, locale)} />
           )}
 
         {/* Photo Upload Section for certification requirement modules */}
