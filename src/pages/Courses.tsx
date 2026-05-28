@@ -45,7 +45,7 @@ function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState<boolean>(false);
 
   useEffect(() => {
-    const mql = window.matchMedia('(min-width: 1024px)');
+    const mql = window.matchMedia('(min-width: 900px)');
     const onChange = () => setIsDesktop(mql.matches);
     mql.addEventListener('change', onChange);
     setIsDesktop(mql.matches);
