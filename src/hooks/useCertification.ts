@@ -307,14 +307,36 @@ export function useIssueCertification() {
       courseId,
       certificateName,
       shippingAddress,
+      businessLocation,
       debug = false,
     }: {
       courseId: string;
       certificateName: string;
       shippingAddress?: CertificateShippingAddress;
+      businessLocation?: CertificateBusinessLocation;
       debug?: boolean;
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
+
+      // Persist business location to the member's profile (best-effort).
+      if (businessLocation) {
+        try {
+          await supabase
+            .from('profiles')
+            .update({
+              business_name: businessLocation.businessName || null,
+              business_address_line1: businessLocation.addressLine1 || null,
+              business_address_line2: businessLocation.addressLine2 || null,
+              business_city: businessLocation.city || null,
+              business_state: businessLocation.state || null,
+              business_postal_code: businessLocation.postalCode || null,
+              business_country_code: businessLocation.countryCode || 'US',
+            })
+            .eq('id', user.id);
+        } catch (profileErr) {
+          console.warn('Failed to save business location to profile', profileErr);
+        }
+      }
 
       try {
         // Call edge function to generate certificate
@@ -324,9 +346,11 @@ export function useIssueCertification() {
             courseId,
             certificateName,
             shippingAddress,
+            businessLocation,
             debug,
           },
         });
+
 
         if (error) throw error;
         return data;
