@@ -363,6 +363,13 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
             break;
           }
           if (m.type === "characterData") {
+            // Ignore our own writes: if the node's current value is already
+            // a translation we produced, skip. Otherwise we loop forever
+            // re-walking the DOM on every text we change.
+            const node = m.target;
+            const rec = originalText.get(node);
+            const current = (node.nodeValue || "").trim();
+            if (rec && cacheRef.current[rec.original] === current) continue;
             relevant = true;
             break;
           }
