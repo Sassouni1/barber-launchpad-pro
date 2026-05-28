@@ -16,9 +16,20 @@ export interface CertificateShippingAddress {
   countryCode: string;
 }
 
+export interface CertificateBusinessLocation {
+  businessName: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: string;
+}
+
 export interface CertificationSubmissionPayload {
   certificateName: string;
   shippingAddress: CertificateShippingAddress;
+  businessLocation: CertificateBusinessLocation;
 }
 
 interface CertificationModalProps {
@@ -43,6 +54,17 @@ const emptyAddress = (recipient = ''): CertificateShippingAddress => ({
   countryCode: 'US',
 });
 
+const emptyBusiness = (): CertificateBusinessLocation => ({
+  businessName: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  countryCode: 'US',
+});
+
+
 export function CertificationModal({
   isOpen,
   onClose,
@@ -57,6 +79,8 @@ export function CertificationModal({
   const [shippingAddress, setShippingAddress] = useState<CertificateShippingAddress>(
     emptyAddress(defaultName || '')
   );
+  const [businessLocation, setBusinessLocation] = useState<CertificateBusinessLocation>(emptyBusiness());
+  const [shipToBusiness, setShipToBusiness] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -75,6 +99,8 @@ export function CertificationModal({
       setProgress(0);
       setName('');
       setShippingAddress(emptyAddress(defaultName || ''));
+      setBusinessLocation(emptyBusiness());
+      setShipToBusiness(false);
       return;
     }
 
@@ -109,26 +135,62 @@ export function CertificationModal({
     setShippingAddress(prev => ({ ...prev, [key]: value }));
   };
 
-  const normalizedAddress: CertificateShippingAddress = {
-    recipientName: shippingAddress.recipientName.trim(),
-    phone: shippingAddress.phone.trim(),
-    addressLine1: shippingAddress.addressLine1.trim(),
-    addressLine2: shippingAddress.addressLine2?.trim() || '',
-    city: shippingAddress.city.trim(),
-    state: shippingAddress.state.trim(),
-    postalCode: shippingAddress.postalCode.trim(),
-    countryCode: (shippingAddress.countryCode.trim() || 'US').toUpperCase(),
+  const updateBusiness = (key: keyof CertificateBusinessLocation, value: string) => {
+    setBusinessLocation(prev => ({ ...prev, [key]: value }));
   };
 
-  const isAddressComplete = Boolean(
-    normalizedAddress.recipientName &&
-      normalizedAddress.phone &&
-      normalizedAddress.addressLine1 &&
-      normalizedAddress.city &&
-      normalizedAddress.state &&
-      normalizedAddress.postalCode &&
-      normalizedAddress.countryCode
+  const normalizedBusiness: CertificateBusinessLocation = {
+    businessName: businessLocation.businessName.trim(),
+    addressLine1: businessLocation.addressLine1.trim(),
+    addressLine2: businessLocation.addressLine2?.trim() || '',
+    city: businessLocation.city.trim(),
+    state: businessLocation.state.trim(),
+    postalCode: businessLocation.postalCode.trim(),
+    countryCode: (businessLocation.countryCode.trim() || 'US').toUpperCase(),
+  };
+
+  const isBusinessComplete = Boolean(
+    normalizedBusiness.businessName &&
+      normalizedBusiness.addressLine1 &&
+      normalizedBusiness.city &&
+      normalizedBusiness.state &&
+      normalizedBusiness.postalCode &&
+      normalizedBusiness.countryCode
   );
+
+  const effectiveShipping: CertificateShippingAddress = shipToBusiness
+    ? {
+        recipientName: shippingAddress.recipientName.trim() || name.trim(),
+        phone: shippingAddress.phone.trim(),
+        addressLine1: normalizedBusiness.addressLine1,
+        addressLine2: normalizedBusiness.addressLine2 || '',
+        city: normalizedBusiness.city,
+        state: normalizedBusiness.state,
+        postalCode: normalizedBusiness.postalCode,
+        countryCode: normalizedBusiness.countryCode,
+      }
+    : {
+        recipientName: shippingAddress.recipientName.trim(),
+        phone: shippingAddress.phone.trim(),
+        addressLine1: shippingAddress.addressLine1.trim(),
+        addressLine2: shippingAddress.addressLine2?.trim() || '',
+        city: shippingAddress.city.trim(),
+        state: shippingAddress.state.trim(),
+        postalCode: shippingAddress.postalCode.trim(),
+        countryCode: (shippingAddress.countryCode.trim() || 'US').toUpperCase(),
+      };
+
+  const isShippingComplete = Boolean(
+    effectiveShipping.recipientName &&
+      effectiveShipping.phone &&
+      effectiveShipping.addressLine1 &&
+      effectiveShipping.city &&
+      effectiveShipping.state &&
+      effectiveShipping.postalCode &&
+      effectiveShipping.countryCode
+  );
+
+  const isAddressComplete = isBusinessComplete && isShippingComplete;
 
   const handleSubmit = async () => {
     if (!name.trim() || !isAddressComplete) return;
@@ -136,12 +198,14 @@ export function CertificationModal({
     try {
       await onSubmit({
         certificateName: name.trim(),
-        shippingAddress: normalizedAddress,
+        shippingAddress: effectiveShipping,
+        businessLocation: normalizedBusiness,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const handleDownload = () => {
     if (certificateUrl) {
@@ -196,7 +260,7 @@ export function CertificationModal({
           {step === 'name-entry' && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground text-center">
-                Congratulations! Enter your certificate name and the mailing address for your printed certificate.
+                Congratulations! Enter your certificate name, your business location, and where to mail your printed certificate.
               </p>
 
               <div className="space-y-2">
@@ -213,61 +277,141 @@ export function CertificationModal({
               </div>
 
               <div className="space-y-3 border-t border-border/40 pt-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Mailing Address</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    value={shippingAddress.recipientName}
-                    onChange={(e) => updateAddress('recipientName', e.target.value)}
-                    placeholder="Mailing name"
-                  />
-                  <Input
-                    value={shippingAddress.phone}
-                    onChange={(e) => updateAddress('phone', e.target.value)}
-                    placeholder="Phone number"
-                    inputMode="tel"
-                  />
-                </div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Business Location</p>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Where you operate. Saved to your profile and used for our directory.
+                </p>
                 <Input
-                  value={shippingAddress.addressLine1}
-                  onChange={(e) => updateAddress('addressLine1', e.target.value)}
-                  placeholder="Address line 1"
-                  autoComplete="shipping address-line1"
+                  value={businessLocation.businessName}
+                  onChange={(e) => updateBusiness('businessName', e.target.value)}
+                  placeholder="Business / shop name"
                 />
                 <Input
-                  value={shippingAddress.addressLine2}
-                  onChange={(e) => updateAddress('addressLine2', e.target.value)}
-                  placeholder="Address line 2 (optional)"
-                  autoComplete="shipping address-line2"
+                  value={businessLocation.addressLine1}
+                  onChange={(e) => updateBusiness('addressLine1', e.target.value)}
+                  placeholder="Street address"
+                />
+                <Input
+                  value={businessLocation.addressLine2}
+                  onChange={(e) => updateBusiness('addressLine2', e.target.value)}
+                  placeholder="Suite / unit (optional)"
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Input
-                    value={shippingAddress.city}
-                    onChange={(e) => updateAddress('city', e.target.value)}
+                    value={businessLocation.city}
+                    onChange={(e) => updateBusiness('city', e.target.value)}
                     placeholder="City"
-                    autoComplete="shipping address-level2"
                   />
                   <Input
-                    value={shippingAddress.state}
-                    onChange={(e) => updateAddress('state', e.target.value)}
+                    value={businessLocation.state}
+                    onChange={(e) => updateBusiness('state', e.target.value)}
                     placeholder="State"
-                    autoComplete="shipping address-level1"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Input
-                    value={shippingAddress.postalCode}
-                    onChange={(e) => updateAddress('postalCode', e.target.value)}
+                    value={businessLocation.postalCode}
+                    onChange={(e) => updateBusiness('postalCode', e.target.value)}
                     placeholder="ZIP"
-                    autoComplete="shipping postal-code"
                   />
                   <Input
-                    value={shippingAddress.countryCode}
-                    onChange={(e) => updateAddress('countryCode', e.target.value)}
+                    value={businessLocation.countryCode}
+                    onChange={(e) => updateBusiness('countryCode', e.target.value)}
                     placeholder="Country"
-                    autoComplete="shipping country"
                   />
                 </div>
               </div>
+
+              <div className="space-y-3 border-t border-border/40 pt-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Shipping Address</p>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={shipToBusiness}
+                      onChange={(e) => setShipToBusiness(e.target.checked)}
+                      className="rounded"
+                    />
+                    Ship to my business
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Where we'll mail your printed certificate.
+                </p>
+
+                {shipToBusiness ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Input
+                      value={shippingAddress.recipientName}
+                      onChange={(e) => updateAddress('recipientName', e.target.value)}
+                      placeholder="Mailing name (recipient)"
+                    />
+                    <Input
+                      value={shippingAddress.phone}
+                      onChange={(e) => updateAddress('phone', e.target.value)}
+                      placeholder="Phone number"
+                      inputMode="tel"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input
+                        value={shippingAddress.recipientName}
+                        onChange={(e) => updateAddress('recipientName', e.target.value)}
+                        placeholder="Mailing name"
+                      />
+                      <Input
+                        value={shippingAddress.phone}
+                        onChange={(e) => updateAddress('phone', e.target.value)}
+                        placeholder="Phone number"
+                        inputMode="tel"
+                      />
+                    </div>
+                    <Input
+                      value={shippingAddress.addressLine1}
+                      onChange={(e) => updateAddress('addressLine1', e.target.value)}
+                      placeholder="Address line 1"
+                      autoComplete="shipping address-line1"
+                    />
+                    <Input
+                      value={shippingAddress.addressLine2}
+                      onChange={(e) => updateAddress('addressLine2', e.target.value)}
+                      placeholder="Address line 2 (optional)"
+                      autoComplete="shipping address-line2"
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input
+                        value={shippingAddress.city}
+                        onChange={(e) => updateAddress('city', e.target.value)}
+                        placeholder="City"
+                        autoComplete="shipping address-level2"
+                      />
+                      <Input
+                        value={shippingAddress.state}
+                        onChange={(e) => updateAddress('state', e.target.value)}
+                        placeholder="State"
+                        autoComplete="shipping address-level1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input
+                        value={shippingAddress.postalCode}
+                        onChange={(e) => updateAddress('postalCode', e.target.value)}
+                        placeholder="ZIP"
+                        autoComplete="shipping postal-code"
+                      />
+                      <Input
+                        value={shippingAddress.countryCode}
+                        onChange={(e) => updateAddress('countryCode', e.target.value)}
+                        placeholder="Country"
+                        autoComplete="shipping country"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
 
               <Button
                 className="w-full gold-gradient"
@@ -288,9 +432,10 @@ export function CertificationModal({
               </Button>
               {!isAddressComplete && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Mailing name, phone, street, city, state, ZIP, and country are required for physical certificate fulfillment.
+                  Business location and full mailing address are both required for certification.
                 </p>
               )}
+
               {(isSubmitting || isGenerating) && (
                 <p className="text-xs text-center text-muted-foreground">
                   This may take a few seconds. Please don't close this window.

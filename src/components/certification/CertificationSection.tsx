@@ -101,11 +101,13 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   ) => {
     const certificateName = typeof input === 'string' ? input : input.certificateName;
     const shippingAddress = typeof input === 'string' ? undefined : input.shippingAddress;
+    const businessLocation = typeof input === 'string' ? undefined : input.businessLocation;
     setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId,
       certificateName,
       shippingAddress,
+      businessLocation,
       debug: debugOverride ?? isDebugMode,
     });
     if (result?.certificateUrl) {
@@ -115,6 +117,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
       setDebugInfo(result.debug);
     }
   };
+
 
   const handleResetCertification = async () => {
     await resetCertification.mutateAsync(courseId);

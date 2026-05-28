@@ -1210,6 +1210,13 @@ export type Database = {
         Row: {
           agreement_signed_at: string | null
           avatar_url: string | null
+          business_address_line1: string | null
+          business_address_line2: string | null
+          business_city: string | null
+          business_country_code: string | null
+          business_name: string | null
+          business_postal_code: string | null
+          business_state: string | null
           created_at: string
           email: string | null
           full_name: string | null
@@ -1223,6 +1230,13 @@ export type Database = {
         Insert: {
           agreement_signed_at?: string | null
           avatar_url?: string | null
+          business_address_line1?: string | null
+          business_address_line2?: string | null
+          business_city?: string | null
+          business_country_code?: string | null
+          business_name?: string | null
+          business_postal_code?: string | null
+          business_state?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -1236,6 +1250,13 @@ export type Database = {
         Update: {
           agreement_signed_at?: string | null
           avatar_url?: string | null
+          business_address_line1?: string | null
+          business_address_line2?: string | null
+          business_city?: string | null
+          business_country_code?: string | null
+          business_name?: string | null
+          business_postal_code?: string | null
+          business_state?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
