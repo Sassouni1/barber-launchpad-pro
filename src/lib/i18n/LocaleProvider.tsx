@@ -370,6 +370,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       });
       observerRef.current = obs;
       return () => {
+        timers.forEach((t) => window.clearTimeout(t));
         obs.disconnect();
         observerRef.current = null;
       };
