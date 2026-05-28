@@ -239,17 +239,33 @@ serve(async (req) => {
     
     ctx.font = `${fontSize}px ${nameFontFamily}`;
     
-    // Auto-size font to fit within max width (single-pass measure)
-    while (ctx.measureText(certificateName).width > nameMaxWidth && fontSize > minFontSize) {
+    // Extra horizontal tracking between letters (~8% of font size).
+    const letterSpacing = () => Math.round(fontSize * 0.08);
+
+    const measureWithSpacing = (text: string) => {
+      const base = ctx.measureText(text).width;
+      return base + letterSpacing() * Math.max(0, text.length - 1);
+    };
+
+    // Auto-size font to fit within max width (accounting for letter spacing).
+    while (measureWithSpacing(certificateName) > nameMaxWidth && fontSize > minFontSize) {
       fontSize -= 2;
       ctx.font = `${fontSize}px ${nameFontFamily}`;
     }
 
-    console.log('Name font:', { family: nameFontFamily, size: fontSize });
+    console.log('Name font:', { family: nameFontFamily, size: fontSize, letterSpacing: letterSpacing() });
 
-    // Draw the whole name as a single centered string (no per-char hacks)
-    ctx.fillText(certificateName, nameX, nameY);
-    console.log('Name drawn at:', { x: nameX, y: nameY });
+    // Draw the name char-by-char so we can add letter spacing manually.
+    const totalWidth = measureWithSpacing(certificateName);
+    let cursor = nameX - totalWidth / 2;
+    ctx.textAlign = 'left';
+    for (const ch of certificateName) {
+      const charWidth = ctx.measureText(ch).width;
+      ctx.fillText(ch, cursor, nameY);
+      cursor += charWidth + letterSpacing();
+    }
+    ctx.textAlign = 'center';
+    console.log('Name drawn at:', { x: nameX, y: nameY, totalWidth });
 
     // Draw date - default to using the name font/color when configured as 'name'
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
