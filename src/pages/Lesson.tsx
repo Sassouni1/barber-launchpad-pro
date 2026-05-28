@@ -38,7 +38,7 @@ import {
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { localizeCourseTitle, localizeHairSystemLessonTitle, resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
+import { localizeCourseTitle, localizeCourseUi, localizeHairSystemLessonTitle, resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
@@ -472,7 +472,7 @@ export default function Lesson() {
           {isModuleCompleted ? (
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
               <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">Completed</span>
+              <span className="text-sm font-medium">{localizeCourseUi('Completed', locale)}</span>
             </div>
           ) : (
             <Button
@@ -481,7 +481,7 @@ export default function Lesson() {
               size="sm"
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Mark Complete
+              {localizeCourseUi('Mark Complete', locale)}
             </Button>
           )}
         </div>
@@ -517,7 +517,7 @@ export default function Lesson() {
                 className={activeTab === 'video' ? 'gold-gradient' : ''}
               >
                 <FileText className="w-4 h-4 mr-2" />
-                Resources
+                {localizeCourseUi('Resources', locale)}
               </Button>
             )}
             {module.has_quiz && (
@@ -527,7 +527,7 @@ export default function Lesson() {
                 className={activeTab === 'quiz' ? 'gold-gradient' : ''}
               >
                 <HelpCircle className="w-4 h-4 mr-2" />
-                Quiz
+                {localizeCourseUi('Quiz', locale)}
                 {bestAttempt && (
                   <span className="ml-2 px-2 py-0.5 bg-white/20 rounded text-xs">
                     Best: {Math.round((bestAttempt.score / bestAttempt.total_questions) * 100)}%
@@ -542,7 +542,7 @@ export default function Lesson() {
                 className={activeTab === 'homework' ? 'gold-gradient' : ''}
               >
                 <ClipboardList className="w-4 h-4 mr-2" />
-                Homework
+                {localizeCourseUi('Homework', locale)}
                 {existingSubmission && (
                   <CheckCircle2 className="w-4 h-4 ml-2 text-green-400" />
                 )}
@@ -553,7 +553,7 @@ export default function Lesson() {
                 variant="outline"
                 onClick={() => navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}
               >
-                Next Lesson
+                {localizeCourseUi('Next Lesson', locale)}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             )}
