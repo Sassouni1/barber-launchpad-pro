@@ -69,6 +69,41 @@ export const SPANISH_VIDEO_BY_LESSON_KEY: Partial<Record<HairSystemLessonKey, st
   charge: "https://vimeo.com/1196208396/3ad849bcc7",
 };
 
+export const SPANISH_TITLE_BY_LESSON_KEY: Partial<Record<HairSystemLessonKey, string>> = {
+  terms: "Terminos de la Industria",
+  "color-ring": "El anillo de color",
+  template: "Como hacer una plantilla",
+  customize: "Como personalizar la protesis capilar",
+  tape: "Aplicacion de la protesis capilar con cinta",
+  adhesive: "Aplicacion de protesis capilares con adhesivo",
+  style: "Como peinar una protesis capilar",
+  "template-photo-upload": "Enviar foto de la plantilla de la protesis capilar",
+  "live-client-1": "Cliente en vivo Parte 1",
+  "live-client-2": "Cliente en vivo Parte 2",
+  "live-client-3": "Cliente en vivo Parte 3",
+  "live-client-4": "Cliente en vivo Parte 4",
+  "at-home-care": "Cuidado en casa",
+  maintenance: "La cita de mantenimiento",
+  consultation: "La consulta y preguntas para hacer",
+  charge: "Como y cuanto cobrar",
+  order: "Como hacer un pedido de protesis capilar",
+};
+
+const SPANISH_COURSE_TITLES: Record<string, string> = {
+  "Hair System Mastery": "Dominio de protesis capilares",
+  "Hair System Training": "Capacitacion en protesis capilares",
+};
+
+const SPANISH_UI_LABELS: Record<string, string> = {
+  "Start Lesson": "Iniciar leccion",
+  "Take Quiz": "Hacer examen",
+  Quiz: "Examen",
+  Homework: "Tarea",
+  Files: "Archivos",
+  "Select a Module": "Selecciona un modulo",
+  "Choose a module from the left panel to view its content": "Elige un modulo del panel izquierdo para ver su contenido",
+};
+
 const LESSON_KEY_BY_NORMALIZED_TITLE: Record<string, HairSystemLessonKey> = {
   "terms of the industry": "terms",
   "terminos de la industria": "terms",
@@ -141,6 +176,28 @@ export function getCanonicalHairSystemLessonKey(module: VideoModuleLike): HairSy
   return undefined;
 }
 
+function isSpanishMode(locale: VideoLocale) {
+  if (locale === "es") return true;
+  if (typeof window === "undefined") return false;
+  return document.documentElement.lang === "es" || localStorage.getItem("bla.locale") === "es";
+}
+
+export function localizeHairSystemLessonTitle(module: VideoModuleLike, locale: VideoLocale): string {
+  const title = module.title ?? "";
+  if (!isSpanishMode(locale)) return title;
+  const key = getCanonicalHairSystemLessonKey(module);
+  return (key && SPANISH_TITLE_BY_LESSON_KEY[key]) || title;
+}
+
+export function localizeCourseTitle(title: string | undefined | null, locale: VideoLocale): string {
+  const value = title ?? "";
+  return isSpanishMode(locale) ? SPANISH_COURSE_TITLES[value] || value : value;
+}
+
+export function localizeCourseUi(label: string, locale: VideoLocale): string {
+  return isSpanishMode(locale) ? SPANISH_UI_LABELS[label] || label : label;
+}
+
 /**
  * Resolve the exact video URL to render for a module + locale.
  * Missing Spanish lessons (upload task, Live Client 4, Maintenance, Order)
@@ -149,7 +206,7 @@ export function getCanonicalHairSystemLessonKey(module: VideoModuleLike): HairSy
 export function resolveVideoUrlForModule(module: VideoModuleLike | undefined | null, locale: VideoLocale): string {
   if (!module) return "";
 
-  if (locale === "es") {
+  if (isSpanishMode(locale)) {
     const key = getCanonicalHairSystemLessonKey(module);
     const spanishUrl = key ? SPANISH_VIDEO_BY_LESSON_KEY[key] : undefined;
     if (spanishUrl?.trim()) return spanishUrl;
