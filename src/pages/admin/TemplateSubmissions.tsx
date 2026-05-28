@@ -455,6 +455,15 @@ export default function TemplateSubmissions() {
                       >
                         {approvingUser === group.userId ? 'Updating...' : 'Disapprove'}
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={approvingUser === group.userId || group.fulfillmentRequests.length === 0}
+                        onClick={() => handleMarkFulfilled(group)}
+                      >
+                        Mark Fulfilled
+                      </Button>
+
                     </div>
                   </div>
 
