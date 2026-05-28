@@ -38,7 +38,7 @@ import {
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { resolveVideoUrl } from '@/lib/i18n/spanishVideos';
+import { resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
@@ -296,8 +296,8 @@ export default function Lesson() {
   // Resolve the source URL based on active locale (Spanish overrides fall back to English).
   const { locale } = useLocale();
   const localizedVideoUrl = useMemo(
-    () => resolveVideoUrl(module?.id, module?.video_url, locale),
-    [module?.id, module?.video_url, locale]
+    () => resolveVideoUrlForModule(module, locale),
+    [module, locale]
   );
 
   // Memoize the embed URL so the iframe src stays stable across re-renders
@@ -490,7 +490,7 @@ export default function Lesson() {
         {module.video_url?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-            <VideoPlayer src={vimeoEmbedUrl} title={module.title} />
+            <VideoPlayer key={`${module.id}-${locale}`} src={vimeoEmbedUrl} title={module.title} />
           )}
 
         {/* Photo Upload Section for certification requirement modules */}
