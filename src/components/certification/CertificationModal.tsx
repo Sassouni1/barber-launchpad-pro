@@ -16,9 +16,20 @@ export interface CertificateShippingAddress {
   countryCode: string;
 }
 
+export interface CertificateBusinessLocation {
+  businessName: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: string;
+}
+
 export interface CertificationSubmissionPayload {
   certificateName: string;
   shippingAddress: CertificateShippingAddress;
+  businessLocation: CertificateBusinessLocation;
 }
 
 interface CertificationModalProps {
@@ -42,6 +53,17 @@ const emptyAddress = (recipient = ''): CertificateShippingAddress => ({
   postalCode: '',
   countryCode: 'US',
 });
+
+const emptyBusiness = (): CertificateBusinessLocation => ({
+  businessName: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  countryCode: 'US',
+});
+
 
 export function CertificationModal({
   isOpen,
