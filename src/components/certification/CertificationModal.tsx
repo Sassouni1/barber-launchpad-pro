@@ -79,6 +79,8 @@ export function CertificationModal({
   const [shippingAddress, setShippingAddress] = useState<CertificateShippingAddress>(
     emptyAddress(defaultName || '')
   );
+  const [businessLocation, setBusinessLocation] = useState<CertificateBusinessLocation>(emptyBusiness());
+  const [shipToBusiness, setShipToBusiness] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -97,6 +99,8 @@ export function CertificationModal({
       setProgress(0);
       setName('');
       setShippingAddress(emptyAddress(defaultName || ''));
+      setBusinessLocation(emptyBusiness());
+      setShipToBusiness(false);
       return;
     }
 
@@ -131,26 +135,62 @@ export function CertificationModal({
     setShippingAddress(prev => ({ ...prev, [key]: value }));
   };
 
-  const normalizedAddress: CertificateShippingAddress = {
-    recipientName: shippingAddress.recipientName.trim(),
-    phone: shippingAddress.phone.trim(),
-    addressLine1: shippingAddress.addressLine1.trim(),
-    addressLine2: shippingAddress.addressLine2?.trim() || '',
-    city: shippingAddress.city.trim(),
-    state: shippingAddress.state.trim(),
-    postalCode: shippingAddress.postalCode.trim(),
-    countryCode: (shippingAddress.countryCode.trim() || 'US').toUpperCase(),
+  const updateBusiness = (key: keyof CertificateBusinessLocation, value: string) => {
+    setBusinessLocation(prev => ({ ...prev, [key]: value }));
   };
 
-  const isAddressComplete = Boolean(
-    normalizedAddress.recipientName &&
-      normalizedAddress.phone &&
-      normalizedAddress.addressLine1 &&
-      normalizedAddress.city &&
-      normalizedAddress.state &&
-      normalizedAddress.postalCode &&
-      normalizedAddress.countryCode
+  const normalizedBusiness: CertificateBusinessLocation = {
+    businessName: businessLocation.businessName.trim(),
+    addressLine1: businessLocation.addressLine1.trim(),
+    addressLine2: businessLocation.addressLine2?.trim() || '',
+    city: businessLocation.city.trim(),
+    state: businessLocation.state.trim(),
+    postalCode: businessLocation.postalCode.trim(),
+    countryCode: (businessLocation.countryCode.trim() || 'US').toUpperCase(),
+  };
+
+  const isBusinessComplete = Boolean(
+    normalizedBusiness.businessName &&
+      normalizedBusiness.addressLine1 &&
+      normalizedBusiness.city &&
+      normalizedBusiness.state &&
+      normalizedBusiness.postalCode &&
+      normalizedBusiness.countryCode
   );
+
+  const effectiveShipping: CertificateShippingAddress = shipToBusiness
+    ? {
+        recipientName: shippingAddress.recipientName.trim() || name.trim(),
+        phone: shippingAddress.phone.trim(),
+        addressLine1: normalizedBusiness.addressLine1,
+        addressLine2: normalizedBusiness.addressLine2 || '',
+        city: normalizedBusiness.city,
+        state: normalizedBusiness.state,
+        postalCode: normalizedBusiness.postalCode,
+        countryCode: normalizedBusiness.countryCode,
+      }
+    : {
+        recipientName: shippingAddress.recipientName.trim(),
+        phone: shippingAddress.phone.trim(),
+        addressLine1: shippingAddress.addressLine1.trim(),
+        addressLine2: shippingAddress.addressLine2?.trim() || '',
+        city: shippingAddress.city.trim(),
+        state: shippingAddress.state.trim(),
+        postalCode: shippingAddress.postalCode.trim(),
+        countryCode: (shippingAddress.countryCode.trim() || 'US').toUpperCase(),
+      };
+
+  const isShippingComplete = Boolean(
+    effectiveShipping.recipientName &&
+      effectiveShipping.phone &&
+      effectiveShipping.addressLine1 &&
+      effectiveShipping.city &&
+      effectiveShipping.state &&
+      effectiveShipping.postalCode &&
+      effectiveShipping.countryCode
+  );
+
+  const isAddressComplete = isBusinessComplete && isShippingComplete;
 
   const handleSubmit = async () => {
     if (!name.trim() || !isAddressComplete) return;
@@ -158,12 +198,14 @@ export function CertificationModal({
     try {
       await onSubmit({
         certificateName: name.trim(),
-        shippingAddress: normalizedAddress,
+        shippingAddress: effectiveShipping,
+        businessLocation: normalizedBusiness,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const handleDownload = () => {
     if (certificateUrl) {
