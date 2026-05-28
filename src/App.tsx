@@ -143,7 +143,6 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <LanguageToggle />
           {isDirectoryHost() ? <DirectoryApp /> : <MemberApp />}
         </TooltipProvider>
       </LocaleProvider>
