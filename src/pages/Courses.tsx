@@ -662,7 +662,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               <CertificationSection courseId={courses[0].id} />
             </div>
           ) : moduleData ? (
-            <div className={cn(
+            <div key={`${moduleData.module.id}-${locale}`} className={cn(
               "glass-card rounded-xl overflow-hidden w-full",
               !moduleData.module.video_url?.trim() && "max-w-lg"
             )}>
