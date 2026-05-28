@@ -672,9 +672,9 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                 moduleData.module.video_url?.trim() && "border-b border-border/30"
               )}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                  <span>{moduleData.courseName}</span>
+                  <span>{localizeCourseTitle(moduleData.courseName, locale)}</span>
                 </div>
-                <h1 className="font-display text-2xl font-bold gold-text">{moduleData.module.title}</h1>
+                <h1 className="font-display text-2xl font-bold gold-text">{localizeHairSystemLessonTitle(moduleData.module, locale)}</h1>
                 {moduleData.module.description && (
                   <p className="text-muted-foreground mt-1">{moduleData.module.description}</p>
                 )}
@@ -689,7 +689,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                     className="absolute inset-0 w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
-                    title={moduleData.module.title}
+                    title={localizeHairSystemLessonTitle(moduleData.module, locale)}
                   />
                 </div>
               )}
@@ -701,7 +701,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   onClick={() => goToLesson(moduleData.module.id, courseType)}
                 >
                   <Play className="w-5 h-5 mr-2" />
-                  Start Lesson
+                  {localizeCourseUi('Start Lesson', locale)}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
 
@@ -714,7 +714,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                         onClick={() => goToLesson(moduleData.module.id, courseType, 'quiz')}
                       >
                         <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
-                        Take Quiz
+                        {localizeCourseUi('Take Quiz', locale)}
                       </Button>
                     )}
                     {moduleData.module.has_homework && (
@@ -724,7 +724,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                         onClick={() => goToLesson(moduleData.module.id, courseType, 'homework')}
                       >
                         <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
-                        Homework
+                        {localizeCourseUi('Homework', locale)}
                       </Button>
                     )}
                   </div>
@@ -734,8 +734,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
           ) : (
           <div className="glass-card rounded-xl p-8 max-w-sm text-center">
             <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2">Select a Module</h3>
-            <p className="text-muted-foreground text-sm">Choose a module from the left panel to view its content</p>
+            <h3 className="font-semibold text-lg mb-2">{localizeCourseUi('Select a Module', locale)}</h3>
+            <p className="text-muted-foreground text-sm">{localizeCourseUi('Choose a module from the left panel to view its content', locale)}</p>
           </div>
           )}
         </div>
