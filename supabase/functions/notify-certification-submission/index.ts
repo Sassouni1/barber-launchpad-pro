@@ -142,8 +142,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { submissionId } = await req.json();
+    const body = await req.json();
+    const { submissionId, eventType } = body as { submissionId: string; eventType?: "submitted" | "resolved" };
     if (!submissionId) throw new Error("submissionId is required");
+    const kind = eventType === "resolved" ? "resolved" : "submitted";
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -167,18 +169,27 @@ Deno.serve(async (req) => {
         .maybeSingle(),
     ]);
 
-    const addressStatus = fulfillment?.address_line1 ? "address complete" : "missing shipping address";
-    const message = [
-      "New Barber Launch certification submission needs review.",
-      "",
-      `Student: ${profile?.full_name || "Unknown"}`,
-      `Email: ${profile?.email || "unknown"}`,
-      `Course: ${course?.title || submission.course_id}`,
-      `Uploaded: ${submission.uploaded_at}`,
-      `Address: ${addressStatus}`,
-      "",
-      `${APP_URL}/admin/templates`,
-    ].join("\n");
+    const studentLabel = `${profile?.full_name || "Unknown"} <${profile?.email || "unknown"}>`;
+    const courseLabel = course?.title || submission.course_id;
+    const adminUrl = `${APP_URL}/admin/templates`;
+
+    const message = kind === "resolved"
+      ? [
+          `CERTIFICATION_RESOLVED ${submissionId}`,
+          "Barber Launch certification marked resolved/fulfilled",
+          `Student: ${studentLabel}`,
+          `Course: ${courseLabel}`,
+          `Admin URL: ${adminUrl}`,
+        ].join("\n")
+      : [
+          `CERTIFICATION_SUBMISSION ${submissionId}`,
+          "Barber Launch certification submission needs review",
+          `Student: ${studentLabel}`,
+          `Course: ${courseLabel}`,
+          `Admin URL: ${adminUrl}`,
+          `Address: ${fulfillment?.address_line1 ? "complete" : "missing"}`,
+        ].join("\n");
+
 
     const { accessToken, locationId } = await getAccessToken(supabase);
     const contactId = await resolveChrisContactId(accessToken, locationId);

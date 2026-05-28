@@ -224,6 +224,36 @@ export default function TemplateSubmissions() {
     }
   };
 
+  const handleMarkFulfilled = async (group: MemberGroup) => {
+    setApprovingUser(group.userId);
+    try {
+      const fulfillmentIds = group.fulfillmentRequests.map(r => r.id);
+      if (fulfillmentIds.length === 0) {
+        toast.info('No fulfillment request to mark fulfilled');
+        return;
+      }
+      const { error } = await supabase
+        .from('certification_fulfillment_requests')
+        .update({ status: 'fulfilled' })
+        .in('id', fulfillmentIds);
+      if (error) throw error;
+
+      // Fire resolved SMS for each submission (best-effort, non-blocking)
+      for (const s of group.submissions) {
+        supabase.functions.invoke('notify-certification-submission', {
+          body: { submissionId: s.id, eventType: 'resolved' },
+        }).catch(() => {});
+      }
+      toast.success(`Marked fulfilled for ${group.fullName}`);
+      queryClient.invalidateQueries({ queryKey: ['admin-template-submissions'] });
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to mark fulfilled'));
+    } finally {
+      setApprovingUser(null);
+    }
+  };
+
+
   const handleSaveNote = async (group: MemberGroup) => {
     const note = notes[group.userId]?.trim() || null;
     try {
@@ -425,6 +455,15 @@ export default function TemplateSubmissions() {
                       >
                         {approvingUser === group.userId ? 'Updating...' : 'Disapprove'}
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={approvingUser === group.userId || group.fulfillmentRequests.length === 0}
+                        onClick={() => handleMarkFulfilled(group)}
+                      >
+                        Mark Fulfilled
+                      </Button>
+
                     </div>
                   </div>
 
