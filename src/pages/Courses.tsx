@@ -324,7 +324,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   <div key={course.id} className="space-y-2">
                     {category.courses.length > 1 && (
                       <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50 ml-2">
-                        <h3 className="font-semibold text-sm">{course.title}</h3>
+                        <h3 className="font-semibold text-sm">{localizeCourseTitle(course.title, locale)}</h3>
                       </div>
                     )}
                     <div className="space-y-2 pl-2">
@@ -341,7 +341,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-semibold text-sm truncate flex items-center gap-1.5">
-                                  {module.title}
+                                  {localizeHairSystemLessonTitle(module, locale)}
                                   {(module as any).is_certification_requirement && (
                                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                   )}
