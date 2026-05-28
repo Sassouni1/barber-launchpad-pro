@@ -260,7 +260,7 @@ export function CertificationModal({
           {step === 'name-entry' && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground text-center">
-                Congratulations! Enter your certificate name and the mailing address for your printed certificate.
+                Congratulations! Enter your certificate name, your business location, and where to mail your printed certificate.
               </p>
 
               <div className="space-y-2">
@@ -277,7 +277,68 @@ export function CertificationModal({
               </div>
 
               <div className="space-y-3 border-t border-border/40 pt-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Mailing Address</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Business Location</p>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Where you operate. Saved to your profile and used for our directory.
+                </p>
+                <Input
+                  value={businessLocation.businessName}
+                  onChange={(e) => updateBusiness('businessName', e.target.value)}
+                  placeholder="Business / shop name"
+                />
+                <Input
+                  value={businessLocation.addressLine1}
+                  onChange={(e) => updateBusiness('addressLine1', e.target.value)}
+                  placeholder="Street address"
+                />
+                <Input
+                  value={businessLocation.addressLine2}
+                  onChange={(e) => updateBusiness('addressLine2', e.target.value)}
+                  placeholder="Suite / unit (optional)"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    value={businessLocation.city}
+                    onChange={(e) => updateBusiness('city', e.target.value)}
+                    placeholder="City"
+                  />
+                  <Input
+                    value={businessLocation.state}
+                    onChange={(e) => updateBusiness('state', e.target.value)}
+                    placeholder="State"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    value={businessLocation.postalCode}
+                    onChange={(e) => updateBusiness('postalCode', e.target.value)}
+                    placeholder="ZIP"
+                  />
+                  <Input
+                    value={businessLocation.countryCode}
+                    onChange={(e) => updateBusiness('countryCode', e.target.value)}
+                    placeholder="Country"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-border/40 pt-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Shipping Address</p>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={shipToBusiness}
+                      onChange={(e) => setShipToBusiness(e.target.checked)}
+                      className="rounded"
+                    />
+                    Ship to my business
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Where we'll mail your printed certificate.
+                </p>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Input
                     value={shippingAddress.recipientName}
