@@ -432,9 +432,10 @@ export function CertificationModal({
               </Button>
               {!isAddressComplete && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Mailing name, phone, street, city, state, ZIP, and country are required for physical certificate fulfillment.
+                  Business location and full mailing address are both required for certification.
                 </p>
               )}
+
               {(isSubmitting || isGenerating) && (
                 <p className="text-xs text-center text-muted-foreground">
                   This may take a few seconds. Please don't close this window.
