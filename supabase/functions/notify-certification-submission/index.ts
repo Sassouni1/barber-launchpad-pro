@@ -81,11 +81,15 @@ async function refreshToken(supabase: SupabaseClient, tokenRecord: GhlTokenRecor
 }
 
 async function getAccessToken(supabase: SupabaseClient): Promise<{ accessToken: string; locationId: string }> {
-  const directToken = Deno.env.get("GHL_ACCESS_TOKEN") || Deno.env.get("GHL_PRIVATE_INTEGRATION_TOKEN");
+  const directToken =
+    Deno.env.get("GHL_ACCESS_TOKEN") ||
+    Deno.env.get("GHL_PRIVATE_INTEGRATION_TOKEN") ||
+    Deno.env.get("GHL_API_KEY");
   const directLocationId = Deno.env.get("GHL_LOCATION_ID");
   if (directToken && directLocationId) {
     return { accessToken: directToken, locationId: directLocationId };
   }
+
 
   const encryptionKey = Deno.env.get("GHL_ENCRYPTION_KEY");
   if (!encryptionKey) {
