@@ -344,7 +344,12 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                 {index + 1}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm truncate flex items-center gap-1.5">
+                                <h4
+                                  key={`${module.id}-${locale}-mobile-title`}
+                                  className="font-semibold text-sm truncate flex items-center gap-1.5"
+                                  data-no-translate
+                                  translate="no"
+                                >
                                   {localizeHairSystemLessonTitle(module, locale)}
                                   {(module as any).is_certification_requirement && (
                                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
@@ -520,10 +525,15 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                     {index + 1}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h4 className={cn(
-                                      "font-semibold text-sm mb-1 flex items-center gap-1.5",
-                                      isSelected && "text-primary"
-                                    )}>
+                                    <h4
+                                      key={`${module.id}-${locale}-desktop-title`}
+                                      className={cn(
+                                        "font-semibold text-sm mb-1 flex items-center gap-1.5",
+                                        isSelected && "text-primary"
+                                      )}
+                                      data-no-translate
+                                      translate="no"
+                                    >
                                       {localizeHairSystemLessonTitle(module, locale)}
                                       {(module as any).is_certification_requirement && (
                                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
