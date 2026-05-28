@@ -69,6 +69,22 @@ export const SPANISH_VIDEO_BY_LESSON_KEY: Partial<Record<HairSystemLessonKey, st
   charge: "https://vimeo.com/1196208396/3ad849bcc7",
 };
 
+export const SPANISH_EMBED_BY_LESSON_KEY: Partial<Record<HairSystemLessonKey, string>> = {
+  terms: "https://player.vimeo.com/video/1195973463?h=b7ed38c1c1",
+  "color-ring": "https://player.vimeo.com/video/1195973824?h=0c2482e379",
+  template: "https://player.vimeo.com/video/1196206697?h=81dcca3a63",
+  customize: "https://player.vimeo.com/video/1195975327?h=ca5299ade5",
+  tape: "https://player.vimeo.com/video/1195976934?h=486a6da8bd",
+  adhesive: "https://player.vimeo.com/video/1196206696?h=e8067f2a1e",
+  style: "https://player.vimeo.com/video/1195978973?h=72ef41e1f6",
+  "live-client-1": "https://player.vimeo.com/video/1196206694?h=e0e7a9dcaa",
+  "live-client-2": "https://player.vimeo.com/video/1195980538?h=cfac4efaf7",
+  "live-client-3": "https://player.vimeo.com/video/1196206695?h=3c21634878",
+  "at-home-care": "https://player.vimeo.com/video/1196205873?h=5eeeb2d8bf",
+  consultation: "https://player.vimeo.com/video/1195982575?h=6a6fe32051",
+  charge: "https://player.vimeo.com/video/1196208396?h=3ad849bcc7",
+};
+
 export const SPANISH_TITLE_BY_LESSON_KEY: Partial<Record<HairSystemLessonKey, string>> = {
   terms: "Terminos de la Industria",
   "color-ring": "El anillo de color",
@@ -97,6 +113,10 @@ const SPANISH_COURSE_TITLES: Record<string, string> = {
 const SPANISH_UI_LABELS: Record<string, string> = {
   "Start Lesson": "Iniciar leccion",
   "Take Quiz": "Hacer examen",
+  "Mark Complete": "Marcar como completada",
+  Completed: "Completada",
+  Resources: "Recursos",
+  "Next Lesson": "Siguiente leccion",
   Quiz: "Examen",
   Homework: "Tarea",
   Files: "Archivos",
@@ -213,6 +233,22 @@ export function resolveVideoUrlForModule(module: VideoModuleLike | undefined | n
   }
 
   return module.video_url ?? "";
+}
+
+export function resolveVideoEmbedUrlForModule(
+  module: VideoModuleLike | undefined | null,
+  locale: VideoLocale,
+  englishEmbedResolver: (url: string) => string
+): string {
+  if (!module) return "";
+
+  if (isSpanishMode(locale)) {
+    const key = getCanonicalHairSystemLessonKey(module);
+    const spanishEmbedUrl = key ? SPANISH_EMBED_BY_LESSON_KEY[key] : undefined;
+    if (spanishEmbedUrl?.trim()) return spanishEmbedUrl;
+  }
+
+  return module.video_url ? englishEmbedResolver(module.video_url) : "";
 }
 
 export function resolveVideoUrl(
