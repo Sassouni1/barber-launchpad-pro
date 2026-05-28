@@ -399,8 +399,10 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     // locale === "en" → restore originals and stop observing.
     observerRef.current?.disconnect();
     observerRef.current = null;
-    restoreOriginals(document.body);
-    return undefined;
+    // Defer the DOM walk so React can paint the toggle immediately instead
+    // of blocking the click for seconds on a large tree.
+    const raf = requestAnimationFrame(() => restoreOriginals(document.body));
+    return () => cancelAnimationFrame(raf);
   }, [locale, scheduleTranslate, translatePass]);
 
   const value = useMemo<LocaleContextValue>(() => ({ locale, setLocale }), [locale, setLocale]);
