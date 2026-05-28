@@ -4,7 +4,7 @@ import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, L
 import { useState, useRef, useEffect } from 'react';
 import { cn, getVimeoEmbedUrl } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { localizeCourseTitle, localizeCourseUi, localizeHairSystemLessonTitle, resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
+import { localizeCourseTitle, localizeCourseUi, localizeHairSystemLessonTitle, resolveVideoEmbedUrlForModule } from '@/lib/i18n/spanishVideos';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -219,7 +219,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               <div className="relative aspect-video bg-black">
                 <iframe
                   key={`${moduleData.module.id}-${locale}`}
-                  src={getVimeoEmbedUrl(resolveVideoUrlForModule(moduleData.module, locale))}
+                  src={resolveVideoEmbedUrlForModule(moduleData.module, locale, getVimeoEmbedUrl)}
                   className="absolute inset-0 w-full h-full"
                   allow="autoplay; fullscreen; picture-in-picture"
                   allowFullScreen
@@ -685,7 +685,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                 <div className="relative aspect-video bg-black border-b border-border/30">
                   <iframe
                     key={`${moduleData.module.id}-${locale}`}
-                    src={getVimeoEmbedUrl(resolveVideoUrlForModule(moduleData.module, locale))}
+                    src={resolveVideoEmbedUrlForModule(moduleData.module, locale, getVimeoEmbedUrl)}
                     className="absolute inset-0 w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
