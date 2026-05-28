@@ -38,7 +38,7 @@ import {
 import { toast } from 'sonner';
 import { getVimeoEmbedUrl } from '@/lib/utils';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { localizeCourseTitle, localizeCourseUi, localizeHairSystemLessonTitle, resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
+import { localizeCourseTitle, localizeCourseUi, localizeHairSystemLessonTitle, resolveVideoEmbedUrlForModule, resolveVideoUrlForModule } from '@/lib/i18n/spanishVideos';
 import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
@@ -302,8 +302,8 @@ export default function Lesson() {
 
   // Memoize the embed URL so the iframe src stays stable across re-renders
   const vimeoEmbedUrl = useMemo(
-    () => localizedVideoUrl ? getVimeoEmbedUrl(localizedVideoUrl) : '',
-    [localizedVideoUrl]
+    () => resolveVideoEmbedUrlForModule(module, locale, getVimeoEmbedUrl),
+    [module, locale]
   );
 
   // Auto-complete video lessons based on time on page
