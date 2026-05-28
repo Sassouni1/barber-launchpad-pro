@@ -520,7 +520,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                       "font-semibold text-sm mb-1 flex items-center gap-1.5",
                                       isSelected && "text-primary"
                                     )}>
-                                      {module.title}
+                                      {localizeHairSystemLessonTitle(module, locale)}
                                       {(module as any).is_certification_requirement && (
                                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                       )}
@@ -538,7 +538,7 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                     {module.has_download && (
                                       <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
                                         <FileText className="w-3 h-3" />
-                                        Files
+                                        {localizeCourseUi('Files', locale)}
                                       </span>
                                     )}
                                     {moduleLessons.length > 0 && (
@@ -550,13 +550,13 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                                     {module.has_quiz && (
                                       <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                                         <HelpCircle className="w-3 h-3" />
-                                        Quiz
+                                        {localizeCourseUi('Quiz', locale)}
                                       </span>
                                     )}
                                     {module.has_homework && (
                                       <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
                                         <ClipboardList className="w-3 h-3" />
-                                        Homework
+                                        {localizeCourseUi('Homework', locale)}
                                       </span>
                                     )}
                                     </div>
