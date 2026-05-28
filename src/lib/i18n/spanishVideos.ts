@@ -198,6 +198,7 @@ export function getCanonicalHairSystemLessonKey(module: VideoModuleLike): HairSy
 
 function isSpanishMode(locale: VideoLocale) {
   if (locale === "es") return true;
+  if (locale === "en") return false;
   if (typeof window === "undefined") return false;
   return document.documentElement.lang === "es" || localStorage.getItem("bla.locale") === "es";
 }
