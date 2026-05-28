@@ -428,3 +428,17 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--gold) / 0.5);
 }
+
+/* Certificate preview font — loads the same Olde English font used by the
+   generated certificate so admin preview matches the final output exactly. */
+@font-face {
+  font-family: 'OldeEnglish';
+  src: url('https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/fonts/OldeEnglish.ttf') format('truetype');
+  font-display: swap;
+}
+
+.cert-name-preview {
+  font-family: 'OldeEnglish', serif !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.08em;
+}

@@ -210,15 +210,13 @@ export function CertificateLayoutEditor() {
                   {natural.w > 0 && rendered.w > 0 && (
                     <>
                       <div
-                        className="absolute pointer-events-none"
+                        className="absolute pointer-events-none cert-name-preview"
                         style={{
                           left: `${(draft.name_x / natural.w) * 100}%`,
                           top: `${(draft.name_y / natural.h) * 100}%`,
                           transform: 'translate(-50%, -50%)',
-                          fontFamily: '"Cinzel", serif',
-                          fontWeight: 600,
                           fontSize: `${(draft.name_font_size / natural.w) * rendered.w}px`,
-                          color: layout.name_color || '#1A1A1A',
+                          color: layout.name_color || '#000000',
                           whiteSpace: 'nowrap',
                           lineHeight: 1,
                         }}
@@ -227,22 +225,25 @@ export function CertificateLayoutEditor() {
 
                       </div>
                       <div
-                        className="absolute pointer-events-none"
+                        className={
+                          'absolute pointer-events-none ' +
+                          (draft.date_font_family === 'name' ? 'cert-name-preview' : '')
+                        }
                         style={{
                           left: `${(draft.date_x / natural.w) * 100}%`,
                           top: `${(draft.date_y / natural.h) * 100}%`,
                           transform: 'translateY(-50%)',
                           fontFamily:
                             draft.date_font_family === 'name'
-                              ? '"Cinzel", serif'
+                              ? undefined
                               : draft.date_font_family === 'sans-serif'
                               ? 'sans-serif'
                               : draft.date_font_family === 'serif'
                               ? 'serif'
                               : `"${draft.date_font_family}", sans-serif`,
-                          fontWeight: draft.date_font_family === 'name' ? 600 : 400,
+                          fontWeight: draft.date_font_family === 'name' ? undefined : 400,
                           fontSize: `${(draft.date_font_size / natural.w) * rendered.w}px`,
-                          color: draft.date_font_family === 'name' ? layout.name_color || '#1A1A1A' : layout.date_color || '#1A1A1A',
+                          color: draft.date_font_family === 'name' ? layout.name_color || '#000000' : layout.date_color || '#000000',
                           whiteSpace: 'nowrap',
                           lineHeight: 1,
                         }}
