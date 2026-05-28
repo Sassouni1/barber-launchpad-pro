@@ -333,7 +333,12 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = locale;
 
     if (locale === "es") {
+      // Run translation passes immediately and again after React finishes
+      // rendering / late-mounting async content. This avoids the "switch a few
+      // times" issue where the first toggle catches an empty/partial DOM.
       translatePass();
+      const delays = [50, 200, 500, 1000];
+      const timers = delays.map((d) => window.setTimeout(() => translatePass(), d));
       // Observe DOM mutations so navigations/dialogs get translated too.
       const obs = new MutationObserver((mutations) => {
         // Ignore mutations we caused ourselves (text-only changes inside text nodes
