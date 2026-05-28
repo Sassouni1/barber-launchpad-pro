@@ -46,7 +46,7 @@ import GHLCallback from "./pages/GHLCallback";
 import FindASpecialist from "./pages/FindASpecialist";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
-import { LocaleProvider, LanguageToggle } from "./lib/i18n/LocaleProvider";
+import { LocaleProvider } from "./lib/i18n/LocaleProvider";
 
 const queryClient = new QueryClient();
 
