@@ -234,13 +234,16 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   ) => {
     const certificateName = typeof input === 'string' ? input : input.certificateName;
     const shippingAddress = typeof input === 'string' ? undefined : input.shippingAddress;
+    const businessLocation = typeof input === 'string' ? undefined : input.businessLocation;
     setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId: courseId!,
       certificateName,
       shippingAddress,
+      businessLocation,
       debug: debugOverride ?? isDebugMode,
     });
+
     if (result?.certificateUrl) {
       setGeneratedCertificateUrl(result.certificateUrl);
       setIsCertModalOpen(false);
