@@ -169,9 +169,18 @@ function applyTranslations(root: Node, dict: Record<string, string>) {
       const trimmed = raw.trim();
       if (!trimmed) continue;
       // Record original on first encounter so we can restore later.
+      // If React reuses this text node for a different lesson/title, refresh
+      // the original so Spanish does not get stuck on the previous text.
       if (!originalText.has(n)) {
         if (shouldSkipText(trimmed)) continue;
         originalText.set(n, { type: "text", original: trimmed });
+      } else {
+        const current = originalText.get(n)!;
+        const currentTranslation = dict[current.original];
+        if (trimmed !== current.original && trimmed !== currentTranslation) {
+          if (shouldSkipText(trimmed)) continue;
+          originalText.set(n, { type: "text", original: trimmed });
+        }
       }
       const rec = originalText.get(n)!;
       const translated = dict[rec.original];
@@ -191,6 +200,12 @@ function applyTranslations(root: Node, dict: Record<string, string>) {
         const trimmed = val.trim();
         if (shouldSkipText(trimmed)) continue;
         if (!attrRec[attr]) attrRec[attr] = trimmed;
+        else {
+          const currentTranslation = dict[attrRec[attr]];
+          if (trimmed !== attrRec[attr] && trimmed !== currentTranslation) {
+            attrRec[attr] = trimmed;
+          }
+        }
         const original = attrRec[attr];
         const translated = dict[original];
         if (translated && translated !== original && e.getAttribute(attr) !== translated) {
