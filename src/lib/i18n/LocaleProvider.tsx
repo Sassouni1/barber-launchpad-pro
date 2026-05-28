@@ -348,16 +348,14 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = locale;
 
     if (locale === "es") {
-      // Run translation passes immediately and again after React finishes
-      // rendering / late-mounting async content. This avoids the "switch a few
-      // times" issue where the first toggle catches an empty/partial DOM.
-      translatePass();
-      const delays = [50, 200, 500, 1000];
-      const timers = delays.map((d) => window.setTimeout(() => translatePass(), d));
+      // Defer the first translation pass so React can paint the toggle change
+      // before we walk the entire DOM. Walking ~thousands of nodes on the click
+      // handler thread is what made the toggle feel like an 8s freeze.
+      const raf1 = requestAnimationFrame(() => translatePass());
+      // Catch late-mounting async content with a single follow-up pass.
+      const timer = window.setTimeout(() => translatePass(), 400);
       // Observe DOM mutations so navigations/dialogs get translated too.
       const obs = new MutationObserver((mutations) => {
-        // Ignore mutations we caused ourselves (text-only changes inside text nodes
-        // whose value already matches our cache). Cheap heuristic: just re-schedule.
         let relevant = false;
         for (const m of mutations) {
           if (m.type === "childList" && (m.addedNodes.length || m.removedNodes.length)) {
@@ -365,7 +363,6 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
             break;
           }
           if (m.type === "characterData") {
-            // If the node's current value is already a translation we set, skip.
             relevant = true;
             break;
           }
@@ -385,7 +382,8 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       });
       observerRef.current = obs;
       return () => {
-        timers.forEach((t) => window.clearTimeout(t));
+        cancelAnimationFrame(raf1);
+        window.clearTimeout(timer);
         obs.disconnect();
         observerRef.current = null;
       };
