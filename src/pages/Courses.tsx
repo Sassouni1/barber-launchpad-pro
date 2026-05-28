@@ -210,8 +210,12 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         {moduleData && (
           <div className="flex flex-col h-full">
             <SheetHeader className="p-4 border-b border-border/30">
-              <p className="text-xs text-muted-foreground">{localizeCourseTitle(moduleData.courseName, locale)}</p>
-              <SheetTitle className="text-lg font-bold gold-text text-left">{localizeHairSystemLessonTitle(moduleData.module, locale)}</SheetTitle>
+              <p className="text-xs text-muted-foreground" data-no-translate translate="no">
+                {localizeCourseTitle(moduleData.courseName, locale)}
+              </p>
+              <SheetTitle className="text-lg font-bold gold-text text-left" data-no-translate translate="no">
+                {localizeHairSystemLessonTitle(moduleData.module, locale)}
+              </SheetTitle>
             </SheetHeader>
 
             {/* Video Preview - only show if video exists */}
@@ -672,9 +676,13 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                 moduleData.module.video_url?.trim() && "border-b border-border/30"
               )}>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                  <span>{localizeCourseTitle(moduleData.courseName, locale)}</span>
+                  <span key={`${moduleData.module.id}-${locale}-course`} data-no-translate translate="no">
+                    {localizeCourseTitle(moduleData.courseName, locale)}
+                  </span>
                 </div>
-                <h1 className="font-display text-2xl font-bold gold-text">{localizeHairSystemLessonTitle(moduleData.module, locale)}</h1>
+                <h1 key={`${moduleData.module.id}-${locale}-title`} className="font-display text-2xl font-bold gold-text" data-no-translate translate="no">
+                  {localizeHairSystemLessonTitle(moduleData.module, locale)}
+                </h1>
                 {moduleData.module.description && (
                   <p className="text-muted-foreground mt-1">{moduleData.module.description}</p>
                 )}

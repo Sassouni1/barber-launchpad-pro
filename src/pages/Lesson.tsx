@@ -455,9 +455,12 @@ export default function Lesson() {
       )
     : null;
 
+  const localizedCourseName = localizeCourseTitle(module.courseName, locale);
+  const localizedModuleTitle = localizeHairSystemLessonTitle(module, locale);
+
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-4 pb-8">
+      <div key={`${module.id}-${locale}`} className="max-w-5xl mx-auto space-y-4 pb-8">
         {/* Header */}
         <div className="flex items-center justify-between animate-fade-up">
           <div className="flex items-center gap-4">
@@ -465,8 +468,12 @@ export default function Lesson() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <p className="text-sm text-muted-foreground">{localizeCourseTitle(module.courseName, locale)}</p>
-              <h1 className="font-display text-3xl font-bold">{localizeHairSystemLessonTitle(module, locale)}</h1>
+              <p key={`${module.id}-${locale}-course`} className="text-sm text-muted-foreground" data-no-translate translate="no">
+                {localizedCourseName}
+              </p>
+              <h1 key={`${module.id}-${locale}-title`} className="font-display text-3xl font-bold" data-no-translate translate="no">
+                {localizedModuleTitle}
+              </h1>
             </div>
           </div>
           {isModuleCompleted ? (
@@ -490,7 +497,7 @@ export default function Lesson() {
         {module.video_url?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-            <VideoPlayer key={`${module.id}-${locale}`} src={vimeoEmbedUrl} title={localizeHairSystemLessonTitle(module, locale)} />
+            <VideoPlayer key={`${module.id}-${locale}`} src={vimeoEmbedUrl} title={localizedModuleTitle} />
           )}
 
         {/* Photo Upload Section for certification requirement modules */}
