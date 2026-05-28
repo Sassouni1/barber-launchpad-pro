@@ -339,60 +339,79 @@ export function CertificationModal({
                   Where we'll mail your printed certificate.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    value={shippingAddress.recipientName}
-                    onChange={(e) => updateAddress('recipientName', e.target.value)}
-                    placeholder="Mailing name"
-                  />
-                  <Input
-                    value={shippingAddress.phone}
-                    onChange={(e) => updateAddress('phone', e.target.value)}
-                    placeholder="Phone number"
-                    inputMode="tel"
-                  />
-                </div>
-                <Input
-                  value={shippingAddress.addressLine1}
-                  onChange={(e) => updateAddress('addressLine1', e.target.value)}
-                  placeholder="Address line 1"
-                  autoComplete="shipping address-line1"
-                />
-                <Input
-                  value={shippingAddress.addressLine2}
-                  onChange={(e) => updateAddress('addressLine2', e.target.value)}
-                  placeholder="Address line 2 (optional)"
-                  autoComplete="shipping address-line2"
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    value={shippingAddress.city}
-                    onChange={(e) => updateAddress('city', e.target.value)}
-                    placeholder="City"
-                    autoComplete="shipping address-level2"
-                  />
-                  <Input
-                    value={shippingAddress.state}
-                    onChange={(e) => updateAddress('state', e.target.value)}
-                    placeholder="State"
-                    autoComplete="shipping address-level1"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    value={shippingAddress.postalCode}
-                    onChange={(e) => updateAddress('postalCode', e.target.value)}
-                    placeholder="ZIP"
-                    autoComplete="shipping postal-code"
-                  />
-                  <Input
-                    value={shippingAddress.countryCode}
-                    onChange={(e) => updateAddress('countryCode', e.target.value)}
-                    placeholder="Country"
-                    autoComplete="shipping country"
-                  />
-                </div>
+                {shipToBusiness ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Input
+                      value={shippingAddress.recipientName}
+                      onChange={(e) => updateAddress('recipientName', e.target.value)}
+                      placeholder="Mailing name (recipient)"
+                    />
+                    <Input
+                      value={shippingAddress.phone}
+                      onChange={(e) => updateAddress('phone', e.target.value)}
+                      placeholder="Phone number"
+                      inputMode="tel"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input
+                        value={shippingAddress.recipientName}
+                        onChange={(e) => updateAddress('recipientName', e.target.value)}
+                        placeholder="Mailing name"
+                      />
+                      <Input
+                        value={shippingAddress.phone}
+                        onChange={(e) => updateAddress('phone', e.target.value)}
+                        placeholder="Phone number"
+                        inputMode="tel"
+                      />
+                    </div>
+                    <Input
+                      value={shippingAddress.addressLine1}
+                      onChange={(e) => updateAddress('addressLine1', e.target.value)}
+                      placeholder="Address line 1"
+                      autoComplete="shipping address-line1"
+                    />
+                    <Input
+                      value={shippingAddress.addressLine2}
+                      onChange={(e) => updateAddress('addressLine2', e.target.value)}
+                      placeholder="Address line 2 (optional)"
+                      autoComplete="shipping address-line2"
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input
+                        value={shippingAddress.city}
+                        onChange={(e) => updateAddress('city', e.target.value)}
+                        placeholder="City"
+                        autoComplete="shipping address-level2"
+                      />
+                      <Input
+                        value={shippingAddress.state}
+                        onChange={(e) => updateAddress('state', e.target.value)}
+                        placeholder="State"
+                        autoComplete="shipping address-level1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input
+                        value={shippingAddress.postalCode}
+                        onChange={(e) => updateAddress('postalCode', e.target.value)}
+                        placeholder="ZIP"
+                        autoComplete="shipping postal-code"
+                      />
+                      <Input
+                        value={shippingAddress.countryCode}
+                        onChange={(e) => updateAddress('countryCode', e.target.value)}
+                        placeholder="Country"
+                        autoComplete="shipping country"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
+
 
               <Button
                 className="w-full gold-gradient"
