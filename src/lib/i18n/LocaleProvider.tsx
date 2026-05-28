@@ -382,7 +382,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 
-// ---- Floating toggle button ----
+// ---- Inline toggle button (placed once at top of layout) ----
 export function LanguageToggle({ className = "" }: { className?: string }) {
   const { locale, setLocale } = useLocale();
   const isEs = locale === "es";
@@ -396,10 +396,9 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
       aria-label={isEs ? "Switch to English" : "Cambiar a Español"}
       title={isEs ? "Switch to English" : "Cambiar a Español"}
       className={
-        "fixed z-[9999] top-3 right-3 md:top-4 md:right-4 " +
-        "flex items-center gap-1 rounded-full border border-primary/40 " +
-        "bg-background/90 backdrop-blur-sm px-2.5 py-1.5 text-xs font-bold " +
-        "shadow-lg shadow-black/30 hover:bg-primary/10 hover:border-primary " +
+        "inline-flex items-center gap-1 rounded-full border border-primary/40 " +
+        "bg-background/90 backdrop-blur-sm px-2.5 py-1 text-xs font-bold " +
+        "hover:bg-primary/10 hover:border-primary " +
         "transition-all select-none " +
         className
       }
@@ -407,9 +406,6 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
       <span className={isEs ? "text-muted-foreground" : "text-primary"}>EN</span>
       <span className="text-muted-foreground">/</span>
       <span className={isEs ? "text-primary" : "text-muted-foreground"}>ES</span>
-      <span className="ml-1 text-[10px] text-muted-foreground hidden sm:inline">
-        {isEs ? "Español" : "English"}
-      </span>
     </button>
   );
 }
