@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import OrderHairSystem from "./pages/OrderHairSystem";
 import Products from "./pages/Products";
 import Training from "./pages/Training";
+import SettingUpYourYelp from "./pages/lessons/SettingUpYourYelp";
 
 import Agreement from "./pages/Agreement";
 import ScheduleCall from "./pages/ScheduleCall";
@@ -85,6 +86,7 @@ const MemberApp = () => (
         <Route path="/courses/business" element={<ProtectedRoute><Courses courseType="business" /></ProtectedRoute>} />
         <Route path="/courses/:courseType/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
         <Route path="/courses/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
+        <Route path="/courses/business/lesson/setting-up-your-yelp" element={<ProtectedRoute><SettingUpYourYelp /></ProtectedRoute>} />
         <Route path="/lesson/:lessonId" element={<ProtectedRoute><LessonLegacyRedirect /></ProtectedRoute>} />
         <Route path="/todos" element={<ProtectedRoute><Todos /></ProtectedRoute>} />
         <Route path="/order-hair-system" element={<ProtectedRoute><OrderHairSystem /></ProtectedRoute>} />
