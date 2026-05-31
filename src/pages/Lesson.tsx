@@ -210,12 +210,21 @@ const renderNotesContent = (content: string) => {
   return elements;
 };
 
+const YELP_MODULE_ID = 'ae190000-0000-4000-8000-000000000001';
+
 export default function Lesson() {
   const navigate = useNavigate();
   const { lessonId } = useParams();
   const [searchParams] = useSearchParams();
   const { data: courses = [], isLoading } = useCourses();
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (lessonId === YELP_MODULE_ID) {
+      navigate('/courses/business/lesson/setting-up-your-yelp', { replace: true });
+    }
+  }, [lessonId, navigate]);
+
   
   const initialTab = searchParams.get('tab') as 'video' | 'quiz' | 'homework' | null;
   const [activeTab, setActiveTab] = useState<'video' | 'quiz' | 'homework'>(initialTab || 'video');
