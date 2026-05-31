@@ -148,7 +148,7 @@ export default function SettingUpYourYelp() {
                   className={cn(
                     'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                     active
-                      ? cn(RED_BG, 'text-white border-transparent')
+                      ? cn(RED_BG, 'border-transparent')
                       : 'bg-secondary/40 text-muted-foreground border-border hover:text-foreground',
                   )}
                 >
