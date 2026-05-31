@@ -50,7 +50,7 @@ function StepImage({ step, onZoom }: { step: YelpStep; onZoom: () => void }) {
       </div>
       <span
         className={cn(
-          'absolute top-2 left-2 rounded-md px-2 py-0.5 text-xs font-semibold text-white',
+          'absolute top-2 left-2 rounded-md px-2 py-0.5 text-xs font-semibold',
           RED_BG,
         )}
       >
