@@ -262,7 +262,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               {hasBusinessCourses && (
                 <SubNavItem to="/courses/business" icon={Briefcase} label="Business Mastery" />
               )}
-              <SubNavItem to="/courses/business/lesson/setting-up-your-yelp" icon={Briefcase} label="Setting Up your yelp" />
+              
               <SubNavItem to="/training" icon={Target} label="Training Games" />
             </ExpandableNavItem>
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed} defaultOpen>
