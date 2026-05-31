@@ -13,9 +13,9 @@ import {
   type YelpStepSection,
 } from '@/data/yelpLessonSteps';
 
-const RED_ACCENT = 'text-red-500';
-const RED_BG = 'bg-red-500';
-const RED_BORDER = 'border-red-500/40';
+const RED_ACCENT = 'text-primary';
+const RED_BG = 'bg-primary text-primary-foreground';
+const RED_BORDER = 'border-primary/30';
 
 type FilterValue = 'all' | YelpStepSection;
 
@@ -50,7 +50,7 @@ function StepImage({ step, onZoom }: { step: YelpStep; onZoom: () => void }) {
       </div>
       <span
         className={cn(
-          'absolute top-2 left-2 rounded-md px-2 py-0.5 text-xs font-semibold text-white',
+          'absolute top-2 left-2 rounded-md px-2 py-0.5 text-xs font-semibold',
           RED_BG,
         )}
       >
@@ -148,7 +148,7 @@ export default function SettingUpYourYelp() {
                   className={cn(
                     'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                     active
-                      ? cn(RED_BG, 'text-white border-transparent')
+                      ? cn(RED_BG, 'border-transparent')
                       : 'bg-secondary/40 text-muted-foreground border-border hover:text-foreground',
                   )}
                 >
