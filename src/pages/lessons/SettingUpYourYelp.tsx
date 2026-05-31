@@ -13,9 +13,9 @@ import {
   type YelpStepSection,
 } from '@/data/yelpLessonSteps';
 
-const RED_ACCENT = 'text-red-500';
-const RED_BG = 'bg-red-500';
-const RED_BORDER = 'border-red-500/40';
+const RED_ACCENT = 'text-primary';
+const RED_BG = 'bg-primary text-primary-foreground';
+const RED_BORDER = 'border-primary/30';
 
 type FilterValue = 'all' | YelpStepSection;
 
