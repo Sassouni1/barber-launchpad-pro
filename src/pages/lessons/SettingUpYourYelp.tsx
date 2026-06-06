@@ -63,7 +63,7 @@ function StepImage({ step, onZoom }: { step: YelpStep; onZoom: () => void }) {
 function VideoBlock() {
   return (
     <div className="rounded-2xl overflow-hidden border border-border bg-black">
-      <div className="aspect-video relative">
+      <div className="relative w-full" style={{ paddingTop: `${(240 / 372) * 100}%` }}>
         <iframe
           src="https://player.vimeo.com/video/1197717624?h=50cac75931&badge=0&autopause=0&player_id=0&app_id=58479"
           allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
@@ -75,6 +75,7 @@ function VideoBlock() {
     </div>
   );
 }
+
 
 
 export default function SettingUpYourYelp() {
