@@ -61,32 +61,21 @@ function StepImage({ step, onZoom }: { step: YelpStep; onZoom: () => void }) {
 }
 
 function VideoBlock() {
-  const [errored, setErrored] = useState(false);
   return (
     <div className="rounded-2xl overflow-hidden border border-border bg-black">
       <div className="aspect-video relative">
-        {errored ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground p-6 text-center">
-            <PlayCircle className="w-12 h-12" />
-            <div className="font-medium text-foreground">Annotated walkthrough video coming soon</div>
-            <p className="text-xs max-w-md">
-              Drop the file <code className="px-1 py-0.5 bg-secondary rounded">Yelp Account Setup - click annotated.mp4</code>{' '}
-              into <code className="px-1 py-0.5 bg-secondary rounded">public/lesson-assets/yelp/</code> to enable playback.
-            </p>
-          </div>
-        ) : (
-          <video
-            src={YELP_VIDEO_SRC}
-            controls
-            preload="metadata"
-            onError={() => setErrored(true)}
-            className="absolute inset-0 w-full h-full"
-          />
-        )}
+        <iframe
+          src="https://player.vimeo.com/video/1197717624?h=50cac75931&badge=0&autopause=0&player_id=0&app_id=58479"
+          allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
+          allowFullScreen
+          title="Setting Up your Yelp"
+          className="absolute inset-0 w-full h-full"
+        />
       </div>
     </div>
   );
 }
+
 
 export default function SettingUpYourYelp() {
   const navigate = useNavigate();
