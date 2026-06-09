@@ -9,11 +9,12 @@ export function FontUploader() {
   const [uploading, setUploading] = useState(false);
   const [fontUrl, setFontUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fontPath = 'fonts/CertificateName.ttf';
 
   const checkExistingFont = async () => {
     const { data } = supabase.storage
       .from('certificates')
-      .getPublicUrl('fonts/OldeEnglish.ttf');
+      .getPublicUrl(fontPath);
     
     // Check if the font exists by fetching it
     try {
@@ -43,7 +44,7 @@ export function FontUploader() {
     try {
       const { error } = await supabase.storage
         .from('certificates')
-        .upload('fonts/OldeEnglish.ttf', file, {
+        .upload(fontPath, file, {
           contentType: 'font/ttf',
           upsert: true,
         });
@@ -52,7 +53,7 @@ export function FontUploader() {
 
       const { data } = supabase.storage
         .from('certificates')
-        .getPublicUrl('fonts/OldeEnglish.ttf');
+        .getPublicUrl(fontPath);
 
       setFontUrl(data.publicUrl);
       toast.success('Font uploaded successfully!');
@@ -72,7 +73,7 @@ export function FontUploader() {
           {fontUrl && <Check className="h-5 w-5 text-green-500" />}
         </CardTitle>
         <CardDescription>
-          Upload the Old English font for certificate generation
+          Upload the name font for certificate generation
         </CardDescription>
       </CardHeader>
       <CardContent>
