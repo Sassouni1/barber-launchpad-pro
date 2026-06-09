@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    const fileName = formData.get('fileName') as string || 'OldeEnglish.ttf';
+    const fileName = formData.get('fileName') as string || 'CertificateName.ttf';
 
     if (!file) {
       throw new Error('No file provided');
