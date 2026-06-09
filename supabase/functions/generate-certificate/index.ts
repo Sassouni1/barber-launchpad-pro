@@ -100,8 +100,8 @@ function resolveCertificateLayout(layout: Record<string, unknown>, width: number
   };
 }
 
-// Font URLs — prefer the uploaded Old English certificate font in storage, fallback only if missing.
-const NAME_FONT_FALLBACK_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/ebgaramond/EBGaramond%5Bwght%5D.ttf';
+// Font URLs — prefer a custom uploaded certificate-name font, then use a clean script fallback.
+const NAME_FONT_FALLBACK_URL = 'https://fonts.gstatic.com/s/pinyonscript/v24/6xKpdSJbL9-e9LuoeQiDRQR8aOI.ttf';
 const DATE_FONT_URL = 'https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtZ6Ew-.ttf';
 
 serve(async (req) => {
@@ -168,34 +168,34 @@ serve(async (req) => {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Try the uploaded Old English font first; this is the configured certificate font.
+    // Try the uploaded custom certificate font first; use an elegant script fallback if missing.
     let nameFontFamily = 'serif';
     let dateFontFamily = 'sans-serif';
     try {
-      const oldEnglishUrl = `${supabaseUrl}/storage/v1/object/public/certificates/fonts/OldeEnglish.ttf`;
+      const customNameFontUrl = `${supabaseUrl}/storage/v1/object/public/certificates/fonts/CertificateName.ttf`;
       let nameFontLoaded = false;
       try {
-        const oldEnglishRes = await fetch(oldEnglishUrl);
-        if (oldEnglishRes.ok) {
-          const data = await oldEnglishRes.arrayBuffer();
-          canvas.loadFont(new Uint8Array(data), { family: 'OldeEnglish' });
-          nameFontFamily = 'OldeEnglish';
+        const customNameFontRes = await fetch(customNameFontUrl);
+        if (customNameFontRes.ok) {
+          const data = await customNameFontRes.arrayBuffer();
+          canvas.loadFont(new Uint8Array(data), { family: 'CertificateName' });
+          nameFontFamily = 'CertificateName';
           nameFontLoaded = true;
-          console.log('Old English loaded from storage:', data.byteLength);
+          console.log('Custom certificate name font loaded from storage:', data.byteLength);
         }
       } catch (e) {
-        console.log('Old English not in storage, using fallback');
+        console.log('Custom certificate name font not in storage, using fallback');
       }
 
       if (!nameFontLoaded) {
         const nameRes = await fetch(NAME_FONT_FALLBACK_URL);
         if (nameRes.ok) {
           const data = await nameRes.arrayBuffer();
-          canvas.loadFont(new Uint8Array(data), { family: 'EBGaramond' });
-          nameFontFamily = 'EBGaramond';
-          console.log('EB Garamond fallback loaded:', data.byteLength);
+          canvas.loadFont(new Uint8Array(data), { family: 'PinyonScript' });
+          nameFontFamily = 'PinyonScript';
+          console.log('Pinyon Script fallback loaded:', data.byteLength);
         } else {
-          console.warn('EB Garamond fetch failed:', nameRes.status);
+          console.warn('Pinyon Script fetch failed:', nameRes.status);
         }
       }
 
@@ -239,33 +239,15 @@ serve(async (req) => {
     
     ctx.font = `${fontSize}px ${nameFontFamily}`;
     
-    // Extra horizontal tracking between letters (~8% of font size).
-    const letterSpacing = () => Math.round(fontSize * 0.08);
-
-    const measureWithSpacing = (text: string) => {
-      const base = ctx.measureText(text).width;
-      return base + letterSpacing() * Math.max(0, text.length - 1);
-    };
-
-    // Auto-size font to fit within max width (accounting for letter spacing).
-    while (measureWithSpacing(certificateName) > nameMaxWidth && fontSize > minFontSize) {
+    // Auto-size font to fit within max width. Keep script fonts connected by drawing the full name at once.
+    while (ctx.measureText(certificateName).width > nameMaxWidth && fontSize > minFontSize) {
       fontSize -= 2;
       ctx.font = `${fontSize}px ${nameFontFamily}`;
     }
 
-    console.log('Name font:', { family: nameFontFamily, size: fontSize, letterSpacing: letterSpacing() });
-
-    // Draw the name char-by-char so we can add letter spacing manually.
-    const totalWidth = measureWithSpacing(certificateName);
-    let cursor = nameX - totalWidth / 2;
-    ctx.textAlign = 'left';
-    for (const ch of certificateName) {
-      const charWidth = ctx.measureText(ch).width;
-      ctx.fillText(ch, cursor, nameY);
-      cursor += charWidth + letterSpacing();
-    }
-    ctx.textAlign = 'center';
-    console.log('Name drawn at:', { x: nameX, y: nameY, totalWidth });
+    console.log('Name font:', { family: nameFontFamily, size: fontSize });
+    ctx.fillText(certificateName, nameX, nameY);
+    console.log('Name drawn at:', { x: nameX, y: nameY, width: ctx.measureText(certificateName).width });
 
     // Draw date - default to using the name font/color when configured as 'name'
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
