@@ -156,7 +156,7 @@ const renderNotesContent = (content: string) => {
     if (line.match(/^\*\*(.+)\*\*$/)) {
       const title = line.replace(/^\*\*(.+)\*\*$/, "$1");
       elements.push(
-        <h4 key={index} className="font-semibold text-foreground mt-4 first:mt-0 mb-2">
+        <h4 key={index} className="font-bold text-lg text-foreground mt-5 first:mt-0 mb-3">
           {title}
         </h4>
       );
@@ -189,7 +189,7 @@ const renderNotesContent = (content: string) => {
     // Regular text (skip placeholder-only lines as they're handled inline)
     else if (!line.match(/^__COPY_BLOCK_\d+__$/)) {
       elements.push(
-        <p key={index} className="text-muted-foreground">
+        <p key={index} className="text-base text-foreground/90 leading-relaxed">
           {renderInlineElements(line, `line-${index}`)}
         </p>
       );
