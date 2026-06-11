@@ -310,6 +310,40 @@ export default function Lesson() {
     toast.success('Lesson marked as complete!');
   };
 
+  const confirmationConfig = module ? CONFIRMATION_MODULES[module.id] : undefined;
+
+  const renderConfirmationCard = () => {
+    if (!confirmationConfig) return null;
+    return (
+      <div className="space-y-4 py-2">
+        <h3 className="font-display text-xl font-semibold">{confirmationConfig.question}</h3>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            size="lg"
+            className={`flex-1 ${isModuleCompleted ? 'gold-gradient' : ''}`}
+            onClick={markModuleComplete}
+            disabled={isModuleCompleted}
+          >
+            <CheckCircle2 className="w-5 h-5 mr-2" />
+            {isModuleCompleted ? 'Yes — Completed' : 'Yes, I posted it'}
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="flex-1"
+            onClick={() => toast.info("No problem — come back once you've posted!")}
+            disabled={isModuleCompleted}
+          >
+            Not yet
+          </Button>
+        </div>
+        {isModuleCompleted && (
+          <p className="text-sm text-primary text-center">{confirmationConfig.successText}</p>
+        )}
+      </div>
+    );
+  };
+
   // Resolve the source URL based on active locale (Spanish overrides fall back to English).
   const { locale } = useLocale();
   const localizedVideoUrl = useMemo(
