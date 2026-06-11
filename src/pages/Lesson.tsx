@@ -568,10 +568,10 @@ export default function Lesson() {
         </div>
 
         {/* Video Player - only show if video exists and not a special lesson */}
-        {module.video_url?.trim() &&
+        {displayVideoUrl?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-            <VideoPlayer key={`${module.id}-${locale}`} src={vimeoEmbedUrl} title={localizedModuleTitle} />
+            <VideoPlayer key={`${module.id}-${sublesson?.id || 'main'}-${locale}`} src={vimeoEmbedUrl} title={localizedModuleTitle} />
           )}
 
         {/* Photo Upload Section for certification requirement modules */}
