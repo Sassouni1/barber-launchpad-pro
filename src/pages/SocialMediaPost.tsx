@@ -1,6 +1,5 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SocialMediaPostAssets } from '@/components/marketing/SocialMediaPostAssets';
-import { FeaturedSocialPost } from '@/components/marketing/FeaturedSocialPost';
 
 export default function SocialMediaPost() {
   return (
@@ -12,7 +11,6 @@ export default function SocialMediaPost() {
             Ready-to-use image assets for your social posts. Tap any image to download.
           </p>
         </div>
-        <FeaturedSocialPost />
         <SocialMediaPostAssets />
       </div>
     </DashboardLayout>
