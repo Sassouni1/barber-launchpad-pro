@@ -316,7 +316,10 @@ export default function Lesson() {
     if (!confirmationConfig) return null;
     return (
       <div className="space-y-4 py-2">
-        <h3 className="font-display text-xl font-semibold">{confirmationConfig.question}</h3>
+        <h3 className="font-display text-xl font-semibold">
+          <span className="text-primary font-bold">Important:</span> Mark As Completed
+        </h3>
+        <p className="text-base text-foreground/80">{confirmationConfig.question}</p>
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
             size="lg"
