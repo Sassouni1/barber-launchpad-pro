@@ -771,7 +771,7 @@ export default function Lesson() {
           <div className="flex items-center justify-between animate-fade-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-primary" />
-              <h2 className="font-display text-lg font-semibold">Quiz</h2>
+              <h2 className="font-display text-lg font-semibold">{confirmationConfig ? 'Confirm' : 'Quiz'}</h2>
               {bestAttempt && (
                 <span className="px-2 py-0.5 bg-primary/20 rounded text-xs">
                   Best: {Math.round((bestAttempt.score / bestAttempt.total_questions) * 100)}%
