@@ -904,10 +904,12 @@ export default function Lesson() {
         {/* Notes Section - only show if there are notes */}
         {module.notes_content && (
           <div className="glass-card p-4 md:p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.4s' }}>
-            <div className="flex items-center gap-2 mb-4">
-              <StickyNote className="w-5 h-5 text-primary" />
-              <h2 className="font-display text-lg md:text-xl font-semibold">Notes</h2>
-            </div>
+            {!module.notes_content.trim().startsWith('**') && (
+              <div className="flex items-center gap-2 mb-4">
+                <StickyNote className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg md:text-xl font-semibold">Notes</h2>
+              </div>
+            )}
             <div className="prose prose-invert prose-sm max-w-none">
               {renderNotesContent(module.notes_content)}
             </div>
