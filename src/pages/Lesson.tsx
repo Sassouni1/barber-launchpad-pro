@@ -585,8 +585,8 @@ export default function Lesson() {
                 className={activeTab === 'quiz' ? 'gold-gradient' : ''}
               >
                 <HelpCircle className="w-4 h-4 mr-2" />
-                {localizeCourseUi('Quiz', locale)}
-                {bestAttempt && (
+                {confirmationConfig ? 'Confirm' : localizeCourseUi('Quiz', locale)}
+                {!confirmationConfig && bestAttempt && (
                   <span className="ml-2 px-2 py-0.5 bg-white/20 rounded text-xs">
                     Best: {Math.round((bestAttempt.score / bestAttempt.total_questions) * 100)}%
                   </span>
