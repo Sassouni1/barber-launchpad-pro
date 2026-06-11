@@ -372,8 +372,10 @@ export default function Lesson() {
 
   // Memoize the embed URL so the iframe src stays stable across re-renders
   const vimeoEmbedUrl = useMemo(
-    () => resolveVideoEmbedUrlForModule(module, locale, getVimeoEmbedUrl),
-    [module, locale]
+    () => sublesson?.video_url
+      ? getVimeoEmbedUrl(sublesson.video_url)
+      : resolveVideoEmbedUrlForModule(module, locale, getVimeoEmbedUrl),
+    [module, locale, sublesson]
   );
 
   // Auto-complete video lessons based on time on page
