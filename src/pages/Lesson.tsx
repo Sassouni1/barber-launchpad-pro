@@ -998,10 +998,10 @@ export default function Lesson() {
           <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.3s' }}>
             {activeTab === 'video' && (
               <div className="space-y-6">
-                {module.description && !(module as any).is_directory_enrollment && (
+                {displayDescription && !(module as any).is_directory_enrollment && (
                   <div>
-                    <h2 className="font-display text-xl font-semibold mb-2">About This Module</h2>
-                    <p className="text-muted-foreground">{module.description}</p>
+                    <h2 className="font-display text-xl font-semibold mb-2">{sublesson ? 'About This Lesson' : 'About This Module'}</h2>
+                    <p className="text-muted-foreground">{displayDescription}</p>
                   </div>
                 )}
 
