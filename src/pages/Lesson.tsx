@@ -214,7 +214,7 @@ const YELP_MODULE_ID = 'ae190000-0000-4000-8000-000000000001';
 
 export default function Lesson() {
   const navigate = useNavigate();
-  const { lessonId } = useParams();
+  const { lessonId, courseType } = useParams();
   const [searchParams] = useSearchParams();
   const { data: courses = [], isLoading } = useCourses();
   const isMobile = useIsMobile();
@@ -388,7 +388,7 @@ export default function Lesson() {
       <DashboardLayout>
         <div className="text-center py-20">
           <h1 className="font-display text-2xl font-bold mb-4">Module not found</h1>
-          <Button onClick={() => navigate('/courses')}>Back to Courses</Button>
+          <Button onClick={() => navigate(`/courses/${courseType || 'hair-system'}`)}>Back to Courses</Button>
         </div>
       </DashboardLayout>
     );
@@ -473,7 +473,7 @@ export default function Lesson() {
         {/* Header */}
         <div className="flex items-center justify-between animate-fade-up">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/courses')}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(`/courses/${courseType || (module as any).courseCategory || 'hair-system'}`)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
