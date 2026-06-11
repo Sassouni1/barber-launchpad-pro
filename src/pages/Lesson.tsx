@@ -1138,7 +1138,7 @@ export default function Lesson() {
 
             {activeTab === 'quiz' && module.has_quiz && (
               <div className="space-y-6">
-                {questions.length === 0 ? (
+                {confirmationConfig ? renderConfirmationCard() : questions.length === 0 ? (
                   <div className="text-center py-8">
                     <HelpCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground">No quiz questions available yet.</p>
