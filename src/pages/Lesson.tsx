@@ -43,6 +43,14 @@ import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
 
+// Modules that use a simple "did you do it?" confirmation instead of a quiz
+const CONFIRMATION_MODULES: Record<string, { question: string; successText: string }> = {
+  'ab29d113-b97e-4c2d-95e0-39d6699d2105': {
+    question: 'Did you post your first hair system post?',
+    successText: "Awesome! You're officially live. Keep the momentum going.",
+  },
+};
+
 // Memoized video player – survives parent re-renders
 const VideoPlayer = React.memo(({ src, title }: { src: string; title: string }) => (
   <div className="glass-card rounded-2xl overflow-hidden">
@@ -302,6 +310,40 @@ export default function Lesson() {
     toast.success('Lesson marked as complete!');
   };
 
+  const confirmationConfig = module ? CONFIRMATION_MODULES[module.id] : undefined;
+
+  const renderConfirmationCard = () => {
+    if (!confirmationConfig) return null;
+    return (
+      <div className="space-y-4 py-2">
+        <h3 className="font-display text-xl font-semibold">{confirmationConfig.question}</h3>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            size="lg"
+            className={`flex-1 ${isModuleCompleted ? 'gold-gradient' : ''}`}
+            onClick={markModuleComplete}
+            disabled={isModuleCompleted}
+          >
+            <CheckCircle2 className="w-5 h-5 mr-2" />
+            {isModuleCompleted ? 'Yes — Completed' : 'Yes, I posted it'}
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="flex-1"
+            onClick={() => toast.info("No problem — come back once you've posted!")}
+            disabled={isModuleCompleted}
+          >
+            Not yet
+          </Button>
+        </div>
+        {isModuleCompleted && (
+          <p className="text-sm text-primary text-center">{confirmationConfig.successText}</p>
+        )}
+      </div>
+    );
+  };
+
   // Resolve the source URL based on active locale (Spanish overrides fall back to English).
   const { locale } = useLocale();
   const localizedVideoUrl = useMemo(
@@ -543,8 +585,8 @@ export default function Lesson() {
                 className={activeTab === 'quiz' ? 'gold-gradient' : ''}
               >
                 <HelpCircle className="w-4 h-4 mr-2" />
-                {localizeCourseUi('Quiz', locale)}
-                {bestAttempt && (
+                {confirmationConfig ? 'Confirm' : localizeCourseUi('Quiz', locale)}
+                {!confirmationConfig && bestAttempt && (
                   <span className="ml-2 px-2 py-0.5 bg-white/20 rounded text-xs">
                     Best: {Math.round((bestAttempt.score / bestAttempt.total_questions) * 100)}%
                   </span>
@@ -729,7 +771,7 @@ export default function Lesson() {
           <div className="flex items-center justify-between animate-fade-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-primary" />
-              <h2 className="font-display text-lg font-semibold">Quiz</h2>
+              <h2 className="font-display text-lg font-semibold">{confirmationConfig ? 'Confirm' : 'Quiz'}</h2>
               {bestAttempt && (
                 <span className="px-2 py-0.5 bg-primary/20 rounded text-xs">
                   Best: {Math.round((bestAttempt.score / bestAttempt.total_questions) * 100)}%
@@ -752,7 +794,7 @@ export default function Lesson() {
         {isMobile && module.has_quiz && (
           <div className="glass-card p-4 rounded-2xl animate-fade-up" style={{ animationDelay: '0.3s' }}>
             <div className="space-y-4">
-              {questions.length === 0 ? (
+              {confirmationConfig ? renderConfirmationCard() : questions.length === 0 ? (
                 <div className="text-center py-6">
                   <HelpCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
                   <p className="text-muted-foreground text-sm">No quiz questions available yet.</p>
@@ -1096,7 +1138,7 @@ export default function Lesson() {
 
             {activeTab === 'quiz' && module.has_quiz && (
               <div className="space-y-6">
-                {questions.length === 0 ? (
+                {confirmationConfig ? renderConfirmationCard() : questions.length === 0 ? (
                   <div className="text-center py-8">
                     <HelpCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground">No quiz questions available yet.</p>
