@@ -526,7 +526,9 @@ export default function Lesson() {
     : null;
 
   const localizedCourseName = localizeCourseTitle(module.courseName, locale);
-  const localizedModuleTitle = localizeHairSystemLessonTitle(module, locale);
+  const localizedModuleTitle = sublesson?.title || localizeHairSystemLessonTitle(module, locale);
+  const displayDescription = sublesson ? (sublesson.description || '') : module.description;
+  const displayVideoUrl = sublesson ? (sublesson.video_url || '') : module.video_url;
 
   return (
     <DashboardLayout>
