@@ -236,12 +236,28 @@ export default function Lesson() {
   
   const initialTab = searchParams.get('tab') as 'video' | 'quiz' | 'homework' | null;
   const [activeTab, setActiveTab] = useState<'video' | 'quiz' | 'homework'>(initialTab || 'video');
+  const sublessonId = searchParams.get('sublesson');
 
   // Update tab when URL changes
   useEffect(() => {
     const tab = searchParams.get('tab') as 'video' | 'quiz' | 'homework' | null;
     if (tab) setActiveTab(tab);
   }, [searchParams]);
+
+  // Fetch sublesson when in URL — drives title/video/description so each sublesson is distinct
+  const { data: sublesson } = useQuery({
+    queryKey: ['sublesson', sublessonId],
+    queryFn: async () => {
+      if (!sublessonId) return null;
+      const { data } = await supabase
+        .from('lessons')
+        .select('id, title, description, video_url')
+        .eq('id', sublessonId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!sublessonId,
+  });
 
   // Find the module and get all modules for navigation
   const allModules = courses.flatMap((c) => 
