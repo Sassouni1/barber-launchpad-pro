@@ -794,7 +794,7 @@ export default function Lesson() {
         {isMobile && module.has_quiz && (
           <div className="glass-card p-4 rounded-2xl animate-fade-up" style={{ animationDelay: '0.3s' }}>
             <div className="space-y-4">
-              {questions.length === 0 ? (
+              {confirmationConfig ? renderConfirmationCard() : questions.length === 0 ? (
                 <div className="text-center py-6">
                   <HelpCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
                   <p className="text-muted-foreground text-sm">No quiz questions available yet.</p>
