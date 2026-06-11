@@ -236,12 +236,28 @@ export default function Lesson() {
   
   const initialTab = searchParams.get('tab') as 'video' | 'quiz' | 'homework' | null;
   const [activeTab, setActiveTab] = useState<'video' | 'quiz' | 'homework'>(initialTab || 'video');
+  const sublessonId = searchParams.get('sublesson');
 
   // Update tab when URL changes
   useEffect(() => {
     const tab = searchParams.get('tab') as 'video' | 'quiz' | 'homework' | null;
     if (tab) setActiveTab(tab);
   }, [searchParams]);
+
+  // Fetch sublesson when in URL — drives title/video/description so each sublesson is distinct
+  const { data: sublesson } = useQuery({
+    queryKey: ['sublesson', sublessonId],
+    queryFn: async () => {
+      if (!sublessonId) return null;
+      const { data } = await supabase
+        .from('lessons')
+        .select('id, title, description, video_url')
+        .eq('id', sublessonId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!sublessonId,
+  });
 
   // Find the module and get all modules for navigation
   const allModules = courses.flatMap((c) => 
@@ -356,8 +372,10 @@ export default function Lesson() {
 
   // Memoize the embed URL so the iframe src stays stable across re-renders
   const vimeoEmbedUrl = useMemo(
-    () => resolveVideoEmbedUrlForModule(module, locale, getVimeoEmbedUrl),
-    [module, locale]
+    () => sublesson?.video_url
+      ? getVimeoEmbedUrl(sublesson.video_url)
+      : resolveVideoEmbedUrlForModule(module, locale, getVimeoEmbedUrl),
+    [module, locale, sublesson]
   );
 
   // Auto-complete video lessons based on time on page
@@ -510,7 +528,9 @@ export default function Lesson() {
     : null;
 
   const localizedCourseName = localizeCourseTitle(module.courseName, locale);
-  const localizedModuleTitle = localizeHairSystemLessonTitle(module, locale);
+  const localizedModuleTitle = sublesson?.title || localizeHairSystemLessonTitle(module, locale);
+  const displayDescription = sublesson ? (sublesson.description || '') : module.description;
+  const displayVideoUrl = sublesson ? (sublesson.video_url || '') : module.video_url;
 
   return (
     <DashboardLayout>
@@ -548,10 +568,10 @@ export default function Lesson() {
         </div>
 
         {/* Video Player - only show if video exists and not a special lesson */}
-        {module.video_url?.trim() &&
+        {displayVideoUrl?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-            <VideoPlayer key={`${module.id}-${locale}`} src={vimeoEmbedUrl} title={localizedModuleTitle} />
+            <VideoPlayer key={`${module.id}-${sublesson?.id || 'main'}-${locale}`} src={vimeoEmbedUrl} title={localizedModuleTitle} />
           )}
 
         {/* Photo Upload Section for certification requirement modules */}
@@ -978,10 +998,10 @@ export default function Lesson() {
           <div className="glass-card p-6 rounded-2xl animate-fade-up" style={{ animationDelay: '0.3s' }}>
             {activeTab === 'video' && (
               <div className="space-y-6">
-                {module.description && !(module as any).is_directory_enrollment && (
+                {displayDescription && !(module as any).is_directory_enrollment && (
                   <div>
-                    <h2 className="font-display text-xl font-semibold mb-2">About This Module</h2>
-                    <p className="text-muted-foreground">{module.description}</p>
+                    <h2 className="font-display text-xl font-semibold mb-2">{sublesson ? 'About This Lesson' : 'About This Module'}</h2>
+                    <p className="text-muted-foreground">{displayDescription}</p>
                   </div>
                 )}
 
