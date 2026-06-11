@@ -1124,7 +1124,7 @@ export default function Lesson() {
                       onClick={() => setActiveTab('quiz')}
                     >
                       <HelpCircle className="w-4 h-4 mr-2" />
-                      Start Quiz
+                      {confirmationConfig ? 'Confirm' : 'Start Quiz'}
                     </Button>
                   )}
                   <Button 
