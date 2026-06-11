@@ -43,6 +43,14 @@ import { PhotoUploadSection } from '@/components/lesson/PhotoUploadSection';
 import { DirectoryEnrollmentLesson } from '@/components/lesson/DirectoryEnrollmentLesson';
 import { SubLessonQuiz } from '@/components/lesson/SubLessonQuiz';
 
+// Modules that use a simple "did you do it?" confirmation instead of a quiz
+const CONFIRMATION_MODULES: Record<string, { question: string; successText: string }> = {
+  'ab29d113-b97e-4c2d-95e0-39d6699d2105': {
+    question: 'Did you post your first hair system post?',
+    successText: "Awesome! You're officially live. Keep the momentum going.",
+  },
+};
+
 // Memoized video player – survives parent re-renders
 const VideoPlayer = React.memo(({ src, title }: { src: string; title: string }) => (
   <div className="glass-card rounded-2xl overflow-hidden">
