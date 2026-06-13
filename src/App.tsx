@@ -48,6 +48,7 @@ import FindASpecialist from "./pages/FindASpecialist";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LocaleProvider } from "./lib/i18n/LocaleProvider";
+import { AccessLogger } from "./components/AccessLogger";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const DirectoryApp = () => (
 const MemberApp = () => (
   <AuthProvider>
     <BrowserRouter>
+      <AccessLogger />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
