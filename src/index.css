@@ -429,6 +429,35 @@
   background: hsl(var(--gold) / 0.5);
 }
 
+/* Prominent scrollbar on desktop for lesson views */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--gold) / 0.55);
+    border-radius: 5px;
+    border: 2px solid hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--gold) / 0.85);
+  }
+
+  /* Firefox scrollbar */
+  html {
+    scrollbar-color: hsl(var(--gold) / 0.55) hsl(var(--background));
+    scrollbar-width: auto;
+  }
+}
+
 /* Certificate preview font — loads the same clean script font used by the
    generated certificate so admin preview matches the final output exactly. */
 @font-face {
