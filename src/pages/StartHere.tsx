@@ -57,8 +57,12 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'days-4-6',
     label: 'Days 4–6 · Application Theory',
-    subtitle: 'Get every application method into your head before the hair arrives.',
+    subtitle: 'Get every application method into your head — and start practicing templates once Package 1 lands.',
     accent: 'from-yellow-500/20 to-transparent',
+    kit: {
+      title: 'Package 1 of 2 arrives this week',
+      contents: 'Everything you need to create your template.',
+    },
     steps: [
       {
         title: 'Tape, Adhesive & Styling',
