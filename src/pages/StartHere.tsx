@@ -81,7 +81,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'days-7-9',
     label: 'Days 7–9 · Business Side',
-    subtitle: 'Your full Hair System Kit lands this week. Lock in pricing, maintenance, and consults.',
+    subtitle: 'Package 2 lands this week. Dip into pricing and consults whenever you feel ready.',
     accent: 'from-orange-500/20 to-transparent',
     kit: {
       title: 'Package 2 of 2 arrives this week',
