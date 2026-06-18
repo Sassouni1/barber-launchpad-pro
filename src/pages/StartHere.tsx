@@ -229,7 +229,7 @@ export default function StartHere() {
                 </div>
                 <div className="text-left min-w-0 flex-1">
                   <p className="font-semibold text-sm">Book 1-on-1 Call</p>
-                  <p className="text-xs text-muted-foreground whitespace-normal break-words leading-snug">Deep-dive strategy, account reviews, ad setup help, complex problems, or when you just want to talk it through with a human.</p>
+                  <p className="text-xs text-muted-foreground whitespace-normal break-words leading-snug">Feeling stuck, running into issues, marketing set up, deep dive into hair systems, or when you just want to <strong>talk it through with someone</strong>.</p>
                 </div>
               </Button>
             </div>
