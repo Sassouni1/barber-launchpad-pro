@@ -152,9 +152,9 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   ];
 
   const memberLinks = [
-    { to: '/start-here', icon: Sparkles, label: 'Start Here' },
+    ...(hideStartHere ? [] : [{ to: '/start-here', icon: Sparkles, label: 'Start Here' }]),
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    ...(isNewAccount
+    ...(restrictNav
       ? []
       : [
           { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
