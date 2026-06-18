@@ -206,14 +206,14 @@ export default function StartHere() {
                   setSupportOpen(false);
                   navigate('/aion');
                 }}
-                className="justify-start h-auto py-4 px-4 gap-4 border-primary/40 hover:bg-primary/10"
+                className="justify-start h-auto py-4 px-4 gap-3 border-primary/40 hover:bg-primary/10 whitespace-normal text-left w-full"
               >
                 <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <Bot className="w-5 h-5 text-primary" />
                 </div>
-                <div className="text-left">
+                <div className="text-left min-w-0 flex-1">
                   <p className="font-semibold text-sm">Ask Aion AI</p>
-                  <p className="text-xs text-muted-foreground">Quick questions, how-to's, troubleshooting steps, campaign ideas, pricing scripts — instant answers anytime.</p>
+                  <p className="text-xs text-muted-foreground whitespace-normal break-words leading-snug">Quick questions, how-to's, troubleshooting steps, campaign ideas, pricing scripts — instant answers anytime.</p>
                 </div>
               </Button>
               <Button
@@ -222,17 +222,18 @@ export default function StartHere() {
                   setSupportOpen(false);
                   navigate('/schedule-call');
                 }}
-                className="justify-start h-auto py-4 px-4 gap-4 border-primary/40 hover:bg-primary/10"
+                className="justify-start h-auto py-4 px-4 gap-3 border-primary/40 hover:bg-primary/10 whitespace-normal text-left w-full"
               >
                 <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
-                <div className="text-left">
+                <div className="text-left min-w-0 flex-1">
                   <p className="font-semibold text-sm">Book 1-on-1 Call</p>
-                  <p className="text-xs text-muted-foreground">Deep-dive strategy, account reviews, ad setup help, complex problems, or when you just want to talk it through with a human.</p>
+                  <p className="text-xs text-muted-foreground whitespace-normal break-words leading-snug">Deep-dive strategy, account reviews, ad setup help, complex problems, or when you just want to talk it through with a human.</p>
                 </div>
               </Button>
             </div>
+
           </DialogContent>
         </Dialog>
 
