@@ -25,7 +25,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'days-1-3',
     label: 'Days 1–3 · Foundations',
-    subtitle: "While you wait for your kit, build the brain first.",
+    subtitle: "No kit needed yet. Watch what you can, when you can — every bit counts.",
     accent: 'from-amber-500/20 to-transparent',
     steps: [
       {
