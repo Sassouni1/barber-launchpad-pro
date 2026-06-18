@@ -348,6 +348,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   </div>
                 </PopoverContent>
               </Popover>
+              )}
             </>
           )}
           {isAdminView && adminLinks.map((link) => (
