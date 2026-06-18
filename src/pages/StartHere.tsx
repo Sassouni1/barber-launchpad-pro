@@ -21,7 +21,7 @@ interface Step {
   cta?: { label: string; to: string };
 }
 
-const phases: { id: string; label: string; subtitle: string; accent: string; steps: Step[] }[] = [
+const phases: { id: string; label: string; subtitle: string; accent: string; kit?: { title: string; contents: string }; steps: Step[] }[] = [
   {
     id: 'days-1-3',
     label: 'Days 1–3 · Foundations',
