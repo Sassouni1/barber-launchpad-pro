@@ -57,7 +57,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'days-4-6',
     label: 'Days 4–6 · Application Theory',
-    subtitle: 'Get every application method into your head — and start practicing templates once Package 1 lands.',
+    subtitle: 'Keep going at your own speed. When Package 1 lands, start practicing templates.',
     accent: 'from-yellow-500/20 to-transparent',
     kit: {
       title: 'Package 1 of 2 arrives this week',
