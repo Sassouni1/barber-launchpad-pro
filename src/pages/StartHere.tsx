@@ -158,7 +158,7 @@ export default function StartHere() {
             <p className="text-muted-foreground md:text-lg max-w-2xl">
               Your hair system kit takes ~9 days to arrive. Go at your own pace — even one video a day puts you miles ahead when it lands.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 pt-2">
               <Button
                 onClick={() => navigate('/courses/hair-system')}
                 className="gold-gradient text-primary-foreground font-semibold gap-2"
@@ -174,11 +174,7 @@ export default function StartHere() {
                 <LifeBuoy className="w-4 h-4" />
                 Need Support?
               </Button>
-            </div>
-
-            {/* Next group call countdown */}
-            <div className="pt-4">
-              <NextCallCountdown />
+              <NextCallCountdown compact />
             </div>
           </div>
         </section>
