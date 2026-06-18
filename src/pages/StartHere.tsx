@@ -266,9 +266,9 @@ export default function StartHere() {
         {/* Stuck callout */}
         <section className="rounded-2xl border border-primary/40 bg-primary/5 p-5 md:p-6 text-center space-y-3">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto" />
-          <h3 className="font-display text-lg md:text-xl font-bold gold-text">Feeling lost? Don’t be.</h3>
+          <h3 className="font-display text-lg md:text-xl font-bold gold-text">No such thing as behind.</h3>
           <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
-            Follow this page top to bottom. If you’re ever unsure where to pick back up, come back here — this is your home base until you finish Level 1.
+            Life happens. Come back to this page anytime and pick up wherever you left off — this is your home base until you finish Level 1.
           </p>
           <Button
             onClick={() => navigate('/aion')}
