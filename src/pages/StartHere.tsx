@@ -154,7 +154,7 @@ export default function StartHere() {
               Your first 9 days, mapped out.
             </h1>
             <p className="text-muted-foreground md:text-lg max-w-2xl">
-              Your hair system kit takes ~9 days to arrive. Don’t sit there waiting — follow this plan and you’ll be ready to practice the day it lands on your doorstep.
+              Your hair system kit takes ~9 days to arrive. Go at your own pace — even one video a day puts you miles ahead when it lands.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
