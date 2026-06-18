@@ -236,6 +236,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode, isManufacturer } = useAuth();
+  const isNewAccount = useIsNewAccount();
   
   // Detect if we're currently in the manufacturer/supplier view
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
