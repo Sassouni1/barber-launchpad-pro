@@ -111,7 +111,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'kit-arrives',
     label: 'Kit Arrives · Start Practicing',
-    subtitle: 'Both packages in hand. You’ve done the theory — now you put hands on hair.',
+    subtitle: 'Both packages in hand. You’ve been building the brain — now you put hands on hair, whenever you’re ready.',
     accent: 'from-emerald-500/20 to-transparent',
     steps: [
       {
