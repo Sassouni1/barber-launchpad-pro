@@ -40,6 +40,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { Switch } from '@/components/ui/switch';
 import {
   Collapsible,
