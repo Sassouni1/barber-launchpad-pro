@@ -66,7 +66,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
     steps: [
       {
         title: 'Tape, Adhesive & Styling',
-        body: 'Three short videos. Take notes — these are the moves you’ll repeat on real clients.',
+        body: 'Three short videos. Watch one, take a break, come back — no rush.',
         icon: Play,
         cta: { label: 'Continue Course', to: '/courses/hair-system' },
       },
