@@ -1,0 +1,1 @@
+UPDATE public.group_calls SET day_of_week = 'Sunday', notes = 'called moved; New Lessons coming this week', updated_at = now() WHERE id = '7813dedf-37f0-432b-97ab-a4eb8d6e22e1';
