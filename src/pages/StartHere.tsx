@@ -71,8 +71,8 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
         cta: { label: 'Continue Course', to: '/courses/hair-system' },
       },
       {
-        title: 'Watch all 4 Live Client demos',
-        body: 'See the full flow from greeting to finish. Pause when you don’t understand — rewatch.',
+        title: 'Watch the 4 Live Client demos',
+        body: 'See the full flow from greeting to finish. You don’t have to watch them all at once — one today, one tomorrow is fine.',
         icon: Play,
         cta: { label: 'Open Live Client 1', to: '/courses/hair-system' },
       },
