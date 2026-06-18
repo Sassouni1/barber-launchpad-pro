@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Bot,
   MapPin,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
