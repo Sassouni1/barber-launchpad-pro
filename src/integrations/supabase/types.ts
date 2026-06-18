@@ -747,6 +747,7 @@ export type Database = {
           day_of_week: string
           id: string
           is_active: boolean
+          notes: string | null
           order_index: number
           time_label: string
           title: string
@@ -762,6 +763,7 @@ export type Database = {
           day_of_week: string
           id?: string
           is_active?: boolean
+          notes?: string | null
           order_index?: number
           time_label: string
           title: string
@@ -777,6 +779,7 @@ export type Database = {
           day_of_week?: string
           id?: string
           is_active?: boolean
+          notes?: string | null
           order_index?: number
           time_label?: string
           title?: string
