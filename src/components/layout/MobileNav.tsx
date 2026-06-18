@@ -309,6 +309,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   </div>
                 </PopoverContent>
               </Popover>
+              {!isNewAccount && (
               <Popover open={marketingOpen} onOpenChange={setMarketingOpen}>
                 <PopoverTrigger asChild>
                   <button
