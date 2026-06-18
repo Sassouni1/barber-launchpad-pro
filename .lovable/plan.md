@@ -1,39 +1,31 @@
-# Per-Sub-Lesson Quizzes
+# Add Kit Arrival Notes to Start Here
 
-Right now quizzes are attached to **modules** only. This change lets you attach an independent quiz to any **sub-lesson** as well.
+Keep the current 4-phase structure. Just surface *when* each of the 2 packages lands inside the existing phases.
 
-## What you'll get
+## Changes to `src/pages/StartHere.tsx`
 
-- Restore the **Has Quiz** toggle on the sub-lesson form in the Course Builder.
-- When enabled, a **Manage Quiz** button appears on that sub-lesson (same editor as the module quiz, but scoped to the sub-lesson).
-- On the member lesson page, each sub-lesson with a quiz gets its own **Take Quiz** section inline in the sub-lesson list, with score tracking separate from the module quiz.
+**Phase 2 — Days 4–6 (Application Theory)**
+- Add a small "📦 Package 1 arrives this week" callout at the top of the phase card.
+- Contents: template supplies (everything needed to make the template).
+- Subtitle tweak: hint that they can start practicing template-making once it lands.
 
-## Technical changes
+**Phase 3 — Days 7–9 (Business Side)**
+- Add a small "📦 Package 2 arrives this week" callout at the top of the phase card.
+- Contents: full Hair System Kit — adhesive, tape, color wheel, remover, hair pencil, install supplies, pins, canvas block.
+- Keep all existing business-side steps untouched.
 
-1. **Database**
-   - Add `lesson_id uuid` (nullable) to `quiz_questions`.
-   - Add `lesson_id uuid` (nullable) to `user_quiz_attempts`.
-   - Make `module_id` nullable on both (a question/attempt belongs to *either* a module or a lesson).
-   - Add a check constraint via trigger: exactly one of `module_id` / `lesson_id` must be set.
+**Phase 4 — Kit Arrives**
+- Rename label to something like "Both Packages In Hand · Start Practicing" (or keep "Kit Arrives" — open to your preference).
+- Tweak subtitle to reflect that by now they have everything.
+- No step changes.
 
-2. **Hooks (`src/hooks/useQuiz.ts`)**
-   - `useQuizQuestions`, `useQuizAttempts`, `useSubmitQuiz` accept either `{ moduleId }` or `{ lessonId }`.
-   - All CRUD mutations (create/update question) accept `lesson_id` alternative.
+**Hero stat row**
+- Leave "~9 days / Until your kit arrives" as-is, OR optionally change sub to "Until both packages arrive". Will keep as-is unless you say otherwise.
 
-3. **Admin (`src/components/admin/QuizManager.tsx` + `CourseBuilder.tsx`)**
-   - QuizManager takes `{ moduleId?, lessonId? }`.
-   - Re-add the **Has Quiz** switch on the sub-lesson form.
-   - Add a **Manage Quiz** button per sub-lesson row when `lesson.has_quiz` is true.
+## Visual treatment
 
-4. **Member UI (`src/pages/Lesson.tsx`)**
-   - In the sub-lesson list, when `lesson.has_quiz` is true, render a collapsible quiz block (same UI as the existing module quiz, just scoped by `lessonId`).
-
-5. **Edge function (`supabase/functions/verify-quiz/index.ts`)**
-   - Accept `lessonId` as an alternative to `moduleId`; verify and record the attempt against whichever was passed.
+The callout will be a thin bordered strip inside the phase card (small package icon + bold "Package 1 of 2 arrives" + one line listing contents). Uses existing border/primary tokens — no new colors.
 
 ## Out of scope
-
-- Routing to a dedicated per-sub-lesson page. Quizzes will appear inline within the existing module lesson page.
-- Migrating existing module quizzes to lesson quizzes (existing module quizzes keep working unchanged).
-
-Confirm and I'll run the migration and ship the code.
+- No reordering of phases or steps.
+- No changes to routes, data, or other pages.

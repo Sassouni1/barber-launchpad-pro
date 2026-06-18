@@ -21,7 +21,7 @@ interface Step {
   cta?: { label: string; to: string };
 }
 
-const phases: { id: string; label: string; subtitle: string; accent: string; steps: Step[] }[] = [
+const phases: { id: string; label: string; subtitle: string; accent: string; kit?: { title: string; contents: string }; steps: Step[] }[] = [
   {
     id: 'days-1-3',
     label: 'Days 1–3 · Foundations',
@@ -57,8 +57,12 @@ const phases: { id: string; label: string; subtitle: string; accent: string; ste
   {
     id: 'days-4-6',
     label: 'Days 4–6 · Application Theory',
-    subtitle: 'Get every application method into your head before the hair arrives.',
+    subtitle: 'Get every application method into your head — and start practicing templates once Package 1 lands.',
     accent: 'from-yellow-500/20 to-transparent',
+    kit: {
+      title: 'Package 1 of 2 arrives this week',
+      contents: 'Everything you need to create your template.',
+    },
     steps: [
       {
         title: 'Tape, Adhesive & Styling',
@@ -77,8 +81,12 @@ const phases: { id: string; label: string; subtitle: string; accent: string; ste
   {
     id: 'days-7-9',
     label: 'Days 7–9 · Business Side',
-    subtitle: 'By now your kit is shipping. Lock in pricing, maintenance, and consults.',
+    subtitle: 'Your full Hair System Kit lands this week. Lock in pricing, maintenance, and consults.',
     accent: 'from-orange-500/20 to-transparent',
+    kit: {
+      title: 'Package 2 of 2 arrives this week',
+      contents: 'Hair System Kit: adhesive, tape, color wheel, remover, hair pencil, install supplies, pins, canvas block.',
+    },
     steps: [
       {
         title: 'Maintenance + At Home Care',
@@ -103,7 +111,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; ste
   {
     id: 'kit-arrives',
     label: 'Kit Arrives · Start Practicing',
-    subtitle: 'You’ve done the theory. Now you put hands on hair.',
+    subtitle: 'Both packages in hand. You’ve done the theory — now you put hands on hair.',
     accent: 'from-emerald-500/20 to-transparent',
     steps: [
       {
@@ -206,7 +214,24 @@ export default function StartHere() {
                   </div>
                 </div>
 
+                {phase.kit && (
+                  <div className="mb-4 flex items-start gap-3 rounded-xl border border-primary/40 bg-primary/10 p-3 md:p-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center">
+                      <PackageCheck className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm md:text-base font-semibold gold-text leading-tight">
+                        📦 {phase.kit.title}
+                      </p>
+                      <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                        {phase.kit.contents}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3 md:pl-13">
+
                   {phase.steps.map((step, stepIdx) => (
                     <div
                       key={stepIdx}
