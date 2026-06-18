@@ -12,7 +12,9 @@ import {
   CheckCircle2,
   Sparkles,
   ArrowRight,
+  LifeBuoy,
 } from 'lucide-react';
+import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
 
 interface Step {
   title: string;
