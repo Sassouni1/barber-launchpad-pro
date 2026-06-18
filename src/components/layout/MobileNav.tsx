@@ -23,6 +23,7 @@ import {
   Gift,
   ClipboardCheck,
   Video,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -145,6 +146,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   ];
 
   const memberLinks = [
+    { to: '/start-here', icon: Sparkles, label: 'Start Here' },
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
     { to: '/training', icon: Target, label: 'Games' },
