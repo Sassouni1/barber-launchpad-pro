@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import {
   Popover,
@@ -94,6 +95,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin: userIsAdmin, isManufacturer } = useAuth();
+  const isNewAccount = useIsNewAccount();
   
   // Detect manufacturer view by route or actual role
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
@@ -148,8 +150,12 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const memberLinks = [
     { to: '/start-here', icon: Sparkles, label: 'Start Here' },
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
-    { to: '/training', icon: Target, label: 'Games' },
+    ...(isNewAccount
+      ? []
+      : [
+          { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
+          { to: '/training', icon: Target, label: 'Games' },
+        ]),
   ];
 
   const [checklistOpen, setChecklistOpen] = useState(false);
@@ -303,6 +309,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   </div>
                 </PopoverContent>
               </Popover>
+              {!isNewAccount && (
               <Popover open={marketingOpen} onOpenChange={setMarketingOpen}>
                 <PopoverTrigger asChild>
                   <button
@@ -341,6 +348,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   </div>
                 </PopoverContent>
               </Popover>
+              )}
             </>
           )}
           {isAdminView && adminLinks.map((link) => (
