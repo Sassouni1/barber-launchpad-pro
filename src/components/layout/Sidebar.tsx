@@ -337,7 +337,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <NavItem to="/start-here" icon={Sparkles} label="Start Here" collapsed={collapsed} />
             )}
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-            {!isNewAccount && (
+            {!restrictNav && (
               <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
                 {hasHairSystemCourses && (
                   <SubNavItem to="/courses/hair-system" icon={GraduationCap} label="Hair System Training" />
@@ -355,7 +355,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                   <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
                 ))}
             </ExpandableNavItem>
-            {!isNewAccount && (
+            {!restrictNav && (
               <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed}>
                 <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
                 <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
