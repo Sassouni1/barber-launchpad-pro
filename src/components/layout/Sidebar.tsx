@@ -265,27 +265,27 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               
               <SubNavItem to="/training" icon={Target} label="Training Games" />
             </ExpandableNavItem>
-            <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed} defaultOpen>
+            <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed}>
               {checklistLists
                 .filter(list => !list.title.toLowerCase().includes('consultation'))
                 .map(list => (
                   <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
                 ))}
             </ExpandableNavItem>
-            <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
+            <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed}>
               <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
               <SubNavItem to="/social-media-post" icon={Megaphone} label="Hair System Content" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
             </ExpandableNavItem>
             {/* Rewards hidden for now */}
-            <ExpandableNavItem icon={Package} label="Products" collapsed={collapsed} defaultOpen>
+            <ExpandableNavItem icon={Package} label="Products" collapsed={collapsed}>
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
               <SubNavItem to="/orders" icon={Package} label="Order History & Tracking" />
             </ExpandableNavItem>
             
-            <ExpandableNavItem icon={Phone} label="Barber Launch Calls" collapsed={collapsed}>
+            <ExpandableNavItem icon={Phone} label="Barber Launch Calls" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule Call 1 on 1" />
             </ExpandableNavItem>
             
