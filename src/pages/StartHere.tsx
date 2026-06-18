@@ -214,7 +214,24 @@ export default function StartHere() {
                   </div>
                 </div>
 
+                {phase.kit && (
+                  <div className="mb-4 flex items-start gap-3 rounded-xl border border-primary/40 bg-primary/10 p-3 md:p-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center">
+                      <PackageCheck className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm md:text-base font-semibold gold-text leading-tight">
+                        📦 {phase.kit.title}
+                      </p>
+                      <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                        {phase.kit.contents}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3 md:pl-13">
+
                   {phase.steps.map((step, stepIdx) => (
                     <div
                       key={stepIdx}
