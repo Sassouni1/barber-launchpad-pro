@@ -159,7 +159,7 @@ export default function StartHere() {
         {/* Quick stats row */}
         <section className="grid grid-cols-3 gap-3">
           {[
-            { icon: Clock, label: '~9 days', sub: 'Until your kit ships' },
+            { icon: Clock, label: '~9 days', sub: 'Until your kit arrives' },
             { icon: PackageCheck, label: 'Day 10+', sub: 'Hands-on practice' },
             { icon: GraduationCap, label: 'Level 1', sub: 'Certification goal' },
           ].map((s, i) => (
