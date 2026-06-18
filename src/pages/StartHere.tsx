@@ -213,7 +213,7 @@ export default function StartHere() {
                 </div>
                 <div className="text-left min-w-0 flex-1">
                   <p className="font-semibold text-sm">Ask Aion AI</p>
-                  <p className="text-xs text-muted-foreground whitespace-normal break-words leading-snug">Quick questions, how-to's, troubleshooting steps, campaign ideas, pricing scripts — instant answers anytime.</p>
+                  <p className="text-xs text-muted-foreground whitespace-normal break-words leading-snug">Hair system install questions, technique, marketing ideas — instant answers anytime.</p>
                 </div>
               </Button>
               <Button
