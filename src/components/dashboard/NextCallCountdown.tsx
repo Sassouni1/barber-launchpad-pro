@@ -116,10 +116,16 @@ export function NextCallCountdown({ compact = false }: { compact?: boolean }) {
             </span>
           </div>
           <h3 className="font-display text-xl font-bold mb-1">{call.title}</h3>
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <p className="text-sm text-muted-foreground flex items-center gap-2 mb-1">
             <Calendar className="w-4 h-4" />
             {call.day_of_week} • {call.time_label}
           </p>
+          {call.notes && (
+            <p className="text-xs text-primary/80 font-medium bg-primary/10 rounded-md px-2 py-1 inline-flex items-center gap-1.5 mt-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              {call.notes}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
