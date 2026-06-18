@@ -50,6 +50,17 @@ import { useCourses } from '@/hooks/useCourses';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
+import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface NavItemProps {
   to: string;
