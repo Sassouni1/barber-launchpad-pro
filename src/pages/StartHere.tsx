@@ -81,8 +81,12 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'days-7-9',
     label: 'Days 7–9 · Business Side',
-    subtitle: 'By now your kit is shipping. Lock in pricing, maintenance, and consults.',
+    subtitle: 'Your full Hair System Kit lands this week. Lock in pricing, maintenance, and consults.',
     accent: 'from-orange-500/20 to-transparent',
+    kit: {
+      title: 'Package 2 of 2 arrives this week',
+      contents: 'Hair System Kit: adhesive, tape, color wheel, remover, hair pencil, install supplies, pins, canvas block.',
+    },
     steps: [
       {
         title: 'Maintenance + At Home Care',
