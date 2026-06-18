@@ -95,6 +95,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin: userIsAdmin, isManufacturer } = useAuth();
+  const isNewAccount = useIsNewAccount();
   
   // Detect manufacturer view by route or actual role
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
