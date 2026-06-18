@@ -365,8 +365,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             )}
             {/* Rewards hidden for now */}
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
-              <SubNavItem to="/products" icon={Package} label="Browse Products" />
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
+              <SubNavItem to="/products" icon={Package} label="Browse Products" />
               <SubNavItem to="/orders" icon={Package} label="Order History & Tracking" />
             </ExpandableNavItem>
             
