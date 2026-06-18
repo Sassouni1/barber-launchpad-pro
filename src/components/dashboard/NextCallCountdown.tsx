@@ -122,17 +122,17 @@ export function NextCallCountdown({ compact = false }: { compact?: boolean }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           {!live && (
-            <div className="flex gap-2 text-center">
+            <div className="flex flex-wrap gap-2 text-center justify-center">
               {[
                 { v: days, l: 'D' },
                 { v: hours, l: 'H' },
                 { v: mins, l: 'M' },
                 { v: secs, l: 'S' },
               ].map((u) => (
-                <div key={u.l} className="bg-secondary/60 rounded-lg px-3 py-2 min-w-[52px]">
-                  <div className="font-display text-xl font-bold text-primary tabular-nums">
+                <div key={u.l} className="bg-secondary/60 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 min-w-[44px] sm:min-w-[52px]">
+                  <div className="font-display text-lg sm:text-xl font-bold text-primary tabular-nums">
                     {String(u.v).padStart(2, '0')}
                   </div>
                   <div className="text-[10px] text-muted-foreground">{u.l}</div>
