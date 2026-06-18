@@ -213,7 +213,7 @@ export default function StartHere() {
                 </div>
                 <div className="text-left">
                   <p className="font-semibold text-sm">Ask Aion AI</p>
-                  <p className="text-xs text-muted-foreground">Instant answers, 24/7</p>
+                  <p className="text-xs text-muted-foreground">Quick questions, how-to's, troubleshooting steps, campaign ideas, pricing scripts — instant answers anytime.</p>
                 </div>
               </Button>
               <Button
@@ -229,7 +229,7 @@ export default function StartHere() {
                 </div>
                 <div className="text-left">
                   <p className="font-semibold text-sm">Book 1-on-1 Call</p>
-                  <p className="text-xs text-muted-foreground">Talk to a real person</p>
+                  <p className="text-xs text-muted-foreground">Deep-dive strategy, account reviews, ad setup help, complex problems, or when you just want to talk it through with a human.</p>
                 </div>
               </Button>
             </div>
