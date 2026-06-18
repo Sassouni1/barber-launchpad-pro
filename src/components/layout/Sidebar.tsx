@@ -166,27 +166,60 @@ function SubNavItem({ to, icon: Icon, label }: { to: string; icon: React.Compone
 
 function TrainingGamesSubNavItem({ collapsed }: { collapsed: boolean }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { unlocked, passedQuizzes, totalQuizzes } = useTrainingGamesUnlocked();
+  const [showDialog, setShowDialog] = useState(false);
   const to = '/training';
   const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (!unlocked) {
+      e.preventDefault();
+      setShowDialog(true);
+    }
+  };
+
   return (
-    <NavLink
-      to={to}
-      className={cn(
-        'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-300 group relative',
-        isActive
-          ? 'bg-primary/10 text-primary border border-primary/30'
-          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent',
-        !unlocked && 'opacity-70'
-      )}
-    >
-      <Target className={cn('w-4 h-4 flex-shrink-0 transition-all', isActive && 'text-primary')} />
-      <span className="font-medium text-sm flex-1">Training Games</span>
-      {!unlocked && totalQuizzes > 0 && (
-        <span className="text-[10px] text-muted-foreground">{passedQuizzes}/{totalQuizzes}</span>
-      )}
-    </NavLink>
+    <>
+      <NavLink
+        to={to}
+        onClick={handleClick}
+        className={cn(
+          'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-300 group relative',
+          isActive
+            ? 'bg-primary/10 text-primary border border-primary/30'
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent',
+          !unlocked && 'opacity-70'
+        )}
+      >
+        <Target className={cn('w-4 h-4 flex-shrink-0 transition-all', isActive && 'text-primary')} />
+        <span className="font-medium text-sm flex-1">Training Games</span>
+        {!unlocked && totalQuizzes > 0 && (
+          <span className="text-[10px] text-muted-foreground">{passedQuizzes}/{totalQuizzes}</span>
+        )}
+      </NavLink>
+      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Training Games</AlertDialogTitle>
+            <AlertDialogDescription>
+              Unlocks after all quizzes in Hair System Training are completed.
+              {totalQuizzes > 0 && (
+                <span className="block mt-2 text-sm">
+                  Progress: {passedQuizzes} / {totalQuizzes} quizzes passed
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDialog(false)}>Close</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowDialog(false); navigate('/training'); }}>
+              Go to Training Games
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
