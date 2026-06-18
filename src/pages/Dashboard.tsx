@@ -13,7 +13,7 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-8">
-        <ShippingNotification />
+        {/* Disabled: <ShippingNotification /> */}
         <WelcomeHero />
 
         <div className="space-y-6">
