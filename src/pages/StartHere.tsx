@@ -1,6 +1,14 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   Rocket,
   PackageCheck,
@@ -13,6 +21,8 @@ import {
   Sparkles,
   ArrowRight,
   LifeBuoy,
+  Bot,
+  Calendar,
 } from 'lucide-react';
 import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
 
@@ -140,6 +150,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
 
 export default function StartHere() {
   const navigate = useNavigate();
+  const [supportOpen, setSupportOpen] = useState(false);
 
   return (
     <DashboardLayout>
@@ -168,7 +179,7 @@ export default function StartHere() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/schedule-call')}
+                onClick={() => setSupportOpen(true)}
                 className="border-primary/40 gap-2"
               >
                 <LifeBuoy className="w-4 h-4" />
@@ -178,6 +189,52 @@ export default function StartHere() {
             </div>
           </div>
         </section>
+
+        {/* Support choice dialog */}
+        <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>What do you need help with?</DialogTitle>
+              <DialogDescription>
+                Choose how you want to get support right now.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSupportOpen(false);
+                  navigate('/aion');
+                }}
+                className="justify-start h-auto py-4 px-4 gap-4 border-primary/40 hover:bg-primary/10"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Ask Aion AI</p>
+                  <p className="text-xs text-muted-foreground">Instant answers, 24/7</p>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSupportOpen(false);
+                  navigate('/schedule-call');
+                }}
+                className="justify-start h-auto py-4 px-4 gap-4 border-primary/40 hover:bg-primary/10"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Book 1-on-1 Call</p>
+                  <p className="text-xs text-muted-foreground">Talk to a real person</p>
+                </div>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Quick stats row */}
         <section className="grid grid-cols-3 gap-3">
