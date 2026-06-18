@@ -81,21 +81,26 @@ export function NextCallCountdown({ compact = false }: { compact?: boolean }) {
 
   if (compact) {
     return (
-      <a
-        href={call.zoom_link}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/40 bg-primary/10 text-xs hover:bg-primary/20 transition-colors"
+      <Button
+        variant="outline"
+        asChild
+        className="border-primary/40 gap-2 text-xs h-10"
       >
-        <Video className="w-3 h-3 text-primary" />
-        <span className="text-muted-foreground hidden sm:inline">{call.day_of_week} • {call.time_label}</span>
-        <span className="font-semibold text-primary tabular-nums">
-          {live ? 'Live now' : `${days}d ${hours}h ${mins}m`}
-        </span>
-        <span className="text-[10px] uppercase tracking-wider font-medium text-primary">
-          {live ? 'Join' : 'Join'}
-        </span>
-      </a>
+        <a
+          href={call.zoom_link}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Video className="w-4 h-4 text-primary" />
+          <span className="text-muted-foreground hidden sm:inline">{call.day_of_week} • {call.time_label}</span>
+          <span className="font-semibold text-primary tabular-nums">
+            {live ? 'LIVE' : `${days}d ${hours}h ${mins}m`}
+          </span>
+          <span className="text-[10px] uppercase tracking-wider font-medium text-primary">
+            {live ? 'Join Now' : 'Join'}
+          </span>
+        </a>
+      </Button>
     );
   }
 
