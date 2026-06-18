@@ -158,36 +158,41 @@ export default function Agreement() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold gold-text">Money-Back Guarantee</h2>
+                <h2 className="text-lg font-semibold gold-text">Our 3 Client Guarantee</h2>
                 <p>
-                  Barber Launch offers a full money-back guarantee if, after six (6) months, the Client 
-                  has not secured three (3) paying hair system clients, provided all requirements below are met.
+                  Barber Launch is designed to help you get real results and master a real skill. 
+                  Our guarantee exists to support that.
+                </p>
+                <p>
+                  Barber Launch guarantees that if you complete the required steps and do not get 
+                  three paying hair system clients within <strong>16 weeks</strong>, you are eligible 
+                  for your money back.
                 </p>
                 
                 <div className="space-y-2">
                   <h3 className="font-medium text-foreground">Requirements to Qualify</h3>
-                  <p>Client must provide proof of all of the following:</p>
+                  <p>Client must complete all of the following:</p>
                   <ul className="list-disc pl-6 space-y-1">
-                    <li>Completion of at least two (2) paid hair system installs</li>
-                    <li>Promotional poster hung and visibly displayed at the Client{"'"}s place of business</li>
-                    <li>Facebook and/or Instagram ads launched and published as instructed, with a minimum ad spend of $600</li>
-                    <li>At least fifty (50) leads contacted by phone</li>
-                    <li>Completion of all required quizzes</li>
-                    <li>Posting on social media two (2) times per week</li>
+                    <li>Complete all required training modules and quizzes</li>
+                    <li>Submit certification photos and pass certification</li>
+                    <li>Attend at least 50% of weekly live group coaching calls (minimum 8 of 16)</li>
+                    <li>Run the required ad spend for at least 50 days</li>
+                    <li>Respond to Barber Launch when support, setup, or campaign updates are needed</li>
+                    <li>Stay active in the program during the 16-week period</li>
                   </ul>
-                  <p className="text-muted-foreground text-sm">
-                    Proof of completion must be provided in the form of photos, screenshots, call logs, 
-                    ad receipts, CRM records, and/or platform data.
-                  </p>
                 </div>
 
                 <div className="space-y-2">
                   <h3 className="font-medium text-foreground">Refund Terms</h3>
                   <p>
                     If all requirements above are met and the Client has not secured three (3) paying 
-                    hair system clients, Barber Launch will issue a full refund within thirty (30) business 
-                    days of a written request. Refund requests must be submitted no later than seven (7) 
-                    months from the program start date.
+                    hair system clients within 16 weeks, Barber Launch will issue a full refund. 
+                    You will also keep your website, certification, training access, CRM setup, and 
+                    business assets created during the program.
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    Refunds are only available through the 3 Client Guarantee for students who complete 
+                    the required steps. Otherwise, all sales are final.
                   </p>
                 </div>
               </section>
