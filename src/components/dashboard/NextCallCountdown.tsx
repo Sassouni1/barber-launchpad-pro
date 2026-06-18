@@ -92,7 +92,7 @@ export function NextCallCountdown({ compact = false }: { compact?: boolean }) {
           rel="noopener noreferrer"
         >
           <Video className="w-4 h-4 text-primary" />
-          <span className="text-muted-foreground hidden sm:inline">{call.day_of_week} • {call.time_label}</span>
+          <span className="hidden sm:inline">Group Call</span>
           <span className="font-semibold text-primary tabular-nums">
             {live ? 'LIVE' : `${days}d ${hours}h ${mins}m`}
           </span>
