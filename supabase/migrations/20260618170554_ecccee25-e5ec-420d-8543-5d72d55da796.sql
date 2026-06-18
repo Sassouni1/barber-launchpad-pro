@@ -1,0 +1,1 @@
+ALTER TABLE public.group_calls ADD COLUMN IF NOT EXISTS notes TEXT;
