@@ -150,8 +150,12 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const memberLinks = [
     { to: '/start-here', icon: Sparkles, label: 'Start Here' },
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
-    { to: '/training', icon: Target, label: 'Games' },
+    ...(isNewAccount
+      ? []
+      : [
+          { to: '/courses/hair-system', icon: BookOpen, label: 'Courses' },
+          { to: '/training', icon: Target, label: 'Games' },
+        ]),
   ];
 
   const [checklistOpen, setChecklistOpen] = useState(false);
