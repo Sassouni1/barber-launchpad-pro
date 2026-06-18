@@ -233,9 +233,6 @@ export default function StartHere() {
                 </div>
               </Button>
             </div>
-            <p className="text-center text-xs text-muted-foreground mt-3">
-              We're glad to help with anything!
-            </p>
 
           </DialogContent>
         </Dialog>
