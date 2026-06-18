@@ -263,7 +263,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                 <SubNavItem to="/courses/business" icon={Briefcase} label="Business Mastery" />
               )}
               
-              <SubNavItem to="/training" icon={Target} label="Training Games" />
+              <TrainingGamesSubNavItem />
             </ExpandableNavItem>
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed}>
               {checklistLists
