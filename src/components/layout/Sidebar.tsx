@@ -1,6 +1,7 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
+  Sparkles,
   BookOpen, 
   ListTodo, 
   Settings, 
@@ -325,6 +326,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           ))
         ) : (
           <>
+            <NavItem to="/start-here" icon={Sparkles} label="Start Here" collapsed={collapsed} />
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
             <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
               {hasHairSystemCourses && (
