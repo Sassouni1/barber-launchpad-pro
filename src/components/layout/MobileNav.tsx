@@ -288,7 +288,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   >
                     <Package className="w-5 h-5" />
                     <span className="text-[10px] font-medium leading-tight text-center flex items-center gap-0.5">
-                      Products <ChevronDown className="w-3 h-3" />
+                      Order Hair & Products <ChevronDown className="w-3 h-3" />
                     </span>
                   </button>
                 </PopoverTrigger>
