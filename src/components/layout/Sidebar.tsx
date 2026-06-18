@@ -41,6 +41,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
+
+
 import { Switch } from '@/components/ui/switch';
 import {
   Collapsible,
@@ -237,6 +239,9 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const location = useLocation();
   const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode, isManufacturer } = useAuth();
   const isNewAccount = useIsNewAccount();
+  const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
+  const restrictNav = isNewAccount && !allQuizzesPassed;
+  const hideStartHere = isNewAccount && allQuizzesPassed;
   
   // Detect if we're currently in the manufacturer/supplier view
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
@@ -328,9 +333,11 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           ))
         ) : (
           <>
-            <NavItem to="/start-here" icon={Sparkles} label="Start Here" collapsed={collapsed} />
+            {!hideStartHere && (
+              <NavItem to="/start-here" icon={Sparkles} label="Start Here" collapsed={collapsed} />
+            )}
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-            {!isNewAccount && (
+            {!restrictNav && (
               <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
                 {hasHairSystemCourses && (
                   <SubNavItem to="/courses/hair-system" icon={GraduationCap} label="Hair System Training" />
@@ -348,7 +355,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                   <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
                 ))}
             </ExpandableNavItem>
-            {!isNewAccount && (
+            {!restrictNav && (
               <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed}>
                 <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
                 <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
