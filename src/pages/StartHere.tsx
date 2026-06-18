@@ -1,6 +1,14 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   Rocket,
   PackageCheck,
@@ -13,6 +21,8 @@ import {
   Sparkles,
   ArrowRight,
   LifeBuoy,
+  Bot,
+  Calendar,
 } from 'lucide-react';
 import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
 
