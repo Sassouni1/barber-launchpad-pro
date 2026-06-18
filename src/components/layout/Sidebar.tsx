@@ -333,7 +333,9 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           ))
         ) : (
           <>
-            <NavItem to="/start-here" icon={Sparkles} label="Start Here" collapsed={collapsed} />
+            {!hideStartHere && (
+              <NavItem to="/start-here" icon={Sparkles} label="Start Here" collapsed={collapsed} />
+            )}
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
             {!isNewAccount && (
               <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
