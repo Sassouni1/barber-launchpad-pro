@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
+import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import {
   Popover,
