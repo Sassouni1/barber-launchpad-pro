@@ -56,6 +56,7 @@ export function GuaranteeCard() {
               <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                 <li>Complete all required training modules and quizzes</li>
                 <li>Submit your certification photos and pass certification</li>
+                <li>Attend at least 50% of weekly live group coaching calls (minimum 8 of 16)</li>
                 <li>Run the required ad spend for at least 50 days</li>
                 <li>Respond to Barber Launch when support, setup, or campaign updates are needed</li>
                 <li>Stay active in the program during the 16-week period</li>
