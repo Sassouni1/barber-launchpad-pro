@@ -42,7 +42,7 @@ function getNextOccurrence(dayName: string, hour24: number, minute: number) {
   return null;
 }
 
-export function NextCallCountdown() {
+export function NextCallCountdown({ compact = false }: { compact?: boolean }) {
   const { data: call } = useQuery({
     queryKey: ['next-group-call'],
     queryFn: async () => {
