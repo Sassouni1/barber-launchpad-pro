@@ -29,16 +29,28 @@ const phases: { id: string; label: string; subtitle: string; accent: string; ste
     accent: 'from-amber-500/20 to-transparent',
     steps: [
       {
-        title: 'Watch: Terms of the Industry → The Color Ring',
+        title: 'Watch: Terms of the Industry',
         body: 'Learn the vocabulary so nothing on the rest of the course sounds foreign.',
         icon: Play,
-        cta: { label: 'Open Lesson 1', to: '/courses/hair-system' },
+        cta: { label: 'Open Lesson', to: '/courses/hair-system' },
       },
       {
-        title: 'Watch: How to Make a Template → How to Customize',
-        body: 'Understand the physical process you’re about to practice when the kit lands.',
+        title: 'Watch: The Color Ring',
+        body: 'Understand hair color matching so you can confidently order the right system.',
         icon: Play,
-        cta: { label: 'Go to Courses', to: '/courses/hair-system' },
+        cta: { label: 'Open Lesson', to: '/courses/hair-system' },
+      },
+      {
+        title: 'Watch: How to Make a Template',
+        body: 'Understand the physical process you\u2019re about to practice when the kit lands.',
+        icon: Play,
+        cta: { label: 'Open Lesson', to: '/courses/hair-system' },
+      },
+      {
+        title: 'Watch: How to Customize the Hair System',
+        body: 'Learn how to tailor the system to each client before it ever touches their head.',
+        icon: Play,
+        cta: { label: 'Open Lesson', to: '/courses/hair-system' },
       },
     ],
   },
