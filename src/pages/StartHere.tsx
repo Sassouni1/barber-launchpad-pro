@@ -150,6 +150,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
 
 export default function StartHere() {
   const navigate = useNavigate();
+  const [supportOpen, setSupportOpen] = useState(false);
 
   return (
     <DashboardLayout>
