@@ -171,9 +171,14 @@ export default function StartHere() {
                 onClick={() => navigate('/schedule-call')}
                 className="border-primary/40 gap-2"
               >
-                <Phone className="w-4 h-4" />
-                Book 1-on-1 Call
+                <LifeBuoy className="w-4 h-4" />
+                Need Support?
               </Button>
+            </div>
+
+            {/* Next group call countdown */}
+            <div className="pt-4">
+              <NextCallCountdown />
             </div>
           </div>
         </section>
