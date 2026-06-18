@@ -25,7 +25,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'days-1-3',
     label: 'Days 1–3 · Foundations',
-    subtitle: "While you wait for your kit, build the brain first.",
+    subtitle: "No kit needed yet. Watch what you can, when you can — every bit counts.",
     accent: 'from-amber-500/20 to-transparent',
     steps: [
       {
@@ -57,7 +57,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'days-4-6',
     label: 'Days 4–6 · Application Theory',
-    subtitle: 'Get every application method into your head — and start practicing templates once Package 1 lands.',
+    subtitle: 'Keep going at your own speed. When Package 1 lands, start practicing templates.',
     accent: 'from-yellow-500/20 to-transparent',
     kit: {
       title: 'Package 1 of 2 arrives this week',
@@ -66,13 +66,13 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
     steps: [
       {
         title: 'Tape, Adhesive & Styling',
-        body: 'Three short videos. Take notes — these are the moves you’ll repeat on real clients.',
+        body: 'Three short videos. Watch one, take a break, come back — no rush.',
         icon: Play,
         cta: { label: 'Continue Course', to: '/courses/hair-system' },
       },
       {
-        title: 'Watch all 4 Live Client demos',
-        body: 'See the full flow from greeting to finish. Pause when you don’t understand — rewatch.',
+        title: 'Watch the 4 Live Client demos',
+        body: 'See the full flow from greeting to finish. You don’t have to watch them all at once — one today, one tomorrow is fine.',
         icon: Play,
         cta: { label: 'Open Live Client 1', to: '/courses/hair-system' },
       },
@@ -81,7 +81,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'days-7-9',
     label: 'Days 7–9 · Business Side',
-    subtitle: 'Your full Hair System Kit lands this week. Lock in pricing, maintenance, and consults.',
+    subtitle: 'Package 2 lands this week. Dip into pricing and consults whenever you feel ready.',
     accent: 'from-orange-500/20 to-transparent',
     kit: {
       title: 'Package 2 of 2 arrives this week',
@@ -111,7 +111,7 @@ const phases: { id: string; label: string; subtitle: string; accent: string; kit
   {
     id: 'kit-arrives',
     label: 'Kit Arrives · Start Practicing',
-    subtitle: 'Both packages in hand. You’ve done the theory — now you put hands on hair.',
+    subtitle: 'Both packages in hand. You’ve been building the brain — now you put hands on hair, whenever you’re ready.',
     accent: 'from-emerald-500/20 to-transparent',
     steps: [
       {
@@ -154,7 +154,7 @@ export default function StartHere() {
               Your first 9 days, mapped out.
             </h1>
             <p className="text-muted-foreground md:text-lg max-w-2xl">
-              Your hair system kit takes ~9 days to arrive. Don’t sit there waiting — follow this plan and you’ll be ready to practice the day it lands on your doorstep.
+              Your hair system kit takes ~9 days to arrive. Go at your own pace — even one video a day puts you miles ahead when it lands.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
@@ -266,9 +266,9 @@ export default function StartHere() {
         {/* Stuck callout */}
         <section className="rounded-2xl border border-primary/40 bg-primary/5 p-5 md:p-6 text-center space-y-3">
           <CheckCircle2 className="w-8 h-8 text-primary mx-auto" />
-          <h3 className="font-display text-lg md:text-xl font-bold gold-text">Feeling lost? Don’t be.</h3>
+          <h3 className="font-display text-lg md:text-xl font-bold gold-text">No such thing as behind.</h3>
           <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
-            Follow this page top to bottom. If you’re ever unsure where to pick back up, come back here — this is your home base until you finish Level 1.
+            Life happens. Come back to this page anytime and pick up wherever you left off — this is your home base until you finish Level 1.
           </p>
           <Button
             onClick={() => navigate('/aion')}
