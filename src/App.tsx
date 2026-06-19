@@ -46,6 +46,7 @@ import BusinessCardSetup from "./pages/BusinessCardSetup";
 import HairSystemChecklist from "./pages/HairSystemChecklist";
 import GHLCallback from "./pages/GHLCallback";
 import FindASpecialist from "./pages/FindASpecialist";
+import Terms from "./pages/Terms";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LocaleProvider } from "./lib/i18n/LocaleProvider";
