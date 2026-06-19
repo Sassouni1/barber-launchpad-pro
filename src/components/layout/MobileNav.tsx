@@ -98,7 +98,8 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const isNewAccount = useIsNewAccount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
   const restrictNav = isNewAccount && !allQuizzesPassed;
-  const hideStartHere = isNewAccount && allQuizzesPassed;
+  const hideStartHere = !isNewAccount;
+
   
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
   const [viewOpen, setViewOpen] = useState(false);
