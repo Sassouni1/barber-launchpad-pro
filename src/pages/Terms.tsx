@@ -55,17 +55,17 @@ export default function TermsPage() {
               <h2 className="text-xl font-semibold">Refund Policy</h2>
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
-              <p>
-                We want you to be satisfied with your investment. If you are unhappy with your purchase, you may request a refund within <strong className="text-foreground">30 days</strong> of your original payment date, provided you have completed less than 25% of the course content or program materials.
+              <p className="font-medium text-foreground">
+                All sales are final. We do not offer refunds on any membership, course, product, or service purchases.
               </p>
               <p>
-                Refund requests beyond 30 days, or for accounts that have consumed a substantial portion of the content, will be reviewed on a case-by-case basis but are not guaranteed.
+                The only exception is our 3 Client Guarantee. If you complete all guarantee requirements — including the specified course modules, required homework submissions, and scheduled coaching calls — and do not secure three clients within the defined eligibility window, you may qualify for a refund under the terms of the guarantee.
               </p>
               <p>
-                To request a refund, contact our support team with your order details. Approved refunds are processed to the original payment method within 5-10 business days. Processing times may vary depending on your bank or payment provider.
+                Refund requests outside of the 3 Client Guarantee, or for accounts that have not satisfied the guarantee requirements, will not be honored.
               </p>
               <p>
-                Digital downloads, live coaching fees, and shipping costs for physical products are non-refundable unless the item arrives damaged or incorrect.
+                To inquire about a guarantee-related refund, contact our support team with your order details and proof of completion.
               </p>
             </div>
           </section>
