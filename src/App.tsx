@@ -81,6 +81,7 @@ const MemberApp = () => (
         <Route path="/login" element={<Login />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/create" element={<CreateAccount />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/agreement" element={<ProtectedRoute skipAgreementCheck><Agreement /></ProtectedRoute>} />
         <Route path="/auth" element={<Navigate to="/login" replace />} />
 
