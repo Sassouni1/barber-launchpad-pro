@@ -241,7 +241,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const isNewAccount = useIsNewAccount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
   const restrictNav = isNewAccount && !allQuizzesPassed;
-  const hideStartHere = isNewAccount && allQuizzesPassed;
+  const hideStartHere = !isNewAccount;
+
   
   // Detect if we're currently in the manufacturer/supplier view
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
