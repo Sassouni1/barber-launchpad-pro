@@ -1959,7 +1959,7 @@ export default function Lesson() {
                   })()}
 
                 <div className="flex flex-col gap-3">
-                  {activeHasQuiz && (
+                  {activeHasQuiz && !isSocialMediaLesson && (
                     <Button
                       size="lg"
                       className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
@@ -1969,6 +1969,7 @@ export default function Lesson() {
                       Start Quiz
                     </Button>
                   )}
+
                   <Button
                     variant="outline"
                     onClick={() =>
