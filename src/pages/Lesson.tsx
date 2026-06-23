@@ -326,15 +326,10 @@ type ResourcePreviewFile = {
 // Copyable text component
 const CopyableText = ({
   text,
-  downloadFileName,
-  allowDownload,
 }: {
   text: string;
-  downloadFileName?: string;
-  allowDownload?: boolean;
 }) => {
   const [copied, setCopied] = useState(false);
-  const [downloading, setDownloading] = useState(false);
 
   const renderTextWithPlaceholders = (value: string) => {
     const placeholderPattern = /(\[[^\]]+\])/g;
@@ -360,26 +355,6 @@ const CopyableText = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = async () => {
-    try {
-      setDownloading(true);
-      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = downloadFileName || "lesson-content.txt";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-      toast.success("Downloaded lesson content");
-    } catch {
-      toast.error("Download failed. Please try again.");
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   return (
     <div className="px-4 py-3 bg-secondary/50 border border-border/50 rounded space-y-3">
       <div className="flex items-center gap-2">
@@ -393,20 +368,6 @@ const CopyableText = ({
             <><Copy className="w-3.5 h-3.5" /> Copy Caption</>
           )}
         </button>
-        {allowDownload ? (
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-foreground text-xs font-semibold hover:bg-secondary/80 transition-colors disabled:opacity-50"
-            title="Download as .txt"
-          >
-            {downloading ? (
-              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving</>
-            ) : (
-              <><Download className="w-3.5 h-3.5" /> Download</>
-            )}
-          </button>
-        ) : null}
       </div>
       <div className="whitespace-pre-line text-base leading-relaxed">
         {renderTextWithPlaceholders(text)}
@@ -436,7 +397,7 @@ const SECOND_POST_FALLBACK_COPY = [
 ].join("\n");
 
 // Helper function to render markdown-style notes content
-const renderNotesContent = (content: string, copyDownloadFileName?: string) => {
+const renderNotesContent = (content: string) => {
   // Pre-process: Extract all {copy:...} blocks (including multi-line) and replace with placeholders
   const copyBlocks = new Map<string, string>();
   let blockIndex = 0;
@@ -474,8 +435,6 @@ const renderNotesContent = (content: string, copyDownloadFileName?: string) => {
             <CopyableText
               key={`${keyPrefix}-copy-${match.index}`}
               text={copyText}
-              allowDownload={!!copyDownloadFileName}
-              downloadFileName={copyDownloadFileName}
             />,
           );
         }
@@ -565,11 +524,7 @@ const renderNotesContent = (content: string, copyDownloadFileName?: string) => {
       if (copyText) {
         elements.push(
           <div key={index} className="my-2">
-            <CopyableText
-              text={copyText}
-              allowDownload={!!copyDownloadFileName}
-              downloadFileName={copyDownloadFileName}
-            />
+            <CopyableText text={copyText} />
           </div>,
         );
       }
