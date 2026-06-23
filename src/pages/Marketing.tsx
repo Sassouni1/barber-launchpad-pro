@@ -122,7 +122,17 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
           {validSlides.map((url, i) => (
             <div key={i} className="min-w-0 shrink-0 grow-0 basis-full">
               <div className={`relative ${aspectClass} group`}>
-                <img src={url} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                <img
+                  src={url}
+                  alt={`Slide ${i + 1}`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    img.style.opacity = '0.2';
+                  }}
+                  className="w-full h-full object-cover"
+                />
                 <Button
                   variant="secondary"
                   size="sm"
