@@ -1113,12 +1113,54 @@ export default function Lesson() {
         {displayVideoUrl?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-            <VideoPlayer
-              key={`${module.id}-${sublesson?.id || "main"}-${locale}`}
-              src={vimeoEmbedUrl}
-              title={localizedModuleTitle}
-              posterSrc={videoPosterSrc}
-            />
+          <VideoPlayer
+            key={`${module.id}-${sublesson?.id || "main"}-${locale}`}
+            src={vimeoEmbedUrl}
+            title={localizedModuleTitle}
+            posterSrc={videoPosterSrc}
+          />
+        )}
+
+        {/* Mobile: Caption / description block */}
+        {isMobile &&
+          displayDescription &&
+          !(module as any).is_directory_enrollment && (
+            <div
+              className="animate-fade-up"
+              style={{ animationDelay: "0.25s" }}
+            >
+              <h2 className="font-display text-xl font-semibold mb-2">
+                {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
+                sublesson?.id === THIRD_POST_SUBLESSON_ID ||
+                sublesson?.id === FOURTH_POST_SUBLESSON_ID
+                  ? "Copy Caption Below"
+                  : sublesson
+                    ? "About This Lesson"
+                    : "About This Module"}
+              </h2>
+              {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
+              sublesson?.id === THIRD_POST_SUBLESSON_ID ||
+              sublesson?.id === FOURTH_POST_SUBLESSON_ID ||
+              (!sublesson && module.id === FIRST_POST_MODULE_ID) ? (
+                <CopyableText
+                  text={displayDescription}
+                  allowDownload
+                  downloadFileName={
+                    sublesson?.id === FOURTH_POST_SUBLESSON_ID
+                      ? "fourth-post.txt"
+                      : sublesson?.id === THIRD_POST_SUBLESSON_ID
+                        ? "third-post.txt"
+                        : sublesson?.id === SECOND_POST_SUBLESSON_ID
+                          ? "second-post.txt"
+                          : "first-post.txt"
+                  }
+                />
+              ) : (
+                <p className="text-muted-foreground whitespace-pre-line">
+                  {displayDescription}
+                </p>
+              )}
+            </div>
           )}
 
         {/* Archived Instagramswipe section for later reuse. */}
