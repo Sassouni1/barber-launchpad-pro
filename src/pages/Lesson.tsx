@@ -141,8 +141,21 @@ const VideoPlayer = React.memo(
 VideoPlayer.displayName = "VideoPlayer";
 
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
+const CONSUMER_FINANCING_MODULE_ID = "b1040000-0000-4000-8000-000000000104";
 const SOCIAL_MEDIA_101_THUMBNAIL =
   "/lesson-assets/thumbnails/social-media-101-thumbnail.png";
+const CONSUMER_FINANCING_THUMBNAIL =
+  "/lesson-assets/thumbnails/consumer-financing-thumbnail.jpg";
+const VIDEO_POSTER_BY_URL: Record<string, string> = {
+  "/lesson-assets/posts/winno-real-result-ig-02-with-hair-system-vertical-audio.mp4":
+    "/lesson-assets/thumbnails/third-post-thumbnail.jpg",
+  "/lesson-assets/posts/fourth-post-transformation.mp4":
+    "/lesson-assets/thumbnails/fourth-post-option-1-thumbnail.jpg",
+  "/lesson-assets/posts/fourth-post-barber-launch-1.mp4":
+    "/lesson-assets/thumbnails/fourth-post-option-2-thumbnail.jpg",
+  "/lesson-assets/posts/fourth-post-hair-system-2.mp4":
+    "/lesson-assets/thumbnails/fourth-post-option-3-thumbnail.jpg",
+};
 const SOCIAL_MEDIA_101_INSTAGRAM_POST_URL =
   "https://www.instagram.com/barberlaunchofficial/p/DYDyUWaGsX3/";
 const SOCIAL_MEDIA_101_CAROUSEL_SLIDES = Array.from(
@@ -322,6 +335,9 @@ type ResourcePreviewFile = {
   file_url: string;
   file_type: string | null;
 };
+
+const getVideoPosterSrc = (fileUrl?: string | null) =>
+  fileUrl ? VIDEO_POSTER_BY_URL[fileUrl] : undefined;
 
 // Copyable text component
 const CopyableText = ({
