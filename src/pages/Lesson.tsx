@@ -1285,6 +1285,22 @@ export default function Lesson() {
                     </div>
                   ) : isVideo(file.file_type) ? (
                     <div className="aspect-square bg-black/40 relative overflow-hidden">
+                      {getVideoPosterSrc(file.file_url) ? (
+                        <img
+                          src={getVideoPosterSrc(file.file_url)}
+                          alt={file.file_name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <video
+                          src={`${file.file_url}#t=0.1`}
+                          className="w-full h-full object-cover pointer-events-none"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => setPreviewFile(file)}
@@ -1294,13 +1310,6 @@ export default function Lesson() {
                       >
                         <Maximize2 className="h-4 w-4" />
                       </button>
-                      <video
-                        src={`${file.file_url}#t=0.1`}
-                        className="w-full h-full object-cover pointer-events-none"
-                        muted
-                        playsInline
-                        preload="metadata"
-                      />
                     </div>
                   ) : (
                     <div className="aspect-square bg-secondary/50 flex items-center justify-center">
