@@ -1115,8 +1115,9 @@ export default function Lesson() {
                 onClick={() => setActiveTab("quiz")}
               >
                 <Trophy className="w-5 h-5" />
-                {localizeCourseUi("Quiz", locale)}
+                Start Quiz
               </Button>
+
             </div>
           )}
 
