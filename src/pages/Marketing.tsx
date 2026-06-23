@@ -122,7 +122,17 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
           {validSlides.map((url, i) => (
             <div key={i} className="min-w-0 shrink-0 grow-0 basis-full">
               <div className={`relative ${aspectClass} group`}>
-                <img src={url} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                <img
+                  src={url}
+                  alt={`Slide ${i + 1}`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    img.style.opacity = '0.2';
+                  }}
+                  className="w-full h-full object-cover"
+                />
                 <Button
                   variant="secondary"
                   size="sm"
@@ -633,7 +643,24 @@ export default function Marketing() {
             <div className="flex gap-3 overflow-x-auto pb-2">
               {allBrandImages.map((imgUrl, i) => (
                 <div key={imgUrl + i} className="relative shrink-0 w-24 h-24 rounded-lg overflow-hidden group border border-border">
-                  <img src={imgUrl} alt={`Brand ${i + 1}`} className="w-full h-full object-cover" />
+                  <img
+                    src={imgUrl}
+                    alt={`Brand ${i + 1}`}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (img.dataset.fallback !== '1') {
+                        img.dataset.fallback = '1';
+                        img.removeAttribute('crossorigin');
+                        img.src = imgUrl;
+                      } else {
+                        img.style.display = 'none';
+                      }
+                    }}
+                    className="w-full h-full object-cover"
+                  />
                   <button
                     onClick={() => setRemovedImages(prev => new Set([...prev, imgUrl]))}
                     className="absolute top-1 left-1 h-6 w-6 rounded-full bg-destructive/80 hover:bg-destructive flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
