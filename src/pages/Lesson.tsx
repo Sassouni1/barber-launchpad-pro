@@ -1665,7 +1665,13 @@ export default function Lesson() {
                   !(module as any).is_directory_enrollment && (
                     <div>
                       <h2 className="font-display text-xl font-semibold mb-2">
-                        {sublesson ? "About This Lesson" : "About This Module"}
+                        {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
+                        sublesson?.id === THIRD_POST_SUBLESSON_ID ||
+                        sublesson?.id === FOURTH_POST_SUBLESSON_ID
+                          ? "Copy Caption Below"
+                          : sublesson
+                            ? "About This Lesson"
+                            : "About This Module"}
                       </h2>
                       {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
                       sublesson?.id === THIRD_POST_SUBLESSON_ID ||
