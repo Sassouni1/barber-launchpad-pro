@@ -1,40 +1,66 @@
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useCourses, type Module } from '@/hooks/useCourses';
-import { BookOpen, Play, FileText, HelpCircle, ClipboardList, Clock, Settings, Loader2, ArrowRight, ChevronDown, X, Star, Award, Globe } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
-import { cn, getVimeoEmbedUrl } from '@/lib/utils';
-import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { localizeCourseTitle, localizeCourseUi, localizeHairSystemLessonTitle, resolveVideoEmbedUrlForModule } from '@/lib/i18n/spanishVideos';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { useCourses, type Module } from "@/hooks/useCourses";
+import {
+  BookOpen,
+  Play,
+  FileText,
+  HelpCircle,
+  ClipboardList,
+  Clock,
+  Settings,
+  Loader2,
+  ArrowRight,
+  ChevronDown,
+  X,
+  Star,
+  Award,
+  Globe,
+} from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { cn, getVimeoEmbedUrl } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import {
+  localizeCourseTitle,
+  localizeCourseUi,
+  localizeHairSystemLessonTitle,
+  resolveVideoEmbedUrlForModule,
+} from "@/lib/i18n/spanishVideos";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { FIRST_POST_MODULE_ID } from "@/data/postLessons";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { CertificationSection } from '@/components/certification/CertificationSection';
+} from "@/components/ui/select";
+import { CertificationSection } from "@/components/certification/CertificationSection";
 
 // Custom hook for md breakpoint (768px) - tablet and above
 function useIsTabletOrDesktop() {
   const [isTabletOrDesktop, setIsTabletOrDesktop] = useState<boolean>(false);
 
   useEffect(() => {
-    const mql = window.matchMedia('(min-width: 768px)');
+    const mql = window.matchMedia("(min-width: 768px)");
     const onChange = () => setIsTabletOrDesktop(mql.matches);
-    mql.addEventListener('change', onChange);
+    mql.addEventListener("change", onChange);
     setIsTabletOrDesktop(mql.matches);
-    return () => mql.removeEventListener('change', onChange);
+    return () => mql.removeEventListener("change", onChange);
   }, []);
 
   return isTabletOrDesktop;
@@ -45,65 +71,93 @@ function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState<boolean>(false);
 
   useEffect(() => {
-    const mql = window.matchMedia('(min-width: 900px)');
+    const mql = window.matchMedia("(min-width: 900px)");
     const onChange = () => setIsDesktop(mql.matches);
-    mql.addEventListener('change', onChange);
+    mql.addEventListener("change", onChange);
     setIsDesktop(mql.matches);
-    return () => mql.removeEventListener('change', onChange);
+    return () => mql.removeEventListener("change", onChange);
   }, []);
 
   return isDesktop;
 }
 
 interface CoursesProps {
-  courseType?: 'hair-system' | 'business';
+  courseType?: "hair-system" | "business";
 }
 
 type ModuleLessonPreview = { id: string; title: string; order_index: number };
 
 const getModuleLessons = (module: Module): ModuleLessonPreview[] =>
-  [...(((module as any).lessons || []) as ModuleLessonPreview[])].sort((a, b) => a.order_index - b.order_index);
+  [...(((module as any).lessons || []) as ModuleLessonPreview[])].sort(
+    (a, b) => a.order_index - b.order_index,
+  );
+
+const shouldOpenModuleDirectly = (module: Module) => {
+  const title = module.title.toLowerCase();
+  return title.includes("google profile");
+};
+
+const formatSubLessonCount = (count: number) =>
+  `${count} sub-lesson${count === 1 ? "" : "s"}`;
+
+const hasModuleCardDetails = (module: Module, lessonCount: number) =>
+  Boolean(
+    module.description ||
+    module.duration ||
+    module.has_download ||
+    module.has_quiz ||
+    module.has_homework ||
+    lessonCount > 0,
+  );
 
 const SubLessonTrack = ({
   lessons,
   compact = false,
+  startNumber = 1,
   onLessonClick,
 }: {
   lessons: ModuleLessonPreview[];
   compact?: boolean;
+  startNumber?: number;
   onLessonClick?: (lessonId: string) => void;
 }) => {
   if (lessons.length === 0) return null;
 
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-xl border border-border/60 bg-secondary/20",
-      compact ? "ml-10 p-2.5" : "ml-14 p-3"
-    )}>
-      <div className="absolute left-5 top-4 bottom-4 w-px bg-border/70" />
-      <div className="space-y-1.5">
-        {lessons.map((lesson, lessonIndex) => (
-          <button
-            type="button"
-            key={lesson.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              onLessonClick?.(lesson.id);
-            }}
-            className="relative flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-muted-foreground transition-colors hover:bg-secondary/40 hover:text-foreground cursor-pointer"
+    <div className={cn("space-y-2", compact ? "ml-12" : "ml-16")}>
+      {lessons.map((lesson, lessonIndex) => (
+        <button
+          type="button"
+          key={lesson.id}
+          onClick={(e) => {
+            e.stopPropagation();
+            onLessonClick?.(lesson.id);
+          }}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-xl border border-border bg-secondary/10 text-left shadow-sm shadow-black/10 transition-all",
+            "hover:border-primary/45 hover:bg-secondary/20 active:scale-[0.99]",
+            compact ? "min-h-[56px] px-3 py-2.5" : "min-h-[64px] px-3.5 py-3",
+          )}
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/35 bg-background text-xs font-semibold text-primary">
+            {startNumber + lessonIndex}
+          </div>
+          <p
+            className={cn(
+              "min-w-0 flex-1 truncate font-semibold text-foreground",
+              compact ? "text-sm" : "text-[15px]",
+            )}
           >
-            <div className="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-primary/30 bg-background text-[11px] font-semibold text-primary">
-              {lessonIndex + 1}
-            </div>
-            <span className={cn("min-w-0 flex-1 truncate font-medium", compact ? "text-xs" : "text-sm")}>{lesson.title}</span>
-          </button>
-        ))}
-      </div>
+            {lesson.title}
+          </p>
+          <Play className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
+      ))}
     </div>
   );
 };
 
-export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
+export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const { data: allCoursesRaw = [], isLoading } = useCourses();
   const { user } = useAuth();
   const { isAdmin } = useAuth();
@@ -115,8 +169,8 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const allCourses = allCoursesRaw;
 
   // For desktop: filter by courseType prop
-  const courses = allCourses.filter(course =>
-    (course as any).category === courseType
+  const courses = allCourses.filter(
+    (course) => (course as any).category === courseType,
   );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [showCertification, setShowCertification] = useState(false);
@@ -127,12 +181,21 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
   const isTabletOrDesktop = useIsTabletOrDesktop();
   const isDesktop = useIsDesktop();
 
-  const pageTitle = courseType === 'hair-system' ? 'Hair System Training' : 'Business Mastery';
+  const pageTitle =
+    courseType === "hair-system" ? "Hair System Training" : "Business Mastery";
 
   // Group courses by category (for mobile only)
   const courseCategories = [
-    { id: 'hair-system', title: 'Hair System Training', courses: allCourses.filter(c => (c as any).category === 'hair-system') },
-    { id: 'business', title: 'Business Mastery', courses: allCourses.filter(c => (c as any).category === 'business') },
+    {
+      id: "hair-system",
+      title: "Hair System Training",
+      courses: allCourses.filter((c) => (c as any).category === "hair-system"),
+    },
+    {
+      id: "business",
+      title: "Business Mastery",
+      courses: allCourses.filter((c) => (c as any).category === "business"),
+    },
   ];
 
   // Check if there's more content to scroll
@@ -141,31 +204,37 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
       const container = scrollContainerRef.current;
       if (container) {
         const hasMoreContent = container.scrollHeight > container.clientHeight;
-        const notAtBottom = container.scrollTop + container.clientHeight < container.scrollHeight - 20;
+        const notAtBottom =
+          container.scrollTop + container.clientHeight <
+          container.scrollHeight - 20;
         setCanScrollMore(hasMoreContent && notAtBottom);
       }
     };
 
     checkScroll();
     const container = scrollContainerRef.current;
-    container?.addEventListener('scroll', checkScroll);
-    window.addEventListener('resize', checkScroll);
-    
+    container?.addEventListener("scroll", checkScroll);
+    window.addEventListener("resize", checkScroll);
+
     return () => {
-      container?.removeEventListener('scroll', checkScroll);
-      window.removeEventListener('resize', checkScroll);
+      container?.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
     };
   }, [courses]);
 
   const goToLesson = (moduleId: string, categoryId: string, tab?: string) => {
-    const url = tab ? `/courses/${categoryId}/lesson/${moduleId}?tab=${tab}` : `/courses/${categoryId}/lesson/${moduleId}`;
+    const url = tab
+      ? `/courses/${categoryId}/lesson/${moduleId}?tab=${tab}`
+      : `/courses/${categoryId}/lesson/${moduleId}`;
     navigate(url);
   };
 
   // Find selected module data (for desktop - uses courseType)
   const findModule = (): { module: Module; courseName: string } | null => {
     for (const course of courses) {
-      const module = (course.modules || []).find(m => m.id === selectedModule);
+      const module = (course.modules || []).find(
+        (m) => m.id === selectedModule,
+      );
       if (module) return { module, courseName: course.title };
     }
     return null;
@@ -189,7 +258,9 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
         <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] gap-4">
           <BookOpen className="w-16 h-16 text-muted-foreground" />
           <h2 className="text-xl font-semibold">No Courses Yet</h2>
-          <p className="text-muted-foreground">Courses will appear here once available</p>
+          <p className="text-muted-foreground">
+            Courses will appear here once available
+          </p>
           {isAdmin && (
             <Link to="/admin/courses">
               <Button className="gap-2">
@@ -205,15 +276,27 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
 
   // Mobile Module Detail Sheet - only shows on mobile (lg:hidden via CSS media query)
   const MobileModuleSheet = () => (
-    <Sheet open={!!selectedModule} onOpenChange={(open) => !open && setSelectedModule(null)} modal={false}>
+    <Sheet
+      open={!!selectedModule}
+      onOpenChange={(open) => !open && setSelectedModule(null)}
+      modal={false}
+    >
       <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0">
         {moduleData && (
           <div className="flex flex-col h-full">
             <SheetHeader className="p-4 border-b border-border/30">
-              <p className="text-xs text-muted-foreground" data-no-translate translate="no">
+              <p
+                className="text-xs text-muted-foreground"
+                data-no-translate
+                translate="no"
+              >
                 {localizeCourseTitle(moduleData.courseName, locale)}
               </p>
-              <SheetTitle className="text-lg font-bold gold-text text-left" data-no-translate translate="no">
+              <SheetTitle
+                className="text-lg font-bold gold-text text-left"
+                data-no-translate
+                translate="no"
+              >
                 {localizeHairSystemLessonTitle(moduleData.module, locale)}
               </SheetTitle>
             </SheetHeader>
@@ -223,48 +306,61 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
               <div className="relative aspect-video bg-black">
                 <iframe
                   key={`${moduleData.module.id}-${locale}`}
-                  src={resolveVideoEmbedUrlForModule(moduleData.module, locale, getVimeoEmbedUrl)}
+                  src={resolveVideoEmbedUrlForModule(
+                    moduleData.module,
+                    locale,
+                    getVimeoEmbedUrl,
+                  )}
                   className="absolute inset-0 w-full h-full"
                   allow="autoplay; fullscreen; picture-in-picture"
                   allowFullScreen
-                  title={localizeHairSystemLessonTitle(moduleData.module, locale)}
+                  title={localizeHairSystemLessonTitle(
+                    moduleData.module,
+                    locale,
+                  )}
                 />
               </div>
             )}
 
-
             {/* Actions */}
             <div className="flex-1 p-4 space-y-3 overflow-y-auto">
               {moduleData.module.description && (
-                <p className="text-sm text-muted-foreground">{moduleData.module.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {moduleData.module.description}
+                </p>
               )}
-              
-              <Button 
+
+              <Button
                 className="w-full gold-gradient text-primary-foreground font-semibold py-5"
                 onClick={() => goToLesson(moduleData.module.id, courseType)}
               >
                 <Play className="w-5 h-5 mr-2" />
-                {localizeCourseUi('Start Lesson', locale)}
+                {localizeCourseUi("Start Lesson", locale)}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
 
-              {(moduleData.module.has_quiz || moduleData.module.has_homework) && (
+              {(moduleData.module.has_quiz ||
+                moduleData.module.has_homework) && (
                 <div className="flex gap-2">
                   {moduleData.module.has_quiz && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1"
-                      onClick={() => goToLesson(moduleData.module.id, courseType, 'quiz')}
+                      onClick={() =>
+                        goToLesson(moduleData.module.id, courseType, "quiz")
+                      }
                     >
                       <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
                       Quiz
                     </Button>
                   )}
                   {moduleData.module.has_homework && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1"
-                      onClick={() => goToLesson(moduleData.module.id, courseType, 'homework')}
+                      onClick={() =>
+                        goToLesson(moduleData.module.id, courseType, "homework")
+                      }
                     >
                       <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
                       Homework
@@ -285,12 +381,20 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
       <div className="md:hidden flex flex-col h-[calc(100vh-8rem)]">
         <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
           <div>
-            <h1 className="font-display text-lg font-bold gold-text">Choose Your Module</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">Tap a course to expand</p>
+            <h1 className="font-display text-lg font-bold gold-text">
+              Choose Your Module
+            </h1>
+            <p className="text-muted-foreground text-xs mt-0.5">
+              Tap a course to expand
+            </p>
           </div>
           {isAdmin && (
             <Link to="/admin/courses">
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs px-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs px-2"
+              >
                 <Settings className="w-3.5 h-3.5" />
                 Edit
               </Button>
@@ -303,130 +407,202 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
             <Collapsible
               key={category.id}
               open={expandedCourse === category.id}
-              onOpenChange={(open) => setExpandedCourse(open ? category.id : null)}
+              onOpenChange={(open) =>
+                setExpandedCourse(open ? category.id : null)
+              }
             >
               <CollapsibleTrigger className="w-full">
                 <div className="glass-card rounded-xl p-4 flex items-center justify-between transition-all hover:border-primary/50 border-2 border-transparent">
                   <div className="text-left">
-                    <h2 className="font-display font-bold text-base gold-text">{category.title}</h2>
+                    <h2 className="font-display font-bold text-base gold-text">
+                      {category.title}
+                    </h2>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {category.courses.reduce((acc, c) => acc + (c.modules?.length || 0), 0)} modules
+                      {category.courses.reduce(
+                        (acc, c) => acc + (c.modules?.length || 0),
+                        0,
+                      )}{" "}
+                      modules
                     </p>
                   </div>
-                  <ChevronDown className={cn(
-                    "w-5 h-5 text-primary transition-transform duration-200",
-                    expandedCourse === category.id && "rotate-180"
-                  )} />
+                  <ChevronDown
+                    className={cn(
+                      "w-5 h-5 text-primary transition-transform duration-200",
+                      expandedCourse === category.id && "rotate-180",
+                    )}
+                  />
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 mt-3">
                 {category.courses.map((course) => {
                   const allModules = course.modules || [];
-                  const regularModules = allModules.filter((m: any) => !m.is_directory_enrollment);
-                  const directoryModule = allModules.find((m: any) => m.is_directory_enrollment);
+                  const regularModules = allModules.filter(
+                    (m: any) => !m.is_directory_enrollment,
+                  );
+                  const directoryModule = allModules.find(
+                    (m: any) => m.is_directory_enrollment,
+                  );
                   return (
-                  <div key={course.id} className="space-y-2">
-                    {category.courses.length > 1 && (
-                      <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50 ml-2">
-                        <h3 className="font-semibold text-sm">{localizeCourseTitle(course.title, locale)}</h3>
-                      </div>
-                    )}
-                    <div className="space-y-2 pl-2">
-                      {regularModules.map((module, index) => {
-                        const moduleLessons = getModuleLessons(module);
-                        return (
-                          <div key={module.id} className="space-y-1">
-                            <button
-                              onClick={() => navigate(`/courses/${category.id}/lesson/${module.id}`)}
-                              className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-border bg-secondary/10 shadow-md shadow-black/20 active:scale-[0.98]"
-                            >
-                              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-secondary border border-border text-muted-foreground">
-                                {index + 1}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4
-                                  key={`${module.id}-${locale}-mobile-title`}
-                                  className="font-semibold text-sm truncate flex items-center gap-1.5"
-                                  data-no-translate
-                                  translate="no"
-                                >
-                                  {localizeHairSystemLessonTitle(module, locale)}
-                                  {(module as any).is_certification_requirement && (
-                                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
-                                  )}
-                                </h4>
-                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                  {module.duration && (
-                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <Clock className="w-3 h-3" />
-                                      {module.duration}
-                                    </span>
-                                  )}
-                                  {moduleLessons.length > 0 && <span className="text-xs text-primary">{moduleLessons.length} sub-lessons</span>}
-                                  {module.has_quiz && <HelpCircle className="w-3 h-3 text-amber-400" />}
-                                  {module.has_homework && <ClipboardList className="w-3 h-3 text-green-400" />}
-                                  {module.has_download && <FileText className="w-3 h-3 text-blue-400" />}
+                    <div key={course.id} className="space-y-2">
+                      {category.courses.length > 1 && (
+                        <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50 ml-2">
+                          <h3 className="font-semibold text-sm">
+                            {localizeCourseTitle(course.title, locale)}
+                          </h3>
+                        </div>
+                      )}
+                      <div className="space-y-2 pl-2">
+                        {regularModules.map((module, index) => {
+                          const moduleLessons = getModuleLessons(module);
+                          const hasCardDetails = hasModuleCardDetails(
+                            module,
+                            moduleLessons.length,
+                          );
+                          return (
+                            <div key={module.id} className="space-y-1">
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/courses/${category.id}/lesson/${module.id}`,
+                                  )
+                                }
+                                className={cn(
+                                  "w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-border bg-secondary/10 shadow-md shadow-black/20 active:scale-[0.98]",
+                                  !hasCardDetails && "min-h-[66px]",
+                                )}
+                              >
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-secondary border border-border text-muted-foreground">
+                                  {index + 1}
                                 </div>
-                              </div>
-                              <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            </button>
-                            <SubLessonTrack
-                              lessons={moduleLessons}
-                              compact
-                              onLessonClick={(lessonId) =>
-                                navigate(`/courses/${category.id}/lesson/${module.id}?sublesson=${lessonId}`)
-                              }
-                            />
-                          </div>
-                        );
-                      })}
-                      {/* Level 1 Certification entry for hair-system */}
-                      {category.id === 'hair-system' && course.id && (
-                        <button
-                          onClick={() => {
-                            setShowCertification(true);
-                            setSelectedModule(null);
-                          }}
-                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/30 bg-primary/5 shadow-md shadow-black/20 active:scale-[0.98]"
-                        >
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
-                            <Award className="w-5 h-5 text-primary-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm truncate gold-text">Level 1 Certification</h4>
-                            <p className="text-xs text-muted-foreground">Complete all lessons to unlock</p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
-                        </button>
-                      )}
-                      {/* Directory enrollment as final highlighted step (after certification) */}
-                      {directoryModule && (
-                        <button
-                          key={directoryModule.id}
-                          onClick={() => navigate(`/courses/${category.id}/lesson/${directoryModule.id}`)}
-                          className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 active:scale-[0.98]"
-                        >
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
-                            <Globe className="w-5 h-5 text-primary-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm truncate gold-text">{directoryModule.title}</h4>
-                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{directoryModule.description || 'Final step before certification'}</p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
-                        </button>
-                      )}
+                                <div
+                                  className={cn(
+                                    "flex-1 min-w-0",
+                                    !hasCardDetails && "flex items-center",
+                                  )}
+                                >
+                                  <h4
+                                    key={`${module.id}-${locale}-mobile-title`}
+                                    className="font-semibold text-sm truncate flex items-center gap-1.5"
+                                    data-no-translate
+                                    translate="no"
+                                  >
+                                    {localizeHairSystemLessonTitle(
+                                      module,
+                                      locale,
+                                    )}
+                                    {(module as any)
+                                      .is_certification_requirement && (
+                                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                                    )}
+                                  </h4>
+                                  {hasCardDetails && (
+                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                      {module.duration && (
+                                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                          <Clock className="w-3 h-3" />
+                                          {module.duration}
+                                        </span>
+                                      )}
+                                      {moduleLessons.length > 0 && (
+                                        <span className="text-xs text-primary">
+                                          {formatSubLessonCount(
+                                            moduleLessons.length,
+                                          )}
+                                        </span>
+                                      )}
+                                      {module.has_quiz && (
+                                        <HelpCircle className="w-3 h-3 text-amber-400" />
+                                      )}
+                                      {module.has_homework && (
+                                        <ClipboardList className="w-3 h-3 text-green-400" />
+                                      )}
+                                      {module.has_download && (
+                                        <FileText className="w-3 h-3 text-blue-400" />
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              </button>
+                              <SubLessonTrack
+                                lessons={moduleLessons}
+                                compact
+                                startNumber={
+                                  module.id === FIRST_POST_MODULE_ID ? 2 : 1
+                                }
+                                onLessonClick={(lessonId) =>
+                                  navigate(
+                                    `/courses/${category.id}/lesson/${module.id}?sublesson=${lessonId}`,
+                                  )
+                                }
+                              />
+                            </div>
+                          );
+                        })}
+                        {/* Level 1 Certification entry for hair-system */}
+                        {category.id === "hair-system" && course.id && (
+                          <button
+                            onClick={() => {
+                              setShowCertification(true);
+                              setSelectedModule(null);
+                            }}
+                            className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/30 bg-primary/5 shadow-md shadow-black/20 active:scale-[0.98]"
+                          >
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
+                              <Award className="w-5 h-5 text-primary-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm truncate gold-text">
+                                Level 1 Certification
+                              </h4>
+                              <p className="text-xs text-muted-foreground">
+                                Complete all lessons to unlock
+                              </p>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+                          </button>
+                        )}
+                        {/* Directory enrollment as final highlighted step (after certification) */}
+                        {directoryModule && (
+                          <button
+                            key={directoryModule.id}
+                            onClick={() =>
+                              navigate(
+                                `/courses/${category.id}/lesson/${directoryModule.id}`,
+                              )
+                            }
+                            className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 active:scale-[0.98]"
+                          >
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
+                              <Globe className="w-5 h-5 text-primary-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm truncate gold-text">
+                                {directoryModule.title}
+                              </h4>
+                              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                                {directoryModule.description ||
+                                  "Final step before certification"}
+                              </p>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   );
                 })}
-                
+
                 {/* Certification Section when selected on mobile */}
-                {showCertification && expandedCourse === 'hair-system' && (
+                {showCertification && expandedCourse === "hair-system" && (
                   <div className="pl-2">
-                    {courseCategories.find(c => c.id === 'hair-system')?.courses[0]?.id && (
-                      <CertificationSection 
-                        courseId={courseCategories.find(c => c.id === 'hair-system')?.courses[0]?.id || ''} 
+                    {courseCategories.find((c) => c.id === "hair-system")
+                      ?.courses[0]?.id && (
+                      <CertificationSection
+                        courseId={
+                          courseCategories.find((c) => c.id === "hair-system")
+                            ?.courses[0]?.id || ""
+                        }
                       />
                     )}
                   </div>
@@ -441,12 +617,21 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
       {/* Tablet & Desktop View */}
       <div className="hidden md:flex gap-6 h-[calc(100vh-5rem)] overflow-hidden">
         {/* Left Panel - Courses & Modules */}
-        <div className={cn("flex-shrink-0 overflow-hidden flex flex-col", isDesktop ? "w-96" : "w-full")}>
+        <div
+          className={cn(
+            "flex-shrink-0 overflow-hidden flex flex-col",
+            isDesktop ? "w-96" : "w-full",
+          )}
+        >
           <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="font-display text-xl font-bold gold-text">{pageTitle}</h1>
-                <p className="text-muted-foreground text-sm mt-1">Select a module to continue</p>
+                <h1 className="font-display text-xl font-bold gold-text">
+                  {pageTitle}
+                </h1>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Select a module to continue
+                </p>
               </div>
               {isAdmin && (
                 <Link to="/admin/courses">
@@ -457,20 +642,25 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                 </Link>
               )}
             </div>
-            
-            <Select value={courseType} onValueChange={(value) => navigate(`/courses/${value}`)}>
+
+            <Select
+              value={courseType}
+              onValueChange={(value) => navigate(`/courses/${value}`)}
+            >
               <SelectTrigger className="w-full bg-secondary/50 border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                <SelectItem value="hair-system">Hair System Training</SelectItem>
+                <SelectItem value="hair-system">
+                  Hair System Training
+                </SelectItem>
                 <SelectItem value="business">Business Mastery</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="relative flex-1">
-            <div 
+            <div
               ref={scrollContainerRef}
               className="absolute inset-0 overflow-y-auto overflow-x-hidden space-y-3 pr-2 scrollbar-thin"
             >
@@ -480,7 +670,9 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   <div className="glass-card rounded-lg p-3 border-l-2 border-primary/50">
                     <h2 className="font-semibold text-sm">{course.title}</h2>
                     {course.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{course.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {course.description}
+                      </p>
                     )}
                   </div>
 
@@ -488,102 +680,156 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   <div className="space-y-2 pl-2">
                     {(() => {
                       const allModules = course.modules || [];
-                      const regularModules = allModules.filter((m: any) => !m.is_directory_enrollment);
-                      const directoryModule = allModules.find((m: any) => m.is_directory_enrollment);
+                      const regularModules = allModules.filter(
+                        (m: any) => !m.is_directory_enrollment,
+                      );
+                      const directoryModule = allModules.find(
+                        (m: any) => m.is_directory_enrollment,
+                      );
                       return (
                         <>
                           {regularModules.map((module, index) => {
                             const isSelected = selectedModule === module.id;
                             const moduleLessons = getModuleLessons(module);
+                            const hasCardDetails = hasModuleCardDetails(
+                              module,
+                              moduleLessons.length,
+                            );
                             return (
                               <div key={module.id} className="space-y-1">
                                 <button
                                   onClick={() => {
-                                    if (!module.video_url?.trim()) {
-                                      navigate(`/courses/${courseType}/lesson/${module.id}`);
+                                    if (
+                                      courseType === "business" ||
+                                      shouldOpenModuleDirectly(module) ||
+                                      !module.video_url?.trim()
+                                    ) {
+                                      navigate(
+                                        `/courses/${courseType}/lesson/${module.id}`,
+                                      );
                                     } else if (isDesktop) {
                                       setSelectedModule(module.id);
                                       setShowCertification(false);
                                     } else {
-                                      navigate(`/courses/${courseType}/lesson/${module.id}`);
+                                      navigate(
+                                        `/courses/${courseType}/lesson/${module.id}`,
+                                      );
                                     }
                                   }}
                                   className={cn(
-                                    'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
-                                    'border-2 hover:border-primary/50 hover:bg-secondary/20',
+                                    "w-full p-4 rounded-xl flex gap-4 transition-all duration-300 text-left",
+                                    hasCardDetails
+                                      ? "items-start"
+                                      : "items-center min-h-[78px]",
+                                    "border-2 hover:border-primary/50 hover:bg-secondary/20",
                                     isSelected
-                                      ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20'
-                                      : 'border-border bg-secondary/10 shadow-md shadow-black/20'
+                                      ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
+                                      : "border-border bg-secondary/10 shadow-md shadow-black/20",
                                   )}
                                 >
-                                  <div className={cn(
-                                    'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all',
-                                    isSelected
-                                      ? 'gold-gradient text-primary-foreground shadow-md'
-                                      : 'bg-secondary border border-border text-muted-foreground'
-                                  )}>
+                                  <div
+                                    className={cn(
+                                      "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
+                                      isSelected
+                                        ? "gold-gradient text-primary-foreground shadow-md"
+                                        : "bg-secondary border border-border text-muted-foreground",
+                                    )}
+                                  >
                                     {index + 1}
                                   </div>
-                                  <div className="flex-1 min-w-0">
+                                  <div
+                                    className={cn(
+                                      "flex-1 min-w-0",
+                                      !hasCardDetails && "flex items-center",
+                                    )}
+                                  >
                                     <h4
                                       key={`${module.id}-${locale}-desktop-title`}
                                       className={cn(
-                                        "font-semibold text-sm mb-1 flex items-center gap-1.5",
-                                        isSelected && "text-primary"
+                                        "font-semibold text-sm flex items-center gap-1.5",
+                                        hasCardDetails && "mb-1",
+                                        isSelected && "text-primary",
                                       )}
                                       data-no-translate
                                       translate="no"
                                     >
-                                      {localizeHairSystemLessonTitle(module, locale)}
-                                      {(module as any).is_certification_requirement && (
+                                      {localizeHairSystemLessonTitle(
+                                        module,
+                                        locale,
+                                      )}
+                                      {(module as any)
+                                        .is_certification_requirement && (
                                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                       )}
                                     </h4>
-                                    {module.description && (
-                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{module.description}</p>
+                                    {hasCardDetails && (
+                                      <>
+                                        {module.description && (
+                                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                                            {module.description}
+                                          </p>
+                                        )}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          {module.duration && (
+                                            <span className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
+                                              <Clock className="w-3 h-3" />
+                                              {module.duration}
+                                            </span>
+                                          )}
+                                          {module.has_download && (
+                                            <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                              <FileText className="w-3 h-3" />
+                                              {localizeCourseUi(
+                                                "Files",
+                                                locale,
+                                              )}
+                                            </span>
+                                          )}
+                                          {moduleLessons.length > 0 && (
+                                            <span className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                              <FileText className="w-3 h-3" />
+                                              {formatSubLessonCount(
+                                                moduleLessons.length,
+                                              )}
+                                            </span>
+                                          )}
+                                          {module.has_quiz && (
+                                            <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                                              <HelpCircle className="w-3 h-3" />
+                                              {localizeCourseUi("Quiz", locale)}
+                                            </span>
+                                          )}
+                                          {module.has_homework && (
+                                            <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                                              <ClipboardList className="w-3 h-3" />
+                                              {localizeCourseUi(
+                                                "Homework",
+                                                locale,
+                                              )}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </>
                                     )}
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                    {module.duration && (
-                                      <span className="flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full">
-                                        <Clock className="w-3 h-3" />
-                                        {module.duration}
-                                      </span>
-                                    )}
-                                    {module.has_download && (
-                                      <span className="flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                                        <FileText className="w-3 h-3" />
-                                        {localizeCourseUi('Files', locale)}
-                                      </span>
-                                    )}
-                                    {moduleLessons.length > 0 && (
-                                      <span className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                        <FileText className="w-3 h-3" />
-                                        {moduleLessons.length} sub-lessons
-                                      </span>
-                                    )}
-                                    {module.has_quiz && (
-                                      <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                        <HelpCircle className="w-3 h-3" />
-                                        {localizeCourseUi('Quiz', locale)}
-                                      </span>
-                                    )}
-                                    {module.has_homework && (
-                                      <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                                        <ClipboardList className="w-3 h-3" />
-                                        {localizeCourseUi('Homework', locale)}
-                                      </span>
-                                    )}
-                                    </div>
                                   </div>
-                                  <Play className={cn(
-                                    "w-5 h-5 flex-shrink-0 transition-transform",
-                                    isSelected ? "text-primary scale-110" : "text-muted-foreground"
-                                  )} />
+                                  <Play
+                                    className={cn(
+                                      "w-5 h-5 flex-shrink-0 transition-transform",
+                                      isSelected
+                                        ? "text-primary scale-110"
+                                        : "text-muted-foreground",
+                                    )}
+                                  />
                                 </button>
                                 <SubLessonTrack
                                   lessons={moduleLessons}
+                                  startNumber={
+                                    module.id === FIRST_POST_MODULE_ID ? 2 : 1
+                                  }
                                   onLessonClick={(lessonId) =>
-                                    navigate(`/courses/${courseType}/lesson/${module.id}?sublesson=${lessonId}`)
+                                    navigate(
+                                      `/courses/${courseType}/lesson/${module.id}?sublesson=${lessonId}`,
+                                    )
                                   }
                                 />
                               </div>
@@ -595,65 +841,86 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
                   </div>
 
                   {/* Level 1 Certification entry for hair-system on desktop */}
-                  {courseType === 'hair-system' && (() => {
-                    const directoryModule = (course.modules || []).find((m: any) => m.is_directory_enrollment);
-                    return (
-                    <div className="pl-2 mt-2 space-y-2">
-                      <button
-                        onClick={() => {
-                          setShowCertification(true);
-                          setSelectedModule(null);
-                        }}
-                        className={cn(
-                          'w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left',
-                          'border-2 hover:border-primary/50 hover:bg-secondary/20',
-                          showCertification && !selectedModule
-                            ? 'bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20'
-                            : 'border-primary/30 bg-primary/5 shadow-md shadow-black/20'
-                        )}
-                      >
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all gold-gradient text-primary-foreground shadow-md">
-                          <Award className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className={cn(
-                            "font-semibold text-sm mb-1",
-                            showCertification && !selectedModule ? "text-primary" : "gold-text"
-                          )}>
-                            Level 1 Certification
-                          </h4>
-                          <p className="text-xs text-muted-foreground">Complete all lessons to unlock</p>
-                        </div>
-                        <Award className={cn(
-                          "w-5 h-5 flex-shrink-0",
-                          showCertification && !selectedModule ? "text-primary" : "text-muted-foreground"
-                        )} />
-                      </button>
-                      {/* Directory enrollment after certification */}
-                      {directoryModule && (
-                        <button
-                          onClick={() => navigate(`/courses/${courseType}/lesson/${directoryModule.id}`)}
-                          className="w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 hover:border-primary/60"
-                        >
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient text-primary-foreground shadow-md">
-                            <Globe className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm mb-1 gold-text">{directoryModule.title}</h4>
-                            {directoryModule.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">{directoryModule.description}</p>
+                  {courseType === "hair-system" &&
+                    (() => {
+                      const directoryModule = (course.modules || []).find(
+                        (m: any) => m.is_directory_enrollment,
+                      );
+                      return (
+                        <div className="pl-2 mt-2 space-y-2">
+                          <button
+                            onClick={() => {
+                              setShowCertification(true);
+                              setSelectedModule(null);
+                            }}
+                            className={cn(
+                              "w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left",
+                              "border-2 hover:border-primary/50 hover:bg-secondary/20",
+                              showCertification && !selectedModule
+                                ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
+                                : "border-primary/30 bg-primary/5 shadow-md shadow-black/20",
                             )}
-                          </div>
-                          <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
-                        </button>
-                      )}
-                    </div>
-                    );
-                  })()}
+                          >
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all gold-gradient text-primary-foreground shadow-md">
+                              <Award className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4
+                                className={cn(
+                                  "font-semibold text-sm mb-1",
+                                  showCertification && !selectedModule
+                                    ? "text-primary"
+                                    : "gold-text",
+                                )}
+                              >
+                                Level 1 Certification
+                              </h4>
+                              <p className="text-xs text-muted-foreground">
+                                Complete all lessons to unlock
+                              </p>
+                            </div>
+                            <Award
+                              className={cn(
+                                "w-5 h-5 flex-shrink-0",
+                                showCertification && !selectedModule
+                                  ? "text-primary"
+                                  : "text-muted-foreground",
+                              )}
+                            />
+                          </button>
+                          {/* Directory enrollment after certification */}
+                          {directoryModule && (
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/courses/${courseType}/lesson/${directoryModule.id}`,
+                                )
+                              }
+                              className="w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 hover:border-primary/60"
+                            >
+                              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient text-primary-foreground shadow-md">
+                                <Globe className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm mb-1 gold-text">
+                                  {directoryModule.title}
+                                </h4>
+                                {directoryModule.description && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {directoryModule.description}
+                                  </p>
+                                )}
+                              </div>
+                              <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                 </div>
               ))}
             </div>
-            
+
             {/* Scroll indicator */}
             {canScrollMore && (
               <div className="absolute bottom-0 left-0 right-2 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none flex items-end justify-center pb-2">
@@ -667,96 +934,143 @@ export default function Courses({ courseType = 'hair-system' }: CoursesProps) {
 
         {/* Right Panel - Module Content (Desktop only) */}
         {isDesktop && (
-        <div className={cn(
-          "flex-1 min-w-0 overflow-y-auto",
-          !showCertification && !moduleData?.module.video_url?.trim() && "flex items-center justify-center"
-        )}>
-          {showCertification && !selectedModule && courseType === 'hair-system' && courses[0]?.id ? (
-            <div className="p-4">
-              <CertificationSection courseId={courses[0].id} />
-            </div>
-          ) : moduleData ? (
-            <div key={`${moduleData.module.id}-${locale}`} className={cn(
-              "glass-card rounded-xl overflow-hidden w-full",
-              !moduleData.module.video_url?.trim() && "max-w-lg"
-            )}>
-              {/* Module Header */}
-              <div className={cn(
-                "p-6",
-                moduleData.module.video_url?.trim() && "border-b border-border/30"
-              )}>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                  <span key={`${moduleData.module.id}-${locale}-course`} data-no-translate translate="no">
-                    {localizeCourseTitle(moduleData.courseName, locale)}
-                  </span>
-                </div>
-                <h1 key={`${moduleData.module.id}-${locale}-title`} className="font-display text-2xl font-bold gold-text" data-no-translate translate="no">
-                  {localizeHairSystemLessonTitle(moduleData.module, locale)}
-                </h1>
-                {moduleData.module.description && (
-                  <p className="text-muted-foreground mt-1">{moduleData.module.description}</p>
-                )}
+          <div
+            className={cn(
+              "flex-1 min-w-0 overflow-y-auto",
+              !showCertification &&
+                !moduleData?.module.video_url?.trim() &&
+                "flex items-center justify-center",
+            )}
+          >
+            {showCertification &&
+            !selectedModule &&
+            courseType === "hair-system" &&
+            courses[0]?.id ? (
+              <div className="p-4">
+                <CertificationSection courseId={courses[0].id} />
               </div>
-
-              {/* Video Player - only show if video exists */}
-              {moduleData.module.video_url?.trim() && (
-                <div className="relative aspect-video bg-black border-b border-border/30">
-                  <iframe
-                    key={`${moduleData.module.id}-${locale}`}
-                    src={resolveVideoEmbedUrlForModule(moduleData.module, locale, getVimeoEmbedUrl)}
-                    className="absolute inset-0 w-full h-full"
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    allowFullScreen
-                    title={localizeHairSystemLessonTitle(moduleData.module, locale)}
-                  />
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="p-6 space-y-4">
-                <Button 
-                  className="w-full gold-gradient text-primary-foreground font-semibold py-6 text-lg"
-                  onClick={() => goToLesson(moduleData.module.id, courseType)}
+            ) : moduleData ? (
+              <div
+                key={`${moduleData.module.id}-${locale}`}
+                className={cn(
+                  "glass-card rounded-xl overflow-hidden w-full",
+                  !moduleData.module.video_url?.trim() && "max-w-lg",
+                )}
+              >
+                {/* Module Header */}
+                <div
+                  className={cn(
+                    "p-6",
+                    moduleData.module.video_url?.trim() &&
+                      "border-b border-border/30",
+                  )}
                 >
-                  <Play className="w-5 h-5 mr-2" />
-                  {localizeCourseUi('Start Lesson', locale)}
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <span
+                      key={`${moduleData.module.id}-${locale}-course`}
+                      data-no-translate
+                      translate="no"
+                    >
+                      {localizeCourseTitle(moduleData.courseName, locale)}
+                    </span>
+                  </div>
+                  <h1
+                    key={`${moduleData.module.id}-${locale}-title`}
+                    className="font-display text-2xl font-bold gold-text"
+                    data-no-translate
+                    translate="no"
+                  >
+                    {localizeHairSystemLessonTitle(moduleData.module, locale)}
+                  </h1>
+                  {moduleData.module.description && (
+                    <p className="text-muted-foreground mt-1">
+                      {moduleData.module.description}
+                    </p>
+                  )}
+                </div>
 
-                {(moduleData.module.has_quiz || moduleData.module.has_homework) && (
-                  <div className="flex gap-3">
-                    {moduleData.module.has_quiz && (
-                      <Button 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => goToLesson(moduleData.module.id, courseType, 'quiz')}
-                      >
-                        <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
-                        {localizeCourseUi('Take Quiz', locale)}
-                      </Button>
-                    )}
-                    {moduleData.module.has_homework && (
-                      <Button 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => goToLesson(moduleData.module.id, courseType, 'homework')}
-                      >
-                        <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
-                        {localizeCourseUi('Homework', locale)}
-                      </Button>
-                    )}
+                {/* Video Player - only show if video exists */}
+                {moduleData.module.video_url?.trim() && (
+                  <div className="relative aspect-video bg-black border-b border-border/30">
+                    <iframe
+                      key={`${moduleData.module.id}-${locale}`}
+                      src={resolveVideoEmbedUrlForModule(
+                        moduleData.module,
+                        locale,
+                        getVimeoEmbedUrl,
+                      )}
+                      className="absolute inset-0 w-full h-full"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                      title={localizeHairSystemLessonTitle(
+                        moduleData.module,
+                        locale,
+                      )}
+                    />
                   </div>
                 )}
+
+                {/* Actions */}
+                <div className="p-6 space-y-4">
+                  <Button
+                    className="w-full gold-gradient text-primary-foreground font-semibold py-6 text-lg"
+                    onClick={() => goToLesson(moduleData.module.id, courseType)}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    {localizeCourseUi("Start Lesson", locale)}
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+
+                  {(moduleData.module.has_quiz ||
+                    moduleData.module.has_homework) && (
+                    <div className="flex gap-3">
+                      {moduleData.module.has_quiz && (
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() =>
+                            goToLesson(moduleData.module.id, courseType, "quiz")
+                          }
+                        >
+                          <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
+                          {localizeCourseUi("Take Quiz", locale)}
+                        </Button>
+                      )}
+                      {moduleData.module.has_homework && (
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() =>
+                            goToLesson(
+                              moduleData.module.id,
+                              courseType,
+                              "homework",
+                            )
+                          }
+                        >
+                          <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
+                          {localizeCourseUi("Homework", locale)}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
-          <div className="glass-card rounded-xl p-8 max-w-sm text-center">
-            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2">{localizeCourseUi('Select a Module', locale)}</h3>
-            <p className="text-muted-foreground text-sm">{localizeCourseUi('Choose a module from the left panel to view its content', locale)}</p>
+            ) : (
+              <div className="glass-card rounded-xl p-8 max-w-sm text-center">
+                <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="font-semibold text-lg mb-2">
+                  {localizeCourseUi("Select a Module", locale)}
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  {localizeCourseUi(
+                    "Choose a module from the left panel to view its content",
+                    locale,
+                  )}
+                </p>
+              </div>
+            )}
           </div>
-          )}
-        </div>
         )}
       </div>
     </DashboardLayout>
