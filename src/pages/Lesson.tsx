@@ -1481,9 +1481,11 @@ export default function Lesson() {
         {/* Mobile: Inline Quiz Content */}
         {isMobile && activeHasQuiz && (
           <div
+            id="social-media-quiz"
             className="p-4 rounded-2xl bg-secondary/20 animate-fade-up"
             style={{ animationDelay: "0.3s" }}
           >
+
             <div className="space-y-4">
               {questions.length === 0 ? (
                 <div className="text-center py-6">
