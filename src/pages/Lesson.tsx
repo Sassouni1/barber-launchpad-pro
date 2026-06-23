@@ -962,8 +962,6 @@ export default function Lesson() {
   const activeHasQuiz = sublessonId ? !!sublesson?.has_quiz : module.has_quiz;
   const activeHasHomework = sublessonId ? false : module.has_homework;
   const notesContent = sublessonId ? null : module.notes_content;
-  const firstPostCopyDownloadFileName =
-    module.id === FIRST_POST_MODULE_ID ? "first-post.txt" : undefined;
   const activeFiles = isThirdPostSubLesson
     ? [THIRD_POST_VIDEO_FILE]
     : isSecondPostSubLesson
@@ -1097,19 +1095,7 @@ export default function Lesson() {
               sublesson?.id === THIRD_POST_SUBLESSON_ID ||
               sublesson?.id === FOURTH_POST_SUBLESSON_ID ||
               (!sublesson && module.id === FIRST_POST_MODULE_ID) ? (
-                <CopyableText
-                  text={displayDescription}
-                  allowDownload
-                  downloadFileName={
-                    sublesson?.id === FOURTH_POST_SUBLESSON_ID
-                      ? "fourth-post.txt"
-                      : sublesson?.id === THIRD_POST_SUBLESSON_ID
-                        ? "third-post.txt"
-                        : sublesson?.id === SECOND_POST_SUBLESSON_ID
-                          ? "second-post.txt"
-                          : "first-post.txt"
-                  }
-                />
+                <CopyableText text={displayDescription} />
               ) : (
                 <p className="text-muted-foreground whitespace-pre-line">
                   {displayDescription}
@@ -1628,7 +1614,7 @@ export default function Lesson() {
               </div>
             )}
             <div className="prose prose-invert prose-sm max-w-none">
-              {renderNotesContent(notesContent, firstPostCopyDownloadFileName)}
+              {renderNotesContent(notesContent)}
             </div>
           </div>
         )}
@@ -1672,17 +1658,7 @@ export default function Lesson() {
                       {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
                       sublesson?.id === THIRD_POST_SUBLESSON_ID ||
                       sublesson?.id === FOURTH_POST_SUBLESSON_ID ? (
-                        <CopyableText
-                          text={displayDescription}
-                          allowDownload
-                          downloadFileName={
-                            sublesson?.id === FOURTH_POST_SUBLESSON_ID
-                              ? "fourth-post.txt"
-                              : sublesson?.id === THIRD_POST_SUBLESSON_ID
-                                ? "third-post.txt"
-                                : "second-post.txt"
-                          }
-                        />
+                        <CopyableText text={displayDescription} />
                       ) : (
                         <p className="text-muted-foreground whitespace-pre-line">
                           {displayDescription}
