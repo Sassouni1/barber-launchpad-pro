@@ -1149,9 +1149,9 @@ export default function Lesson() {
               <Button
                 variant={activeTab === "quiz" ? "default" : "secondary"}
                 onClick={() => setActiveTab("quiz")}
-                className={activeTab === "quiz" ? "gold-gradient" : ""}
+                className={`font-semibold gap-2 ${activeTab === "quiz" ? "gold-gradient" : ""}`}
               >
-                <HelpCircle className="w-4 h-4 mr-2" />
+                <Trophy className="w-4 h-4" />
                 {localizeCourseUi("Quiz", locale)}
                 {bestAttempt && (
                   <span className="ml-2 px-2 py-0.5 bg-white/20 rounded text-xs">
@@ -1390,7 +1390,7 @@ export default function Lesson() {
             style={{ animationDelay: "0.3s" }}
           >
             <div className="flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-primary" />
+              <Trophy className="w-5 h-5 text-primary" />
               <h2 className="font-display text-lg font-semibold">Quiz</h2>
               {bestAttempt && (
                 <span className="px-2 py-0.5 bg-primary/20 rounded text-xs">
@@ -1421,7 +1421,7 @@ export default function Lesson() {
         {/* Mobile: Inline Quiz Content */}
         {isMobile && activeHasQuiz && (
           <div
-            className="glass-card p-4 rounded-2xl animate-fade-up"
+            className="p-4 rounded-2xl bg-secondary/20 animate-fade-up"
             style={{ animationDelay: "0.3s" }}
           >
             <div className="space-y-4">
@@ -1552,7 +1552,7 @@ export default function Lesson() {
                   {questions.map((question, index) => (
                     <div
                       key={question.id}
-                      className="p-3 rounded-xl bg-secondary/20 border border-border/30"
+                      className="p-3 rounded-xl bg-secondary/20"
                     >
                       <div className="flex items-start gap-2 mb-3">
                         <span className="w-6 h-6 rounded-full gold-gradient flex items-center justify-center text-xs font-bold text-primary-foreground flex-shrink-0">
@@ -1656,7 +1656,7 @@ export default function Lesson() {
         {/* Desktop: Tab Content */}
         {!isMobile && (
           <div
-            className="glass-card p-6 rounded-2xl animate-fade-up"
+            className="p-6 rounded-2xl bg-secondary/20 animate-fade-up"
             style={{ animationDelay: "0.3s" }}
           >
             {activeTab === "video" && (
@@ -1894,10 +1894,11 @@ export default function Lesson() {
                 <div className="flex flex-col gap-3">
                   {activeHasQuiz && (
                     <Button
-                      className="gold-gradient text-primary-foreground font-semibold"
+                      size="lg"
+                      className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
                       onClick={() => setActiveTab("quiz")}
                     >
-                      <HelpCircle className="w-4 h-4 mr-2" />
+                      <Trophy className="w-5 h-5" />
                       Start Quiz
                     </Button>
                   )}
@@ -2052,7 +2053,7 @@ export default function Lesson() {
                       {questions.map((question, index) => (
                         <div
                           key={question.id}
-                          className="p-4 rounded-xl bg-secondary/20 border border-border/30"
+                          className="p-4 rounded-xl bg-secondary/20"
                         >
                           <div className="flex items-start gap-3 mb-4">
                             <span className="w-8 h-8 rounded-full gold-gradient flex items-center justify-center text-sm font-bold text-primary-foreground flex-shrink-0">
