@@ -1092,13 +1092,56 @@ export default function Lesson() {
         {displayVideoUrl?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-          <VideoPlayer
-            key={`${module.id}-${sublesson?.id || "main"}-${locale}`}
-            src={vimeoEmbedUrl}
-            title={localizedModuleTitle}
-            posterSrc={videoPosterSrc}
-          />
-        )}
+            <VideoPlayer
+              key={`${module.id}-${sublesson?.id || "main"}-${locale}`}
+              src={vimeoEmbedUrl}
+              title={localizedModuleTitle}
+              posterSrc={videoPosterSrc}
+            />
+          )}
+
+        {/* Social Media: prominent Start Quiz CTA directly under the video */}
+        {displayVideoUrl?.trim() &&
+          activeHasQuiz &&
+          isSocialMediaLesson &&
+          !isMobile && (
+            <div
+              className="flex justify-center animate-fade-up"
+              style={{ animationDelay: "0.15s" }}
+            >
+              <Button
+                size="lg"
+                className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
+                onClick={() => setActiveTab("quiz")}
+              >
+                <Trophy className="w-5 h-5" />
+                {localizeCourseUi("Quiz", locale)}
+              </Button>
+            </div>
+          )}
+
+        {displayVideoUrl?.trim() &&
+          activeHasQuiz &&
+          isSocialMediaLesson &&
+          isMobile && (
+            <div
+              className="flex justify-center animate-fade-up"
+              style={{ animationDelay: "0.15s" }}
+            >
+              <Button
+                size="lg"
+                className="w-full gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
+                onClick={() => {
+                  const quizEl = document.getElementById("social-media-quiz");
+                  quizEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                <Trophy className="w-5 h-5" />
+                {localizeCourseUi("Quiz", locale)}
+              </Button>
+            </div>
+          )}
+
 
         {/* Mobile: Caption / description block */}
         {isMobile &&
