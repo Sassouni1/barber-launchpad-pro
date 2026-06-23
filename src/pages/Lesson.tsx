@@ -288,7 +288,7 @@ const SocialMedia101ReadAlong = () => {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1">
         {SOCIAL_MEDIA_101_LESSON_SECTIONS.map((section) => (
           <div
             key={section.title}
