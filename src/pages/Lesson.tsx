@@ -96,17 +96,7 @@ const VideoPlayer = React.memo(
     return (
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="aspect-video max-h-[50vh] bg-black relative">
-          {isDirectVideo ? (
-            <video
-              src={src}
-              poster={posterSrc}
-              className="absolute inset-0 h-full w-full"
-              controls
-              playsInline
-              preload="metadata"
-              title={title}
-            />
-          ) : posterSrc && !hasStarted ? (
+          {posterSrc && !hasStarted ? (
             <button
               type="button"
               onClick={() => setHasStarted(true)}
@@ -124,6 +114,17 @@ const VideoPlayer = React.memo(
                 <Play className="ml-1 h-9 w-9 fill-current" />
               </span>
             </button>
+          ) : isDirectVideo ? (
+            <video
+              src={src}
+              poster={posterSrc}
+              className="absolute inset-0 h-full w-full"
+              controls
+              autoPlay={!!posterSrc}
+              playsInline
+              preload="metadata"
+              title={title}
+            />
           ) : (
             <iframe
               src={playableSrc}
@@ -141,8 +142,21 @@ const VideoPlayer = React.memo(
 VideoPlayer.displayName = "VideoPlayer";
 
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
+const CONSUMER_FINANCING_MODULE_ID = "b1040000-0000-4000-8000-000000000104";
 const SOCIAL_MEDIA_101_THUMBNAIL =
   "/lesson-assets/thumbnails/social-media-101-thumbnail.png";
+const CONSUMER_FINANCING_THUMBNAIL =
+  "/lesson-assets/thumbnails/consumer-financing-thumbnail.jpg";
+const VIDEO_POSTER_BY_URL: Record<string, string> = {
+  "/lesson-assets/posts/winno-real-result-ig-02-with-hair-system-vertical-audio.mp4":
+    "/lesson-assets/thumbnails/third-post-thumbnail.jpg",
+  "/lesson-assets/posts/fourth-post-transformation.mp4":
+    "/lesson-assets/thumbnails/fourth-post-option-1-thumbnail.jpg",
+  "/lesson-assets/posts/fourth-post-barber-launch-1.mp4":
+    "/lesson-assets/thumbnails/fourth-post-option-2-thumbnail.jpg",
+  "/lesson-assets/posts/fourth-post-hair-system-2.mp4":
+    "/lesson-assets/thumbnails/fourth-post-option-3-thumbnail.jpg",
+};
 const SOCIAL_MEDIA_101_INSTAGRAM_POST_URL =
   "https://www.instagram.com/barberlaunchofficial/p/DYDyUWaGsX3/";
 const SOCIAL_MEDIA_101_CAROUSEL_SLIDES = Array.from(
@@ -322,6 +336,9 @@ type ResourcePreviewFile = {
   file_url: string;
   file_type: string | null;
 };
+
+const getVideoPosterSrc = (fileUrl?: string | null) =>
+  fileUrl ? VIDEO_POSTER_BY_URL[fileUrl] : undefined;
 
 // Copyable text component
 const CopyableText = ({
@@ -950,8 +967,14 @@ export default function Lesson() {
     : module.video_url;
   const isSocialMedia101Lesson =
     !sublessonId && module.id === SOCIAL_MEDIA_101_MODULE_ID;
+  const isConsumerFinancingLesson =
+    !sublessonId && module.id === CONSUMER_FINANCING_MODULE_ID;
   const videoPosterSrc =
-    isSocialMedia101Lesson ? SOCIAL_MEDIA_101_THUMBNAIL : undefined;
+    isSocialMedia101Lesson
+      ? SOCIAL_MEDIA_101_THUMBNAIL
+      : isConsumerFinancingLesson
+        ? CONSUMER_FINANCING_THUMBNAIL
+        : undefined;
   const isSubLessonInFirstPostModule =
     !!sublessonId && module.id === FIRST_POST_MODULE_ID;
   const activeHasDownload =
@@ -1263,6 +1286,22 @@ export default function Lesson() {
                     </div>
                   ) : isVideo(file.file_type) ? (
                     <div className="aspect-square bg-black/40 relative overflow-hidden">
+                      {getVideoPosterSrc(file.file_url) ? (
+                        <img
+                          src={getVideoPosterSrc(file.file_url)}
+                          alt={file.file_name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <video
+                          src={`${file.file_url}#t=0.1`}
+                          className="w-full h-full object-cover pointer-events-none"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => setPreviewFile(file)}
@@ -1272,13 +1311,6 @@ export default function Lesson() {
                       >
                         <Maximize2 className="h-4 w-4" />
                       </button>
-                      <video
-                        src={`${file.file_url}#t=0.1`}
-                        className="w-full h-full object-cover pointer-events-none"
-                        muted
-                        playsInline
-                        preload="metadata"
-                      />
                     </div>
                   ) : (
                     <div className="aspect-square bg-secondary/50 flex items-center justify-center">
@@ -1763,6 +1795,22 @@ export default function Lesson() {
                             </div>
                           ) : isVideo(file.file_type) ? (
                             <div className="aspect-square bg-black/40 relative overflow-hidden">
+                              {getVideoPosterSrc(file.file_url) ? (
+                                <img
+                                  src={getVideoPosterSrc(file.file_url)}
+                                  alt={file.file_name}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <video
+                                  src={`${file.file_url}#t=0.1`}
+                                  className="w-full h-full object-cover pointer-events-none"
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                />
+                              )}
                               <button
                                 type="button"
                                 onClick={() => setPreviewFile(file)}
@@ -1772,13 +1820,6 @@ export default function Lesson() {
                               >
                                 <Maximize2 className="h-4 w-4" />
                               </button>
-                              <video
-                                src={`${file.file_url}#t=0.1`}
-                                className="w-full h-full object-cover pointer-events-none"
-                                muted
-                                playsInline
-                                preload="metadata"
-                              />
                             </div>
                           ) : (
                             <div className="aspect-square bg-secondary/50 flex items-center justify-center">
