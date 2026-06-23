@@ -967,6 +967,9 @@ export default function Lesson() {
     : module.video_url;
   const isSocialMedia101Lesson =
     !sublessonId && module.id === SOCIAL_MEDIA_101_MODULE_ID;
+  const isSocialMediaLesson =
+    isSocialMedia101Lesson || module.id === FIRST_POST_MODULE_ID;
+
   const isConsumerFinancingLesson =
     !sublessonId && module.id === CONSUMER_FINANCING_MODULE_ID;
   const videoPosterSrc =
