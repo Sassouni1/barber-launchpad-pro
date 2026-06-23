@@ -967,6 +967,9 @@ export default function Lesson() {
     : module.video_url;
   const isSocialMedia101Lesson =
     !sublessonId && module.id === SOCIAL_MEDIA_101_MODULE_ID;
+  const isSocialMediaLesson =
+    isSocialMedia101Lesson || module.id === FIRST_POST_MODULE_ID;
+
   const isConsumerFinancingLesson =
     !sublessonId && module.id === CONSUMER_FINANCING_MODULE_ID;
   const videoPosterSrc =
@@ -1089,13 +1092,58 @@ export default function Lesson() {
         {displayVideoUrl?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-          <VideoPlayer
-            key={`${module.id}-${sublesson?.id || "main"}-${locale}`}
-            src={vimeoEmbedUrl}
-            title={localizedModuleTitle}
-            posterSrc={videoPosterSrc}
-          />
-        )}
+            <VideoPlayer
+              key={`${module.id}-${sublesson?.id || "main"}-${locale}`}
+              src={vimeoEmbedUrl}
+              title={localizedModuleTitle}
+              posterSrc={videoPosterSrc}
+            />
+          )}
+
+        {/* Social Media: prominent Start Quiz CTA directly under the video */}
+        {displayVideoUrl?.trim() &&
+          activeHasQuiz &&
+          isSocialMediaLesson &&
+          !isMobile && (
+            <div
+              className="flex justify-center animate-fade-up"
+              style={{ animationDelay: "0.15s" }}
+            >
+              <Button
+                size="lg"
+                className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
+                onClick={() => setActiveTab("quiz")}
+              >
+                <Trophy className="w-5 h-5" />
+                Start Quiz
+              </Button>
+
+            </div>
+          )}
+
+        {displayVideoUrl?.trim() &&
+          activeHasQuiz &&
+          isSocialMediaLesson &&
+          isMobile && (
+            <div
+              className="flex justify-center animate-fade-up"
+              style={{ animationDelay: "0.15s" }}
+            >
+              <Button
+                size="lg"
+                className="w-full gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
+                onClick={() => {
+                  const quizEl = document.getElementById("social-media-quiz");
+                  quizEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                <Trophy className="w-5 h-5" />
+                Start Quiz
+              </Button>
+
+            </div>
+          )}
+
 
         {/* Mobile: Caption / description block */}
         {isMobile &&
@@ -1435,9 +1483,11 @@ export default function Lesson() {
         {/* Mobile: Inline Quiz Content */}
         {isMobile && activeHasQuiz && (
           <div
+            id="social-media-quiz"
             className="p-4 rounded-2xl bg-secondary/20 animate-fade-up"
             style={{ animationDelay: "0.3s" }}
           >
+
             <div className="space-y-4">
               {questions.length === 0 ? (
                 <div className="text-center py-6">
@@ -1911,7 +1961,7 @@ export default function Lesson() {
                   })()}
 
                 <div className="flex flex-col gap-3">
-                  {activeHasQuiz && (
+                  {activeHasQuiz && !isSocialMediaLesson && (
                     <Button
                       size="lg"
                       className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
@@ -1921,6 +1971,7 @@ export default function Lesson() {
                       Start Quiz
                     </Button>
                   )}
+
                   <Button
                     variant="outline"
                     onClick={() =>
