@@ -1138,8 +1138,9 @@ export default function Lesson() {
                 }}
               >
                 <Trophy className="w-5 h-5" />
-                {localizeCourseUi("Quiz", locale)}
+                Start Quiz
               </Button>
+
             </div>
           )}
 
