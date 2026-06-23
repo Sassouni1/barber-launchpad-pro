@@ -381,38 +381,37 @@ const CopyableText = ({
   };
 
   return (
-    <span className="inline-flex items-center gap-2 px-3 py-2 bg-secondary/50 border border-border/50 rounded text-base leading-relaxed">
-      <span className="whitespace-pre-line">
-        {renderTextWithPlaceholders(text)}
-      </span>
-      <div className="inline-flex items-center gap-1">
+    <div className="px-4 py-3 bg-secondary/50 border border-border/50 rounded space-y-3">
+      <div className="flex items-center gap-2">
         <button
           onClick={handleCopy}
-          className="p-0.5 hover:bg-primary/20 rounded transition-colors flex-shrink-0 self-start mt-0.5"
-          title="Copy to clipboard"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
         >
           {copied ? (
-            <Check className="w-3.5 h-3.5 text-green-500" />
+            <><Check className="w-3.5 h-3.5" /> Copied</>
           ) : (
-            <Copy className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+            <><Copy className="w-3.5 h-3.5" /> Copy Caption</>
           )}
         </button>
         {allowDownload ? (
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="p-0.5 hover:bg-primary/20 rounded transition-colors flex-shrink-0 self-start mt-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-foreground text-xs font-semibold hover:bg-secondary/80 transition-colors disabled:opacity-50"
             title="Download as .txt"
           >
             {downloading ? (
-              <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving</>
             ) : (
-              <Download className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+              <><Download className="w-3.5 h-3.5" /> Download</>
             )}
           </button>
         ) : null}
       </div>
-    </span>
+      <div className="whitespace-pre-line text-base leading-relaxed">
+        {renderTextWithPlaceholders(text)}
+      </div>
+    </div>
   );
 };
 
