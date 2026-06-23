@@ -1773,9 +1773,9 @@ export default function Lesson() {
                                 <Maximize2 className="h-4 w-4" />
                               </button>
                               <video
-                                src={file.file_url}
-                                className="w-full h-full object-cover"
-                                controls
+                                src={`${file.file_url}#t=0.1`}
+                                className="w-full h-full object-cover pointer-events-none"
+                                muted
                                 playsInline
                                 preload="metadata"
                               />
