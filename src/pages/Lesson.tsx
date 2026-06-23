@@ -96,17 +96,7 @@ const VideoPlayer = React.memo(
     return (
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="aspect-video max-h-[50vh] bg-black relative">
-          {isDirectVideo ? (
-            <video
-              src={src}
-              poster={posterSrc}
-              className="absolute inset-0 h-full w-full"
-              controls
-              playsInline
-              preload="metadata"
-              title={title}
-            />
-          ) : posterSrc && !hasStarted ? (
+          {posterSrc && !hasStarted ? (
             <button
               type="button"
               onClick={() => setHasStarted(true)}
@@ -124,6 +114,17 @@ const VideoPlayer = React.memo(
                 <Play className="ml-1 h-9 w-9 fill-current" />
               </span>
             </button>
+          ) : isDirectVideo ? (
+            <video
+              src={src}
+              poster={posterSrc}
+              className="absolute inset-0 h-full w-full"
+              controls
+              autoPlay={!!posterSrc}
+              playsInline
+              preload="metadata"
+              title={title}
+            />
           ) : (
             <iframe
               src={playableSrc}
