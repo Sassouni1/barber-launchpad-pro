@@ -1656,7 +1656,7 @@ export default function Lesson() {
         {/* Desktop: Tab Content */}
         {!isMobile && (
           <div
-            className="p-6 rounded-2xl bg-secondary/20 animate-fade-up"
+            className="animate-fade-up"
             style={{ animationDelay: "0.3s" }}
           >
             {activeTab === "video" && (
