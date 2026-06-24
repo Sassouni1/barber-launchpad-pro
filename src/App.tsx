@@ -44,6 +44,7 @@ import CardView from "./pages/CardView";
 import ClientHub from "./pages/ClientHub";
 import BusinessCardSetup from "./pages/BusinessCardSetup";
 import HairSystemChecklist from "./pages/HairSystemChecklist";
+import MyLinks from "./pages/MyLinks";
 import GHLCallback from "./pages/GHLCallback";
 import FindASpecialist from "./pages/FindASpecialist";
 import Terms from "./pages/Terms";
@@ -116,6 +117,7 @@ const MemberApp = () => (
         <Route path="/client/:userId" element={<ClientHub />} />
         <Route path="/business-card" element={<ProtectedRoute><BusinessCardSetup /></ProtectedRoute>} />
         <Route path="/find-a-pro" element={<FindASpecialist />} />
+        <Route path="/my-links" element={<ProtectedRoute><MyLinks /></ProtectedRoute>} />
         <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />
 
         <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />

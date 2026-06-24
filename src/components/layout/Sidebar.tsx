@@ -364,6 +364,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                 <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
               </ExpandableNavItem>
             )}
+            <NavItem to="/my-links" icon={CreditCard} label="My Links" collapsed={collapsed} />
             {/* Rewards hidden for now */}
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />

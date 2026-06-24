@@ -154,6 +154,115 @@ export type Database = {
         }
         Relationships: []
       }
+      barber_launch_payment_links: {
+        Row: {
+          active: boolean
+          amount_cents: number
+          created_at: string
+          currency: string
+          display_name: string
+          id: string
+          payment_method_types: string[]
+          stripe_account_id: string
+          stripe_payment_link_id: string | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          template_key: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          display_name: string
+          id?: string
+          payment_method_types?: string[]
+          stripe_account_id: string
+          stripe_payment_link_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          template_key: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          display_name?: string
+          id?: string
+          payment_method_types?: string[]
+          stripe_account_id?: string
+          stripe_payment_link_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          template_key?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_launch_payment_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      barber_launch_stripe_accounts: {
+        Row: {
+          charges_enabled: boolean
+          created_at: string
+          details_submitted: boolean
+          id: string
+          onboarding_started_at: string | null
+          payouts_enabled: boolean
+          stripe_account_id: string
+          synced_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          charges_enabled?: boolean
+          created_at?: string
+          details_submitted?: boolean
+          id?: string
+          onboarding_started_at?: string | null
+          payouts_enabled?: boolean
+          stripe_account_id: string
+          synced_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          charges_enabled?: boolean
+          created_at?: string
+          details_submitted?: boolean
+          id?: string
+          onboarding_started_at?: string | null
+          payouts_enabled?: boolean
+          stripe_account_id?: string
+          synced_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_launch_stripe_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_cards: {
         Row: {
           booking_url: string
