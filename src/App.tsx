@@ -117,6 +117,7 @@ const MemberApp = () => (
         <Route path="/client/:userId" element={<ClientHub />} />
         <Route path="/business-card" element={<ProtectedRoute><BusinessCardSetup /></ProtectedRoute>} />
         <Route path="/find-a-pro" element={<FindASpecialist />} />
+        <Route path="/my-links" element={<ProtectedRoute><MyLinks /></ProtectedRoute>} />
         <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />
 
         <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
