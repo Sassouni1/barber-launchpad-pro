@@ -51,4 +51,7 @@ verify_jwt = false
 [functions.admin-reset-password]
 verify_jwt = false
 
+[functions.barber-launch-stripe]
+verify_jwt = false
+
 
