@@ -403,6 +403,8 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                       </Collapsible>
                     )}
 
+                    <NavRow to="/my-links" icon={CreditCard} label="My Links" onClick={closeMenu} />
+
                     <div className="border-t border-border my-2" />
                     <NavRow to="/schedule-call" icon={Phone} label="1 on 1 Call" onClick={closeMenu} />
                   </>
