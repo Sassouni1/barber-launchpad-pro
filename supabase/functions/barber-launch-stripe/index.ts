@@ -163,16 +163,13 @@ Deno.serve(async (req) => {
         const acct = await stripeFetch("/accounts", {
           secret: stripeSecret,
           body: {
-            type: "express",
+            type: "standard",
             email: userEmail,
-            "capabilities[card_payments][requested]": "true",
-            "capabilities[transfers][requested]": "true",
-            "capabilities[klarna_payments][requested]": "true",
-            "business_type": "individual",
             "metadata[user_id]": userId,
             "metadata[app]": "barber_launch_pro",
           },
         });
+
         accountId = acct.id;
         await admin.from("barber_launch_stripe_accounts").insert({
           user_id: userId,
