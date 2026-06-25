@@ -255,6 +255,15 @@ export default function MyLinks() {
                   >
                     <RefreshCw className="w-4 h-4 mr-2" /> Refresh
                   </Button>
+                  {account && ready && (
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open('https://dashboard.stripe.com', '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" /> Open Stripe Dashboard
+                    </Button>
+                  )}
+
                 </div>
               </CardContent>
             </Card>
