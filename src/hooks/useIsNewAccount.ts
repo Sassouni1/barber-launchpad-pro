@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 
 // Accounts created on/after this cutoff get the simplified nav
-// (no Courses, Games, or Marketing tabs).
+// (Start Here is hidden once all quizzes are passed; Games/Marketing stay gated until then).
 const NEW_ACCOUNT_CUTOFF_ISO = '2026-06-18T00:00:00Z';
 
 export function useIsNewAccount(): boolean {
