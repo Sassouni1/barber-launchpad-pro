@@ -1,4 +1,4 @@
-import { useAuth } from '@/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 // Accounts created on/after this cutoff get the simplified nav
 // (Start Here is hidden once all quizzes are passed; Games/Marketing stay gated until then).
