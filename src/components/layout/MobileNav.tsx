@@ -290,12 +290,11 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                       <NavRow to="/start-here" icon={Sparkles} label="Start Here" onClick={closeMenu} />
                     )}
                     <NavRow to="/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={closeMenu} />
+                    <NavRow to="/courses/hair-system" icon={BookOpen} label="Courses" onClick={closeMenu} />
                     {!restrictNav && (
-                      <>
-                        <NavRow to="/courses/hair-system" icon={BookOpen} label="Courses" onClick={closeMenu} />
-                        <NavRow to="/training" icon={Target} label="Games" onClick={closeMenu} />
-                      </>
+                      <NavRow to="/training" icon={Target} label="Games" onClick={closeMenu} />
                     )}
+
 
                     {/* Checklists */}
                     <Collapsible open={checklistsOpen} onOpenChange={setChecklistsOpen}>

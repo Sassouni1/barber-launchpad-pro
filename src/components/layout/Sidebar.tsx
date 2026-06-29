@@ -338,17 +338,16 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <NavItem to="/start-here" icon={Sparkles} label="Start Here" collapsed={collapsed} />
             )}
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-            {!restrictNav && (
-              <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
-                {hasHairSystemCourses && (
-                  <SubNavItem to="/courses/hair-system" icon={GraduationCap} label="Hair System Training" />
-                )}
-                {hasBusinessCourses && (
-                  <SubNavItem to="/courses/business" icon={Briefcase} label="Business Mastery" />
-                )}
-                <TrainingGamesSubNavItem collapsed={collapsed} />
-              </ExpandableNavItem>
-            )}
+            <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
+              {hasHairSystemCourses && (
+                <SubNavItem to="/courses/hair-system" icon={GraduationCap} label="Hair System Training" />
+              )}
+              {hasBusinessCourses && (
+                <SubNavItem to="/courses/business" icon={Briefcase} label="Business Mastery" />
+              )}
+              <TrainingGamesSubNavItem collapsed={collapsed} />
+            </ExpandableNavItem>
+
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed}>
               {checklistLists
                 .filter(list => !list.title.toLowerCase().includes('consultation'))
