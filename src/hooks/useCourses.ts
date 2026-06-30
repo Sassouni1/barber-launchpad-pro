@@ -197,6 +197,7 @@ const positionMarketingFoundationsModules = (
     SETTING_UP_INSTAGRAM_MODULE_ID,
     FIRST_POST_MODULE_ID,
     CONSUMER_FINANCING_MODULE_ID,
+    GO_HIGH_LEVEL_MODULE_ID,
   ];
   const orderedModules = orderedModuleIds
     .map((moduleId) =>
