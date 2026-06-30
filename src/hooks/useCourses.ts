@@ -28,7 +28,7 @@ const SETTING_UP_INSTAGRAM_VIDEO_URL =
 const CONSUMER_FINANCING_MODULE_ID = "b1040000-0000-4000-8000-000000000104";
 const CONSUMER_FINANCING_VIDEO_URL =
   "/lesson-assets/consumer-financing-stripe-privacy-v8.mp4";
-const GO_HIGH_LEVEL_MODULE_ID = "c1100000-0000-4000-8000-000000000001";
+
 const BEFORE_PHOTOS_MODULE_ID = "b1020000-0000-4000-8000-000000000102";
 
 export type Course = Tables<"courses">;
@@ -197,7 +197,6 @@ const positionMarketingFoundationsModules = (
     SETTING_UP_INSTAGRAM_MODULE_ID,
     FIRST_POST_MODULE_ID,
     CONSUMER_FINANCING_MODULE_ID,
-    GO_HIGH_LEVEL_MODULE_ID,
   ];
   const orderedModules = orderedModuleIds
     .map((moduleId) =>
