@@ -156,6 +156,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/admin/courses', icon: FileEdit, label: 'Courses' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos' },
     { to: '/admin/products', icon: Package, label: 'Products' },
+    { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
   ];
 
   const currentViewLabel = isAdminView ? 'Admin' : 'Member';
