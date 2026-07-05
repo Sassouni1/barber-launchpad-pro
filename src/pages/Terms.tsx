@@ -52,10 +52,13 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <RefreshCcw className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">Refund Policy — The 3 Client Guarantee</h2>
+              <h2 className="text-xl font-semibold text-foreground">Educational Refund Policy</h2>
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
-              <p className="font-medium text-foreground">
+              <p className="font-semibold text-foreground">
+                Refund Policy — The 3 Client Guarantee
+              </p>
+              <p>
                 The Barber Launch Hair System Mastery &amp; Business Training program is backed by our 3 Client Guarantee: get 3 paying hair system clients within your first 16 weeks with us, or get your money back.
               </p>
               <p>To qualify for a refund under the 3 Client Guarantee, you must complete every one of the following:</p>
@@ -77,6 +80,20 @@ export default function TermsPage() {
               </p>
               <p>
                 To start a guarantee-related refund request, contact our support team with your order details and proof of completion.
+              </p>
+            </div>
+          </section>
+
+          <section className="glass-card rounded-xl p-6 md:p-8">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <RefreshCcw className="h-5 w-5" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground">Hair System Refund and Return Policies</h2>
+            </div>
+            <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
+              <p>
+                Hair systems that haven&apos;t been used can be returned or exchanged, with no questions asked — just cover shipping.
               </p>
             </div>
           </section>
