@@ -168,11 +168,13 @@ export default function Agreement() {
                 <div className="space-y-2">
                   <h3 className="font-medium text-foreground">To qualify, Client must:</h3>
                   <ul className="list-disc pl-6 space-y-1">
-                    <li>Complete 100% of the training curriculum</li>
-                    <li>Complete all assigned homework</li>
-                    <li>Hang the Barber Launch poster by your booth and submit proof</li>
-                    <li>Allow the Barber Launch team to run your advertisements</li>
-                    <li>Call at least 50 of the leads we generate for you</li>
+                    <li>Complete all required training modules and quizzes</li>
+                    <li>Post the 8 pieces of content we give you on your social media</li>
+                    <li>Submit certification photos and pass certification</li>
+                    <li>Attend at least 50% of weekly live group coaching calls (minimum 8 of 16)</li>
+                    <li>Run the required ad spend of $10 per day for at least 50 days</li>
+                    <li>Respond to Barber Launch calls, text, and emails at <a href="mailto:Thebarberlaunch@gmail.com" className="text-primary underline hover:text-primary/80">Thebarberlaunch@gmail.com</a> or <a href="tel:727-637-4672" className="text-primary underline hover:text-primary/80">727-637-4672</a></li>
+                    <li>Stay active in the program during the 16-week period</li>
                   </ul>
                 </div>
 

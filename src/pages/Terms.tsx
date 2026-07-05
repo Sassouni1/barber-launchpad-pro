@@ -60,11 +60,13 @@ export default function TermsPage() {
               </p>
               <p>To qualify for a refund under the 3 Client Guarantee, you must complete every one of the following:</p>
               <ul className="list-disc space-y-2 pl-6 text-foreground">
-                <li>Complete 100% of the training curriculum</li>
-                <li>Complete all assigned homework</li>
-                <li>Hang your Barber Launch poster by your booth and submit proof</li>
-                <li>Allow our team to run your advertisements</li>
-                <li>Call at least 50 of the leads we generate for you</li>
+                <li>Complete all required training modules and quizzes</li>
+                <li>Post the 8 pieces of content we give you on your social media</li>
+                <li>Submit certification photos and pass certification</li>
+                <li>Attend at least 50% of weekly live group coaching calls (minimum 8 of 16)</li>
+                <li>Run the required ad spend of $10 per day for at least 50 days</li>
+                <li>Respond to Barber Launch calls, text, and emails at <a href="mailto:Thebarberlaunch@gmail.com" className="text-primary underline hover:text-primary/80">Thebarberlaunch@gmail.com</a> or <a href="tel:727-637-4672" className="text-primary underline hover:text-primary/80">727-637-4672</a></li>
+                <li>Stay active in the program during the 16-week period</li>
               </ul>
               <p>
                 If you complete every requirement above and still have not secured 3 paying hair system clients within 16 weeks, you are eligible for a full refund.
@@ -90,7 +92,7 @@ export default function TermsPage() {
                 Results from our training programs depend on individual effort, experience, and market conditions. Testimonials shown are real experiences but are not a guarantee of future results.
               </p>
               <p>
-                Our 3 Client Guarantee applies to the Barber Launch Hair System Mastery &amp; Business Training program. To remain eligible you must complete 100% of the training, complete all homework, hang your Barber Launch poster by your booth and submit proof, allow our team to run your ads, and call at least 50 of the leads we generate for you. Failing to complete any of these voids guarantee eligibility.
+                Our 3 Client Guarantee applies to the Barber Launch Hair System Mastery &amp; Business Training program. To remain eligible you must complete all required training modules and quizzes, post the 8 pieces of content we give you on your social media, submit certification photos and pass certification, attend at least 50% of weekly live group coaching calls (minimum 8 of 16), run the required ad spend of $10 per day for at least 50 days, respond to Barber Launch calls, text, and emails at <a href="mailto:Thebarberlaunch@gmail.com" className="text-primary underline hover:text-primary/80">Thebarberlaunch@gmail.com</a> or <a href="tel:727-637-4672" className="text-primary underline hover:text-primary/80">727-637-4672</a>, and stay active in the program during the 16-week period. Failing to complete any of these voids guarantee eligibility.
               </p>
               <p>
                 The platform is provided "as is" without warranties of any kind, either express or implied. We do not guarantee uninterrupted access or that the platform will be error-free at all times.
@@ -105,16 +107,23 @@ export default function TermsPage() {
               </div>
               <h2 className="text-xl font-semibold">Contact Us</h2>
             </div>
-            <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
-              If you have any questions about these Terms or our Refund Policy, please contact us at{" "}
-              <a
-                href="mailto:support@thebarberlaunch.com"
-                className="text-primary underline hover:text-primary/80"
-              >
-                support@thebarberlaunch.com
-              </a>
-              .
-            </p>
+              <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
+                If you have any questions about these Terms or our Refund Policy, please contact us at{" "}
+                <a
+                  href="mailto:Thebarberlaunch@gmail.com"
+                  className="text-primary underline hover:text-primary/80"
+                >
+                  Thebarberlaunch@gmail.com
+                </a>
+                {" "}or{" "}
+                <a
+                  href="tel:727-637-4672"
+                  className="text-primary underline hover:text-primary/80"
+                >
+                  727-637-4672
+                </a>
+                .
+              </p>
           </section>
         </div>
       </main>
