@@ -203,19 +203,58 @@ export default function AccessLog() {
               Deep IP-level tracking — dispute-grade evidence of every member's access.
             </p>
           </div>
-          <Button onClick={exportCsv} variant="outline" className="gap-2">
+          <Button onClick={exportCsv} variant="outline" className="gap-2 print:hidden">
             <Download className="w-4 h-4" /> Export CSV
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {focusUser && disputeSummary && (
+          <Card className="p-6 border-primary/40 bg-primary/5 print:border-black print:bg-white">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Dispute Evidence Packet</div>
+                <h2 className="text-xl font-bold mt-1">{focusedProfile?.full_name || 'Member'}</h2>
+                <div className="text-sm text-muted-foreground">{focusedProfile?.email} · User ID: <span className="font-mono text-xs">{focusUser}</span></div>
+              </div>
+              <div className="flex gap-2 print:hidden">
+                <Button size="sm" onClick={printPacket} className="gap-2">
+                  <Download className="w-4 h-4" /> Print / Save PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setFocusUser(null)}>Clear</Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
+              <div><div className="text-xs text-muted-foreground">First seen</div><div className="font-medium">{format(new Date(disputeSummary.first), 'MMM d, yyyy HH:mm')}</div></div>
+              <div><div className="text-xs text-muted-foreground">Last seen</div><div className="font-medium">{format(new Date(disputeSummary.last), 'MMM d, yyyy HH:mm')}</div></div>
+              <div><div className="text-xs text-muted-foreground">Logins</div><div className="font-medium">{disputeSummary.loginCount}</div></div>
+              <div><div className="text-xs text-muted-foreground">Sessions</div><div className="font-medium">{disputeSummary.sessionCount}</div></div>
+              <div><div className="text-xs text-muted-foreground">Lesson views</div><div className="font-medium">{disputeSummary.lessonViews}</div></div>
+              <div><div className="text-xs text-muted-foreground">Unique IPs</div><div className="font-medium">{disputeSummary.ips.length}</div></div>
+              <div><div className="text-xs text-muted-foreground">Devices</div><div className="font-medium capitalize">{disputeSummary.devices.join(', ') || '—'}</div></div>
+              <div><div className="text-xs text-muted-foreground">Timezones</div><div className="font-medium">{disputeSummary.timezones.join(', ') || '—'}</div></div>
+            </div>
+            <div className="mt-4 text-sm">
+              <div className="text-xs text-muted-foreground mb-1">IP addresses used</div>
+              <div className="font-mono text-xs break-all">{disputeSummary.ips.join(', ') || '—'}</div>
+            </div>
+            <div className="mt-2 text-sm">
+              <div className="text-xs text-muted-foreground mb-1">Locations</div>
+              <div className="text-xs">{disputeSummary.cities.join(' · ') || '—'}</div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4 print:mt-6">
+              This report is generated from server-side access logs. IP addresses, geolocation, device, and timestamps are captured by the server and cannot be modified by the end user. Report generated {format(new Date(), 'MMM d, yyyy HH:mm')} UTC.
+            </p>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
           <Card className="p-4"><div className="text-xs text-muted-foreground">Events</div><div className="text-2xl font-bold">{stats.total}</div></Card>
           <Card className="p-4"><div className="text-xs text-muted-foreground">Unique Members</div><div className="text-2xl font-bold">{stats.uniqUsers}</div></Card>
           <Card className="p-4"><div className="text-xs text-muted-foreground">Unique IPs</div><div className="text-2xl font-bold">{stats.uniqIps}</div></Card>
           <Card className="p-4"><div className="text-xs text-muted-foreground">Countries</div><div className="text-2xl font-bold">{stats.uniqCountries}</div></Card>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 print:hidden">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -272,8 +311,14 @@ export default function AccessLog() {
                         <div className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'MMM d, HH:mm:ss')}</div>
                       </td>
                       <td className="p-3">
-                        <div className="font-medium">{r.profile?.full_name || '—'}</div>
-                        <div className="text-xs text-muted-foreground">{r.profile?.email || r.user_id.slice(0, 8)}</div>
+                        <button
+                          onClick={() => setFocusUser(r.user_id)}
+                          className="text-left hover:text-primary transition-colors"
+                          title="Focus this member for dispute packet"
+                        >
+                          <div className="font-medium">{r.profile?.full_name || '—'}</div>
+                          <div className="text-xs text-muted-foreground">{r.profile?.email || r.user_id.slice(0, 8)}</div>
+                        </button>
                       </td>
                       <td className="p-3"><Badge variant="outline">{r.event_type}</Badge></td>
                       <td className="p-3 max-w-[240px] truncate" title={r.route || ''}>
@@ -281,6 +326,7 @@ export default function AccessLog() {
                         {r.resource_id && <div className="text-xs text-muted-foreground truncate">{r.resource_type}: {r.resource_id}</div>}
                       </td>
                       <td className="p-3 font-mono text-xs">{r.ip_address || '—'}</td>
+
                       <td className="p-3">
                         {r.country ? (
                           <div className="flex items-center gap-1">
