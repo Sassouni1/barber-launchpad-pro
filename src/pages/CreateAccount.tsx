@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function CreateAccount() {
   const [loading, setLoading] = useState(false);
@@ -18,6 +19,7 @@ export default function CreateAccount() {
   const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,6 +40,11 @@ export default function CreateAccount() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!agreedToTerms) {
+      toast.error('Please agree to the Terms to continue');
+      return;
+    }
 
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
@@ -73,15 +80,13 @@ export default function CreateAccount() {
         }
       } else {
         toast.success('Account created successfully!');
-        // Save phone number to profile if provided
-        if (phone.trim()) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            await supabase
-              .from('profiles')
-              .update({ phone: phone.trim() })
-              .eq('id', session.user.id);
-          }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const updates: Record<string, any> = {
+            agreement_signed_at: new Date().toISOString(),
+          };
+          if (phone.trim()) updates.phone = phone.trim();
+          await supabase.from('profiles').update(updates).eq('id', session.user.id);
         }
       }
     } catch (error: any) {
@@ -206,6 +211,22 @@ export default function CreateAccount() {
               </div>
             </div>
           </div>
+
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="agree"
+              checked={agreedToTerms}
+              onCheckedChange={(v) => setAgreedToTerms(v === true)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="agree" className="text-sm text-muted-foreground font-normal leading-snug cursor-pointer">
+              I agree to the{' '}
+              <Link to="/terms" target="_blank" className="text-primary hover:underline">
+                Terms & Conditions
+              </Link>
+            </Label>
+          </div>
+
 
           <Button 
             type="submit" 
