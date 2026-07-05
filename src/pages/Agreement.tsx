@@ -173,6 +173,7 @@ export default function Agreement() {
                     <li>Submit certification photos and pass certification</li>
                     <li>Attend at least 50% of weekly live group coaching calls (minimum 8 of 16)</li>
                     <li>Run the required ad spend of $10 per day for at least 50 days</li>
+                    <li>Call at least 50 of the leads we generate for you, using the phone number we provide, so we can verify the calls</li>
                     <li>Respond to Barber Launch calls, text, and emails at <a href="mailto:Thebarberlaunch@gmail.com" className="text-primary underline hover:text-primary/80">Thebarberlaunch@gmail.com</a> or <a href="tel:727-637-4672" className="text-primary underline hover:text-primary/80">727-637-4672</a></li>
                     <li>Stay active in the program during the 16-week period</li>
                   </ul>
