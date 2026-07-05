@@ -4,7 +4,7 @@ export default function TermsPage() {
   const lastUpdated = "June 19, 2026";
 
   return (
-    <div className="min-h-screen bg-background light-theme">
+    <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <a href="/" className="text-lg font-semibold text-foreground hover:text-primary">
@@ -18,7 +18,7 @@ export default function TermsPage() {
           <h1 className="mb-3 text-3xl font-bold tracking-tight md:text-4xl gold-text">
             Terms & Refund Policy
           </h1>
-          <p className="text-sm text-foreground/80">
+          <p className="text-sm text-foreground md:text-base">
             Last updated: {lastUpdated}
           </p>
         </div>

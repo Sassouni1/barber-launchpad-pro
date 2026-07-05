@@ -73,7 +73,7 @@ export default function Agreement() {
           <h1 className="text-2xl md:text-3xl font-display font-bold gold-text text-center">
             SERVICE AGREEMENT
           </h1>
-          <p className="text-foreground/80 text-center">
+          <p className="text-foreground text-center">
             Please read and sign the agreement below to access the platform
           </p>
         </div>
@@ -94,12 +94,12 @@ export default function Agreement() {
             <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/80 to-transparent pointer-events-none rounded-b-lg z-10" />
             
             <ScrollArea className="h-[calc(100vh-520px)] min-h-[300px] rounded-lg border border-border/50 bg-card/50 p-6 md:p-8">
-              <div className="space-y-6 text-foreground/90 leading-relaxed pr-4">
-              <p className="text-foreground/90 italic">
+              <div className="space-y-6 text-foreground leading-relaxed pr-4">
+              <p className="italic">
                 This Agreement ("Agreement") is entered into as of {today}, by and between Sassouni Digital Media, 
                 also known as "Barber Launch" (the "Service Provider"), and {user?.email || 'Client'} (the "Client").
               </p>
-              <p className="text-foreground/90 italic">Collectively referred to as the "Parties."</p>
+              <p className="italic">Collectively referred to as the "Parties."</p>
 
               <section className="space-y-3">
                 <h2 className="text-lg font-semibold gold-text">Purpose of the Agreement</h2>
@@ -121,7 +121,7 @@ export default function Agreement() {
                   <li>Client acquisition systems and support</li>
                   <li>Hair system kit, if included in the Client{"'"}s selected package</li>
                 </ul>
-                <p className="text-foreground/90 text-sm">
+                <p className="text-sm">
                   Specific deliverables may vary based on the package purchased.
                 </p>
               </section>
@@ -190,7 +190,7 @@ export default function Agreement() {
                     Client will keep their website, certification, training access, CRM setup,
                     and business assets created during the program.
                   </p>
-                  <p className="text-foreground/90 text-sm">
+                  <p className="text-sm">
                     The 3 Client Guarantee applies only to the Barber Launch Hair System Mastery
                     &amp; Business Training program. Standalone hair system training (without the
                     business &amp; marketing components) and all other memberships, products, and
@@ -244,8 +244,8 @@ export default function Agreement() {
                 
                 <div className="space-y-2">
                   <p className="font-medium">Service Provider:</p>
-                  <p className="text-foreground/90">Sassouni Digital Media (Barber Launch)</p>
-                  <p className="text-foreground/90 italic">Digitally signed</p>
+                  <p>Sassouni Digital Media (Barber Launch)</p>
+                  <p className="italic">Digitally signed</p>
                 </div>
               </section>
               </div>
@@ -257,7 +257,7 @@ export default function Agreement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-foreground">Client Signature</p>
-                <p className="text-sm text-foreground/80">{user?.email || 'Client'} • {today}</p>
+                <p className="text-sm text-foreground/60">{user?.email || 'Client'} • {today}</p>
               </div>
             </div>
             
