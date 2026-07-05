@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function CreateAccount() {
   const [loading, setLoading] = useState(false);
