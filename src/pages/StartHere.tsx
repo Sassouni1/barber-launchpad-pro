@@ -24,7 +24,7 @@ import {
   Bot,
   Calendar,
 } from 'lucide-react';
-import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
+
 
 interface Step {
   title: string;
@@ -185,7 +185,7 @@ export default function StartHere() {
                 <LifeBuoy className="w-4 h-4" />
                 Need Support?
               </Button>
-              <NextCallCountdown compact />
+              
             </div>
           </div>
         </section>

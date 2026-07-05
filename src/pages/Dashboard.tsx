@@ -6,7 +6,7 @@ import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 import { ContactSection } from '@/components/dashboard/ContactSection';
 import { AionChatCard } from '@/components/dashboard/AionChatCard';
-import { NextCallCountdown } from '@/components/dashboard/NextCallCountdown';
+
 import { GuaranteeCard } from '@/components/dashboard/GuaranteeCard';
 
 export default function Dashboard() {
@@ -21,7 +21,7 @@ export default function Dashboard() {
 
           <ContinueLearning />
 
-          <NextCallCountdown />
+          
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <AionChatCard />
