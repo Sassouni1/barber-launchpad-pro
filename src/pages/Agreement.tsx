@@ -158,7 +158,10 @@ export default function Agreement() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold gold-text">The 3 Client Guarantee</h2>
+                <h2 className="text-lg font-semibold gold-text">Educational Refund Policy</h2>
+                <p className="font-medium text-foreground">
+                  Refund Policy — The 3 Client Guarantee
+                </p>
                 <p>
                   The Barber Launch Hair System Mastery &amp; Business Training program is backed by
                   our 3 Client Guarantee: get 3 paying hair system clients within your first
@@ -194,6 +197,13 @@ export default function Agreement() {
                     services are non-refundable.
                   </p>
                 </div>
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold gold-text">Hair System Refund and Return Policies</h2>
+                <p>
+                  Hair systems that haven&apos;t been used can be returned or exchanged, with no questions asked — just cover shipping.
+                </p>
               </section>
 
               <section className="space-y-3">
