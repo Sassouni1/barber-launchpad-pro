@@ -100,9 +100,11 @@ export default function AccessLog() {
   });
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return rows;
+    let out = rows;
+    if (focusUser) out = out.filter((r) => r.user_id === focusUser);
+    if (!search.trim()) return out;
     const s = search.trim().toLowerCase();
-    return rows.filter((r) => {
+    return out.filter((r) => {
       return (
         r.profile?.email?.toLowerCase().includes(s) ||
         r.profile?.full_name?.toLowerCase().includes(s) ||
@@ -113,7 +115,42 @@ export default function AccessLog() {
         r.event_type?.toLowerCase().includes(s)
       );
     });
-  }, [rows, search]);
+  }, [rows, search, focusUser]);
+
+  const focusedProfile = useMemo(() => {
+    if (!focusUser) return null;
+    return filtered[0]?.profile || rows.find((r) => r.user_id === focusUser)?.profile || null;
+  }, [focusUser, filtered, rows]);
+
+  const disputeSummary = useMemo(() => {
+    if (!focusUser || filtered.length === 0) return null;
+    const ips = new Set<string>();
+    const cities = new Set<string>();
+    const devices = new Set<string>();
+    const timezones = new Set<string>();
+    let first = filtered[0].created_at;
+    let last = filtered[0].created_at;
+    filtered.forEach((r) => {
+      if (r.ip_address) ips.add(r.ip_address);
+      if (r.city || r.country) cities.add([r.city, r.region, r.country].filter(Boolean).join(', '));
+      if (r.device_type) devices.add(r.device_type);
+      if (r.timezone) timezones.add(r.timezone);
+      if (r.created_at < first) first = r.created_at;
+      if (r.created_at > last) last = r.created_at;
+    });
+    return {
+      first, last,
+      ips: Array.from(ips),
+      cities: Array.from(cities),
+      devices: Array.from(devices),
+      timezones: Array.from(timezones),
+      loginCount: filtered.filter((r) => r.event_type === 'login').length,
+      sessionCount: filtered.filter((r) => r.event_type === 'session_start').length,
+      lessonViews: filtered.filter((r) => r.event_type === 'lesson_view').length,
+    };
+  }, [focusUser, filtered]);
+
+  const printPacket = () => window.print();
 
   const exportCsv = () => {
     const headers = [
