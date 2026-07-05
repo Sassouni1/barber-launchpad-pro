@@ -41,6 +41,11 @@ export default function CreateAccount() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!agreedToTerms) {
+      toast.error('Please agree to the Terms to continue');
+      return;
+    }
+
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
