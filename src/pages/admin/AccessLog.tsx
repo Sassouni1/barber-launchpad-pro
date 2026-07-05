@@ -64,6 +64,7 @@ export default function AccessLog() {
   const [search, setSearch] = useState('');
   const [eventType, setEventType] = useState('all');
   const [days, setDays] = useState('30');
+  const [focusUser, setFocusUser] = useState<string | null>(null);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['admin-access-log', eventType, days],
