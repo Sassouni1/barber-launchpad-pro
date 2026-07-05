@@ -22,10 +22,28 @@ export function AccessLogger() {
     }
     if (sessionLoggedFor.current === user.id) return;
     sessionLoggedFor.current = user.id;
+
+    // Rich client-side fingerprint — strengthens dispute evidence
+    const fp: Record<string, unknown> = { email: user.email };
+    try {
+      fp.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      fp.locale = navigator.language;
+      fp.languages = navigator.languages?.slice(0, 3);
+      fp.platform = (navigator as any).userAgentData?.platform || navigator.platform;
+      fp.screen = `${window.screen.width}x${window.screen.height}`;
+      fp.viewport = `${window.innerWidth}x${window.innerHeight}`;
+      fp.dpr = window.devicePixelRatio;
+      fp.color_depth = window.screen.colorDepth;
+      fp.hardware_concurrency = navigator.hardwareConcurrency;
+      fp.touch_points = navigator.maxTouchPoints;
+      fp.online = navigator.onLine;
+      fp.cookies_enabled = navigator.cookieEnabled;
+    } catch {}
+
     logAccess({
       event_type: "session_start",
       route: location.pathname,
-      metadata: { email: user.email },
+      metadata: fp,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
