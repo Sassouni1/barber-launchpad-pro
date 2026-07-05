@@ -29,7 +29,7 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <FileText className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Terms of Service</h2>
+              <h2 className="text-xl font-semibold text-foreground">Terms of Service</h2>
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p>
@@ -52,7 +52,7 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <RefreshCcw className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Refund Policy — The 3 Client Guarantee</h2>
+              <h2 className="text-xl font-semibold text-foreground">Refund Policy — The 3 Client Guarantee</h2>
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p className="font-medium text-foreground">
@@ -106,7 +106,7 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Mail className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Contact Us</h2>
+              <h2 className="text-xl font-semibold text-foreground">Contact Us</h2>
             </div>
               <p className="text-sm leading-relaxed text-foreground md:text-base">
                 If you have any questions about these Terms or our Refund Policy, please contact us at{" "}
