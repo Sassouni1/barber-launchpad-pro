@@ -90,7 +90,7 @@ export default function TermsPage() {
                 Results from our training programs depend on individual effort, experience, and market conditions. Testimonials shown are real experiences but are not a guarantee of future results.
               </p>
               <p>
-                Our 3 Client Guarantee, where applicable, requires that you complete the specified course modules, submit all required homework, and attend the scheduled coaching calls. Failure to meet these requirements voids guarantee eligibility.
+                Our 3 Client Guarantee applies to the Barber Launch Hair System Mastery &amp; Business Training program. To remain eligible you must complete 100% of the training, complete all homework, hang your Barber Launch poster by your booth and submit proof, allow our team to run your ads, and call at least 50 of the leads we generate for you. Failing to complete any of these voids guarantee eligibility.
               </p>
               <p>
                 The platform is provided "as is" without warranties of any kind, either express or implied. We do not guarantee uninterrupted access or that the platform will be error-free at all times.
