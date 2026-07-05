@@ -86,7 +86,7 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Shield className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Disclaimers & Guarantees</h2>
+              <h2 className="text-xl font-semibold text-foreground">Disclaimers &amp; Guarantees</h2>
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p>
