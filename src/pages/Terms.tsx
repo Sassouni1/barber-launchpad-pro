@@ -4,7 +4,7 @@ export default function TermsPage() {
   const lastUpdated = "June 19, 2026";
 
   return (
-    <div className="min-h-screen bg-background cyber-grid">
+    <div className="min-h-screen bg-background light-theme">
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <a href="/" className="text-lg font-semibold text-foreground hover:text-primary">
@@ -18,7 +18,7 @@ export default function TermsPage() {
           <h1 className="mb-3 text-3xl font-bold tracking-tight md:text-4xl gold-text">
             Terms & Refund Policy
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground/80">
             Last updated: {lastUpdated}
           </p>
         </div>
@@ -29,9 +29,9 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <FileText className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Terms of Service</h2>
+              <h2 className="text-xl font-semibold text-foreground">Terms of Service</h2>
             </div>
-            <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+            <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p>
                 By accessing or using The Barber Launch platform, you agree to be bound by these Terms of Service. If you do not agree to all of these terms, please do not use our services.
               </p>
@@ -52,9 +52,9 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <RefreshCcw className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Refund Policy — The 3 Client Guarantee</h2>
+              <h2 className="text-xl font-semibold text-foreground">Refund Policy — The 3 Client Guarantee</h2>
             </div>
-            <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+            <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p className="font-medium text-foreground">
                 The Barber Launch Hair System Mastery &amp; Business Training program is backed by our 3 Client Guarantee: get 3 paying hair system clients within your first 16 weeks with us, or get your money back.
               </p>
@@ -86,9 +86,9 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Shield className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Disclaimers & Guarantees</h2>
+              <h2 className="text-xl font-semibold text-foreground">Disclaimers &amp; Guarantees</h2>
             </div>
-            <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+            <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p>
                 Results from our training programs depend on individual effort, experience, and market conditions. Testimonials shown are real experiences but are not a guarantee of future results.
               </p>
@@ -106,9 +106,9 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Mail className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Contact Us</h2>
+              <h2 className="text-xl font-semibold text-foreground">Contact Us</h2>
             </div>
-              <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
+              <p className="text-sm leading-relaxed text-foreground md:text-base">
                 If you have any questions about these Terms or our Refund Policy, please contact us at{" "}
                 <a
                   href="mailto:Thebarberlaunch@gmail.com"
