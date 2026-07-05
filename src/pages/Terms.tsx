@@ -70,7 +70,7 @@ export default function TermsPage() {
                 <li>Run the required ad spend of $10 per day for at least 50 days</li>
                 <li>Call at least 50 of the leads we generate for you, using the phone number we provide, so we can verify the calls</li>
                 <li>Respond to Barber Launch calls, text, and emails at <a href="mailto:Thebarberlaunch@gmail.com" className="text-primary underline hover:text-primary/80">Thebarberlaunch@gmail.com</a> or <a href="tel:727-637-4672" className="text-primary underline hover:text-primary/80">727-637-4672</a></li>
-                <li>Stay active in the program during the 16-week period</li>
+                <li>Hang up your Hair System poster in your booth or shop and submit a photo as proof</li>
               </ul>
               <p>
                 If you complete every requirement above and still have not secured 3 paying hair system clients within 16 weeks, you are eligible for a full refund.
