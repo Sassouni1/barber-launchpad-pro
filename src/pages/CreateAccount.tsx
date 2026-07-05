@@ -80,15 +80,13 @@ export default function CreateAccount() {
         }
       } else {
         toast.success('Account created successfully!');
-        // Save phone number to profile if provided
-        if (phone.trim()) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            await supabase
-              .from('profiles')
-              .update({ phone: phone.trim() })
-              .eq('id', session.user.id);
-          }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const updates: Record<string, any> = {
+            agreement_signed_at: new Date().toISOString(),
+          };
+          if (phone.trim()) updates.phone = phone.trim();
+          await supabase.from('profiles').update(updates).eq('id', session.user.id);
         }
       }
     } catch (error: any) {
