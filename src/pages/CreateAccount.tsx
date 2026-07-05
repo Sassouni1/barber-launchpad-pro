@@ -212,6 +212,22 @@ export default function CreateAccount() {
             </div>
           </div>
 
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="agree"
+              checked={agreedToTerms}
+              onCheckedChange={(v) => setAgreedToTerms(v === true)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="agree" className="text-sm text-muted-foreground font-normal leading-snug cursor-pointer">
+              I agree to the{' '}
+              <Link to="/terms" target="_blank" className="text-primary hover:underline">
+                Terms & Conditions
+              </Link>
+            </Label>
+          </div>
+
+
           <Button 
             type="submit" 
             className="w-full gold-gradient text-primary-foreground hover:opacity-90"
