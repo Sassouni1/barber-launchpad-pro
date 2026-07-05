@@ -52,20 +52,28 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <RefreshCcw className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold">Refund Policy</h2>
+              <h2 className="text-xl font-semibold">Refund Policy — The 3 Client Guarantee</h2>
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
               <p className="font-medium text-foreground">
-                All sales are final. We do not offer refunds on any membership, course, product, or service purchases.
+                The Barber Launch Hair System Mastery &amp; Business Training program is backed by our 3 Client Guarantee: get 3 paying hair system clients within your first 16 weeks with us, or get your money back.
+              </p>
+              <p>To qualify for a refund under the 3 Client Guarantee, you must complete every one of the following:</p>
+              <ul className="list-disc space-y-2 pl-6 text-foreground">
+                <li>Complete 100% of the training curriculum</li>
+                <li>Complete all assigned homework</li>
+                <li>Hang your Barber Launch poster by your booth and submit proof</li>
+                <li>Allow our team to run your advertisements</li>
+                <li>Call at least 50 of the leads we generate for you</li>
+              </ul>
+              <p>
+                If you complete every requirement above and still have not secured 3 paying hair system clients within 16 weeks, you are eligible for a full refund.
+              </p>
+              <p className="font-medium text-foreground">
+                The 3 Client Guarantee applies only to the Barber Launch Hair System Mastery &amp; Business Training program. Standalone hair system training (without the business &amp; marketing components) and all other memberships, products, and services are non-refundable.
               </p>
               <p>
-                The only exception is our 3 Client Guarantee. If you complete all guarantee requirements — including the specified course modules, required homework submissions, and scheduled coaching calls — and do not secure three clients within the defined eligibility window, you may qualify for a refund under the terms of the guarantee.
-              </p>
-              <p>
-                Refund requests outside of the 3 Client Guarantee, or for accounts that have not satisfied the guarantee requirements, will not be honored.
-              </p>
-              <p>
-                To inquire about a guarantee-related refund, contact our support team with your order details and proof of completion.
+                To start a guarantee-related refund request, contact our support team with your order details and proof of completion.
               </p>
             </div>
           </section>
@@ -82,7 +90,7 @@ export default function TermsPage() {
                 Results from our training programs depend on individual effort, experience, and market conditions. Testimonials shown are real experiences but are not a guarantee of future results.
               </p>
               <p>
-                Our 3 Client Guarantee, where applicable, requires that you complete the specified course modules, submit all required homework, and attend the scheduled coaching calls. Failure to meet these requirements voids guarantee eligibility.
+                Our 3 Client Guarantee applies to the Barber Launch Hair System Mastery &amp; Business Training program. To remain eligible you must complete 100% of the training, complete all homework, hang your Barber Launch poster by your booth and submit proof, allow our team to run your ads, and call at least 50 of the leads we generate for you. Failing to complete any of these voids guarantee eligibility.
               </p>
               <p>
                 The platform is provided "as is" without warranties of any kind, either express or implied. We do not guarantee uninterrupted access or that the platform will be error-free at all times.

@@ -158,41 +158,37 @@ export default function Agreement() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold gold-text">Our 3 Client Guarantee</h2>
+                <h2 className="text-lg font-semibold gold-text">The 3 Client Guarantee</h2>
                 <p>
-                  Barber Launch is designed to help you get real results and master a real skill. 
-                  Our guarantee exists to support that.
+                  The Barber Launch Hair System Mastery &amp; Business Training program is backed by
+                  our 3 Client Guarantee: get 3 paying hair system clients within your first
+                  <strong> 16 weeks </strong> with us, or get your money back.
                 </p>
-                <p>
-                  Barber Launch guarantees that if you complete the required steps and do not get 
-                  three paying hair system clients within <strong>16 weeks</strong>, you are eligible 
-                  for your money back.
-                </p>
-                
+
                 <div className="space-y-2">
-                  <h3 className="font-medium text-foreground">Requirements to Qualify</h3>
-                  <p>Client must complete all of the following:</p>
+                  <h3 className="font-medium text-foreground">To qualify, Client must:</h3>
                   <ul className="list-disc pl-6 space-y-1">
-                    <li>Complete all required training modules and quizzes</li>
-                    <li>Submit certification photos and pass certification</li>
-                    <li>Attend at least 50% of weekly live group coaching calls (minimum 8 of 16)</li>
-                    <li>Run the required ad spend for at least 50 days</li>
-                    <li>Respond to Barber Launch when support, setup, or campaign updates are needed</li>
-                    <li>Stay active in the program during the 16-week period</li>
+                    <li>Complete 100% of the training curriculum</li>
+                    <li>Complete all assigned homework</li>
+                    <li>Hang the Barber Launch poster by your booth and submit proof</li>
+                    <li>Allow the Barber Launch team to run your advertisements</li>
+                    <li>Call at least 50 of the leads we generate for you</li>
                   </ul>
                 </div>
 
                 <div className="space-y-2">
                   <h3 className="font-medium text-foreground">Refund Terms</h3>
                   <p>
-                    If all requirements above are met and the Client has not secured three (3) paying 
-                    hair system clients within 16 weeks, Barber Launch will issue a full refund. 
-                    You will also keep your website, certification, training access, CRM setup, and 
-                    business assets created during the program.
+                    If Client completes every requirement above and has not secured 3 paying
+                    hair system clients within 16 weeks, Barber Launch will issue a full refund.
+                    Client will keep their website, certification, training access, CRM setup,
+                    and business assets created during the program.
                   </p>
                   <p className="text-muted-foreground text-sm">
-                    Refunds are only available through the 3 Client Guarantee for students who complete 
-                    the required steps. Otherwise, all sales are final.
+                    The 3 Client Guarantee applies only to the Barber Launch Hair System Mastery
+                    &amp; Business Training program. Standalone hair system training (without the
+                    business &amp; marketing components) and all other memberships, products, and
+                    services are non-refundable.
                   </p>
                 </div>
               </section>
