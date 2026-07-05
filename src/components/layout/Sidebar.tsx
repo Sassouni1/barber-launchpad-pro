@@ -32,6 +32,7 @@ import {
   MessageSquare,
   Bot,
   MapPin,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -280,6 +281,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/directory', icon: MapPin, label: 'Directory' },
     { to: '/admin/qr-codes', icon: QrCode, label: 'QR Codes' },
     { to: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
+    { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
   ];
 
   const links = isAdminView ? adminLinks : memberLinks;

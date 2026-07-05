@@ -16,41 +16,62 @@ export type Database = {
     Tables: {
       access_log: {
         Row: {
+          city: string | null
+          country: string | null
           created_at: string
+          device_type: string | null
           event_type: string
           id: string
           ip_address: string | null
+          isp: string | null
           metadata: Json | null
+          referrer: string | null
+          region: string | null
           resource_id: string | null
           resource_type: string | null
           route: string | null
           session_id: string | null
+          timezone: string | null
           user_agent: string | null
           user_id: string
         }
         Insert: {
+          city?: string | null
+          country?: string | null
           created_at?: string
+          device_type?: string | null
           event_type: string
           id?: string
           ip_address?: string | null
+          isp?: string | null
           metadata?: Json | null
+          referrer?: string | null
+          region?: string | null
           resource_id?: string | null
           resource_type?: string | null
           route?: string | null
           session_id?: string | null
+          timezone?: string | null
           user_agent?: string | null
           user_id: string
         }
         Update: {
+          city?: string | null
+          country?: string | null
           created_at?: string
+          device_type?: string | null
           event_type?: string
           id?: string
           ip_address?: string | null
+          isp?: string | null
           metadata?: Json | null
+          referrer?: string | null
+          region?: string | null
           resource_id?: string | null
           resource_type?: string | null
           route?: string | null
           session_id?: string | null
+          timezone?: string | null
           user_agent?: string | null
           user_id?: string
         }

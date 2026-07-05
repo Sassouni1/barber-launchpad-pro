@@ -20,8 +20,10 @@ interface LogAccessParams {
   resource_type?: string;
   resource_id?: string;
   route?: string;
+  referrer?: string;
   metadata?: Record<string, unknown>;
 }
+
 
 // Per-tab session id so we can group activity into a single visit
 let sessionId: string | null = null;
@@ -60,6 +62,7 @@ export async function logAccess(params: LogAccessParams): Promise<void> {
         resource_type: params.resource_type,
         resource_id: params.resource_id,
         route: params.route ?? (typeof window !== "undefined" ? window.location.pathname : null),
+        referrer: params.referrer ?? (typeof document !== "undefined" ? document.referrer || null : null),
         session_id: getSessionId(),
         metadata: params.metadata ?? {},
       },

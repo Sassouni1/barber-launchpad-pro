@@ -581,6 +581,19 @@ export default function Lesson() {
     null,
   );
 
+  // Deep IP-tracked lesson view event
+  useEffect(() => {
+    if (!lessonId) return;
+    import("@/lib/accessLog").then(({ logAccess }) => {
+      logAccess({
+        event_type: "lesson_view",
+        resource_type: "lesson",
+        resource_id: sublessonId || lessonId,
+        metadata: { module_id: lessonId, sublesson_id: sublessonId || null, course_type: courseType || null },
+      });
+    });
+  }, [lessonId, sublessonId, courseType]);
+
   // Update tab when URL changes
   useEffect(() => {
     const tab = searchParams.get("tab") as "video" | "quiz" | "homework" | null;

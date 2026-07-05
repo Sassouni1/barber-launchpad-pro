@@ -45,6 +45,9 @@ export default function SignIn() {
         toast.error(error.message);
       } else {
         toast.success('Welcome back!');
+        import('@/lib/accessLog').then(({ logAccess }) =>
+          logAccess({ event_type: 'login', metadata: { email: email.trim() } })
+        );
       }
     } catch (error: any) {
       toast.error('An unexpected error occurred');
