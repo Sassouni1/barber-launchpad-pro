@@ -18,7 +18,7 @@ export default function TermsPage() {
           <h1 className="mb-3 text-3xl font-bold tracking-tight md:text-4xl gold-text">
             Terms & Refund Policy
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground/80">
             Last updated: {lastUpdated}
           </p>
         </div>
@@ -31,7 +31,7 @@ export default function TermsPage() {
               </div>
               <h2 className="text-xl font-semibold">Terms of Service</h2>
             </div>
-            <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+            <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p>
                 By accessing or using The Barber Launch platform, you agree to be bound by these Terms of Service. If you do not agree to all of these terms, please do not use our services.
               </p>
@@ -54,7 +54,7 @@ export default function TermsPage() {
               </div>
               <h2 className="text-xl font-semibold">Refund Policy — The 3 Client Guarantee</h2>
             </div>
-            <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+            <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p className="font-medium text-foreground">
                 The Barber Launch Hair System Mastery &amp; Business Training program is backed by our 3 Client Guarantee: get 3 paying hair system clients within your first 16 weeks with us, or get your money back.
               </p>
@@ -88,7 +88,7 @@ export default function TermsPage() {
               </div>
               <h2 className="text-xl font-semibold">Disclaimers & Guarantees</h2>
             </div>
-            <div className="space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+            <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p>
                 Results from our training programs depend on individual effort, experience, and market conditions. Testimonials shown are real experiences but are not a guarantee of future results.
               </p>
@@ -108,7 +108,7 @@ export default function TermsPage() {
               </div>
               <h2 className="text-xl font-semibold">Contact Us</h2>
             </div>
-              <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
+              <p className="text-sm leading-relaxed text-foreground md:text-base">
                 If you have any questions about these Terms or our Refund Policy, please contact us at{" "}
                 <a
                   href="mailto:Thebarberlaunch@gmail.com"
