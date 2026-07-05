@@ -19,6 +19,7 @@ export default function CreateAccount() {
   const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
