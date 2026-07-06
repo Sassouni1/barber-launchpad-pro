@@ -366,44 +366,42 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                     </Collapsible>
 
                     {/* Marketing */}
-                    {!restrictNav && (
-                      <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
-                        <CollapsibleTrigger asChild>
-                          <button
-                            className={cn(
-                              'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
-                              ['/marketing', '/aion', '/business-card', '/social-media-post'].some(p => location.pathname.startsWith(p))
-                                ? 'bg-primary/10 text-primary'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-                            )}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Megaphone className="w-5 h-5" />
-                              <span>Marketing</span>
-                            </div>
-                            <ChevronDown className={cn('w-4 h-4 transition-transform', marketingOpen && 'rotate-180')} />
-                          </button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="pl-4 space-y-1 mt-1">
-                          <NavLink to="/aion" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
-                            <Bot className="w-4 h-4" />
-                            <span className="font-medium">Ask Aion AI</span>
-                          </NavLink>
-                          <NavLink to="/marketing" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
-                            <Megaphone className="w-4 h-4" />
-                            <span className="font-medium">AI Social Media</span>
-                          </NavLink>
-                          <NavLink to="/social-media-post" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
-                            <Megaphone className="w-4 h-4" />
-                            <span className="font-medium">Hair System Content</span>
-                          </NavLink>
-                          <NavLink to="/business-card" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
-                            <CreditCard className="w-4 h-4" />
-                            <span className="font-medium">Digital Business Card</span>
-                          </NavLink>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
+                    <Collapsible open={marketingOpen} onOpenChange={setMarketingOpen}>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          className={cn(
+                            'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
+                            ['/marketing', '/aion', '/business-card', '/social-media-post'].some(p => location.pathname.startsWith(p))
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Megaphone className="w-5 h-5" />
+                            <span>Marketing</span>
+                          </div>
+                          <ChevronDown className={cn('w-4 h-4 transition-transform', marketingOpen && 'rotate-180')} />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                        <NavLink to="/aion" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <Bot className="w-4 h-4" />
+                          <span className="font-medium">Ask Aion AI</span>
+                        </NavLink>
+                        <NavLink to="/marketing" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <Megaphone className="w-4 h-4" />
+                          <span className="font-medium">AI Social Media</span>
+                        </NavLink>
+                        <NavLink to="/social-media-post" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <Megaphone className="w-4 h-4" />
+                          <span className="font-medium">Hair System Content</span>
+                        </NavLink>
+                        <NavLink to="/business-card" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <CreditCard className="w-4 h-4" />
+                          <span className="font-medium">Digital Business Card</span>
+                        </NavLink>
+                      </CollapsibleContent>
+                    </Collapsible>
 
                     <NavRow to="/my-links" icon={CreditCard} label="My Links" onClick={closeMenu} />
 
