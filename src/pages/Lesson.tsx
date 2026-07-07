@@ -1627,8 +1627,41 @@ export default function Lesson() {
                     </div>
                   </div>
                 )
+              ) : bestAttempt && !retakingQuiz ? (
+                <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-5 text-center">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-green-400" />
+                  </div>
+                  <h3 className="font-display text-xl font-bold text-green-400 mb-1">
+                    Quiz Completed
+                  </h3>
+                  <p className="text-sm text-foreground/80 mb-1">
+                    You scored{" "}
+                    <span className="font-semibold">
+                      {bestAttempt.score}/{bestAttempt.total_questions}
+                    </span>{" "}
+                    (
+                    {Math.round(
+                      (bestAttempt.score / bestAttempt.total_questions) * 100,
+                    )}
+                    %)
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    This lesson is marked complete.
+                  </p>
+                  <Button
+                    onClick={() => setRetakingQuiz(true)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Retake Quiz
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-4">
+
                   {questions.map((question, index) => (
                     <div
                       key={question.id}
