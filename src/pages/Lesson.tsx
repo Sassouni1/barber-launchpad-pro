@@ -835,6 +835,19 @@ export default function Lesson() {
   const [incorrectQuestions, setIncorrectQuestions] = useState<Set<string>>(
     new Set(),
   );
+  const [retakingQuiz, setRetakingQuiz] = useState(false);
+
+  // Reset quiz UI state when navigating between lessons/sub-lessons
+  useEffect(() => {
+    setQuizAnswers({});
+    setShowResults(false);
+    setShowReview(false);
+    setQuizScore(null);
+    setIncorrectQuestions(new Set());
+    setCorrectAnswersMap({});
+    setRetakingQuiz(false);
+  }, [module?.id, sublessonId]);
+
 
   // Homework state
   const [textResponse, setTextResponse] = useState(
@@ -925,7 +938,9 @@ export default function Lesson() {
     setQuizScore(null);
     setIncorrectQuestions(new Set());
     setCorrectAnswersMap({});
+    setRetakingQuiz(true);
   };
+
 
   const handleHomeworkSubmit = async () => {
     await submitHomework.mutateAsync({
@@ -1624,8 +1639,41 @@ export default function Lesson() {
                     </div>
                   </div>
                 )
+              ) : bestAttempt && !retakingQuiz ? (
+                <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-5 text-center">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-green-400" />
+                  </div>
+                  <h3 className="font-display text-xl font-bold text-green-400 mb-1">
+                    Quiz Completed
+                  </h3>
+                  <p className="text-sm text-foreground/80 mb-1">
+                    You scored{" "}
+                    <span className="font-semibold">
+                      {bestAttempt.score}/{bestAttempt.total_questions}
+                    </span>{" "}
+                    (
+                    {Math.round(
+                      (bestAttempt.score / bestAttempt.total_questions) * 100,
+                    )}
+                    %)
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    This lesson is marked complete.
+                  </p>
+                  <Button
+                    onClick={() => setRetakingQuiz(true)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Retake Quiz
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-4">
+
                   {questions.map((question, index) => (
                     <div
                       key={question.id}
@@ -2127,8 +2175,39 @@ export default function Lesson() {
                       </div>
                     </div>
                   )
+                ) : bestAttempt && !retakingQuiz ? (
+                  <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <CheckCircle2 className="w-10 h-10 text-green-400" />
+                    </div>
+                    <h3 className="font-display text-2xl font-bold text-green-400 mb-2">
+                      Quiz Completed
+                    </h3>
+                    <p className="text-base text-foreground/80 mb-1">
+                      You scored{" "}
+                      <span className="font-semibold">
+                        {bestAttempt.score}/{bestAttempt.total_questions}
+                      </span>{" "}
+                      (
+                      {Math.round(
+                        (bestAttempt.score / bestAttempt.total_questions) * 100,
+                      )}
+                      %)
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      This lesson is marked complete.
+                    </p>
+                    <Button
+                      onClick={() => setRetakingQuiz(true)}
+                      variant="outline"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Retake Quiz
+                    </Button>
+                  </div>
                 ) : (
                   <>
+
                     <h2 className="font-display text-xl font-semibold">
                       Module Quiz
                     </h2>
