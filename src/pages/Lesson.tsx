@@ -697,9 +697,15 @@ export default function Lesson() {
     enabled: !!sublessonId && !!user?.id,
   });
 
+  // Completion is tracked via quiz — a passing attempt (>=80%) also
+  // counts as completion so modules with no sub-lessons still register.
+  const hasPassingQuizAttempt = attempts.some(
+    (a) => a.total_questions > 0 && a.score / a.total_questions >= 0.8,
+  );
   const isCurrentLessonCompleted = sublessonId
-    ? !!sublessonCompletion
-    : isModuleCompleted;
+    ? !!sublessonCompletion || hasPassingQuizAttempt
+    : isModuleCompleted || hasPassingQuizAttempt;
+
 
   const markModuleComplete = async () => {
     if (!user?.id) return;
