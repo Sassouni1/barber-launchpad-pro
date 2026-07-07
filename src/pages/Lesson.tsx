@@ -837,6 +837,18 @@ export default function Lesson() {
   );
   const [retakingQuiz, setRetakingQuiz] = useState(false);
 
+  // Reset quiz UI state when navigating between lessons/sub-lessons
+  useEffect(() => {
+    setQuizAnswers({});
+    setShowResults(false);
+    setShowReview(false);
+    setQuizScore(null);
+    setIncorrectQuestions(new Set());
+    setCorrectAnswersMap({});
+    setRetakingQuiz(false);
+  }, [module?.id, sublessonId]);
+
+
   // Homework state
   const [textResponse, setTextResponse] = useState(
     existingSubmission?.text_response || "",
