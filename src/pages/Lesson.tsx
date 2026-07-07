@@ -835,6 +835,7 @@ export default function Lesson() {
   const [incorrectQuestions, setIncorrectQuestions] = useState<Set<string>>(
     new Set(),
   );
+  const [retakingQuiz, setRetakingQuiz] = useState(false);
 
   // Homework state
   const [textResponse, setTextResponse] = useState(
