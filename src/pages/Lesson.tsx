@@ -926,7 +926,9 @@ export default function Lesson() {
     setQuizScore(null);
     setIncorrectQuestions(new Set());
     setCorrectAnswersMap({});
+    setRetakingQuiz(true);
   };
+
 
   const handleHomeworkSubmit = async () => {
     await submitHomework.mutateAsync({
