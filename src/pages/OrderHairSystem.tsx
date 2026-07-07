@@ -4,11 +4,25 @@ import { Link } from "react-router-dom";
 import hairColors from "@/assets/hair-colors.jpg";
 import hairCurls from "@/assets/hair-curls.jpg";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 
 const OrderHairSystem = () => {
   const { user } = useAuth();
   const formBaseUrl = "https://api.leadconnectorhq.com/widget/form/kROgKLSgoXtm6IHCaaq5";
   const formUrl = user ? `${formBaseUrl}?user_id=${user.id}` : formBaseUrl;
+
+  // Load GHL iframe resizer so the form auto-sizes to its content
+  // and does not show nested scrollbars.
+  useEffect(() => {
+    const scriptId = "ghl-form-embed-script";
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://link.msgsndr.com/js/form_embed.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   return (
     <DashboardLayout>
@@ -41,10 +55,10 @@ const OrderHairSystem = () => {
           </div>
         </div>
         <h2 className="text-xl font-bold text-foreground">Place Order:</h2>
-        <div className="bg-card/90 border border-border/50 p-4 rounded-xl" style={{ minHeight: "2450px" }}>
+        <div className="bg-card/90 border border-border/50 rounded-xl overflow-hidden">
           <iframe
             src={formUrl}
-            style={{ width: "100%", height: "2391px", border: "none", borderRadius: "8px" }}
+            style={{ width: "100%", height: "100%", minHeight: "2391px", border: "none", borderRadius: "8px", display: "block" }}
             id="inline-kROgKLSgoXtm6IHCaaq5"
             allow="payment *; publickey-credentials-get *"
             allowFullScreen
