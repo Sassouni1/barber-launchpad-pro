@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const OrderHairSystem = () => {
   const { user } = useAuth();
-  const formBaseUrl = "https://api.leadconnectorhq.com/widget/form/DUMrKXsSUz4Q6N59izDU";
+  const formBaseUrl = "https://api.leadconnectorhq.com/widget/form/kROgKLSgoXtm6IHCaaq5";
   const formUrl = user ? `${formBaseUrl}?user_id=${user.id}` : formBaseUrl;
 
   return (
@@ -41,11 +41,11 @@ const OrderHairSystem = () => {
           </div>
         </div>
         <h2 className="text-xl font-bold text-foreground">Place Order:</h2>
-        <div className="bg-card/90 border border-border/50 p-4 rounded-xl" style={{ minHeight: "1400px" }}>
+        <div className="bg-card/90 border border-border/50 p-4 rounded-xl" style={{ minHeight: "2450px" }}>
           <iframe
             src={formUrl}
-            style={{ width: "100%", height: "1345px", border: "none", borderRadius: "3px" }}
-            id="inline-DUMrKXsSUz4Q6N59izDU"
+            style={{ width: "100%", height: "2391px", border: "none", borderRadius: "8px" }}
+            id="inline-kROgKLSgoXtm6IHCaaq5"
             allow="payment *; publickey-credentials-get *"
             allowFullScreen
             data-layout='{"id":"INLINE"}'
@@ -55,11 +55,11 @@ const OrderHairSystem = () => {
             data-activation-value=""
             data-deactivation-type="neverDeactivate"
             data-deactivation-value=""
-            data-form-name="New Checkout"
-            data-height="1345"
-            data-layout-iframe-id="inline-DUMrKXsSUz4Q6N59izDU"
-            data-form-id="DUMrKXsSUz4Q6N59izDU"
-            title="New Checkout"
+            data-form-name="Form 28"
+            data-height="2391"
+            data-layout-iframe-id="inline-kROgKLSgoXtm6IHCaaq5"
+            data-form-id="kROgKLSgoXtm6IHCaaq5"
+            title="Form 28"
           />
         </div>
       </div>
