@@ -55,10 +55,10 @@ const OrderHairSystem = () => {
           </div>
         </div>
         <h2 className="text-xl font-bold text-foreground">Place Order:</h2>
-        <div className="bg-card/90 border border-border/50 p-4 rounded-xl" style={{ minHeight: "2450px" }}>
+        <div className="bg-card/90 border border-border/50 rounded-xl overflow-hidden">
           <iframe
             src={formUrl}
-            style={{ width: "100%", height: "2391px", border: "none", borderRadius: "8px" }}
+            style={{ width: "100%", height: "100%", minHeight: "2391px", border: "none", borderRadius: "8px", display: "block" }}
             id="inline-kROgKLSgoXtm6IHCaaq5"
             allow="payment *; publickey-credentials-get *"
             allowFullScreen
