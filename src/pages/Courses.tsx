@@ -720,6 +720,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         <>
                           {regularModules.map((module, index) => {
                             const isSelected = selectedModule === module.id;
+                            const completed = isModuleCompleted(module.id);
+                            const bestScore = completedMap[module.id]?.bestScore;
                             const moduleLessons = getModuleLessons(module);
                             const hasCardDetails = hasModuleCardDetails(
                               module,
@@ -754,7 +756,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
                                     isSelected
                                       ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
-                                      : "border-border bg-secondary/10 shadow-md shadow-black/20",
+                                      : completed
+                                        ? "border-emerald-500/60 bg-emerald-500/10 shadow-md shadow-emerald-500/10"
+                                        : "border-border bg-secondary/10 shadow-md shadow-black/20",
                                   )}
                                 >
                                   <div
@@ -762,10 +766,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       isSelected
                                         ? "gold-gradient text-primary-foreground shadow-md"
-                                        : "bg-secondary border border-border text-muted-foreground",
+                                        : completed
+                                          ? "bg-emerald-500 border border-emerald-400 text-white shadow-md"
+                                          : "bg-secondary border border-border text-muted-foreground",
                                     )}
                                   >
-                                    {index + 1}
+                                    {completed ? (
+                                      <CheckCircle2 className="w-5 h-5" />
+                                    ) : (
+                                      index + 1
+                                    )}
                                   </div>
                                   <div
                                     className={cn(
@@ -792,7 +802,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                       )}
                                     </h4>
+                                    {completed && (
+                                      <div className="mb-2">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full">
+                                          <CheckCircle2 className="w-3 h-3" />
+                                          Completed{bestScore != null ? ` · ${bestScore}%` : ""}
+                                        </span>
+                                      </div>
+                                    )}
                                     {hasCardDetails && (
+
                                       <>
                                         {module.description && (
                                           <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
