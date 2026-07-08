@@ -44,6 +44,7 @@ import {
   Maximize2,
   Play,
   ExternalLink,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -1104,11 +1105,34 @@ export default function Lesson() {
             </div>
           </div>
           {isCurrentLessonCompleted ? (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">
-                {localizeCourseUi("Completed", locale)}
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {localizeCourseUi("Completed", locale)}
+                </span>
+              </div>
+              {bestAttempt &&
+                bestAttempt.total_questions > 0 &&
+                bestAttempt.score / bestAttempt.total_questions >= 0.8 && (
+                  <>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span className="text-sm font-medium">Quiz Passed</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/40 text-primary">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-semibold">
+                        Score:{" "}
+                        {Math.round(
+                          (bestAttempt.score / bestAttempt.total_questions) *
+                            100,
+                        )}
+                        %
+                      </span>
+                    </div>
+                  </>
+                )}
             </div>
           ) : (
             <Button
@@ -1133,6 +1157,70 @@ export default function Lesson() {
               posterSrc={videoPosterSrc}
             />
           )}
+
+        {/* Completed lesson success banner + Review actions */}
+        {isCurrentLessonCompleted &&
+          bestAttempt &&
+          bestAttempt.total_questions > 0 &&
+          bestAttempt.score / bestAttempt.total_questions >= 0.8 && (
+            <div
+              className="space-y-3 animate-fade-up"
+              style={{ animationDelay: "0.1s" }}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button
+                  size="lg"
+                  className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
+                  onClick={() => {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  Review Lesson
+                </Button>
+                {activeHasQuiz && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-primary/60 text-primary font-bold gap-2 hover:bg-primary/10"
+                    onClick={() => {
+                      if (!isMobile) setActiveTab("quiz");
+                      setTimeout(() => {
+                        const el =
+                          document.getElementById("social-media-quiz") ||
+                          document.getElementById("lesson-quiz");
+                        el?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }, 50);
+                    }}
+                  >
+                    <HelpCircle className="w-5 h-5" />
+                    Review Quiz
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-green-500/40 bg-green-500/10">
+                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <Trophy className="w-5 h-5 text-green-400" />
+                </div>
+                <p className="flex-1 text-sm sm:text-base text-foreground/90">
+                  <span className="font-semibold text-green-400">
+                    Excellent work!
+                  </span>{" "}
+                  You've completed this lesson and passed the quiz.
+                </p>
+                <span className="px-3 py-1 rounded-full border border-green-500/40 text-green-400 font-semibold text-sm">
+                  {Math.round(
+                    (bestAttempt.score / bestAttempt.total_questions) * 100,
+                  )}
+                  %
+                </span>
+              </div>
+            </div>
+          )}
+
 
         {/* Social Media: prominent Start Quiz CTA directly under the video */}
         {displayVideoUrl?.trim() &&
