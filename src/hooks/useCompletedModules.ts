@@ -56,13 +56,24 @@ export function useCompletedModules() {
 
       if (error) throw error;
 
+      // Track the best raw ratio per module to avoid rounding errors when
+      // picking the "best" attempt, then derive display % + pass from it.
+      const bestRatio: Record<string, number> = {};
       for (const a of data || []) {
-        if (!a.module_id || !a.total_questions) continue;
-        const pct = Math.round((a.score / a.total_questions) * 100);
-        const existing = map[a.module_id];
-        if (!existing || pct > existing.bestScore) {
-          map[a.module_id] = { bestScore: pct, passed: pct >= 80 };
+        if (!a.module_id || !a.total_questions || a.total_questions <= 0) continue;
+        const ratio = a.score / a.total_questions;
+        if (bestRatio[a.module_id] === undefined || ratio > bestRatio[a.module_id]) {
+          bestRatio[a.module_id] = ratio;
         }
+      }
+      for (const moduleId of Object.keys(bestRatio)) {
+        const ratio = bestRatio[moduleId];
+        map[moduleId] = {
+          bestScore: Math.round(ratio * 100),
+          // Use raw ratio (with tiny epsilon for FP safety) so a true 80%
+          // always passes and a 79.6% doesn't sneak through as "80% passed".
+          passed: ratio + 1e-9 >= 0.8,
+        };
       }
 
       // Mark certification photo modules as completed when the user has uploaded
