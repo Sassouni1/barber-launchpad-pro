@@ -257,6 +257,7 @@ export function useCertificationPhotos(courseId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['certification-photos'] });
       queryClient.invalidateQueries({ queryKey: ['certification-eligibility'] });
+      queryClient.invalidateQueries({ queryKey: ['completed-modules'] });
       toast.success('Photo deleted');
     },
     onError: () => {
