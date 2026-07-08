@@ -49,6 +49,49 @@ export function ContinueLearning() {
     );
   }
 
+  // Certified state — all modules across every course passed. Push them to the
+  // growth tools (AI Social Media Generator) instead of a review loop.
+  if (allDone) {
+    return (
+      <div className="glass-card cyber-corners p-6 rounded-xl animate-fade-up hover-lift spotlight-pulse" style={{ animationDelay: '0.2s' }}>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-full">
+            <Trophy className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold uppercase tracking-cyber text-primary">Certified</span>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Next up · Grow your business</p>
+          </div>
+          <h3 className="font-display text-2xl font-bold tracking-tight">Start creating content that brings in clients</h3>
+          <p className="text-muted-foreground leading-relaxed">
+            You've finished every module. Use the AI Social Media Generator to turn what you learned into posts that convert.
+          </p>
+          <div className="space-y-2">
+            <Button
+              onClick={() => navigate('/marketing')}
+              className="w-full h-12 gold-gradient text-primary-foreground font-semibold text-base hover:opacity-90 transition-all group gold-glow"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              Open AI Social Media Generator
+              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            <Button
+              onClick={() => navigate('/courses/hair-system')}
+              variant="outline"
+              className="w-full h-11 border-primary/30 hover:border-primary/60 hover:bg-primary/5 font-medium"
+            >
+              <List className="w-4 h-4 mr-2" />
+              Review All Lessons
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="glass-card cyber-corners p-6 rounded-xl animate-fade-up hover-lift spotlight-pulse" style={{ animationDelay: '0.2s' }}>
       {/* Header badge */}
