@@ -58,7 +58,7 @@ export function ContinueLearning() {
             <div className="absolute inset-0 bg-primary rounded-full animate-ping" />
             <div className="relative w-2 h-2 bg-primary rounded-full" />
           </div>
-          <span className="text-xs font-semibold uppercase tracking-cyber text-primary">Start Learning</span>
+          <span className="text-xs font-semibold uppercase tracking-cyber text-primary">{allDone ? 'All Complete' : hasStarted ? 'Continue Learning' : 'Start Learning'}</span>
         </div>
       </div>
 
