@@ -867,7 +867,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   <Play
                                     className={cn(
                                       "w-5 h-5 flex-shrink-0 transition-transform",
-                                      isSelected
+                                      (isSelected || completed)
                                         ? "text-primary scale-110"
                                         : "text-muted-foreground",
                                     )}
