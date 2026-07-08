@@ -22,6 +22,7 @@ export function ContinueLearning() {
     (course.modules || []).map((module) => ({
       ...module,
       courseName: course.title,
+      categoryId: ((course as any).category as string) || 'hair-system',
     }))
   );
 
