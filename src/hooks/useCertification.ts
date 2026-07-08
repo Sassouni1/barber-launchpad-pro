@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { isQuizPassed } from '@/lib/quizPass';
 
 interface CertificateShippingAddress {
   recipientName: string;
@@ -102,12 +103,16 @@ export function useCertificationEligibility(courseId: string | undefined) {
           ? Math.round((bestAttempt.score / bestAttempt.total_questions) * 100)
           : null;
 
+        const passed = bestAttempt?.total_questions > 0
+          ? isQuizPassed(bestAttempt.score, bestAttempt.total_questions)
+          : false;
+
         return {
           moduleId: module.id,
           moduleTitle: module.title,
           hasQuiz: true,
           bestScore,
-          passed: bestScore !== null && bestScore >= 80,
+          passed,
         };
       });
 

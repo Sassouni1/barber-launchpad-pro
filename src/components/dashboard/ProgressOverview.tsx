@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { BookOpen, Trophy, Clock, TrendingUp, Loader2 } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
+import { isQuizPassed } from '@/lib/quizPass';
 
 export function ProgressOverview() {
   const { data: courses = [], isLoading } = useCourses();
@@ -93,17 +94,19 @@ export function ProgressOverview() {
     if (modId) progressModuleIds.add(modId);
   }
 
-  // Find modules completed via quiz pass (best raw ratio >= 80%)
-  const bestRatioByModule = new Map<string, number>();
+  // Find modules completed via quiz pass (miss no more than 1 question)
+  const bestByModule = new Map<string, { score: number; total: number; ratio: number }>();
   for (const q of quizAttempts) {
     if (!q.total_questions || q.total_questions <= 0) continue;
     const ratio = q.score / q.total_questions;
-    const best = bestRatioByModule.get(q.module_id) ?? 0;
-    if (ratio > best) bestRatioByModule.set(q.module_id, ratio);
+    const current = bestByModule.get(q.module_id);
+    if (!current || ratio > current.ratio) {
+      bestByModule.set(q.module_id, { score: q.score, total: q.total_questions, ratio });
+    }
   }
   const passedModuleIds = new Set<string>();
-  bestRatioByModule.forEach((ratio, modId) => {
-    if (ratio + 1e-9 >= 0.8) passedModuleIds.add(modId);
+  bestByModule.forEach(({ score, total }, modId) => {
+    if (isQuizPassed(score, total)) passedModuleIds.add(modId);
   });
 
   // Calculate per-course completion (only modules with has_quiz)

@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { isQuizPassed } from "@/lib/quizPass";
+
 
 export type ModuleCompletion = { bestScore: number; passed: boolean };
 
@@ -28,8 +30,8 @@ function writeCache(userId: string, map: Record<string, ModuleCompletion>) {
 
 /**
  * Returns a map of moduleId -> { bestScore, passed } based on the user's
- * best quiz attempt per module. A module is "completed" when the best
- * quiz score is >= 80%.
+ * best quiz attempt per module. A module is "completed" when the user
+ * missed no more than 1 question on their best attempt (see @/lib/quizPass).
  *
  * Also marks certification-requirement photo modules as completed when the user
  * has uploaded photos for the corresponding course.
@@ -56,23 +58,22 @@ export function useCompletedModules() {
 
       if (error) throw error;
 
-      // Track the best raw ratio per module to avoid rounding errors when
-      // picking the "best" attempt, then derive display % + pass from it.
-      const bestRatio: Record<string, number> = {};
+      // Track best raw score + total per module to keep the pass check exact
+      // (miss-count based, not float-percentage based).
+      const best: Record<string, { score: number; total: number; ratio: number }> = {};
       for (const a of data || []) {
         if (!a.module_id || !a.total_questions || a.total_questions <= 0) continue;
         const ratio = a.score / a.total_questions;
-        if (bestRatio[a.module_id] === undefined || ratio > bestRatio[a.module_id]) {
-          bestRatio[a.module_id] = ratio;
+        const current = best[a.module_id];
+        if (!current || ratio > current.ratio) {
+          best[a.module_id] = { score: a.score, total: a.total_questions, ratio };
         }
       }
-      for (const moduleId of Object.keys(bestRatio)) {
-        const ratio = bestRatio[moduleId];
+      for (const moduleId of Object.keys(best)) {
+        const { score, total, ratio } = best[moduleId];
         map[moduleId] = {
           bestScore: Math.round(ratio * 100),
-          // Use raw ratio (with tiny epsilon for FP safety) so a true 80%
-          // always passes and a 79.6% doesn't sneak through as "80% passed".
-          passed: ratio + 1e-9 >= 0.8,
+          passed: isQuizPassed(score, total),
         };
       }
 
