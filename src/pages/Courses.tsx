@@ -466,7 +466,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       </div>
                       <div className="mt-3">
                         <span className="inline-flex items-center justify-center w-full rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold py-2 px-3">
-                          Open Track
+                          {done > 0 ? "Continue Lesson" : "Start Lesson"}
                         </span>
                       </div>
                     </div>
