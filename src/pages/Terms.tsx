@@ -89,11 +89,14 @@ export default function TermsPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <RefreshCcw className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">Hair System Refund and Return Policies</h2>
+              <h2 className="text-xl font-semibold text-foreground">Non Kit - Hair System Refund and Return Policies</h2>
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p>
                 Hair systems that haven&apos;t been used can be returned or exchanged, with no questions asked — just cover shipping.
+              </p>
+              <p>
+                Kit related hair systems: Any hair system in your kit can easily be changed
               </p>
             </div>
           </section>
