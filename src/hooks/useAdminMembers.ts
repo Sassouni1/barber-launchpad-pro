@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
+import { isQuizPassed } from '@/lib/quizPass';
 
 export interface DynamicTodoItemStatus {
   itemId: string;
@@ -419,11 +420,16 @@ export function useAdminMemberDetail(userId: string | null) {
         const attempts = attemptsByModule.get(mod.id) || [];
         let bestScore: number | null = null;
         let bestTotal = 0;
+        let bestRatio = -1;
+        let bestRaw = 0;
         attempts.forEach(a => {
-          const pct = a.total_questions > 0 ? a.score / a.total_questions : 0;
-          if (bestScore === null || pct > bestScore / (bestTotal || 1)) {
-            bestScore = Math.round(Math.min(pct, 1) * 100);
+          if (!a.total_questions || a.total_questions <= 0) return;
+          const ratio = a.score / a.total_questions;
+          if (ratio > bestRatio) {
+            bestRatio = ratio;
+            bestScore = Math.round(Math.min(ratio, 1) * 100);
             bestTotal = a.total_questions;
+            bestRaw = a.score;
           }
         });
         return {
@@ -433,7 +439,7 @@ export function useAdminMemberDetail(userId: string | null) {
           course_title: courseMap.get(mod.course_id) || 'Unknown Course',
           bestScore,
           totalQuestions: bestTotal,
-          passed: bestScore !== null && bestScore >= 80,
+          passed: bestTotal > 0 && isQuizPassed(bestRaw, bestTotal),
           attempted: attempts.length > 0,
           attemptCount: attempts.length,
         };
