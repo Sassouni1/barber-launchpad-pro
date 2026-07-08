@@ -93,16 +93,17 @@ export function ProgressOverview() {
     if (modId) progressModuleIds.add(modId);
   }
 
-  // Find modules completed via quiz pass (best score >= 80%)
-  const bestScoreByModule = new Map<string, number>();
+  // Find modules completed via quiz pass (best raw ratio >= 80%)
+  const bestRatioByModule = new Map<string, number>();
   for (const q of quizAttempts) {
-    const pct = q.total_questions > 0 ? (q.score / q.total_questions) * 100 : 0;
-    const best = bestScoreByModule.get(q.module_id) || 0;
-    bestScoreByModule.set(q.module_id, Math.max(best, pct));
+    if (!q.total_questions || q.total_questions <= 0) continue;
+    const ratio = q.score / q.total_questions;
+    const best = bestRatioByModule.get(q.module_id) ?? 0;
+    if (ratio > best) bestRatioByModule.set(q.module_id, ratio);
   }
   const passedModuleIds = new Set<string>();
-  bestScoreByModule.forEach((pct, modId) => {
-    if (pct >= 80) passedModuleIds.add(modId);
+  bestRatioByModule.forEach((ratio, modId) => {
+    if (ratio + 1e-9 >= 0.8) passedModuleIds.add(modId);
   });
 
   // Calculate per-course completion (only modules with has_quiz)
