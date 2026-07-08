@@ -15,7 +15,10 @@ import {
   Star,
   Award,
   Globe,
+  CheckCircle2,
+  Trophy,
 } from "lucide-react";
+import { useCompletedModules } from "@/hooks/useCompletedModules";
 import { useState, useRef, useEffect } from "react";
 import { cn, getVimeoEmbedUrl } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
