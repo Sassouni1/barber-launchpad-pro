@@ -44,6 +44,7 @@ import {
   Maximize2,
   Play,
   ExternalLink,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
