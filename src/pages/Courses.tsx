@@ -400,9 +400,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
         )}
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-4 pb-4">
-          {/* Two progress cards — tap to expand */}
+          {/* Two square track cards — tap to expand */}
           {expandedCourse === null && (
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {courseCategories.map((category) => {
                 const allModules = category.courses.flatMap(
                   (c) => (c.modules || []) as Module[],
@@ -422,9 +422,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                     type="button"
                     onClick={() => setExpandedCourse(category.id)}
                     className={cn(
-                      "relative w-full text-left overflow-hidden rounded-2xl border-2 p-5 transition-all active:scale-[0.99]",
+                      "relative flex flex-col justify-between text-left overflow-hidden rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
                       "border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background",
                       "shadow-lg shadow-black/40 hover:border-primary/60",
+                      "aspect-square",
                     )}
                   >
                     <div
@@ -432,38 +433,40 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       className="absolute inset-y-0 left-0 bg-primary/10"
                       style={{ width: `${pct}%` }}
                     />
-                    <div className="relative flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {isHair ? (
-                            <BookOpen className="w-4 h-4 text-primary" />
-                          ) : (
-                            <Trophy className="w-4 h-4 text-primary" />
-                          )}
-                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                            {isHair ? "Track 01" : "Track 02"}
-                          </span>
-                        </div>
-                        <h2 className="font-display font-bold text-lg gold-text leading-tight">
-                          {category.title}
-                        </h2>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {done} of {total} modules complete
-                        </p>
-                        <div className="mt-3 h-1.5 w-full rounded-full bg-secondary/40 overflow-hidden">
-                          <div
-                            className="h-full gold-gradient transition-all"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-2">
+                        {isHair ? (
+                          <BookOpen className="w-4 h-4 text-primary" />
+                        ) : (
+                          <Trophy className="w-4 h-4 text-primary" />
+                        )}
+                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                          {isHair ? "Track 01" : "Track 02"}
+                        </span>
                       </div>
-                      <div className="flex flex-col items-end shrink-0">
+                      <h2 className="font-display font-bold text-sm gold-text leading-tight">
+                        {category.title}
+                      </h2>
+                    </div>
+                    <div className="relative mt-auto">
+                      <div className="flex items-end justify-between gap-2">
                         <span className="font-display text-3xl font-bold gold-text leading-none">
                           {pct}
                           <span className="text-base">%</span>
                         </span>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
-                          Tap to open
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                          {done}/{total}
+                        </span>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full rounded-full bg-secondary/40 overflow-hidden">
+                        <div
+                          className="h-full gold-gradient transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="mt-3">
+                        <span className="inline-flex items-center justify-center w-full rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold py-2 px-3">
+                          Open Track
                         </span>
                       </div>
                     </div>
