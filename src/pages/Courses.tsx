@@ -754,23 +754,26 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       ? "items-start"
                                       : "items-center min-h-[78px]",
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
-                                    isSelected
-                                      ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
-                                      : completed
-                                        ? "border-emerald-500/60 bg-emerald-500/10 shadow-md shadow-emerald-500/10"
+                                    completed
+                                      ? isSelected
+                                        ? "border-emerald-500 bg-emerald-500/15 shadow-lg shadow-emerald-500/20"
+                                        : "border-emerald-500/60 bg-emerald-500/10 shadow-md shadow-emerald-500/10"
+                                      : isSelected
+                                        ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
                                         : "border-border bg-secondary/10 shadow-md shadow-black/20",
                                   )}
                                 >
                                   <div
                                     className={cn(
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
-                                      isSelected
-                                        ? "gold-gradient text-primary-foreground shadow-md"
-                                        : completed
-                                          ? "bg-emerald-500 border border-emerald-400 text-white shadow-md"
+                                      completed
+                                        ? "bg-emerald-500 border border-emerald-400 text-white shadow-md"
+                                        : isSelected
+                                          ? "gold-gradient text-primary-foreground shadow-md"
                                           : "bg-secondary border border-border text-muted-foreground",
                                     )}
                                   >
+
                                     {completed ? (
                                       <CheckCircle2 className="w-5 h-5" />
                                     ) : (
