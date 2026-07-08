@@ -15,7 +15,10 @@ import {
   Star,
   Award,
   Globe,
+  CheckCircle2,
+  Trophy,
 } from "lucide-react";
+import { useCompletedModules } from "@/hooks/useCompletedModules";
 import { useState, useRef, useEffect } from "react";
 import { cn, getVimeoEmbedUrl } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -180,6 +183,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isTabletOrDesktop = useIsTabletOrDesktop();
   const isDesktop = useIsDesktop();
+  const { data: completedMap = {} } = useCompletedModules();
+  const isModuleCompleted = (id: string) => !!completedMap[id]?.passed;
 
   const pageTitle =
     courseType === "hair-system" ? "Hair System Training" : "Business Mastery";
@@ -458,6 +463,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             module,
                             moduleLessons.length,
                           );
+                          const completed = isModuleCompleted(module.id);
+                          const bestScore = completedMap[module.id]?.bestScore;
                           return (
                             <div key={module.id} className="space-y-1">
                               <button
@@ -467,12 +474,26 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   )
                                 }
                                 className={cn(
-                                  "w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-border bg-secondary/10 shadow-md shadow-black/20 active:scale-[0.98]",
+                                  "w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
                                   !hasCardDetails && "min-h-[66px]",
+                                  completed
+                                    ? "border-emerald-500/60 bg-emerald-500/10"
+                                    : "border-border bg-secondary/10",
                                 )}
                               >
-                                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-secondary border border-border text-muted-foreground">
-                                  {index + 1}
+                                <div
+                                  className={cn(
+                                    "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm border",
+                                    completed
+                                      ? "bg-emerald-500 border-emerald-400 text-white"
+                                      : "bg-secondary border-border text-muted-foreground",
+                                  )}
+                                >
+                                  {completed ? (
+                                    <CheckCircle2 className="w-5 h-5" />
+                                  ) : (
+                                    index + 1
+                                  )}
                                 </div>
                                 <div
                                   className={cn(
@@ -495,35 +516,44 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                     )}
                                   </h4>
-                                  {hasCardDetails && (
-                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                      {module.duration && (
-                                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                          <Clock className="w-3 h-3" />
-                                          {module.duration}
-                                        </span>
-                                      )}
-                                      {moduleLessons.length > 0 && (
-                                        <span className="text-xs text-primary">
-                                          {formatSubLessonCount(
-                                            moduleLessons.length,
-                                          )}
-                                        </span>
-                                      )}
-                                      {module.has_quiz && (
-                                        <HelpCircle className="w-3 h-3 text-amber-400" />
-                                      )}
-                                      {module.has_homework && (
-                                        <ClipboardList className="w-3 h-3 text-green-400" />
-                                      )}
-                                      {module.has_download && (
-                                        <FileText className="w-3 h-3 text-blue-400" />
-                                      )}
-                                    </div>
-                                  )}
+                                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                    {completed && (
+                                      <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-1.5 py-0.5 rounded-full">
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        Completed {bestScore != null ? `· ${bestScore}%` : ""}
+                                      </span>
+                                    )}
+                                    {hasCardDetails && (
+                                      <>
+                                        {module.duration && (
+                                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                            <Clock className="w-3 h-3" />
+                                            {module.duration}
+                                          </span>
+                                        )}
+                                        {moduleLessons.length > 0 && (
+                                          <span className="text-xs text-primary">
+                                            {formatSubLessonCount(
+                                              moduleLessons.length,
+                                            )}
+                                          </span>
+                                        )}
+                                        {module.has_quiz && (
+                                          <HelpCircle className="w-3 h-3 text-amber-400" />
+                                        )}
+                                        {module.has_homework && (
+                                          <ClipboardList className="w-3 h-3 text-green-400" />
+                                        )}
+                                        {module.has_download && (
+                                          <FileText className="w-3 h-3 text-blue-400" />
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
-                                <Play className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <Play className={cn("w-4 h-4 flex-shrink-0", completed ? "text-emerald-400" : "text-muted-foreground")} />
                               </button>
+
                               <SubLessonTrack
                                 lessons={moduleLessons}
                                 compact
@@ -690,6 +720,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         <>
                           {regularModules.map((module, index) => {
                             const isSelected = selectedModule === module.id;
+                            const completed = isModuleCompleted(module.id);
+                            const bestScore = completedMap[module.id]?.bestScore;
                             const moduleLessons = getModuleLessons(module);
                             const hasCardDetails = hasModuleCardDetails(
                               module,
@@ -724,7 +756,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
                                     isSelected
                                       ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
-                                      : "border-border bg-secondary/10 shadow-md shadow-black/20",
+                                      : completed
+                                        ? "border-emerald-500/60 bg-emerald-500/10 shadow-md shadow-emerald-500/10"
+                                        : "border-border bg-secondary/10 shadow-md shadow-black/20",
                                   )}
                                 >
                                   <div
@@ -732,10 +766,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       isSelected
                                         ? "gold-gradient text-primary-foreground shadow-md"
-                                        : "bg-secondary border border-border text-muted-foreground",
+                                        : completed
+                                          ? "bg-emerald-500 border border-emerald-400 text-white shadow-md"
+                                          : "bg-secondary border border-border text-muted-foreground",
                                     )}
                                   >
-                                    {index + 1}
+                                    {completed ? (
+                                      <CheckCircle2 className="w-5 h-5" />
+                                    ) : (
+                                      index + 1
+                                    )}
                                   </div>
                                   <div
                                     className={cn(
@@ -762,7 +802,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                       )}
                                     </h4>
+                                    {completed && (
+                                      <div className="mb-2">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full">
+                                          <CheckCircle2 className="w-3 h-3" />
+                                          Completed{bestScore != null ? ` · ${bestScore}%` : ""}
+                                        </span>
+                                      </div>
+                                    )}
                                     {hasCardDetails && (
+
                                       <>
                                         {module.description && (
                                           <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
@@ -1012,30 +1061,74 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
 
                 {/* Actions */}
                 <div className="p-6 space-y-4">
-                  <Button
-                    className="w-full gold-gradient text-primary-foreground font-semibold py-6 text-lg"
-                    onClick={() => goToLesson(moduleData.module.id, courseType)}
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    {localizeCourseUi("Start Lesson", locale)}
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-
-                  {(moduleData.module.has_quiz ||
-                    moduleData.module.has_homework) && (
-                    <div className="flex gap-3">
-                      {moduleData.module.has_quiz && (
+                  {(() => {
+                    const detailCompleted = isModuleCompleted(moduleData.module.id);
+                    const detailScore = completedMap[moduleData.module.id]?.bestScore;
+                    return (
+                      <>
+                        {detailCompleted && (
+                          <div className="flex items-center gap-3 rounded-xl border-2 border-emerald-500/50 bg-emerald-500/10 p-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">
+                              <Trophy className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-emerald-300">
+                                Lesson Completed
+                              </p>
+                              <p className="text-xs text-emerald-200/80">
+                                Quiz passed{detailScore != null ? ` with ${detailScore}%` : ""} · you can review anytime
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() =>
-                            goToLesson(moduleData.module.id, courseType, "quiz")
-                          }
+                          className={cn(
+                            "w-full font-semibold py-6 text-lg",
+                            detailCompleted
+                              ? "bg-emerald-500 hover:bg-emerald-500/90 text-white"
+                              : "gold-gradient text-primary-foreground",
+                          )}
+                          onClick={() => goToLesson(moduleData.module.id, courseType)}
                         >
-                          <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
-                          {localizeCourseUi("Take Quiz", locale)}
+                          {detailCompleted ? (
+                            <>
+                              <CheckCircle2 className="w-5 h-5 mr-2" />
+                              Review Lesson
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-5 h-5 mr-2" />
+                              {localizeCourseUi("Start Lesson", locale)}
+                            </>
+                          )}
+                          <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
-                      )}
+
+                        {(moduleData.module.has_quiz ||
+                          moduleData.module.has_homework) && (
+                          <div className="flex gap-3">
+                            {moduleData.module.has_quiz && (
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "flex-1",
+                                  detailCompleted && "border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10",
+                                )}
+                                onClick={() =>
+                                  goToLesson(moduleData.module.id, courseType, "quiz")
+                                }
+                              >
+                                {detailCompleted ? (
+                                  <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" />
+                                ) : (
+                                  <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
+                                )}
+                                {detailCompleted
+                                  ? "Review Quiz"
+                                  : localizeCourseUi("Take Quiz", locale)}
+                              </Button>
+                            )}
+
                       {moduleData.module.has_homework && (
                         <Button
                           variant="outline"
@@ -1054,7 +1147,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       )}
                     </div>
                   )}
+                      </>
+                    );
+                  })()}
                 </div>
+
               </div>
             ) : (
               <div className="glass-card rounded-xl p-8 max-w-sm text-center">
