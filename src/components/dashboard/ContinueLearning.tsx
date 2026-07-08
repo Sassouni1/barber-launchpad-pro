@@ -91,15 +91,27 @@ export function ContinueLearning() {
           )}
         </div>
 
-        {/* CTA Button */}
-        <Button 
-          onClick={() => navigate('/courses')}
-          className="w-full h-12 gold-gradient text-primary-foreground font-semibold text-base hover:opacity-90 transition-all group gold-glow"
-        >
-          <Play className="w-5 h-5 mr-2" />
-          Start Module
-          <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-        </Button>
+        {/* CTA Buttons */}
+        <div className="space-y-2">
+          <Button
+            onClick={() =>
+              navigate(`/courses/${firstModule.categoryId}/lesson/${firstModule.id}`)
+            }
+            className="w-full h-12 gold-gradient text-primary-foreground font-semibold text-base hover:opacity-90 transition-all group gold-glow"
+          >
+            <Play className="w-5 h-5 mr-2" />
+            {allDone ? 'Review Module' : hasStarted ? 'Continue Module' : 'Start Module'}
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </Button>
+          <Button
+            onClick={() => navigate(`/courses/${firstModule.categoryId}`)}
+            variant="outline"
+            className="w-full h-11 border-primary/30 hover:border-primary/60 hover:bg-primary/5 font-medium"
+          >
+            <List className="w-4 h-4 mr-2" />
+            See All Lessons
+          </Button>
+        </div>
       </div>
     </div>
   );
