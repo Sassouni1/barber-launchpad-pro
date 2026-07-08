@@ -1,12 +1,14 @@
 import { useCourses } from '@/hooks/useCourses';
+import { useCompletedModules } from '@/hooks/useCompletedModules';
 import { Button } from '@/components/ui/button';
-import { Play, Clock, FileText, Zap, ArrowRight, BookOpen, Loader2 } from 'lucide-react';
+import { Play, Clock, FileText, Zap, ArrowRight, BookOpen, Loader2, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function ContinueLearning() {
   const navigate = useNavigate();
   const { data: courses = [], isLoading } = useCourses();
-  
+  const { data: completedMap = {} } = useCompletedModules();
+
   if (isLoading) {
     return (
       <div className="glass-card cyber-corners p-6 rounded-xl animate-fade-up flex items-center justify-center min-h-[200px]">
@@ -15,14 +17,22 @@ export function ContinueLearning() {
     );
   }
 
-  // Find the first module from any course
-  const firstModule = courses
-    .flatMap((course) =>
-      (course.modules || []).map((module) => ({
-        ...module,
-        courseName: course.title,
-      }))
-    )[0];
+  // Flatten all modules in order across courses
+  const allModules = courses.flatMap((course) =>
+    (course.modules || []).map((module) => ({
+      ...module,
+      courseName: course.title,
+      categoryId: ((course as any).category as string) || 'hair-system',
+    }))
+  );
+
+  // Find the first module that hasn't been passed yet (i.e. next to do)
+  const nextModule =
+    allModules.find((m) => !completedMap[m.id]?.passed) || allModules[allModules.length - 1];
+  const hasStarted = allModules.some((m) => completedMap[m.id]?.passed);
+  const allDone = allModules.length > 0 && allModules.every((m) => completedMap[m.id]?.passed);
+
+  const firstModule = nextModule;
 
   if (!firstModule) {
     return (
@@ -48,7 +58,7 @@ export function ContinueLearning() {
             <div className="absolute inset-0 bg-primary rounded-full animate-ping" />
             <div className="relative w-2 h-2 bg-primary rounded-full" />
           </div>
-          <span className="text-xs font-semibold uppercase tracking-cyber text-primary">Start Learning</span>
+          <span className="text-xs font-semibold uppercase tracking-cyber text-primary">{allDone ? 'All Complete' : hasStarted ? 'Continue Learning' : 'Start Learning'}</span>
         </div>
       </div>
 
@@ -81,15 +91,27 @@ export function ContinueLearning() {
           )}
         </div>
 
-        {/* CTA Button */}
-        <Button 
-          onClick={() => navigate('/courses')}
-          className="w-full h-12 gold-gradient text-primary-foreground font-semibold text-base hover:opacity-90 transition-all group gold-glow"
-        >
-          <Play className="w-5 h-5 mr-2" />
-          Start Module
-          <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-        </Button>
+        {/* CTA Buttons */}
+        <div className="space-y-2">
+          <Button
+            onClick={() =>
+              navigate(`/courses/${firstModule.categoryId}/lesson/${firstModule.id}`)
+            }
+            className="w-full h-12 gold-gradient text-primary-foreground font-semibold text-base hover:opacity-90 transition-all group gold-glow"
+          >
+            <Play className="w-5 h-5 mr-2" />
+            {allDone ? 'Review Module' : hasStarted ? 'Continue Module' : 'Start Module'}
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </Button>
+          <Button
+            onClick={() => navigate(`/courses/${firstModule.categoryId}`)}
+            variant="outline"
+            className="w-full h-11 border-primary/30 hover:border-primary/60 hover:bg-primary/5 font-medium"
+          >
+            <List className="w-4 h-4 mr-2" />
+            See All Lessons
+          </Button>
+        </div>
       </div>
     </div>
   );
