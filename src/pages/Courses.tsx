@@ -485,7 +485,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   className={cn(
                                     "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm border",
                                     completed
-                                      ? "gold-gradient text-emerald-400"
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-md"
                                       : "bg-secondary border-border text-muted-foreground",
                                   )}
                                 >
@@ -767,7 +767,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     className={cn(
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       completed
-                                        ? "gold-gradient text-emerald-400 shadow-md"
+                                        ? "bg-emerald-500 border border-emerald-400 text-white shadow-md"
                                         : isSelected
                                           ? "gold-gradient text-primary-foreground shadow-md"
                                           : "bg-secondary border border-border text-muted-foreground",
