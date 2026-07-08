@@ -7,7 +7,8 @@ import { useNavigate } from 'react-router-dom';
 export function ContinueLearning() {
   const navigate = useNavigate();
   const { data: courses = [], isLoading } = useCourses();
-  
+  const { data: completedMap = {} } = useCompletedModules();
+
   if (isLoading) {
     return (
       <div className="glass-card cyber-corners p-6 rounded-xl animate-fade-up flex items-center justify-center min-h-[200px]">
@@ -16,14 +17,21 @@ export function ContinueLearning() {
     );
   }
 
-  // Find the first module from any course
-  const firstModule = courses
-    .flatMap((course) =>
-      (course.modules || []).map((module) => ({
-        ...module,
-        courseName: course.title,
-      }))
-    )[0];
+  // Flatten all modules in order across courses
+  const allModules = courses.flatMap((course) =>
+    (course.modules || []).map((module) => ({
+      ...module,
+      courseName: course.title,
+    }))
+  );
+
+  // Find the first module that hasn't been passed yet (i.e. next to do)
+  const nextModule =
+    allModules.find((m) => !completedMap[m.id]?.passed) || allModules[allModules.length - 1];
+  const hasStarted = allModules.some((m) => completedMap[m.id]?.passed);
+  const allDone = allModules.length > 0 && allModules.every((m) => completedMap[m.id]?.passed);
+
+  const firstModule = nextModule;
 
   if (!firstModule) {
     return (
