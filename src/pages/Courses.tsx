@@ -425,7 +425,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       "relative flex flex-col justify-between text-left overflow-hidden rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
                       "border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background",
                       "shadow-lg shadow-black/40 hover:border-primary/60",
-                      "aspect-square",
+                      "min-h-[160px]",
                     )}
                   >
                     <div
