@@ -1147,7 +1147,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       )}
                     </div>
                   )}
+                      </>
+                    );
+                  })()}
                 </div>
+
               </div>
             ) : (
               <div className="glass-card rounded-xl p-8 max-w-sm text-center">
