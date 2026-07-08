@@ -1,7 +1,42 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Loader2, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+
+function extractStoragePath(fileUrl: string): string | null {
+  const marker = '/certification-photos/';
+  const idx = fileUrl.indexOf(marker);
+  if (idx === -1) return null;
+  return fileUrl.substring(idx + marker.length).split('?')[0];
+}
+
+function SignedPhoto({ fileUrl, alt }: { fileUrl: string; alt: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const path = extractStoragePath(fileUrl);
+    if (!path) {
+      setSrc(fileUrl);
+      return;
+    }
+    supabase.storage
+      .from('certification-photos')
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => {
+        if (!cancelled) setSrc(data?.signedUrl || fileUrl);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fileUrl]);
+
+  if (!src) {
+    return <div className="w-full h-full rounded-lg bg-muted animate-pulse" />;
+  }
+  return <img src={src} alt={alt} className="w-full h-full object-cover rounded-lg" />;
+}
 
 interface Photo {
   id: string;
@@ -98,11 +133,7 @@ export function PhotoUploader({
         <div className="grid grid-cols-3 gap-2">
           {photos.map((photo) => (
             <div key={photo.id} className="relative group aspect-square">
-              <img
-                src={photo.file_url}
-                alt={photo.file_name}
-                className="w-full h-full object-cover rounded-lg"
-              />
+              <SignedPhoto fileUrl={photo.file_url} alt={photo.file_name} />
               <Button
                 variant="destructive"
                 size="icon"
