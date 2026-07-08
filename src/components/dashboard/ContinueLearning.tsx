@@ -1,7 +1,7 @@
 import { useCourses } from '@/hooks/useCourses';
 import { useCompletedModules } from '@/hooks/useCompletedModules';
 import { Button } from '@/components/ui/button';
-import { Play, Clock, FileText, Zap, ArrowRight, BookOpen, Loader2, List } from 'lucide-react';
+import { Play, Clock, FileText, Zap, ArrowRight, BookOpen, Loader2, List, Sparkles, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function ContinueLearning() {
