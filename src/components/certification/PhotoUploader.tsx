@@ -133,11 +133,7 @@ export function PhotoUploader({
         <div className="grid grid-cols-3 gap-2">
           {photos.map((photo) => (
             <div key={photo.id} className="relative group aspect-square">
-              <img
-                src={photo.file_url}
-                alt={photo.file_name}
-                className="w-full h-full object-cover rounded-lg"
-              />
+              <SignedPhoto fileUrl={photo.file_url} alt={photo.file_name} />
               <Button
                 variant="destructive"
                 size="icon"
