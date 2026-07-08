@@ -63,7 +63,7 @@ export function QuizProgressList({ quizProgress }: QuizProgressListProps) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        You need 80% or higher on all quizzes to qualify for certification.
+        You need to miss no more than 1 question per quiz to qualify for certification.
       </p>
     </div>
   );

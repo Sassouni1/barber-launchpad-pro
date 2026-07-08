@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { isQuizPassed } from '@/lib/quizPass';
 
 /**
- * Training Games unlock once the user passes (>=80%) every quiz attached to
- * any module belonging to a hair-system course.
+ * Training Games unlock once the user passes every quiz attached to any
+ * module belonging to a hair-system course. "Pass" = miss no more than 1
+ * question (see @/lib/quizPass).
  */
 export function useTrainingGamesUnlocked() {
   const { user, isAdmin } = useAuth();
@@ -39,11 +41,8 @@ export function useTrainingGamesUnlocked() {
       let passedQuizzes = 0;
       for (const m of quizModules) {
         const ma = (attempts || []).filter((a) => a.module_id === m.id);
-        const bestPct = ma.reduce((best, a) => {
-          const pct = a.total_questions > 0 ? (a.score / a.total_questions) * 100 : 0;
-          return pct > best ? pct : best;
-        }, 0);
-        if (bestPct >= 80) passedQuizzes += 1;
+        const passedAny = ma.some((a) => isQuizPassed(a.score, a.total_questions));
+        if (passedAny) passedQuizzes += 1;
       }
 
       return {

@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { isQuizPassed } from '@/lib/quizPass';
 import {
   useCertificationEligibility,
   useCertificationPhotos,
@@ -76,8 +77,7 @@ function useAllLessonsCompleted() {
 
       const passedModules = new Set<string>();
       for (const a of attempts || []) {
-        const pct = a.total_questions > 0 ? (a.score / a.total_questions) * 100 : 0;
-        if (pct >= 80) passedModules.add(a.module_id);
+        if (isQuizPassed(a.score, a.total_questions)) passedModules.add(a.module_id);
       }
 
       const { data: lessons } = await supabase
