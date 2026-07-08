@@ -183,6 +183,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isTabletOrDesktop = useIsTabletOrDesktop();
   const isDesktop = useIsDesktop();
+  const { data: completedMap = {} } = useCompletedModules();
+  const isModuleCompleted = (id: string) => !!completedMap[id]?.passed;
 
   const pageTitle =
     courseType === "hair-system" ? "Hair System Training" : "Business Mastery";
