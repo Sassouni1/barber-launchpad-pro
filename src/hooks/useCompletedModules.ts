@@ -4,6 +4,28 @@ import { useAuth } from "@/hooks/useAuth";
 
 export type ModuleCompletion = { bestScore: number; passed: boolean };
 
+const cacheKey = (userId: string) => `completed-modules:${userId}`;
+
+function readCache(userId: string | undefined): Record<string, ModuleCompletion> | undefined {
+  if (!userId || typeof window === "undefined") return undefined;
+  try {
+    const raw = window.localStorage.getItem(cacheKey(userId));
+    if (!raw) return undefined;
+    return JSON.parse(raw) as Record<string, ModuleCompletion>;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCache(userId: string, map: Record<string, ModuleCompletion>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(cacheKey(userId), JSON.stringify(map));
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
 /**
  * Returns a map of moduleId -> { bestScore, passed } based on the user's
  * best quiz attempt per module. A module is "completed" when the best
@@ -19,6 +41,10 @@ export function useCompletedModules() {
     queryKey: ["completed-modules", user?.id],
     enabled: !!user?.id,
     staleTime: 300000,
+    // Hydrate immediately from localStorage so the course list doesn't flash
+    // an "uncompleted" state on mount before the network request resolves.
+    initialData: () => readCache(user?.id),
+    initialDataUpdatedAt: 0,
     queryFn: async () => {
       const map: Record<string, ModuleCompletion> = {};
       if (!user?.id) return map;
@@ -69,6 +95,7 @@ export function useCompletedModules() {
         }
       }
 
+      writeCache(user.id, map);
       return map;
     },
   });
