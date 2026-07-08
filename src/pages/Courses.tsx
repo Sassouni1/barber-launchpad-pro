@@ -402,7 +402,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
         <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-4 pb-4">
           {/* Two square track cards — tap to expand */}
           {expandedCourse === null && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {courseCategories.map((category) => {
                 const allModules = category.courses.flatMap(
                   (c) => (c.modules || []) as Module[],
@@ -466,7 +466,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       </div>
                       <div className="mt-3">
                         <span className="inline-flex items-center justify-center w-full rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold py-2 px-3">
-                          {done > 0 ? "Continue Lesson" : "Start Lesson"}
+                          {done > 0 ? "continue lesson" : "start lesson"}
                         </span>
                       </div>
                     </div>
