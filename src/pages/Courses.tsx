@@ -402,7 +402,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
         <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-4 pb-4">
           {/* Two square track cards — tap to expand */}
           {expandedCourse === null && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {courseCategories.map((category) => {
                 const allModules = category.courses.flatMap(
                   (c) => (c.modules || []) as Module[],
