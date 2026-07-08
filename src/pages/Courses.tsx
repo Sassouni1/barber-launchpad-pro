@@ -1061,30 +1061,74 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
 
                 {/* Actions */}
                 <div className="p-6 space-y-4">
-                  <Button
-                    className="w-full gold-gradient text-primary-foreground font-semibold py-6 text-lg"
-                    onClick={() => goToLesson(moduleData.module.id, courseType)}
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    {localizeCourseUi("Start Lesson", locale)}
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-
-                  {(moduleData.module.has_quiz ||
-                    moduleData.module.has_homework) && (
-                    <div className="flex gap-3">
-                      {moduleData.module.has_quiz && (
+                  {(() => {
+                    const detailCompleted = isModuleCompleted(moduleData.module.id);
+                    const detailScore = completedMap[moduleData.module.id]?.bestScore;
+                    return (
+                      <>
+                        {detailCompleted && (
+                          <div className="flex items-center gap-3 rounded-xl border-2 border-emerald-500/50 bg-emerald-500/10 p-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">
+                              <Trophy className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-emerald-300">
+                                Lesson Completed
+                              </p>
+                              <p className="text-xs text-emerald-200/80">
+                                Quiz passed{detailScore != null ? ` with ${detailScore}%` : ""} · you can review anytime
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() =>
-                            goToLesson(moduleData.module.id, courseType, "quiz")
-                          }
+                          className={cn(
+                            "w-full font-semibold py-6 text-lg",
+                            detailCompleted
+                              ? "bg-emerald-500 hover:bg-emerald-500/90 text-white"
+                              : "gold-gradient text-primary-foreground",
+                          )}
+                          onClick={() => goToLesson(moduleData.module.id, courseType)}
                         >
-                          <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
-                          {localizeCourseUi("Take Quiz", locale)}
+                          {detailCompleted ? (
+                            <>
+                              <CheckCircle2 className="w-5 h-5 mr-2" />
+                              Review Lesson
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-5 h-5 mr-2" />
+                              {localizeCourseUi("Start Lesson", locale)}
+                            </>
+                          )}
+                          <ArrowRight className="w-5 h-5 ml-2" />
                         </Button>
-                      )}
+
+                        {(moduleData.module.has_quiz ||
+                          moduleData.module.has_homework) && (
+                          <div className="flex gap-3">
+                            {moduleData.module.has_quiz && (
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "flex-1",
+                                  detailCompleted && "border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10",
+                                )}
+                                onClick={() =>
+                                  goToLesson(moduleData.module.id, courseType, "quiz")
+                                }
+                              >
+                                {detailCompleted ? (
+                                  <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" />
+                                ) : (
+                                  <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
+                                )}
+                                {detailCompleted
+                                  ? "Review Quiz"
+                                  : localizeCourseUi("Take Quiz", locale)}
+                              </Button>
+                            )}
+
                       {moduleData.module.has_homework && (
                         <Button
                           variant="outline"
