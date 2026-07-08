@@ -756,8 +756,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
                                     completed
                                       ? isSelected
-                                        ? "border-emerald-500 bg-emerald-500/15 shadow-lg shadow-emerald-500/20"
-                                        : "border-emerald-500/60 bg-emerald-500/10 shadow-md shadow-emerald-500/10"
+                                        ? "bg-gradient-to-r from-primary/15 to-transparent border-primary/70 shadow-lg shadow-primary/20"
+                                        : "bg-gradient-to-r from-primary/10 to-transparent border-primary/60 shadow-md shadow-primary/10"
                                       : isSelected
                                         ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
                                         : "border-border bg-secondary/10 shadow-md shadow-black/20",
@@ -767,7 +767,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     className={cn(
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       completed
-                                        ? "bg-emerald-500 border border-emerald-400 text-white shadow-md"
+                                        ? "gold-gradient text-emerald-400 shadow-md"
                                         : isSelected
                                           ? "gold-gradient text-primary-foreground shadow-md"
                                           : "bg-secondary border border-border text-muted-foreground",
@@ -791,7 +791,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       className={cn(
                                         "font-semibold text-sm flex items-center gap-1.5",
                                         hasCardDetails && "mb-1",
-                                        completed ? "text-emerald-300" : isSelected && "text-primary",
+                                        (completed || isSelected) && "text-primary",
                                       )}
                                       data-no-translate
                                       translate="no"
