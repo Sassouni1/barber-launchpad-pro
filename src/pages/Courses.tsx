@@ -791,7 +791,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       className={cn(
                                         "font-semibold text-sm flex items-center gap-1.5",
                                         hasCardDetails && "mb-1",
-                                        isSelected && "text-primary",
+                                        completed ? "text-emerald-300" : isSelected && "text-primary",
                                       )}
                                       data-no-translate
                                       translate="no"
