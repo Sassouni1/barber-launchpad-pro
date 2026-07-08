@@ -282,6 +282,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/qr-codes', icon: QrCode, label: 'QR Codes' },
     { to: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
     { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
+    { to: '/admin/aion', icon: Bot, label: 'Aion Conversations' },
   ];
 
   const links = isAdminView ? adminLinks : memberLinks;
