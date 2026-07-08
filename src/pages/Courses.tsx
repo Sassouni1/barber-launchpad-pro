@@ -551,7 +551,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     )}
                                   </div>
                                 </div>
-                                <Play className={cn("w-4 h-4 flex-shrink-0", completed ? "text-emerald-400" : "text-muted-foreground")} />
+                                <Play className={cn("w-4 h-4 flex-shrink-0", completed ? "text-primary" : "text-muted-foreground")} />
                               </button>
 
                               <SubLessonTrack
