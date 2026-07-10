@@ -1441,9 +1441,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   )}
                                 />
                                 {detailCompleted
-                                  ? "Review Quiz"
+                                  ? localizeCourseUi("Review Quiz", locale)
                                   : detailFailed
-                                    ? "Retake Quiz"
+                                    ? localizeCourseUi("Retake quiz", locale)
                                     : localizeCourseUi("Take Quiz", locale)}
                               </Button>
                             )}
