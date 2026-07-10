@@ -546,6 +546,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           );
                           const completed = isModuleCompleted(module.id);
                           const bestScore = completedMap[module.id]?.bestScore;
+                          const attemptedNotPassed = !completed && completedMap[module.id] != null;
                           return (
                             <div key={module.id} className="space-y-1">
                               <button
