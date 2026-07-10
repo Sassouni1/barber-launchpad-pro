@@ -24,6 +24,11 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
   const total = quizProgress.length;
 
   const [showPassed, setShowPassed] = useState(unpassed.length === 0);
+  const [expandUnpassed, setExpandUnpassed] = useState(false);
+  const [expandPassed, setExpandPassed] = useState(false);
+  const INITIAL = 5;
+  const visibleUnpassed = expandUnpassed ? unpassed : unpassed.slice(0, INITIAL);
+  const visiblePassed = expandPassed ? passed : passed.slice(0, INITIAL);
 
   const goToQuiz = (moduleId: string) => {
     onNavigate?.();
