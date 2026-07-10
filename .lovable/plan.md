@@ -1,25 +1,16 @@
-## The bug
+I’m sorry. What’s going on is I fixed the border state without properly verifying the full card after the earlier badge change, so the screen now has a confusing mismatch: the selected/complete/fail outlines are present, but the visible completion notifications are not obvious enough in the exact viewport you’re looking at. That’s on me.
 
-On every lesson quiz results screen (`src/pages/Lesson.tsx`, both mobile and desktop variants, lines ~1736 and ~2272), the "Quiz Completed" green card shows for **any** best attempt — even failing ones. That's why members like Sherry think they're done after a 13/15 and never retake.
+Plan:
+1. Restore the status badge visibility on every course-list item:
+   - Passed/completed: green badge with “Completed · 100%” or “Completed · X%”.
+   - Failed attempt: red/orange badge with “Retake · 0%” or “Retake · X%”.
+   - Not attempted: no completion badge, neutral card.
 
-## The fix
+2. Make the outside card state match the badge:
+   - Completed = green outline/background accent.
+   - Failed/not passed = red or orange outline/background accent, stronger when score is 0%.
+   - Selected but not completed/failed = gold outline only, so selection is separate from status.
 
-When the user's best attempt fails `isQuizPassed` (miss ≤ 1), swap the green card for an amber one:
+3. Keep this consistent on both desktop and mobile course lists.
 
-```
-Quiz Score: 87%
-Please retake the quiz and miss no more than 1 question to qualify for certification.
-[ Retake Quiz ]
-```
-
-Passing attempts still show the existing green "Quiz Passed" card (renamed from "Quiz Completed" so it's actually accurate).
-
-## Files touched
-
-- `src/pages/Lesson.tsx` — import `isQuizPassed` from `@/lib/quizPass`; branch both quiz-result cards (mobile ~L1736 and desktop ~L2272) on pass/fail.
-
-## Out of scope
-
-- No changes to the underlying pass rule.
-- No changes to existing certs.
-- No server-side enforcement (separate concern, ask separately if you want it).
+4. Verify visually against the current course screen after implementation so “Terms of the Industry” and “The Color Ring” cannot look randomly highlighted or status-less.
