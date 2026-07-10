@@ -367,21 +367,59 @@ export function CertificationModal({
               </div>
 
               <div className="space-y-3 border-t border-border/40 pt-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Shipping Address</p>
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={shipToBusiness}
-                      onChange={(e) => setShipToBusiness(e.target.checked)}
-                      className="rounded"
-                    />
-                    Ship to my business
-                  </label>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Shipping Address</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {(!isEditing || showShipping) && (
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={shipToBusiness}
+                          onChange={(e) => setShipToBusiness(e.target.checked)}
+                          className="rounded"
+                        />
+                        Ship to my business
+                      </label>
+                    )}
+                    {isEditing && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setShowShipping((v) => !v)}
+                      >
+                        {showShipping ? (<><ChevronUp className="w-3 h-3 mr-1" />Hide</>) : (<><ChevronDown className="w-3 h-3 mr-1" />Edit</>)}
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {isEditing && !showShipping ? (
+                  <div className="text-sm text-foreground/80 leading-snug">
+                    {shippingAddress.addressLine1 ? (
+                      <>
+                        <div>{shippingAddress.recipientName}</div>
+                        <div className="text-muted-foreground">
+                          {shippingAddress.addressLine1}
+                          {shippingAddress.addressLine2 ? `, ${shippingAddress.addressLine2}` : ''}
+                          {' — '}
+                          {shippingAddress.city}, {shippingAddress.state} {shippingAddress.postalCode}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">No shipping address on file. Click Edit to add.</span>
+                    )}
+                  </div>
+                ) : (
                 <p className="text-xs text-muted-foreground -mt-1">
                   Where we'll mail your printed certificate.
                 </p>
+                )}
+                {(!isEditing || showShipping) && (<>
+
 
                 {shipToBusiness ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
