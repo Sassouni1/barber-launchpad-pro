@@ -531,9 +531,22 @@ export function CertificationModal({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
               </div>
               <div className="flex gap-3">
-                <Button className="flex-1 gold-gradient" onClick={handleDownload}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Certificate
+                <Button
+                  className={cn(
+                    'flex-1',
+                    isDownloaded ? 'bg-green-600 hover:bg-green-700 text-white' : 'gold-gradient'
+                  )}
+                  onClick={handleDownload}
+                  disabled={markDownloaded.isPending}
+                >
+                  {markDownloaded.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : isDownloaded ? (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  {isDownloaded ? 'Downloaded' : 'Download Certificate'}
                 </Button>
                 <Button variant="outline" onClick={onClose}>
                   Close
