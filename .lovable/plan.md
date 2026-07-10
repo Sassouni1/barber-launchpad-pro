@@ -1,16 +1,9 @@
-I’m sorry. What’s going on is I fixed the border state without properly verifying the full card after the earlier badge change, so the screen now has a confusing mismatch: the selected/complete/fail outlines are present, but the visible completion notifications are not obvious enough in the exact viewport you’re looking at. That’s on me.
+Update your quiz attempt on **The Maintenance Appointment** module so it shows as 60% (failed) on your account (chris@invasiondigitalmedia.com).
 
-Plan:
-1. Restore the status badge visibility on every course-list item:
-   - Passed/completed: green badge with “Completed · 100%” or “Completed · X%”.
-   - Failed attempt: red/orange badge with “Retake · 0%” or “Retake · X%”.
-   - Not attempted: no completion badge, neutral card.
+## Change
+- Update the existing `user_quiz_attempts` row for user `3e1ef09d-5d8d-4c79-ad2c-f68d4d46bb86` and module `5d4abbf6-effb-49ff-bd06-eeb8c8463c98`:
+  - `score` = 9
+  - `total_questions` = 15
+  - (9/15 = 60% → fails the ≤1-miss pass rule, so it will render as the "Retake Lesson" failed state in warning/orange)
 
-2. Make the outside card state match the badge:
-   - Completed = green outline/background accent.
-   - Failed/not passed = red or orange outline/background accent, stronger when score is 0%.
-   - Selected but not completed/failed = gold outline only, so selection is separate from status.
-
-3. Keep this consistent on both desktop and mobile course lists.
-
-4. Verify visually against the current course screen after implementation so “Terms of the Industry” and “The Color Ring” cannot look randomly highlighted or status-less.
+No code changes.
