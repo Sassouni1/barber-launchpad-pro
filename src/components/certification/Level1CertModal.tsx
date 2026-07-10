@@ -943,6 +943,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
           defaultShippingAddress={certDefaults?.shipping ?? null}
           defaultBusinessLocation={certDefaults?.business ?? null}
           isEditing={isEditMode && !!existingCertification}
+          courseId={courseId}
+          certificationId={existingCertification?.id ?? null}
         />
       )}
     </>
