@@ -305,6 +305,35 @@ export function useUserCertification(courseId: string | undefined) {
   });
 }
 
+// Hook to mark a certification as downloaded
+export function useMarkCertificateDownloaded() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ courseId, certificationId }: { courseId: string; certificationId: string }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('certifications')
+        .update({ downloaded_at: new Date().toISOString() })
+        .eq('id', certificationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['certification', variables.courseId] });
+      queryClient.invalidateQueries({ queryKey: ['certification-eligibility', variables.courseId] });
+      toast.success('Download recorded');
+    },
+    onError: (error) => {
+      console.error('Mark download error:', error);
+      toast.error('Failed to record download');
+    },
+  });
+}
+
 // Hook to fetch existing shipping + business defaults to pre-fill the edit modal.
 export function useCertificationDefaults(courseId: string | undefined) {
   const { user } = useAuth();
