@@ -891,11 +891,14 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       {isCertModalOpen && (
         <CertificationModal
           isOpen={isCertModalOpen}
-          onClose={() => setIsCertModalOpen(false)}
+          onClose={() => { setIsCertModalOpen(false); setIsEditMode(false); }}
           onSubmit={handleSubmitCertification}
           certificateUrl={generatedCertificateUrl}
           isGenerating={issueCertification.isPending}
           defaultName={existingCertification?.certificate_name}
+          defaultShippingAddress={certDefaults?.shipping ?? null}
+          defaultBusinessLocation={certDefaults?.business ?? null}
+          isEditing={isEditMode && !!existingCertification}
         />
       )}
     </>
