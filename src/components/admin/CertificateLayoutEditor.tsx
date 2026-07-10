@@ -254,7 +254,7 @@ export function CertificateLayoutEditor() {
                         {previewDate}
                       </div>
                     </>
-                  )}
+                  );})()}
                 </div>
               )}
             </div>
