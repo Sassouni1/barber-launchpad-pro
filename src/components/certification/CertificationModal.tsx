@@ -43,6 +43,8 @@ interface CertificationModalProps {
   defaultShippingAddress?: CertificateShippingAddress | null;
   defaultBusinessLocation?: CertificateBusinessLocation | null;
   isEditing?: boolean;
+  courseId?: string;
+  certificationId?: string | null;
 }
 
 type Step = 'analyzing' | 'name-entry' | 'complete';
