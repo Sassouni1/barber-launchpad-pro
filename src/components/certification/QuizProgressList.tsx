@@ -137,7 +137,7 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
           </button>
           {showPassed && (
             <div className="space-y-2">
-              {passed.map((quiz) => (
+              {visiblePassed.map((quiz) => (
                 <div
                   key={quiz.moduleId}
                   className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20"
@@ -151,6 +151,16 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
                   </span>
                 </div>
               ))}
+              {passed.length > INITIAL && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                  onClick={() => setExpandPassed((v) => !v)}
+                >
+                  {expandPassed ? 'Show less' : `Show ${passed.length - INITIAL} more`}
+                </Button>
+              )}
             </div>
           )}
         </div>
