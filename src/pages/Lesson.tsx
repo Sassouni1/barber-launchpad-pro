@@ -1081,7 +1081,7 @@ export default function Lesson() {
               size="icon"
               onClick={() =>
                 navigate(
-                  `/courses/${courseType || (module as any).courseCategory || "hair-system"}`,
+                  `/courses/${courseType || (module as any).courseCategory || "hair-system"}?module=${module.id}`,
                 )
               }
             >
