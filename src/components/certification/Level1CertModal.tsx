@@ -417,26 +417,20 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     day: 'numeric',
   });
 
+  const passedQuizCount = eligibility?.quizProgress.filter((q) => q.passed).length ?? 0;
+  const totalQuizCount = eligibility?.quizProgress.length ?? 0;
+
   const requirements = [
-    {
-      label: 'Complete all lessons',
-      completed: true,
-      detail: lessonsProgress ? `${lessonsProgress.completedCount}/${lessonsProgress.totalCount}` : undefined,
-    },
     {
       label: 'Pass all quizzes',
       completed: allQuizzesPassed,
+      detail: totalQuizCount > 0 ? `${passedQuizCount}/${totalQuizCount} passed` : undefined,
       expandable: true,
-    },
-    {
-      label: 'Training games',
-      completed: true,
-      detail: trainingGames ? `${trainingGames.completedCount}/${trainingGames.totalCount}` : undefined,
     },
     {
       label: 'Submit work photos',
       completed: photoSubmitted,
-      detail: photoSubmitted ? `${photos?.length} photo(s)` : undefined,
+      detail: photoSubmitted ? `${photos?.length} photo(s)` : 'None yet',
       showUploader: true,
     },
   ];
