@@ -1087,6 +1087,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             return (
                               <div key={module.id} className="space-y-1">
                                 <button
+                                  data-module-id={module.id}
                                   onClick={() => {
                                     if (
                                       courseType === "business" ||
