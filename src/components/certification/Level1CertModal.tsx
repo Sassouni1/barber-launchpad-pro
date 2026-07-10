@@ -276,6 +276,10 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
 
   const handleRegenerateCertification = () => {
     setGeneratedCertificateUrl(null);
+    if (existingCertification?.certificate_name) {
+      void handleSubmitCertification(existingCertification.certificate_name);
+      return;
+    }
     setIsCertModalOpen(true);
   };
 
@@ -572,8 +576,12 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                     onClick={handleRegenerateCertification}
                     disabled={issueCertification.isPending}
                   >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Regenerate
+                    {issueCertification.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    {issueCertification.isPending ? 'Regenerating...' : 'Regenerate With Name'}
                   </Button>
                 </div>
 
