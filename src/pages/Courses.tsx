@@ -1048,12 +1048,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                               )}
                                             </span>
                                           )}
-                                          {module.has_quiz && (
-                                            <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                              <HelpCircle className="w-3 h-3" />
-                                              {localizeCourseUi("Quiz", locale)}
-                                            </span>
-                                          )}
+                                          <QuizStatusIndicator
+                                            hasQuiz={module.has_quiz}
+                                            status={status}
+                                            locale={locale}
+                                          />
                                           {module.has_homework && (
                                             <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
                                               <ClipboardList className="w-3 h-3" />
