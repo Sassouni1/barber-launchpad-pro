@@ -229,25 +229,31 @@ serve(async (req) => {
 
     console.log('Using pixel coordinates:', { nameX, nameY, nameMaxWidth, dateX, dateY, usedFallback: resolvedLayout.usedFallback, stored: resolvedLayout.stored, template: { width, height } });
 
-    // Draw name with auto-sizing - LET CANVAS CENTER IT
+    // Draw name — manually center around nameX. The deno canvas library does not
+    // honor textAlign='center' reliably with custom-loaded script fonts (it draws
+    // left-anchored at nameX), so we measure width and offset ourselves. This makes
+    // the generated PNG match the admin HTML preview exactly.
     ctx.fillStyle = layout.name_color || DEFAULT_NAME_CONFIG.color;
-    ctx.textAlign = 'center';  // Canvas handles centering
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    
+
     let fontSize = layout.name_font_size || DEFAULT_NAME_CONFIG.baseFontSize;
     const minFontSize = layout.name_min_font_size || DEFAULT_NAME_CONFIG.minFontSize;
-    
+
     ctx.font = `${fontSize}px ${nameFontFamily}`;
-    
+
     // Auto-size font to fit within max width. Keep script fonts connected by drawing the full name at once.
     while (ctx.measureText(certificateName).width > nameMaxWidth && fontSize > minFontSize) {
       fontSize -= 2;
       ctx.font = `${fontSize}px ${nameFontFamily}`;
     }
 
+    const nameTextWidth = ctx.measureText(certificateName).width;
+    const nameDrawX = Math.round(nameX - nameTextWidth / 2);
+
     console.log('Name font:', { family: nameFontFamily, size: fontSize });
-    ctx.fillText(certificateName, nameX, nameY);
-    console.log('Name drawn at:', { x: nameX, y: nameY, width: ctx.measureText(certificateName).width });
+    ctx.fillText(certificateName, nameDrawX, nameY);
+    console.log('Name drawn at:', { drawX: nameDrawX, centerX: nameX, y: nameY, width: nameTextWidth });
 
     // Draw date - default to using the name font/color when configured as 'name'
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
