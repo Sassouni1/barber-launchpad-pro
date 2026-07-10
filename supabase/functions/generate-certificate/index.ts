@@ -280,25 +280,21 @@ serve(async (req) => {
 
     console.log('Using pixel coordinates:', { nameX, nameY, nameMaxWidth, dateX, dateY, usedFallback: resolvedLayout.usedFallback, stored: resolvedLayout.stored, template: { width, height } });
 
-    // Draw name — center the actual rendered ink around nameX. The deno canvas
-    // text metrics are wildly wrong for this uploaded script font: measureText can
-    // report a 1700px width while the visible ink is about 690px. Centering from
-    // those fake metrics pushes names far left/right, so we render once offscreen,
-    // scan the real pixels, and offset the final draw by the visible ink center.
+    // Character-count based sizing — MUST match src/lib/certificateFontSize.ts.
+    // Everyone starts at 170px; names longer than 15 chars shrink 3px/char, floor 90.
+    const NAME_BASE = 170;
+    const NAME_THRESHOLD = 15;
+    const NAME_MIN = 90;
+    const NAME_SHRINK_PER_CHAR = 3;
+    const trimmedName = (certificateName || '').trim();
+    const fontSize = trimmedName.length <= NAME_THRESHOLD
+      ? NAME_BASE
+      : Math.max(NAME_MIN, NAME_BASE - (trimmedName.length - NAME_THRESHOLD) * NAME_SHRINK_PER_CHAR);
+
     ctx.fillStyle = layout.name_color || DEFAULT_NAME_CONFIG.color;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-
-    let fontSize = layout.name_font_size || DEFAULT_NAME_CONFIG.baseFontSize;
-    const minFontSize = layout.name_min_font_size || DEFAULT_NAME_CONFIG.minFontSize;
-
     ctx.font = `${fontSize}px ${nameFontFamily}`;
-
-    // Auto-size font to fit within max width. Keep script fonts connected by drawing the full name at once.
-    while (ctx.measureText(certificateName).width > nameMaxWidth && fontSize > minFontSize) {
-      fontSize -= 2;
-      ctx.font = `${fontSize}px ${nameFontFamily}`;
-    }
 
     const nameFont = `${fontSize}px ${nameFontFamily}`;
     const nameTextWidth = ctx.measureText(certificateName).width;
@@ -310,7 +306,7 @@ serve(async (req) => {
     const nameDrawX = Math.round(nameX - (inkBounds?.inkCenterFromDrawX ?? nameTextWidth / 2));
     const nameDrawY = Math.round(nameY - (inkBounds?.inkCenterFromDrawY ?? 0));
 
-    console.log('Name font:', { family: nameFontFamily, size: fontSize });
+    console.log('Name font:', { family: nameFontFamily, size: fontSize, charCount: trimmedName.length });
     ctx.fillText(certificateName, nameDrawX, nameDrawY);
     console.log('Name drawn at:', {
       drawX: nameDrawX,
@@ -319,8 +315,6 @@ serve(async (req) => {
       centerY: nameY,
       measuredWidth: nameTextWidth,
       inkBounds,
-      visualCenterX: inkBounds ? nameDrawX + inkBounds.inkCenterFromDrawX : null,
-      visualCenterY: inkBounds ? nameDrawY + inkBounds.inkCenterFromDrawY : null,
     });
 
 
