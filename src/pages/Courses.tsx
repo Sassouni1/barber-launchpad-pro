@@ -153,6 +153,7 @@ const ModuleStatusBadge = ({
   if (status.state === "not-started") return null;
 
   const isCompleted = status.state === "completed";
+  const isZeroFail = !isCompleted && status.bestScore === 0;
   const Icon = isCompleted ? CheckCircle2 : RotateCcw;
 
   return (
@@ -162,11 +163,64 @@ const ModuleStatusBadge = ({
         compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
         isCompleted
           ? "border-success/50 bg-success/20 text-success"
-          : "border-destructive/60 bg-destructive/20 text-destructive",
+          : isZeroFail
+            ? "border-destructive/60 bg-destructive/20 text-destructive"
+            : "border-warning/50 bg-warning/20 text-warning",
       )}
     >
       <Icon className="h-3 w-3" />
       {status.label}
+    </span>
+  );
+};
+
+const QuizStatusIndicator = ({
+  hasQuiz,
+  status,
+  locale,
+  size = "sm",
+}: {
+  hasQuiz: boolean;
+  status: ReturnType<typeof getModuleStatus>;
+  locale: string;
+  size?: "sm" | "md";
+}) => {
+  if (!hasQuiz) return null;
+
+  const iconSize = size === "md" ? "w-4 h-4" : "w-3 h-3";
+  const label = localizeCourseUi("Quiz", locale);
+
+  if (status.state === "completed") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-success bg-success/10 px-2 py-0.5 rounded-full">
+        <CheckCircle2 className={iconSize} />
+        {label}
+      </span>
+    );
+  }
+
+  if (status.state === "failed") {
+    const isZero = status.bestScore === 0;
+    const Icon = isZero ? XCircle : AlertTriangle;
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
+          isZero
+            ? "text-destructive bg-destructive/10"
+            : "text-warning bg-warning/10",
+        )}
+      >
+        <Icon className={iconSize} />
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">
+      <HelpCircle className={iconSize} />
+      {label}
     </span>
   );
 };
