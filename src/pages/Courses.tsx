@@ -850,9 +850,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         <>
                           {regularModules.map((module, index) => {
                             const isSelected = selectedModule === module.id;
-                            const completed = isModuleCompleted(module.id);
-                            const bestScore = completedMap[module.id]?.bestScore;
-                            const attemptedNotPassed = !completed && completedMap[module.id] != null;
+                            const status = getModuleStatus(module.id, completedMap);
+                            const completed = status.state === "completed";
+                            const attemptedNotPassed = status.state === "failed";
+                            const failedAtZero = attemptedNotPassed && status.bestScore === 0;
                             const moduleLessons = getModuleLessons(module);
                             const hasCardDetails = hasModuleCardDetails(
                               module,
@@ -887,12 +888,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
                                     completed
                                       ? isSelected
-                                        ? "bg-gradient-to-r from-emerald-500/20 to-transparent border-emerald-500/70 shadow-lg shadow-emerald-500/20"
-                                        : "bg-gradient-to-r from-emerald-500/10 to-transparent border-emerald-500/60 shadow-md shadow-emerald-500/10"
+                                        ? "bg-gradient-to-r from-success/20 to-transparent border-success/75 shadow-lg shadow-success/20"
+                                        : "bg-gradient-to-r from-success/10 to-transparent border-success/65 shadow-md shadow-success/10"
                                       : attemptedNotPassed
                                         ? isSelected
-                                          ? "bg-gradient-to-r from-amber-500/20 to-transparent border-amber-500/70 shadow-lg shadow-amber-500/20"
-                                          : "bg-gradient-to-r from-amber-500/10 to-transparent border-amber-500/60 shadow-md shadow-amber-500/10"
+                                          ? failedAtZero
+                                            ? "bg-gradient-to-r from-destructive/25 to-transparent border-destructive/80 shadow-lg shadow-destructive/20"
+                                            : "bg-gradient-to-r from-destructive/20 to-transparent border-destructive/70 shadow-lg shadow-destructive/15"
+                                          : failedAtZero
+                                            ? "bg-gradient-to-r from-destructive/20 to-transparent border-destructive/75 shadow-md shadow-destructive/15"
+                                            : "bg-gradient-to-r from-destructive/15 to-transparent border-destructive/60 shadow-md shadow-destructive/10"
                                         : isSelected
                                           ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
                                           : "border-border bg-secondary/10 shadow-md shadow-black/20",
@@ -902,9 +907,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     className={cn(
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       completed
-                                        ? "bg-emerald-500 border border-emerald-400 text-white shadow-md"
+                                        ? "bg-success border border-success text-success-foreground shadow-md"
                                         : attemptedNotPassed
-                                          ? "bg-amber-500 border border-amber-400 text-white shadow-md"
+                                          ? "bg-destructive border border-destructive text-destructive-foreground shadow-md"
                                           : isSelected
                                             ? "gold-gradient text-primary-foreground shadow-md"
                                             : "bg-secondary border border-border text-muted-foreground",
@@ -931,9 +936,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         "font-semibold text-sm flex items-center gap-1.5",
                                         hasCardDetails && "mb-1",
                                         completed
-                                          ? "text-emerald-300"
+                                          ? "text-success"
                                           : attemptedNotPassed
-                                            ? "text-amber-300"
+                                            ? "text-destructive-foreground"
                                             : isSelected && "text-primary",
                                       )}
                                       data-no-translate
@@ -948,20 +953,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                       )}
                                     </h4>
-                                    {completed && (
+                                    {status.state !== "not-started" && (
                                       <div className="mb-2">
-                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-                                          <CheckCircle2 className="w-3 h-3" />
-                                          Completed{bestScore != null ? ` · ${bestScore}%` : ""}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {attemptedNotPassed && (
-                                      <div className="mb-2">
-                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-400 bg-amber-500/15 border border-amber-500/40 px-2 py-0.5 rounded-full">
-                                          <RotateCcw className="w-3 h-3" />
-                                          Retake{bestScore != null ? ` · ${bestScore}%` : ""}
-                                        </span>
+                                        <ModuleStatusBadge status={status} />
                                       </div>
                                     )}
                                     {hasCardDetails && (
