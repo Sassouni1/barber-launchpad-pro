@@ -738,9 +738,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                             )}
                                           </span>
                                         )}
-                                        {module.has_quiz && (
-                                          <HelpCircle className="w-3 h-3 text-amber-400" />
-                                        )}
+                                        <QuizStatusIndicator
+                                          hasQuiz={module.has_quiz}
+                                          status={status}
+                                          locale={locale}
+                                        />
                                         {module.has_homework && (
                                           <ClipboardList className="w-3 h-3 text-green-400" />
                                         )}
