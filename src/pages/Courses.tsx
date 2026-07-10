@@ -483,6 +483,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             (sheetZero
                               ? "border-destructive/50 text-destructive hover:bg-destructive/10"
                               : "border-warning/50 text-warning hover:bg-warning/10"),
+                          !sheetCompleted && !sheetFailed && "border-primary/50 text-primary hover:bg-primary/10",
                         )}
                         onClick={() =>
                           goToLesson(moduleData.module.id, courseType, "quiz")
