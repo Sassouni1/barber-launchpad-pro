@@ -313,13 +313,13 @@ export function CertificateLayoutEditor() {
                   className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
                 />
                 <span className="text-sm text-muted-foreground">Font</span>
-                <input
-                  type="number"
-                  value={draft.name_font_size}
-                  onChange={(e) => patch({ name_font_size: Number(e.target.value) || 0 })}
-                  className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
-                />
+                <span className="h-8 px-2 inline-flex items-center text-sm rounded-md border border-input bg-muted/30 tabular-nums">
+                  {computeCertificateNameFontSize(testName || 'Recipient Name')}px
+                </span>
               </div>
+              <p className="text-[10px] text-muted-foreground">
+                Auto-sized: {NAME_BASE_FONT_SIZE}px base, shrinks by 3px per character over 15. Same formula runs when the certificate is generated.
+              </p>
               <div className="flex items-center gap-1 flex-wrap">
                 <Button variant="outline" size="sm" onClick={() => patch({ name_x: draft.name_x - nudge })}><ChevronLeft className="w-4 h-4" /></Button>
                 <Button variant="outline" size="sm" onClick={() => patch({ name_x: draft.name_x + nudge })}><ChevronRight className="w-4 h-4" /></Button>
