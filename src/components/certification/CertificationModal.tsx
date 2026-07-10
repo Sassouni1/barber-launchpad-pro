@@ -39,6 +39,9 @@ interface CertificationModalProps {
   certificateUrl?: string | null;
   isGenerating: boolean;
   defaultName?: string;
+  defaultShippingAddress?: CertificateShippingAddress | null;
+  defaultBusinessLocation?: CertificateBusinessLocation | null;
+  isEditing?: boolean;
 }
 
 type Step = 'analyzing' | 'name-entry' | 'complete';
