@@ -1,24 +1,14 @@
-# Fix: Certificate name drifts right of `name_x`
+## Plan
 
-## Root cause
-`generate-certificate` sets `ctx.textAlign = 'center'`, but the Deno `canvas@v1.4.2` library doesn't honor it correctly with the loaded custom/script font — text is drawn left-anchored at `name_x` instead of centered on it. Pixel measurements of real certs confirm every name's leftmost pixel sits at exactly x=1390 regardless of length (Adriana drifts 334px right of true center, Lexi drifts 238px). The admin editor uses HTML/CSS with `transform: translate(-50%, -50%)` so its preview looks correct — the two renderers disagree.
+Fix the mobile course popup bug by making lesson-sheet state follow the current route instead of surviving across course tracks.
 
-## Fix
-Update `supabase/functions/generate-certificate/index.ts` only. No DB, no admin UI, no client changes.
+### Changes
+1. Update `src/pages/Courses.tsx` so the URL-to-selected-module sync runs on mobile too, not just desktop.
+2. When `courseType` changes, clear any stale selected module so a lesson from the previous track cannot remain open over the new track selector.
+3. When the mobile lesson sheet closes, remove the stale `?module=` parameter from the URL, matching the desktop behavior.
+4. Keep this scoped to course navigation state only — no visual redesign, no lesson-content changes, no backend changes.
 
-1. Set `ctx.textAlign = 'left'` for the name.
-2. Measure the final (post auto-shrink) text width with `ctx.measureText(certificateName).width`.
-3. Draw at `nameX - textWidth / 2` so the visual center sits exactly on `name_x` — matching what the admin preview shows.
-4. Keep the existing auto-shrink loop and `name_max_width` behavior; measure width after the loop settles.
-5. Leave the date rendering alone (already `textAlign='left'`, already correct).
-6. Debug-mode green vertical line at `nameX` stays — it now correctly bisects the name.
-
-## Verification
-1. Regenerate Adriana's and Lexi's certs via the existing "Regenerate With Name" flow.
-2. Fetch the resulting PNGs and confirm the visual center of the name equals ~1400 (±5px) for both — matching template center regardless of name length.
-3. Spot-check a long name ("Christina Snowball Johnson") and a short name ("Lexi Zoller") — both should sit centered.
-4. Confirm admin preview and generated output now look identical.
-
-## Out of scope
-- Talaundra's stored PNG (rendered under a prior layout) won't retroactively change; regenerate if desired.
-- No changes to `certificate_layouts` values — `name_x = 1390` stays.
+### Verification
+- On mobile, open a lesson from Hair System, then switch to Business/Courses.
+- Confirm no old lesson sheet appears over Track 1 / Track 2.
+- Confirm direct links with `?module=` still open the intended lesson.
