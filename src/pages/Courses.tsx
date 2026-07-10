@@ -434,7 +434,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     setIsCertModalOpen(false);
     positionedSelectedModuleRef.current = null;
     pendingSidebarScrollRef.current = null;
-  }, [courseType]);
+    clearModuleSearchParam();
+  }, [clearModuleSearchParam, courseType]);
 
   useLayoutEffect(() => {
     if (!selectedModuleParam) {
