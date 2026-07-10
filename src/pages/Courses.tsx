@@ -458,18 +458,53 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
               {(moduleData.module.has_quiz ||
                 moduleData.module.has_homework) && (
                 <div className="flex gap-2">
-                  {moduleData.module.has_quiz && (
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() =>
-                        goToLesson(moduleData.module.id, courseType, "quiz")
-                      }
-                    >
-                      <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
-                      Quiz
-                    </Button>
-                  )}
+                  {moduleData.module.has_quiz && (() => {
+                    const sheetStatus = getModuleStatus(
+                      moduleData.module.id,
+                      completedMap,
+                    );
+                    const sheetCompleted = sheetStatus.state === "completed";
+                    const sheetFailed = sheetStatus.state === "failed";
+                    const sheetZero = sheetFailed && sheetStatus.bestScore === 0;
+                    const SheetQuizIcon = sheetCompleted
+                      ? CheckCircle2
+                      : sheetFailed
+                        ? sheetZero
+                          ? XCircle
+                          : AlertTriangle
+                        : HelpCircle;
+                    return (
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "flex-1",
+                          sheetCompleted && "border-success/50 text-success hover:bg-success/10",
+                          sheetFailed &&
+                            (sheetZero
+                              ? "border-destructive/50 text-destructive hover:bg-destructive/10"
+                              : "border-warning/50 text-warning hover:bg-warning/10"),
+                        )}
+                        onClick={() =>
+                          goToLesson(moduleData.module.id, courseType, "quiz")
+                        }
+                      >
+                        <SheetQuizIcon
+                          className={cn(
+                            "w-4 h-4 mr-2",
+                            sheetCompleted && "text-success",
+                            sheetFailed &&
+                              (sheetZero ? "text-destructive" : "text-warning"),
+                            !sheetCompleted && !sheetFailed && "text-warning",
+                          )}
+                        />
+                        {sheetCompleted
+                          ? localizeCourseUi("Review Quiz", locale)
+                          : sheetFailed
+                            ? localizeCourseUi("Retake Quiz", locale)
+                            : localizeCourseUi("Quiz", locale)}
+                      </Button>
+                    );
+                  })()}
                   {moduleData.module.has_homework && (
                     <Button
                       variant="outline"
