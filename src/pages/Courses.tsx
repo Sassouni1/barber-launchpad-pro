@@ -1294,8 +1294,21 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 {/* Actions */}
                 <div className="p-6 space-y-4">
                   {(() => {
-                    const detailCompleted = isModuleCompleted(moduleData.module.id);
-                    const detailScore = completedMap[moduleData.module.id]?.bestScore;
+                    const detailStatus = getModuleStatus(
+                      moduleData.module.id,
+                      completedMap,
+                    );
+                    const detailCompleted = detailStatus.state === "completed";
+                    const detailFailed = detailStatus.state === "failed";
+                    const detailZero = detailFailed && detailStatus.bestScore === 0;
+                    const DetailQuizIcon = detailCompleted
+                      ? CheckCircle2
+                      : detailFailed
+                        ? detailZero
+                          ? XCircle
+                          : AlertTriangle
+                        : HelpCircle;
+                    const detailScore = detailStatus.bestScore;
                     return (
                       <>
                         {detailCompleted && (
