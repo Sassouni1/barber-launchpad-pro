@@ -567,7 +567,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={handleRegenerateCertification}
+                    onClick={handleEditCertificate}
                     disabled={issueCertification.isPending}
                   >
                     {issueCertification.isPending ? (
@@ -575,7 +575,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                     ) : (
                       <RefreshCw className="w-4 h-4 mr-2" />
                     )}
-                    {issueCertification.isPending ? 'Regenerating...' : 'Regenerate With Name'}
+                    {issueCertification.isPending ? 'Regenerating...' : 'Edit Certificate'}
                   </Button>
                 </div>
 
