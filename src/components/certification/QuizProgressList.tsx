@@ -60,21 +60,26 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
         </span>
       </div>
 
-      {/* Still to pass */}
+      {/* Not completed */}
       {unpassed.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-amber-400">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Still to pass ({unpassed.length})
+          <div className="flex items-center gap-2 px-1">
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+              Not completed ({unpassed.length})
+            </span>
           </div>
           <div className="space-y-2">
             {unpassed.map((quiz) => {
               const status = quiz.bestScore !== null ? 'failed' : 'not-taken';
               return (
-                <div
+                <button
                   key={quiz.moduleId}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/30 border-l-4"
+                  type="button"
+                  onClick={() => goToQuiz(quiz.moduleId)}
+                  className="w-full text-left flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/15 border-2 border-amber-500/50 border-l-4 transition-colors group"
                 >
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0 space-y-1">
                     <p className="text-sm font-semibold truncate">{quiz.moduleTitle} Quiz</p>
                     <div className="flex items-center gap-2">
@@ -84,35 +89,36 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
                       )}
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-400 flex-shrink-0"
-                    onClick={() => goToQuiz(quiz.moduleId)}
-                  >
+                  <div className="flex items-center gap-1 text-xs font-semibold text-amber-400 group-hover:text-amber-300 flex-shrink-0">
                     {quiz.bestScore !== null ? 'Retake' : 'Take Quiz'}
-                    <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                  </Button>
-                </div>
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </button>
               );
             })}
           </div>
         </div>
       )}
 
-      {/* Passed */}
+      {/* Completed */}
       {passed.length > 0 && (
         <div className="space-y-2">
           <button
             type="button"
-            className="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-green-400 hover:text-green-300"
+            className="flex items-center justify-between w-full px-1 group"
             onClick={() => setShowPassed((s) => !s)}
           >
             <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Passed ({passed.length})
+              <CheckCircle2 className="w-4 h-4 text-green-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-green-400">
+                Completed ({passed.length})
+              </span>
             </span>
-            {showPassed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {showPassed ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+            )}
           </button>
           {showPassed && (
             <div className="space-y-2">
