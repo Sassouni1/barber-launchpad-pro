@@ -11,6 +11,7 @@ import {
   useUserCertification,
   useIssueCertification,
   useResetCertification,
+  useCertificationDefaults,
 } from '@/hooks/useCertification';
 import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
@@ -35,6 +36,7 @@ interface CertificationSectionProps {
 export function CertificationSection({ courseId }: CertificationSectionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
@@ -70,6 +72,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
   const { data: existingCertification, isLoading: isLoadingCertification } = useUserCertification(courseId);
   const { data: layout } = useCertificateLayout(courseId);
+  const { data: certDefaults } = useCertificationDefaults(courseId);
   const { data: courses = [] } = useCourses();
   const updateLayout = useUpdateCertificateLayout();
   const {
@@ -92,6 +95,13 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
   const handleGetCertified = () => {
     setGeneratedCertificateUrl(null);
+    setIsEditMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleEditCertificate = () => {
+    setGeneratedCertificateUrl(null);
+    setIsEditMode(true);
     setIsModalOpen(true);
   };
 
@@ -195,11 +205,11 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 </Button>
               )}
 
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="text-muted-foreground"
-                onClick={handleRegenerateCertification}
+                onClick={handleEditCertificate}
                 disabled={issueCertification.isPending}
               >
                 {issueCertification.isPending ? (
@@ -207,7 +217,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 ) : (
                   <RefreshCw className="w-4 h-4 mr-1" />
                 )}
-                {issueCertification.isPending ? 'Regenerating...' : 'Regenerate With Name'}
+                {issueCertification.isPending ? 'Regenerating...' : 'Edit Certificate'}
               </Button>
 
               {showAdminControls && (
@@ -396,6 +406,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
+            setIsEditMode(false);
             // Already-certified users: offer to update directory listing
             setIsDirectoryOpen(true);
           }}
@@ -403,7 +414,11 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           certificateUrl={generatedCertificateUrl}
           isGenerating={issueCertification.isPending}
           defaultName={existingCertification.certificate_name}
+          defaultShippingAddress={certDefaults?.shipping ?? null}
+          defaultBusinessLocation={certDefaults?.business ?? null}
+          isEditing={isEditMode}
         />
+
         <DirectoryEnrollmentStep open={isDirectoryOpen} onClose={() => setIsDirectoryOpen(false)} />
       </>
     );

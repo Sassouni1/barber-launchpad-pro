@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Download, Loader2, Award, Sparkles } from 'lucide-react';
+import { Download, Loader2, Award, Sparkles, ChevronDown, ChevronUp, MapPin, Building2 } from 'lucide-react';
 
 export interface CertificateShippingAddress {
   recipientName: string;
@@ -39,6 +39,9 @@ interface CertificationModalProps {
   certificateUrl?: string | null;
   isGenerating: boolean;
   defaultName?: string;
+  defaultShippingAddress?: CertificateShippingAddress | null;
+  defaultBusinessLocation?: CertificateBusinessLocation | null;
+  isEditing?: boolean;
 }
 
 type Step = 'analyzing' | 'name-entry' | 'complete';
@@ -72,34 +75,49 @@ export function CertificationModal({
   certificateUrl,
   isGenerating,
   defaultName,
+  defaultShippingAddress,
+  defaultBusinessLocation,
+  isEditing = false,
 }: CertificationModalProps) {
-  const [step, setStep] = useState<Step>('name-entry');
+  const [step, setStep] = useState<Step>(isEditing ? 'name-entry' : 'analyzing');
   const [progress, setProgress] = useState(0);
   const [name, setName] = useState(defaultName || '');
   const [shippingAddress, setShippingAddress] = useState<CertificateShippingAddress>(
-    emptyAddress(defaultName || '')
+    defaultShippingAddress || emptyAddress(defaultName || '')
   );
-  const [businessLocation, setBusinessLocation] = useState<CertificateBusinessLocation>(emptyBusiness());
+  const [businessLocation, setBusinessLocation] = useState<CertificateBusinessLocation>(
+    defaultBusinessLocation || emptyBusiness()
+  );
   const [shipToBusiness, setShipToBusiness] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // In edit mode, collapse the address sections by default so users can just
+  // fix a typo in the name and hit save without touching anything else.
+  const [showShipping, setShowShipping] = useState(!isEditing);
+  const [showBusiness, setShowBusiness] = useState(!isEditing);
 
   useEffect(() => {
-    if (isOpen && defaultName) {
-      setName(defaultName);
-      setShippingAddress(prev => ({
-        ...prev,
-        recipientName: prev.recipientName || defaultName,
-      }));
+    if (isOpen) {
+      if (defaultName) {
+        setName(defaultName);
+      }
+      if (defaultShippingAddress) {
+        setShippingAddress(defaultShippingAddress);
+      }
+      if (defaultBusinessLocation) {
+        setBusinessLocation(defaultBusinessLocation);
+      }
+      setShowShipping(!isEditing);
+      setShowBusiness(!isEditing);
     }
-  }, [isOpen, defaultName]);
+  }, [isOpen, defaultName, defaultShippingAddress, defaultBusinessLocation, isEditing]);
 
   useEffect(() => {
     if (!isOpen) {
-      setStep('analyzing');
+      setStep(isEditing ? 'name-entry' : 'analyzing');
       setProgress(0);
-      setName('');
-      setShippingAddress(emptyAddress(defaultName || ''));
-      setBusinessLocation(emptyBusiness());
+      setName(defaultName || '');
+      setShippingAddress(defaultShippingAddress || emptyAddress(defaultName || ''));
+      setBusinessLocation(defaultBusinessLocation || emptyBusiness());
       setShipToBusiness(false);
       return;
     }
@@ -123,7 +141,7 @@ export function CertificationModal({
 
       return () => clearInterval(timer);
     }
-  }, [defaultName, isOpen, step]);
+  }, [defaultName, defaultShippingAddress, defaultBusinessLocation, isEditing, isOpen, step]);
 
   useEffect(() => {
     if (certificateUrl && step === 'name-entry') {
@@ -230,7 +248,7 @@ export function CertificationModal({
           <DialogTitle className="flex items-center gap-2">
             <Award className="w-5 h-5 text-primary" />
             {step === 'analyzing' && 'Analyzing Your Work'}
-            {step === 'name-entry' && 'Enter Your Name'}
+            {step === 'name-entry' && (isEditing ? 'Edit Certificate' : 'Enter Your Name')}
             {step === 'complete' && 'Certificate Ready!'}
           </DialogTitle>
         </DialogHeader>
@@ -260,7 +278,9 @@ export function CertificationModal({
           {step === 'name-entry' && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground text-center">
-                Congratulations! Enter your certificate name, your business location, and where to mail your printed certificate.
+                {isEditing
+                  ? 'Fix a typo in your name, or click Edit on any section below to update it. Saving will regenerate your certificate.'
+                  : 'Congratulations! Enter your certificate name, your business location, and where to mail your printed certificate.'}
               </p>
 
               <div className="space-y-2">
@@ -277,67 +297,131 @@ export function CertificationModal({
               </div>
 
               <div className="space-y-3 border-t border-border/40 pt-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Business Location</p>
-                <p className="text-xs text-muted-foreground -mt-1">
-                  Where you operate. Saved to your profile and used for our directory.
-                </p>
-                <Input
-                  value={businessLocation.businessName}
-                  onChange={(e) => updateBusiness('businessName', e.target.value)}
-                  placeholder="Business / shop name"
-                />
-                <Input
-                  value={businessLocation.addressLine1}
-                  onChange={(e) => updateBusiness('addressLine1', e.target.value)}
-                  placeholder="Street address"
-                />
-                <Input
-                  value={businessLocation.addressLine2}
-                  onChange={(e) => updateBusiness('addressLine2', e.target.value)}
-                  placeholder="Suite / unit (optional)"
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    value={businessLocation.city}
-                    onChange={(e) => updateBusiness('city', e.target.value)}
-                    placeholder="City"
-                  />
-                  <Input
-                    value={businessLocation.state}
-                    onChange={(e) => updateBusiness('state', e.target.value)}
-                    placeholder="State"
-                  />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Business Location</p>
+                  </div>
+                  {isEditing && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setShowBusiness((v) => !v)}
+                    >
+                      {showBusiness ? (<><ChevronUp className="w-3 h-3 mr-1" />Hide</>) : (<><ChevronDown className="w-3 h-3 mr-1" />Edit</>)}
+                    </Button>
+                  )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    value={businessLocation.postalCode}
-                    onChange={(e) => updateBusiness('postalCode', e.target.value)}
-                    placeholder="ZIP"
-                  />
-                  <Input
-                    value={businessLocation.countryCode}
-                    onChange={(e) => updateBusiness('countryCode', e.target.value)}
-                    placeholder="Country"
-                  />
-                </div>
+                {isEditing && !showBusiness ? (
+                  <p className="text-sm text-foreground/80 truncate">
+                    {businessLocation.businessName
+                      ? `${businessLocation.businessName} — ${businessLocation.city}, ${businessLocation.state}`
+                      : 'No business location on file. Click Edit to add.'}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground -mt-1">
+                      Where you operate. Saved to your profile and used for our directory.
+                    </p>
+                    <Input
+                      value={businessLocation.businessName}
+                      onChange={(e) => updateBusiness('businessName', e.target.value)}
+                      placeholder="Business / shop name"
+                    />
+                    <Input
+                      value={businessLocation.addressLine1}
+                      onChange={(e) => updateBusiness('addressLine1', e.target.value)}
+                      placeholder="Street address"
+                    />
+                    <Input
+                      value={businessLocation.addressLine2}
+                      onChange={(e) => updateBusiness('addressLine2', e.target.value)}
+                      placeholder="Suite / unit (optional)"
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input
+                        value={businessLocation.city}
+                        onChange={(e) => updateBusiness('city', e.target.value)}
+                        placeholder="City"
+                      />
+                      <Input
+                        value={businessLocation.state}
+                        onChange={(e) => updateBusiness('state', e.target.value)}
+                        placeholder="State"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <Input
+                        value={businessLocation.postalCode}
+                        onChange={(e) => updateBusiness('postalCode', e.target.value)}
+                        placeholder="ZIP"
+                      />
+                      <Input
+                        value={businessLocation.countryCode}
+                        onChange={(e) => updateBusiness('countryCode', e.target.value)}
+                        placeholder="Country"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="space-y-3 border-t border-border/40 pt-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Shipping Address</p>
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={shipToBusiness}
-                      onChange={(e) => setShipToBusiness(e.target.checked)}
-                      className="rounded"
-                    />
-                    Ship to my business
-                  </label>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Shipping Address</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {(!isEditing || showShipping) && (
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={shipToBusiness}
+                          onChange={(e) => setShipToBusiness(e.target.checked)}
+                          className="rounded"
+                        />
+                        Ship to my business
+                      </label>
+                    )}
+                    {isEditing && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setShowShipping((v) => !v)}
+                      >
+                        {showShipping ? (<><ChevronUp className="w-3 h-3 mr-1" />Hide</>) : (<><ChevronDown className="w-3 h-3 mr-1" />Edit</>)}
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {isEditing && !showShipping ? (
+                  <div className="text-sm text-foreground/80 leading-snug">
+                    {shippingAddress.addressLine1 ? (
+                      <>
+                        <div>{shippingAddress.recipientName}</div>
+                        <div className="text-muted-foreground">
+                          {shippingAddress.addressLine1}
+                          {shippingAddress.addressLine2 ? `, ${shippingAddress.addressLine2}` : ''}
+                          {' — '}
+                          {shippingAddress.city}, {shippingAddress.state} {shippingAddress.postalCode}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">No shipping address on file. Click Edit to add.</span>
+                    )}
+                  </div>
+                ) : (
                 <p className="text-xs text-muted-foreground -mt-1">
                   Where we'll mail your printed certificate.
                 </p>
+                )}
+                {(!isEditing || showShipping) && (<>
+
 
                 {shipToBusiness ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -410,6 +494,7 @@ export function CertificationModal({
                     </div>
                   </>
                 )}
+                </>)}
               </div>
 
 
@@ -426,7 +511,7 @@ export function CertificationModal({
                 ) : (
                   <>
                     <Award className="w-4 h-4 mr-2" />
-                    Generate My Certificate
+                    {isEditing ? 'Save & Regenerate' : 'Generate My Certificate'}
                   </>
                 )}
               </Button>
