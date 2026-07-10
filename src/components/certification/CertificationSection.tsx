@@ -72,6 +72,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
   const { data: existingCertification, isLoading: isLoadingCertification } = useUserCertification(courseId);
   const { data: layout } = useCertificateLayout(courseId);
+  const { data: certDefaults } = useCertificationDefaults(courseId);
   const { data: courses = [] } = useCourses();
   const updateLayout = useUpdateCertificateLayout();
   const {
