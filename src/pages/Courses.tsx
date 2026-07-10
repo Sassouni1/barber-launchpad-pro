@@ -21,7 +21,14 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useCompletedModules, type ModuleCompletion } from "@/hooks/useCompletedModules";
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import { cn, getVimeoEmbedUrl } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -328,7 +335,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
 
   const positionSelectedModuleCard = useCallback(
     (moduleId: string, mode: SidebarScrollMode) => {
-      requestAnimationFrame(() => {
+      const positionCard = () => {
         const container = scrollContainerRef.current;
         if (!container) return;
 
@@ -381,7 +388,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
           ),
           behavior: "auto",
         });
-      });
+      };
+
+      requestAnimationFrame(() => requestAnimationFrame(positionCard));
     },
     [],
   );
@@ -410,7 +419,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     };
   }, [courses]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isDesktop) return;
 
     if (!selectedModuleParam) {
