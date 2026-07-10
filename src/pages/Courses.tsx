@@ -18,7 +18,7 @@ import {
   Trophy,
   RotateCcw,
 } from "lucide-react";
-import { useCompletedModules } from "@/hooks/useCompletedModules";
+import { useCompletedModules, type ModuleCompletion } from "@/hooks/useCompletedModules";
 import { useState, useRef, useEffect } from "react";
 import { cn, getVimeoEmbedUrl } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -113,7 +113,7 @@ const hasModuleCardDetails = (module: Module, lessonCount: number) =>
 
 const getModuleStatus = (
   moduleId: string,
-  completedMap: Record<string, { bestScore: number; passed: boolean }>,
+  completedMap: Record<string, ModuleCompletion>,
 ) => {
   const completion = completedMap[moduleId];
   const bestScore = completion?.bestScore;
@@ -121,6 +121,7 @@ const getModuleStatus = (
   if (completion?.passed) {
     return {
       state: "completed" as const,
+      bestScore,
       label: `Completed${bestScore != null ? ` · ${bestScore}%` : ""}`,
     };
   }
@@ -128,12 +129,14 @@ const getModuleStatus = (
   if (completion) {
     return {
       state: "failed" as const,
+      bestScore,
       label: `Retake${bestScore != null ? ` · ${bestScore}%` : ""}`,
     };
   }
 
   return {
     state: "not-started" as const,
+    bestScore: undefined,
     label: "",
   };
 };
@@ -156,8 +159,8 @@ const ModuleStatusBadge = ({
         "inline-flex shrink-0 items-center gap-1 rounded-full border font-bold uppercase tracking-wide",
         compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
         isCompleted
-          ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300"
-          : "border-red-500/55 bg-red-500/20 text-red-300",
+          ? "border-success/50 bg-success/20 text-success"
+          : "border-destructive/60 bg-destructive/20 text-destructive-foreground",
       )}
     >
       <Icon className="h-3 w-3" />
