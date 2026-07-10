@@ -205,11 +205,11 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 </Button>
               )}
 
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="text-muted-foreground"
-                onClick={handleRegenerateCertification}
+                onClick={handleEditCertificate}
                 disabled={issueCertification.isPending}
               >
                 {issueCertification.isPending ? (
@@ -217,7 +217,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 ) : (
                   <RefreshCw className="w-4 h-4 mr-1" />
                 )}
-                {issueCertification.isPending ? 'Regenerating...' : 'Regenerate With Name'}
+                {issueCertification.isPending ? 'Regenerating...' : 'Edit Certificate'}
               </Button>
 
               {showAdminControls && (
