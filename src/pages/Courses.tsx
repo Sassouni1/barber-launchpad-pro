@@ -745,7 +745,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 >
                                   <h4
                                     key={`${module.id}-${locale}-mobile-title`}
-                                    className="font-semibold text-sm truncate flex items-center gap-1.5"
+                                    className={cn(
+                                      "font-semibold text-sm truncate flex items-center gap-1.5",
+                                      completed
+                                        ? "text-success"
+                                        : attemptedNotPassed
+                                          ? failedAtZero
+                                            ? "text-destructive"
+                                            : "text-warning"
+                                        : "text-foreground",
+                                    )}
                                     data-no-translate
                                     translate="no"
                                   >
