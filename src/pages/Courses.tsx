@@ -182,7 +182,7 @@ const QuizStatusIndicator = ({
 }: {
   hasQuiz: boolean;
   status: ReturnType<typeof getModuleStatus>;
-  locale: string;
+  locale: "en" | "es";
   size?: "sm" | "md";
 }) => {
   if (!hasQuiz) return null;
