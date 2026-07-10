@@ -16,6 +16,7 @@ import {
   Globe,
   CheckCircle2,
   Trophy,
+  RotateCcw,
 } from "lucide-react";
 import { useCompletedModules } from "@/hooks/useCompletedModules";
 import { useState, useRef, useEffect } from "react";
@@ -545,6 +546,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           );
                           const completed = isModuleCompleted(module.id);
                           const bestScore = completedMap[module.id]?.bestScore;
+                          const attemptedNotPassed = !completed && completedMap[module.id] != null;
                           return (
                             <div key={module.id} className="space-y-1">
                               <button
@@ -601,6 +603,12 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-1.5 py-0.5 rounded-full">
                                         <CheckCircle2 className="w-3 h-3" />
                                         Completed {bestScore != null ? `· ${bestScore}%` : ""}
+                                      </span>
+                                    )}
+                                    {attemptedNotPassed && (
+                                      <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-400 bg-amber-500/15 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
+                                        <RotateCcw className="w-3 h-3" />
+                                        Retake{bestScore != null ? ` · ${bestScore}%` : ""}
                                       </span>
                                     )}
                                     {hasCardDetails && (
@@ -788,6 +796,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             const isSelected = selectedModule === module.id;
                             const completed = isModuleCompleted(module.id);
                             const bestScore = completedMap[module.id]?.bestScore;
+                            const attemptedNotPassed = !completed && completedMap[module.id] != null;
                             const moduleLessons = getModuleLessons(module);
                             const hasCardDetails = hasModuleCardDetails(
                               module,
@@ -876,6 +885,14 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full">
                                           <CheckCircle2 className="w-3 h-3" />
                                           Completed{bestScore != null ? ` · ${bestScore}%` : ""}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {attemptedNotPassed && (
+                                      <div className="mb-2">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-400 bg-amber-500/15 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                                          <RotateCcw className="w-3 h-3" />
+                                          Retake{bestScore != null ? ` · ${bestScore}%` : ""}
                                         </span>
                                       </div>
                                     )}
