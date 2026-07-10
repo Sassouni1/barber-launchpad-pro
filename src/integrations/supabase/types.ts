@@ -1342,6 +1342,51 @@ export type Database = {
           },
         ]
       }
+      password_reset_requirements: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          email: string
+          requested_by: string | null
+          required: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          email: string
+          requested_by?: string | null
+          required?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          email?: string
+          requested_by?: string | null
+          required?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "password_reset_requirements_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "password_reset_requirements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           button_text: string | null
@@ -2158,6 +2203,7 @@ export type Database = {
     }
     Functions: {
       cleanup_old_marketing_images: { Args: never; Returns: undefined }
+      current_user_requires_password_reset: { Args: never; Returns: boolean }
       decrypt_token: {
         Args: { encryption_key: string; token_id: string }
         Returns: string
@@ -2167,6 +2213,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      password_reset_required_for_email: {
+        Args: { _email: string }
         Returns: boolean
       }
       resolve_qr_link: {
