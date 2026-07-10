@@ -596,6 +596,7 @@ export type Database = {
           certificate_url: string | null
           course_id: string
           created_at: string
+          downloaded_at: string | null
           id: string
           issued_at: string
           user_id: string
@@ -605,6 +606,7 @@ export type Database = {
           certificate_url?: string | null
           course_id: string
           created_at?: string
+          downloaded_at?: string | null
           id?: string
           issued_at?: string
           user_id: string
@@ -614,6 +616,7 @@ export type Database = {
           certificate_url?: string | null
           course_id?: string
           created_at?: string
+          downloaded_at?: string | null
           id?: string
           issued_at?: string
           user_id?: string
