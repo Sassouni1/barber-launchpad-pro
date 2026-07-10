@@ -11,6 +11,7 @@ import {
   useUserCertification,
   useIssueCertification,
   useResetCertification,
+  useCertificationDefaults,
 } from '@/hooks/useCertification';
 import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
