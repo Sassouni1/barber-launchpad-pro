@@ -1004,7 +1004,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       completed
                                         ? "bg-success border border-success text-success-foreground shadow-md"
                                         : attemptedNotPassed
-                                          ? "bg-destructive border border-destructive text-destructive-foreground shadow-md"
+                                          ? failedAtZero
+                                            ? "bg-destructive border border-destructive text-destructive-foreground shadow-md"
+                                            : "bg-warning border border-warning text-warning-foreground shadow-md"
                                           : isSelected
                                             ? "gold-gradient text-primary-foreground shadow-md"
                                             : "bg-secondary border border-border text-muted-foreground",
