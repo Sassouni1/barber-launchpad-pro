@@ -28,6 +28,7 @@ import {
   useUserCertification,
   useIssueCertification,
   useResetCertification,
+  useCertificationDefaults,
 } from '@/hooks/useCertification';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -154,6 +155,7 @@ function useTrainingGamesCompleted() {
 export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [showQuizDetails, setShowQuizDetails] = useState(true);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
   const [nudgeAmount, setNudgeAmount] = useState(20);
   const [isDebugMode, setIsDebugMode] = useState(false);
@@ -197,6 +199,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   } = useCertificationPhotos(courseId);
   const { data: existingCertification, isLoading: isLoadingCert } = useUserCertification(courseId);
   const { data: layout } = useCertificateLayout(courseId);
+  const { data: certDefaults } = useCertificationDefaults(courseId);
   const updateLayout = useUpdateCertificateLayout();
   const issueCertification = useIssueCertification();
   const resetCertification = useResetCertification();
@@ -274,12 +277,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     }
   };
 
-  const handleRegenerateCertification = () => {
+  const handleEditCertificate = () => {
     setGeneratedCertificateUrl(null);
-    if (existingCertification?.certificate_name) {
-      void handleSubmitCertification(existingCertification.certificate_name);
-      return;
-    }
+    setIsEditMode(true);
     setIsCertModalOpen(true);
   };
 
@@ -567,7 +567,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={handleRegenerateCertification}
+                    onClick={handleEditCertificate}
                     disabled={issueCertification.isPending}
                   >
                     {issueCertification.isPending ? (
@@ -575,7 +575,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                     ) : (
                       <RefreshCw className="w-4 h-4 mr-2" />
                     )}
-                    {issueCertification.isPending ? 'Regenerating...' : 'Regenerate With Name'}
+                    {issueCertification.isPending ? 'Regenerating...' : 'Edit Certificate'}
                   </Button>
                 </div>
 
@@ -891,11 +891,14 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       {isCertModalOpen && (
         <CertificationModal
           isOpen={isCertModalOpen}
-          onClose={() => setIsCertModalOpen(false)}
+          onClose={() => { setIsCertModalOpen(false); setIsEditMode(false); }}
           onSubmit={handleSubmitCertification}
           certificateUrl={generatedCertificateUrl}
           isGenerating={issueCertification.isPending}
           defaultName={existingCertification?.certificate_name}
+          defaultShippingAddress={certDefaults?.shipping ?? null}
+          defaultBusinessLocation={certDefaults?.business ?? null}
+          isEditing={isEditMode && !!existingCertification}
         />
       )}
     </>
