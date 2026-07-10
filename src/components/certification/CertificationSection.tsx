@@ -95,6 +95,13 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
   const handleGetCertified = () => {
     setGeneratedCertificateUrl(null);
+    setIsEditMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleEditCertificate = () => {
+    setGeneratedCertificateUrl(null);
+    setIsEditMode(true);
     setIsModalOpen(true);
   };
 
