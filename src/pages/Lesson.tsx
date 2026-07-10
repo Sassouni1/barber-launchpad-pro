@@ -1699,7 +1699,7 @@ export default function Lesson() {
                       className="w-full"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
-                      Retake Quiz
+                      {localizeCourseUi("Retake quiz", locale)}
                     </Button>
                   </div>
                 ) : (
@@ -1737,7 +1737,7 @@ export default function Lesson() {
                           )}
                           <Button onClick={resetQuiz} variant="outline" size="sm">
                             <RotateCcw className="w-4 h-4 mr-2" />
-                            Retake Quiz
+                            {localizeCourseUi("Retake quiz", locale)}
                           </Button>
                         </div>
                       </div>
@@ -1765,7 +1765,7 @@ export default function Lesson() {
                             className="font-bold gap-2 shadow-lg"
                           >
                             <RotateCcw className="w-5 h-5" />
-                            Retake Quiz
+                            {localizeCourseUi("Retake quiz", locale)}
                           </Button>
                           {incorrectQuestions.size > 0 && (
                             <Button
@@ -1812,7 +1812,7 @@ export default function Lesson() {
                         className="w-full"
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
-                        Retake Quiz
+                        {localizeCourseUi("Retake quiz", locale)}
                       </Button>
                     </div>
                   ) : (
@@ -1838,7 +1838,7 @@ export default function Lesson() {
                         size="lg"
                       >
                         <RotateCcw className="w-5 h-5" />
-                        Retake Quiz
+                        {localizeCourseUi("Retake quiz", locale)}
                       </Button>
                     </div>
                   );
@@ -2312,7 +2312,7 @@ export default function Lesson() {
                         className="w-full"
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
-                        Retake Quiz
+                        {localizeCourseUi("Retake quiz", locale)}
                       </Button>
                     </div>
                   ) : (
@@ -2339,7 +2339,7 @@ export default function Lesson() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <Button onClick={resetQuiz} variant="outline" size="lg" className="font-bold gap-2">
                               <RotateCcw className="w-5 h-5" />
-                              Retake Quiz
+                              {localizeCourseUi("Retake quiz", locale)}
                             </Button>
                             {incorrectQuestions.size > 0 && (
                               <Button
@@ -2378,7 +2378,7 @@ export default function Lesson() {
                               className="font-bold gap-2 shadow-lg"
                             >
                               <RotateCcw className="w-5 h-5" />
-                              Retake Quiz
+                              {localizeCourseUi("Retake quiz", locale)}
                             </Button>
                             {incorrectQuestions.size > 0 && (
                               <Button
@@ -2420,7 +2420,7 @@ export default function Lesson() {
                         </p>
                         <Button onClick={() => setRetakingQuiz(true)} variant="outline">
                           <RotateCcw className="w-4 h-4 mr-2" />
-                          Retake Quiz
+                          {localizeCourseUi("Retake quiz", locale)}
                         </Button>
                       </div>
                     ) : (
@@ -2446,7 +2446,7 @@ export default function Lesson() {
                           className="w-full font-bold gap-2 shadow-lg"
                         >
                           <RotateCcw className="w-5 h-5" />
-                          Retake Quiz
+                          {localizeCourseUi("Retake quiz", locale)}
                         </Button>
                       </div>
                     );
