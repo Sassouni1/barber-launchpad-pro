@@ -204,6 +204,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const updateLayout = useUpdateCertificateLayout();
   const issueCertification = useIssueCertification();
   const resetCertification = useResetCertification();
+  const markDownloaded = useMarkCertificateDownloaded();
 
   useEffect(() => {
     if (!layout) return;
