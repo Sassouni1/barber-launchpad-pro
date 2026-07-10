@@ -579,6 +579,8 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
         onSubmit={handleSubmitCertification}
         certificateUrl={generatedCertificateUrl}
         isGenerating={issueCertification.isPending}
+        courseId={courseId}
+        certificationId={existingCertification?.id ?? null}
       />
       <DirectoryEnrollmentStep open={isDirectoryOpen} onClose={() => setIsDirectoryOpen(false)} />
     </>
