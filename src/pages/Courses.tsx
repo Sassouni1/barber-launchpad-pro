@@ -837,11 +837,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
                                     completed
                                       ? isSelected
-                                        ? "bg-gradient-to-r from-primary/15 to-transparent border-primary/70 shadow-lg shadow-primary/20"
-                                        : "bg-gradient-to-r from-primary/10 to-transparent border-primary/60 shadow-md shadow-primary/10"
-                                      : isSelected
-                                        ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
-                                        : "border-border bg-secondary/10 shadow-md shadow-black/20",
+                                        ? "bg-gradient-to-r from-emerald-500/20 to-transparent border-emerald-500/70 shadow-lg shadow-emerald-500/20"
+                                        : "bg-gradient-to-r from-emerald-500/10 to-transparent border-emerald-500/60 shadow-md shadow-emerald-500/10"
+                                      : attemptedNotPassed
+                                        ? isSelected
+                                          ? "bg-gradient-to-r from-amber-500/20 to-transparent border-amber-500/70 shadow-lg shadow-amber-500/20"
+                                          : "bg-gradient-to-r from-amber-500/10 to-transparent border-amber-500/60 shadow-md shadow-amber-500/10"
+                                        : isSelected
+                                          ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
+                                          : "border-border bg-secondary/10 shadow-md shadow-black/20",
                                   )}
                                 >
                                   <div
@@ -849,14 +853,18 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       completed
                                         ? "bg-emerald-500 border border-emerald-400 text-white shadow-md"
-                                        : isSelected
-                                          ? "gold-gradient text-primary-foreground shadow-md"
-                                          : "bg-secondary border border-border text-muted-foreground",
+                                        : attemptedNotPassed
+                                          ? "bg-amber-500 border border-amber-400 text-white shadow-md"
+                                          : isSelected
+                                            ? "gold-gradient text-primary-foreground shadow-md"
+                                            : "bg-secondary border border-border text-muted-foreground",
                                     )}
                                   >
 
                                     {completed ? (
                                       <CheckCircle2 className="w-5 h-5" />
+                                    ) : attemptedNotPassed ? (
+                                      <RotateCcw className="w-4 h-4" />
                                     ) : (
                                       index + 1
                                     )}
