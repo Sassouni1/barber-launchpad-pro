@@ -160,7 +160,7 @@ const ModuleStatusBadge = ({
         compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
         isCompleted
           ? "border-success/50 bg-success/20 text-success"
-          : "border-destructive/60 bg-destructive/20 text-destructive-foreground",
+          : "border-destructive/60 bg-destructive/20 text-destructive",
       )}
     >
       <Icon className="h-3 w-3" />
@@ -938,7 +938,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         completed
                                           ? "text-success"
                                           : attemptedNotPassed
-                                            ? "text-destructive-foreground"
+                                            ? "text-destructive"
                                             : isSelected && "text-primary",
                                       )}
                                       data-no-translate
