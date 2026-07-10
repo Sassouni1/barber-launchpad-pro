@@ -808,29 +808,24 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                     type="button"
                     onClick={() => setExpandedCourse(category.id)}
                     className={cn(
-                      "relative flex flex-col justify-between text-left overflow-hidden rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
-                      "border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background",
-                      "shadow-lg shadow-black/40 hover:border-primary/60",
+                      "relative flex flex-col justify-between text-left overflow-hidden rounded-2xl border p-4 transition-all active:scale-[0.98]",
+                      "border-border/60 bg-card/60",
+                      "shadow-lg shadow-black/40 hover:border-primary/40",
                       "min-h-[160px]",
                     )}
                   >
-                    <div
-                      aria-hidden
-                      className="absolute inset-y-0 left-0 bg-primary/10"
-                      style={{ width: `${pct}%` }}
-                    />
                     <div className="relative">
                       <div className="flex items-center gap-2 mb-2">
                         {isHair ? (
-                          <BookOpen className="w-4 h-4 text-primary" />
+                          <BookOpen className="w-4 h-4 text-muted-foreground" />
                         ) : (
-                          <Trophy className="w-4 h-4 text-primary" />
+                          <Trophy className="w-4 h-4 text-muted-foreground" />
                         )}
                         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
                           {isHair ? "Track 01" : "Track 02"}
                         </span>
                       </div>
-                      <h2 className="font-display font-bold text-sm gold-text leading-tight">
+                      <h2 className="font-display font-bold text-sm text-foreground leading-tight">
                         {category.title}
                       </h2>
                     </div>
@@ -851,7 +846,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         />
                       </div>
                       <div className="mt-3">
-                        <span className="inline-flex items-center justify-center w-full rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold py-2 px-3">
+                        <span className="inline-flex items-center justify-center w-full rounded-lg border border-border/60 text-muted-foreground hover:text-foreground text-xs font-semibold py-2 px-3">
                           {done > 0 ? "continue lesson" : "start lesson"}
                         </span>
                       </div>
