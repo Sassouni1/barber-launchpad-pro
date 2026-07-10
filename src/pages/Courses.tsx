@@ -357,6 +357,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
         const clampScrollTop = (value: number) =>
           Math.max(0, Math.min(value, maxScrollTop));
 
+        const centerTop =
+          elementTop - (container.clientHeight - elRect.height) / 2;
+
         if (mode === "click") {
           const isFullyVisible =
             elRect.top >= containerRect.top + margin &&
@@ -364,30 +367,18 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
 
           if (isFullyVisible) return;
 
-          const visibleTop = container.scrollTop + margin;
-          const visibleBottom =
-            container.scrollTop + container.clientHeight - margin;
-          let targetTop = container.scrollTop;
-
-          if (elementTop < visibleTop) {
-            targetTop = elementTop - margin;
-          } else if (elementBottom > visibleBottom) {
-            targetTop = elementBottom - container.clientHeight + margin;
-          }
-
           container.scrollTo({
-            top: clampScrollTop(targetTop),
+            top: clampScrollTop(centerTop),
             behavior: "smooth",
           });
           return;
         }
 
         container.scrollTo({
-          top: clampScrollTop(
-            elementTop - (container.clientHeight - elRect.height) / 2,
-          ),
+          top: clampScrollTop(centerTop),
           behavior: "auto",
         });
+
       };
 
       requestAnimationFrame(() => requestAnimationFrame(positionCard));
