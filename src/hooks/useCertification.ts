@@ -304,6 +304,63 @@ export function useUserCertification(courseId: string | undefined) {
   });
 }
 
+// Hook to fetch existing shipping + business defaults to pre-fill the edit modal.
+export function useCertificationDefaults(courseId: string | undefined) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['certification-defaults', courseId, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !courseId) return null;
+
+      const [{ data: fulfillment }, { data: profile }] = await Promise.all([
+        supabase
+          .from('certification_fulfillment_requests')
+          .select('recipient_name, phone, address_line1, address_line2, city, state, postal_code, country_code')
+          .eq('user_id', user.id)
+          .eq('course_id', courseId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('business_name, business_address_line1, business_address_line2, business_city, business_state, business_postal_code, business_country_code')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
+
+      const shipping = fulfillment
+        ? {
+            recipientName: fulfillment.recipient_name || '',
+            phone: fulfillment.phone || '',
+            addressLine1: fulfillment.address_line1 || '',
+            addressLine2: fulfillment.address_line2 || '',
+            city: fulfillment.city || '',
+            state: fulfillment.state || '',
+            postalCode: fulfillment.postal_code || '',
+            countryCode: fulfillment.country_code || 'US',
+          }
+        : null;
+
+      const business = profile && (profile as any).business_name
+        ? {
+            businessName: (profile as any).business_name || '',
+            addressLine1: (profile as any).business_address_line1 || '',
+            addressLine2: (profile as any).business_address_line2 || '',
+            city: (profile as any).business_city || '',
+            state: (profile as any).business_state || '',
+            postalCode: (profile as any).business_postal_code || '',
+            countryCode: (profile as any).business_country_code || 'US',
+          }
+        : null;
+
+      return { shipping, business };
+    },
+    enabled: !!user?.id && !!courseId,
+    staleTime: 30000,
+  });
+}
+
 // Hook to issue certification
 export function useIssueCertification() {
   const { user } = useAuth();
