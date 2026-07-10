@@ -552,7 +552,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                     disabled={issueCertification.isPending}
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Regenerate
+                    Edit Name
                   </Button>
                 </div>
 
