@@ -1035,7 +1035,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         completed
                                           ? "text-success"
                                           : attemptedNotPassed
-                                            ? "text-destructive"
+                                            ? failedAtZero
+                                              ? "text-destructive"
+                                              : "text-warning"
                                             : isSelected && "text-primary",
                                       )}
                                       data-no-translate
