@@ -406,6 +406,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
+            setIsEditMode(false);
             // Already-certified users: offer to update directory listing
             setIsDirectoryOpen(true);
           }}
@@ -413,7 +414,11 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           certificateUrl={generatedCertificateUrl}
           isGenerating={issueCertification.isPending}
           defaultName={existingCertification.certificate_name}
+          defaultShippingAddress={certDefaults?.shipping ?? null}
+          defaultBusinessLocation={certDefaults?.business ?? null}
+          isEditing={isEditMode}
         />
+
         <DirectoryEnrollmentStep open={isDirectoryOpen} onClose={() => setIsDirectoryOpen(false)} />
       </>
     );
