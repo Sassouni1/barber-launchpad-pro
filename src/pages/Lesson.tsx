@@ -1699,7 +1699,7 @@ export default function Lesson() {
                       className="w-full"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
-                      Try Again
+                      Retake Quiz
                     </Button>
                   </div>
                 ) : (
@@ -2312,7 +2312,7 @@ export default function Lesson() {
                         className="w-full"
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
-                        Try Again
+                        Retake Quiz
                       </Button>
                     </div>
                   ) : (
