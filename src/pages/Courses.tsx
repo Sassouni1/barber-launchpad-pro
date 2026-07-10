@@ -602,9 +602,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             module,
                             moduleLessons.length,
                           );
-                          const completed = isModuleCompleted(module.id);
-                          const bestScore = completedMap[module.id]?.bestScore;
-                          const attemptedNotPassed = !completed && completedMap[module.id] != null;
+                          const status = getModuleStatus(module.id, completedMap);
+                          const completed = status.state === "completed";
+                          const attemptedNotPassed = status.state === "failed";
+                          const failedAtZero = attemptedNotPassed && status.bestScore === 0;
                           return (
                             <div key={module.id} className="space-y-1">
                               <button
@@ -617,9 +618,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   "w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
                                   !hasCardDetails && "min-h-[66px]",
                                   completed
-                                    ? "border-emerald-500/60 bg-gradient-to-r from-emerald-500/15 to-transparent shadow-emerald-500/10"
+                                    ? "border-success/65 bg-gradient-to-r from-success/15 to-transparent shadow-success/10"
                                     : attemptedNotPassed
-                                      ? "border-amber-500/60 bg-gradient-to-r from-amber-500/15 to-transparent shadow-amber-500/10"
+                                      ? failedAtZero
+                                        ? "border-destructive/75 bg-gradient-to-r from-destructive/20 to-transparent shadow-destructive/15"
+                                        : "border-destructive/60 bg-gradient-to-r from-destructive/15 to-transparent shadow-destructive/10"
                                       : "border-border bg-secondary/10",
                                 )}
                               >
@@ -627,9 +630,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   className={cn(
                                     "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm border",
                                     completed
-                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-md"
+                                      ? "bg-success border-success text-success-foreground shadow-md"
                                       : attemptedNotPassed
-                                        ? "bg-amber-500 border-amber-400 text-white shadow-md"
+                                        ? "bg-destructive border-destructive text-destructive-foreground shadow-md"
                                         : "bg-secondary border-border text-muted-foreground",
                                   )}
                                 >
@@ -663,18 +666,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     )}
                                   </h4>
                                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                    {completed && (
-                                      <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-1.5 py-0.5 rounded-full">
-                                        <CheckCircle2 className="w-3 h-3" />
-                                        Completed {bestScore != null ? `· ${bestScore}%` : ""}
-                                      </span>
-                                    )}
-                                    {attemptedNotPassed && (
-                                      <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-400 bg-amber-500/15 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
-                                        <RotateCcw className="w-3 h-3" />
-                                        Retake{bestScore != null ? ` · ${bestScore}%` : ""}
-                                      </span>
-                                    )}
+                                    <ModuleStatusBadge status={status} compact />
                                     {hasCardDetails && (
                                       <>
                                         {module.duration && (
