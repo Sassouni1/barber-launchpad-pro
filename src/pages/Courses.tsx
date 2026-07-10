@@ -11,7 +11,6 @@ import {
   Loader2,
   ArrowRight,
   ChevronDown,
-  X,
   Star,
   Award,
   Globe,
@@ -28,11 +27,9 @@ import {
   localizeHairSystemLessonTitle,
   resolveVideoEmbedUrlForModule,
 } from "@/lib/i18n/spanishVideos";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { FIRST_POST_MODULE_ID } from "@/data/postLessons";
 import {
   Sheet,
@@ -52,7 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CertificationSection } from "@/components/certification/CertificationSection";
+import { Level1CertModal } from "@/components/certification/Level1CertModal";
 
 // Custom hook for md breakpoint (768px) - tablet and above
 function useIsTabletOrDesktop() {
@@ -162,7 +159,6 @@ const SubLessonTrack = ({
 
 export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const { data: allCoursesRaw = [], isLoading } = useCourses();
-  const { user } = useAuth();
   const { isAdmin } = useAuth();
   const { locale } = useLocale();
 
@@ -176,7 +172,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     (course) => (course as any).category === courseType,
   );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
-  const [showCertification, setShowCertification] = useState(false);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
