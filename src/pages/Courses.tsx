@@ -713,7 +713,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     : attemptedNotPassed
                                       ? failedAtZero
                                         ? "border-destructive/75 bg-gradient-to-r from-destructive/20 to-transparent shadow-destructive/15"
-                                        : "border-destructive/60 bg-gradient-to-r from-destructive/15 to-transparent shadow-destructive/10"
+                                        : "border-warning/60 bg-gradient-to-r from-warning/15 to-transparent shadow-warning/10"
                                       : "border-border bg-secondary/10",
                                 )}
                               >
