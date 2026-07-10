@@ -470,16 +470,22 @@
 }
 
 /* Certificate preview font — loads the same clean script font used by the
-   generated certificate so admin preview matches the final output exactly. */
+   generated certificate so admin preview matches the final output exactly.
+   Uses Google Fonts CSS import (woff2, reliable across browsers) plus the
+   Supabase-hosted TTF as a secondary source. Avoids the generic `cursive`
+   fallback because on some systems (Windows, older Android, some corporate
+   installs) it resolves to a blackletter/gothic face instead of a script. */
+@import url('https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap');
+
 @font-face {
   font-family: 'CertificateNamePreview';
-  src: url('https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/fonts/CertificateName.ttf') format('truetype'),
-       url('https://fonts.gstatic.com/s/pinyonscript/v24/6xKpdSJbL9-e9LuoeQiDRQR8aOI.ttf') format('truetype');
+  src: url('https://ynooatjtgstgwfssnira.supabase.co/storage/v1/object/public/certificates/fonts/CertificateName.ttf') format('truetype');
   font-display: swap;
 }
 
 .cert-name-preview {
-  font-family: 'CertificateNamePreview', cursive !important;
+  font-family: 'CertificateNamePreview', 'Pinyon Script', 'Snell Roundhand', 'Apple Chancery', 'Segoe Script', 'Lucida Handwriting', serif !important;
   font-weight: 400 !important;
   letter-spacing: 0;
 }
+
