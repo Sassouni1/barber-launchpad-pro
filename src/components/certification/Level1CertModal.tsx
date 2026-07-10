@@ -468,10 +468,33 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : isCertified && certificateUrlWithCache ? (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                   <CheckCircle className="w-5 h-5 text-green-500" />
                   <span className="text-green-500 font-medium">You are certified!</span>
+                </div>
+
+                <div
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-lg border',
+                    existingCertification?.downloaded_at
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-amber-500/5 border-amber-500/40 border-l-4'
+                  )}
+                >
+                  {existingCertification?.downloaded_at ? (
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                  )}
+                  <span
+                    className={cn(
+                      'font-medium text-sm',
+                      existingCertification?.downloaded_at ? 'text-green-500' : 'text-foreground'
+                    )}
+                  >
+                    {existingCertification?.downloaded_at ? 'Certificate downloaded' : 'Download your certificate'}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 px-1">
