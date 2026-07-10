@@ -299,6 +299,7 @@ export function useSubmitQuiz() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quiz-attempts'] });
+      queryClient.invalidateQueries({ queryKey: ['completed-modules'] });
     },
   });
 }
