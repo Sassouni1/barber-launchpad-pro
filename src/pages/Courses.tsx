@@ -218,7 +218,7 @@ const QuizStatusIndicator = ({
   }
 
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
       <HelpCircle className={iconSize} />
       {label}
     </span>
