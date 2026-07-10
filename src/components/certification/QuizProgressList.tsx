@@ -66,7 +66,7 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
           <div className="flex items-center gap-2 px-1">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-              Not completed ({unpassed.length})
+              Please complete the quizzes below ({unpassed.length})
             </span>
           </div>
           <div className="space-y-2">
