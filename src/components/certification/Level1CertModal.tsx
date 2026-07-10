@@ -365,7 +365,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
 
   const handleDownload = async () => {
     const baseUrl = generatedCertificateUrl || existingCertification?.certificate_url;
-    if (!baseUrl) return;
+    if (!baseUrl || !existingCertification?.id) return;
 
     const ts = Date.now();
     const downloadUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${ts}`;
@@ -384,6 +384,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       a.click();
       document.body.removeChild(a);
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+
+      // Mark the certificate as downloaded in the database
+      markDownloaded.mutate({ courseId: courseId!, certificationId: existingCertification.id });
     } catch (error) {
       console.error('Download failed:', error);
       const a = document.createElement('a');
@@ -394,6 +397,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      // Still record the download attempt on fallback so the UI turns green
+      markDownloaded.mutate({ courseId: courseId!, certificationId: existingCertification.id });
     }
   };
 
