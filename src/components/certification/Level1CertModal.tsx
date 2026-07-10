@@ -199,6 +199,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   } = useCertificationPhotos(courseId);
   const { data: existingCertification, isLoading: isLoadingCert } = useUserCertification(courseId);
   const { data: layout } = useCertificateLayout(courseId);
+  const { data: certDefaults } = useCertificationDefaults(courseId);
   const updateLayout = useUpdateCertificateLayout();
   const issueCertification = useIssueCertification();
   const resetCertification = useResetCertification();
