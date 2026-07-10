@@ -1,13 +1,35 @@
 import { useCourses } from '@/hooks/useCourses';
 import { useCompletedModules } from '@/hooks/useCompletedModules';
 import { Button } from '@/components/ui/button';
-import { Play, Clock, FileText, Zap, ArrowRight, BookOpen, Loader2, List, Sparkles, Trophy } from 'lucide-react';
+import { Play, Clock, FileText, Zap, ArrowRight, BookOpen, Loader2, List, Sparkles, Trophy, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export function ContinueLearning() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: courses = [], isLoading } = useCourses();
   const { data: completedMap = {} } = useCompletedModules();
+
+  // Has the user actually generated a certificate (i.e. entered their name and
+  // gone through the certification modal)? Passing all quizzes is NOT the same
+  // as being certified — they still have to claim it.
+  const { data: hasCertificate = false } = useQuery({
+    queryKey: ['user-has-any-certification', user?.id],
+    enabled: !!user?.id,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('certifications')
+        .select('id')
+        .eq('user_id', user!.id)
+        .limit(1);
+      if (error) throw error;
+      return (data?.length ?? 0) > 0;
+    },
+  });
 
   if (isLoading) {
     return (
@@ -49,9 +71,41 @@ export function ContinueLearning() {
     );
   }
 
-  // Certified state — all modules across every course passed. Push them to the
-  // growth tools (AI Social Media Generator) instead of a review loop.
-  if (allDone) {
+  // Finished every module but hasn't claimed the certificate yet — send them
+  // to the certification section where they enter their name.
+  if (allDone && !hasCertificate) {
+    return (
+      <div className="glass-card cyber-corners p-6 rounded-xl animate-fade-up hover-lift spotlight-pulse" style={{ animationDelay: '0.2s' }}>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-full">
+            <Award className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold uppercase tracking-cyber text-primary">Ready to Certify</span>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Last step</p>
+          </div>
+          <h3 className="font-display text-2xl font-bold tracking-tight">Claim your certificate</h3>
+          <p className="text-muted-foreground leading-relaxed">
+            You've finished every module. Enter your name and we'll generate your official Hair System Mastery certificate.
+          </p>
+          <Button
+            onClick={() => navigate('/courses/hair-system')}
+            className="w-full h-12 gold-gradient text-primary-foreground font-semibold text-base hover:opacity-90 transition-all group gold-glow"
+          >
+            <Award className="w-5 h-5 mr-2" />
+            Get My Certificate
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Fully certified — push them to growth tools.
+  if (allDone && hasCertificate) {
     return (
       <div className="glass-card cyber-corners p-6 rounded-xl animate-fade-up hover-lift spotlight-pulse" style={{ animationDelay: '0.2s' }}>
         <div className="flex items-center gap-2 mb-4">
