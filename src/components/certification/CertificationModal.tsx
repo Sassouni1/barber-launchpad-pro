@@ -167,9 +167,10 @@ export function CertificationModal({
     countryCode: (businessLocation.countryCode.trim() || 'US').toUpperCase(),
   };
 
+  // Street address is optional here — a barber may just want their city/state/ZIP
+  // shown in the directory. Business name + city + state + ZIP are required.
   const isBusinessComplete = Boolean(
     normalizedBusiness.businessName &&
-      normalizedBusiness.addressLine1 &&
       normalizedBusiness.city &&
       normalizedBusiness.state &&
       normalizedBusiness.postalCode &&
