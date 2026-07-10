@@ -248,7 +248,7 @@ export function CertificationModal({
           <DialogTitle className="flex items-center gap-2">
             <Award className="w-5 h-5 text-primary" />
             {step === 'analyzing' && 'Analyzing Your Work'}
-            {step === 'name-entry' && 'Enter Your Name'}
+            {step === 'name-entry' && (isEditing ? 'Edit Certificate' : 'Enter Your Name')}
             {step === 'complete' && 'Certificate Ready!'}
           </DialogTitle>
         </DialogHeader>
