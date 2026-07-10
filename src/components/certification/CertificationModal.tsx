@@ -177,27 +177,16 @@ export function CertificationModal({
       normalizedBusiness.countryCode
   );
 
-  const effectiveShipping: CertificateShippingAddress = shipToBusiness
-    ? {
-        recipientName: shippingAddress.recipientName.trim() || name.trim(),
-        phone: shippingAddress.phone.trim(),
-        addressLine1: normalizedBusiness.addressLine1,
-        addressLine2: normalizedBusiness.addressLine2 || '',
-        city: normalizedBusiness.city,
-        state: normalizedBusiness.state,
-        postalCode: normalizedBusiness.postalCode,
-        countryCode: normalizedBusiness.countryCode,
-      }
-    : {
-        recipientName: shippingAddress.recipientName.trim(),
-        phone: shippingAddress.phone.trim(),
-        addressLine1: shippingAddress.addressLine1.trim(),
-        addressLine2: shippingAddress.addressLine2?.trim() || '',
-        city: shippingAddress.city.trim(),
-        state: shippingAddress.state.trim(),
-        postalCode: shippingAddress.postalCode.trim(),
-        countryCode: (shippingAddress.countryCode.trim() || 'US').toUpperCase(),
-      };
+  const effectiveShipping: CertificateShippingAddress = {
+    recipientName: shippingAddress.recipientName.trim(),
+    phone: shippingAddress.phone.trim(),
+    addressLine1: shippingAddress.addressLine1.trim(),
+    addressLine2: shippingAddress.addressLine2?.trim() || '',
+    city: shippingAddress.city.trim(),
+    state: shippingAddress.state.trim(),
+    postalCode: shippingAddress.postalCode.trim(),
+    countryCode: (shippingAddress.countryCode.trim() || 'US').toUpperCase(),
+  };
 
   const isShippingComplete = Boolean(
     effectiveShipping.recipientName &&
