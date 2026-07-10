@@ -22,34 +22,6 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
 
-    if (body?.one_time_janette_reset === true) {
-      const user_id = "45906d67-a0fc-4b86-8bdf-14667c9c87cb";
-      const email = "artexgirl@yahoo.com";
-      const { error: updateError } = await admin.auth.admin.updateUserById(user_id, {
-        password: randomPassword(),
-      });
-      if (updateError) {
-        return new Response(JSON.stringify({ error: updateError.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const { error: flagError } = await admin
-        .from("password_reset_requirements")
-        .upsert({ user_id, email, required: true, completed_at: null }, { onConflict: "user_id" });
-      if (flagError) {
-        return new Response(JSON.stringify({ error: flagError.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify({ ok: true, user: email, requires_reset: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
