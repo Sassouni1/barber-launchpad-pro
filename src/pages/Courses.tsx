@@ -111,6 +111,61 @@ const hasModuleCardDetails = (module: Module, lessonCount: number) =>
     lessonCount > 0,
   );
 
+const getModuleStatus = (
+  moduleId: string,
+  completedMap: Record<string, { bestScore: number; passed: boolean }>,
+) => {
+  const completion = completedMap[moduleId];
+  const bestScore = completion?.bestScore;
+
+  if (completion?.passed) {
+    return {
+      state: "completed" as const,
+      label: `Completed${bestScore != null ? ` · ${bestScore}%` : ""}`,
+    };
+  }
+
+  if (completion) {
+    return {
+      state: "failed" as const,
+      label: `Retake${bestScore != null ? ` · ${bestScore}%` : ""}`,
+    };
+  }
+
+  return {
+    state: "not-started" as const,
+    label: "",
+  };
+};
+
+const ModuleStatusBadge = ({
+  status,
+  compact = false,
+}: {
+  status: ReturnType<typeof getModuleStatus>;
+  compact?: boolean;
+}) => {
+  if (status.state === "not-started") return null;
+
+  const isCompleted = status.state === "completed";
+  const Icon = isCompleted ? CheckCircle2 : RotateCcw;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full border font-bold uppercase tracking-wide",
+        compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
+        isCompleted
+          ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300"
+          : "border-red-500/55 bg-red-500/20 text-red-300",
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {status.label}
+    </span>
+  );
+};
+
 const SubLessonTrack = ({
   lessons,
   compact = false,
