@@ -492,6 +492,7 @@ export function CertificationModal({
                     </div>
                   </>
                 )}
+                </>)}
               </div>
 
 
