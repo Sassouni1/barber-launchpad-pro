@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +23,6 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
   const passed = quizProgress.filter((q) => q.passed);
   const total = quizProgress.length;
 
-  const [showPassed, setShowPassed] = useState(unpassed.length === 0);
   const [expandUnpassed, setExpandUnpassed] = useState(false);
   const [expandPassed, setExpandPassed] = useState(false);
   const INITIAL = 5;
@@ -118,51 +117,38 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
       {/* Completed */}
       {passed.length > 0 && (
         <div className="space-y-2">
-          <button
-            type="button"
-            className="flex items-center justify-between w-full px-1 group"
-            onClick={() => setShowPassed((s) => !s)}
-          >
-            <span className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-green-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-green-400">
-                Completed ({passed.length})
-              </span>
+          <div className="flex items-center gap-2 px-1">
+            <CheckCircle2 className="w-4 h-4 text-green-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-green-400">
+              Completed ({passed.length})
             </span>
-            {showPassed ? (
-              <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-            )}
-          </button>
-          {showPassed && (
-            <div className="space-y-2">
-              {visiblePassed.map((quiz) => (
-                <div
-                  key={quiz.moduleId}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20"
-                >
-                  <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{quiz.moduleTitle} Quiz</p>
-                  </div>
-                  <span className="text-sm font-semibold text-green-400">
-                    {quiz.bestScore !== null ? `${quiz.bestScore}%` : ''}
-                  </span>
+          </div>
+          <div className="space-y-2">
+            {visiblePassed.map((quiz) => (
+              <div
+                key={quiz.moduleId}
+                className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20"
+              >
+                <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{quiz.moduleTitle} Quiz</p>
                 </div>
-              ))}
-              {passed.length > INITIAL && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-green-400 hover:text-green-300 hover:bg-green-500/10"
-                  onClick={() => setExpandPassed((v) => !v)}
-                >
-                  {expandPassed ? 'Show less' : `Show ${passed.length - INITIAL} more`}
-                </Button>
-              )}
-            </div>
-          )}
+                <span className="text-sm font-semibold text-green-400">
+                  {quiz.bestScore !== null ? `${quiz.bestScore}%` : ''}
+                </span>
+              </div>
+            ))}
+            {passed.length > INITIAL && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                onClick={() => setExpandPassed((v) => !v)}
+              >
+                {expandPassed ? 'Show less' : `Show ${passed.length - INITIAL} more`}
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
