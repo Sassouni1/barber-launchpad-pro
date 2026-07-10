@@ -24,6 +24,11 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
   const total = quizProgress.length;
 
   const [showPassed, setShowPassed] = useState(unpassed.length === 0);
+  const [expandUnpassed, setExpandUnpassed] = useState(false);
+  const [expandPassed, setExpandPassed] = useState(false);
+  const INITIAL = 5;
+  const visibleUnpassed = expandUnpassed ? unpassed : unpassed.slice(0, INITIAL);
+  const visiblePassed = expandPassed ? passed : passed.slice(0, INITIAL);
 
   const goToQuiz = (moduleId: string) => {
     onNavigate?.();
@@ -70,7 +75,7 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
             </span>
           </div>
           <div className="space-y-2">
-            {unpassed.map((quiz) => {
+            {visibleUnpassed.map((quiz) => {
               const status = quiz.bestScore !== null ? 'failed' : 'not-taken';
               return (
                 <button
@@ -96,6 +101,16 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
                 </button>
               );
             })}
+            {unpassed.length > INITIAL && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                onClick={() => setExpandUnpassed((v) => !v)}
+              >
+                {expandUnpassed ? 'Show less' : `Show ${unpassed.length - INITIAL} more`}
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -122,7 +137,7 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
           </button>
           {showPassed && (
             <div className="space-y-2">
-              {passed.map((quiz) => (
+              {visiblePassed.map((quiz) => (
                 <div
                   key={quiz.moduleId}
                   className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20"
@@ -136,6 +151,16 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
                   </span>
                 </div>
               ))}
+              {passed.length > INITIAL && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                  onClick={() => setExpandPassed((v) => !v)}
+                >
+                  {expandPassed ? 'Show less' : `Show ${passed.length - INITIAL} more`}
+                </Button>
+              )}
             </div>
           )}
         </div>
