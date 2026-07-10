@@ -1382,14 +1382,23 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             "w-full font-semibold py-6 text-lg",
                             detailCompleted
                               ? "bg-emerald-500 hover:bg-emerald-500/90 text-white"
-                              : "gold-gradient text-primary-foreground",
+                              : detailFailed
+                                ? detailZero
+                                  ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                  : "bg-warning hover:bg-warning/90 text-warning-foreground"
+                                : "gold-gradient text-primary-foreground",
                           )}
                           onClick={() => goToLesson(moduleData.module.id, courseType)}
                         >
                           {detailCompleted ? (
                             <>
                               <CheckCircle2 className="w-5 h-5 mr-2" />
-                              Review Lesson
+                              {localizeCourseUi("Review Lesson", locale)}
+                            </>
+                          ) : detailFailed ? (
+                            <>
+                              <RotateCcw className="w-5 h-5 mr-2" />
+                              {localizeCourseUi("Retake Lesson", locale)}
                             </>
                           ) : (
                             <>
