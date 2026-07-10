@@ -125,6 +125,10 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
 
   const handleRegenerateCertification = () => {
     setGeneratedCertificateUrl(null);
+    if (existingCertification?.certificate_name) {
+      void handleSubmitCertification(existingCertification.certificate_name);
+      return;
+    }
     setIsModalOpen(true);
   };
 
@@ -203,7 +207,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 ) : (
                   <RefreshCw className="w-4 h-4 mr-1" />
                 )}
-                Regenerate
+                {issueCertification.isPending ? 'Regenerating...' : 'Regenerate With Name'}
               </Button>
 
               {showAdminControls && (
