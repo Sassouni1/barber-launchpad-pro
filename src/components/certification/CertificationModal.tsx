@@ -95,6 +95,8 @@ export function CertificationModal({
   );
   const [shipToBusiness, setShipToBusiness] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const markDownloaded = useMarkCertificateDownloaded();
   // In edit mode, collapse the address sections by default so users can just
   // fix a typo in the name and hit save without touching anything else.
   const [showShipping, setShowShipping] = useState(!isEditing);
