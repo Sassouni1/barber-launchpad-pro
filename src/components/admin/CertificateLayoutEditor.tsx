@@ -208,7 +208,9 @@ export function CertificateLayoutEditor() {
                       setNatural({ w: img.naturalWidth, h: img.naturalHeight });
                     }}
                   />
-                  {natural.w > 0 && rendered.w > 0 && (
+                  {natural.w > 0 && rendered.w > 0 && (() => {
+                    const previewFontPx = computeCertificateNameFontSize(testName || 'Recipient Name');
+                    return (
                     <>
                       <div
                         className="absolute pointer-events-none cert-name-preview"
@@ -216,7 +218,7 @@ export function CertificateLayoutEditor() {
                           left: `${(draft.name_x / natural.w) * 100}%`,
                           top: `${(draft.name_y / natural.h) * 100}%`,
                           transform: 'translate(-50%, -50%)',
-                          fontSize: `${(draft.name_font_size / natural.w) * rendered.w}px`,
+                          fontSize: `${(previewFontPx / natural.w) * rendered.w}px`,
                           color: layout.name_color || '#000000',
                           whiteSpace: 'nowrap',
                           lineHeight: 1,
