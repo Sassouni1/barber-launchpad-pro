@@ -1357,20 +1357,33 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 variant="outline"
                                 className={cn(
                                   "flex-1",
-                                  detailCompleted && "border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10",
+                                  detailCompleted &&
+                                    "border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10",
+                                  detailFailed &&
+                                    (detailZero
+                                      ? "border-destructive/50 text-destructive hover:bg-destructive/10"
+                                      : "border-warning/50 text-warning hover:bg-warning/10"),
                                 )}
                                 onClick={() =>
                                   goToLesson(moduleData.module.id, courseType, "quiz")
                                 }
                               >
-                                {detailCompleted ? (
-                                  <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" />
-                                ) : (
-                                  <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
-                                )}
+                                <DetailQuizIcon
+                                  className={cn(
+                                    "w-4 h-4 mr-2",
+                                    detailCompleted && "text-emerald-400",
+                                    detailFailed &&
+                                      (detailZero
+                                        ? "text-destructive"
+                                        : "text-warning"),
+                                    !detailCompleted && !detailFailed && "text-warning",
+                                  )}
+                                />
                                 {detailCompleted
                                   ? "Review Quiz"
-                                  : localizeCourseUi("Take Quiz", locale)}
+                                  : detailFailed
+                                    ? "Retake Quiz"
+                                    : localizeCourseUi("Take Quiz", locale)}
                               </Button>
                             )}
 
