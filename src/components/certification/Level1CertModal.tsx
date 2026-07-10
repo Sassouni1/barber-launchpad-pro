@@ -28,6 +28,7 @@ import {
   useUserCertification,
   useIssueCertification,
   useResetCertification,
+  useCertificationDefaults,
 } from '@/hooks/useCertification';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { useAuthContext } from '@/contexts/AuthContext';
