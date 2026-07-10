@@ -5,6 +5,8 @@ import {
   Play,
   FileText,
   HelpCircle,
+  AlertTriangle,
+  XCircle,
   ClipboardList,
   Clock,
   Settings,
@@ -151,6 +153,7 @@ const ModuleStatusBadge = ({
   if (status.state === "not-started") return null;
 
   const isCompleted = status.state === "completed";
+  const isZeroFail = !isCompleted && status.bestScore === 0;
   const Icon = isCompleted ? CheckCircle2 : RotateCcw;
 
   return (
@@ -160,11 +163,64 @@ const ModuleStatusBadge = ({
         compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
         isCompleted
           ? "border-success/50 bg-success/20 text-success"
-          : "border-destructive/60 bg-destructive/20 text-destructive",
+          : isZeroFail
+            ? "border-destructive/60 bg-destructive/20 text-destructive"
+            : "border-warning/50 bg-warning/20 text-warning",
       )}
     >
       <Icon className="h-3 w-3" />
       {status.label}
+    </span>
+  );
+};
+
+const QuizStatusIndicator = ({
+  hasQuiz,
+  status,
+  locale,
+  size = "sm",
+}: {
+  hasQuiz: boolean;
+  status: ReturnType<typeof getModuleStatus>;
+  locale: "en" | "es";
+  size?: "sm" | "md";
+}) => {
+  if (!hasQuiz) return null;
+
+  const iconSize = size === "md" ? "w-4 h-4" : "w-3 h-3";
+  const label = localizeCourseUi("Quiz", locale);
+
+  if (status.state === "completed") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-success bg-success/10 px-2 py-0.5 rounded-full">
+        <CheckCircle2 className={iconSize} />
+        {label}
+      </span>
+    );
+  }
+
+  if (status.state === "failed") {
+    const isZero = status.bestScore === 0;
+    const Icon = isZero ? XCircle : AlertTriangle;
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
+          isZero
+            ? "text-destructive bg-destructive/10"
+            : "text-warning bg-warning/10",
+        )}
+      >
+        <Icon className={iconSize} />
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">
+      <HelpCircle className={iconSize} />
+      {label}
     </span>
   );
 };
@@ -402,18 +458,53 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
               {(moduleData.module.has_quiz ||
                 moduleData.module.has_homework) && (
                 <div className="flex gap-2">
-                  {moduleData.module.has_quiz && (
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() =>
-                        goToLesson(moduleData.module.id, courseType, "quiz")
-                      }
-                    >
-                      <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
-                      Quiz
-                    </Button>
-                  )}
+                  {moduleData.module.has_quiz && (() => {
+                    const sheetStatus = getModuleStatus(
+                      moduleData.module.id,
+                      completedMap,
+                    );
+                    const sheetCompleted = sheetStatus.state === "completed";
+                    const sheetFailed = sheetStatus.state === "failed";
+                    const sheetZero = sheetFailed && sheetStatus.bestScore === 0;
+                    const SheetQuizIcon = sheetCompleted
+                      ? CheckCircle2
+                      : sheetFailed
+                        ? sheetZero
+                          ? XCircle
+                          : AlertTriangle
+                        : HelpCircle;
+                    return (
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "flex-1",
+                          sheetCompleted && "border-success/50 text-success hover:bg-success/10",
+                          sheetFailed &&
+                            (sheetZero
+                              ? "border-destructive/50 text-destructive hover:bg-destructive/10"
+                              : "border-warning/50 text-warning hover:bg-warning/10"),
+                        )}
+                        onClick={() =>
+                          goToLesson(moduleData.module.id, courseType, "quiz")
+                        }
+                      >
+                        <SheetQuizIcon
+                          className={cn(
+                            "w-4 h-4 mr-2",
+                            sheetCompleted && "text-success",
+                            sheetFailed &&
+                              (sheetZero ? "text-destructive" : "text-warning"),
+                            !sheetCompleted && !sheetFailed && "text-warning",
+                          )}
+                        />
+                        {sheetCompleted
+                          ? localizeCourseUi("Review Quiz", locale)
+                          : sheetFailed
+                            ? localizeCourseUi("Retake Quiz", locale)
+                            : localizeCourseUi("Quiz", locale)}
+                      </Button>
+                    );
+                  })()}
                   {moduleData.module.has_homework && (
                     <Button
                       variant="outline"
@@ -622,7 +713,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     : attemptedNotPassed
                                       ? failedAtZero
                                         ? "border-destructive/75 bg-gradient-to-r from-destructive/20 to-transparent shadow-destructive/15"
-                                        : "border-destructive/60 bg-gradient-to-r from-destructive/15 to-transparent shadow-destructive/10"
+                                        : "border-warning/60 bg-gradient-to-r from-warning/15 to-transparent shadow-warning/10"
                                       : "border-border bg-secondary/10",
                                 )}
                               >
@@ -632,7 +723,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     completed
                                       ? "bg-success border-success text-success-foreground shadow-md"
                                       : attemptedNotPassed
-                                        ? "bg-destructive border-destructive text-destructive-foreground shadow-md"
+                                        ? failedAtZero
+                                          ? "bg-destructive border-destructive text-destructive-foreground shadow-md"
+                                          : "bg-warning border-warning text-warning-foreground shadow-md"
                                         : "bg-secondary border-border text-muted-foreground",
                                   )}
                                 >
@@ -652,7 +745,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 >
                                   <h4
                                     key={`${module.id}-${locale}-mobile-title`}
-                                    className="font-semibold text-sm truncate flex items-center gap-1.5"
+                                    className={cn(
+                                      "font-semibold text-sm truncate flex items-center gap-1.5",
+                                      completed
+                                        ? "text-success"
+                                        : attemptedNotPassed
+                                          ? failedAtZero
+                                            ? "text-destructive"
+                                            : "text-warning"
+                                        : "text-foreground",
+                                    )}
                                     data-no-translate
                                     translate="no"
                                   >
@@ -682,9 +784,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                             )}
                                           </span>
                                         )}
-                                        {module.has_quiz && (
-                                          <HelpCircle className="w-3 h-3 text-amber-400" />
-                                        )}
+                                        <QuizStatusIndicator
+                                          hasQuiz={module.has_quiz}
+                                          status={status}
+                                          locale={locale}
+                                        />
                                         {module.has_homework && (
                                           <ClipboardList className="w-3 h-3 text-green-400" />
                                         )}
@@ -695,7 +799,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     )}
                                   </div>
                                 </div>
-                                <Play className={cn("w-4 h-4 flex-shrink-0", completed ? "text-primary" : "text-muted-foreground")} />
+                                <Play className={cn("w-4 h-4 flex-shrink-0", completed ? "text-success" : attemptedNotPassed ? failedAtZero ? "text-destructive" : "text-warning" : "text-muted-foreground")} />
                               </button>
 
                               <SubLessonTrack
@@ -888,16 +992,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
                                     completed
                                       ? isSelected
-                                        ? "bg-gradient-to-r from-success/20 to-transparent border-success/75 shadow-lg shadow-success/20"
+                                        ? "bg-gradient-to-r from-success/25 to-transparent border-success/80 shadow-lg shadow-success/25"
                                         : "bg-gradient-to-r from-success/10 to-transparent border-success/65 shadow-md shadow-success/10"
                                       : attemptedNotPassed
                                         ? isSelected
                                           ? failedAtZero
                                             ? "bg-gradient-to-r from-destructive/25 to-transparent border-destructive/80 shadow-lg shadow-destructive/20"
-                                            : "bg-gradient-to-r from-destructive/20 to-transparent border-destructive/70 shadow-lg shadow-destructive/15"
+                                            : "bg-gradient-to-r from-warning/25 to-transparent border-warning/75 shadow-lg shadow-warning/20"
                                           : failedAtZero
                                             ? "bg-gradient-to-r from-destructive/20 to-transparent border-destructive/75 shadow-md shadow-destructive/15"
-                                            : "bg-gradient-to-r from-destructive/15 to-transparent border-destructive/60 shadow-md shadow-destructive/10"
+                                            : "bg-gradient-to-r from-warning/15 to-transparent border-warning/60 shadow-md shadow-warning/10"
                                         : isSelected
                                           ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
                                           : "border-border bg-secondary/10 shadow-md shadow-black/20",
@@ -909,7 +1013,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       completed
                                         ? "bg-success border border-success text-success-foreground shadow-md"
                                         : attemptedNotPassed
-                                          ? "bg-destructive border border-destructive text-destructive-foreground shadow-md"
+                                          ? failedAtZero
+                                            ? "bg-destructive border border-destructive text-destructive-foreground shadow-md"
+                                            : "bg-warning border border-warning text-warning-foreground shadow-md"
                                           : isSelected
                                             ? "gold-gradient text-primary-foreground shadow-md"
                                             : "bg-secondary border border-border text-muted-foreground",
@@ -938,7 +1044,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         completed
                                           ? "text-success"
                                           : attemptedNotPassed
-                                            ? "text-destructive"
+                                            ? failedAtZero
+                                              ? "text-destructive"
+                                              : "text-warning"
                                             : isSelected && "text-primary",
                                       )}
                                       data-no-translate
@@ -990,12 +1098,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                               )}
                                             </span>
                                           )}
-                                          {module.has_quiz && (
-                                            <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                              <HelpCircle className="w-3 h-3" />
-                                              {localizeCourseUi("Quiz", locale)}
-                                            </span>
-                                          )}
+                                          <QuizStatusIndicator
+                                            hasQuiz={module.has_quiz}
+                                            status={status}
+                                            locale={locale}
+                                          />
                                           {module.has_homework && (
                                             <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
                                               <ClipboardList className="w-3 h-3" />
@@ -1012,9 +1119,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   <Play
                                     className={cn(
                                       "w-5 h-5 flex-shrink-0 transition-transform",
-                                      (isSelected || completed)
-                                        ? "text-primary scale-110"
-                                        : "text-muted-foreground",
+                                      completed
+                                        ? "text-success scale-110"
+                                        : attemptedNotPassed
+                                          ? failedAtZero
+                                            ? "text-destructive scale-110"
+                                            : "text-warning scale-110"
+                                          : isSelected
+                                            ? "text-primary scale-110"
+                                            : "text-muted-foreground",
                                     )}
                                   />
                                 </button>
@@ -1202,8 +1315,21 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 {/* Actions */}
                 <div className="p-6 space-y-4">
                   {(() => {
-                    const detailCompleted = isModuleCompleted(moduleData.module.id);
-                    const detailScore = completedMap[moduleData.module.id]?.bestScore;
+                    const detailStatus = getModuleStatus(
+                      moduleData.module.id,
+                      completedMap,
+                    );
+                    const detailCompleted = detailStatus.state === "completed";
+                    const detailFailed = detailStatus.state === "failed";
+                    const detailZero = detailFailed && detailStatus.bestScore === 0;
+                    const DetailQuizIcon = detailCompleted
+                      ? CheckCircle2
+                      : detailFailed
+                        ? detailZero
+                          ? XCircle
+                          : AlertTriangle
+                        : HelpCircle;
+                    const detailScore = detailStatus.bestScore;
                     return (
                       <>
                         {detailCompleted && (
@@ -1252,20 +1378,33 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 variant="outline"
                                 className={cn(
                                   "flex-1",
-                                  detailCompleted && "border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10",
+                                  detailCompleted &&
+                                    "border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10",
+                                  detailFailed &&
+                                    (detailZero
+                                      ? "border-destructive/50 text-destructive hover:bg-destructive/10"
+                                      : "border-warning/50 text-warning hover:bg-warning/10"),
                                 )}
                                 onClick={() =>
                                   goToLesson(moduleData.module.id, courseType, "quiz")
                                 }
                               >
-                                {detailCompleted ? (
-                                  <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" />
-                                ) : (
-                                  <HelpCircle className="w-4 h-4 mr-2 text-amber-400" />
-                                )}
+                                <DetailQuizIcon
+                                  className={cn(
+                                    "w-4 h-4 mr-2",
+                                    detailCompleted && "text-emerald-400",
+                                    detailFailed &&
+                                      (detailZero
+                                        ? "text-destructive"
+                                        : "text-warning"),
+                                    !detailCompleted && !detailFailed && "text-warning",
+                                  )}
+                                />
                                 {detailCompleted
                                   ? "Review Quiz"
-                                  : localizeCourseUi("Take Quiz", locale)}
+                                  : detailFailed
+                                    ? "Retake Quiz"
+                                    : localizeCourseUi("Take Quiz", locale)}
                               </Button>
                             )}
 
