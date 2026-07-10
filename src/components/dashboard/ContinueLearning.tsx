@@ -1,13 +1,35 @@
 import { useCourses } from '@/hooks/useCourses';
 import { useCompletedModules } from '@/hooks/useCompletedModules';
 import { Button } from '@/components/ui/button';
-import { Play, Clock, FileText, Zap, ArrowRight, BookOpen, Loader2, List, Sparkles, Trophy } from 'lucide-react';
+import { Play, Clock, FileText, Zap, ArrowRight, BookOpen, Loader2, List, Sparkles, Trophy, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export function ContinueLearning() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: courses = [], isLoading } = useCourses();
   const { data: completedMap = {} } = useCompletedModules();
+
+  // Has the user actually generated a certificate (i.e. entered their name and
+  // gone through the certification modal)? Passing all quizzes is NOT the same
+  // as being certified — they still have to claim it.
+  const { data: hasCertificate = false } = useQuery({
+    queryKey: ['user-has-any-certification', user?.id],
+    enabled: !!user?.id,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('certifications')
+        .select('id')
+        .eq('user_id', user!.id)
+        .limit(1);
+      if (error) throw error;
+      return (data?.length ?? 0) > 0;
+    },
+  });
 
   if (isLoading) {
     return (
