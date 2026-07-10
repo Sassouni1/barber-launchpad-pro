@@ -270,7 +270,7 @@ export function CertificationModal({
               <p className="text-sm text-muted-foreground text-center">
                 {isEditing
                   ? 'Fix a typo in your name, or click Edit on any section below to update it. Saving will regenerate your certificate.'
-                  : 'Congratulations! Enter your certificate name, your business location, and where to mail your printed certificate.'}
+                  : 'Congratulations! Enter your certificate name, where to mail your printed certificate, and where clients can find you in our specialist directory.'}
               </p>
 
               <div className="space-y-2">
@@ -383,12 +383,12 @@ export function CertificationModal({
                 )}
               </div>
 
-              {/* 2. DIRECTORY / WORK ADDRESS — renamed for clarity, street is optional. */}
+              {/* 2. DIRECTORY LISTING — optional street address, city/state/ZIP required. */}
               <div className="space-y-3 border-t border-border/40 pt-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <Building2 className="w-4 h-4 text-primary shrink-0" />
-                    <p className="text-sm font-semibold">Where do you work?</p>
+                    <p className="text-sm font-semibold">Get listed in our specialist directory</p>
                   </div>
                   {isEditing && (
                     <Button
@@ -406,12 +406,12 @@ export function CertificationModal({
                   <p className="text-sm text-foreground/80 truncate">
                     {businessLocation.businessName
                       ? `${businessLocation.businessName} — ${businessLocation.city}, ${businessLocation.state}`
-                      : 'No work address on file. Click Edit to add.'}
+                      : 'Not listed in the directory yet. Click Edit to add.'}
                   </p>
                 ) : (
                   <>
                     <p className="text-xs text-muted-foreground -mt-1">
-                      Shown in our specialist directory so clients can find you. A street address helps clients get directions — if you'd rather not share one, just enter your city, state, and ZIP.
+                      Where should we tell people that you work? We show certified barbers on find.menshairexpert.com so clients can book with you. A street address helps clients get directions — if you don't have an exact address, just enter your city, state, and ZIP.
                     </p>
                     <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                       <input
@@ -439,7 +439,7 @@ export function CertificationModal({
                     <Input
                       value={businessLocation.businessName}
                       onChange={(e) => updateBusiness('businessName', e.target.value)}
-                      placeholder="Business / shop name"
+                      placeholder="Business / shop name (or your name if you work independently)"
                     />
                     <Input
                       value={businessLocation.addressLine1}
@@ -500,7 +500,7 @@ export function CertificationModal({
               </Button>
               {!isAddressComplete && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Please fill in your shipping address and your work location (city / state / ZIP at a minimum).
+                  Please fill in your shipping address and your directory listing (city / state / ZIP at a minimum).
                 </p>
               )}
 
