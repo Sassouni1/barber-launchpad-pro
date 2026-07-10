@@ -304,12 +304,28 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const positionedSelectedModuleRef = useRef<string | null>(null);
   const pendingSidebarScrollRef = useRef<SidebarScrollMode | null>(null);
+  const previousCourseTypeRef = useRef(courseType);
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isTabletOrDesktop = useIsTabletOrDesktop();
   const isDesktop = useIsDesktop();
   const { data: completedMap = {} } = useCompletedModules();
   const isModuleCompleted = (id: string) => !!completedMap[id]?.passed;
   const selectedModuleParam = searchParams.get("module");
+
+  const clearModuleSearchParam = useCallback(() => {
+    if (!selectedModuleParam) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("module");
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, selectedModuleParam, setSearchParams]);
+
+  const clearModuleSelection = useCallback(() => {
+    setSelectedModule(null);
+    positionedSelectedModuleRef.current = null;
+    pendingSidebarScrollRef.current = null;
+    clearModuleSearchParam();
+  }, [clearModuleSearchParam]);
 
   const pageTitle =
     courseType === "hair-system" ? "Hair System Training" : "Business Mastery";
@@ -411,8 +427,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   }, [courses]);
 
   useLayoutEffect(() => {
-    if (!isDesktop) return;
+    if (previousCourseTypeRef.current === courseType) return;
 
+    previousCourseTypeRef.current = courseType;
+    setSelectedModule(null);
+    setIsCertModalOpen(false);
+    positionedSelectedModuleRef.current = null;
+    pendingSidebarScrollRef.current = null;
+  }, [courseType]);
+
+  useLayoutEffect(() => {
     if (!selectedModuleParam) {
       setSelectedModule(null);
       positionedSelectedModuleRef.current = null;
@@ -427,6 +451,12 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     if (moduleExists) {
       setSelectedModule(selectedModuleParam);
       setIsCertModalOpen(false);
+
+      if (!isDesktop) {
+        pendingSidebarScrollRef.current = null;
+        positionedSelectedModuleRef.current = selectedModuleParam;
+        return;
+      }
 
       const pendingMode = pendingSidebarScrollRef.current;
       pendingSidebarScrollRef.current = null;
@@ -443,9 +473,21 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
       }
     } else {
       setSelectedModule(null);
+      positionedSelectedModuleRef.current = null;
       pendingSidebarScrollRef.current = null;
+
+      if (!isLoading) {
+        clearModuleSearchParam();
+      }
     }
-  }, [courses, isDesktop, positionSelectedModuleCard, selectedModuleParam]);
+  }, [
+    clearModuleSearchParam,
+    courses,
+    isDesktop,
+    isLoading,
+    positionSelectedModuleCard,
+    selectedModuleParam,
+  ]);
 
   const selectDesktopModule = (moduleId: string) => {
     if (moduleId !== selectedModuleParam) {
@@ -455,13 +497,6 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     setIsCertModalOpen(false);
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("module", moduleId);
-    setSearchParams(nextParams, { replace: true });
-  };
-
-  const clearDesktopModuleSelection = () => {
-    setSelectedModule(null);
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("module");
     setSearchParams(nextParams, { replace: true });
   };
 
@@ -521,7 +556,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const MobileModuleSheet = () => (
     <Sheet
       open={!!selectedModule}
-      onOpenChange={(open) => !open && setSelectedModule(null)}
+      onOpenChange={(open) => !open && clearModuleSelection()}
       modal={false}
     >
       <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0">
@@ -1026,7 +1061,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           <button
                             onClick={() => {
                               setIsCertModalOpen(true);
-                              setSelectedModule(null);
+                              clearModuleSelection();
                             }}
                             className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/30 bg-primary/5 shadow-md shadow-black/20 active:scale-[0.98]"
                           >
@@ -1359,7 +1394,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           <button
                             onClick={() => {
                               setIsCertModalOpen(true);
-                              clearDesktopModuleSelection();
+                              clearModuleSelection();
                             }}
                             className={cn(
                               "w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left",
