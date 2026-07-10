@@ -47,6 +47,7 @@ import {
   Star,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isQuizPassed } from "@/lib/quizPass";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getVimeoEmbedUrl } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -1734,37 +1735,56 @@ export default function Lesson() {
                   </div>
                 )
               ) : bestAttempt && !retakingQuiz ? (
-                <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-5 text-center">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8 text-green-400" />
-                  </div>
-                  <h3 className="font-display text-xl font-bold text-green-400 mb-1">
-                    Quiz Completed
-                  </h3>
-                  <p className="text-sm text-foreground/80 mb-1">
-                    You scored{" "}
-                    <span className="font-semibold">
-                      {bestAttempt.score}/{bestAttempt.total_questions}
-                    </span>{" "}
-                    (
-                    {Math.round(
-                      (bestAttempt.score / bestAttempt.total_questions) * 100,
-                    )}
-                    %)
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    This lesson is marked complete.
-                  </p>
-                  <Button
-                    onClick={() => setRetakingQuiz(true)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Retake Quiz
-                  </Button>
-                </div>
+                (() => {
+                  const passed = isQuizPassed(bestAttempt.score, bestAttempt.total_questions);
+                  const pct = Math.round((bestAttempt.score / bestAttempt.total_questions) * 100);
+                  return passed ? (
+                    <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-5 text-center">
+                      <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <CheckCircle2 className="w-8 h-8 text-green-400" />
+                      </div>
+                      <h3 className="font-display text-xl font-bold text-green-400 mb-1">
+                        Quiz Passed
+                      </h3>
+                      <p className="text-sm text-foreground/80 mb-1">
+                        You scored{" "}
+                        <span className="font-semibold">
+                          {bestAttempt.score}/{bestAttempt.total_questions}
+                        </span>{" "}
+                        ({pct}%)
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        This lesson is marked complete.
+                      </p>
+                      <Button
+                        onClick={() => setRetakingQuiz(true)}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Retake Quiz
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-5 text-center">
+                      <h3 className="font-display text-xl font-bold text-amber-400 mb-2">
+                        Quiz Score: {pct}%
+                      </h3>
+                      <p className="text-sm text-foreground/90 mb-4">
+                        Please retake the quiz and miss no more than 1 question to qualify for certification.
+                      </p>
+                      <Button
+                        onClick={() => setRetakingQuiz(true)}
+                        className="w-full bg-amber-500 hover:bg-amber-500/90 text-black"
+                        size="sm"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Retake Quiz
+                      </Button>
+                    </div>
+                  );
+                })()
               ) : (
                 <div className="space-y-4">
 
@@ -2270,35 +2290,50 @@ export default function Lesson() {
                     </div>
                   )
                 ) : bestAttempt && !retakingQuiz ? (
-                  <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-8 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
-                      <CheckCircle2 className="w-10 h-10 text-green-400" />
-                    </div>
-                    <h3 className="font-display text-2xl font-bold text-green-400 mb-2">
-                      Quiz Completed
-                    </h3>
-                    <p className="text-base text-foreground/80 mb-1">
-                      You scored{" "}
-                      <span className="font-semibold">
-                        {bestAttempt.score}/{bestAttempt.total_questions}
-                      </span>{" "}
-                      (
-                      {Math.round(
-                        (bestAttempt.score / bestAttempt.total_questions) * 100,
-                      )}
-                      %)
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      This lesson is marked complete.
-                    </p>
-                    <Button
-                      onClick={() => setRetakingQuiz(true)}
-                      variant="outline"
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Retake Quiz
-                    </Button>
-                  </div>
+                  (() => {
+                    const passed = isQuizPassed(bestAttempt.score, bestAttempt.total_questions);
+                    const pct = Math.round((bestAttempt.score / bestAttempt.total_questions) * 100);
+                    return passed ? (
+                      <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-10 h-10 text-green-400" />
+                        </div>
+                        <h3 className="font-display text-2xl font-bold text-green-400 mb-2">
+                          Quiz Passed
+                        </h3>
+                        <p className="text-base text-foreground/80 mb-1">
+                          You scored{" "}
+                          <span className="font-semibold">
+                            {bestAttempt.score}/{bestAttempt.total_questions}
+                          </span>{" "}
+                          ({pct}%)
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          This lesson is marked complete.
+                        </p>
+                        <Button onClick={() => setRetakingQuiz(true)} variant="outline">
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Retake Quiz
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-8 text-center">
+                        <h3 className="font-display text-2xl font-bold text-amber-400 mb-3">
+                          Quiz Score: {pct}%
+                        </h3>
+                        <p className="text-base text-foreground/90 mb-6">
+                          Please retake the quiz and miss no more than 1 question to qualify for certification.
+                        </p>
+                        <Button
+                          onClick={() => setRetakingQuiz(true)}
+                          className="bg-amber-500 hover:bg-amber-500/90 text-black"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Retake Quiz
+                        </Button>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <>
 
