@@ -559,8 +559,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   "w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
                                   !hasCardDetails && "min-h-[66px]",
                                   completed
-                                    ? "border-primary/60 bg-gradient-to-r from-primary/15 to-transparent shadow-primary/10"
-                                    : "border-border bg-secondary/10",
+                                    ? "border-emerald-500/60 bg-gradient-to-r from-emerald-500/15 to-transparent shadow-emerald-500/10"
+                                    : attemptedNotPassed
+                                      ? "border-amber-500/60 bg-gradient-to-r from-amber-500/15 to-transparent shadow-amber-500/10"
+                                      : "border-border bg-secondary/10",
                                 )}
                               >
                                 <div
@@ -568,11 +570,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm border",
                                     completed
                                       ? "bg-emerald-500 border-emerald-400 text-white shadow-md"
-                                      : "bg-secondary border-border text-muted-foreground",
+                                      : attemptedNotPassed
+                                        ? "bg-amber-500 border-amber-400 text-white shadow-md"
+                                        : "bg-secondary border-border text-muted-foreground",
                                   )}
                                 >
                                   {completed ? (
                                     <CheckCircle2 className="w-5 h-5" />
+                                  ) : attemptedNotPassed ? (
+                                    <RotateCcw className="w-4 h-4" />
                                   ) : (
                                     index + 1
                                   )}
