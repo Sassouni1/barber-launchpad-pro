@@ -440,86 +440,162 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
 
             {/* Actions */}
             <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-              {moduleData.module.description && (
-                <p className="text-sm text-muted-foreground">
-                  {moduleData.module.description}
-                </p>
-              )}
+              {(() => {
+                const sheetStatus = getModuleStatus(
+                  moduleData.module.id,
+                  completedMap,
+                );
+                const sheetCompleted = sheetStatus.state === "completed";
+                const sheetFailed = sheetStatus.state === "failed";
+                const sheetZero = sheetFailed && sheetStatus.bestScore === 0;
+                const sheetScore = sheetStatus.bestScore;
+                return (
+                  <>
+                    {moduleData.module.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {moduleData.module.description}
+                      </p>
+                    )}
 
-              <Button
-                className="w-full gold-gradient text-primary-foreground font-semibold py-5"
-                onClick={() => goToLesson(moduleData.module.id, courseType)}
-              >
-                <Play className="w-5 h-5 mr-2" />
-                {localizeCourseUi("Start Lesson", locale)}
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+                    {sheetCompleted && (
+                      <div className="flex items-center gap-2 rounded-xl border-2 border-success/50 bg-success/10 p-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success text-success-foreground shadow-md">
+                          <Trophy className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs font-bold text-success">
+                            {localizeCourseUi("Lesson Completed", locale)}
+                          </p>
+                          <p className="text-[10px] text-success-foreground/80">
+                            {localizeCourseUi("Quiz passed", locale)}{sheetScore != null ? ` ${sheetScore}%` : ""} · {localizeCourseUi("rewatch lesson", locale)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
-              {(moduleData.module.has_quiz ||
-                moduleData.module.has_homework) && (
-                <div className="flex gap-2">
-                  {moduleData.module.has_quiz && (() => {
-                    const sheetStatus = getModuleStatus(
-                      moduleData.module.id,
-                      completedMap,
-                    );
-                    const sheetCompleted = sheetStatus.state === "completed";
-                    const sheetFailed = sheetStatus.state === "failed";
-                    const sheetZero = sheetFailed && sheetStatus.bestScore === 0;
-                    const SheetQuizIcon = sheetCompleted
-                      ? CheckCircle2
-                      : sheetFailed
-                        ? sheetZero
-                          ? XCircle
-                          : AlertTriangle
-                        : HelpCircle;
-                    return (
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "flex-1",
-                          sheetCompleted && "border-success/50 text-success hover:bg-success/10",
-                          sheetFailed &&
-                            (sheetZero
-                              ? "border-destructive/50 text-destructive hover:bg-destructive/10"
-                              : "border-warning/50 text-warning hover:bg-warning/10"),
-                          !sheetCompleted && !sheetFailed && "border-primary/50 text-primary hover:bg-primary/10",
-                        )}
-                        onClick={() =>
-                          goToLesson(moduleData.module.id, courseType, "quiz")
-                        }
-                      >
-                        <SheetQuizIcon
-                          className={cn(
-                            "w-4 h-4 mr-2",
-                            sheetCompleted && "text-success",
-                            sheetFailed &&
-                              (sheetZero ? "text-destructive" : "text-warning"),
-                            !sheetCompleted && !sheetFailed && "text-primary",
-                          )}
-                        />
-                        {sheetCompleted
-                          ? localizeCourseUi("Review Quiz", locale)
-                          : sheetFailed
-                            ? localizeCourseUi("Retake Quiz", locale)
-                            : localizeCourseUi("Quiz", locale)}
-                      </Button>
-                    );
-                  })()}
-                  {moduleData.module.has_homework && (
+                    {sheetFailed && (
+                      <div className={cn(
+                        "flex items-center gap-2 rounded-xl border-2 p-3",
+                        sheetZero
+                          ? "border-destructive/50 bg-destructive/10"
+                          : "border-warning/50 bg-warning/10"
+                      )}>
+                        <div className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-full text-white shadow-md",
+                          sheetZero ? "bg-destructive" : "bg-warning"
+                        )}>
+                          {sheetZero ? <XCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                        </div>
+                        <div className="flex-1">
+                          <p className={cn(
+                            "text-xs font-bold",
+                            sheetZero ? "text-destructive" : "text-warning"
+                          )}>
+                            {localizeCourseUi("Retake Lesson", locale)}
+                          </p>
+                          <p className={cn(
+                            "text-[10px]",
+                            sheetZero ? "text-destructive-foreground/80" : "text-warning-foreground/80"
+                          )}>
+                            {localizeCourseUi("Quiz not passed", locale)}{sheetScore != null ? ` ${sheetScore}%` : ""} · {localizeCourseUi("rewatch lesson", locale)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() =>
-                        goToLesson(moduleData.module.id, courseType, "homework")
-                      }
+                      className={cn(
+                        "w-full font-semibold py-5",
+                        sheetCompleted
+                          ? "bg-success hover:bg-success/90 text-success-foreground"
+                          : sheetFailed
+                            ? sheetZero
+                              ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                              : "bg-warning hover:bg-warning/90 text-warning-foreground"
+                            : "gold-gradient text-primary-foreground",
+                      )}
+                      onClick={() => goToLesson(moduleData.module.id, courseType)}
                     >
-                      <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
-                      Homework
+                      {sheetCompleted ? (
+                        <>
+                          <CheckCircle2 className="w-5 h-5 mr-2" />
+                          {localizeCourseUi("Review Lesson", locale)}
+                        </>
+                      ) : sheetFailed ? (
+                        <>
+                          <RotateCcw className="w-5 h-5 mr-2" />
+                          {localizeCourseUi("Retake Lesson", locale)}
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-5 h-5 mr-2" />
+                          {localizeCourseUi("Start Lesson", locale)}
+                        </>
+                      )}
+                      <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
-                  )}
-                </div>
-              )}
+
+                    {(moduleData.module.has_quiz ||
+                      moduleData.module.has_homework) && (
+                      <div className="flex gap-2">
+                        {moduleData.module.has_quiz && (() => {
+                          const SheetQuizIcon = sheetCompleted
+                            ? CheckCircle2
+                            : sheetFailed
+                              ? sheetZero
+                                ? XCircle
+                                : AlertTriangle
+                              : HelpCircle;
+                          return (
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "flex-1",
+                                sheetCompleted && "border-success/50 text-success hover:bg-success/10",
+                                sheetFailed &&
+                                  (sheetZero
+                                    ? "border-destructive/50 text-destructive hover:bg-destructive/10"
+                                    : "border-warning/50 text-warning hover:bg-warning/10"),
+                                !sheetCompleted && !sheetFailed && "border-primary/50 text-primary hover:bg-primary/10",
+                              )}
+                              onClick={() =>
+                                goToLesson(moduleData.module.id, courseType, "quiz")
+                              }
+                            >
+                              <SheetQuizIcon
+                                className={cn(
+                                  "w-4 h-4 mr-2",
+                                  sheetCompleted && "text-success",
+                                  sheetFailed &&
+                                    (sheetZero ? "text-destructive" : "text-warning"),
+                                  !sheetCompleted && !sheetFailed && "text-primary",
+                                )}
+                              />
+                              {sheetCompleted
+                                ? localizeCourseUi("Review Quiz", locale)
+                                : sheetFailed
+                                  ? localizeCourseUi("Retake quiz", locale)
+                                  : localizeCourseUi("Quiz", locale)}
+                            </Button>
+                          );
+                        })()}
+                        {moduleData.module.has_homework && (
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() =>
+                              goToLesson(moduleData.module.id, courseType, "homework")
+                            }
+                          >
+                            <ClipboardList className="w-4 h-4 mr-2 text-green-400" />
+                            Homework
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}
