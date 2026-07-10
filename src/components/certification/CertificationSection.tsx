@@ -36,6 +36,7 @@ interface CertificationSectionProps {
 export function CertificationSection({ courseId }: CertificationSectionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown> | null>(null);
