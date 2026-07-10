@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Download, Loader2, Award, Sparkles, ChevronDown, ChevronUp, MapPin, Building2, CheckCircle } from 'lucide-react';
+import { useMarkCertificateDownloaded } from '@/hooks/useCertification';
 
 export interface CertificateShippingAddress {
   recipientName: string;
