@@ -7,6 +7,7 @@ import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { computeCertificateNameFontSize, NAME_BASE_FONT_SIZE } from '@/lib/certificateFontSize';
 
 
 type Draft = {
@@ -207,7 +208,9 @@ export function CertificateLayoutEditor() {
                       setNatural({ w: img.naturalWidth, h: img.naturalHeight });
                     }}
                   />
-                  {natural.w > 0 && rendered.w > 0 && (
+                  {natural.w > 0 && rendered.w > 0 && (() => {
+                    const previewFontPx = computeCertificateNameFontSize(testName || 'Recipient Name');
+                    return (
                     <>
                       <div
                         className="absolute pointer-events-none cert-name-preview"
@@ -215,7 +218,7 @@ export function CertificateLayoutEditor() {
                           left: `${(draft.name_x / natural.w) * 100}%`,
                           top: `${(draft.name_y / natural.h) * 100}%`,
                           transform: 'translate(-50%, -50%)',
-                          fontSize: `${(draft.name_font_size / natural.w) * rendered.w}px`,
+                          fontSize: `${(previewFontPx / natural.w) * rendered.w}px`,
                           color: layout.name_color || '#000000',
                           whiteSpace: 'nowrap',
                           lineHeight: 1,
@@ -251,7 +254,7 @@ export function CertificateLayoutEditor() {
                         {previewDate}
                       </div>
                     </>
-                  )}
+                  );})()}
                 </div>
               )}
             </div>
@@ -310,13 +313,13 @@ export function CertificateLayoutEditor() {
                   className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
                 />
                 <span className="text-sm text-muted-foreground">Font</span>
-                <input
-                  type="number"
-                  value={draft.name_font_size}
-                  onChange={(e) => patch({ name_font_size: Number(e.target.value) || 0 })}
-                  className="w-20 h-8 px-2 text-center text-sm rounded-md border border-input bg-background"
-                />
+                <span className="h-8 px-2 inline-flex items-center text-sm rounded-md border border-input bg-muted/30 tabular-nums">
+                  {computeCertificateNameFontSize(testName || 'Recipient Name')}px
+                </span>
               </div>
+              <p className="text-[10px] text-muted-foreground">
+                Auto-sized: {NAME_BASE_FONT_SIZE}px base, shrinks by 3px per character over 15. Same formula runs when the certificate is generated.
+              </p>
               <div className="flex items-center gap-1 flex-wrap">
                 <Button variant="outline" size="sm" onClick={() => patch({ name_x: draft.name_x - nudge })}><ChevronLeft className="w-4 h-4" /></Button>
                 <Button variant="outline" size="sm" onClick={() => patch({ name_x: draft.name_x + nudge })}><ChevronRight className="w-4 h-4" /></Button>
