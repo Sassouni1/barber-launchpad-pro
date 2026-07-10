@@ -1703,37 +1703,85 @@ export default function Lesson() {
                     </Button>
                   </div>
                 ) : (
-                  // Mobile Results Summary
-                  <div className="text-center py-6">
-                    <Trophy className="w-12 h-12 mx-auto mb-3 text-primary" />
-                    <h2 className="font-display text-2xl font-bold mb-2">
-                      {quizScore.score} / {quizScore.total}
-                    </h2>
-                    <p className="text-muted-foreground mb-3 text-sm">
-                      {Math.round((quizScore.score / quizScore.total) * 100)}%
-                      Correct
-                    </p>
-                    <Progress
-                      value={(quizScore.score / quizScore.total) * 100}
-                      className="w-48 mx-auto mb-4"
-                    />
-                    <div className="flex flex-col gap-2">
-                      {incorrectQuestions.size > 0 && (
-                        <Button
-                          onClick={() => setShowReview(true)}
-                          variant="secondary"
-                          size="sm"
-                        >
-                          <HelpCircle className="w-4 h-4 mr-2" />
-                          See Wrong Answers ({incorrectQuestions.size})
-                        </Button>
-                      )}
-                      <Button onClick={resetQuiz} variant="outline" size="sm">
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Try Again
-                      </Button>
-                    </div>
-                  </div>
+                  (() => {
+                    const passed = isQuizPassed(quizScore.score, quizScore.total);
+                    const pct = Math.round((quizScore.score / quizScore.total) * 100);
+
+                    return passed ? (
+                      <div className="space-y-3 py-2">
+                        <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-primary/40 bg-primary/10">
+                          <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <Trophy className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="font-semibold text-primary">Quiz Passed</p>
+                            <p className="text-sm text-foreground/80">
+                              {quizScore.score}/{quizScore.total} correct • you can review anytime
+                            </p>
+                          </div>
+                          <span className="px-3 py-1 rounded-full border border-primary/40 text-primary font-semibold text-sm">
+                            {pct}%
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {incorrectQuestions.size > 0 && (
+                            <Button
+                              onClick={() => setShowReview(true)}
+                              variant="outline"
+                              size="sm"
+                              className="border-primary/60 text-primary font-bold hover:bg-primary/10"
+                            >
+                              <HelpCircle className="w-4 h-4 mr-2" />
+                              Review Quiz
+                            </Button>
+                          )}
+                          <Button onClick={resetQuiz} variant="outline" size="sm">
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Retake Quiz
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 py-2">
+                        <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-destructive/40 bg-destructive/10">
+                          <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                            <AlertTriangle className="w-5 h-5 text-destructive" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="font-semibold text-destructive">Quiz Not Passed</p>
+                            <p className="text-sm text-foreground/80">
+                              Please retake the quiz and get 90% to pass.
+                            </p>
+                          </div>
+                          <span className="px-3 py-1 rounded-full border border-destructive/40 text-destructive font-semibold text-sm">
+                            {pct}%
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            onClick={resetQuiz}
+                            variant="destructive"
+                            size="lg"
+                            className="font-bold gap-2 shadow-lg"
+                          >
+                            <RotateCcw className="w-5 h-5" />
+                            Retake Quiz
+                          </Button>
+                          {incorrectQuestions.size > 0 && (
+                            <Button
+                              onClick={() => setShowReview(true)}
+                              variant="outline"
+                              size="sm"
+                              className="border-destructive/60 text-destructive font-bold hover:bg-destructive/10"
+                            >
+                              <HelpCircle className="w-4 h-4 mr-2" />
+                              See Wrong Answers ({incorrectQuestions.size})
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
                 )
               ) : bestAttempt && !retakingQuiz ? (
                 (() => {
