@@ -11,7 +11,6 @@ import {
   Loader2,
   ArrowRight,
   ChevronDown,
-  X,
   Star,
   Award,
   Globe,
@@ -28,11 +27,9 @@ import {
   localizeHairSystemLessonTitle,
   resolveVideoEmbedUrlForModule,
 } from "@/lib/i18n/spanishVideos";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { FIRST_POST_MODULE_ID } from "@/data/postLessons";
 import {
   Sheet,
@@ -52,7 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CertificationSection } from "@/components/certification/CertificationSection";
+import { Level1CertModal } from "@/components/certification/Level1CertModal";
 
 // Custom hook for md breakpoint (768px) - tablet and above
 function useIsTabletOrDesktop() {
@@ -162,7 +159,6 @@ const SubLessonTrack = ({
 
 export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const { data: allCoursesRaw = [], isLoading } = useCourses();
-  const { user } = useAuth();
   const { isAdmin } = useAuth();
   const { locale } = useLocale();
 
@@ -176,7 +172,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     (course) => (course as any).category === courseType,
   );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
-  const [showCertification, setShowCertification] = useState(false);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -657,7 +653,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         {category.id === "hair-system" && course.id && (
                           <button
                             onClick={() => {
-                              setShowCertification(true);
+                              setIsCertModalOpen(true);
                               setSelectedModule(null);
                             }}
                             className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/30 bg-primary/5 shadow-md shadow-black/20 active:scale-[0.98]"
@@ -670,7 +666,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 Level 1 Certification
                               </h4>
                               <p className="text-xs text-muted-foreground">
-                                Complete all lessons to unlock
+                                Open certification checklist
                               </p>
                             </div>
                             <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
@@ -707,20 +703,6 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   );
                 })}
 
-                {/* Certification Section when selected on mobile */}
-                {showCertification && expandedCourse === "hair-system" && (
-                  <div className="pl-2">
-                    {courseCategories.find((c) => c.id === "hair-system")
-                      ?.courses[0]?.id && (
-                      <CertificationSection
-                        courseId={
-                          courseCategories.find((c) => c.id === "hair-system")
-                            ?.courses[0]?.id || ""
-                        }
-                      />
-                    )}
-                  </div>
-                )}
               </CollapsibleContent>
             </Collapsible>
           ))}
@@ -825,7 +807,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       );
                                     } else if (isDesktop) {
                                       setSelectedModule(module.id);
-                                      setShowCertification(false);
+                                      setIsCertModalOpen(false);
                                     } else {
                                       navigate(
                                         `/courses/${courseType}/lesson/${module.id}`,
@@ -986,13 +968,13 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         <div className="pl-2 mt-2 space-y-2">
                           <button
                             onClick={() => {
-                              setShowCertification(true);
+                              setIsCertModalOpen(true);
                               setSelectedModule(null);
                             }}
                             className={cn(
                               "w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left",
                               "border-2 hover:border-primary/50 hover:bg-secondary/20",
-                              showCertification && !selectedModule
+                              isCertModalOpen && !selectedModule
                                 ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
                                 : "border-primary/30 bg-primary/5 shadow-md shadow-black/20",
                             )}
@@ -1004,7 +986,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               <h4
                                 className={cn(
                                   "font-semibold text-sm mb-1",
-                                  showCertification && !selectedModule
+                                  isCertModalOpen && !selectedModule
                                     ? "text-primary"
                                     : "gold-text",
                                 )}
@@ -1012,13 +994,13 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 Level 1 Certification
                               </h4>
                               <p className="text-xs text-muted-foreground">
-                                Complete all lessons to unlock
+                                Open certification checklist
                               </p>
                             </div>
                             <Award
                               className={cn(
                                 "w-5 h-5 flex-shrink-0",
-                                showCertification && !selectedModule
+                                isCertModalOpen && !selectedModule
                                   ? "text-primary"
                                   : "text-muted-foreground",
                               )}
@@ -1073,19 +1055,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
           <div
             className={cn(
               "flex-1 min-w-0 overflow-y-auto",
-              !showCertification &&
-                !moduleData?.module.video_url?.trim() &&
+              !moduleData?.module.video_url?.trim() &&
                 "flex items-center justify-center",
             )}
           >
-            {showCertification &&
-            !selectedModule &&
-            courseType === "hair-system" &&
-            courses[0]?.id ? (
-              <div className="p-4">
-                <CertificationSection courseId={courses[0].id} />
-              </div>
-            ) : moduleData ? (
+            {moduleData ? (
               <div
                 key={`${moduleData.module.id}-${locale}`}
                 className={cn(
@@ -1257,6 +1231,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
           </div>
         )}
       </div>
+      <Level1CertModal
+        isOpen={isCertModalOpen}
+        onClose={() => setIsCertModalOpen(false)}
+      />
     </DashboardLayout>
   );
 }

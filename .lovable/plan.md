@@ -1,31 +1,26 @@
-# Add Kit Arrival Notes to Start Here
+## Plan
 
-Keep the current 4-phase structure. Just surface *when* each of the 2 packages lands inside the existing phases.
+You’re right: the name-entry certification flow already exists in `Level1CertModal`; the course page got wired to the lighter `CertificationSection` instead, which is why the right panel looks like a static finished certificate/checklist area.
 
-## Changes to `src/pages/StartHere.tsx`
+### Fix
 
-**Phase 2 — Days 4–6 (Application Theory)**
-- Add a small "📦 Package 1 arrives this week" callout at the top of the phase card.
-- Contents: template supplies (everything needed to make the template).
-- Subtitle tweak: hint that they can start practicing template-making once it lands.
+1. **Use the existing `Level1CertModal` from the lesson checklist**
+   - Change the **Level 1 Certification** item in `Courses.tsx` so clicking it opens the existing `Level1CertModal`.
+   - That restores the old flow with requirements, photo upload, and the certificate-name modal.
 
-**Phase 3 — Days 7–9 (Business Side)**
-- Add a small "📦 Package 2 arrives this week" callout at the top of the phase card.
-- Contents: full Hair System Kit — adhesive, tape, color wheel, remover, hair pencil, install supplies, pins, canvas block.
-- Keep all existing business-side steps untouched.
+2. **Stop rendering the wrong right-side certificate panel for that checklist item**
+   - Remove/disable the inline `CertificationSection` panel from the course page selection state.
+   - The right-side panel should not replace the real certification modal flow.
 
-**Phase 4 — Kit Arrives**
-- Rename label to something like "Both Packages In Hand · Start Practicing" (or keep "Kit Arrives" — open to your preference).
-- Tweak subtitle to reflect that by now they have everything.
-- No step changes.
+3. **Keep the sidebar Level 1 Cert behavior unchanged**
+   - Sidebar already opens `Level1CertModal`; don’t break that.
 
-**Hero stat row**
-- Leave "~9 days / Until your kit arrives" as-is, OR optionally change sub to "Until both packages arrive". Will keep as-is unless you say otherwise.
+4. **Update the checklist copy**
+   - Replace the misleading static text “Complete all lessons to unlock” with clearer copy like:
+     - “Open certification checklist”
+   - This avoids implying the certificate is automatically done just because lessons are complete.
 
-## Visual treatment
-
-The callout will be a thin bordered strip inside the phase card (small package icon + bold "Package 1 of 2 arrives" + one line listing contents). Uses existing border/primary tokens — no new colors.
-
-## Out of scope
-- No reordering of phases or steps.
-- No changes to routes, data, or other pages.
+5. **Verify desktop + mobile**
+   - Desktop: clicking **Level 1 Certification** from `/courses/hair-system` opens the existing modal.
+   - Mobile: tapping the same checklist item opens the same existing modal.
+   - Confirm the modal still reaches the `Enter Your Name` step when requirements are met.
