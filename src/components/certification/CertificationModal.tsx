@@ -126,6 +126,7 @@ export function CertificationModal({
       setShippingAddress(defaultShippingAddress || emptyAddress(defaultName || ''));
       setBusinessLocation(defaultBusinessLocation || emptyBusiness());
       setShipToBusiness(false);
+      setIsDownloaded(false);
       return;
     }
 
