@@ -1103,20 +1103,14 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       ? "items-start"
                                       : "items-center min-h-[78px]",
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
-                                    completed
-                                      ? isSelected
-                                        ? "bg-gradient-to-r from-success/25 to-transparent border-success/80 shadow-lg shadow-success/25"
-                                        : "bg-gradient-to-r from-success/10 to-transparent border-success/65 shadow-md shadow-success/10"
-                                      : attemptedNotPassed
-                                        ? isSelected
+                                    isSelected
+                                      ? "bg-gradient-to-r from-primary/15 to-transparent border-primary/80 shadow-lg shadow-primary/25"
+                                      : completed
+                                        ? "bg-gradient-to-r from-success/10 to-transparent border-success/65 shadow-md shadow-success/10"
+                                        : attemptedNotPassed
                                           ? failedAtZero
-                                            ? "bg-gradient-to-r from-destructive/25 to-transparent border-destructive/80 shadow-lg shadow-destructive/20"
-                                            : "bg-gradient-to-r from-warning/25 to-transparent border-warning/75 shadow-lg shadow-warning/20"
-                                          : failedAtZero
                                             ? "bg-gradient-to-r from-destructive/20 to-transparent border-destructive/75 shadow-md shadow-destructive/15"
                                             : "bg-gradient-to-r from-warning/15 to-transparent border-warning/60 shadow-md shadow-warning/10"
-                                        : isSelected
-                                          ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
                                           : "border-border bg-secondary/10 shadow-md shadow-black/20",
                                   )}
                                 >
