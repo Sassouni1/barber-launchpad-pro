@@ -1,27 +1,24 @@
-Smart scroll for selected lesson
+# Fix: Certificate name drifts right of `name_x`
 
-Scroll only when a user clicks a lesson that is off-screen in the sidebar. If the card is already visible, do nothing — no jump, no shake.
+## Root cause
+`generate-certificate` sets `ctx.textAlign = 'center'`, but the Deno `canvas@v1.4.2` library doesn't honor it correctly with the loaded custom/script font — text is drawn left-anchored at `name_x` instead of centered on it. Pixel measurements of real certs confirm every name's leftmost pixel sits at exactly x=1390 regardless of length (Adriana drifts 334px right of true center, Lexi drifts 238px). The admin editor uses HTML/CSS with `transform: translate(-50%, -50%)` so its preview looks correct — the two renderers disagree.
 
-Behavior
+## Fix
+Update `supabase/functions/generate-certificate/index.ts` only. No DB, no admin UI, no client changes.
 
-Back from a lesson → no auto-scroll. The URL already carries ?module=..., and the selected card will be visible because the user is returned to the same list position they left.
-Click a lesson already visible → no scroll at all.
-Click a lesson partially or fully off-screen (e.g. way down the list) → smooth scroll into view, aligned to nearest so it only moves the minimum needed.
-How to decide "is it visible"
+1. Set `ctx.textAlign = 'left'` for the name.
+2. Measure the final (post auto-shrink) text width with `ctx.measureText(certificateName).width`.
+3. Draw at `nameX - textWidth / 2` so the visual center sits exactly on `name_x` — matching what the admin preview shows.
+4. Keep the existing auto-shrink loop and `name_max_width` behavior; measure width after the loop settles.
+5. Leave the date rendering alone (already `textAlign='left'`, already correct).
+6. Debug-mode green vertical line at `nameX` stays — it now correctly bisects the name.
 
-Use getBoundingClientRect() on the module card and compare against the viewport. Treat as visible only if the full card (top and bottom) sits inside the viewport with a small margin (~40px). If a card is half cut off, scroll.
-Safety guarantees (why it will never block scrolling)
+## Verification
+1. Regenerate Adriana's and Lexi's certs via the existing "Regenerate With Name" flow.
+2. Fetch the resulting PNGs and confirm the visual center of the name equals ~1400 (±5px) for both — matching template center regardless of name length.
+3. Spot-check a long name ("Christina Snowball Johnson") and a short name ("Lexi Zoller") — both should sit centered.
+4. Confirm admin preview and generated output now look identical.
 
-The scroll is triggered by a single click event, not by a continuous effect or observer. It never runs while the user is actively dragging/scrolling.
-Runs inside requestAnimationFrame after the DOM updates, so measurements are accurate and one-shot.
-No-ops when the element isn't found (course still loading, wrong tab, etc.).
-Uses block: "nearest" so it only moves the minimum needed — never jumps when unnecessary.
-Mobile path is untouched (isDesktop guard stays).
-Technical
-
-File: src/pages/Courses.tsx
-Remove the current "scroll once" ref gate entirely.
-When selectedModuleParam changes (or the effect runs for desktop), after rAF:
-Find [data-module-id="..."]. If not found, return.
-Get its rect; if top >= 40 && bottom <= window.innerHeight - 40, do nothing.
-Otherwise call scrollIntoView({ behavior: "smooth", block: "nearest" }).
+## Out of scope
+- Talaundra's stored PNG (rendered under a prior layout) won't retroactively change; regenerate if desired.
+- No changes to `certificate_layouts` values — `name_x = 1390` stays.
