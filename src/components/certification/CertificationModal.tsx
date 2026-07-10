@@ -81,6 +81,8 @@ export function CertificationModal({
   defaultShippingAddress,
   defaultBusinessLocation,
   isEditing = false,
+  courseId,
+  certificationId,
 }: CertificationModalProps) {
   const [step, setStep] = useState<Step>(isEditing ? 'name-entry' : 'analyzing');
   const [progress, setProgress] = useState(0);
