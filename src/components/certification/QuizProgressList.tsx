@@ -75,7 +75,7 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
             </span>
           </div>
           <div className="space-y-2">
-            {unpassed.map((quiz) => {
+            {visibleUnpassed.map((quiz) => {
               const status = quiz.bestScore !== null ? 'failed' : 'not-taken';
               return (
                 <button
@@ -101,6 +101,16 @@ export function QuizProgressList({ quizProgress, onNavigate }: QuizProgressListP
                 </button>
               );
             })}
+            {unpassed.length > INITIAL && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                onClick={() => setExpandUnpassed((v) => !v)}
+              >
+                {expandUnpassed ? 'Show less' : `Show ${unpassed.length - INITIAL} more`}
+              </Button>
+            )}
           </div>
         </div>
       )}
