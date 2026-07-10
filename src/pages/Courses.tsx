@@ -796,6 +796,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             const isSelected = selectedModule === module.id;
                             const completed = isModuleCompleted(module.id);
                             const bestScore = completedMap[module.id]?.bestScore;
+                            const attemptedNotPassed = !completed && completedMap[module.id] != null;
                             const moduleLessons = getModuleLessons(module);
                             const hasCardDetails = hasModuleCardDetails(
                               module,
