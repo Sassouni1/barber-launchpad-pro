@@ -2334,6 +2334,7 @@ export default function Lesson() {
                       </div>
                     );
                   })()
+                ) : (
                   <>
 
                     <h2 className="font-display text-xl font-semibold">
