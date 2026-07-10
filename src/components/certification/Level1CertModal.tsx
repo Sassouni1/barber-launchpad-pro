@@ -155,6 +155,7 @@ function useTrainingGamesCompleted() {
 export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [showQuizDetails, setShowQuizDetails] = useState(true);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
   const [nudgeAmount, setNudgeAmount] = useState(20);
   const [isDebugMode, setIsDebugMode] = useState(false);
