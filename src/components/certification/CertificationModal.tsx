@@ -278,7 +278,9 @@ export function CertificationModal({
           {step === 'name-entry' && (
             <div className="space-y-5">
               <p className="text-sm text-muted-foreground text-center">
-                Congratulations! Enter your certificate name, your business location, and where to mail your printed certificate.
+                {isEditing
+                  ? 'Fix a typo in your name, or click Edit on any section below to update it. Saving will regenerate your certificate.'
+                  : 'Congratulations! Enter your certificate name, your business location, and where to mail your printed certificate.'}
               </p>
 
               <div className="space-y-2">
