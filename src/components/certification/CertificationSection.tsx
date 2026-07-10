@@ -442,6 +442,8 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           defaultShippingAddress={certDefaults?.shipping ?? null}
           defaultBusinessLocation={certDefaults?.business ?? null}
           isEditing={isEditMode}
+          courseId={courseId}
+          certificationId={existingCertification?.id ?? null}
         />
 
         <DirectoryEnrollmentStep open={isDirectoryOpen} onClose={() => setIsDirectoryOpen(false)} />
