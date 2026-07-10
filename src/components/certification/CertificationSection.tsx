@@ -86,6 +86,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   } = useCertificationPhotos(courseId);
   const issueCertification = useIssueCertification();
   const resetCertification = useResetCertification();
+  const markDownloaded = useMarkCertificateDownloaded();
 
   // Find the photo upload module (has is_certification_requirement = true)
   const photoUploadModule = courses
