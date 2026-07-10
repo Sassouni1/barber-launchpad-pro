@@ -146,7 +146,9 @@ function getRenderedTextInkBounds(text: string, font: string, color: string) {
     inkWidth: maxX - minX + 1,
     inkHeight: maxY - minY + 1,
     inkCenterFromDrawX: ((minX + maxX) / 2) - originX,
+    inkCenterFromDrawY: ((minY + maxY) / 2) - originY,
   };
+
 }
 
 // Font URLs — prefer a custom uploaded certificate-name font, then use a clean script fallback.
@@ -306,17 +308,21 @@ serve(async (req) => {
       layout.name_color || DEFAULT_NAME_CONFIG.color,
     );
     const nameDrawX = Math.round(nameX - (inkBounds?.inkCenterFromDrawX ?? nameTextWidth / 2));
+    const nameDrawY = Math.round(nameY - (inkBounds?.inkCenterFromDrawY ?? 0));
 
     console.log('Name font:', { family: nameFontFamily, size: fontSize });
-    ctx.fillText(certificateName, nameDrawX, nameY);
+    ctx.fillText(certificateName, nameDrawX, nameDrawY);
     console.log('Name drawn at:', {
       drawX: nameDrawX,
+      drawY: nameDrawY,
       centerX: nameX,
-      y: nameY,
+      centerY: nameY,
       measuredWidth: nameTextWidth,
       inkBounds,
       visualCenterX: inkBounds ? nameDrawX + inkBounds.inkCenterFromDrawX : null,
+      visualCenterY: inkBounds ? nameDrawY + inkBounds.inkCenterFromDrawY : null,
     });
+
 
     // Draw date - default to using the name font/color when configured as 'name'
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
