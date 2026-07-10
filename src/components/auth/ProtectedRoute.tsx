@@ -7,10 +7,11 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean;
   requireManufacturer?: boolean;
   skipAgreementCheck?: boolean;
+  skipPasswordResetCheck?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false, requireManufacturer = false, skipAgreementCheck = false }: ProtectedRouteProps) {
-  const { user, loading, isAdmin, isManufacturer, hasSignedAgreement, isAgreementRequired } = useAuth();
+export function ProtectedRoute({ children, requireAdmin = false, requireManufacturer = false, skipAgreementCheck = false, skipPasswordResetCheck = false }: ProtectedRouteProps) {
+  const { user, loading, isAdmin, isManufacturer, hasSignedAgreement, isAgreementRequired, requiresPasswordReset } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -23,6 +24,10 @@ export function ProtectedRoute({ children, requireAdmin = false, requireManufact
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (requiresPasswordReset && !skipPasswordResetCheck) {
+    return <Navigate to="/reset-password" replace />;
   }
 
   if (requireManufacturer && !isManufacturer && !isAdmin) {
