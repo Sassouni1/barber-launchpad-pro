@@ -1816,19 +1816,28 @@ export default function Lesson() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-5 text-center">
-                      <h3 className="font-display text-xl font-bold text-amber-400 mb-2">
-                        Quiz Score: {pct}%
-                      </h3>
-                      <p className="text-sm text-foreground/90 mb-4">
-                        Please retake the quiz and miss no more than 1 question to qualify for certification.
-                      </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-destructive/40 bg-destructive/10">
+                        <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="w-5 h-5 text-destructive" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className="font-semibold text-destructive">Quiz Not Passed</p>
+                          <p className="text-sm text-foreground/80">
+                            Please retake the quiz and get 90% to pass.
+                          </p>
+                        </div>
+                        <span className="px-3 py-1 rounded-full border border-destructive/40 text-destructive font-semibold text-sm">
+                          {pct}%
+                        </span>
+                      </div>
                       <Button
                         onClick={() => setRetakingQuiz(true)}
-                        className="w-full bg-amber-500 hover:bg-amber-500/90 text-black"
-                        size="sm"
+                        variant="destructive"
+                        className="w-full font-bold gap-2 shadow-lg"
+                        size="lg"
                       >
-                        <RotateCcw className="w-4 h-4 mr-2" />
+                        <RotateCcw className="w-5 h-5" />
                         Retake Quiz
                       </Button>
                     </div>
