@@ -325,7 +325,6 @@ export function useMarkCertificateDownloaded() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['certification', variables.courseId] });
       queryClient.invalidateQueries({ queryKey: ['certification-eligibility', variables.courseId] });
-      toast.success('Download recorded');
     },
     onError: (error) => {
       console.error('Mark download error:', error);
