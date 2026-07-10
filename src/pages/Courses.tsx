@@ -21,7 +21,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useCompletedModules, type ModuleCompletion } from "@/hooks/useCompletedModules";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { cn, getVimeoEmbedUrl } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -89,6 +89,7 @@ interface CoursesProps {
 }
 
 type ModuleLessonPreview = { id: string; title: string; order_index: number };
+type SidebarScrollMode = "restore" | "click";
 
 const getModuleLessons = (module: Module): ModuleLessonPreview[] =>
   [...(((module as any).lessons || []) as ModuleLessonPreview[])].sort(
@@ -283,8 +284,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const allCourses = allCoursesRaw;
 
   // For desktop: filter by courseType prop
-  const courses = allCourses.filter(
-    (course) => (course as any).category === courseType,
+  const courses = useMemo(
+    () =>
+      allCourses.filter((course) => (course as any).category === courseType),
+    [allCourses, courseType],
   );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
@@ -292,6 +295,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const positionedSelectedModuleRef = useRef<string | null>(null);
+  const pendingSidebarScrollRef = useRef<SidebarScrollMode | null>(null);
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isTabletOrDesktop = useIsTabletOrDesktop();
   const isDesktop = useIsDesktop();
@@ -303,18 +308,83 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     courseType === "hair-system" ? "Hair System Training" : "Business Mastery";
 
   // Group courses by category (for mobile only)
-  const courseCategories = [
-    {
-      id: "hair-system",
-      title: "Hair System Training",
-      courses: allCourses.filter((c) => (c as any).category === "hair-system"),
+  const courseCategories = useMemo(
+    () => [
+      {
+        id: "hair-system",
+        title: "Hair System Training",
+        courses: allCourses.filter(
+          (c) => (c as any).category === "hair-system",
+        ),
+      },
+      {
+        id: "business",
+        title: "Business Mastery",
+        courses: allCourses.filter((c) => (c as any).category === "business"),
+      },
+    ],
+    [allCourses],
+  );
+
+  const positionSelectedModuleCard = useCallback(
+    (moduleId: string, mode: SidebarScrollMode) => {
+      requestAnimationFrame(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const el = container.querySelector(
+          `[data-module-id="${moduleId}"]`,
+        ) as HTMLElement | null;
+        if (!el) return;
+
+        const margin = 40;
+        const containerRect = container.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const elementTop =
+          elRect.top - containerRect.top + container.scrollTop;
+        const elementBottom = elementTop + elRect.height;
+        const maxScrollTop = Math.max(
+          0,
+          container.scrollHeight - container.clientHeight,
+        );
+        const clampScrollTop = (value: number) =>
+          Math.max(0, Math.min(value, maxScrollTop));
+
+        if (mode === "click") {
+          const isFullyVisible =
+            elRect.top >= containerRect.top + margin &&
+            elRect.bottom <= containerRect.bottom - margin;
+
+          if (isFullyVisible) return;
+
+          const visibleTop = container.scrollTop + margin;
+          const visibleBottom =
+            container.scrollTop + container.clientHeight - margin;
+          let targetTop = container.scrollTop;
+
+          if (elementTop < visibleTop) {
+            targetTop = elementTop - margin;
+          } else if (elementBottom > visibleBottom) {
+            targetTop = elementBottom - container.clientHeight + margin;
+          }
+
+          container.scrollTo({
+            top: clampScrollTop(targetTop),
+            behavior: "smooth",
+          });
+          return;
+        }
+
+        container.scrollTo({
+          top: clampScrollTop(
+            elementTop - (container.clientHeight - elRect.height) / 2,
+          ),
+          behavior: "auto",
+        });
+      });
     },
-    {
-      id: "business",
-      title: "Business Mastery",
-      courses: allCourses.filter((c) => (c as any).category === "business"),
-    },
-  ];
+    [],
+  );
 
   // Check if there's more content to scroll
   useEffect(() => {
@@ -345,6 +415,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
 
     if (!selectedModuleParam) {
       setSelectedModule(null);
+      positionedSelectedModuleRef.current = null;
+      pendingSidebarScrollRef.current = null;
       return;
     }
 
@@ -355,27 +427,30 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     if (moduleExists) {
       setSelectedModule(selectedModuleParam);
       setIsCertModalOpen(false);
-      // Scroll only if the selected card is off-screen; never jump when it's already visible
-      requestAnimationFrame(() => {
-        const el = document.querySelector(
-          `[data-module-id="${selectedModuleParam}"]`,
-        ) as HTMLElement | null;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const margin = 40;
-        const isFullyVisible =
-          rect.top >= margin &&
-          rect.bottom <= window.innerHeight - margin;
-        if (!isFullyVisible) {
-          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
-      });
+
+      const pendingMode = pendingSidebarScrollRef.current;
+      pendingSidebarScrollRef.current = null;
+
+      if (pendingMode === "click") {
+        positionSelectedModuleCard(selectedModuleParam, "click");
+        positionedSelectedModuleRef.current = selectedModuleParam;
+        return;
+      }
+
+      if (positionedSelectedModuleRef.current !== selectedModuleParam) {
+        positionSelectedModuleCard(selectedModuleParam, "restore");
+        positionedSelectedModuleRef.current = selectedModuleParam;
+      }
     } else {
       setSelectedModule(null);
+      pendingSidebarScrollRef.current = null;
     }
-  }, [courses, isDesktop, selectedModuleParam]);
+  }, [courses, isDesktop, positionSelectedModuleCard, selectedModuleParam]);
 
   const selectDesktopModule = (moduleId: string) => {
+    if (moduleId !== selectedModuleParam) {
+      pendingSidebarScrollRef.current = "click";
+    }
     setSelectedModule(moduleId);
     setIsCertModalOpen(false);
     const nextParams = new URLSearchParams(searchParams);
