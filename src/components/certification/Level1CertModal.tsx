@@ -592,9 +592,22 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1 gold-gradient" onClick={handleDownload}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
+                  <Button
+                    className={cn(
+                      'flex-1',
+                      existingCertification?.downloaded_at ? 'bg-green-600 hover:bg-green-700 text-white' : 'gold-gradient'
+                    )}
+                    onClick={handleDownload}
+                    disabled={markDownloaded.isPending}
+                  >
+                    {markDownloaded.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : existingCertification?.downloaded_at ? (
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    {existingCertification?.downloaded_at ? 'Downloaded' : 'Download'}
                   </Button>
                   <Button
                     variant="outline"
