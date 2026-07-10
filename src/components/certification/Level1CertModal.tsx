@@ -786,6 +786,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
             ) : (
               // Show requirements checklist
               <>
+                <p className="text-sm text-muted-foreground">
+                  Complete every requirement below to earn your Level 1 Certification.
+                </p>
                 <div className="space-y-3">
                   {requirements.map((req, idx) => (
                     <div key={idx} className="space-y-2">
