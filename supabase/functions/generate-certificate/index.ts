@@ -146,7 +146,9 @@ function getRenderedTextInkBounds(text: string, font: string, color: string) {
     inkWidth: maxX - minX + 1,
     inkHeight: maxY - minY + 1,
     inkCenterFromDrawX: ((minX + maxX) / 2) - originX,
+    inkCenterFromDrawY: ((minY + maxY) / 2) - originY,
   };
+
 }
 
 // Font URLs — prefer a custom uploaded certificate-name font, then use a clean script fallback.
