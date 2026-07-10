@@ -30,7 +30,7 @@ import {
   localizeHairSystemLessonTitle,
   resolveVideoEmbedUrlForModule,
 } from "@/lib/i18n/spanishVideos";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { FIRST_POST_MODULE_ID } from "@/data/postLessons";
@@ -290,12 +290,14 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isTabletOrDesktop = useIsTabletOrDesktop();
   const isDesktop = useIsDesktop();
   const { data: completedMap = {} } = useCompletedModules();
   const isModuleCompleted = (id: string) => !!completedMap[id]?.passed;
+  const selectedModuleParam = searchParams.get("module");
 
   const pageTitle =
     courseType === "hair-system" ? "Hair System Training" : "Business Mastery";
@@ -337,6 +339,41 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
       window.removeEventListener("resize", checkScroll);
     };
   }, [courses]);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    if (!selectedModuleParam) {
+      setSelectedModule(null);
+      return;
+    }
+
+    const moduleExists = courses.some((course) =>
+      (course.modules || []).some((module) => module.id === selectedModuleParam),
+    );
+
+    if (moduleExists) {
+      setSelectedModule(selectedModuleParam);
+      setIsCertModalOpen(false);
+    } else {
+      setSelectedModule(null);
+    }
+  }, [courses, isDesktop, selectedModuleParam]);
+
+  const selectDesktopModule = (moduleId: string) => {
+    setSelectedModule(moduleId);
+    setIsCertModalOpen(false);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("module", moduleId);
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const clearDesktopModuleSelection = () => {
+    setSelectedModule(null);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("module");
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const goToLesson = (moduleId: string, categoryId: string, tab?: string) => {
     const url = tab
@@ -1053,8 +1090,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         `/courses/${courseType}/lesson/${module.id}`,
                                       );
                                     } else if (isDesktop) {
-                                      setSelectedModule(module.id);
-                                      setIsCertModalOpen(false);
+                                      selectDesktopModule(module.id);
                                     } else {
                                       navigate(
                                         `/courses/${courseType}/lesson/${module.id}`,
@@ -1238,7 +1274,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           <button
                             onClick={() => {
                               setIsCertModalOpen(true);
-                              setSelectedModule(null);
+                              clearDesktopModuleSelection();
                             }}
                             className={cn(
                               "w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left",
