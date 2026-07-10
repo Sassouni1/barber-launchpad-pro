@@ -277,12 +277,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     }
   };
 
-  const handleRegenerateCertification = () => {
+  const handleEditCertificate = () => {
     setGeneratedCertificateUrl(null);
-    if (existingCertification?.certificate_name) {
-      void handleSubmitCertification(existingCertification.certificate_name);
-      return;
-    }
+    setIsEditMode(true);
     setIsCertModalOpen(true);
   };
 
