@@ -495,7 +495,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             sheetCompleted && "text-success",
                             sheetFailed &&
                               (sheetZero ? "text-destructive" : "text-warning"),
-                            !sheetCompleted && !sheetFailed && "text-warning",
+                            !sheetCompleted && !sheetFailed && "text-primary",
                           )}
                         />
                         {sheetCompleted
