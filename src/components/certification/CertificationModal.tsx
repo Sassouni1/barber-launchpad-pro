@@ -509,7 +509,7 @@ export function CertificationModal({
                 ) : (
                   <>
                     <Award className="w-4 h-4 mr-2" />
-                    Generate My Certificate
+                    {isEditing ? 'Save & Regenerate' : 'Generate My Certificate'}
                   </>
                 )}
               </Button>
