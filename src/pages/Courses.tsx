@@ -1399,7 +1399,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       (detailZero
                                         ? "text-destructive"
                                         : "text-warning"),
-                                    !detailCompleted && !detailFailed && "text-warning",
+                                    !detailCompleted && !detailFailed && "text-primary",
                                   )}
                                 />
                                 {detailCompleted
