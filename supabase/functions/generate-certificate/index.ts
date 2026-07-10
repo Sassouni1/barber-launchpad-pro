@@ -100,6 +100,55 @@ function resolveCertificateLayout(layout: Record<string, unknown>, width: number
   };
 }
 
+function getRenderedTextInkBounds(text: string, font: string, color: string) {
+  const measurementWidth = 3000;
+  const measurementHeight = 500;
+  const originX = 1000;
+  const originY = Math.round(measurementHeight / 2);
+  const measurementCanvas = createCanvas(measurementWidth, measurementHeight);
+  const measurementCtx = measurementCanvas.getContext('2d');
+
+  measurementCtx.clearRect(0, 0, measurementWidth, measurementHeight);
+  measurementCtx.font = font;
+  measurementCtx.fillStyle = color;
+  measurementCtx.textAlign = 'left';
+  measurementCtx.textBaseline = 'middle';
+  measurementCtx.fillText(text, originX, originY);
+
+  const imageData = measurementCtx.getImageData(0, 0, measurementWidth, measurementHeight).data;
+  let minX = measurementWidth;
+  let maxX = -1;
+  let minY = measurementHeight;
+  let maxY = -1;
+
+  for (let y = 0; y < measurementHeight; y++) {
+    for (let x = 0; x < measurementWidth; x++) {
+      const index = (y * measurementWidth + x) * 4;
+      const alpha = imageData[index + 3];
+      if (alpha > 8) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (maxX < minX) {
+    return null;
+  }
+
+  return {
+    leftFromDrawX: minX - originX,
+    rightFromDrawX: maxX - originX,
+    topFromDrawY: minY - originY,
+    bottomFromDrawY: maxY - originY,
+    inkWidth: maxX - minX + 1,
+    inkHeight: maxY - minY + 1,
+    inkCenterFromDrawX: ((minX + maxX) / 2) - originX,
+  };
+}
+
 // Font URLs — prefer a custom uploaded certificate-name font, then use a clean script fallback.
 const NAME_FONT_FALLBACK_URL = 'https://fonts.gstatic.com/s/pinyonscript/v24/6xKpdSJbL9-e9LuoeQiDRQR8aOI.ttf';
 const DATE_FONT_URL = 'https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtZ6Ew-.ttf';
@@ -229,10 +278,11 @@ serve(async (req) => {
 
     console.log('Using pixel coordinates:', { nameX, nameY, nameMaxWidth, dateX, dateY, usedFallback: resolvedLayout.usedFallback, stored: resolvedLayout.stored, template: { width, height } });
 
-    // Draw name — manually center around nameX. The deno canvas library does not
-    // honor textAlign='center' reliably with custom-loaded script fonts (it draws
-    // left-anchored at nameX), so we measure width and offset ourselves. This makes
-    // the generated PNG match the admin HTML preview exactly.
+    // Draw name — center the actual rendered ink around nameX. The deno canvas
+    // text metrics are wildly wrong for this uploaded script font: measureText can
+    // report a 1700px width while the visible ink is about 690px. Centering from
+    // those fake metrics pushes names far left/right, so we render once offscreen,
+    // scan the real pixels, and offset the final draw by the visible ink center.
     ctx.fillStyle = layout.name_color || DEFAULT_NAME_CONFIG.color;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -248,12 +298,25 @@ serve(async (req) => {
       ctx.font = `${fontSize}px ${nameFontFamily}`;
     }
 
+    const nameFont = `${fontSize}px ${nameFontFamily}`;
     const nameTextWidth = ctx.measureText(certificateName).width;
-    const nameDrawX = Math.round(nameX - nameTextWidth / 2);
+    const inkBounds = getRenderedTextInkBounds(
+      certificateName,
+      nameFont,
+      layout.name_color || DEFAULT_NAME_CONFIG.color,
+    );
+    const nameDrawX = Math.round(nameX - (inkBounds?.inkCenterFromDrawX ?? nameTextWidth / 2));
 
     console.log('Name font:', { family: nameFontFamily, size: fontSize });
     ctx.fillText(certificateName, nameDrawX, nameY);
-    console.log('Name drawn at:', { drawX: nameDrawX, centerX: nameX, y: nameY, width: nameTextWidth });
+    console.log('Name drawn at:', {
+      drawX: nameDrawX,
+      centerX: nameX,
+      y: nameY,
+      measuredWidth: nameTextWidth,
+      inkBounds,
+      visualCenterX: inkBounds ? nameDrawX + inkBounds.inkCenterFromDrawX : null,
+    });
 
     // Draw date - default to using the name font/color when configured as 'name'
     const dateFontSize = layout.date_font_size || DEFAULT_DATE_CONFIG.fontSize;
@@ -406,7 +469,7 @@ serve(async (req) => {
         usedFallbackLayout: resolvedLayout.usedFallback,
         storedLayout: resolvedLayout.stored,
         fontSizeUsed: fontSize,
-        textAlign: 'center',
+        textAlign: 'ink-center',
       };
     }
 
