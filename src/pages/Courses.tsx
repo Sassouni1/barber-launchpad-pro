@@ -340,14 +340,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     };
   }, [courses]);
 
-  const hasScrolledToSelectedRef = useRef(false);
-
   useEffect(() => {
     if (!isDesktop) return;
 
     if (!selectedModuleParam) {
       setSelectedModule(null);
-      hasScrolledToSelectedRef.current = false;
       return;
     }
 
@@ -358,16 +355,21 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     if (moduleExists) {
       setSelectedModule(selectedModuleParam);
       setIsCertModalOpen(false);
-      // Only scroll once — on initial arrival (e.g. back from lesson), not on every click
-      if (!hasScrolledToSelectedRef.current) {
-        hasScrolledToSelectedRef.current = true;
-        requestAnimationFrame(() => {
-          const el = document.querySelector(
-            `[data-module-id="${selectedModuleParam}"]`,
-          ) as HTMLElement | null;
-          el?.scrollIntoView({ behavior: "smooth", block: "center" });
-        });
-      }
+      // Scroll only if the selected card is off-screen; never jump when it's already visible
+      requestAnimationFrame(() => {
+        const el = document.querySelector(
+          `[data-module-id="${selectedModuleParam}"]`,
+        ) as HTMLElement | null;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const margin = 40;
+        const isFullyVisible =
+          rect.top >= margin &&
+          rect.bottom <= window.innerHeight - margin;
+        if (!isFullyVisible) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
     } else {
       setSelectedModule(null);
     }
