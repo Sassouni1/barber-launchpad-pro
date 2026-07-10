@@ -12,6 +12,7 @@ import {
   useIssueCertification,
   useResetCertification,
   useCertificationDefaults,
+  useMarkCertificateDownloaded,
 } from '@/hooks/useCertification';
 import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
