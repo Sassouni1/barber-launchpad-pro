@@ -26,6 +26,7 @@ import AionPage from "./pages/AionPage";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
 import CreateAccount from "./pages/CreateAccount";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import OrderHairSystem from "./pages/OrderHairSystem";
 import Products from "./pages/Products";
@@ -84,6 +85,7 @@ const MemberApp = () => (
         <Route path="/login" element={<Login />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/create" element={<CreateAccount />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/agreement" element={<ProtectedRoute skipAgreementCheck><Agreement /></ProtectedRoute>} />
         <Route path="/auth" element={<Navigate to="/login" replace />} />

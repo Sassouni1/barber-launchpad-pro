@@ -14,6 +14,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isManufacturer: boolean;
   hasSignedAgreement: boolean;
+  requiresPasswordReset: boolean;
   isAdminModeActive: boolean;
   isAgreementRequired: boolean;
   toggleAdminMode: () => void;
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isManufacturer, setIsManufacturer] = useState(false);
   const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
+  const [requiresPasswordReset, setRequiresPasswordReset] = useState(false);
   const [isAdminModeActive, setIsAdminModeActive] = useState(() => {
     const stored = localStorage.getItem(ADMIN_MODE_KEY);
     return stored === null ? true : stored === 'true';
@@ -88,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const checkUserStatus = async (userId: string) => {
-    const [rolesResult, profileResult] = await Promise.all([
+    const [rolesResult, profileResult, passwordResetResult] = await Promise.all([
       supabase
         .from('user_roles')
         .select('role')
@@ -97,13 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('profiles')
         .select('agreement_signed_at, skip_agreement')
         .eq('id', userId)
-        .maybeSingle()
+        .maybeSingle(),
+      (supabase as any).rpc('current_user_requires_password_reset')
     ]);
     
     const roles = (rolesResult.data || []).map((r: any) => r.role);
     setIsAdmin(roles.includes('admin'));
     setIsManufacturer(roles.includes('manufacturer'));
     setHasSignedAgreement(!!profileResult.data?.agreement_signed_at || !!profileResult.data?.skip_agreement);
+    setRequiresPasswordReset(Boolean(passwordResetResult.data));
     setLoading(false);
 
     updateLastActive(userId);
@@ -124,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAdmin(false);
         setIsManufacturer(false);
         setHasSignedAgreement(false);
+        setRequiresPasswordReset(false);
         setLoading(false);
       }
     });
@@ -183,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin,
       isManufacturer,
       hasSignedAgreement,
+      requiresPasswordReset,
       isAdminModeActive,
       isAgreementRequired,
       toggleAdminMode,
