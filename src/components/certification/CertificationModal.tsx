@@ -75,34 +75,49 @@ export function CertificationModal({
   certificateUrl,
   isGenerating,
   defaultName,
+  defaultShippingAddress,
+  defaultBusinessLocation,
+  isEditing = false,
 }: CertificationModalProps) {
-  const [step, setStep] = useState<Step>('name-entry');
+  const [step, setStep] = useState<Step>(isEditing ? 'name-entry' : 'analyzing');
   const [progress, setProgress] = useState(0);
   const [name, setName] = useState(defaultName || '');
   const [shippingAddress, setShippingAddress] = useState<CertificateShippingAddress>(
-    emptyAddress(defaultName || '')
+    defaultShippingAddress || emptyAddress(defaultName || '')
   );
-  const [businessLocation, setBusinessLocation] = useState<CertificateBusinessLocation>(emptyBusiness());
+  const [businessLocation, setBusinessLocation] = useState<CertificateBusinessLocation>(
+    defaultBusinessLocation || emptyBusiness()
+  );
   const [shipToBusiness, setShipToBusiness] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // In edit mode, collapse the address sections by default so users can just
+  // fix a typo in the name and hit save without touching anything else.
+  const [showShipping, setShowShipping] = useState(!isEditing);
+  const [showBusiness, setShowBusiness] = useState(!isEditing);
 
   useEffect(() => {
-    if (isOpen && defaultName) {
-      setName(defaultName);
-      setShippingAddress(prev => ({
-        ...prev,
-        recipientName: prev.recipientName || defaultName,
-      }));
+    if (isOpen) {
+      if (defaultName) {
+        setName(defaultName);
+      }
+      if (defaultShippingAddress) {
+        setShippingAddress(defaultShippingAddress);
+      }
+      if (defaultBusinessLocation) {
+        setBusinessLocation(defaultBusinessLocation);
+      }
+      setShowShipping(!isEditing);
+      setShowBusiness(!isEditing);
     }
-  }, [isOpen, defaultName]);
+  }, [isOpen, defaultName, defaultShippingAddress, defaultBusinessLocation, isEditing]);
 
   useEffect(() => {
     if (!isOpen) {
-      setStep('analyzing');
+      setStep(isEditing ? 'name-entry' : 'analyzing');
       setProgress(0);
-      setName('');
-      setShippingAddress(emptyAddress(defaultName || ''));
-      setBusinessLocation(emptyBusiness());
+      setName(defaultName || '');
+      setShippingAddress(defaultShippingAddress || emptyAddress(defaultName || ''));
+      setBusinessLocation(defaultBusinessLocation || emptyBusiness());
       setShipToBusiness(false);
       return;
     }
@@ -126,7 +141,7 @@ export function CertificationModal({
 
       return () => clearInterval(timer);
     }
-  }, [defaultName, isOpen, step]);
+  }, [defaultName, defaultShippingAddress, defaultBusinessLocation, isEditing, isOpen, step]);
 
   useEffect(() => {
     if (certificateUrl && step === 'name-entry') {
