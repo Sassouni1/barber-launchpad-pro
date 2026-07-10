@@ -16,6 +16,7 @@ import {
   Globe,
   CheckCircle2,
   Trophy,
+  RotateCcw,
 } from "lucide-react";
 import { useCompletedModules } from "@/hooks/useCompletedModules";
 import { useState, useRef, useEffect } from "react";
