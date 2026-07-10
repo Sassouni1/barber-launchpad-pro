@@ -3,7 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Download, Loader2, Award, Sparkles, ChevronDown, ChevronUp, MapPin, Building2 } from 'lucide-react';
+import { Download, Loader2, Award, Sparkles, ChevronDown, ChevronUp, MapPin, Building2, CheckCircle } from 'lucide-react';
+import { useMarkCertificateDownloaded } from '@/hooks/useCertification';
+import { cn } from '@/lib/utils';
 
 export interface CertificateShippingAddress {
   recipientName: string;
@@ -42,6 +44,8 @@ interface CertificationModalProps {
   defaultShippingAddress?: CertificateShippingAddress | null;
   defaultBusinessLocation?: CertificateBusinessLocation | null;
   isEditing?: boolean;
+  courseId?: string;
+  certificationId?: string | null;
 }
 
 type Step = 'analyzing' | 'name-entry' | 'complete';
@@ -78,6 +82,8 @@ export function CertificationModal({
   defaultShippingAddress,
   defaultBusinessLocation,
   isEditing = false,
+  courseId,
+  certificationId,
 }: CertificationModalProps) {
   const [step, setStep] = useState<Step>(isEditing ? 'name-entry' : 'analyzing');
   const [progress, setProgress] = useState(0);
@@ -90,6 +96,8 @@ export function CertificationModal({
   );
   const [shipToBusiness, setShipToBusiness] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const markDownloaded = useMarkCertificateDownloaded();
   // In edit mode, collapse the address sections by default so users can just
   // fix a typo in the name and hit save without touching anything else.
   const [showShipping, setShowShipping] = useState(!isEditing);
@@ -119,6 +127,7 @@ export function CertificationModal({
       setShippingAddress(defaultShippingAddress || emptyAddress(defaultName || ''));
       setBusinessLocation(defaultBusinessLocation || emptyBusiness());
       setShipToBusiness(false);
+      setIsDownloaded(false);
       return;
     }
 
@@ -218,6 +227,10 @@ export function CertificationModal({
   const handleDownload = () => {
     if (certificateUrl) {
       window.open(certificateUrl, '_blank');
+      setIsDownloaded(true);
+      if (courseId && certificationId) {
+        markDownloaded.mutate({ courseId, certificationId });
+      }
     }
   };
 
@@ -519,9 +532,22 @@ export function CertificationModal({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
               </div>
               <div className="flex gap-3">
-                <Button className="flex-1 gold-gradient" onClick={handleDownload}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Certificate
+                <Button
+                  className={cn(
+                    'flex-1',
+                    isDownloaded ? 'bg-green-600 hover:bg-green-700 text-white' : 'gold-gradient'
+                  )}
+                  onClick={handleDownload}
+                  disabled={markDownloaded.isPending}
+                >
+                  {markDownloaded.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : isDownloaded ? (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  {isDownloaded ? 'Downloaded' : 'Download Certificate'}
                 </Button>
                 <Button variant="outline" onClick={onClose}>
                   Close

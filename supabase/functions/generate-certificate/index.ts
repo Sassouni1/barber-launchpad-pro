@@ -395,6 +395,7 @@ serve(async (req) => {
         certificate_name: certificateName,
         certificate_url: certificateUrl,
         issued_at: new Date().toISOString(),
+        downloaded_at: null,
       }, {
         onConflict: 'user_id,course_id',
       })

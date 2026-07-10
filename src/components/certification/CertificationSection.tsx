@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw, Camera, Star, ArrowRight, BookOpen } from 'lucide-react';
+import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw, Camera, Star, ArrowRight, BookOpen, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizProgressList } from './QuizProgressList';
 import { CertificationModal, type CertificationSubmissionPayload } from './CertificationModal';
@@ -12,6 +12,7 @@ import {
   useIssueCertification,
   useResetCertification,
   useCertificationDefaults,
+  useMarkCertificateDownloaded,
 } from '@/hooks/useCertification';
 import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
@@ -85,6 +86,7 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   } = useCertificationPhotos(courseId);
   const issueCertification = useIssueCertification();
   const resetCertification = useResetCertification();
+  const markDownloaded = useMarkCertificateDownloaded();
 
   // Find the photo upload module (has is_certification_requirement = true)
   const photoUploadModule = courses
@@ -268,9 +270,14 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                 />
               </div>
               <Button
-                className="w-full gold-gradient"
+                className={cn(
+                  'w-full',
+                  existingCertification?.downloaded_at
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'gold-gradient'
+                )}
                 onClick={async () => {
-                  if (!baseCertificateUrl) return;
+                  if (!baseCertificateUrl || !existingCertification?.id) return;
                   const downloadUrl = getCertificateUrlWithCacheBuster(baseCertificateUrl);
                   const fileName = `certificate-${existingCertification.certificate_name.replace(/\s+/g, '-')}.png`;
                   try {
@@ -286,6 +293,11 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                     a.click();
                     document.body.removeChild(a);
                     setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+
+                    markDownloaded.mutate({
+                      courseId,
+                      certificationId: existingCertification.id,
+                    });
                   } catch (error) {
                     console.error('Download failed:', error);
                     // Fallback: open in new tab so user can long-press / save-as
@@ -297,10 +309,23 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
+
+                    markDownloaded.mutate({
+                      courseId,
+                      certificationId: existingCertification.id,
+                    });
                   }
                 }}
+                disabled={markDownloaded.isPending}
               >
-                Download Certificate
+                {markDownloaded.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : existingCertification?.downloaded_at ? (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                {existingCertification?.downloaded_at ? 'Downloaded' : 'Download Certificate'}
               </Button>
             </div>
           )}
@@ -417,6 +442,8 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
           defaultShippingAddress={certDefaults?.shipping ?? null}
           defaultBusinessLocation={certDefaults?.business ?? null}
           isEditing={isEditMode}
+          courseId={courseId}
+          certificationId={existingCertification?.id ?? null}
         />
 
         <DirectoryEnrollmentStep open={isDirectoryOpen} onClose={() => setIsDirectoryOpen(false)} />
@@ -552,6 +579,8 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
         onSubmit={handleSubmitCertification}
         certificateUrl={generatedCertificateUrl}
         isGenerating={issueCertification.isPending}
+        courseId={courseId}
+        certificationId={existingCertification?.id ?? null}
       />
       <DirectoryEnrollmentStep open={isDirectoryOpen} onClose={() => setIsDirectoryOpen(false)} />
     </>

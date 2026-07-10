@@ -29,6 +29,7 @@ import {
   useIssueCertification,
   useResetCertification,
   useCertificationDefaults,
+  useMarkCertificateDownloaded,
 } from '@/hooks/useCertification';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -203,6 +204,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const updateLayout = useUpdateCertificateLayout();
   const issueCertification = useIssueCertification();
   const resetCertification = useResetCertification();
+  const markDownloaded = useMarkCertificateDownloaded();
 
   useEffect(() => {
     if (!layout) return;
@@ -363,7 +365,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
 
   const handleDownload = async () => {
     const baseUrl = generatedCertificateUrl || existingCertification?.certificate_url;
-    if (!baseUrl) return;
+    if (!baseUrl || !existingCertification?.id) return;
 
     const ts = Date.now();
     const downloadUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${ts}`;
@@ -382,6 +384,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       a.click();
       document.body.removeChild(a);
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+
+      // Mark the certificate as downloaded in the database
+      markDownloaded.mutate({ courseId: courseId!, certificationId: existingCertification.id });
     } catch (error) {
       console.error('Download failed:', error);
       const a = document.createElement('a');
@@ -392,6 +397,9 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      // Still record the download attempt on fallback so the UI turns green
+      markDownloaded.mutate({ courseId: courseId!, certificationId: existingCertification.id });
     }
   };
 
@@ -460,10 +468,33 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : isCertified && certificateUrlWithCache ? (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                   <CheckCircle className="w-5 h-5 text-green-500" />
                   <span className="text-green-500 font-medium">You are certified!</span>
+                </div>
+
+                <div
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-lg border',
+                    existingCertification?.downloaded_at
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-amber-500/5 border-amber-500/40 border-l-4'
+                  )}
+                >
+                  {existingCertification?.downloaded_at ? (
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                  )}
+                  <span
+                    className={cn(
+                      'font-medium text-sm',
+                      existingCertification?.downloaded_at ? 'text-green-500' : 'text-foreground'
+                    )}
+                  >
+                    {existingCertification?.downloaded_at ? 'Certificate downloaded' : 'Download your certificate'}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 px-1">
@@ -561,9 +592,22 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1 gold-gradient" onClick={handleDownload}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
+                  <Button
+                    className={cn(
+                      'flex-1',
+                      existingCertification?.downloaded_at ? 'bg-green-600 hover:bg-green-700 text-white' : 'gold-gradient'
+                    )}
+                    onClick={handleDownload}
+                    disabled={markDownloaded.isPending}
+                  >
+                    {markDownloaded.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : existingCertification?.downloaded_at ? (
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    {existingCertification?.downloaded_at ? 'Downloaded' : 'Download'}
                   </Button>
                   <Button
                     variant="outline"
@@ -899,6 +943,8 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
           defaultShippingAddress={certDefaults?.shipping ?? null}
           defaultBusinessLocation={certDefaults?.business ?? null}
           isEditing={isEditMode && !!existingCertification}
+          courseId={courseId}
+          certificationId={existingCertification?.id ?? null}
         />
       )}
     </>

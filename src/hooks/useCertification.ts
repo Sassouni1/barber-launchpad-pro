@@ -43,6 +43,7 @@ interface Certification {
   certificate_name: string;
   certificate_url: string | null;
   issued_at: string;
+  downloaded_at: string | null;
 }
 
 interface QuizProgress {
@@ -301,6 +302,34 @@ export function useUserCertification(courseId: string | undefined) {
     },
     enabled: !!user?.id && !!courseId,
     staleTime: 30000, // 30 seconds
+  });
+}
+
+// Hook to mark a certification as downloaded
+export function useMarkCertificateDownloaded() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ courseId, certificationId }: { courseId: string; certificationId: string }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('certifications')
+        .update({ downloaded_at: new Date().toISOString() })
+        .eq('id', certificationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['certification', variables.courseId] });
+      queryClient.invalidateQueries({ queryKey: ['certification-eligibility', variables.courseId] });
+    },
+    onError: (error) => {
+      console.error('Mark download error:', error);
+      toast.error('Failed to record download');
+    },
   });
 }
 
