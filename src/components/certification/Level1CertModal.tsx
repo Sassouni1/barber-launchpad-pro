@@ -152,7 +152,7 @@ function useTrainingGamesCompleted() {
 }
 
 export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
-  const [showQuizDetails, setShowQuizDetails] = useState(false);
+  const [showQuizDetails, setShowQuizDetails] = useState(true);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
   const [nudgeAmount, setNudgeAmount] = useState(20);
@@ -417,26 +417,20 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     day: 'numeric',
   });
 
+  const passedQuizCount = eligibility?.quizProgress.filter((q) => q.passed).length ?? 0;
+  const totalQuizCount = eligibility?.quizProgress.length ?? 0;
+
   const requirements = [
-    {
-      label: 'Complete all lessons',
-      completed: true,
-      detail: lessonsProgress ? `${lessonsProgress.completedCount}/${lessonsProgress.totalCount}` : undefined,
-    },
     {
       label: 'Pass all quizzes',
       completed: allQuizzesPassed,
+      detail: totalQuizCount > 0 ? `${passedQuizCount}/${totalQuizCount} passed` : undefined,
       expandable: true,
-    },
-    {
-      label: 'Training games',
-      completed: true,
-      detail: trainingGames ? `${trainingGames.completedCount}/${trainingGames.totalCount}` : undefined,
     },
     {
       label: 'Submit work photos',
       completed: photoSubmitted,
-      detail: photoSubmitted ? `${photos?.length} photo(s)` : undefined,
+      detail: photoSubmitted ? `${photos?.length} photo(s)` : 'None yet',
       showUploader: true,
     },
   ];
@@ -795,13 +789,13 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                 <div className="space-y-3">
                   {requirements.map((req, idx) => (
                     <div key={idx} className="space-y-2">
-                      <div 
+                      <div
                         className={cn(
-                          "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                          req.completed 
-                            ? "bg-green-500/10 border-green-500/30" 
-                            : "bg-secondary/30 border-border",
-                          req.expandable && "cursor-pointer"
+                          'flex items-center justify-between p-3 rounded-lg border transition-colors',
+                          req.completed
+                            ? 'bg-green-500/10 border-green-500/30'
+                            : 'bg-amber-500/5 border-amber-500/40 border-l-4',
+                          req.expandable && 'cursor-pointer'
                         )}
                         onClick={() => req.expandable && setShowQuizDetails(!showQuizDetails)}
                       >
@@ -809,35 +803,44 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                           {req.completed ? (
                             <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                           ) : (
-                            <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                            <Circle className="w-5 h-5 text-amber-400 flex-shrink-0" />
                           )}
-                          <span className={cn(
-                            "font-medium",
-                            req.completed ? "text-green-500" : "text-foreground"
-                          )}>
+                          <span
+                            className={cn(
+                              'font-medium',
+                              req.completed ? 'text-green-500' : 'text-foreground'
+                            )}
+                          >
                             {req.label}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           {req.detail && (
-                            <span className="text-xs text-muted-foreground">
+                            <span
+                              className={cn(
+                                'text-xs font-semibold',
+                                req.completed ? 'text-muted-foreground' : 'text-amber-400'
+                              )}
+                            >
                               {req.detail}
                             </span>
                           )}
-                          {req.expandable && (
-                            showQuizDetails ? (
+                          {req.expandable &&
+                            (showQuizDetails ? (
                               <ChevronUp className="w-4 h-4 text-muted-foreground" />
                             ) : (
                               <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                            )
-                          )}
+                            ))}
                         </div>
                       </div>
 
                       {/* Quiz Details Expansion */}
                       {req.expandable && showQuizDetails && (
                         <div className="ml-8 p-3 rounded-lg bg-secondary/20 border border-border">
-                          <QuizProgressList quizProgress={eligibility?.quizProgress || []} />
+                          <QuizProgressList
+                            quizProgress={eligibility?.quizProgress || []}
+                            onNavigate={onClose}
+                          />
                         </div>
                       )}
 
