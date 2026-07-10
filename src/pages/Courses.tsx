@@ -1110,9 +1110,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   <Play
                                     className={cn(
                                       "w-5 h-5 flex-shrink-0 transition-transform",
-                                      (isSelected || completed)
-                                        ? "text-primary scale-110"
-                                        : "text-muted-foreground",
+                                      completed
+                                        ? "text-success scale-110"
+                                        : attemptedNotPassed
+                                          ? failedAtZero
+                                            ? "text-destructive scale-110"
+                                            : "text-warning scale-110"
+                                          : isSelected
+                                            ? "text-primary scale-110"
+                                            : "text-muted-foreground",
                                     )}
                                   />
                                 </button>
