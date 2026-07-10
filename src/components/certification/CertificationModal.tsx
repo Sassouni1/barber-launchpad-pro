@@ -226,6 +226,10 @@ export function CertificationModal({
   const handleDownload = () => {
     if (certificateUrl) {
       window.open(certificateUrl, '_blank');
+      setIsDownloaded(true);
+      if (courseId && certificationId) {
+        markDownloaded.mutate({ courseId, certificationId });
+      }
     }
   };
 
