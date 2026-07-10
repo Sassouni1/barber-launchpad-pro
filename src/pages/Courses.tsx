@@ -24,7 +24,6 @@ import { useCompletedModules, type ModuleCompletion } from "@/hooks/useCompleted
 import { useState, useRef, useEffect } from "react";
 import { cn, getVimeoEmbedUrl } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import type { VideoLocale } from "@/lib/i18n/spanishVideos";
 import {
   localizeCourseTitle,
   localizeCourseUi,
