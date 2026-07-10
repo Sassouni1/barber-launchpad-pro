@@ -500,7 +500,7 @@ export function CertificationModal({
               </Button>
               {!isAddressComplete && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Business location and full mailing address are both required for certification.
+                  Please fill in your shipping address and your work location (city / state / ZIP at a minimum).
                 </p>
               )}
 
