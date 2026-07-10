@@ -5,6 +5,8 @@ import {
   Play,
   FileText,
   HelpCircle,
+  AlertTriangle,
+  XCircle,
   ClipboardList,
   Clock,
   Settings,
