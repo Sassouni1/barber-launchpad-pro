@@ -7,6 +7,7 @@ import { useCourses } from '@/hooks/useCourses';
 import { useCertificateLayout, useUpdateCertificateLayout } from '@/hooks/useCertificateLayout';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { computeCertificateNameFontSize, NAME_BASE_FONT_SIZE } from '@/lib/certificateFontSize';
 
 
 type Draft = {
