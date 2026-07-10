@@ -605,6 +605,12 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         Completed {bestScore != null ? `· ${bestScore}%` : ""}
                                       </span>
                                     )}
+                                    {attemptedNotPassed && (
+                                      <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-amber-400 bg-amber-500/15 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
+                                        <RotateCcw className="w-3 h-3" />
+                                        Retake{bestScore != null ? ` · ${bestScore}%` : ""}
+                                      </span>
+                                    )}
                                     {hasCardDetails && (
                                       <>
                                         {module.duration && (
