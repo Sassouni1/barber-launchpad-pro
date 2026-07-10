@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw, ZoomIn, ZoomOut, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -162,6 +162,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
   const [draftLayout, setDraftLayout] = useState<{ name_x: number; name_y: number; name_font_size: number; date_x: number; date_y: number; date_font_size: number; date_font_family: string } | null>(null);
   const [zoom, setZoom] = useState(1);
+  const hasAutoOpenedNameEntry = useRef(false);
 
   const { isAdmin, isAdminModeActive } = useAuthContext();
   const showAdminControls = isAdmin && isAdminModeActive;
@@ -222,6 +223,26 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
   const isCertified = !!existingCertification;
   // Only quizzes + photo are required. Lessons and training games tracked for reference only.
   const allRequirementsMet = photoSubmitted && allQuizzesPassed;
+
+  useEffect(() => {
+    if (!isOpen) {
+      hasAutoOpenedNameEntry.current = false;
+      setIsCertModalOpen(false);
+      return;
+    }
+
+    if (
+      !isLoading &&
+      !isCertified &&
+      allRequirementsMet &&
+      !isCertModalOpen &&
+      !hasAutoOpenedNameEntry.current
+    ) {
+      hasAutoOpenedNameEntry.current = true;
+      setGeneratedCertificateUrl(null);
+      setIsCertModalOpen(true);
+    }
+  }, [allRequirementsMet, isCertModalOpen, isCertified, isLoading, isOpen]);
 
   const handleGetCertified = () => {
     setGeneratedCertificateUrl(null);
@@ -552,7 +573,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                     disabled={issueCertification.isPending}
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Edit Name
+                    Regenerate
                   </Button>
                 </div>
 
@@ -838,7 +859,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
                     onClick={handleGetCertified}
                   >
                     <Award className="w-4 h-4 mr-2" />
-                    {allRequirementsMet ? 'Get Your Certificate' : 'Complete Requirements Above'}
+                    {allRequirementsMet ? 'Enter Name & Generate Certificate' : 'Complete Requirements Above'}
                   </Button>
                   {!allRequirementsMet && (
                     <p className="text-xs text-muted-foreground text-center mt-2">
