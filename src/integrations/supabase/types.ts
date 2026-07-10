@@ -2203,6 +2203,7 @@ export type Database = {
     }
     Functions: {
       cleanup_old_marketing_images: { Args: never; Returns: undefined }
+      complete_current_user_password_reset: { Args: never; Returns: boolean }
       current_user_requires_password_reset: { Args: never; Returns: boolean }
       decrypt_token: {
         Args: { encryption_key: string; token_id: string }
