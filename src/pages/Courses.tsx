@@ -218,7 +218,7 @@ const QuizStatusIndicator = ({
   }
 
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-warning bg-warning/10 px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
       <HelpCircle className={iconSize} />
       {label}
     </span>
@@ -483,6 +483,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             (sheetZero
                               ? "border-destructive/50 text-destructive hover:bg-destructive/10"
                               : "border-warning/50 text-warning hover:bg-warning/10"),
+                          !sheetCompleted && !sheetFailed && "border-primary/50 text-primary hover:bg-primary/10",
                         )}
                         onClick={() =>
                           goToLesson(moduleData.module.id, courseType, "quiz")
@@ -494,7 +495,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             sheetCompleted && "text-success",
                             sheetFailed &&
                               (sheetZero ? "text-destructive" : "text-warning"),
-                            !sheetCompleted && !sheetFailed && "text-warning",
+                            !sheetCompleted && !sheetFailed && "text-primary",
                           )}
                         />
                         {sheetCompleted
@@ -1384,6 +1385,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     (detailZero
                                       ? "border-destructive/50 text-destructive hover:bg-destructive/10"
                                       : "border-warning/50 text-warning hover:bg-warning/10"),
+                                  !detailCompleted && !detailFailed && "border-primary/50 text-primary hover:bg-primary/10",
                                 )}
                                 onClick={() =>
                                   goToLesson(moduleData.module.id, courseType, "quiz")
@@ -1397,7 +1399,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       (detailZero
                                         ? "text-destructive"
                                         : "text-warning"),
-                                    !detailCompleted && !detailFailed && "text-warning",
+                                    !detailCompleted && !detailFailed && "text-primary",
                                   )}
                                 />
                                 {detailCompleted
