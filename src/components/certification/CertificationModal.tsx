@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Download, Loader2, Award, Sparkles } from 'lucide-react';
+import { Download, Loader2, Award, Sparkles, ChevronDown, ChevronUp, MapPin, Building2 } from 'lucide-react';
 
 export interface CertificateShippingAddress {
   recipientName: string;
