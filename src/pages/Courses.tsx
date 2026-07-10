@@ -1340,10 +1340,39 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             </div>
                             <div className="flex-1">
                               <p className="text-sm font-bold text-emerald-300">
-                                Lesson Completed
+                                {localizeCourseUi("Lesson Completed", locale)}
                               </p>
                               <p className="text-xs text-emerald-200/80">
-                                Quiz passed{detailScore != null ? ` with ${detailScore}%` : ""} · you can review anytime
+                                {localizeCourseUi("Quiz passed", locale)}{detailScore != null ? ` ${detailScore}%` : ""} · {localizeCourseUi("rewatch lesson", locale)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {detailFailed && (
+                          <div className={cn(
+                            "flex items-center gap-3 rounded-xl border-2 p-4",
+                            detailZero
+                              ? "border-destructive/50 bg-destructive/10"
+                              : "border-warning/50 bg-warning/10"
+                          )}>
+                            <div className={cn(
+                              "flex h-10 w-10 items-center justify-center rounded-full text-white shadow-md",
+                              detailZero ? "bg-destructive" : "bg-warning"
+                            )}>
+                              {detailZero ? <XCircle className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+                            </div>
+                            <div className="flex-1">
+                              <p className={cn(
+                                "text-sm font-bold",
+                                detailZero ? "text-destructive" : "text-warning"
+                              )}>
+                                {localizeCourseUi("Retake Lesson", locale)}
+                              </p>
+                              <p className={cn(
+                                "text-xs",
+                                detailZero ? "text-destructive-foreground/80" : "text-warning-foreground/80"
+                              )}>
+                                {localizeCourseUi("Quiz not passed", locale)}{detailScore != null ? ` ${detailScore}%` : ""} · {localizeCourseUi("rewatch lesson", locale)}
                               </p>
                             </div>
                           </div>
