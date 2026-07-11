@@ -971,7 +971,6 @@ export default function Lesson() {
   // Vimeo timeupdate is our source of truth for the order-video tracker.
   // Some private-hash Vimeo embeds don't reliably deliver play/pause postMessages,
   // so instead we advance watched-seconds directly from timeupdate deltas.
-  const orderLastTimeRef = useRef<number | null>(null);
   const handleOrderTimeUpdate = useCallback(
     (seconds: number) => {
       if (!isOrderTrackingModule || isCurrentLessonCompleted || !videoDuration) return;
