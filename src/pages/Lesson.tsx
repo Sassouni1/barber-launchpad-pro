@@ -766,6 +766,8 @@ export default function Lesson() {
     ? !!sublessonCompletion || hasPassingQuizAttempt
     : isModuleCompleted || hasPassingQuizAttempt;
 
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+
 
   const markModuleComplete = async () => {
     if (!user?.id) return;
@@ -956,7 +958,6 @@ export default function Lesson() {
   );
 
   // Auto-complete video lessons based on time on page
-  const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const elapsedSeconds = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoCompletedRef = useRef(false);
