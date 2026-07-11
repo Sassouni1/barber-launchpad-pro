@@ -84,6 +84,8 @@ const VideoPlayer = React.memo(
     onPlay,
     onPause,
     onEnded,
+    onTimeUpdate,
+    resumeSeconds = 0,
   }: {
     src: string;
     title: string;
@@ -91,6 +93,8 @@ const VideoPlayer = React.memo(
     onPlay?: () => void;
     onPause?: () => void;
     onEnded?: () => void;
+    onTimeUpdate?: (seconds: number) => void;
+    resumeSeconds?: number;
   }) => {
     const [hasStarted, setHasStarted] = useState(!posterSrc);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -99,18 +103,22 @@ const VideoPlayer = React.memo(
       posterSrc && !isDirectVideo
         ? src.replace("autoplay=0", "autoplay=1")
         : src;
+    const iframeSrc =
+      !isDirectVideo && playableSrc.includes("vimeo") && !/[?&]api=1(?:&|$)/.test(playableSrc)
+        ? `${playableSrc}${playableSrc.includes("?") ? "&" : "?"}api=1`
+        : playableSrc;
 
     useEffect(() => {
       setHasStarted(!posterSrc);
     }, [src, posterSrc]);
 
     useEffect(() => {
-      if (isDirectVideo || !src.includes("vimeo")) return;
+      if (!hasStarted || isDirectVideo || !src.includes("vimeo")) return;
       const iframe = iframeRef.current;
       if (!iframe) return;
 
       const subscribe = () => {
-        ["play", "pause", "ended"].forEach((eventName) => {
+        ["play", "pause", "ended", "timeupdate", "ready"].forEach((eventName) => {
           iframe.contentWindow?.postMessage(
             JSON.stringify({ method: "addEventListener", value: eventName }),
             "*",
@@ -120,15 +128,31 @@ const VideoPlayer = React.memo(
 
       const onMessage = (event: MessageEvent) => {
         if (event.source !== iframe.contentWindow) return;
-        let payload: { event?: string } | null = null;
+        let payload: { event?: string; data?: unknown } | null = null;
         try {
           payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         } catch {
           return;
         }
+        if (payload?.event === "ready" && resumeSeconds > 0) {
+          iframe.contentWindow?.postMessage(
+            JSON.stringify({ method: "setCurrentTime", value: resumeSeconds }),
+            "*",
+          );
+        }
         if (payload?.event === "play") onPlay?.();
         if (payload?.event === "pause") onPause?.();
         if (payload?.event === "ended") onEnded?.();
+        if (payload?.event === "timeupdate") {
+          const data = payload.data as { seconds?: unknown } | number | undefined;
+          const seconds =
+            typeof data === "number"
+              ? data
+              : typeof data?.seconds === "number"
+                ? data.seconds
+                : Number(data?.seconds);
+          if (Number.isFinite(seconds)) onTimeUpdate?.(seconds);
+        }
       };
 
       iframe.addEventListener("load", subscribe);
@@ -138,7 +162,15 @@ const VideoPlayer = React.memo(
         iframe.removeEventListener("load", subscribe);
         window.removeEventListener("message", onMessage);
       };
-    }, [isDirectVideo, onEnded, onPause, onPlay, src]);
+    }, [hasStarted, isDirectVideo, onEnded, onPause, onPlay, onTimeUpdate, resumeSeconds, src]);
+
+    useEffect(() => {
+      if (!hasStarted || isDirectVideo || !src.includes("vimeo") || resumeSeconds <= 0) return;
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ method: "setCurrentTime", value: resumeSeconds }),
+        "*",
+      );
+    }, [hasStarted, isDirectVideo, resumeSeconds, src]);
 
     return (
       <div className="glass-card rounded-2xl overflow-hidden">
@@ -178,7 +210,7 @@ const VideoPlayer = React.memo(
           ) : (
             <iframe
               ref={iframeRef}
-              src={playableSrc}
+              src={iframeSrc}
               className="absolute inset-0 w-full h-full"
               allow="autoplay; fullscreen; picture-in-picture"
               allowFullScreen
@@ -195,6 +227,7 @@ VideoPlayer.displayName = "VideoPlayer";
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
 const CONSUMER_FINANCING_MODULE_ID = "b1040000-0000-4000-8000-000000000104";
 const HAIR_SYSTEM_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
+const HAIR_SYSTEM_CHARGE_MODULE_ID = "c45caf90-af21-44cd-898c-76fc8015ea00";
 const SOCIAL_MEDIA_101_THUMBNAIL =
   "/lesson-assets/thumbnails/social-media-101-thumbnail.png";
 const CONSUMER_FINANCING_THUMBNAIL =
@@ -690,6 +723,8 @@ export default function Lesson() {
   const module = allModules[currentModuleIndex];
   const isOrderTrackingModule =
     !sublessonId && module?.id === HAIR_SYSTEM_ORDER_MODULE_ID;
+  const isChargeResumeModule =
+    !sublessonId && module?.id === HAIR_SYSTEM_CHARGE_MODULE_ID;
   const nextModule =
     currentModuleIndex >= 0 && currentModuleIndex < allModules.length - 1
       ? allModules[currentModuleIndex + 1]
@@ -706,6 +741,37 @@ export default function Lesson() {
   );
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // The charge lesson is informational rather than quiz-based. Preserve the
+  // Vimeo timestamp per user so returning learners can continue where they
+  // left off without changing completion requirements.
+  const chargePositionKey = user?.id
+    ? `hair-system-charge-position:${user.id}:${HAIR_SYSTEM_CHARGE_MODULE_ID}`
+    : null;
+  const [chargeResumeSeconds, setChargeResumeSeconds] = useState(0);
+  const chargePositionRef = useRef(0);
+  const chargeLastSavedRef = useRef(-1);
+
+  useEffect(() => {
+    if (!isChargeResumeModule || !chargePositionKey) {
+      chargePositionRef.current = 0;
+      chargeLastSavedRef.current = -1;
+      setChargeResumeSeconds(0);
+      return;
+    }
+
+    try {
+      const stored = Number.parseFloat(localStorage.getItem(chargePositionKey) || "0");
+      const restored = Number.isFinite(stored) ? Math.max(0, stored) : 0;
+      chargePositionRef.current = restored;
+      chargeLastSavedRef.current = Math.floor(restored);
+      setChargeResumeSeconds(restored);
+    } catch {
+      chargePositionRef.current = 0;
+      chargeLastSavedRef.current = -1;
+      setChargeResumeSeconds(0);
+    }
+  }, [chargePositionKey, isChargeResumeModule]);
 
   // Check if module's lessons are already completed
   const { data: lessonCompletionData } = useQuery({
@@ -897,6 +963,48 @@ export default function Lesson() {
     persistOrderWatch(orderWatchSecondsRef.current);
     logOrderPlayback("video_complete");
   }, [isOrderTrackingModule, logOrderPlayback, persistOrderWatch]);
+
+  const persistChargePosition = useCallback(
+    (seconds = chargePositionRef.current) => {
+      if (!isChargeResumeModule || !chargePositionKey || !Number.isFinite(seconds)) {
+        return;
+      }
+      const rounded = Math.max(0, Math.floor(seconds));
+      try {
+        localStorage.setItem(chargePositionKey, String(rounded));
+        chargeLastSavedRef.current = rounded;
+      } catch {
+        // Local persistence is best-effort; playback can still resume in-memory.
+      }
+    },
+    [chargePositionKey, isChargeResumeModule],
+  );
+
+  const handleChargeTimeUpdate = useCallback(
+    (seconds: number) => {
+      if (!isChargeResumeModule || !chargePositionKey || !Number.isFinite(seconds)) {
+        return;
+      }
+      chargePositionRef.current = Math.max(0, seconds);
+      const rounded = Math.floor(chargePositionRef.current);
+      // Vimeo sends timeupdate frequently; persist at most once every two
+      // seconds and flush the latest value on pause/unmount.
+      if (rounded - chargeLastSavedRef.current >= 2) {
+        persistChargePosition(chargePositionRef.current);
+      }
+    },
+    [chargePositionKey, isChargeResumeModule, persistChargePosition],
+  );
+
+  const handleChargePause = useCallback(() => {
+    persistChargePosition();
+  }, [persistChargePosition]);
+
+  useEffect(() => {
+    return () => {
+      persistChargePosition();
+    };
+  }, [persistChargePosition]);
 
   useEffect(() => {
     if (
@@ -1359,9 +1467,23 @@ export default function Lesson() {
               src={vimeoEmbedUrl}
               title={localizedModuleTitle}
               posterSrc={videoPosterSrc}
+              resumeSeconds={isChargeResumeModule ? chargeResumeSeconds : 0}
               onPlay={isOrderTrackingModule ? handleOrderPlay : undefined}
-              onPause={isOrderTrackingModule ? handleOrderPause : undefined}
-              onEnded={isOrderTrackingModule ? handleOrderEnded : undefined}
+              onPause={
+                isOrderTrackingModule
+                  ? handleOrderPause
+                  : isChargeResumeModule
+                    ? handleChargePause
+                    : undefined
+              }
+              onEnded={
+                isOrderTrackingModule
+                  ? handleOrderEnded
+                  : isChargeResumeModule
+                    ? handleChargePause
+                    : undefined
+              }
+              onTimeUpdate={isChargeResumeModule ? handleChargeTimeUpdate : undefined}
             />
           )}
 
