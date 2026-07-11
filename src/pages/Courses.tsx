@@ -179,7 +179,7 @@ const ModuleStatusBadge = ({
         "inline-flex shrink-0 items-center gap-1 rounded-full border font-bold uppercase tracking-wide",
         compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
         isCompleted
-          ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-300"
+          ? "border-success/35 bg-success/10 text-success"
           : isZeroFail
             ? "border-destructive/40 bg-destructive/10 text-destructive"
             : "border-warning/35 bg-warning/10 text-warning",
@@ -976,7 +976,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 className={cn(
                                   "w-full min-h-[100px] p-3.5 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
                                   completed
-                                    ? "border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.04] to-transparent"
+                                    ? "border-success/30 bg-gradient-to-r from-success/[0.05] to-transparent"
                                     : attemptedNotPassed
                                       ? failedAtZero
                                         ? "border-destructive/35 bg-gradient-to-r from-destructive/[0.06] to-transparent"
@@ -988,7 +988,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   className={cn(
                                     "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm border",
                                     completed
-                                      ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-400"
+                                      ? "border-success/35 bg-success/10 text-success"
                                       : attemptedNotPassed
                                         ? failedAtZero
                                           ? "border-destructive/40 bg-destructive/10 text-destructive"
@@ -1254,7 +1254,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     isSelected
                                       ? "bg-gradient-to-r from-primary/15 to-transparent border-primary/80 shadow-lg shadow-primary/25"
                                       : completed
-                                        ? "border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.04] to-transparent shadow-md shadow-black/20"
+                                        ? "border-success/30 bg-gradient-to-r from-success/[0.05] to-transparent shadow-md shadow-black/20"
                                         : attemptedNotPassed
                                           ? failedAtZero
                                             ? "border-destructive/35 bg-gradient-to-r from-destructive/[0.06] to-transparent shadow-md shadow-black/20"
@@ -1266,7 +1266,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     className={cn(
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       completed
-                                        ? "border border-emerald-500/35 bg-emerald-500/10 text-emerald-400"
+                                        ? "border border-success/35 bg-success/10 text-success"
                                         : attemptedNotPassed
                                           ? failedAtZero
                                             ? "border border-destructive/40 bg-destructive/10 text-destructive"
