@@ -52,6 +52,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Logo } from '@/components/ui/Logo';
+import { LanguageToggle } from '@/lib/i18n/LocaleProvider';
 
 interface MobileNavProps {
   isAdminView?: boolean;
@@ -213,7 +214,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
             </SheetContent>
           </Sheet>
           <Logo size="sm" />
-          <div className="w-10" />
+          <LanguageToggle className="px-2 py-1" />
         </div>
 
         <Dialog open={memberPickerOpen} onOpenChange={setMemberPickerOpen}>
@@ -488,8 +489,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
 
         <Logo size="sm" />
 
-        {/* Quick actions on right - just keep it clean with nothing or a dashboard shortcut */}
-        <div className="w-10" />
+        <LanguageToggle className="px-2 py-1" />
       </div>
 
       {/* Member Picker Dialog */}

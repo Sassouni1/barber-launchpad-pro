@@ -27,7 +27,7 @@ export function DashboardLayout({ children, isAdminView = false }: DashboardLayo
       
       <main className="flex-1 overflow-visible relative z-10">
         <div className="p-4 md:p-8">
-          <div className="flex justify-end mb-3 md:mb-4">
+          <div className="hidden md:flex justify-end mb-3 md:mb-4">
             <LanguageToggle />
           </div>
           {children}
