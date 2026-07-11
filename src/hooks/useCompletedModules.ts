@@ -8,7 +8,11 @@ import {
 } from "@/lib/certificationRequirements";
 
 
-export type ModuleCompletion = { bestScore: number; passed: boolean };
+export type ModuleCompletion = {
+  bestScore?: number;
+  passed: boolean;
+  completionKind?: "quiz" | "photo" | "exempt";
+};
 
 const cacheKey = (userId: string) => `completed-modules:${userId}`;
 
@@ -104,8 +108,9 @@ export function useCompletedModules() {
           if (m.course_id && coursesWithPhotos.has(m.course_id)) {
             const existing = map[m.id];
             map[m.id] = {
-              bestScore: existing?.bestScore ?? 100,
+              bestScore: existing?.bestScore,
               passed: true,
+              completionKind: "photo",
             };
           }
         }
@@ -128,7 +133,7 @@ export function useCompletedModules() {
       if (!requiresNewQuizzes) {
         for (const moduleId of NEW_CERTIFICATION_MODULE_IDS) {
           if (!map[moduleId]?.passed) {
-            map[moduleId] = { bestScore: 100, passed: true };
+            map[moduleId] = { passed: true, completionKind: "exempt" };
         }
         }
       }

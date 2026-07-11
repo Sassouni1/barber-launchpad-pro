@@ -127,12 +127,19 @@ const getModuleStatus = (
 ) => {
   const completion = completedMap[moduleId];
   const bestScore = completion?.bestScore;
+  const completionKind = completion?.completionKind ?? "quiz";
 
   if (completion?.passed) {
     return {
       state: "completed" as const,
       bestScore,
-      label: `Completed${bestScore != null ? ` · ${bestScore}%` : ""}`,
+      completionKind,
+      label:
+        completionKind === "photo"
+          ? "Template photo submitted"
+          : completionKind === "exempt"
+            ? "Not required"
+            : `Completed${bestScore != null ? ` · ${bestScore}%` : ""}`,
     };
   }
 
@@ -140,6 +147,7 @@ const getModuleStatus = (
     return {
       state: "failed" as const,
       bestScore,
+      completionKind,
       label: `Not Passed · Retake${bestScore != null ? ` · ${bestScore}%` : ""}`,
     };
   }
@@ -147,6 +155,7 @@ const getModuleStatus = (
   return {
     state: "not-started" as const,
     bestScore: undefined,
+    completionKind: undefined,
     label: "",
   };
 };
@@ -622,10 +631,18 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         </div>
                         <div className="flex-1">
                           <p className="text-xs font-bold text-success">
-                            {localizeCourseUi("Lesson Completed", locale)}
+                            {sheetStatus.completionKind === "photo"
+                              ? "Template photo submitted"
+                              : sheetStatus.completionKind === "exempt"
+                                ? "Requirement not required"
+                                : localizeCourseUi("Lesson Completed", locale)}
                           </p>
                           <p className="text-[10px] text-success-foreground/80">
-                            {localizeCourseUi("Quiz passed", locale)}{sheetScore != null ? ` ${sheetScore}%` : ""} · {localizeCourseUi("rewatch lesson", locale)}
+                            {sheetStatus.completionKind === "photo"
+                              ? "Certification requirement complete"
+                              : sheetStatus.completionKind === "exempt"
+                                ? "Added after your certification cohort"
+                                : `${localizeCourseUi("Quiz passed", locale)}${sheetScore != null ? ` ${sheetScore}%` : ""} · ${localizeCourseUi("rewatch lesson", locale)}`}
                           </p>
                         </div>
                       </div>
@@ -1545,10 +1562,18 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             </div>
                             <div className="flex-1">
                               <p className="text-sm font-bold text-emerald-300">
-                                {localizeCourseUi("Lesson Completed", locale)}
+                                {detailStatus.completionKind === "photo"
+                                  ? "Template photo submitted"
+                                  : detailStatus.completionKind === "exempt"
+                                    ? "Requirement not required"
+                                    : localizeCourseUi("Lesson Completed", locale)}
                               </p>
                               <p className="text-xs text-emerald-200/80">
-                                {localizeCourseUi("Quiz passed", locale)}{detailScore != null ? ` ${detailScore}%` : ""} · {localizeCourseUi("rewatch lesson", locale)}
+                                {detailStatus.completionKind === "photo"
+                                  ? "Certification requirement complete"
+                                  : detailStatus.completionKind === "exempt"
+                                    ? "Added after your certification cohort"
+                                    : `${localizeCourseUi("Quiz passed", locale)}${detailScore != null ? ` ${detailScore}%` : ""} · ${localizeCourseUi("rewatch lesson", locale)}`}
                               </p>
                             </div>
                           </div>
