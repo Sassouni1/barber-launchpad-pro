@@ -832,7 +832,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   >
                     <div className="relative flex flex-1 flex-col">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="inline-flex items-center rounded-lg border border-primary/80 px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                        <span className="inline-flex items-center rounded-lg border border-primary/40 bg-primary/5 px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
                           {isHair ? "Certification" : "Business Growth"}
                         </span>
                         {isHair ? (
@@ -861,7 +861,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           </div>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="font-sans text-sm font-semibold text-primary">
+                          <div className="font-sans text-sm font-semibold gold-text">
                             {done} of {total} lessons
                           </div>
                           <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary/80">
@@ -877,8 +877,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       className={cn(
                         "mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-sans text-sm font-semibold transition-colors",
                         done > 0
-                          ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "border-primary/80 text-primary hover:bg-primary/10",
+                          ? "border-transparent gold-gradient text-primary-foreground hover:brightness-105"
+                          : "border-primary/40 text-primary hover:bg-primary/5",
                       )}
                     >
                       {done > 0 ? "Continue lesson" : "Start lesson"}
