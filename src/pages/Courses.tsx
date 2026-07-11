@@ -140,7 +140,7 @@ const getModuleStatus = (
     return {
       state: "failed" as const,
       bestScore,
-      label: `Retake${bestScore != null ? ` · ${bestScore}%` : ""}`,
+      label: `Not Passed · Retake${bestScore != null ? ` · ${bestScore}%` : ""}`,
     };
   }
 
@@ -170,10 +170,10 @@ const ModuleStatusBadge = ({
         "inline-flex shrink-0 items-center gap-1 rounded-full border font-bold uppercase tracking-wide",
         compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
         isCompleted
-          ? "border-success/50 bg-success/20 text-success"
+          ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-300"
           : isZeroFail
-            ? "border-destructive/60 bg-destructive/20 text-destructive"
-            : "border-warning/50 bg-warning/20 text-warning",
+            ? "border-destructive/40 bg-destructive/10 text-destructive"
+            : "border-warning/35 bg-warning/10 text-warning",
       )}
     >
       <Icon className="h-3 w-3" />
@@ -200,7 +200,7 @@ const QuizStatusIndicator = ({
 
   if (status.state === "completed") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-success bg-success/10 px-2 py-0.5 rounded-full">
+      <span className="inline-flex items-center gap-1 rounded-full bg-secondary/50 px-2 py-0.5 text-xs text-muted-foreground">
         <CheckCircle2 className={iconSize} />
         {label}
       </span>
@@ -212,12 +212,7 @@ const QuizStatusIndicator = ({
     const Icon = isZero ? XCircle : AlertTriangle;
     return (
       <span
-        className={cn(
-          "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
-          isZero
-            ? "text-destructive bg-destructive/10"
-            : "text-warning bg-warning/10",
-        )}
+        className="inline-flex items-center gap-1 rounded-full bg-secondary/50 px-2 py-0.5 text-xs text-muted-foreground"
       >
         <Icon className={iconSize} />
         {label}
@@ -944,23 +939,23 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   "w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
                                   !hasCardDetails && "min-h-[66px]",
                                   completed
-                                    ? "border-success/65 bg-gradient-to-r from-success/15 to-transparent shadow-success/10"
+                                    ? "border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.04] to-transparent"
                                     : attemptedNotPassed
                                       ? failedAtZero
-                                        ? "border-destructive/75 bg-gradient-to-r from-destructive/20 to-transparent shadow-destructive/15"
-                                        : "border-warning/60 bg-gradient-to-r from-warning/15 to-transparent shadow-warning/10"
-                                      : "border-border bg-secondary/10",
+                                        ? "border-destructive/35 bg-gradient-to-r from-destructive/[0.06] to-transparent"
+                                        : "border-warning/35 bg-gradient-to-r from-warning/[0.06] to-transparent"
+                                    : "border-border bg-secondary/10",
                                 )}
                               >
                                 <div
                                   className={cn(
                                     "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm border",
                                     completed
-                                      ? "bg-success border-success text-success-foreground shadow-md"
+                                      ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-400"
                                       : attemptedNotPassed
                                         ? failedAtZero
-                                          ? "bg-destructive border-destructive text-destructive-foreground shadow-md"
-                                          : "bg-warning border-warning text-warning-foreground shadow-md"
+                                          ? "border-destructive/40 bg-destructive/10 text-destructive"
+                                          : "border-warning/40 bg-warning/10 text-warning"
                                         : "bg-secondary border-border text-muted-foreground",
                                   )}
                                 >
@@ -982,13 +977,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     key={`${module.id}-${locale}-mobile-title`}
                                     className={cn(
                                       "font-semibold text-sm truncate flex items-center gap-1.5",
-                                      completed
-                                        ? "text-success"
-                                        : attemptedNotPassed
-                                          ? failedAtZero
-                                            ? "text-destructive"
-                                            : "text-warning"
-                                        : "text-foreground",
+                                      "text-foreground",
                                     )}
                                     data-no-translate
                                     translate="no"
@@ -1034,7 +1023,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     )}
                                   </div>
                                 </div>
-                                <Play className={cn("w-4 h-4 flex-shrink-0", completed ? "text-success" : attemptedNotPassed ? failedAtZero ? "text-destructive" : "text-warning" : "text-muted-foreground")} />
+                                <Play className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
                               </button>
 
                               <SubLessonTrack
@@ -1228,23 +1217,23 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     isSelected
                                       ? "bg-gradient-to-r from-primary/15 to-transparent border-primary/80 shadow-lg shadow-primary/25"
                                       : completed
-                                        ? "bg-gradient-to-r from-success/10 to-transparent border-success/65 shadow-md shadow-success/10"
+                                        ? "border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.04] to-transparent shadow-md shadow-black/20"
                                         : attemptedNotPassed
                                           ? failedAtZero
-                                            ? "bg-gradient-to-r from-destructive/20 to-transparent border-destructive/75 shadow-md shadow-destructive/15"
-                                            : "bg-gradient-to-r from-warning/15 to-transparent border-warning/60 shadow-md shadow-warning/10"
-                                          : "border-border bg-secondary/10 shadow-md shadow-black/20",
+                                            ? "border-destructive/35 bg-gradient-to-r from-destructive/[0.06] to-transparent shadow-md shadow-black/20"
+                                            : "border-warning/35 bg-gradient-to-r from-warning/[0.06] to-transparent shadow-md shadow-black/20"
+                                        : "border-border bg-secondary/10 shadow-md shadow-black/20",
                                   )}
                                 >
                                   <div
                                     className={cn(
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       completed
-                                        ? "bg-success border border-success text-success-foreground shadow-md"
+                                        ? "border border-emerald-500/35 bg-emerald-500/10 text-emerald-400"
                                         : attemptedNotPassed
                                           ? failedAtZero
-                                            ? "bg-destructive border border-destructive text-destructive-foreground shadow-md"
-                                            : "bg-warning border border-warning text-warning-foreground shadow-md"
+                                            ? "border border-destructive/40 bg-destructive/10 text-destructive"
+                                            : "border border-warning/40 bg-warning/10 text-warning"
                                           : isSelected
                                             ? "gold-gradient text-primary-foreground shadow-md"
                                             : "bg-secondary border border-border text-muted-foreground",
@@ -1270,13 +1259,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       className={cn(
                                         "font-semibold text-sm flex items-center gap-1.5",
                                         hasCardDetails && "mb-1",
-                                        completed
-                                          ? "text-success"
-                                          : attemptedNotPassed
-                                            ? failedAtZero
-                                              ? "text-destructive"
-                                              : "text-warning"
-                                            : isSelected && "text-primary",
+                                        isSelected && "text-primary",
                                       )}
                                       data-no-translate
                                       translate="no"
@@ -1348,15 +1331,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   <Play
                                     className={cn(
                                       "w-5 h-5 flex-shrink-0 transition-transform",
-                                      completed
-                                        ? "text-success scale-110"
-                                        : attemptedNotPassed
-                                          ? failedAtZero
-                                            ? "text-destructive scale-110"
-                                            : "text-warning scale-110"
-                                          : isSelected
-                                            ? "text-primary scale-110"
-                                            : "text-muted-foreground",
+                                      isSelected
+                                        ? "text-primary scale-110"
+                                        : "text-muted-foreground",
                                     )}
                                   />
                                 </button>
