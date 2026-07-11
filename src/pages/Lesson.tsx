@@ -1516,7 +1516,13 @@ export default function Lesson() {
                     ? handleChargePause
                     : undefined
               }
-              onTimeUpdate={isChargeResumeModule ? handleChargeTimeUpdate : undefined}
+              onTimeUpdate={
+                isOrderTrackingModule
+                  ? handleOrderTimeUpdate
+                  : isChargeResumeModule
+                    ? handleChargeTimeUpdate
+                    : undefined
+              }
             />
           )}
 
