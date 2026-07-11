@@ -694,7 +694,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       {sheetCompleted ? (
                         <>
                           <CheckCircle2 className="w-5 h-5 mr-2" />
-                          {localizeCourseUi("Review Lesson", locale)}
+                          {sheetStatus.completionKind === "photo"
+                            ? "View Submission"
+                            : localizeCourseUi("Review Lesson", locale)}
                         </>
                       ) : sheetFailed ? (
                         <>
@@ -1623,7 +1625,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           {detailCompleted ? (
                             <>
                               <CheckCircle2 className="w-5 h-5 mr-2" />
-                              {localizeCourseUi("Review Lesson", locale)}
+                              {detailStatus.completionKind === "photo"
+                                ? "View Submission"
+                                : localizeCourseUi("Review Lesson", locale)}
                             </>
                           ) : detailFailed ? (
                             <>
