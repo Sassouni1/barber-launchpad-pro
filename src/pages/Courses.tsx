@@ -835,21 +835,21 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         ) : (
                           <Trophy className="w-4 h-4 text-muted-foreground" />
                         )}
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                        <span className="font-sans text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">
                           {isHair ? "Track 01" : "Track 02"}
                         </span>
                       </div>
-                      <h2 className="font-display font-bold text-sm text-foreground leading-tight">
+                      <h2 className="font-sans text-lg font-semibold tracking-tight text-foreground leading-tight">
                         {category.title}
                       </h2>
                     </div>
                     <div className="relative mt-auto">
                       <div className="flex items-end justify-between gap-2">
-                        <span className="font-display text-3xl font-bold gold-text leading-none">
+                        <span className="font-sans text-3xl font-semibold tracking-tight gold-text leading-none tabular-nums">
                           {pct}
                           <span className="text-base">%</span>
                         </span>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                        <span className="font-sans text-xs font-medium tracking-wide text-muted-foreground mb-1">
                           {done}/{total}
                         </span>
                       </div>
@@ -860,8 +860,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         />
                       </div>
                       <div className="mt-3">
-                        <span className="inline-flex items-center justify-center w-full rounded-lg border border-border/60 text-muted-foreground hover:text-foreground text-xs font-semibold py-2 px-3">
-                          {done > 0 ? "continue lesson" : "start lesson"}
+                        <span className="inline-flex items-center justify-center w-full rounded-lg border border-border/60 text-muted-foreground hover:text-foreground font-sans text-sm font-medium py-2 px-3">
+                          {done > 0 ? "Continue lesson" : "Start lesson"}
                         </span>
                       </div>
                     </div>
@@ -898,10 +898,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   )}
                 >
                   <div className="text-left">
-                    <h2 className="font-display font-bold text-base gold-text">
+                    <h2 className="font-sans text-lg font-semibold tracking-tight gold-text">
                       {category.title}
                     </h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="font-sans text-sm text-muted-foreground mt-0.5">
                       {category.courses.reduce(
                         (acc, c) => acc + (c.modules?.length || 0),
                         0,
