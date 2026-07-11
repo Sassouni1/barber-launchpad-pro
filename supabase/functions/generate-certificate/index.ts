@@ -38,6 +38,29 @@ type ShippingAddress = {
   countryCode?: string;
 };
 
+const CERTIFICATION_QUIZ_CUTOFF_ISO = '2026-06-01T00:00:00.000Z';
+const NEW_CERTIFICATION_MODULE_IDS = new Set([
+  '582837c7-5a6e-4467-b0ff-36446de0e478', // Live Client Part 1
+  '7c4808e9-0b1e-40e8-b188-016d4f9398a4', // Live Client Part 2
+  'ef71fd79-972e-4aca-a6eb-771dfbb1b865', // Live Client Part 3
+  'c8b69876-591a-41cc-82e4-755ad02efd4e', // Live Client Part 4
+]);
+
+function isQuizPassed(score: number, totalQuestions: number): boolean {
+  return totalQuestions > 0 && totalQuestions - score <= 1;
+}
+
+function requiresNewCertificationQuizzes(
+  createdAt: string | null | undefined,
+  hasExistingCertification: boolean,
+): boolean {
+  if (hasExistingCertification || !createdAt) return false;
+
+  const createdAtMs = Date.parse(createdAt);
+  const cutoffMs = Date.parse(CERTIFICATION_QUIZ_CUTOFF_ISO);
+  return Number.isFinite(createdAtMs) && createdAtMs >= cutoffMs;
+}
+
 function cleanString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -175,6 +198,67 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
+
+    // Keep the server-side certificate path aligned with the UI. Existing
+    // certificates are grandfathered; otherwise, accounts created on/after
+    // June 1, 2026 must pass every required quiz, including all four Live
+    // Client quizzes. Legacy accounts still use the pre-existing quiz set.
+    const { data: existingCertification, error: existingCertificationError } = await supabase
+      .from('certifications')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+      .maybeSingle();
+
+    if (existingCertificationError) {
+      throw new Error(`Failed to check existing certification: ${existingCertificationError.message}`);
+    }
+
+    if (!existingCertification) {
+      const { data: authUserResult, error: authUserError } = await supabase.auth.admin.getUserById(userId);
+      if (authUserError || !authUserResult.user) {
+        throw new Error('Unable to verify the account creation date for certification.');
+      }
+
+      const requiresNewQuizzes = requiresNewCertificationQuizzes(
+        authUserResult.user.created_at,
+        false,
+      );
+
+      const { data: quizModules, error: quizModulesError } = await supabase
+        .from('modules')
+        .select('id, has_quiz, course:courses!inner(category)')
+        .eq('courses.category', 'hair-system')
+        .eq('has_quiz', true);
+
+      if (quizModulesError) {
+        throw new Error(`Failed to check certification quizzes: ${quizModulesError.message}`);
+      }
+
+      const requiredQuizModuleIds = (quizModules || [])
+        .filter((module) => requiresNewQuizzes || !NEW_CERTIFICATION_MODULE_IDS.has(module.id))
+        .map((module) => module.id);
+
+      const { data: attempts, error: attemptsError } = await supabase
+        .from('user_quiz_attempts')
+        .select('module_id, score, total_questions')
+        .eq('user_id', userId)
+        .in('module_id', requiredQuizModuleIds.length > 0 ? requiredQuizModuleIds : ['00000000-0000-0000-0000-000000000000']);
+
+      if (attemptsError) {
+        throw new Error(`Failed to check quiz attempts: ${attemptsError.message}`);
+      }
+
+      const allQuizzesPassed = requiredQuizModuleIds.length > 0 && requiredQuizModuleIds.every((moduleId) =>
+        (attempts || []).some((attempt) =>
+          attempt.module_id === moduleId && isQuizPassed(attempt.score, attempt.total_questions),
+        ),
+      );
+
+      if (!allQuizzesPassed) {
+        throw new Error('Complete all required quizzes before generating your Level 1 Certification.');
+      }
+    }
 
     // Get stored layout from database (use maybeSingle to handle missing gracefully)
     console.log('Checking for stored layout...');

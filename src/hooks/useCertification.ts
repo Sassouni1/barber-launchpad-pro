@@ -3,6 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { isQuizPassed } from '@/lib/quizPass';
+import {
+  isNewCertificationModule,
+  requiresNewCertificationQuizzes,
+} from '@/lib/certificationRequirements';
 
 interface CertificateShippingAddress {
   recipientName: string;
@@ -62,7 +66,15 @@ export function useCertificationEligibility(courseId: string | undefined) {
     queryKey: ['certification-eligibility', courseId, user?.id],
     queryFn: async () => {
       if (!user?.id || !courseId) {
-        return { quizProgress: [], allQuizzesPassed: false, hasPhotos: false, allLessonsCompleted: false, isEligible: false };
+        return {
+          quizProgress: [],
+          allQuizzesPassed: false,
+          hasPhotos: false,
+          allLessonsCompleted: false,
+          isEligible: false,
+          hasExistingCertification: false,
+          requiresNewCertificationQuizzes: false,
+        };
       }
 
       // Get all modules for hair-system courses with quizzes
@@ -78,6 +90,27 @@ export function useCertificationEligibility(courseId: string | undefined) {
 
       if (modulesError) throw modulesError;
 
+      // An existing certificate always wins over newly-added requirements.
+      // This also lets certified members regenerate/edit their certificate
+      // without being asked to complete the new Live Client work.
+      const { data: existingCertification, error: certificationError } = await supabase
+        .from('certifications')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .maybeSingle();
+
+      if (certificationError) throw certificationError;
+
+      const hasExistingCertification = !!existingCertification;
+      const requiresNewQuizzes = requiresNewCertificationQuizzes(
+        user.created_at,
+        hasExistingCertification,
+      );
+      const certificationModules = (modules || []).filter(
+        (module) => requiresNewQuizzes || !isNewCertificationModule(module.id),
+      );
+
       // Get user's best quiz attempts for each module
       const { data: attempts, error: attemptsError } = await supabase
         .from('user_quiz_attempts')
@@ -87,7 +120,7 @@ export function useCertificationEligibility(courseId: string | undefined) {
       if (attemptsError) throw attemptsError;
 
       // Calculate quiz progress
-      const modulesWithQuiz = modules?.filter(m => m.has_quiz) || [];
+      const modulesWithQuiz = certificationModules.filter(m => m.has_quiz);
       const quizProgress: QuizProgress[] = modulesWithQuiz.map(module => {
         const moduleAttempts = attempts?.filter(a => a.module_id === module.id) || [];
         const bestAttempt = moduleAttempts.reduce((best, current) => {
@@ -131,7 +164,7 @@ export function useCertificationEligibility(courseId: string | undefined) {
       const hasPhotos = (photos?.length || 0) > 0;
 
       // Check if all lessons are completed
-      const allModuleIds = modules?.map(m => m.id) || [];
+      const allModuleIds = certificationModules.map(m => m.id);
       let allLessonsCompleted = false;
 
       if (allModuleIds.length > 0) {
@@ -167,6 +200,8 @@ export function useCertificationEligibility(courseId: string | undefined) {
         hasPhotos,
         allLessonsCompleted,
         isEligible: allQuizzesPassed && hasPhotos && allLessonsCompleted,
+        hasExistingCertification,
+        requiresNewCertificationQuizzes: requiresNewQuizzes,
       };
     },
     enabled: !!user?.id && !!courseId,
