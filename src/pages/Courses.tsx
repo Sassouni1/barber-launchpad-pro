@@ -974,7 +974,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   )
                                 }
                                 className={cn(
-                                  "w-full min-h-[118px] p-3.5 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
+                                  "w-full min-h-[125px] p-3.5 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
                                   completed
                                     ? "border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.04] to-transparent"
                                     : attemptedNotPassed
