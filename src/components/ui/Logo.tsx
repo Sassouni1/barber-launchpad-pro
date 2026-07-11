@@ -17,7 +17,7 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
     return (
       <div ref={ref} className={cn('flex items-center justify-center gap-3', className)}>
         <span className={cn(
-          'font-display font-bold gold-text tracking-tight',
+          'font-display font-bold text-primary tracking-tight',
           sizes[size]
         )}>
           Barber Launch
