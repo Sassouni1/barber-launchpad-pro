@@ -832,7 +832,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   >
                     <div className="relative flex flex-1 flex-col">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="inline-flex items-center rounded-lg border border-primary/80 px-3 py-1.5 font-accent text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
+                        <span className="inline-flex items-center rounded-lg border border-primary/80 px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
                           {isHair ? "Certification" : "Business Growth"}
                         </span>
                         {isHair ? (
