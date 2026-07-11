@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useCourses } from "@/hooks/useCourses";
@@ -48,6 +48,7 @@ import {
   Star,
 } from "lucide-react";
 import { toast } from "sonner";
+import { logAccess } from "@/lib/accessLog";
 import { isQuizPassed } from "@/lib/quizPass";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getVimeoEmbedUrl } from "@/lib/utils";
@@ -80,12 +81,19 @@ const VideoPlayer = React.memo(
     src,
     title,
     posterSrc,
+    onPlay,
+    onPause,
+    onEnded,
   }: {
     src: string;
     title: string;
     posterSrc?: string;
+    onPlay?: () => void;
+    onPause?: () => void;
+    onEnded?: () => void;
   }) => {
     const [hasStarted, setHasStarted] = useState(!posterSrc);
+    const iframeRef = useRef<HTMLIFrameElement | null>(null);
     const isDirectVideo = /\.(mp4|mov|m4v|webm)(\?.*)?$/i.test(src);
     const playableSrc =
       posterSrc && !isDirectVideo
@@ -95,6 +103,42 @@ const VideoPlayer = React.memo(
     useEffect(() => {
       setHasStarted(!posterSrc);
     }, [src, posterSrc]);
+
+    useEffect(() => {
+      if (isDirectVideo || !src.includes("vimeo")) return;
+      const iframe = iframeRef.current;
+      if (!iframe) return;
+
+      const subscribe = () => {
+        ["play", "pause", "ended"].forEach((eventName) => {
+          iframe.contentWindow?.postMessage(
+            JSON.stringify({ method: "addEventListener", value: eventName }),
+            "*",
+          );
+        });
+      };
+
+      const onMessage = (event: MessageEvent) => {
+        if (event.source !== iframe.contentWindow) return;
+        let payload: { event?: string } | null = null;
+        try {
+          payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        } catch {
+          return;
+        }
+        if (payload?.event === "play") onPlay?.();
+        if (payload?.event === "pause") onPause?.();
+        if (payload?.event === "ended") onEnded?.();
+      };
+
+      iframe.addEventListener("load", subscribe);
+      window.addEventListener("message", onMessage);
+      subscribe();
+      return () => {
+        iframe.removeEventListener("load", subscribe);
+        window.removeEventListener("message", onMessage);
+      };
+    }, [isDirectVideo, onEnded, onPause, onPlay, src]);
 
     return (
       <div className="glass-card rounded-2xl overflow-hidden">
@@ -127,9 +171,13 @@ const VideoPlayer = React.memo(
               playsInline
               preload="metadata"
               title={title}
+              onPlay={onPlay}
+              onPause={onPause}
+              onEnded={onEnded}
             />
           ) : (
             <iframe
+              ref={iframeRef}
               src={playableSrc}
               className="absolute inset-0 w-full h-full"
               allow="autoplay; fullscreen; picture-in-picture"
@@ -146,6 +194,7 @@ VideoPlayer.displayName = "VideoPlayer";
 
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
 const CONSUMER_FINANCING_MODULE_ID = "b1040000-0000-4000-8000-000000000104";
+const HAIR_SYSTEM_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
 const SOCIAL_MEDIA_101_THUMBNAIL =
   "/lesson-assets/thumbnails/social-media-101-thumbnail.png";
 const CONSUMER_FINANCING_THUMBNAIL =
@@ -159,6 +208,12 @@ const VIDEO_POSTER_BY_URL: Record<string, string> = {
     "/lesson-assets/thumbnails/fourth-post-option-2-thumbnail.jpg",
   "/lesson-assets/posts/fourth-post-hair-system-2.mp4":
     "/lesson-assets/thumbnails/fourth-post-option-3-thumbnail.jpg",
+};
+
+const formatWatchDuration = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 const SOCIAL_MEDIA_101_INSTAGRAM_POST_URL =
   "https://www.instagram.com/barberlaunchofficial/p/DYDyUWaGsX3/";
@@ -633,6 +688,8 @@ export default function Lesson() {
   );
   const currentModuleIndex = allModules.findIndex((m) => m.id === lessonId);
   const module = allModules[currentModuleIndex];
+  const isOrderTrackingModule =
+    !sublessonId && module?.id === HAIR_SYSTEM_ORDER_MODULE_ID;
   const nextModule =
     currentModuleIndex >= 0 && currentModuleIndex < allModules.length - 1
       ? allModules[currentModuleIndex + 1]
@@ -758,6 +815,130 @@ export default function Lesson() {
     toast.success("Lesson marked as complete!");
   };
 
+  // Module 17 has no quiz. Its completion is based on cumulative, visible
+  // playback time rather than time spent merely sitting on the lesson page.
+  const [orderWatchSeconds, setOrderWatchSeconds] = useState(0);
+  const orderWatchSecondsRef = useRef(0);
+  const orderPlayingRef = useRef(false);
+  const orderWatchTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const orderWatchKey = user?.id
+    ? `hair-system-order-watch:${user.id}:${HAIR_SYSTEM_ORDER_MODULE_ID}`
+    : null;
+
+  useEffect(() => {
+    if (!isOrderTrackingModule || !orderWatchKey) {
+      orderWatchSecondsRef.current = 0;
+      setOrderWatchSeconds(0);
+      return;
+    }
+
+    try {
+      const stored = Number.parseInt(localStorage.getItem(orderWatchKey) || "0", 10);
+      const restored = Number.isFinite(stored) ? Math.max(0, stored) : 0;
+      orderWatchSecondsRef.current = restored;
+      setOrderWatchSeconds(restored);
+    } catch {
+      orderWatchSecondsRef.current = 0;
+      setOrderWatchSeconds(0);
+    }
+  }, [isOrderTrackingModule, orderWatchKey]);
+
+  const persistOrderWatch = useCallback(
+    (seconds: number) => {
+      if (!orderWatchKey) return;
+      try {
+        localStorage.setItem(orderWatchKey, String(Math.floor(seconds)));
+      } catch {
+        // Local persistence is best-effort; playback tracking continues in memory.
+      }
+    },
+    [orderWatchKey],
+  );
+
+  const logOrderPlayback = useCallback(
+    (eventType: "video_play" | "video_pause" | "video_complete") => {
+      if (!isOrderTrackingModule || !user?.id) return;
+      void logAccess({
+        event_type: eventType,
+        resource_type: "module",
+        resource_id: HAIR_SYSTEM_ORDER_MODULE_ID,
+        metadata: {
+          module_title: "Placing a Hair System Order",
+          watched_seconds: Math.floor(orderWatchSecondsRef.current),
+          video_duration: videoDuration,
+          completion_threshold: videoDuration
+            ? Math.max(60, Math.ceil(videoDuration * 0.9))
+            : null,
+        },
+      });
+    },
+    [isOrderTrackingModule, user?.id, videoDuration],
+  );
+
+  const handleOrderPlay = useCallback(() => {
+    if (!isOrderTrackingModule || isCurrentLessonCompleted) return;
+    orderPlayingRef.current = true;
+    logOrderPlayback("video_play");
+  }, [isCurrentLessonCompleted, isOrderTrackingModule, logOrderPlayback]);
+
+  const handleOrderPause = useCallback(() => {
+    if (!isOrderTrackingModule) return;
+    orderPlayingRef.current = false;
+    persistOrderWatch(orderWatchSecondsRef.current);
+    logOrderPlayback("video_pause");
+  }, [isOrderTrackingModule, logOrderPlayback, persistOrderWatch]);
+
+  const handleOrderEnded = useCallback(() => {
+    if (!isOrderTrackingModule) return;
+    orderPlayingRef.current = false;
+    persistOrderWatch(orderWatchSecondsRef.current);
+    logOrderPlayback("video_complete");
+  }, [isOrderTrackingModule, logOrderPlayback, persistOrderWatch]);
+
+  useEffect(() => {
+    if (
+      !isOrderTrackingModule ||
+      isCurrentLessonCompleted ||
+      !user?.id ||
+      !videoDuration
+    ) {
+      orderPlayingRef.current = false;
+      if (orderWatchTimerRef.current) clearInterval(orderWatchTimerRef.current);
+      return;
+    }
+
+    const threshold = Math.max(60, Math.ceil(videoDuration * 0.9));
+    orderWatchTimerRef.current = setInterval(() => {
+      if (!orderPlayingRef.current || document.visibilityState !== "visible") return;
+
+      const nextSeconds = orderWatchSecondsRef.current + 1;
+      orderWatchSecondsRef.current = nextSeconds;
+      setOrderWatchSeconds(nextSeconds);
+
+      if (nextSeconds % 5 === 0) persistOrderWatch(nextSeconds);
+      if (nextSeconds >= threshold) {
+        orderPlayingRef.current = false;
+        if (orderWatchTimerRef.current) clearInterval(orderWatchTimerRef.current);
+        persistOrderWatch(nextSeconds);
+        logOrderPlayback("video_complete");
+        void markModuleComplete();
+      }
+    }, 1000);
+
+    return () => {
+      if (orderWatchTimerRef.current) clearInterval(orderWatchTimerRef.current);
+      orderPlayingRef.current = false;
+      persistOrderWatch(orderWatchSecondsRef.current);
+    };
+  }, [
+    isCurrentLessonCompleted,
+    isOrderTrackingModule,
+    logOrderPlayback,
+    persistOrderWatch,
+    user?.id,
+    videoDuration,
+  ]);
+
   // Resolve the source URL based on active locale (Spanish overrides fall back to English).
   const { locale } = useLocale();
   const localizedVideoUrl = useMemo(
@@ -799,7 +980,13 @@ export default function Lesson() {
 
   // Time-on-page tracker for auto-completion
   useEffect(() => {
-    if (!videoDuration || isCurrentLessonCompleted || !user?.id || !module?.id)
+    if (
+      isOrderTrackingModule ||
+      !videoDuration ||
+      isCurrentLessonCompleted ||
+      !user?.id ||
+      !module?.id
+    )
       return;
     autoCompletedRef.current = false;
     elapsedSeconds.current = 0;
@@ -821,6 +1008,7 @@ export default function Lesson() {
   }, [
     videoDuration,
     isCurrentLessonCompleted,
+    isOrderTrackingModule,
     user?.id,
     module?.id,
     sublessonId,
@@ -1039,6 +1227,9 @@ export default function Lesson() {
   const previewIsVideo = ["mp4", "mov", "avi", "webm", "mkv"].includes(
     previewFileType,
   );
+  const orderWatchTargetSeconds = videoDuration
+    ? Math.max(60, Math.ceil(videoDuration * 0.9))
+    : null;
 
   return (
     <DashboardLayout>
@@ -1136,6 +1327,15 @@ export default function Lesson() {
                   </>
                 )}
             </div>
+          ) : isOrderTrackingModule ? (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-right">
+              <p className="text-xs font-semibold text-primary">Watch progress</p>
+              <p className="text-xs text-muted-foreground">
+                {orderWatchTargetSeconds
+                  ? `${formatWatchDuration(orderWatchSeconds)} / ${formatWatchDuration(orderWatchTargetSeconds)}`
+                  : "Loading video length…"}
+              </p>
+            </div>
           ) : (
             <Button
               onClick={markModuleComplete}
@@ -1157,8 +1357,35 @@ export default function Lesson() {
               src={vimeoEmbedUrl}
               title={localizedModuleTitle}
               posterSrc={videoPosterSrc}
+              onPlay={isOrderTrackingModule ? handleOrderPlay : undefined}
+              onPause={isOrderTrackingModule ? handleOrderPause : undefined}
+              onEnded={isOrderTrackingModule ? handleOrderEnded : undefined}
             />
           )}
+
+        {isOrderTrackingModule && !isCurrentLessonCompleted && (
+          <div className="rounded-xl border border-border/50 bg-secondary/20 p-3">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="font-medium text-foreground">Video completion progress</span>
+              <span className="text-muted-foreground">
+                {orderWatchTargetSeconds
+                  ? `${Math.min(100, Math.round((orderWatchSeconds / orderWatchTargetSeconds) * 100))}%`
+                  : "—"}
+              </span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full gold-gradient transition-all"
+                style={{
+                  width: `${orderWatchTargetSeconds ? Math.min(100, (orderWatchSeconds / orderWatchTargetSeconds) * 100) : 0}%`,
+                }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Your watched time saves automatically and resumes when you return.
+            </p>
+          </div>
+        )}
 
         {/* Completed lesson success banner + Review actions */}
         {isCurrentLessonCompleted &&

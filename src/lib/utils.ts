@@ -33,7 +33,7 @@ export function getVimeoEmbedUrl(url: string): string {
   
   // Add player options
   const separator = hash ? '&' : '?';
-  embedUrl += `${separator}autoplay=0&title=0&byline=0&portrait=0`;
+  embedUrl += `${separator}autoplay=0&title=0&byline=0&portrait=0&api=1`;
   
   return embedUrl;
 }
