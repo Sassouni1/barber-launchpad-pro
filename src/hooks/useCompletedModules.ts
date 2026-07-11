@@ -11,7 +11,7 @@ import {
 export type ModuleCompletion = {
   bestScore?: number;
   passed: boolean;
-  completionKind?: "quiz" | "photo" | "exempt";
+  completionKind?: "quiz" | "video" | "photo" | "exempt";
 };
 
 const cacheKey = (userId: string) => `completed-modules:${userId}`;
@@ -111,6 +111,55 @@ export function useCompletedModules() {
               bestScore: existing?.bestScore,
               passed: true,
               completionKind: "photo",
+            };
+          }
+        }
+      }
+
+      // Video-only modules (such as "Placing a Hair System Order") complete
+      // through user_progress rather than a quiz attempt. Reflect those
+      // completed lesson rows on the course cards as well.
+      const { data: videoModules, error: videoModulesError } = await supabase
+        .from("modules")
+        .select("id, has_quiz")
+        .eq("has_quiz", false);
+      if (videoModulesError) throw videoModulesError;
+
+      const { data: moduleLessons, error: moduleLessonsError } = await supabase
+        .from("lessons")
+        .select("id, module_id");
+      if (moduleLessonsError) throw moduleLessonsError;
+
+      const lessonIds = (moduleLessons || []).map((lesson) => lesson.id);
+      if (lessonIds.length > 0 && (videoModules || []).length > 0) {
+        const { data: completedVideoLessons, error: videoProgressError } =
+          await supabase
+            .from("user_progress")
+            .select("lesson_id")
+            .eq("user_id", user.id)
+            .eq("completed", true)
+            .in("lesson_id", lessonIds);
+        if (videoProgressError) throw videoProgressError;
+
+        const completedLessonIds = new Set(
+          (completedVideoLessons || []).map((progress) => progress.lesson_id),
+        );
+        const lessonsByModule = new Map<string, string[]>();
+        for (const lesson of moduleLessons || []) {
+          const lessonsForModule = lessonsByModule.get(lesson.module_id) || [];
+          lessonsForModule.push(lesson.id);
+          lessonsByModule.set(lesson.module_id, lessonsForModule);
+        }
+
+        for (const videoModule of videoModules || []) {
+          const lessonsForModule = lessonsByModule.get(videoModule.id) || [];
+          if (
+            lessonsForModule.length > 0 &&
+            lessonsForModule.every((lessonId) => completedLessonIds.has(lessonId))
+          ) {
+            map[videoModule.id] = {
+              passed: true,
+              completionKind: "video",
             };
           }
         }

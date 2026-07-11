@@ -103,6 +103,27 @@ const getModuleLessons = (module: Module): ModuleLessonPreview[] =>
     (a, b) => a.order_index - b.order_index,
   );
 
+const HAIR_SYSTEM_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
+// The Vimeo lesson is currently 4:52. Completion requires 90% watched,
+// matching the tracker on the lesson page (about 4:23).
+const HAIR_SYSTEM_ORDER_COMPLETION_SECONDS = 263;
+
+const getOrderWatchKey = (userId: string) =>
+  `hair-system-order-watch:${userId}:${HAIR_SYSTEM_ORDER_MODULE_ID}`;
+
+const readOrderWatchSeconds = (userId: string | undefined) => {
+  if (!userId || typeof window === "undefined") return 0;
+  try {
+    const value = Number.parseInt(
+      window.localStorage.getItem(getOrderWatchKey(userId)) || "0",
+      10,
+    );
+    return Number.isFinite(value) ? Math.max(0, value) : 0;
+  } catch {
+    return 0;
+  }
+};
+
 const shouldOpenModuleDirectly = (module: Module) => {
   const title = module.title.toLowerCase();
   return title.includes("google profile");
@@ -286,7 +307,7 @@ const SubLessonTrack = ({
 
 export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const { data: allCoursesRaw = [], isLoading } = useCourses();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { locale } = useLocale();
 
   // Directory enrollment module is always visible to everyone.
@@ -315,6 +336,30 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const { data: completedMap = {} } = useCompletedModules();
   const isModuleCompleted = (id: string) => !!completedMap[id]?.passed;
   const selectedModuleParam = searchParams.get("module");
+  const [orderWatchSeconds, setOrderWatchSeconds] = useState(0);
+
+  // The order lesson stores cumulative playback locally. Read it on mount,
+  // when returning to this page, and when another tab updates the value so
+  // the outside module card reflects the same watch progress as the lesson.
+  useEffect(() => {
+    const refreshOrderWatch = () =>
+      setOrderWatchSeconds(readOrderWatchSeconds(user?.id));
+
+    refreshOrderWatch();
+    window.addEventListener("focus", refreshOrderWatch);
+    window.addEventListener("visibilitychange", refreshOrderWatch);
+    window.addEventListener("storage", refreshOrderWatch);
+    return () => {
+      window.removeEventListener("focus", refreshOrderWatch);
+      window.removeEventListener("visibilitychange", refreshOrderWatch);
+      window.removeEventListener("storage", refreshOrderWatch);
+    };
+  }, [user?.id]);
+
+  const orderWatchPercent = Math.min(
+    100,
+    Math.round((orderWatchSeconds / HAIR_SYSTEM_ORDER_COMPLETION_SECONDS) * 100),
+  );
 
   const clearModuleSearchParam = useCallback(() => {
     if (!selectedModuleParam) return;
@@ -635,6 +680,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               ? "Template photo submitted"
                               : sheetStatus.completionKind === "exempt"
                                 ? "Requirement not required"
+                                : sheetStatus.completionKind === "video"
+                                  ? "Watch time complete"
                                 : localizeCourseUi("Lesson Completed", locale)}
                           </p>
                           <p className="text-[10px] text-success-foreground/80">
@@ -642,6 +689,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               ? "Certification requirement complete"
                               : sheetStatus.completionKind === "exempt"
                                 ? "Added after your certification cohort"
+                                : sheetStatus.completionKind === "video"
+                                  ? "Required video time watched · rewatch lesson"
                                 : `${localizeCourseUi("Quiz passed", locale)}${sheetScore != null ? ` ${sheetScore}%` : ""} · ${localizeCourseUi("rewatch lesson", locale)}`}
                           </p>
                         </div>
@@ -962,7 +1011,12 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             moduleLessons.length,
                           );
                           const status = getModuleStatus(module.id, completedMap);
-                          const completed = status.state === "completed";
+                          const isOrderTrackingModule =
+                            module.id === HAIR_SYSTEM_ORDER_MODULE_ID;
+                          const orderWatchComplete =
+                            isOrderTrackingModule && orderWatchPercent >= 100;
+                          const completed =
+                            status.state === "completed" || orderWatchComplete;
                           const attemptedNotPassed = status.state === "failed";
                           const failedAtZero = attemptedNotPassed && status.bestScore === 0;
                           return (
@@ -1029,7 +1083,18 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     )}
                                   </h4>
                                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                    <ModuleStatusBadge status={status} compact />
+                                    {isOrderTrackingModule && !completed ? (
+                                      <>
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-warning/35 bg-warning/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
+                                          {orderWatchPercent}% complete
+                                        </span>
+                                        <span className="text-[10px] font-medium text-warning/80">
+                                          Please complete lesson
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <ModuleStatusBadge status={status} compact />
+                                    )}
                                     {hasCardDetails && (
                                       <>
                                         {module.duration && (
@@ -1216,7 +1281,12 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           {regularModules.map((module, index) => {
                             const isSelected = selectedModule === module.id;
                             const status = getModuleStatus(module.id, completedMap);
-                            const completed = status.state === "completed";
+                            const isOrderTrackingModule =
+                              module.id === HAIR_SYSTEM_ORDER_MODULE_ID;
+                            const orderWatchComplete =
+                              isOrderTrackingModule && orderWatchPercent >= 100;
+                            const completed =
+                              status.state === "completed" || orderWatchComplete;
                             const attemptedNotPassed = status.state === "failed";
                             const failedAtZero = attemptedNotPassed && status.bestScore === 0;
                             const moduleLessons = getModuleLessons(module);
@@ -1310,7 +1380,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                       )}
                                     </h4>
-                                    {status.state !== "not-started" && (
+                                    {isOrderTrackingModule && !completed ? (
+                                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-warning/35 bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
+                                          {orderWatchPercent}% complete
+                                        </span>
+                                        <span className="text-[10px] font-medium text-warning/80">
+                                          Please complete lesson
+                                        </span>
+                                      </div>
+                                    ) : status.state !== "not-started" && (
                                       <div className="mb-2">
                                         <ModuleStatusBadge status={status} />
                                       </div>

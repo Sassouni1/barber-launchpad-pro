@@ -814,6 +814,7 @@ export default function Lesson() {
       queryKey: ["lesson-completion", module.id, user.id],
     });
     queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] });
+    queryClient.invalidateQueries({ queryKey: ["completed-modules", user.id] });
     toast.success("Lesson marked as complete!");
   };
 
