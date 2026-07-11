@@ -816,55 +816,74 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 ).length;
                 const pct = total ? Math.round((done / total) * 100) : 0;
                 const isHair = category.id === "hair-system";
+                const trackDescription = isHair
+                  ? "Master installation, maintenance, styling, and certification."
+                  : "Build your client pipeline and business systems.";
                 return (
                   <button
                     key={category.id}
                     type="button"
                     onClick={() => setExpandedCourse(category.id)}
                     className={cn(
-                      "relative flex flex-col justify-between text-left overflow-hidden rounded-2xl border p-4 transition-all active:scale-[0.98]",
-                      "border-border/60 bg-card/60",
-                      "shadow-lg shadow-black/40 hover:border-primary/40",
-                      "min-h-[160px]",
+                      "relative flex flex-col text-left overflow-hidden rounded-[1.5rem] border p-5 transition-all active:scale-[0.985]",
+                      "border-border/80 bg-card/80 shadow-lg shadow-black/40 hover:border-primary/50",
+                      "min-h-[184px]",
                     )}
                   >
-                    <div className="relative">
-                      <div className="flex items-center gap-2 mb-2">
-                        {isHair ? (
-                          <BookOpen className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <Trophy className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <span className="font-sans text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">
+                    <div className="relative flex flex-1 flex-col">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="inline-flex items-center rounded-lg border border-primary/80 px-3 py-1.5 font-accent text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
                           {isHair ? "Track 01" : "Track 02"}
                         </span>
+                        {isHair ? (
+                          <BookOpen className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <Trophy className="h-5 w-5 text-muted-foreground" />
+                        )}
                       </div>
-                      <h2 className="font-sans text-lg font-semibold tracking-tight text-foreground leading-tight">
+                      <h2 className="mt-4 font-sans text-xl font-semibold leading-tight tracking-tight text-foreground">
                         {category.title}
                       </h2>
-                    </div>
-                    <div className="relative mt-auto">
-                      <div className="flex items-end justify-between gap-2">
-                        <span className="font-sans text-3xl font-semibold tracking-tight gold-text leading-none tabular-nums">
-                          {pct}
-                          <span className="text-base">%</span>
-                        </span>
-                        <span className="font-sans text-xs font-medium tracking-wide text-muted-foreground mb-1">
-                          {done}/{total}
-                        </span>
-                      </div>
-                      <div className="mt-2 h-1.5 w-full rounded-full bg-secondary/40 overflow-hidden">
+                      <p className="mt-1 max-w-[290px] font-sans text-sm leading-5 text-muted-foreground">
+                        {trackDescription}
+                      </p>
+                      <div className="mt-5 flex items-center gap-4">
                         <div
-                          className="h-full gold-gradient transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <div className="mt-3">
-                        <span className="inline-flex items-center justify-center w-full rounded-lg border border-border/60 text-muted-foreground hover:text-foreground font-sans text-sm font-medium py-2 px-3">
-                          {done > 0 ? "Continue lesson" : "Start lesson"}
-                        </span>
+                          className="relative h-[76px] w-[76px] shrink-0 rounded-full p-2"
+                          style={{
+                            background: `conic-gradient(hsl(var(--primary)) ${pct * 3.6}deg, hsl(var(--secondary)) 0deg)`,
+                          }}
+                        >
+                          <div className="flex h-full w-full items-center justify-center rounded-full bg-card">
+                            <span className="font-sans text-xl font-semibold tabular-nums tracking-tight gold-text">
+                              {pct}%
+                            </span>
+                          </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-sans text-sm font-semibold text-primary">
+                            {done} of {total} lessons
+                          </div>
+                          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary/80">
+                            <div
+                              className="h-full rounded-full gold-gradient transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
+                    <span
+                      className={cn(
+                        "mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-sans text-sm font-semibold transition-colors",
+                        done > 0
+                          ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "border-primary/80 text-primary hover:bg-primary/10",
+                      )}
+                    >
+                      {done > 0 ? "Continue lesson" : "Start lesson"}
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
                   </button>
                 );
               })}
