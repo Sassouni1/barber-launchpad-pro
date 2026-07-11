@@ -107,8 +107,28 @@ export function useCompletedModules() {
         }
       }
 
+      // Grandfather: Live Client Part 1 quiz was added July 2026. Members who
+      // already earned a certification, or who joined before June 2026,
+      // shouldn't be forced to take it. Auto-mark it as passed for them.
+      const LIVE_CLIENT_PART_1_MODULE_ID = "582837c7-5a6e-4467-b0ff-36446de0e478";
+      const GRANDFATHER_CUTOFF_ISO = "2026-06-01T00:00:00Z";
+      if (!map[LIVE_CLIENT_PART_1_MODULE_ID]?.passed) {
+        const [{ data: certRow }, { data: profileRow }] = await Promise.all([
+          supabase.from("certifications").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
+          supabase.from("profiles").select("created_at").eq("id", user.id).maybeSingle(),
+        ]);
+        const hasCert = !!certRow;
+        const joinedBeforeCutoff = profileRow?.created_at
+          ? new Date(profileRow.created_at).getTime() < new Date(GRANDFATHER_CUTOFF_ISO).getTime()
+          : false;
+        if (hasCert || joinedBeforeCutoff) {
+          map[LIVE_CLIENT_PART_1_MODULE_ID] = { bestScore: 100, passed: true };
+        }
+      }
+
       writeCache(user.id, map);
       return map;
+
     },
   });
 }
