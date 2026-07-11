@@ -974,8 +974,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   )
                                 }
                                 className={cn(
-                                  "w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
-                                  !hasCardDetails && "min-h-[66px]",
+                                  "w-full min-h-[118px] p-3.5 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
                                   completed
                                     ? "border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.04] to-transparent"
                                     : attemptedNotPassed
@@ -987,7 +986,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               >
                                 <div
                                   className={cn(
-                                    "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm border",
+                                    "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm border",
                                     completed
                                       ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-400"
                                       : attemptedNotPassed
@@ -1014,7 +1013,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   <h4
                                     key={`${module.id}-${locale}-mobile-title`}
                                     className={cn(
-                                      "font-semibold text-sm truncate flex items-center gap-1.5",
+                                      "font-semibold text-[15px] truncate flex items-center gap-1.5",
                                       "text-foreground",
                                     )}
                                     data-no-translate
