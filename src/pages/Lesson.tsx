@@ -964,6 +964,39 @@ export default function Lesson() {
     logOrderPlayback("video_complete");
   }, [isOrderTrackingModule, logOrderPlayback, persistOrderWatch]);
 
+  // Vimeo timeupdate is our source of truth for the order-video tracker.
+  // Some private-hash Vimeo embeds don't reliably deliver play/pause postMessages,
+  // so instead we advance watched-seconds directly from timeupdate deltas.
+  const orderLastTimeRef = useRef<number | null>(null);
+  const handleOrderTimeUpdate = useCallback(
+    (seconds: number) => {
+      if (!isOrderTrackingModule || isCurrentLessonCompleted || !videoDuration) return;
+      orderPlayingRef.current = true;
+      const prev = orderLastTimeRef.current;
+      orderLastTimeRef.current = seconds;
+      if (prev === null) return;
+      const delta = seconds - prev;
+      // Only count forward, real-time playback (ignore seeks/pauses/jumps).
+      if (delta <= 0 || delta > 2) return;
+
+      const threshold = Math.max(60, Math.ceil(videoDuration * 0.9));
+      const next = Math.min(threshold, orderWatchSecondsRef.current + delta);
+      orderWatchSecondsRef.current = next;
+      setOrderWatchSeconds(next);
+      if (Math.floor(next) % 5 === 0) persistOrderWatch(next);
+
+      if (next >= threshold) {
+        orderPlayingRef.current = false;
+        persistOrderWatch(next);
+        logOrderPlayback("video_complete");
+        void markModuleComplete();
+      }
+    },
+    // markModuleComplete is stable enough (defined in component scope); intentionally omitted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isOrderTrackingModule, isCurrentLessonCompleted, videoDuration, logOrderPlayback, persistOrderWatch],
+  );
+
   const persistChargePosition = useCallback(
     (seconds = chargePositionRef.current) => {
       if (!isChargeResumeModule || !chargePositionKey || !Number.isFinite(seconds)) {
