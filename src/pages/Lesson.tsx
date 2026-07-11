@@ -944,6 +944,8 @@ export default function Lesson() {
     [isOrderTrackingModule, user?.id, videoDuration],
   );
 
+  const orderLastTimeRef = useRef<number | null>(null);
+
   const handleOrderPlay = useCallback(() => {
     if (!isOrderTrackingModule || isCurrentLessonCompleted) return;
     orderPlayingRef.current = true;
