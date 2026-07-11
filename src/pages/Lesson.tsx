@@ -953,6 +953,7 @@ export default function Lesson() {
   const handleOrderPause = useCallback(() => {
     if (!isOrderTrackingModule) return;
     orderPlayingRef.current = false;
+    orderLastTimeRef.current = null;
     persistOrderWatch(orderWatchSecondsRef.current);
     logOrderPlayback("video_pause");
   }, [isOrderTrackingModule, logOrderPlayback, persistOrderWatch]);
@@ -960,6 +961,7 @@ export default function Lesson() {
   const handleOrderEnded = useCallback(() => {
     if (!isOrderTrackingModule) return;
     orderPlayingRef.current = false;
+    orderLastTimeRef.current = null;
     persistOrderWatch(orderWatchSecondsRef.current);
     logOrderPlayback("video_complete");
   }, [isOrderTrackingModule, logOrderPlayback, persistOrderWatch]);
