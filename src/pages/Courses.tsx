@@ -29,7 +29,10 @@ import {
   useCallback,
   useLayoutEffect,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn, getVimeoEmbedUrl } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { logAccess } from "@/lib/accessLog";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   localizeCourseTitle,
@@ -104,9 +107,9 @@ const getModuleLessons = (module: Module): ModuleLessonPreview[] =>
   );
 
 const HAIR_SYSTEM_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
-// The Vimeo lesson is currently 4:52. Completion requires 90% watched,
-// matching the tracker on the lesson page (about 4:23).
-const HAIR_SYSTEM_ORDER_COMPLETION_SECONDS = 263;
+// The Vimeo lesson is currently 5:24. Completion requires 90% watched,
+// matching the tracker on the full lesson page (about 4:52).
+const HAIR_SYSTEM_ORDER_COMPLETION_SECONDS = 292;
 
 const getOrderWatchKey = (userId: string) =>
   `hair-system-order-watch:${userId}:${HAIR_SYSTEM_ORDER_MODULE_ID}`;
@@ -122,6 +125,207 @@ const readOrderWatchSeconds = (userId: string | undefined) => {
   } catch {
     return 0;
   }
+};
+
+/**
+ * The module 17 preview remains visually simple, but its Vimeo play/pause
+ * events use the same cumulative watch counter as the full lesson page.
+ */
+const OrderLessonPreviewIframe = ({
+  module,
+  locale,
+}: {
+  module: Module;
+  locale: "en" | "es";
+}) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const watchSecondsRef = useRef(0);
+  const playingRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const completedRef = useRef(false);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const watchKey = user?.id ? getOrderWatchKey(user.id) : null;
+  const completionThreshold = videoDuration
+    ? Math.max(60, Math.ceil(videoDuration * 0.9))
+    : HAIR_SYSTEM_ORDER_COMPLETION_SECONDS;
+  const embedUrl = resolveVideoEmbedUrlForModule(
+    module,
+    locale,
+    getVimeoEmbedUrl,
+  );
+
+  useEffect(() => {
+    watchSecondsRef.current = readOrderWatchSeconds(user?.id);
+    completedRef.current = watchSecondsRef.current >= completionThreshold;
+  }, [completionThreshold, user?.id]);
+
+  useEffect(() => {
+    const localizedVideoUrl = module.video_url || "";
+    if (!localizedVideoUrl.includes("vimeo")) return;
+    const rawUrl = localizedVideoUrl.replace(
+      /player\.vimeo\.com\/video\//,
+      "vimeo.com/",
+    );
+    let cancelled = false;
+    fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(rawUrl)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.duration) setVideoDuration(data.duration);
+      })
+      .catch(() => {
+        // Keep the current fallback threshold if Vimeo metadata is unavailable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [module.video_url]);
+
+  const persist = useCallback(
+    (seconds: number) => {
+      if (!watchKey) return;
+      try {
+        localStorage.setItem(watchKey, String(Math.floor(seconds)));
+      } catch {
+        // Playback tracking still works in memory if storage is unavailable.
+      }
+    },
+    [watchKey],
+  );
+
+  const completeLesson = useCallback(async () => {
+    if (!user?.id || completedRef.current) return;
+    completedRef.current = true;
+    playingRef.current = false;
+    if (timerRef.current) clearInterval(timerRef.current);
+    persist(watchSecondsRef.current);
+    void logAccess({
+      event_type: "video_complete",
+      resource_type: "module",
+      resource_id: HAIR_SYSTEM_ORDER_MODULE_ID,
+      metadata: {
+        source: "course_preview",
+        watched_seconds: Math.floor(watchSecondsRef.current),
+        completion_threshold: completionThreshold,
+      },
+    });
+
+    const { data: lessons } = await supabase
+      .from("lessons")
+      .select("id")
+      .eq("module_id", HAIR_SYSTEM_ORDER_MODULE_ID);
+    for (const lesson of lessons || []) {
+      await supabase.from("user_progress").upsert(
+        {
+          user_id: user.id,
+          lesson_id: lesson.id,
+          completed: true,
+          completed_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,lesson_id" },
+      );
+    }
+    queryClient.invalidateQueries({ queryKey: ["completed-modules", user.id] });
+    queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] });
+  }, [completionThreshold, persist, queryClient, user?.id]);
+
+  const handlePlay = useCallback(() => {
+    if (completedRef.current) return;
+    playingRef.current = true;
+    void logAccess({
+      event_type: "video_play",
+      resource_type: "module",
+      resource_id: HAIR_SYSTEM_ORDER_MODULE_ID,
+      metadata: {
+        source: "course_preview",
+        watched_seconds: Math.floor(watchSecondsRef.current),
+        completion_threshold: completionThreshold,
+      },
+    });
+  }, [completionThreshold]);
+
+  const handlePause = useCallback(() => {
+    playingRef.current = false;
+    persist(watchSecondsRef.current);
+    void logAccess({
+      event_type: "video_pause",
+      resource_type: "module",
+      resource_id: HAIR_SYSTEM_ORDER_MODULE_ID,
+      metadata: {
+        source: "course_preview",
+        watched_seconds: Math.floor(watchSecondsRef.current),
+        completion_threshold: completionThreshold,
+      },
+    });
+  }, [completionThreshold, persist]);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !user?.id) return;
+
+    const subscribe = () => {
+      ["play", "pause", "ended"].forEach((eventName) => {
+        iframe.contentWindow?.postMessage(
+          JSON.stringify({ method: "addEventListener", value: eventName }),
+          "*",
+        );
+      });
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== iframe.contentWindow) return;
+      let payload: { event?: string } | null = null;
+      try {
+        payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+      } catch {
+        return;
+      }
+      if (payload?.event === "play") handlePlay();
+      if (payload?.event === "pause") handlePause();
+      if (payload?.event === "ended") handlePause();
+    };
+
+    iframe.addEventListener("load", subscribe);
+    window.addEventListener("message", onMessage);
+    subscribe();
+
+    return () => {
+      iframe.removeEventListener("load", subscribe);
+      window.removeEventListener("message", onMessage);
+    };
+  }, [handlePause, handlePlay, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || completedRef.current) return;
+    timerRef.current = setInterval(() => {
+      if (!playingRef.current || document.visibilityState !== "visible") return;
+      const nextSeconds = watchSecondsRef.current + 1;
+      watchSecondsRef.current = nextSeconds;
+      if (nextSeconds % 5 === 0) persist(nextSeconds);
+      if (nextSeconds >= completionThreshold) {
+        void completeLesson();
+      }
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      playingRef.current = false;
+      persist(watchSecondsRef.current);
+    };
+  }, [completeLesson, completionThreshold, persist, user?.id]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      key={`${module.id}-${locale}`}
+      src={embedUrl}
+      className="absolute inset-0 w-full h-full"
+      allow="autoplay; fullscreen; picture-in-picture"
+      allowFullScreen
+      title={localizeHairSystemLessonTitle(module, locale)}
+    />
+  );
 };
 
 const shouldOpenModuleDirectly = (module: Module) => {
@@ -632,21 +836,28 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
             {/* Video Preview - only show if video exists */}
             {moduleData.module.video_url?.trim() && (
               <div className="relative aspect-video bg-black">
-                <iframe
-                  key={`${moduleData.module.id}-${locale}`}
-                  src={resolveVideoEmbedUrlForModule(
-                    moduleData.module,
-                    locale,
-                    getVimeoEmbedUrl,
-                  )}
-                  className="absolute inset-0 w-full h-full"
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  allowFullScreen
-                  title={localizeHairSystemLessonTitle(
-                    moduleData.module,
-                    locale,
-                  )}
-                />
+                {moduleData.module.id === HAIR_SYSTEM_ORDER_MODULE_ID ? (
+                  <OrderLessonPreviewIframe
+                    module={moduleData.module}
+                    locale={locale}
+                  />
+                ) : (
+                  <iframe
+                    key={`${moduleData.module.id}-${locale}`}
+                    src={resolveVideoEmbedUrlForModule(
+                      moduleData.module,
+                      locale,
+                      getVimeoEmbedUrl,
+                    )}
+                    className="absolute inset-0 w-full h-full"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                    title={localizeHairSystemLessonTitle(
+                      moduleData.module,
+                      locale,
+                    )}
+                  />
+                )}
               </div>
             )}
 
@@ -1616,21 +1827,28 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 {/* Video Player - only show if video exists */}
                 {moduleData.module.video_url?.trim() && (
                   <div className="relative aspect-video bg-black border-b border-border/30">
-                    <iframe
-                      key={`${moduleData.module.id}-${locale}`}
-                      src={resolveVideoEmbedUrlForModule(
-                        moduleData.module,
-                        locale,
-                        getVimeoEmbedUrl,
-                      )}
-                      className="absolute inset-0 w-full h-full"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowFullScreen
-                      title={localizeHairSystemLessonTitle(
-                        moduleData.module,
-                        locale,
-                      )}
-                    />
+                    {moduleData.module.id === HAIR_SYSTEM_ORDER_MODULE_ID ? (
+                      <OrderLessonPreviewIframe
+                        module={moduleData.module}
+                        locale={locale}
+                      />
+                    ) : (
+                      <iframe
+                        key={`${moduleData.module.id}-${locale}`}
+                        src={resolveVideoEmbedUrlForModule(
+                          moduleData.module,
+                          locale,
+                          getVimeoEmbedUrl,
+                        )}
+                        className="absolute inset-0 w-full h-full"
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowFullScreen
+                        title={localizeHairSystemLessonTitle(
+                          moduleData.module,
+                          locale,
+                        )}
+                      />
+                    )}
                   </div>
                 )}
 
