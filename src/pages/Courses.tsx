@@ -534,8 +534,17 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     useUserCertification(hairSystemCourseId);
   const { data: specialistListing, isLoading: isLoadingListing } =
     useMyListing(user?.id);
+  // A successful legacy resubmission stamps certification_version >= 2, which
+  // fully clears the directory action-step card even if the specialist listing
+  // hasn't propagated yet.
+  const legacyResubmissionCompleted =
+    !!hairSystemCertification &&
+    ((hairSystemCertification as any).certification_version ?? 1) >= 2;
   const needsDirectoryListing =
-    !!hairSystemCertification && !isLoadingListing && !specialistListing;
+    !!hairSystemCertification &&
+    !legacyResubmissionCompleted &&
+    !isLoadingListing &&
+    !specialistListing;
 
   // For desktop: filter by courseType prop
   const courses = useMemo(
