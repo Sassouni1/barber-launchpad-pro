@@ -479,6 +479,7 @@ export function useIssueCertification() {
             shippingAddress,
             businessLocation,
             debug,
+            legacyResubmission,
           },
         });
 
