@@ -56,7 +56,7 @@ export function BusinessMasteryWelcome({ onContinue }: BusinessMasteryWelcomePro
               </li>
               <li className="flex items-start gap-3 text-sm leading-relaxed text-foreground/90">
                 <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                <span>We&apos;ll mail your official Hair System Certification.</span>
+                <span>We&apos;ll mail your official Hair System Certification. It should arrive in about two weeks.</span>
               </li>
               <li className="flex items-start gap-3 text-sm leading-relaxed text-foreground/90">
                 <Upload className="mt-0.5 h-5 w-5 shrink-0 text-primary" />

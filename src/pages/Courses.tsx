@@ -69,6 +69,7 @@ import {
 } from "@/components/courses/BusinessMasteryWelcome";
 import { useUserCertification } from "@/hooks/useCertification";
 import { useMyListing } from "@/hooks/useSpecialistDirectory";
+import { isDirectoryUploadAvailable } from "@/lib/certificationRequirements";
 
 // Custom hook for md breakpoint (768px) - tablet and above
 function useIsTabletOrDesktop() {
@@ -534,15 +535,17 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     useUserCertification(hairSystemCourseId);
   const { data: specialistListing, isLoading: isLoadingListing } =
     useMyListing(user?.id);
-  // A successful legacy resubmission stamps certification_version >= 2, which
-  // fully clears the directory action-step card even if the specialist listing
-  // hasn't propagated yet.
-  const legacyResubmissionCompleted =
-    !!hairSystemCertification &&
-    ((hairSystemCertification as any).certification_version ?? 1) >= 2;
+  const directoryUploadAvailable = isDirectoryUploadAvailable(
+    hairSystemCertification?.issued_at,
+  );
   const needsDirectoryListing =
     !!hairSystemCertification &&
-    !legacyResubmissionCompleted &&
+    directoryUploadAvailable &&
+    !isLoadingListing &&
+    !specialistListing;
+  const directoryUploadWaiting =
+    !!hairSystemCertification &&
+    !directoryUploadAvailable &&
     !isLoadingListing &&
     !specialistListing;
 
@@ -1237,9 +1240,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   : 0;
                 const trackDescription = needsDatabaseListing
                   ? "Get added into the Hair System Database. Click here to do so."
-                  : isHair
-                    ? "Master installation, maintenance, styling, and certification."
-                    : "Build your client pipeline and business systems.";
+                  : directoryUploadWaiting && isHair
+                    ? "Your certificate is being mailed. Check back in about two weeks."
+                    : isHair
+                      ? "Master installation, maintenance, styling, and certification."
+                      : "Build your client pipeline and business systems.";
                 return (
                   <button
                     key={category.id}
@@ -1631,7 +1636,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               <p className="text-sm text-muted-foreground mt-1">
                                 {needsDirectoryListing
                                   ? "Get added into the Hair System Database. Click here to do so."
-                                  : "Enter name and generate certificate"}
+                                  : directoryUploadWaiting
+                                    ? "Your certificate is being mailed. Check back in about two weeks."
+                                    : hairSystemCertification
+                                      ? "Certified — review your certificate"
+                                      : "Enter name and generate certificate"}
                               </p>
                             </div>
                             {needsDirectoryListing ? (
@@ -2010,7 +2019,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               <p className="text-sm text-muted-foreground mt-1">
                                 {needsDirectoryListing
                                   ? "Get added into the Hair System Database. Click here to do so."
-                                  : "Enter name and generate certificate"}
+                                  : directoryUploadWaiting
+                                    ? "Your certificate is being mailed. Check back in about two weeks."
+                                    : hairSystemCertification
+                                      ? "Certified — review your certificate"
+                                      : "Enter name and generate certificate"}
                               </p>
                             </div>
                             {needsDirectoryListing ? (

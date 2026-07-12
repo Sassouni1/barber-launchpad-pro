@@ -2,6 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { isQuizPassed } from '@/lib/quizPass';
+import {
+  isNewCertificationModule,
+  requiresNewCertificationQuizzes,
+} from '@/lib/certificationRequirements';
 
 /**
  * Training Games unlock once the user passes every quiz attached to any
@@ -20,12 +24,33 @@ export function useTrainingGamesUnlocked() {
 
       const { data: modules, error: modulesError } = await supabase
         .from('modules')
-        .select('id, has_quiz, course:courses!inner(category)')
+        .select('id, has_quiz, course:courses!inner(id, category)')
         .eq('courses.category', 'hair-system');
 
       if (modulesError) throw modulesError;
 
-      const quizModules = (modules || []).filter((m: any) => m.has_quiz);
+      // Legacy members (and anyone who already has a certificate) must not be
+      // blocked by the post-cutoff Live Client / charging quizzes. New members
+      // still see and must pass the full current quiz set.
+      const { data: existingCertification, error: certificationError } =
+        await supabase
+          .from('certifications')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('course_id', (modules?.[0] as any)?.course?.id ?? '')
+          .maybeSingle();
+
+      if (certificationError) throw certificationError;
+
+      const requiresNewQuizzes = requiresNewCertificationQuizzes(
+        user.created_at,
+        !!existingCertification,
+      );
+      const quizModules = (modules || []).filter(
+        (m: any) =>
+          m.has_quiz &&
+          (requiresNewQuizzes || !isNewCertificationModule(m.id)),
+      );
       if (quizModules.length === 0) {
         return { unlocked: true, totalQuizzes: 0, passedQuizzes: 0 };
       }

@@ -44,6 +44,7 @@ const NEW_CERTIFICATION_MODULE_IDS = new Set([
   '7c4808e9-0b1e-40e8-b188-016d4f9398a4', // Live Client Part 2
   'ef71fd79-972e-4aca-a6eb-771dfbb1b865', // Live Client Part 3
   'c8b69876-591a-41cc-82e4-755ad02efd4e', // Live Client Part 4
+  'c45caf90-af21-44cd-898c-76fc8015ea00', // How and What to Charge
 ]);
 
 function isQuizPassed(score: number, totalQuestions: number): boolean {
@@ -201,8 +202,9 @@ serve(async (req) => {
 
     // Keep the server-side certificate path aligned with the UI. Existing
     // certificates are grandfathered; otherwise, accounts created on/after
-    // June 1, 2026 must pass every required quiz, including all four Live
-    // Client quizzes. Legacy accounts still use the pre-existing quiz set.
+    // June 1, 2026 must pass the current required quiz set, including the
+    // Live Client and charging modules. Legacy accounts still use the
+    // pre-existing quiz set.
     const { data: existingCertification, error: existingCertificationError } = await supabase
       .from('certifications')
       .select('id, created_at, certification_version')

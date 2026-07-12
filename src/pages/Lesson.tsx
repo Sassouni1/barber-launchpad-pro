@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useCourses } from "@/hooks/useCourses";
@@ -29,7 +29,6 @@ import {
   FileText,
   CheckCircle2,
   HelpCircle,
-  AlertTriangle,
   ClipboardList,
   Loader2,
   Upload,
@@ -45,11 +44,8 @@ import {
   Maximize2,
   Play,
   ExternalLink,
-  Star,
 } from "lucide-react";
 import { toast } from "sonner";
-import { logAccess } from "@/lib/accessLog";
-import { isQuizPassed } from "@/lib/quizPass";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getVimeoEmbedUrl } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -62,11 +58,6 @@ import {
 } from "@/lib/i18n/spanishVideos";
 import { PhotoUploadSection } from "@/components/lesson/PhotoUploadSection";
 import { DirectoryEnrollmentLesson } from "@/components/lesson/DirectoryEnrollmentLesson";
-import {
-  BUSINESS_MASTERY_WELCOME_PENDING_KEY,
-  BusinessMasteryWelcome,
-} from "@/components/courses/BusinessMasteryWelcome";
-import { useUserCertification } from "@/hooks/useCertification";
 import {
   FIRST_POST_MODULE_ID,
   FOURTH_POST_FALLBACK_COPY,
@@ -86,105 +77,36 @@ const VideoPlayer = React.memo(
     src,
     title,
     posterSrc,
-    onPlay,
-    onPause,
-    onEnded,
-    onTimeUpdate,
-    resumeSeconds = 0,
   }: {
     src: string;
     title: string;
     posterSrc?: string;
-    onPlay?: () => void;
-    onPause?: () => void;
-    onEnded?: () => void;
-    onTimeUpdate?: (seconds: number) => void;
-    resumeSeconds?: number;
   }) => {
     const [hasStarted, setHasStarted] = useState(!posterSrc);
-    const iframeRef = useRef<HTMLIFrameElement | null>(null);
     const isDirectVideo = /\.(mp4|mov|m4v|webm)(\?.*)?$/i.test(src);
     const playableSrc =
       posterSrc && !isDirectVideo
         ? src.replace("autoplay=0", "autoplay=1")
         : src;
-    const iframeSrc =
-      !isDirectVideo && playableSrc.includes("vimeo") && !/[?&]api=1(?:&|$)/.test(playableSrc)
-        ? `${playableSrc}${playableSrc.includes("?") ? "&" : "?"}api=1`
-        : playableSrc;
 
     useEffect(() => {
       setHasStarted(!posterSrc);
     }, [src, posterSrc]);
 
-    useEffect(() => {
-      if (!hasStarted || isDirectVideo || !src.includes("vimeo")) return;
-      const iframe = iframeRef.current;
-      if (!iframe) return;
-      const subscribe = () => {
-        ["play", "pause", "ended", "timeupdate", "ready"].forEach((eventName) => {
-          iframe.contentWindow?.postMessage(
-            JSON.stringify({ method: "addEventListener", value: eventName }),
-            "*",
-          );
-        });
-      };
-
-      const onMessage = (event: MessageEvent) => {
-        if (event.origin && event.origin !== "https://player.vimeo.com") return;
-        let payload: { event?: string; method?: string; data?: unknown; value?: unknown } | null = null;
-        try {
-          payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        } catch {
-          return;
-        }
-        if (!payload) return;
-        if (payload.event === "ready" && resumeSeconds > 0) {
-          iframe.contentWindow?.postMessage(
-            JSON.stringify({ method: "setCurrentTime", value: resumeSeconds }),
-            "*",
-          );
-        }
-        if (payload.event === "play") onPlay?.();
-        if (payload.event === "pause") onPause?.();
-        if (payload.event === "ended") onEnded?.();
-        if (payload.event === "timeupdate") {
-          const data = payload.data as { seconds?: unknown } | number | undefined;
-          const seconds =
-            typeof data === "number"
-              ? data
-              : typeof data?.seconds === "number"
-                ? data.seconds
-                : Number(data?.seconds);
-          if (Number.isFinite(seconds)) onTimeUpdate?.(seconds);
-        }
-        if (payload.method === "getCurrentTime") {
-          const seconds = Number(payload.value);
-          if (Number.isFinite(seconds)) onTimeUpdate?.(seconds);
-        }
-      };
-
-      iframe.addEventListener("load", subscribe);
-      window.addEventListener("message", onMessage);
-      subscribe();
-      return () => {
-        iframe.removeEventListener("load", subscribe);
-        window.removeEventListener("message", onMessage);
-      };
-    }, [hasStarted, isDirectVideo, onEnded, onPause, onPlay, onTimeUpdate, resumeSeconds, src]);
-
-    useEffect(() => {
-      if (!hasStarted || isDirectVideo || !src.includes("vimeo") || resumeSeconds <= 0) return;
-      iframeRef.current?.contentWindow?.postMessage(
-        JSON.stringify({ method: "setCurrentTime", value: resumeSeconds }),
-        "*",
-      );
-    }, [hasStarted, isDirectVideo, resumeSeconds, src]);
-
     return (
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="aspect-video max-h-[50vh] bg-black relative">
-          {posterSrc && !hasStarted ? (
+          {isDirectVideo ? (
+            <video
+              src={src}
+              poster={posterSrc}
+              className="absolute inset-0 h-full w-full"
+              controls
+              playsInline
+              preload="metadata"
+              title={title}
+            />
+          ) : posterSrc && !hasStarted ? (
             <button
               type="button"
               onClick={() => setHasStarted(true)}
@@ -202,24 +124,9 @@ const VideoPlayer = React.memo(
                 <Play className="ml-1 h-9 w-9 fill-current" />
               </span>
             </button>
-          ) : isDirectVideo ? (
-            <video
-              src={src}
-              poster={posterSrc}
-              className="absolute inset-0 h-full w-full"
-              controls
-              autoPlay={!!posterSrc}
-              playsInline
-              preload="metadata"
-              title={title}
-              onPlay={onPlay}
-              onPause={onPause}
-              onEnded={onEnded}
-            />
           ) : (
             <iframe
-              ref={iframeRef}
-              src={iframeSrc}
+              src={playableSrc}
               className="absolute inset-0 w-full h-full"
               allow="autoplay; fullscreen; picture-in-picture"
               allowFullScreen
@@ -234,29 +141,8 @@ const VideoPlayer = React.memo(
 VideoPlayer.displayName = "VideoPlayer";
 
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
-const CONSUMER_FINANCING_MODULE_ID = "b1040000-0000-4000-8000-000000000104";
-const HAIR_SYSTEM_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
-const HAIR_SYSTEM_CHARGE_MODULE_ID = "c45caf90-af21-44cd-898c-76fc8015ea00";
 const SOCIAL_MEDIA_101_THUMBNAIL =
   "/lesson-assets/thumbnails/social-media-101-thumbnail.png";
-const CONSUMER_FINANCING_THUMBNAIL =
-  "/lesson-assets/thumbnails/consumer-financing-thumbnail.jpg";
-const VIDEO_POSTER_BY_URL: Record<string, string> = {
-  "/lesson-assets/posts/winno-real-result-ig-02-with-hair-system-vertical-audio.mp4":
-    "/lesson-assets/thumbnails/third-post-thumbnail.jpg",
-  "/lesson-assets/posts/fourth-post-transformation.mp4":
-    "/lesson-assets/thumbnails/fourth-post-option-1-thumbnail.jpg",
-  "/lesson-assets/posts/fourth-post-barber-launch-1.mp4":
-    "/lesson-assets/thumbnails/fourth-post-option-2-thumbnail.jpg",
-  "/lesson-assets/posts/fourth-post-hair-system-2.mp4":
-    "/lesson-assets/thumbnails/fourth-post-option-3-thumbnail.jpg",
-};
-
-const formatWatchDuration = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-};
 const SOCIAL_MEDIA_101_INSTAGRAM_POST_URL =
   "https://www.instagram.com/barberlaunchofficial/p/DYDyUWaGsX3/";
 const SOCIAL_MEDIA_101_CAROUSEL_SLIDES = Array.from(
@@ -388,7 +274,7 @@ const SocialMedia101ReadAlong = () => {
         </p>
       </div>
 
-      <div className="grid gap-4 grid-cols-1">
+      <div className="grid gap-4 lg:grid-cols-2">
         {SOCIAL_MEDIA_101_LESSON_SECTIONS.map((section) => (
           <div
             key={section.title}
@@ -437,16 +323,18 @@ type ResourcePreviewFile = {
   file_type: string | null;
 };
 
-const getVideoPosterSrc = (fileUrl?: string | null) =>
-  fileUrl ? VIDEO_POSTER_BY_URL[fileUrl] : undefined;
-
 // Copyable text component
 const CopyableText = ({
   text,
+  downloadFileName,
+  allowDownload,
 }: {
   text: string;
+  downloadFileName?: string;
+  allowDownload?: boolean;
 }) => {
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const renderTextWithPlaceholders = (value: string) => {
     const placeholderPattern = /(\[[^\]]+\])/g;
@@ -472,24 +360,59 @@ const CopyableText = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = downloadFileName || "lesson-content.txt";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      toast.success("Downloaded lesson content");
+    } catch {
+      toast.error("Download failed. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <div className="px-4 py-3 bg-secondary/50 border border-border/50 rounded space-y-3">
-      <div className="flex items-center gap-2">
+    <span className="inline-flex items-center gap-2 px-3 py-2 bg-secondary/50 border border-border/50 rounded text-base leading-relaxed">
+      <span className="whitespace-pre-line">
+        {renderTextWithPlaceholders(text)}
+      </span>
+      <div className="inline-flex items-center gap-1">
         <button
           onClick={handleCopy}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+          className="p-0.5 hover:bg-primary/20 rounded transition-colors flex-shrink-0 self-start mt-0.5"
+          title="Copy to clipboard"
         >
           {copied ? (
-            <><Check className="w-3.5 h-3.5" /> Copied</>
+            <Check className="w-3.5 h-3.5 text-green-500" />
           ) : (
-            <><Copy className="w-3.5 h-3.5" /> Copy Caption</>
+            <Copy className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
           )}
         </button>
+        {allowDownload ? (
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="p-0.5 hover:bg-primary/20 rounded transition-colors flex-shrink-0 self-start mt-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Download as .txt"
+          >
+            {downloading ? (
+              <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+            )}
+          </button>
+        ) : null}
       </div>
-      <div className="whitespace-pre-line text-base leading-relaxed">
-        {renderTextWithPlaceholders(text)}
-      </div>
-    </div>
+    </span>
   );
 };
 
@@ -514,7 +437,7 @@ const SECOND_POST_FALLBACK_COPY = [
 ].join("\n");
 
 // Helper function to render markdown-style notes content
-const renderNotesContent = (content: string) => {
+const renderNotesContent = (content: string, copyDownloadFileName?: string) => {
   // Pre-process: Extract all {copy:...} blocks (including multi-line) and replace with placeholders
   const copyBlocks = new Map<string, string>();
   let blockIndex = 0;
@@ -552,6 +475,8 @@ const renderNotesContent = (content: string) => {
             <CopyableText
               key={`${keyPrefix}-copy-${match.index}`}
               text={copyText}
+              allowDownload={!!copyDownloadFileName}
+              downloadFileName={copyDownloadFileName}
             />,
           );
         }
@@ -641,7 +566,11 @@ const renderNotesContent = (content: string) => {
       if (copyText) {
         elements.push(
           <div key={index} className="my-2">
-            <CopyableText text={copyText} />
+            <CopyableText
+              text={copyText}
+              allowDownload={!!copyDownloadFileName}
+              downloadFileName={copyDownloadFileName}
+            />
           </div>,
         );
       }
@@ -658,7 +587,6 @@ export default function Lesson() {
   const { lessonId, courseType } = useParams();
   const [searchParams] = useSearchParams();
   const { data: courses = [], isLoading } = useCourses();
-  const { user, isAdmin } = useAuth();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -681,19 +609,6 @@ export default function Lesson() {
   const [previewFile, setPreviewFile] = useState<ResourcePreviewFile | null>(
     null,
   );
-
-  // Deep IP-tracked lesson view event
-  useEffect(() => {
-    if (!lessonId) return;
-    import("@/lib/accessLog").then(({ logAccess }) => {
-      logAccess({
-        event_type: "lesson_view",
-        resource_type: "lesson",
-        resource_id: sublessonId || lessonId,
-        metadata: { module_id: lessonId, sublesson_id: sublessonId || null, course_type: courseType || null },
-      });
-    });
-  }, [lessonId, sublessonId, courseType]);
 
   // Update tab when URL changes
   useEffect(() => {
@@ -731,71 +646,6 @@ export default function Lesson() {
   );
   const currentModuleIndex = allModules.findIndex((m) => m.id === lessonId);
   const module = allModules[currentModuleIndex];
-  const hairSystemCourseId = courses.find(
-    (course) => (course as any).category === "hair-system",
-  )?.id;
-  const { data: hairSystemCertification, isLoading: isLoadingCertification } =
-    useUserCertification(hairSystemCourseId);
-  const [showBusinessWelcome, setShowBusinessWelcome] = useState(false);
-
-  useEffect(() => {
-    if (courseType !== "business" || !user?.id) return;
-
-    let pending = false;
-    try {
-      pending =
-        window.sessionStorage.getItem(BUSINESS_MASTERY_WELCOME_PENDING_KEY) ===
-        "1";
-    } catch {
-      pending = false;
-    }
-
-    if (
-      !pending ||
-      isAdmin ||
-      isLoadingCertification ||
-      !hairSystemCertification
-    ) {
-      return;
-    }
-
-    const seenKey = `business-mastery-welcome-seen:v2:${user.id}`;
-    try {
-      if (window.localStorage.getItem(seenKey) === "1") return;
-      setShowBusinessWelcome(true);
-    } catch {
-      setShowBusinessWelcome(true);
-    }
-  }, [
-    courseType,
-    hairSystemCertification,
-    isLoadingCertification,
-    isAdmin,
-    user?.id,
-  ]);
-
-  const dismissBusinessWelcome = useCallback(() => {
-    if (user?.id) {
-      try {
-        window.localStorage.setItem(
-          `business-mastery-welcome-seen:v2:${user.id}`,
-          "1",
-        );
-      } catch {
-        // Keep the dismissal in local state if browser storage is unavailable.
-      }
-    }
-    try {
-      window.sessionStorage.removeItem(BUSINESS_MASTERY_WELCOME_PENDING_KEY);
-    } catch {
-      // Ignore storage failures; the modal is still dismissed in local state.
-    }
-    setShowBusinessWelcome(false);
-  }, [user?.id]);
-  const isOrderTrackingModule =
-    !sublessonId && module?.id === HAIR_SYSTEM_ORDER_MODULE_ID;
-  const isChargeResumeModule =
-    !sublessonId && module?.id === HAIR_SYSTEM_CHARGE_MODULE_ID;
   const nextModule =
     currentModuleIndex >= 0 && currentModuleIndex < allModules.length - 1
       ? allModules[currentModuleIndex + 1]
@@ -810,38 +660,8 @@ export default function Lesson() {
   const { data: existingSubmission } = useHomeworkSubmission(
     sublessonId ? undefined : module?.id,
   );
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-
-  // The charge lesson is informational rather than quiz-based. Preserve the
-  // Vimeo timestamp per user so returning learners can continue where they
-  // left off without changing completion requirements.
-  const chargePositionKey = user?.id
-    ? `hair-system-charge-position:${user.id}:${HAIR_SYSTEM_CHARGE_MODULE_ID}`
-    : null;
-  const [chargeResumeSeconds, setChargeResumeSeconds] = useState(0);
-  const chargePositionRef = useRef(0);
-  const chargeLastSavedRef = useRef(-1);
-
-  useEffect(() => {
-    if (!isChargeResumeModule || !chargePositionKey) {
-      chargePositionRef.current = 0;
-      chargeLastSavedRef.current = -1;
-      setChargeResumeSeconds(0);
-      return;
-    }
-
-    try {
-      const stored = Number.parseFloat(localStorage.getItem(chargePositionKey) || "0");
-      const restored = Number.isFinite(stored) ? Math.max(0, stored) : 0;
-      chargePositionRef.current = restored;
-      chargeLastSavedRef.current = Math.floor(restored);
-      setChargeResumeSeconds(restored);
-    } catch {
-      chargePositionRef.current = 0;
-      chargeLastSavedRef.current = -1;
-      setChargeResumeSeconds(0);
-    }
-  }, [chargePositionKey, isChargeResumeModule]);
 
   // Check if module's lessons are already completed
   const { data: lessonCompletionData } = useQuery({
@@ -893,17 +713,9 @@ export default function Lesson() {
     enabled: !!sublessonId && !!user?.id,
   });
 
-  // Completion is tracked via quiz — a passing attempt (>=80%) also
-  // counts as completion so modules with no sub-lessons still register.
-  const hasPassingQuizAttempt = attempts.some(
-    (a) => a.total_questions > 0 && a.score / a.total_questions >= 0.8,
-  );
   const isCurrentLessonCompleted = sublessonId
-    ? !!sublessonCompletion || hasPassingQuizAttempt
-    : isModuleCompleted || hasPassingQuizAttempt;
-
-  const [videoDuration, setVideoDuration] = useState<number | null>(null);
-
+    ? !!sublessonCompletion
+    : isModuleCompleted;
 
   const markModuleComplete = async () => {
     if (!user?.id) return;
@@ -950,211 +762,8 @@ export default function Lesson() {
       queryKey: ["lesson-completion", module.id, user.id],
     });
     queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] });
-    queryClient.invalidateQueries({ queryKey: ["completed-modules", user.id] });
     toast.success("Lesson marked as complete!");
   };
-
-  // Module 17 has no quiz. Its completion is based on cumulative, visible
-  // playback time rather than time spent merely sitting on the lesson page.
-  const [orderWatchSeconds, setOrderWatchSeconds] = useState(0);
-  const orderWatchSecondsRef = useRef(0);
-  const orderPlayingRef = useRef(false);
-  const orderWatchTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const orderWatchKey = user?.id
-    ? `hair-system-order-watch:${user.id}:${HAIR_SYSTEM_ORDER_MODULE_ID}`
-    : null;
-
-  useEffect(() => {
-    if (!isOrderTrackingModule || !orderWatchKey) {
-      orderWatchSecondsRef.current = 0;
-      setOrderWatchSeconds(0);
-      return;
-    }
-
-    try {
-      const stored = Number.parseInt(localStorage.getItem(orderWatchKey) || "0", 10);
-      const restored = Number.isFinite(stored) ? Math.max(0, stored) : 0;
-      orderWatchSecondsRef.current = restored;
-      setOrderWatchSeconds(restored);
-    } catch {
-      orderWatchSecondsRef.current = 0;
-      setOrderWatchSeconds(0);
-    }
-  }, [isOrderTrackingModule, orderWatchKey]);
-
-  const persistOrderWatch = useCallback(
-    (seconds: number) => {
-      if (!orderWatchKey) return;
-      try {
-        localStorage.setItem(orderWatchKey, String(Math.floor(seconds)));
-      } catch {
-        // Local persistence is best-effort; playback tracking continues in memory.
-      }
-    },
-    [orderWatchKey],
-  );
-
-  const logOrderPlayback = useCallback(
-    (eventType: "video_play" | "video_pause" | "video_complete") => {
-      if (!isOrderTrackingModule || !user?.id) return;
-      void logAccess({
-        event_type: eventType,
-        resource_type: "module",
-        resource_id: HAIR_SYSTEM_ORDER_MODULE_ID,
-        metadata: {
-          module_title: "Placing a Hair System Order",
-          watched_seconds: Math.floor(orderWatchSecondsRef.current),
-          video_duration: videoDuration,
-          completion_threshold: videoDuration
-            ? Math.max(60, Math.ceil(videoDuration * 0.9))
-            : null,
-        },
-      });
-    },
-    [isOrderTrackingModule, user?.id, videoDuration],
-  );
-
-  const orderLastTimeRef = useRef<number | null>(null);
-
-  const handleOrderPlay = useCallback(() => {
-    if (!isOrderTrackingModule || isCurrentLessonCompleted) return;
-    orderPlayingRef.current = true;
-    logOrderPlayback("video_play");
-  }, [isCurrentLessonCompleted, isOrderTrackingModule, logOrderPlayback]);
-
-  const handleOrderPause = useCallback(() => {
-    if (!isOrderTrackingModule) return;
-    orderPlayingRef.current = false;
-    orderLastTimeRef.current = null;
-    persistOrderWatch(orderWatchSecondsRef.current);
-    logOrderPlayback("video_pause");
-  }, [isOrderTrackingModule, logOrderPlayback, persistOrderWatch]);
-
-  const handleOrderEnded = useCallback(() => {
-    if (!isOrderTrackingModule) return;
-    orderPlayingRef.current = false;
-    orderLastTimeRef.current = null;
-    persistOrderWatch(orderWatchSecondsRef.current);
-    logOrderPlayback("video_complete");
-  }, [isOrderTrackingModule, logOrderPlayback, persistOrderWatch]);
-
-  // Vimeo timeupdate is our source of truth for the order-video tracker.
-  // Some private-hash Vimeo embeds don't reliably deliver play/pause postMessages,
-  // so instead we advance watched-seconds directly from timeupdate deltas.
-  const handleOrderTimeUpdate = useCallback(
-    (seconds: number) => {
-      if (!isOrderTrackingModule || isCurrentLessonCompleted || !videoDuration) return;
-      orderPlayingRef.current = true;
-      const prev = orderLastTimeRef.current;
-      orderLastTimeRef.current = seconds;
-      if (prev === null) return;
-      const delta = seconds - prev;
-      // Only count forward, real-time playback (ignore seeks/pauses/jumps).
-      if (delta <= 0 || delta > 2) return;
-
-      const threshold = Math.max(60, Math.ceil(videoDuration * 0.9));
-      const next = Math.min(threshold, orderWatchSecondsRef.current + delta);
-      orderWatchSecondsRef.current = next;
-      setOrderWatchSeconds(next);
-      if (Math.floor(next) % 5 === 0) persistOrderWatch(next);
-
-      if (next >= threshold) {
-        orderPlayingRef.current = false;
-        persistOrderWatch(next);
-        logOrderPlayback("video_complete");
-        void markModuleComplete();
-      }
-    },
-    // markModuleComplete is stable enough (defined in component scope); intentionally omitted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isOrderTrackingModule, isCurrentLessonCompleted, videoDuration, logOrderPlayback, persistOrderWatch],
-  );
-
-  const persistChargePosition = useCallback(
-    (seconds = chargePositionRef.current) => {
-      if (!isChargeResumeModule || !chargePositionKey || !Number.isFinite(seconds)) {
-        return;
-      }
-      const rounded = Math.max(0, Math.floor(seconds));
-      try {
-        localStorage.setItem(chargePositionKey, String(rounded));
-        chargeLastSavedRef.current = rounded;
-      } catch {
-        // Local persistence is best-effort; playback can still resume in-memory.
-      }
-    },
-    [chargePositionKey, isChargeResumeModule],
-  );
-
-  const handleChargeTimeUpdate = useCallback(
-    (seconds: number) => {
-      if (!isChargeResumeModule || !chargePositionKey || !Number.isFinite(seconds)) {
-        return;
-      }
-      chargePositionRef.current = Math.max(0, seconds);
-      const rounded = Math.floor(chargePositionRef.current);
-      // Vimeo sends timeupdate frequently; persist at most once every two
-      // seconds and flush the latest value on pause/unmount.
-      if (rounded - chargeLastSavedRef.current >= 2) {
-        persistChargePosition(chargePositionRef.current);
-      }
-    },
-    [chargePositionKey, isChargeResumeModule, persistChargePosition],
-  );
-
-  const handleChargePause = useCallback(() => {
-    persistChargePosition();
-  }, [persistChargePosition]);
-
-  useEffect(() => {
-    return () => {
-      persistChargePosition();
-    };
-  }, [persistChargePosition]);
-
-  useEffect(() => {
-    if (
-      !isOrderTrackingModule ||
-      isCurrentLessonCompleted ||
-      !user?.id ||
-      !videoDuration
-    ) {
-      orderPlayingRef.current = false;
-      if (orderWatchTimerRef.current) clearInterval(orderWatchTimerRef.current);
-      return;
-    }
-
-    const threshold = Math.max(60, Math.ceil(videoDuration * 0.9));
-    orderWatchTimerRef.current = setInterval(() => {
-      if (!orderPlayingRef.current || document.visibilityState !== "visible") return;
-
-      const nextSeconds = orderWatchSecondsRef.current + 1;
-      orderWatchSecondsRef.current = nextSeconds;
-      setOrderWatchSeconds(nextSeconds);
-
-      if (nextSeconds % 5 === 0) persistOrderWatch(nextSeconds);
-      if (nextSeconds >= threshold) {
-        orderPlayingRef.current = false;
-        if (orderWatchTimerRef.current) clearInterval(orderWatchTimerRef.current);
-        persistOrderWatch(nextSeconds);
-        logOrderPlayback("video_complete");
-        void markModuleComplete();
-      }
-    }, 1000);
-
-    return () => {
-      if (orderWatchTimerRef.current) clearInterval(orderWatchTimerRef.current);
-      orderPlayingRef.current = false;
-      persistOrderWatch(orderWatchSecondsRef.current);
-    };
-  }, [
-    isCurrentLessonCompleted,
-    isOrderTrackingModule,
-    logOrderPlayback,
-    persistOrderWatch,
-    user?.id,
-    videoDuration,
-  ]);
 
   // Resolve the source URL based on active locale (Spanish overrides fall back to English).
   const { locale } = useLocale();
@@ -1172,6 +781,12 @@ export default function Lesson() {
     [module, locale, sublesson],
   );
 
+  // Auto-complete video lessons based on time on page
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const elapsedSeconds = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoCompletedRef = useRef(false);
+
   // Fetch video duration from Vimeo oEmbed API
   useEffect(() => {
     if (!localizedVideoUrl || !localizedVideoUrl.includes("vimeo")) return;
@@ -1188,6 +803,35 @@ export default function Lesson() {
         /* fallback to manual button */
       });
   }, [localizedVideoUrl]);
+
+  // Time-on-page tracker for auto-completion
+  useEffect(() => {
+    if (!videoDuration || isCurrentLessonCompleted || !user?.id || !module?.id)
+      return;
+    autoCompletedRef.current = false;
+    elapsedSeconds.current = 0;
+
+    const threshold = Math.max(60, videoDuration);
+
+    timerRef.current = setInterval(() => {
+      elapsedSeconds.current += 1;
+      if (elapsedSeconds.current >= threshold && !autoCompletedRef.current) {
+        autoCompletedRef.current = true;
+        if (timerRef.current) clearInterval(timerRef.current);
+        markModuleComplete();
+      }
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [
+    videoDuration,
+    isCurrentLessonCompleted,
+    user?.id,
+    module?.id,
+    sublessonId,
+  ]);
 
   const submitQuiz = useSubmitQuiz();
   const submitHomework = useSubmitHomework();
@@ -1207,19 +851,6 @@ export default function Lesson() {
   const [incorrectQuestions, setIncorrectQuestions] = useState<Set<string>>(
     new Set(),
   );
-  const [retakingQuiz, setRetakingQuiz] = useState(false);
-
-  // Reset quiz UI state when navigating between lessons/sub-lessons
-  useEffect(() => {
-    setQuizAnswers({});
-    setShowResults(false);
-    setShowReview(false);
-    setQuizScore(null);
-    setIncorrectQuestions(new Set());
-    setCorrectAnswersMap({});
-    setRetakingQuiz(false);
-  }, [module?.id, sublessonId]);
-
 
   // Homework state
   const [textResponse, setTextResponse] = useState(
@@ -1310,9 +941,7 @@ export default function Lesson() {
     setQuizScore(null);
     setIncorrectQuestions(new Set());
     setCorrectAnswersMap({});
-    setRetakingQuiz(true);
   };
-
 
   const handleHomeworkSubmit = async () => {
     await submitHomework.mutateAsync({
@@ -1352,6 +981,8 @@ export default function Lesson() {
   const isSecondPostSubLesson = sublesson?.id === SECOND_POST_SUBLESSON_ID;
   const isThirdPostSubLesson = sublesson?.id === THIRD_POST_SUBLESSON_ID;
   const isFourthPostSubLesson = sublesson?.id === FOURTH_POST_SUBLESSON_ID;
+  const isPostCaptionSubLesson =
+    isSecondPostSubLesson || isThirdPostSubLesson || isFourthPostSubLesson;
   const fallbackPostDescription = isSecondPostSubLesson
     ? SECOND_POST_FALLBACK_COPY
     : isThirdPostSubLesson
@@ -1367,17 +998,8 @@ export default function Lesson() {
     : module.video_url;
   const isSocialMedia101Lesson =
     !sublessonId && module.id === SOCIAL_MEDIA_101_MODULE_ID;
-  const isSocialMediaLesson =
-    isSocialMedia101Lesson || module.id === FIRST_POST_MODULE_ID;
-
-  const isConsumerFinancingLesson =
-    !sublessonId && module.id === CONSUMER_FINANCING_MODULE_ID;
   const videoPosterSrc =
-    isSocialMedia101Lesson
-      ? SOCIAL_MEDIA_101_THUMBNAIL
-      : isConsumerFinancingLesson
-        ? CONSUMER_FINANCING_THUMBNAIL
-        : undefined;
+    isSocialMedia101Lesson ? SOCIAL_MEDIA_101_THUMBNAIL : undefined;
   const isSubLessonInFirstPostModule =
     !!sublessonId && module.id === FIRST_POST_MODULE_ID;
   const activeHasDownload =
@@ -1388,6 +1010,8 @@ export default function Lesson() {
   const activeHasQuiz = sublessonId ? !!sublesson?.has_quiz : module.has_quiz;
   const activeHasHomework = sublessonId ? false : module.has_homework;
   const notesContent = sublessonId ? null : module.notes_content;
+  const firstPostCopyDownloadFileName =
+    module.id === FIRST_POST_MODULE_ID ? "first-post.txt" : undefined;
   const activeFiles = isThirdPostSubLesson
     ? [THIRD_POST_VIDEO_FILE]
     : isSecondPostSubLesson
@@ -1402,15 +1026,9 @@ export default function Lesson() {
   const previewIsVideo = ["mp4", "mov", "avi", "webm", "mkv"].includes(
     previewFileType,
   );
-  const orderWatchTargetSeconds = videoDuration
-    ? Math.max(60, Math.ceil(videoDuration * 0.9))
-    : null;
 
   return (
     <DashboardLayout>
-      {courseType === "business" && showBusinessWelcome && (
-        <BusinessMasteryWelcome onContinue={dismissBusinessWelcome} />
-      )}
       <Dialog
         open={!!previewFile}
         onOpenChange={(open) => !open && setPreviewFile(null)}
@@ -1451,12 +1069,6 @@ export default function Lesson() {
               onClick={() =>
                 navigate(
                   `/courses/${courseType || (module as any).courseCategory || "hair-system"}`,
-                  {
-                    state: {
-                      openTrack: courseType || (module as any).courseCategory || "hair-system",
-                      highlightModule: module.id,
-                    },
-                  },
                 )
               }
             >
@@ -1482,45 +1094,22 @@ export default function Lesson() {
             </div>
           </div>
           {isCurrentLessonCompleted ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  {localizeCourseUi("Completed", locale)}
-                </span>
-              </div>
-              {bestAttempt &&
-                bestAttempt.total_questions > 0 &&
-                bestAttempt.score / bestAttempt.total_questions >= 0.8 && (
-                  <>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span className="text-sm font-medium">Quiz Passed</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/40 text-primary">
-                      <Star className="w-4 h-4 fill-current" />
-                      <span className="text-sm font-semibold">
-                        Score:{" "}
-                        {Math.round(
-                          (bestAttempt.score / bestAttempt.total_questions) *
-                            100,
-                        )}
-                        %
-                      </span>
-                    </div>
-                  </>
-                )}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-sm font-medium">
+                {localizeCourseUi("Completed", locale)}
+              </span>
             </div>
-          ) : isOrderTrackingModule ? (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-right">
-              <p className="text-xs font-semibold text-primary">Watch progress</p>
-              <p className="text-xs text-muted-foreground">
-                {orderWatchTargetSeconds
-                  ? `${formatWatchDuration(orderWatchSeconds)} / ${formatWatchDuration(orderWatchTargetSeconds)}`
-                  : "Loading video length…"}
-              </p>
-            </div>
-          ) : null}
+          ) : (
+            <Button
+              onClick={markModuleComplete}
+              className="gold-gradient"
+              size="sm"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              {localizeCourseUi("Mark Complete", locale)}
+            </Button>
+          )}
         </div>
 
         {/* Video Player - only show if video exists and not a special lesson */}
@@ -1532,193 +1121,7 @@ export default function Lesson() {
               src={vimeoEmbedUrl}
               title={localizedModuleTitle}
               posterSrc={videoPosterSrc}
-              resumeSeconds={isChargeResumeModule ? chargeResumeSeconds : 0}
-              onPlay={isOrderTrackingModule ? handleOrderPlay : undefined}
-              onPause={
-                isOrderTrackingModule
-                  ? handleOrderPause
-                  : isChargeResumeModule
-                    ? handleChargePause
-                    : undefined
-              }
-              onEnded={
-                isOrderTrackingModule
-                  ? handleOrderEnded
-                  : isChargeResumeModule
-                    ? handleChargePause
-                    : undefined
-              }
-              onTimeUpdate={
-                isOrderTrackingModule
-                  ? handleOrderTimeUpdate
-                  : isChargeResumeModule
-                    ? handleChargeTimeUpdate
-                    : undefined
-              }
             />
-          )}
-
-        {isOrderTrackingModule && !isCurrentLessonCompleted && (
-          <div className="rounded-xl border border-border/50 bg-secondary/20 p-3">
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="font-medium text-foreground">Video completion progress</span>
-              <span className="text-muted-foreground">
-                {orderWatchTargetSeconds
-                  ? `${Math.min(100, Math.round((orderWatchSeconds / orderWatchTargetSeconds) * 100))}%`
-                  : "—"}
-              </span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full gold-gradient transition-all"
-                style={{
-                  width: `${orderWatchTargetSeconds ? Math.min(100, (orderWatchSeconds / orderWatchTargetSeconds) * 100) : 0}%`,
-                }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Your watched time saves automatically and resumes when you return.
-            </p>
-          </div>
-        )}
-
-        {/* Completed lesson success banner + Review actions */}
-        {isCurrentLessonCompleted &&
-          bestAttempt &&
-          bestAttempt.total_questions > 0 &&
-          bestAttempt.score / bestAttempt.total_questions >= 0.8 && (
-            <div
-              className="space-y-3 animate-fade-up"
-              style={{ animationDelay: "0.1s" }}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Button
-                  size="lg"
-                  className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
-                  onClick={() => {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                >
-                  <RotateCcw className="w-5 h-5" />
-                  Review Lesson
-                </Button>
-                {activeHasQuiz && (
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-primary/60 text-primary font-bold gap-2 hover:bg-primary/10"
-                    onClick={() => {
-                      if (!isMobile) setActiveTab("quiz");
-                      setTimeout(() => {
-                        const el =
-                          document.getElementById("social-media-quiz") ||
-                          document.getElementById("lesson-quiz");
-                        el?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                      }, 50);
-                    }}
-                  >
-                    <HelpCircle className="w-5 h-5" />
-                    Review Quiz
-                  </Button>
-                )}
-              </div>
-              <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-green-500/40 bg-green-500/10">
-                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                  <Trophy className="w-5 h-5 text-green-400" />
-                </div>
-                <p className="flex-1 text-sm sm:text-base text-foreground/90">
-                  <span className="font-semibold text-green-400">
-                    Excellent work!
-                  </span>{" "}
-                  You've completed this lesson and passed the quiz.
-                </p>
-                <span className="px-3 py-1 rounded-full border border-green-500/40 text-green-400 font-semibold text-sm">
-                  {Math.round(
-                    (bestAttempt.score / bestAttempt.total_questions) * 100,
-                  )}
-                  %
-                </span>
-              </div>
-            </div>
-          )}
-
-
-        {/* Social Media: prominent Start Quiz CTA directly under the video */}
-        {displayVideoUrl?.trim() &&
-          activeHasQuiz &&
-          isSocialMediaLesson &&
-          !isMobile && (
-            <div
-              className="flex justify-center animate-fade-up"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <Button
-                size="lg"
-                className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
-                onClick={() => setActiveTab("quiz")}
-              >
-                <Trophy className="w-5 h-5" />
-                Start Quiz
-              </Button>
-
-            </div>
-          )}
-
-        {displayVideoUrl?.trim() &&
-          activeHasQuiz &&
-          isSocialMediaLesson &&
-          isMobile && (
-            <div
-              className="flex justify-center animate-fade-up"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <Button
-                size="lg"
-                className="w-full gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
-                onClick={() => {
-                  const quizEl = document.getElementById("social-media-quiz");
-                  quizEl?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                <Trophy className="w-5 h-5" />
-                Start Quiz
-              </Button>
-
-            </div>
-          )}
-
-
-        {/* Mobile: Caption / description block */}
-        {isMobile &&
-          displayDescription &&
-          !(module as any).is_directory_enrollment && (
-            <div
-              className="animate-fade-up"
-              style={{ animationDelay: "0.25s" }}
-            >
-              <h2 className="font-display text-xl font-semibold mb-2">
-                {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
-                sublesson?.id === THIRD_POST_SUBLESSON_ID ||
-                sublesson?.id === FOURTH_POST_SUBLESSON_ID
-                  ? "Copy Caption Below"
-                  : sublesson
-                    ? "About This Lesson"
-                    : "About This Module"}
-              </h2>
-              {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
-              sublesson?.id === THIRD_POST_SUBLESSON_ID ||
-              sublesson?.id === FOURTH_POST_SUBLESSON_ID ||
-              (!sublesson && module.id === FIRST_POST_MODULE_ID) ? (
-                <CopyableText text={displayDescription} />
-              ) : (
-                <p className="text-muted-foreground whitespace-pre-line">
-                  {displayDescription}
-                </p>
-              )}
-            </div>
           )}
 
         {/* Archived Instagramswipe section for later reuse. */}
@@ -1748,9 +1151,9 @@ export default function Lesson() {
               <Button
                 variant={activeTab === "quiz" ? "default" : "secondary"}
                 onClick={() => setActiveTab("quiz")}
-                className={`font-semibold gap-2 ${activeTab === "quiz" ? "gold-gradient" : ""}`}
+                className={activeTab === "quiz" ? "gold-gradient" : ""}
               >
-                <Trophy className="w-4 h-4" />
+                <HelpCircle className="w-4 h-4 mr-2" />
                 {localizeCourseUi("Quiz", locale)}
                 {bestAttempt && (
                   <span className="ml-2 px-2 py-0.5 bg-white/20 rounded text-xs">
@@ -1880,22 +1283,6 @@ export default function Lesson() {
                     </div>
                   ) : isVideo(file.file_type) ? (
                     <div className="aspect-square bg-black/40 relative overflow-hidden">
-                      {getVideoPosterSrc(file.file_url) ? (
-                        <img
-                          src={getVideoPosterSrc(file.file_url)}
-                          alt={file.file_name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <video
-                          src={`${file.file_url}#t=0.1`}
-                          className="w-full h-full object-cover pointer-events-none"
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
-                      )}
                       <button
                         type="button"
                         onClick={() => setPreviewFile(file)}
@@ -1905,6 +1292,13 @@ export default function Lesson() {
                       >
                         <Maximize2 className="h-4 w-4" />
                       </button>
+                      <video
+                        src={file.file_url}
+                        className="w-full h-full object-cover"
+                        controls
+                        playsInline
+                        preload="metadata"
+                      />
                     </div>
                   ) : (
                     <div className="aspect-square bg-secondary/50 flex items-center justify-center">
@@ -1998,7 +1392,7 @@ export default function Lesson() {
             style={{ animationDelay: "0.3s" }}
           >
             <div className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-primary" />
+              <HelpCircle className="w-5 h-5 text-primary" />
               <h2 className="font-display text-lg font-semibold">Quiz</h2>
               {bestAttempt && (
                 <span className="px-2 py-0.5 bg-primary/20 rounded text-xs">
@@ -2029,11 +1423,9 @@ export default function Lesson() {
         {/* Mobile: Inline Quiz Content */}
         {isMobile && activeHasQuiz && (
           <div
-            id="social-media-quiz"
-            className="p-4 rounded-2xl bg-secondary/20 animate-fade-up"
+            className="glass-card p-4 rounded-2xl animate-fade-up"
             style={{ animationDelay: "0.3s" }}
           >
-
             <div className="space-y-4">
               {questions.length === 0 ? (
                 <div className="text-center py-6">
@@ -2121,157 +1513,48 @@ export default function Lesson() {
                       className="w-full"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
-                      {localizeCourseUi("Retake quiz", locale)}
+                      Try Again
                     </Button>
                   </div>
                 ) : (
-                  (() => {
-                    const passed = isQuizPassed(quizScore.score, quizScore.total);
-                    const pct = Math.round((quizScore.score / quizScore.total) * 100);
-
-                    return passed ? (
-                      <div className="space-y-3 py-2">
-                        <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-primary/40 bg-primary/10">
-                          <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <Trophy className="w-5 h-5 text-primary" />
-                          </div>
-                          <div className="flex-1 text-left">
-                            <p className="font-semibold text-primary">Quiz Passed</p>
-                            <p className="text-sm text-foreground/80">
-                              {quizScore.score}/{quizScore.total} correct • you can review anytime
-                            </p>
-                          </div>
-                          <span className="px-3 py-1 rounded-full border border-primary/40 text-primary font-semibold text-sm">
-                            {pct}%
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          {incorrectQuestions.size > 0 && (
-                            <Button
-                              onClick={() => setShowReview(true)}
-                              variant="outline"
-                              size="sm"
-                              className="border-primary/60 text-primary font-bold hover:bg-primary/10"
-                            >
-                              <HelpCircle className="w-4 h-4 mr-2" />
-                              Review Quiz
-                            </Button>
-                          )}
-                          <Button onClick={resetQuiz} variant="outline" size="sm">
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            {localizeCourseUi("Retake quiz", locale)}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 py-2">
-                        <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-destructive/40 bg-destructive/10">
-                          <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                            <AlertTriangle className="w-5 h-5 text-destructive" />
-                          </div>
-                          <div className="flex-1 text-left">
-                            <p className="font-semibold text-destructive">Quiz Not Passed</p>
-                            <p className="text-sm text-foreground/80">
-                              Please retake the quiz and get 90% to pass.
-                            </p>
-                          </div>
-                          <span className="px-3 py-1 rounded-full border border-destructive/40 text-destructive font-semibold text-sm">
-                            {pct}%
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            onClick={resetQuiz}
-                            variant="destructive"
-                            size="lg"
-                            className="font-bold gap-2 shadow-lg"
-                          >
-                            <RotateCcw className="w-5 h-5" />
-                            {localizeCourseUi("Retake quiz", locale)}
-                          </Button>
-                          {incorrectQuestions.size > 0 && (
-                            <Button
-                              onClick={() => setShowReview(true)}
-                              variant="outline"
-                              size="sm"
-                              className="border-destructive/60 text-destructive font-bold hover:bg-destructive/10"
-                            >
-                              <HelpCircle className="w-4 h-4 mr-2" />
-                              See Wrong Answers ({incorrectQuestions.size})
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()
-                )
-              ) : bestAttempt && !retakingQuiz ? (
-                (() => {
-                  const passed = isQuizPassed(bestAttempt.score, bestAttempt.total_questions);
-                  const pct = Math.round((bestAttempt.score / bestAttempt.total_questions) * 100);
-                  return passed ? (
-                    <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-5 text-center">
-                      <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-green-500/20 flex items-center justify-center">
-                        <CheckCircle2 className="w-8 h-8 text-green-400" />
-                      </div>
-                      <h3 className="font-display text-xl font-bold text-green-400 mb-1">
-                        Quiz Passed
-                      </h3>
-                      <p className="text-sm text-foreground/80 mb-1">
-                        You scored{" "}
-                        <span className="font-semibold">
-                          {bestAttempt.score}/{bestAttempt.total_questions}
-                        </span>{" "}
-                        ({pct}%)
-                      </p>
-                      <p className="text-xs text-muted-foreground mb-4">
-                        This lesson is marked complete.
-                      </p>
-                      <Button
-                        onClick={() => setRetakingQuiz(true)}
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                      >
+                  // Mobile Results Summary
+                  <div className="text-center py-6">
+                    <Trophy className="w-12 h-12 mx-auto mb-3 text-primary" />
+                    <h2 className="font-display text-2xl font-bold mb-2">
+                      {quizScore.score} / {quizScore.total}
+                    </h2>
+                    <p className="text-muted-foreground mb-3 text-sm">
+                      {Math.round((quizScore.score / quizScore.total) * 100)}%
+                      Correct
+                    </p>
+                    <Progress
+                      value={(quizScore.score / quizScore.total) * 100}
+                      className="w-48 mx-auto mb-4"
+                    />
+                    <div className="flex flex-col gap-2">
+                      {incorrectQuestions.size > 0 && (
+                        <Button
+                          onClick={() => setShowReview(true)}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          <HelpCircle className="w-4 h-4 mr-2" />
+                          See Wrong Answers ({incorrectQuestions.size})
+                        </Button>
+                      )}
+                      <Button onClick={resetQuiz} variant="outline" size="sm">
                         <RotateCcw className="w-4 h-4 mr-2" />
-                        {localizeCourseUi("Retake quiz", locale)}
+                        Try Again
                       </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-destructive/40 bg-destructive/10">
-                        <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                          <AlertTriangle className="w-5 h-5 text-destructive" />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <p className="font-semibold text-destructive">Quiz Not Passed</p>
-                          <p className="text-sm text-foreground/80">
-                            Please retake the quiz and get 90% to pass.
-                          </p>
-                        </div>
-                        <span className="px-3 py-1 rounded-full border border-destructive/40 text-destructive font-semibold text-sm">
-                          {pct}%
-                        </span>
-                      </div>
-                      <Button
-                        onClick={() => setRetakingQuiz(true)}
-                        variant="destructive"
-                        className="w-full font-bold gap-2 shadow-lg"
-                        size="lg"
-                      >
-                        <RotateCcw className="w-5 h-5" />
-                        {localizeCourseUi("Retake quiz", locale)}
-                      </Button>
-                    </div>
-                  );
-                })()
+                  </div>
+                )
               ) : (
                 <div className="space-y-4">
-
                   {questions.map((question, index) => (
                     <div
                       key={question.id}
-                      className="p-3 rounded-xl bg-secondary/20"
+                      className="p-3 rounded-xl bg-secondary/20 border border-border/30"
                     >
                       <div className="flex items-start gap-2 mb-3">
                         <span className="w-6 h-6 rounded-full gold-gradient flex items-center justify-center text-xs font-bold text-primary-foreground flex-shrink-0">
@@ -2351,7 +1634,7 @@ export default function Lesson() {
               </div>
             )}
             <div className="prose prose-invert prose-sm max-w-none">
-              {renderNotesContent(notesContent)}
+              {renderNotesContent(notesContent, firstPostCopyDownloadFileName)}
             </div>
           </div>
         )}
@@ -2375,7 +1658,7 @@ export default function Lesson() {
         {/* Desktop: Tab Content */}
         {!isMobile && (
           <div
-            className="animate-fade-up"
+            className="glass-card p-6 rounded-2xl animate-fade-up"
             style={{ animationDelay: "0.3s" }}
           >
             {activeTab === "video" && (
@@ -2384,18 +1667,24 @@ export default function Lesson() {
                   !(module as any).is_directory_enrollment && (
                     <div>
                       <h2 className="font-display text-xl font-semibold mb-2">
-                        {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
-                        sublesson?.id === THIRD_POST_SUBLESSON_ID ||
-                        sublesson?.id === FOURTH_POST_SUBLESSON_ID
-                          ? "Copy Caption Below"
+                        {isPostCaptionSubLesson
+                          ? "Copy caption below"
                           : sublesson
                             ? "About This Lesson"
                             : "About This Module"}
                       </h2>
-                      {sublesson?.id === SECOND_POST_SUBLESSON_ID ||
-                      sublesson?.id === THIRD_POST_SUBLESSON_ID ||
-                      sublesson?.id === FOURTH_POST_SUBLESSON_ID ? (
-                        <CopyableText text={displayDescription} />
+                      {isPostCaptionSubLesson ? (
+                        <CopyableText
+                          text={displayDescription}
+                          allowDownload
+                          downloadFileName={
+                            sublesson?.id === FOURTH_POST_SUBLESSON_ID
+                              ? "fourth-post.txt"
+                              : sublesson?.id === THIRD_POST_SUBLESSON_ID
+                                ? "third-post.txt"
+                                : "second-post.txt"
+                          }
+                        />
                       ) : (
                         <p className="text-muted-foreground whitespace-pre-line">
                           {displayDescription}
@@ -2500,22 +1789,6 @@ export default function Lesson() {
                             </div>
                           ) : isVideo(file.file_type) ? (
                             <div className="aspect-square bg-black/40 relative overflow-hidden">
-                              {getVideoPosterSrc(file.file_url) ? (
-                                <img
-                                  src={getVideoPosterSrc(file.file_url)}
-                                  alt={file.file_name}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <video
-                                  src={`${file.file_url}#t=0.1`}
-                                  className="w-full h-full object-cover pointer-events-none"
-                                  muted
-                                  playsInline
-                                  preload="metadata"
-                                />
-                              )}
                               <button
                                 type="button"
                                 onClick={() => setPreviewFile(file)}
@@ -2525,6 +1798,13 @@ export default function Lesson() {
                               >
                                 <Maximize2 className="h-4 w-4" />
                               </button>
+                              <video
+                                src={file.file_url}
+                                className="w-full h-full object-cover"
+                                controls
+                                playsInline
+                                preload="metadata"
+                              />
                             </div>
                           ) : (
                             <div className="aspect-square bg-secondary/50 flex items-center justify-center">
@@ -2616,17 +1896,15 @@ export default function Lesson() {
                   })()}
 
                 <div className="flex flex-col gap-3">
-                  {activeHasQuiz && !isSocialMediaLesson && (
+                  {activeHasQuiz && (
                     <Button
-                      size="lg"
-                      className="gold-gradient text-primary-foreground font-bold gap-2 shadow-lg"
+                      className="gold-gradient text-primary-foreground font-semibold"
                       onClick={() => setActiveTab("quiz")}
                     >
-                      <Trophy className="w-5 h-5" />
+                      <HelpCircle className="w-4 h-4 mr-2" />
                       Start Quiz
                     </Button>
                   )}
-
                   <Button
                     variant="outline"
                     onClick={() =>
@@ -2734,148 +2012,43 @@ export default function Lesson() {
                         className="w-full"
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
-                        {localizeCourseUi("Retake quiz", locale)}
+                        Try Again
                       </Button>
                     </div>
                   ) : (
-                    (() => {
-                      const passed = isQuizPassed(quizScore.score, quizScore.total);
-                      const pct = Math.round((quizScore.score / quizScore.total) * 100);
-
-                      return passed ? (
-                        <div className="space-y-3 py-4">
-                          <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-primary/40 bg-primary/10">
-                            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                              <Trophy className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1 text-left">
-                              <p className="font-semibold text-primary">Quiz Passed</p>
-                              <p className="text-sm text-foreground/80">
-                                {quizScore.score}/{quizScore.total} correct • you can review anytime
-                              </p>
-                            </div>
-                            <span className="px-3 py-1 rounded-full border border-primary/40 text-primary font-semibold text-sm">
-                              {pct}%
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <Button onClick={resetQuiz} variant="outline" size="lg" className="font-bold gap-2">
-                              <RotateCcw className="w-5 h-5" />
-                              {localizeCourseUi("Retake quiz", locale)}
-                            </Button>
-                            {incorrectQuestions.size > 0 && (
-                              <Button
-                                onClick={() => setShowReview(true)}
-                                variant="outline"
-                                size="lg"
-                                className="border-primary/60 text-primary font-bold hover:bg-primary/10"
-                              >
-                                <HelpCircle className="w-5 h-5" />
-                                Review Quiz
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-3 py-4">
-                          <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-destructive/40 bg-destructive/10">
-                            <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                              <AlertTriangle className="w-5 h-5 text-destructive" />
-                            </div>
-                            <div className="flex-1 text-left">
-                              <p className="font-semibold text-destructive">Quiz Not Passed</p>
-                              <p className="text-sm text-foreground/80">
-                                Please retake the quiz and get 90% to pass.
-                              </p>
-                            </div>
-                            <span className="px-3 py-1 rounded-full border border-destructive/40 text-destructive font-semibold text-sm">
-                              {pct}%
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <Button
-                              onClick={resetQuiz}
-                              variant="destructive"
-                              size="lg"
-                              className="font-bold gap-2 shadow-lg"
-                            >
-                              <RotateCcw className="w-5 h-5" />
-                              {localizeCourseUi("Retake quiz", locale)}
-                            </Button>
-                            {incorrectQuestions.size > 0 && (
-                              <Button
-                                onClick={() => setShowReview(true)}
-                                variant="outline"
-                                size="lg"
-                                className="border-destructive/60 text-destructive font-bold hover:bg-destructive/10"
-                              >
-                                <HelpCircle className="w-5 h-5" />
-                                See Wrong Answers ({incorrectQuestions.size})
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()
-                  )
-                ) : bestAttempt && !retakingQuiz ? (
-                  (() => {
-                    const passed = isQuizPassed(bestAttempt.score, bestAttempt.total_questions);
-                    const pct = Math.round((bestAttempt.score / bestAttempt.total_questions) * 100);
-                    return passed ? (
-                      <div className="rounded-2xl border-2 border-green-500/40 bg-green-500/10 p-8 text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
-                          <CheckCircle2 className="w-10 h-10 text-green-400" />
-                        </div>
-                        <h3 className="font-display text-2xl font-bold text-green-400 mb-2">
-                          Quiz Passed
-                        </h3>
-                        <p className="text-base text-foreground/80 mb-1">
-                          You scored{" "}
-                          <span className="font-semibold">
-                            {bestAttempt.score}/{bestAttempt.total_questions}
-                          </span>{" "}
-                          ({pct}%)
-                        </p>
-                        <p className="text-sm text-muted-foreground mb-6">
-                          This lesson is marked complete.
-                        </p>
-                        <Button onClick={() => setRetakingQuiz(true)} variant="outline">
+                    // Desktop Results Summary
+                    <div className="text-center py-8">
+                      <Trophy className="w-16 h-16 mx-auto mb-4 text-primary" />
+                      <h2 className="font-display text-3xl font-bold mb-2">
+                        {quizScore.score} / {quizScore.total}
+                      </h2>
+                      <p className="text-muted-foreground mb-4">
+                        {Math.round((quizScore.score / quizScore.total) * 100)}%
+                        Correct
+                      </p>
+                      <Progress
+                        value={(quizScore.score / quizScore.total) * 100}
+                        className="w-64 mx-auto mb-6"
+                      />
+                      <div className="flex flex-col items-center gap-3">
+                        {incorrectQuestions.size > 0 && (
+                          <Button
+                            onClick={() => setShowReview(true)}
+                            variant="secondary"
+                          >
+                            <HelpCircle className="w-4 h-4 mr-2" />
+                            See Wrong Answers ({incorrectQuestions.size})
+                          </Button>
+                        )}
+                        <Button onClick={resetQuiz} variant="outline">
                           <RotateCcw className="w-4 h-4 mr-2" />
-                          {localizeCourseUi("Retake quiz", locale)}
+                          Try Again
                         </Button>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-4 px-4 py-3 rounded-xl border border-destructive/40 bg-destructive/10">
-                          <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                            <AlertTriangle className="w-5 h-5 text-destructive" />
-                          </div>
-                          <div className="flex-1 text-left">
-                            <p className="font-semibold text-destructive">Quiz Not Passed</p>
-                            <p className="text-sm text-foreground/80">
-                              Please retake the quiz and get 90% to pass.
-                            </p>
-                          </div>
-                          <span className="px-3 py-1 rounded-full border border-destructive/40 text-destructive font-semibold text-sm">
-                            {pct}%
-                          </span>
-                        </div>
-                        <Button
-                          onClick={() => setRetakingQuiz(true)}
-                          variant="destructive"
-                          size="lg"
-                          className="w-full font-bold gap-2 shadow-lg"
-                        >
-                          <RotateCcw className="w-5 h-5" />
-                          {localizeCourseUi("Retake quiz", locale)}
-                        </Button>
-                      </div>
-                    );
-                  })()
+                    </div>
+                  )
                 ) : (
                   <>
-
                     <h2 className="font-display text-xl font-semibold">
                       Module Quiz
                     </h2>
@@ -2883,7 +2056,7 @@ export default function Lesson() {
                       {questions.map((question, index) => (
                         <div
                           key={question.id}
-                          className="p-4 rounded-xl bg-secondary/20"
+                          className="p-4 rounded-xl bg-secondary/20 border border-border/30"
                         >
                           <div className="flex items-start gap-3 mb-4">
                             <span className="w-8 h-8 rounded-full gold-gradient flex items-center justify-center text-sm font-bold text-primary-foreground flex-shrink-0">
