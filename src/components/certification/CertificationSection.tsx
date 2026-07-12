@@ -115,12 +115,17 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     const shippingAddress = typeof input === 'string' ? undefined : input.shippingAddress;
     const businessLocation = typeof input === 'string' ? undefined : input.businessLocation;
     setDebugInfo(null);
+    // Treat any edit of an already-existing certification as a resubmission.
+    // The edge function guards escalation to version 2 by the record's original
+    // created_at, so this flag is always safe to send.
+    const legacyResubmission = !!existingCertification && isEditMode;
     const result = await issueCertification.mutateAsync({
       courseId,
       certificateName,
       shippingAddress,
       businessLocation,
       debug: debugOverride ?? isDebugMode,
+      legacyResubmission,
     });
     if (result?.certificateUrl) {
       setGeneratedCertificateUrl(result.certificateUrl);
