@@ -48,6 +48,7 @@ interface Certification {
   certificate_url: string | null;
   issued_at: string;
   downloaded_at: string | null;
+  certification_version?: number | null;
 }
 
 interface QuizProgress {
