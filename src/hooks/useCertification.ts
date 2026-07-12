@@ -485,13 +485,32 @@ export function useIssueCertification() {
 
 
         if (error) throw error;
+
+        // For legacy resubmissions the whole point of the round-trip is to
+        // stamp certification_version = 2. If that didn't happen, surface a
+        // real error instead of silently reporting success.
+        if (legacyResubmission) {
+          const { data: row } = await supabase
+            .from('certifications')
+            .select('certificate_url, certification_version')
+            .eq('user_id', user.id)
+            .eq('course_id', courseId)
+            .maybeSingle();
+          const version = Number((row as any)?.certification_version ?? 1) || 1;
+          if (version < 2) {
+            throw new Error(
+              'Resubmission did not complete. Please try again.',
+            );
+          }
+        }
+
         return data;
       } catch (networkError) {
         console.log('Network error occurred, checking if certificate was created...', networkError);
-        
+
         // Wait a moment for the database to sync
         await new Promise(r => setTimeout(r, 2000));
-        
+
         // Check if certification was actually created despite network error
         const { data: existing } = await supabase
           .from('certifications')
@@ -499,13 +518,24 @@ export function useIssueCertification() {
           .eq('user_id', user.id)
           .eq('course_id', courseId)
           .maybeSingle();
-        
+
+        // For a legacy resubmission, do NOT treat a pre-existing certificate_url
+        // as recovery — the request has to have actually stamped version >= 2.
+        if (legacyResubmission) {
+          const version = Number((existing as any)?.certification_version ?? 1) || 1;
+          if (existing?.certificate_url && version >= 2) {
+            console.log('Legacy resubmission recovered with version', version);
+            return { certificateUrl: existing.certificate_url, recovered: true };
+          }
+          throw networkError;
+        }
+
         if (existing?.certificate_url) {
           // Success! Certificate was created before connection dropped
           console.log('Certificate was created successfully, recovered from timeout');
           return { certificateUrl: existing.certificate_url, recovered: true };
         }
-        
+
         // Re-throw if no certificate found
         throw networkError;
       }
@@ -514,6 +544,11 @@ export function useIssueCertification() {
       queryClient.invalidateQueries({ queryKey: ['certification', variables.courseId] });
       queryClient.invalidateQueries({ queryKey: ['certification-eligibility', variables.courseId] });
       queryClient.invalidateQueries({ queryKey: ['certification-photos', variables.courseId] });
+      // Refresh directory listing + completed-module maps so the Hair System
+      // and My Journey cards drop the orange action step immediately.
+      queryClient.invalidateQueries({ queryKey: ['my-listing'] });
+      queryClient.invalidateQueries({ queryKey: ['specialist-listing'] });
+      queryClient.invalidateQueries({ queryKey: ['completed-modules'] });
       if (data?.recovered) {
         toast.success('Certificate generated successfully!');
       } else {
@@ -522,7 +557,11 @@ export function useIssueCertification() {
     },
     onError: (error) => {
       console.error('Certificate generation error:', error);
-      toast.error('Failed to generate certificate. Please try again.');
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to generate certificate. Please try again.',
+      );
     },
     retry: 1,
     retryDelay: 2000,

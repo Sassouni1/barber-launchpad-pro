@@ -115,10 +115,15 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
     const shippingAddress = typeof input === 'string' ? undefined : input.shippingAddress;
     const businessLocation = typeof input === 'string' ? undefined : input.businessLocation;
     setDebugInfo(null);
-    // Treat any edit of an already-existing certification as a resubmission.
-    // The edge function guards escalation to version 2 by the record's original
-    // created_at, so this flag is always safe to send.
-    const legacyResubmission = !!existingCertification && isEditMode;
+    // Trigger version-2 escalation whenever an existing certification is still
+    // at version < 2 — this is the same state that puts the Hair System card
+    // into the orange action-required "Get added into the Hair System
+    // Database" mode. Do NOT gate on created_at; some affected records were
+    // regenerated after the cutoff.
+    const existingVersion = Number(
+      (existingCertification as any)?.certification_version ?? 1,
+    ) || 1;
+    const legacyResubmission = !!existingCertification && existingVersion < 2;
     const result = await issueCertification.mutateAsync({
       courseId,
       certificateName,
