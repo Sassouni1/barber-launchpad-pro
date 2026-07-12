@@ -63,6 +63,11 @@ import {
 import { PhotoUploadSection } from "@/components/lesson/PhotoUploadSection";
 import { DirectoryEnrollmentLesson } from "@/components/lesson/DirectoryEnrollmentLesson";
 import {
+  BUSINESS_MASTERY_WELCOME_PENDING_KEY,
+  BusinessMasteryWelcome,
+} from "@/components/courses/BusinessMasteryWelcome";
+import { useUserCertification } from "@/hooks/useCertification";
+import {
   FIRST_POST_MODULE_ID,
   FOURTH_POST_FALLBACK_COPY,
   FOURTH_POST_LESSON,
@@ -116,7 +121,6 @@ const VideoPlayer = React.memo(
       if (!hasStarted || isDirectVideo || !src.includes("vimeo")) return;
       const iframe = iframeRef.current;
       if (!iframe) return;
-
       const subscribe = () => {
         ["play", "pause", "ended", "timeupdate", "ready"].forEach((eventName) => {
           iframe.contentWindow?.postMessage(
@@ -127,23 +131,24 @@ const VideoPlayer = React.memo(
       };
 
       const onMessage = (event: MessageEvent) => {
-        if (event.source !== iframe.contentWindow) return;
-        let payload: { event?: string; data?: unknown } | null = null;
+        if (event.origin && event.origin !== "https://player.vimeo.com") return;
+        let payload: { event?: string; method?: string; data?: unknown; value?: unknown } | null = null;
         try {
           payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         } catch {
           return;
         }
-        if (payload?.event === "ready" && resumeSeconds > 0) {
+        if (!payload) return;
+        if (payload.event === "ready" && resumeSeconds > 0) {
           iframe.contentWindow?.postMessage(
             JSON.stringify({ method: "setCurrentTime", value: resumeSeconds }),
             "*",
           );
         }
-        if (payload?.event === "play") onPlay?.();
-        if (payload?.event === "pause") onPause?.();
-        if (payload?.event === "ended") onEnded?.();
-        if (payload?.event === "timeupdate") {
+        if (payload.event === "play") onPlay?.();
+        if (payload.event === "pause") onPause?.();
+        if (payload.event === "ended") onEnded?.();
+        if (payload.event === "timeupdate") {
           const data = payload.data as { seconds?: unknown } | number | undefined;
           const seconds =
             typeof data === "number"
@@ -151,6 +156,10 @@ const VideoPlayer = React.memo(
               : typeof data?.seconds === "number"
                 ? data.seconds
                 : Number(data?.seconds);
+          if (Number.isFinite(seconds)) onTimeUpdate?.(seconds);
+        }
+        if (payload.method === "getCurrentTime") {
+          const seconds = Number(payload.value);
           if (Number.isFinite(seconds)) onTimeUpdate?.(seconds);
         }
       };
@@ -649,6 +658,7 @@ export default function Lesson() {
   const { lessonId, courseType } = useParams();
   const [searchParams] = useSearchParams();
   const { data: courses = [], isLoading } = useCourses();
+  const { user, isAdmin } = useAuth();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -721,6 +731,67 @@ export default function Lesson() {
   );
   const currentModuleIndex = allModules.findIndex((m) => m.id === lessonId);
   const module = allModules[currentModuleIndex];
+  const hairSystemCourseId = courses.find(
+    (course) => (course as any).category === "hair-system",
+  )?.id;
+  const { data: hairSystemCertification, isLoading: isLoadingCertification } =
+    useUserCertification(hairSystemCourseId);
+  const [showBusinessWelcome, setShowBusinessWelcome] = useState(false);
+
+  useEffect(() => {
+    if (courseType !== "business" || !user?.id) return;
+
+    let pending = false;
+    try {
+      pending =
+        window.sessionStorage.getItem(BUSINESS_MASTERY_WELCOME_PENDING_KEY) ===
+        "1";
+    } catch {
+      pending = false;
+    }
+
+    if (
+      !pending ||
+      isAdmin ||
+      isLoadingCertification ||
+      !hairSystemCertification
+    ) {
+      return;
+    }
+
+    const seenKey = `business-mastery-welcome-seen:v2:${user.id}`;
+    try {
+      if (window.localStorage.getItem(seenKey) === "1") return;
+      setShowBusinessWelcome(true);
+    } catch {
+      setShowBusinessWelcome(true);
+    }
+  }, [
+    courseType,
+    hairSystemCertification,
+    isLoadingCertification,
+    isAdmin,
+    user?.id,
+  ]);
+
+  const dismissBusinessWelcome = useCallback(() => {
+    if (user?.id) {
+      try {
+        window.localStorage.setItem(
+          `business-mastery-welcome-seen:v2:${user.id}`,
+          "1",
+        );
+      } catch {
+        // Keep the dismissal in local state if browser storage is unavailable.
+      }
+    }
+    try {
+      window.sessionStorage.removeItem(BUSINESS_MASTERY_WELCOME_PENDING_KEY);
+    } catch {
+      // Ignore storage failures; the modal is still dismissed in local state.
+    }
+    setShowBusinessWelcome(false);
+  }, [user?.id]);
   const isOrderTrackingModule =
     !sublessonId && module?.id === HAIR_SYSTEM_ORDER_MODULE_ID;
   const isChargeResumeModule =
@@ -739,7 +810,6 @@ export default function Lesson() {
   const { data: existingSubmission } = useHomeworkSubmission(
     sublessonId ? undefined : module?.id,
   );
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // The charge lesson is informational rather than quiz-based. Preserve the
@@ -1102,11 +1172,6 @@ export default function Lesson() {
     [module, locale, sublesson],
   );
 
-  // Auto-complete video lessons based on time on page
-  const elapsedSeconds = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autoCompletedRef = useRef(false);
-
   // Fetch video duration from Vimeo oEmbed API
   useEffect(() => {
     if (!localizedVideoUrl || !localizedVideoUrl.includes("vimeo")) return;
@@ -1123,42 +1188,6 @@ export default function Lesson() {
         /* fallback to manual button */
       });
   }, [localizedVideoUrl]);
-
-  // Time-on-page tracker for auto-completion
-  useEffect(() => {
-    if (
-      isOrderTrackingModule ||
-      !videoDuration ||
-      isCurrentLessonCompleted ||
-      !user?.id ||
-      !module?.id
-    )
-      return;
-    autoCompletedRef.current = false;
-    elapsedSeconds.current = 0;
-
-    const threshold = Math.max(60, videoDuration);
-
-    timerRef.current = setInterval(() => {
-      elapsedSeconds.current += 1;
-      if (elapsedSeconds.current >= threshold && !autoCompletedRef.current) {
-        autoCompletedRef.current = true;
-        if (timerRef.current) clearInterval(timerRef.current);
-        markModuleComplete();
-      }
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [
-    videoDuration,
-    isCurrentLessonCompleted,
-    isOrderTrackingModule,
-    user?.id,
-    module?.id,
-    sublessonId,
-  ]);
 
   const submitQuiz = useSubmitQuiz();
   const submitHomework = useSubmitHomework();
@@ -1379,6 +1408,9 @@ export default function Lesson() {
 
   return (
     <DashboardLayout>
+      {courseType === "business" && showBusinessWelcome && (
+        <BusinessMasteryWelcome onContinue={dismissBusinessWelcome} />
+      )}
       <Dialog
         open={!!previewFile}
         onOpenChange={(open) => !open && setPreviewFile(null)}
@@ -1418,7 +1450,13 @@ export default function Lesson() {
               size="icon"
               onClick={() =>
                 navigate(
-                  `/courses/${courseType || (module as any).courseCategory || "hair-system"}?module=${module.id}`,
+                  `/courses/${courseType || (module as any).courseCategory || "hair-system"}`,
+                  {
+                    state: {
+                      openTrack: courseType || (module as any).courseCategory || "hair-system",
+                      highlightModule: module.id,
+                    },
+                  },
                 )
               }
             >
@@ -1482,16 +1520,7 @@ export default function Lesson() {
                   : "Loading video length…"}
               </p>
             </div>
-          ) : (
-            <Button
-              onClick={markModuleComplete}
-              className="gold-gradient"
-              size="sm"
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              {localizeCourseUi("Mark Complete", locale)}
-            </Button>
-          )}
+          ) : null}
         </div>
 
         {/* Video Player - only show if video exists and not a special lesson */}

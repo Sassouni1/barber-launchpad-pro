@@ -37,10 +37,13 @@ import { cn } from '@/lib/utils';
 import { PhotoUploader } from './PhotoUploader';
 import { QuizProgressList } from './QuizProgressList';
 import { CertificationModal, type CertificationSubmissionPayload } from './CertificationModal';
+import { BUSINESS_MASTERY_WELCOME_PENDING_KEY } from '@/components/courses/BusinessMasteryWelcome';
 
 interface Level1CertModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Skip the preview and open the editable certification form immediately. */
+  openEditForm?: boolean;
 }
 
 // Hook to check if user has completed all lessons (modules) of the course
@@ -153,7 +156,7 @@ function useTrainingGamesCompleted() {
   });
 }
 
-export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
+export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level1CertModalProps) {
   const [showQuizDetails, setShowQuizDetails] = useState(true);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -249,6 +252,14 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     }
   }, [allRequirementsMet, isCertModalOpen, isCertified, isLoading, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !openEditForm || isLoading || !isCertified || isCertModalOpen) return;
+
+    setGeneratedCertificateUrl(null);
+    setIsEditMode(true);
+    setIsCertModalOpen(true);
+  }, [isCertified, isCertModalOpen, isLoading, isOpen, openEditForm]);
+
   const handleGetCertified = () => {
     setGeneratedCertificateUrl(null);
     setIsCertModalOpen(true);
@@ -273,6 +284,16 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
     if (result?.certificateUrl) {
       setGeneratedCertificateUrl(result.certificateUrl);
       setIsCertModalOpen(false);
+
+      // Grandfathered/certified-but-unlisted members only earn the Business
+      // Mastery welcome after they actively resubmit their information.
+      if (openEditForm && typeof window !== 'undefined') {
+        try {
+          window.sessionStorage.setItem(BUSINESS_MASTERY_WELCOME_PENDING_KEY, '1');
+        } catch {
+          // The certification update still succeeds if storage is unavailable.
+        }
+      }
     }
     if (result?.debug) {
       setDebugInfo(result.debug);
@@ -445,7 +466,10 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog
+        open={isOpen && !openEditForm}
+        onOpenChange={(open) => !open && onClose()}
+      >
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
@@ -935,7 +959,11 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
       {isCertModalOpen && (
         <CertificationModal
           isOpen={isCertModalOpen}
-          onClose={() => { setIsCertModalOpen(false); setIsEditMode(false); }}
+          onClose={() => {
+            setIsCertModalOpen(false);
+            setIsEditMode(false);
+            if (openEditForm) onClose();
+          }}
           onSubmit={handleSubmitCertification}
           certificateUrl={generatedCertificateUrl}
           isGenerating={issueCertification.isPending}
@@ -943,6 +971,7 @@ export function Level1CertModal({ isOpen, onClose }: Level1CertModalProps) {
           defaultShippingAddress={certDefaults?.shipping ?? null}
           defaultBusinessLocation={certDefaults?.business ?? null}
           isEditing={isEditMode && !!existingCertification}
+          openAddressSections={openEditForm}
           courseId={courseId}
           certificationId={existingCertification?.id ?? null}
         />

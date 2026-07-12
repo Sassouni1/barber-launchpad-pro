@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyListing, useUpsertListing } from "@/hooks/useSpecialistDirectory";
 import {
@@ -24,14 +25,17 @@ import {
   Upload,
   ImagePlus,
   ExternalLink,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import directoryProofExample from "@/assets/directory-proof-example.png";
+import { BUSINESS_MASTERY_WELCOME_PENDING_KEY } from "@/components/courses/BusinessMasteryWelcome";
 
 type Step = "proof" | "details" | "gallery";
 
 export function DirectoryEnrollmentLesson() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
   const { data: existing, isLoading: loadingListing } = useMyListing(user?.id);
@@ -52,6 +56,18 @@ export function DirectoryEnrollmentLesson() {
     else if (!existing) setStep("details");
     else setStep("gallery");
   }, [loadingListing, loadingPhotos, proofPhoto?.id, existing?.id]);
+
+  // Remember that the member has finished the database step. The next
+  // Business Mastery entry can show the transition even if the listing query
+  // is still refreshing on the destination page.
+  useEffect(() => {
+    if (!existing?.id || typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(BUSINESS_MASTERY_WELCOME_PENDING_KEY, "1");
+    } catch {
+      // The eligibility query remains the fallback when storage is unavailable.
+    }
+  }, [existing?.id]);
 
   if (!user) return null;
 
@@ -103,6 +119,17 @@ export function DirectoryEnrollmentLesson() {
           deletePhoto={(p) => deletePhoto.mutate(p)}
           setHero={(photoId) => setHero.mutate({ userId: user.id, photoId })}
           onEditDetails={() => setStep("details")}
+          onContinueBusiness={() => {
+            try {
+              window.sessionStorage.setItem(
+                BUSINESS_MASTERY_WELCOME_PENDING_KEY,
+                "1",
+              );
+            } catch {
+              // The destination can still use the certification/listing query.
+            }
+            navigate("/courses/business");
+          }}
         />
       )}
     </div>
@@ -460,6 +487,7 @@ function GalleryStep({
   deletePhoto,
   setHero,
   onEditDetails,
+  onContinueBusiness,
 }: {
   userId: string;
   listingId: string | null;
@@ -470,6 +498,7 @@ function GalleryStep({
   deletePhoto: (p: DirectoryPhoto) => void;
   setHero: (photoId: string) => void;
   onEditDetails: () => void;
+  onContinueBusiness: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -521,6 +550,10 @@ function GalleryStep({
           </Button>
           <Button variant="outline" size="sm" onClick={onEditDetails}>
             Edit listing details
+          </Button>
+          <Button size="sm" className="gold-gradient" onClick={onContinueBusiness}>
+            Continue to Business Mastery
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>

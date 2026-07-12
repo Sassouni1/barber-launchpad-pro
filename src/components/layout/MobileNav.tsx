@@ -20,6 +20,7 @@ import {
   ExternalLink,
   ClipboardCheck,
   Sparkles,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -137,11 +138,21 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
         body: { target_user_id: userId },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, '_blank');
-        toast.success(`Opening view as ${name}`);
-        setMemberPickerOpen(false);
+      if (!data?.access_token || !data?.refresh_token) {
+        throw new Error(data?.error || 'Invalid response from server');
       }
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+      if (sessionError) throw sessionError;
+
+      toast.success(`Switching to ${name}...`);
+      setMemberPickerOpen(false);
+
+      // Reload the member-facing app so every query picks up the new session.
+      window.location.href = '/dashboard';
     } catch (err: any) {
       toast.error(err.message || 'Failed to view as user');
     } finally {
@@ -157,6 +168,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/admin/courses', icon: FileEdit, label: 'Courses' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos' },
     { to: '/admin/products', icon: Package, label: 'Products' },
+    { to: '/admin/directory', icon: MapPin, label: 'Specialist Directory' },
     { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
   ];
 

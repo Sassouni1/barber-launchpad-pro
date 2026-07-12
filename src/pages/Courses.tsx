@@ -40,7 +40,7 @@ import {
   localizeHairSystemLessonTitle,
   resolveVideoEmbedUrlForModule,
 } from "@/lib/i18n/spanishVideos";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { FIRST_POST_MODULE_ID } from "@/data/postLessons";
@@ -63,6 +63,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Level1CertModal } from "@/components/certification/Level1CertModal";
+import {
+  BUSINESS_MASTERY_WELCOME_PENDING_KEY,
+  BusinessMasteryWelcome,
+} from "@/components/courses/BusinessMasteryWelcome";
+import { useUserCertification } from "@/hooks/useCertification";
+import { useMyListing } from "@/hooks/useSpecialistDirectory";
 
 // Custom hook for md breakpoint (768px) - tablet and above
 function useIsTabletOrDesktop() {
@@ -113,6 +119,9 @@ const HAIR_SYSTEM_ORDER_COMPLETION_SECONDS = 292;
 
 const getOrderWatchKey = (userId: string) =>
   `hair-system-order-watch:${userId}:${HAIR_SYSTEM_ORDER_MODULE_ID}`;
+
+const getLastCourseModuleKey = (courseType: string) =>
+  `last-course-module:${courseType}`;
 
 const readOrderWatchSeconds = (userId: string | undefined) => {
   if (!userId || typeof window === "undefined") return 0;
@@ -518,6 +527,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   // Verification that the user is holding the certificate happens at upload time
   // via AI image analysis in the analyze-certificate-template edge function.
   const allCourses = allCoursesRaw;
+  const hairSystemCourseId = allCourses.find(
+    (course) => (course as any).category === "hair-system",
+  )?.id;
+  const { data: hairSystemCertification, isLoading: isLoadingCertification } =
+    useUserCertification(hairSystemCourseId);
+  const { data: specialistListing, isLoading: isLoadingListing } =
+    useMyListing(user?.id);
+  const needsDirectoryListing =
+    !!hairSystemCertification && !isLoadingListing && !specialistListing;
 
   // For desktop: filter by courseType prop
   const courses = useMemo(
@@ -526,9 +544,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     [allCourses, courseType],
   );
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [highlightedModule, setHighlightedModule] = useState<string | null>(null);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const positionedSelectedModuleRef = useRef<string | null>(null);
@@ -541,6 +561,129 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const isModuleCompleted = (id: string) => !!completedMap[id]?.passed;
   const selectedModuleParam = searchParams.get("module");
   const [orderWatchSeconds, setOrderWatchSeconds] = useState(0);
+  const [showBusinessWelcome, setShowBusinessWelcome] = useState(false);
+
+  // This is an orientation moment, not another course requirement. It appears
+  // only after an explicit certification/database resubmission has set the
+  // pending flag; an old certification record alone is not enough.
+  useEffect(() => {
+    if (courseType !== "business" || !user?.id) return;
+
+    let pending = false;
+    try {
+      pending =
+        window.sessionStorage.getItem(BUSINESS_MASTERY_WELCOME_PENDING_KEY) ===
+        "1";
+    } catch {
+      pending = false;
+    }
+
+    if (
+      !pending ||
+      isAdmin ||
+      isLoadingCertification ||
+      !hairSystemCertification
+    ) {
+      return;
+    }
+
+    const seenKey = `business-mastery-welcome-seen:v2:${user.id}`;
+    try {
+      if (window.localStorage.getItem(seenKey) === "1") return;
+      setShowBusinessWelcome(true);
+    } catch {
+      // If storage is unavailable, still show the orientation this visit.
+      setShowBusinessWelcome(true);
+    }
+  }, [
+    courseType,
+    hairSystemCertification,
+    isLoadingCertification,
+    isAdmin,
+    user?.id,
+  ]);
+
+  const dismissBusinessWelcome = useCallback(() => {
+    if (user?.id) {
+      try {
+        window.localStorage.setItem(
+          `business-mastery-welcome-seen:v2:${user.id}`,
+          "1",
+        );
+      } catch {
+        // Dismissal still applies for this render if storage is unavailable.
+      }
+    }
+    try {
+      window.sessionStorage.removeItem(BUSINESS_MASTERY_WELCOME_PENDING_KEY);
+    } catch {
+      // Ignore storage failures; the modal is still dismissed in local state.
+    }
+    setShowBusinessWelcome(false);
+  }, [user?.id]);
+
+  // Returning from a lesson should reopen the track list directly on mobile,
+  // without selecting a module and reopening its preview sheet.
+  useEffect(() => {
+    const routeState = location.state as
+      | { openTrack?: string; highlightModule?: string }
+      | null;
+    const requestedTrack = routeState?.openTrack;
+    let rememberedModule = routeState?.highlightModule || null;
+
+    if (!rememberedModule && typeof window !== "undefined") {
+      try {
+        rememberedModule = window.sessionStorage.getItem(
+          getLastCourseModuleKey(courseType),
+        );
+      } catch {
+        rememberedModule = null;
+      }
+    }
+
+    if (requestedTrack !== courseType && !rememberedModule) return;
+
+    setExpandedCourse(courseType);
+    setHighlightedModule(rememberedModule);
+
+    if (requestedTrack === courseType) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [courseType, location.pathname, location.state, navigate]);
+
+  // On mobile, bring the remembered module back into view after the track
+  // list has expanded. The marker is intentionally subtle; the scroll is the
+  // primary way to orient the member when they return.
+  useEffect(() => {
+    if (isTabletOrDesktop || !expandedCourse || !highlightedModule) return;
+
+    let attempts = 0;
+    let retryTimer: number | undefined;
+    const scrollToRememberedCard = () => {
+      const card = Array.from(
+        document.querySelectorAll(`[data-module-id="${highlightedModule}"]`),
+      ).find((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      });
+
+      if (card) {
+        card.scrollIntoView({ behavior: "auto", block: "center" });
+        return;
+      }
+
+      if (attempts < 40) {
+        attempts += 1;
+        retryTimer = window.setTimeout(scrollToRememberedCard, 100);
+      }
+    };
+
+    retryTimer = window.setTimeout(scrollToRememberedCard, 0);
+
+    return () => {
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer);
+    };
+  }, [expandedCourse, highlightedModule, isTabletOrDesktop]);
 
   // The order lesson stores cumulative playback locally. Read it on mount,
   // when returning to this page, and when another tab updates the value so
@@ -1071,31 +1214,66 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   (m: any) => !m.is_directory_enrollment,
                 );
                 const total = trackable.length;
+                const isHair = category.id === "hair-system";
+                const certificationComplete = isHair && !!hairSystemCertification;
+                const needsDatabaseListing = isHair && needsDirectoryListing;
                 const done = trackable.filter((m) =>
                   isModuleCompleted(m.id),
                 ).length;
-                const pct = total ? Math.round((done / total) * 100) : 0;
-                const isHair = category.id === "hair-system";
-                const trackDescription = isHair
-                  ? "Master installation, maintenance, styling, and certification."
-                  : "Build your client pipeline and business systems.";
+                // An issued certificate completes the certification track for
+                // display purposes; individual lesson cards retain real status.
+                const displayedDone = certificationComplete ? total : done;
+                const pct = total
+                  ? Math.round((displayedDone / total) * 100)
+                  : 0;
+                const trackDescription = needsDatabaseListing
+                  ? "Get added into the Hair System Database. Click here to do so."
+                  : isHair
+                    ? "Master installation, maintenance, styling, and certification."
+                    : "Build your client pipeline and business systems.";
                 return (
                   <button
                     key={category.id}
                     type="button"
-                    onClick={() => setExpandedCourse(category.id)}
+                    onClick={() => {
+                      if (needsDatabaseListing) {
+                        setIsCertModalOpen(true);
+                        clearModuleSelection();
+                      } else {
+                        setExpandedCourse(category.id);
+                      }
+                    }}
                     className={cn(
                       "relative flex flex-col text-left overflow-hidden rounded-[1.5rem] border p-5 transition-all active:scale-[0.985]",
-                      "border-border/80 bg-card/80 shadow-lg shadow-black/40 hover:border-primary/50",
+                      needsDatabaseListing
+                        ? "border-warning/80 bg-warning/10 shadow-lg shadow-warning/20 hover:border-warning"
+                        : "border-border/80 bg-card/80 shadow-lg shadow-black/40 hover:border-primary/50",
                       "min-h-[184px]",
                     )}
                   >
                     <div className="relative flex flex-1 flex-col">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="inline-flex items-center rounded-lg border border-primary/40 bg-primary/5 px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-                          {isHair ? "Certification" : "Business Growth"}
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-lg border px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em]",
+                            needsDatabaseListing
+                              ? "border-warning/70 bg-warning/20 text-warning"
+                              : "border-primary/40 bg-primary/5 text-primary",
+                          )}
+                        >
+                          {needsDatabaseListing
+                            ? "Action step"
+                            : certificationComplete
+                            ? "Certified"
+                            : isHair
+                              ? "Certification"
+                              : "Business Growth"}
                         </span>
-                        {isHair ? (
+                        {needsDatabaseListing ? (
+                          <AlertTriangle className="h-5 w-5 animate-pulse text-warning" />
+                        ) : certificationComplete ? (
+                          <CheckCircle2 className="h-5 w-5 text-success-soft" />
+                        ) : isHair ? (
                           <BookOpen className="h-5 w-5 text-muted-foreground" />
                         ) : (
                           <Trophy className="h-5 w-5 text-muted-foreground" />
@@ -1104,7 +1282,14 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       <h2 className="mt-4 font-sans text-xl font-semibold leading-tight tracking-tight text-foreground">
                         {category.title}
                       </h2>
-                      <p className="mt-1 max-w-[290px] font-sans text-sm leading-5 text-muted-foreground">
+                      <p
+                        className={cn(
+                          "mt-1 max-w-[290px] font-sans text-sm leading-5",
+                          needsDatabaseListing
+                            ? "font-semibold text-warning"
+                            : "text-muted-foreground",
+                        )}
+                      >
                         {trackDescription}
                       </p>
                       <div className="mt-5 flex items-center gap-4">
@@ -1121,9 +1306,26 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           </div>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="font-sans text-sm font-semibold gold-text">
-                            {done} of {total} lessons
+                          <div className="flex items-center gap-1.5 font-sans text-sm font-semibold gold-text">
+                            {certificationComplete && (
+                              <CheckCircle2 className="h-4 w-4 text-success-soft" />
+                            )}
+                            <span>
+                              {certificationComplete
+                                ? "You are certified"
+                                : `${displayedDone} of ${total} lessons`}
+                            </span>
                           </div>
+                          {certificationComplete && (
+                            <div className="mt-1 font-sans text-xs text-muted-foreground">
+                              {displayedDone} of {total} lessons complete
+                            </div>
+                          )}
+                          {needsDatabaseListing && (
+                            <div className="mt-1 font-sans text-xs font-semibold text-warning">
+                              One action step remaining
+                            </div>
+                          )}
                           <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary/80">
                             <div
                               className="h-full rounded-full gold-gradient transition-all"
@@ -1136,12 +1338,20 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                     <span
                       className={cn(
                         "mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-sans text-sm font-semibold transition-colors",
-                        done > 0
+                        needsDatabaseListing
+                          ? "border-warning bg-warning text-warning-foreground shadow-md shadow-warning/30 hover:brightness-105"
+                          : done > 0
                           ? "border-transparent gold-gradient text-primary-foreground hover:brightness-105"
                           : "border-primary/40 text-primary hover:bg-primary/5",
                       )}
                     >
-                      {done > 0 ? "Continue lesson" : "Start lesson"}
+                      {needsDatabaseListing
+                        ? "Get added into the Hair System Database"
+                        : certificationComplete
+                          ? "Review lessons"
+                        : done > 0
+                          ? "Continue lesson"
+                          : "Start lesson"}
                       <ArrowRight className="h-4 w-4" />
                     </span>
                   </button>
@@ -1153,7 +1363,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
           {expandedCourse !== null && (
             <button
               type="button"
-              onClick={() => setExpandedCourse(null)}
+              onClick={() => {
+                setExpandedCourse(null);
+                setHighlightedModule(null);
+                try {
+                  window.sessionStorage.removeItem(getLastCourseModuleKey(courseType));
+                } catch {
+                  // Ignore storage failures; the visual state is still cleared.
+                }
+              }}
               className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
             >
               <ChevronDown className="w-3.5 h-3.5 rotate-90" />
@@ -1165,9 +1383,19 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
             <Collapsible
               key={category.id}
               open={expandedCourse === category.id}
-              onOpenChange={(open) =>
-                setExpandedCourse(open ? category.id : null)
-              }
+              onOpenChange={(open) => {
+                setExpandedCourse(open ? category.id : null);
+                if (!open) {
+                  setHighlightedModule(null);
+                  try {
+                    window.sessionStorage.removeItem(
+                      getLastCourseModuleKey(courseType),
+                    );
+                  } catch {
+                    // Ignore storage failures; the visual state is still cleared.
+                  }
+                }
+              }}
             >
               <CollapsibleTrigger className="w-full" asChild>
                 <div
@@ -1230,23 +1458,38 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             status.state === "completed" || orderWatchComplete;
                           const attemptedNotPassed = status.state === "failed";
                           const failedAtZero = attemptedNotPassed && status.bestScore === 0;
+                          const isHighlighted = highlightedModule === module.id;
                           return (
                             <div key={module.id} className="space-y-1">
                               <button
-                                onClick={() =>
+                                data-module-id={module.id}
+                                onClick={() => {
+                                  setHighlightedModule(null);
+                                  try {
+                                    window.sessionStorage.setItem(
+                                      getLastCourseModuleKey(courseType),
+                                      module.id,
+                                    );
+                                  } catch {
+                                    // Ignore storage failures; navigation still works.
+                                  }
                                   navigate(
                                     `/courses/${category.id}/lesson/${module.id}`,
-                                  )
-                                }
+                                  );
+                                }}
                                 className={cn(
                                   "w-full min-h-[100px] p-3.5 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
-                                  completed
-                                    ? "border-success-soft/20 bg-gradient-to-r from-success-soft/[0.025] to-transparent"
-                                    : attemptedNotPassed
-                                      ? failedAtZero
-                                        ? "border-destructive/35 bg-gradient-to-r from-destructive/[0.06] to-transparent"
-                                        : "border-warning/35 bg-gradient-to-r from-warning/[0.06] to-transparent"
-                                    : "border-border bg-secondary/10",
+                                  isHighlighted
+                                    ? "border-primary/55 bg-primary/[0.03] shadow-sm shadow-primary/10"
+                                    : completed
+                                      ? "border-success-soft/20 bg-gradient-to-r from-success-soft/[0.025] to-transparent"
+                                      : attemptedNotPassed
+                                        ? failedAtZero
+                                          ? "border-destructive/35 bg-gradient-to-r from-destructive/[0.06] to-transparent"
+                                          : "border-warning/35 bg-gradient-to-r from-warning/[0.06] to-transparent"
+                                        : isOrderTrackingModule && orderWatchPercent > 0
+                                          ? "border-warning/35 bg-gradient-to-r from-warning/[0.06] to-transparent"
+                                        : "border-border bg-secondary/10",
                                 )}
                               >
                                 <div
@@ -1258,6 +1501,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         ? failedAtZero
                                           ? "border-destructive/40 bg-destructive/10 text-destructive"
                                           : "border-warning/40 bg-warning/10 text-warning"
+                                        : isOrderTrackingModule && orderWatchPercent > 0
+                                          ? "border-warning/40 bg-warning/10 text-warning"
                                         : "bg-secondary border-border text-muted-foreground",
                                   )}
                                 >
@@ -1265,6 +1510,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     <CheckCircle2 className="w-5 h-5" />
                                   ) : attemptedNotPassed ? (
                                     <RotateCcw className="w-4 h-4" />
+                                  ) : isOrderTrackingModule && orderWatchPercent > 0 ? (
+                                    <Clock className="w-5 h-5" />
                                   ) : (
                                     index + 1
                                   )}
@@ -1272,7 +1519,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 <div
                                   className={cn(
                                     "flex-1 min-w-0",
-                                    !hasCardDetails && "flex items-center",
+                                    !hasCardDetails &&
+                                      !isOrderTrackingModule &&
+                                      "flex items-center",
                                   )}
                                 >
                                   <h4
@@ -1361,20 +1610,26 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               setIsCertModalOpen(true);
                               clearModuleSelection();
                             }}
-                            className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/30 bg-primary/5 shadow-md shadow-black/20 active:scale-[0.98]"
+                            className="w-full min-h-[132px] p-5 rounded-2xl flex items-center gap-4 transition-all duration-200 text-left border-2 border-primary/45 bg-gradient-to-r from-primary/10 via-primary/[0.04] to-transparent shadow-lg shadow-primary/10 active:scale-[0.98]"
                           >
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
-                              <Award className="w-5 h-5 text-primary-foreground" />
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient shadow-md shadow-primary/20">
+                              <Award className="w-6 h-6 text-primary-foreground" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-sm truncate gold-text">
+                              <h4 className="font-semibold text-base leading-tight gold-text">
                                 Level 1 Certification
                               </h4>
-                              <p className="text-xs text-muted-foreground">
-                                Enter name and generate certificate
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {needsDirectoryListing
+                                  ? "Get added into the Hair System Database. Click here to do so."
+                                  : "Enter name and generate certificate"}
                               </p>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+                            {needsDirectoryListing ? (
+                              <Globe className="w-5 h-5 text-primary flex-shrink-0" />
+                            ) : (
+                              <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
+                            )}
                           </button>
                         )}
                         {/* Directory enrollment as final highlighted step (after certification) */}
@@ -1386,21 +1641,21 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 `/courses/${category.id}/lesson/${directoryModule.id}`,
                               )
                             }
-                            className="w-full p-3 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 active:scale-[0.98]"
+                            className="w-full min-h-[132px] p-5 rounded-2xl flex items-center gap-4 transition-all duration-200 text-left border-2 border-primary/45 bg-gradient-to-r from-primary/10 via-primary/[0.04] to-transparent shadow-lg shadow-primary/10 active:scale-[0.98]"
                           >
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 gold-gradient">
-                              <Globe className="w-5 h-5 text-primary-foreground" />
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient shadow-md shadow-primary/20">
+                              <Globe className="w-6 h-6 text-primary-foreground" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-sm truncate gold-text">
+                              <h4 className="font-semibold text-base leading-tight gold-text">
                                 {directoryModule.title}
                               </h4>
-                              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                                 {directoryModule.description ||
                                   "Final step before certification"}
                               </p>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+                            <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
                           </button>
                         )}
                       </div>
@@ -1491,6 +1746,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         <>
                           {regularModules.map((module, index) => {
                             const isSelected = selectedModule === module.id;
+                            const isHighlighted =
+                              !isTabletOrDesktop && highlightedModule === module.id;
                             const status = getModuleStatus(module.id, completedMap);
                             const isOrderTrackingModule =
                               module.id === HAIR_SYSTEM_ORDER_MODULE_ID;
@@ -1510,6 +1767,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 <button
                                   data-module-id={module.id}
                                   onClick={() => {
+                                    setHighlightedModule(null);
+                                    try {
+                                      window.sessionStorage.setItem(
+                                        getLastCourseModuleKey(courseType),
+                                        module.id,
+                                      );
+                                    } catch {
+                                      // Ignore storage failures; navigation still works.
+                                    }
                                     if (
                                       courseType === "business" ||
                                       shouldOpenModuleDirectly(module) ||
@@ -1534,13 +1800,17 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     "border-2 hover:border-primary/50 hover:bg-secondary/20",
                                     isSelected
                                       ? "bg-gradient-to-r from-primary/15 to-transparent border-primary/80 shadow-lg shadow-primary/25"
-                                      : completed
-                                        ? "border-success-soft/20 bg-gradient-to-r from-success-soft/[0.025] to-transparent shadow-md shadow-success-soft/5"
-                                        : attemptedNotPassed
-                                          ? failedAtZero
-                                            ? "border-destructive/35 bg-gradient-to-r from-destructive/[0.06] to-transparent shadow-md shadow-black/20"
-                                            : "border-warning/35 bg-gradient-to-r from-warning/[0.06] to-transparent shadow-md shadow-black/20"
-                                        : "border-border bg-secondary/10 shadow-md shadow-black/20",
+                                      : isHighlighted
+                                        ? "border-primary/55 bg-primary/[0.03] shadow-sm shadow-primary/10"
+                                        : completed
+                                          ? "border-success-soft/20 bg-gradient-to-r from-success-soft/[0.025] to-transparent shadow-md shadow-success-soft/5"
+                                          : attemptedNotPassed
+                                            ? failedAtZero
+                                              ? "border-destructive/35 bg-gradient-to-r from-destructive/[0.06] to-transparent shadow-md shadow-black/20"
+                                              : "border-warning/35 bg-gradient-to-r from-warning/[0.06] to-transparent shadow-md shadow-black/20"
+                                          : isOrderTrackingModule && orderWatchPercent > 0
+                                            ? "border-warning/35 bg-gradient-to-r from-warning/[0.06] to-transparent shadow-md shadow-black/20"
+                                          : "border-border bg-secondary/10 shadow-md shadow-black/20",
                                   )}
                                 >
                                   <div
@@ -1548,10 +1818,12 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all",
                                       completed
                                         ? "border border-success-soft/25 bg-success-soft/5 text-success-soft/80"
-                                        : attemptedNotPassed
-                                          ? failedAtZero
-                                            ? "border border-destructive/40 bg-destructive/10 text-destructive"
-                                            : "border border-warning/40 bg-warning/10 text-warning"
+                                          : attemptedNotPassed
+                                            ? failedAtZero
+                                              ? "border border-destructive/40 bg-destructive/10 text-destructive"
+                                              : "border border-warning/40 bg-warning/10 text-warning"
+                                          : isOrderTrackingModule && orderWatchPercent > 0
+                                            ? "border border-warning/40 bg-warning/10 text-warning"
                                           : isSelected
                                             ? "gold-gradient text-primary-foreground shadow-md"
                                             : "bg-secondary border border-border text-muted-foreground",
@@ -1562,6 +1834,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       <CheckCircle2 className="w-5 h-5" />
                                     ) : attemptedNotPassed ? (
                                       <RotateCcw className="w-4 h-4" />
+                                    ) : isOrderTrackingModule && orderWatchPercent > 0 ? (
+                                      <Clock className="w-5 h-5" />
                                     ) : (
                                       index + 1
                                     )}
@@ -1569,7 +1843,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   <div
                                     className={cn(
                                       "flex-1 min-w-0",
-                                      !hasCardDetails && "flex items-center",
+                                      !hasCardDetails &&
+                                        !isOrderTrackingModule &&
+                                        "flex items-center",
                                     )}
                                   >
                                     <h4
@@ -1697,20 +1973,24 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               clearModuleSelection();
                             }}
                             className={cn(
-                              "w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left",
-                              "border-2 hover:border-primary/50 hover:bg-secondary/20",
+                              "w-full min-h-[128px] p-5 rounded-2xl flex items-start gap-5 transition-all duration-300 text-left",
+                              "border-2 hover:border-primary/60 hover:bg-secondary/20",
                               isCertModalOpen && !selectedModule
                                 ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/70 shadow-lg shadow-primary/20"
-                                : "border-primary/30 bg-primary/5 shadow-md shadow-black/20",
+                                : "border-primary/45 bg-gradient-to-r from-primary/10 via-primary/[0.04] to-transparent shadow-lg shadow-primary/10",
                             )}
                           >
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all gold-gradient text-primary-foreground shadow-md">
-                              <Award className="w-5 h-5" />
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all gold-gradient text-primary-foreground shadow-md shadow-primary/20">
+                              {needsDirectoryListing ? (
+                                <Globe className="w-6 h-6" />
+                              ) : (
+                                <Award className="w-6 h-6" />
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4
                                 className={cn(
-                                  "font-semibold text-sm mb-1",
+                                  "font-semibold text-base leading-tight mb-1",
                                   isCertModalOpen && !selectedModule
                                     ? "text-primary"
                                     : "gold-text",
@@ -1718,18 +1998,31 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               >
                                 Level 1 Certification
                               </h4>
-                              <p className="text-xs text-muted-foreground">
-                                Enter name and generate certificate
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {needsDirectoryListing
+                                  ? "Get added into the Hair System Database. Click here to do so."
+                                  : "Enter name and generate certificate"}
                               </p>
                             </div>
+                            {needsDirectoryListing ? (
+                              <ArrowRight
+                                className={cn(
+                                  "w-6 h-6 flex-shrink-0",
+                                  isCertModalOpen && !selectedModule
+                                    ? "text-primary"
+                                    : "text-muted-foreground",
+                                )}
+                              />
+                            ) : (
                             <Award
                               className={cn(
-                                "w-5 h-5 flex-shrink-0",
+                                "w-6 h-6 flex-shrink-0",
                                 isCertModalOpen && !selectedModule
                                   ? "text-primary"
-                                  : "text-muted-foreground",
+                                : "text-muted-foreground",
                               )}
                             />
+                            )}
                           </button>
                           {/* Directory enrollment after certification */}
                           {directoryModule && (
@@ -1739,20 +2032,20 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   `/courses/${courseType}/lesson/${directoryModule.id}`,
                                 )
                               }
-                              className="w-full p-4 rounded-xl flex items-start gap-4 transition-all duration-300 text-left border-2 border-primary/40 bg-gradient-to-r from-primary/10 to-transparent shadow-md shadow-primary/10 hover:border-primary/60"
+                              className="w-full min-h-[128px] p-5 rounded-2xl flex items-start gap-5 transition-all duration-300 text-left border-2 border-primary/45 bg-gradient-to-r from-primary/10 via-primary/[0.04] to-transparent shadow-lg shadow-primary/10 hover:border-primary/70"
                             >
-                              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient text-primary-foreground shadow-md">
-                                <Globe className="w-5 h-5" />
+                              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 gold-gradient text-primary-foreground shadow-md shadow-primary/20">
+                                <Globe className="w-6 h-6" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm mb-1 gold-text">
+                                <h4 className="font-semibold text-base leading-tight mb-1 gold-text">
                                   {directoryModule.title}
                                 </h4>
                                 {directoryModule.description && (
-                                  <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {directoryModule.description}
-                                  </p>
-                                )}
+                                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                                  {directoryModule.description}
+                                </p>
+                              )}
                               </div>
                               <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
                             </button>
@@ -2041,7 +2334,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
       <Level1CertModal
         isOpen={isCertModalOpen}
         onClose={() => setIsCertModalOpen(false)}
+        openEditForm={needsDirectoryListing}
       />
+      {courseType === "business" && showBusinessWelcome && (
+        <BusinessMasteryWelcome onContinue={dismissBusinessWelcome} />
+      )}
     </DashboardLayout>
   );
 }
