@@ -184,10 +184,10 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, courseId, certificateName, shippingAddress, debug = false } = await req.json();
+    const { userId, courseId, certificateName, shippingAddress, debug = false, legacyResubmission = false } = await req.json();
     const normalizedShippingAddress = normalizeShippingAddress(shippingAddress);
 
-    console.log('Generating certificate for:', { userId, courseId, certificateName, hasShippingAddress: !!normalizedShippingAddress, debug });
+    console.log('Generating certificate for:', { userId, courseId, certificateName, hasShippingAddress: !!normalizedShippingAddress, debug, legacyResubmission });
 
     if (!userId || !courseId || !certificateName) {
       throw new Error('Missing required fields: userId, courseId, or certificateName');
@@ -205,7 +205,7 @@ serve(async (req) => {
     // Client quizzes. Legacy accounts still use the pre-existing quiz set.
     const { data: existingCertification, error: existingCertificationError } = await supabase
       .from('certifications')
-      .select('id')
+      .select('id, created_at, certification_version')
       .eq('user_id', userId)
       .eq('course_id', courseId)
       .maybeSingle();
