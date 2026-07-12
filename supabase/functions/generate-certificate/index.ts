@@ -470,6 +470,21 @@ serve(async (req) => {
     const certificateUrl = urlData.publicUrl;
     console.log('Certificate uploaded to:', certificateUrl);
 
+    // Decide the certification_version marker. Preserve existing >=2 values,
+    // and only escalate to 2 when a legacy record (created before the cutoff)
+    // is being explicitly resubmitted from the certified edit form.
+    const existingVersion = Number((existingCertification as any)?.certification_version ?? 1) || 1;
+    const existingCreatedAt = (existingCertification as any)?.created_at as string | undefined;
+    const cutoffMs = Date.parse(CERTIFICATION_QUIZ_CUTOFF_ISO);
+    const existingCreatedAtMs = existingCreatedAt ? Date.parse(existingCreatedAt) : NaN;
+    const shouldEscalateToV2 =
+      !!existingCertification &&
+      legacyResubmission === true &&
+      Number.isFinite(existingCreatedAtMs) &&
+      existingCreatedAtMs < cutoffMs;
+    const nextVersion = Math.max(existingVersion, shouldEscalateToV2 ? 2 : 1);
+    console.log('Certification version resolution:', { existingVersion, existingCreatedAt, legacyResubmission, shouldEscalateToV2, nextVersion });
+
     // Save certification record
     const { data: certData, error: certError } = await supabase
       .from('certifications')
@@ -480,6 +495,7 @@ serve(async (req) => {
         certificate_url: certificateUrl,
         issued_at: new Date().toISOString(),
         downloaded_at: null,
+        certification_version: nextVersion,
       }, {
         onConflict: 'user_id,course_id',
       })
