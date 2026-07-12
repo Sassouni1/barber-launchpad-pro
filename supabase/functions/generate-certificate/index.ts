@@ -470,20 +470,15 @@ serve(async (req) => {
     const certificateUrl = urlData.publicUrl;
     console.log('Certificate uploaded to:', certificateUrl);
 
-    // Decide the certification_version marker. Preserve existing >=2 values,
-    // and only escalate to 2 when a legacy record (created before the cutoff)
-    // is being explicitly resubmitted from the certified edit form.
+    // Decide the certification_version marker. Any explicit legacy
+    // resubmission on an existing certification escalates to version 2 (the
+    // card state that opens the edit form is the authoritative trigger; we do
+    // NOT gate on the record's created_at because some affected records were
+    // regenerated after the June 1 cutoff). Preserve versions already >= 2.
     const existingVersion = Number((existingCertification as any)?.certification_version ?? 1) || 1;
-    const existingCreatedAt = (existingCertification as any)?.created_at as string | undefined;
-    const cutoffMs = Date.parse(CERTIFICATION_QUIZ_CUTOFF_ISO);
-    const existingCreatedAtMs = existingCreatedAt ? Date.parse(existingCreatedAt) : NaN;
-    const shouldEscalateToV2 =
-      !!existingCertification &&
-      legacyResubmission === true &&
-      Number.isFinite(existingCreatedAtMs) &&
-      existingCreatedAtMs < cutoffMs;
+    const shouldEscalateToV2 = !!existingCertification && legacyResubmission === true;
     const nextVersion = Math.max(existingVersion, shouldEscalateToV2 ? 2 : 1);
-    console.log('Certification version resolution:', { existingVersion, existingCreatedAt, legacyResubmission, shouldEscalateToV2, nextVersion });
+    console.log('Certification version resolution:', { existingVersion, legacyResubmission, shouldEscalateToV2, nextVersion });
 
     // Save certification record
     const { data: certData, error: certError } = await supabase
