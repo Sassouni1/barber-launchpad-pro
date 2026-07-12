@@ -44,6 +44,8 @@ interface CertificationModalProps {
   defaultShippingAddress?: CertificateShippingAddress | null;
   defaultBusinessLocation?: CertificateBusinessLocation | null;
   isEditing?: boolean;
+  /** Open the shipping and business address sections when entering edit mode. */
+  openAddressSections?: boolean;
   courseId?: string;
   certificationId?: string | null;
 }
@@ -82,6 +84,7 @@ export function CertificationModal({
   defaultShippingAddress,
   defaultBusinessLocation,
   isEditing = false,
+  openAddressSections = false,
   courseId,
   certificationId,
 }: CertificationModalProps) {
@@ -100,8 +103,8 @@ export function CertificationModal({
   const markDownloaded = useMarkCertificateDownloaded();
   // In edit mode, collapse the address sections by default so users can just
   // fix a typo in the name and hit save without touching anything else.
-  const [showShipping, setShowShipping] = useState(!isEditing);
-  const [showBusiness, setShowBusiness] = useState(!isEditing);
+  const [showShipping, setShowShipping] = useState(openAddressSections || !isEditing);
+  const [showBusiness, setShowBusiness] = useState(openAddressSections || !isEditing);
 
   useEffect(() => {
     if (isOpen) {
@@ -114,10 +117,10 @@ export function CertificationModal({
       if (defaultBusinessLocation) {
         setBusinessLocation(defaultBusinessLocation);
       }
-      setShowShipping(!isEditing);
-      setShowBusiness(!isEditing);
+      setShowShipping(openAddressSections || !isEditing);
+      setShowBusiness(openAddressSections || !isEditing);
     }
-  }, [isOpen, defaultName, defaultShippingAddress, defaultBusinessLocation, isEditing]);
+  }, [isOpen, defaultName, defaultShippingAddress, defaultBusinessLocation, isEditing, openAddressSections]);
 
   useEffect(() => {
     if (!isOpen) {

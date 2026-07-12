@@ -42,7 +42,8 @@
     --success-foreground: 45 100% 96%;
     --success-soft: 160 70% 58%;
     
-    --border: 220 15% 18%;
+    /* Lift the neutral border slightly so cards stay readable against the near-black canvas. */
+    --border: 220 15% 24%;
     --input: 220 15% 12%;
     --ring: 45 100% 50%;
     
@@ -118,7 +119,7 @@
     --destructive-foreground: 45 100% 96%;
     --success: 145 64% 42%;
     --success-foreground: 45 100% 96%;
-    --border: 220 15% 18%;
+    --border: 220 15% 24%;
     --input: 220 15% 12%;
     --ring: 45 100% 50%;
     --sidebar-background: 220 20% 5%;
@@ -169,7 +170,7 @@
       hsl(var(--card) / 0.7) 100%
     );
     backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--border) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.7);
   }
 
   .glass-card::before {

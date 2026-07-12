@@ -5,10 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { BookOpen, Trophy, Clock, TrendingUp, Loader2 } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import { isQuizPassed } from '@/lib/quizPass';
+import { useUserCertification } from '@/hooks/useCertification';
 
 export function ProgressOverview() {
   const { data: courses = [], isLoading } = useCourses();
   const { user } = useAuth();
+  const hairSystemCourseId = courses.find((course) => (course as any).category === 'hair-system')?.id;
+  const { data: hairSystemCertification } = useUserCertification(hairSystemCourseId);
 
   // Fetch user's profile created_at for legacy/new determination
   const { data: profileCreatedAt } = useQuery({
@@ -113,6 +116,8 @@ export function ProgressOverview() {
   const courseProgress = courses.map(course => {
     const quizModules = (course.modules || []).filter((m: any) => m.has_quiz);
     const totalMods = quizModules.length;
+    const certificationComplete =
+      (course as any).category === 'hair-system' && !!hairSystemCertification;
     let completedCount = 0;
     for (const mod of quizModules) {
       const passedQuiz = passedModuleIds.has(mod.id);
@@ -123,8 +128,9 @@ export function ProgressOverview() {
         completedCount++;
       }
     }
-    const pct = totalMods > 0 ? Math.round((completedCount / totalMods) * 100) : 0;
-    return { ...course, totalLessons: totalMods, completedCount, pct };
+    const displayedCompletedCount = certificationComplete ? totalMods : completedCount;
+    const pct = totalMods > 0 ? Math.round((displayedCompletedCount / totalMods) * 100) : 0;
+    return { ...course, totalLessons: totalMods, completedCount: displayedCompletedCount, pct };
   });
 
   const totalModules = courseProgress.reduce((acc, c) => acc + c.totalLessons, 0);
