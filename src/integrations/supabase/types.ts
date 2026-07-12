@@ -594,6 +594,7 @@ export type Database = {
         Row: {
           certificate_name: string
           certificate_url: string | null
+          certification_version: number
           course_id: string
           created_at: string
           downloaded_at: string | null
@@ -604,6 +605,7 @@ export type Database = {
         Insert: {
           certificate_name: string
           certificate_url?: string | null
+          certification_version?: number
           course_id: string
           created_at?: string
           downloaded_at?: string | null
@@ -614,6 +616,7 @@ export type Database = {
         Update: {
           certificate_name?: string
           certificate_url?: string | null
+          certification_version?: number
           course_id?: string
           created_at?: string
           downloaded_at?: string | null

@@ -48,6 +48,7 @@ interface Certification {
   certificate_url: string | null;
   issued_at: string;
   downloaded_at: string | null;
+  certification_version?: number | null;
 }
 
 interface QuizProgress {
@@ -437,12 +438,14 @@ export function useIssueCertification() {
       shippingAddress,
       businessLocation,
       debug = false,
+      legacyResubmission = false,
     }: {
       courseId: string;
       certificateName: string;
       shippingAddress?: CertificateShippingAddress;
       businessLocation?: CertificateBusinessLocation;
       debug?: boolean;
+      legacyResubmission?: boolean;
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
@@ -476,6 +479,7 @@ export function useIssueCertification() {
             shippingAddress,
             businessLocation,
             debug,
+            legacyResubmission,
           },
         });
 
