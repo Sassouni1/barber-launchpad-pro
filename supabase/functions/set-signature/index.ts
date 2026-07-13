@@ -11,27 +11,46 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { userId, signatureBase64 } = await req.json();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (!userId || !signatureBase64) {
+    // Require an authenticated caller; never trust a body-supplied userId.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: authError } = await userClient.auth.getUser();
+    if (authError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = userData.user.id;
+
+    const { signatureBase64 } = await req.json();
+    if (!signatureBase64 || typeof signatureBase64 !== "string") {
       return new Response(
-        JSON.stringify({ error: "userId and signatureBase64 are required" }),
+        JSON.stringify({ error: "signatureBase64 is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
+    const supabase = createClient(supabaseUrl, serviceKey);
     const { error } = await supabase
       .from("profiles")
       .update({ signature_data: signatureBase64 })
-      .eq("id", userId);
+      .eq("id", callerId);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     return new Response(
       JSON.stringify({ success: true }),
