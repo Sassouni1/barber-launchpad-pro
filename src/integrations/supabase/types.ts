@@ -2169,6 +2169,82 @@ export type Database = {
         }
         Relationships: []
       }
+      video_watch_progress: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          last_position_seconds: number
+          last_watched_at: string | null
+          lesson_id: string | null
+          module_id: string
+          updated_at: string
+          user_id: string
+          video_key: string
+          watched_percent: number
+          watched_seconds: number
+          watched_seconds_map: number[]
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          last_position_seconds?: number
+          last_watched_at?: string | null
+          lesson_id?: string | null
+          module_id: string
+          updated_at?: string
+          user_id: string
+          video_key: string
+          watched_percent?: number
+          watched_seconds?: number
+          watched_seconds_map?: number[]
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          last_position_seconds?: number
+          last_watched_at?: string | null
+          lesson_id?: string | null
+          module_id?: string
+          updated_at?: string
+          user_id?: string
+          video_key?: string
+          watched_percent?: number
+          watched_seconds?: number
+          watched_seconds_map?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_watch_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_watch_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_watch_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       quiz_answer_options: {
