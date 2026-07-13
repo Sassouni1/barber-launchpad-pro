@@ -457,7 +457,7 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
       expandable: true,
     },
     {
-      label: 'Submit work photos',
+      label: 'Submit Hair System Template',
       completed: photoSubmitted,
       detail: photoSubmitted ? `${photos?.length} photo(s)` : 'None yet',
       showUploader: true,
