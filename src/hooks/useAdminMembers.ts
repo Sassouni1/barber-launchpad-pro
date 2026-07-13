@@ -340,6 +340,13 @@ export function useAdminMemberDetail(userId: string | null) {
 
       if (quizError) throw quizError;
 
+      // Watch analytics — separate from completion / certification.
+      const { data: videoProgress } = await supabase
+        .from('video_watch_progress')
+        .select('*, modules(title), lessons(title)')
+        .eq('user_id', userId)
+        .order('last_watched_at', { ascending: false });
+
       // Fetch completed lessons with lesson info
       const { data: lessonProgress, error: progressError } = await supabase
         .from('user_progress')
