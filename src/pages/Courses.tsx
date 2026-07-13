@@ -32,7 +32,6 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { cn, getVimeoEmbedUrl } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { logAccess } from "@/lib/accessLog";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   localizeCourseTitle,
@@ -70,6 +69,11 @@ import {
 import { useUserCertification } from "@/hooks/useCertification";
 import { useMyListing } from "@/hooks/useSpecialistDirectory";
 import { isDirectoryUploadAvailable } from "@/lib/certificationRequirements";
+import {
+  TrackedVimeoPlayer,
+  type VimeoWatchProgress,
+  type VimeoWatchResumeState,
+} from "@/components/lesson/TrackedVimeoPlayer";
 
 // Custom hook for md breakpoint (768px) - tablet and above
 function useIsTabletOrDesktop() {
@@ -114,34 +118,34 @@ const getModuleLessons = (module: Module): ModuleLessonPreview[] =>
   );
 
 const HAIR_SYSTEM_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
-// The Vimeo lesson is currently 5:24. Completion requires 90% watched,
-// matching the tracker on the full lesson page (about 4:52).
-const HAIR_SYSTEM_ORDER_COMPLETION_SECONDS = 292;
-
-const getOrderWatchKey = (userId: string) =>
-  `hair-system-order-watch:${userId}:${HAIR_SYSTEM_ORDER_MODULE_ID}`;
+const HAIR_SYSTEM_ORDER_FALLBACK_DURATION_SECONDS = 324;
 
 const getLastCourseModuleKey = (courseType: string) =>
   `last-course-module:${courseType}`;
 
-const readOrderWatchSeconds = (userId: string | undefined) => {
+const getOrderWatchKey = (userId: string) =>
+  `barber-launch:vimeo-watch:${userId}:${HAIR_SYSTEM_ORDER_MODULE_ID}:main`;
+
+const readOrderWatchPercent = (userId: string | undefined) => {
   if (!userId || typeof window === "undefined") return 0;
   try {
-    const value = Number.parseInt(
-      window.localStorage.getItem(getOrderWatchKey(userId)) || "0",
-      10,
-    );
-    return Number.isFinite(value) ? Math.max(0, value) : 0;
+    const raw = window.localStorage.getItem(getOrderWatchKey(userId));
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as {
+      duration?: number;
+      watchedSeconds?: number[];
+    };
+    const duration = Number(parsed.duration) || HAIR_SYSTEM_ORDER_FALLBACK_DURATION_SECONDS;
+    const watchedSeconds = Array.isArray(parsed.watchedSeconds)
+      ? parsed.watchedSeconds.length
+      : 0;
+    return Math.min(100, Math.round((watchedSeconds / duration) * 100));
   } catch {
     return 0;
   }
 };
 
-/**
- * The module 17 preview remains visually simple, but its Vimeo play/pause
- * events use the same cumulative watch counter as the full lesson page.
- */
-const OrderLessonPreviewIframe = ({
+const TrackedCoursePreviewIframe = ({
   module,
   locale,
 }: {
@@ -150,76 +154,15 @@ const OrderLessonPreviewIframe = ({
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const watchSecondsRef = useRef(0);
-  const playingRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const completedRef = useRef(false);
-  const [videoDuration, setVideoDuration] = useState<number | null>(null);
-  const watchKey = user?.id ? getOrderWatchKey(user.id) : null;
-  const completionThreshold = videoDuration
-    ? Math.max(60, Math.ceil(videoDuration * 0.9))
-    : HAIR_SYSTEM_ORDER_COMPLETION_SECONDS;
+  const lastPersistRef = useRef(0);
   const embedUrl = resolveVideoEmbedUrlForModule(
     module,
     locale,
     getVimeoEmbedUrl,
   );
 
-  useEffect(() => {
-    watchSecondsRef.current = readOrderWatchSeconds(user?.id);
-    completedRef.current = watchSecondsRef.current >= completionThreshold;
-  }, [completionThreshold, user?.id]);
-
-  useEffect(() => {
-    const localizedVideoUrl = module.video_url || "";
-    if (!localizedVideoUrl.includes("vimeo")) return;
-    const rawUrl = localizedVideoUrl.replace(
-      /player\.vimeo\.com\/video\//,
-      "vimeo.com/",
-    );
-    let cancelled = false;
-    fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(rawUrl)}`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.duration) setVideoDuration(data.duration);
-      })
-      .catch(() => {
-        // Keep the current fallback threshold if Vimeo metadata is unavailable.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [module.video_url]);
-
-  const persist = useCallback(
-    (seconds: number) => {
-      if (!watchKey) return;
-      try {
-        localStorage.setItem(watchKey, String(Math.floor(seconds)));
-      } catch {
-        // Playback tracking still works in memory if storage is unavailable.
-      }
-    },
-    [watchKey],
-  );
-
   const completeLesson = useCallback(async () => {
-    if (!user?.id || completedRef.current) return;
-    completedRef.current = true;
-    playingRef.current = false;
-    if (timerRef.current) clearInterval(timerRef.current);
-    persist(watchSecondsRef.current);
-    void logAccess({
-      event_type: "video_complete",
-      resource_type: "module",
-      resource_id: HAIR_SYSTEM_ORDER_MODULE_ID,
-      metadata: {
-        source: "course_preview",
-        watched_seconds: Math.floor(watchSecondsRef.current),
-        completion_threshold: completionThreshold,
-      },
-    });
+    if (!user?.id || module.id !== HAIR_SYSTEM_ORDER_MODULE_ID) return;
 
     const { data: lessons } = await supabase
       .from("lessons")
@@ -238,102 +181,66 @@ const OrderLessonPreviewIframe = ({
     }
     queryClient.invalidateQueries({ queryKey: ["completed-modules", user.id] });
     queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] });
-  }, [completionThreshold, persist, queryClient, user?.id]);
+  }, [module.id, queryClient, user?.id]);
 
-  const handlePlay = useCallback(() => {
-    if (completedRef.current) return;
-    playingRef.current = true;
-    void logAccess({
-      event_type: "video_play",
-      resource_type: "module",
-      resource_id: HAIR_SYSTEM_ORDER_MODULE_ID,
-      metadata: {
-        source: "course_preview",
-        watched_seconds: Math.floor(watchSecondsRef.current),
-        completion_threshold: completionThreshold,
-      },
-    });
-  }, [completionThreshold]);
+  const persistProgress = useCallback(
+    (progress: VimeoWatchProgress) => {
+      if (!user?.id || !module.course_id) return;
+      const now = Date.now();
+      if (!progress.flush && now - lastPersistRef.current < 5000) return;
+      lastPersistRef.current = now;
+      const videoKey = `module:${module.id}`;
+      void supabase.from("video_watch_progress").upsert(
+        {
+          user_id: user.id,
+          course_id: module.course_id,
+          module_id: module.id,
+          lesson_id: null,
+          video_key: videoKey,
+          duration_seconds: Math.max(0, Math.round(progress.duration)),
+          watched_seconds: Math.max(0, Math.round(progress.watchedSeconds.length)),
+          watched_percent: Math.max(0, Math.min(100, progress.watchedPercent)),
+          last_position_seconds: Math.max(0, Math.round(progress.position * 100) / 100),
+          last_watched_at: new Date().toISOString(),
+          completed_at: progress.completed ? new Date().toISOString() : null,
+        },
+        { onConflict: "user_id,video_key" },
+      );
+    },
+    [module.course_id, module.id, user?.id],
+  );
 
-  const handlePause = useCallback(() => {
-    playingRef.current = false;
-    persist(watchSecondsRef.current);
-    void logAccess({
-      event_type: "video_pause",
-      resource_type: "module",
-      resource_id: HAIR_SYSTEM_ORDER_MODULE_ID,
-      metadata: {
-        source: "course_preview",
-        watched_seconds: Math.floor(watchSecondsRef.current),
-        completion_threshold: completionThreshold,
-      },
-    });
-  }, [completionThreshold, persist]);
-
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe || !user?.id) return;
-
-    const subscribe = () => {
-      ["play", "pause", "ended"].forEach((eventName) => {
-        iframe.contentWindow?.postMessage(
-          JSON.stringify({ method: "addEventListener", value: eventName }),
-          "*",
-        );
-      });
+  const loadProgress = useCallback(async (): Promise<VimeoWatchResumeState | null> => {
+    if (!user?.id || !module.course_id) return null;
+    const videoKey = `module:${module.id}`;
+    const { data, error } = await supabase
+      .from("video_watch_progress")
+      .select(
+        "duration_seconds, watched_seconds_map, last_position_seconds, last_watched_at, completed_at",
+      )
+      .eq("user_id", user.id)
+      .eq("video_key", videoKey)
+      .maybeSingle();
+    if (error || !data) return null;
+    return {
+      position: Number(data.last_position_seconds) || 0,
+      duration: Number(data.duration_seconds) || 0,
+      watchedSeconds: Array.isArray(data.watched_seconds_map)
+        ? data.watched_seconds_map
+        : [],
+      completed: Boolean(data.completed_at),
+      savedAt: data.last_watched_at,
     };
-
-    const onMessage = (event: MessageEvent) => {
-      if (event.source !== iframe.contentWindow) return;
-      let payload: { event?: string } | null = null;
-      try {
-        payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-      } catch {
-        return;
-      }
-      if (payload?.event === "play") handlePlay();
-      if (payload?.event === "pause") handlePause();
-      if (payload?.event === "ended") handlePause();
-    };
-
-    iframe.addEventListener("load", subscribe);
-    window.addEventListener("message", onMessage);
-    subscribe();
-
-    return () => {
-      iframe.removeEventListener("load", subscribe);
-      window.removeEventListener("message", onMessage);
-    };
-  }, [handlePause, handlePlay, user?.id]);
-
-  useEffect(() => {
-    if (!user?.id || completedRef.current) return;
-    timerRef.current = setInterval(() => {
-      if (!playingRef.current || document.visibilityState !== "visible") return;
-      const nextSeconds = watchSecondsRef.current + 1;
-      watchSecondsRef.current = nextSeconds;
-      if (nextSeconds % 5 === 0) persist(nextSeconds);
-      if (nextSeconds >= completionThreshold) {
-        void completeLesson();
-      }
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      playingRef.current = false;
-      persist(watchSecondsRef.current);
-    };
-  }, [completeLesson, completionThreshold, persist, user?.id]);
+  }, [module.course_id, module.id, user?.id]);
 
   return (
-    <iframe
-      ref={iframeRef}
-      key={`${module.id}-${locale}`}
+    <TrackedVimeoPlayer
       src={embedUrl}
-      className="absolute inset-0 w-full h-full"
-      allow="autoplay; fullscreen; picture-in-picture"
-      allowFullScreen
       title={localizeHairSystemLessonTitle(module, locale)}
+      storageKey={`barber-launch:vimeo-watch:${user?.id || "anonymous"}:${module.id}:main`}
+      onComplete={module.id === HAIR_SYSTEM_ORDER_MODULE_ID ? completeLesson : undefined}
+      onProgress={persistProgress}
+      loadProgress={loadProgress}
     />
   );
 };
@@ -364,6 +271,17 @@ const getModuleStatus = (
   const bestScore = completion?.bestScore;
   const completionKind = completion?.completionKind ?? "quiz";
 
+  // Legacy/new-quiz exemptions are an eligibility rule, not a completion
+  // result. Keep the quiz visible and untouched-looking in the UI.
+  if (completionKind === "exempt") {
+    return {
+      state: "not-started" as const,
+      bestScore: undefined,
+      completionKind,
+      label: "",
+    };
+  }
+
   if (completion?.passed) {
     return {
       state: "completed" as const,
@@ -372,9 +290,7 @@ const getModuleStatus = (
       label:
         completionKind === "photo"
           ? "Template photo submitted"
-          : completionKind === "exempt"
-            ? "Not required"
-            : `Completed${bestScore != null ? ` · ${bestScore}%` : ""}`,
+          : `Completed${bestScore != null ? ` · ${bestScore}%` : ""}`,
     };
   }
 
@@ -572,7 +488,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const { data: completedMap = {} } = useCompletedModules();
   const isModuleCompleted = (id: string) => !!completedMap[id]?.passed;
   const selectedModuleParam = searchParams.get("module");
-  const [orderWatchSeconds, setOrderWatchSeconds] = useState(0);
+  const [orderWatchPercent, setOrderWatchPercent] = useState(0);
   const [showBusinessWelcome, setShowBusinessWelcome] = useState(false);
 
   // This is an orientation moment, not another course requirement. It appears
@@ -697,12 +613,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     };
   }, [expandedCourse, highlightedModule, isTabletOrDesktop]);
 
-  // The order lesson stores cumulative playback locally. Read it on mount,
-  // when returning to this page, and when another tab updates the value so
-  // the outside module card reflects the same watch progress as the lesson.
+  // Keep the preview card synchronized with the latest local resume record.
   useEffect(() => {
     const refreshOrderWatch = () =>
-      setOrderWatchSeconds(readOrderWatchSeconds(user?.id));
+      setOrderWatchPercent(readOrderWatchPercent(user?.id));
 
     refreshOrderWatch();
     window.addEventListener("focus", refreshOrderWatch);
@@ -714,11 +628,6 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
       window.removeEventListener("storage", refreshOrderWatch);
     };
   }, [user?.id]);
-
-  const orderWatchPercent = Math.min(
-    100,
-    Math.round((orderWatchSeconds / HAIR_SYSTEM_ORDER_COMPLETION_SECONDS) * 100),
-  );
 
   const clearModuleSearchParam = useCallback(() => {
     if (!selectedModuleParam) return;
@@ -991,8 +900,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
             {/* Video Preview - only show if video exists */}
             {moduleData.module.video_url?.trim() && (
               <div className="relative aspect-video bg-black">
-                {moduleData.module.id === HAIR_SYSTEM_ORDER_MODULE_ID ? (
-                  <OrderLessonPreviewIframe
+                {courseType === "hair-system" && moduleData.module.video_url?.includes("vimeo") ? (
+                  <TrackedCoursePreviewIframe
                     module={moduleData.module}
                     locale={locale}
                   />
@@ -1044,18 +953,14 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           <p className="text-xs font-bold text-success">
                             {sheetStatus.completionKind === "photo"
                               ? "Template photo submitted"
-                              : sheetStatus.completionKind === "exempt"
-                                ? "Requirement not required"
-                                : sheetStatus.completionKind === "video"
+                              : sheetStatus.completionKind === "video"
                                   ? "Watch time complete"
                                 : localizeCourseUi("Lesson Completed", locale)}
                           </p>
                           <p className="text-[10px] text-success-foreground/80">
                             {sheetStatus.completionKind === "photo"
                               ? "Certification requirement complete"
-                              : sheetStatus.completionKind === "exempt"
-                                ? "Added after your certification cohort"
-                                : sheetStatus.completionKind === "video"
+                              : sheetStatus.completionKind === "video"
                                   ? "Required video time watched · rewatch lesson"
                                 : `${localizeCourseUi("Quiz passed", locale)}${sheetScore != null ? ` ${sheetScore}%` : ""} · ${localizeCourseUi("rewatch lesson", locale)}`}
                           </p>
@@ -2142,8 +2047,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 {/* Video Player - only show if video exists */}
                 {moduleData.module.video_url?.trim() && (
                   <div className="relative aspect-video bg-black border-b border-border/30">
-                    {moduleData.module.id === HAIR_SYSTEM_ORDER_MODULE_ID ? (
-                      <OrderLessonPreviewIframe
+                    {courseType === "hair-system" && moduleData.module.video_url?.includes("vimeo") ? (
+                      <TrackedCoursePreviewIframe
                         module={moduleData.module}
                         locale={locale}
                       />
@@ -2196,16 +2101,12 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               <p className="text-sm font-bold text-emerald-300">
                                 {detailStatus.completionKind === "photo"
                                   ? "Template photo submitted"
-                                  : detailStatus.completionKind === "exempt"
-                                    ? "Requirement not required"
-                                    : localizeCourseUi("Lesson Completed", locale)}
+                                  : localizeCourseUi("Lesson Completed", locale)}
                               </p>
                               <p className="text-xs text-emerald-200/80">
                                 {detailStatus.completionKind === "photo"
                                   ? "Certification requirement complete"
-                                  : detailStatus.completionKind === "exempt"
-                                    ? "Added after your certification cohort"
-                                    : `${localizeCourseUi("Quiz passed", locale)}${detailScore != null ? ` ${detailScore}%` : ""} · ${localizeCourseUi("rewatch lesson", locale)}`}
+                                  : `${localizeCourseUi("Quiz passed", locale)}${detailScore != null ? ` ${detailScore}%` : ""} · ${localizeCourseUi("rewatch lesson", locale)}`}
                               </p>
                             </div>
                           </div>

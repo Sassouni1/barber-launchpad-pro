@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw, ZoomIn, ZoomOut, Search } from 'lucide-react';
+import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronLeft, ChevronRight, RotateCcw, RotateCw, ZoomIn, ZoomOut, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -47,13 +47,13 @@ interface Level1CertModalProps {
 }
 
 // Hook to check if user has completed all lessons (modules) of the course
-function useAllLessonsCompleted() {
+function useAllLessonsCompleted(courseId: string | undefined) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['all-lessons-completed', user?.id],
+    queryKey: ['all-lessons-completed', courseId, user?.id],
     queryFn: async () => {
-      if (!user?.id) return { completed: false, completedCount: 0, totalCount: 0 };
+      if (!user?.id || !courseId) return { completed: false, completedCount: 0, totalCount: 0 };
 
       const { data: modules, error: modulesError } = await supabase
         .from('modules')
@@ -63,6 +63,7 @@ function useAllLessonsCompleted() {
           is_directory_enrollment,
           course:courses!inner(id, category)
         `)
+        .eq('course_id', courseId)
         .eq('courses.category', 'hair-system')
         .eq('is_published', true);
 
@@ -120,7 +121,7 @@ function useAllLessonsCompleted() {
         totalCount,
       };
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !!courseId,
     staleTime: 30000,
   });
 }
@@ -157,7 +158,6 @@ function useTrainingGamesCompleted() {
 }
 
 export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level1CertModalProps) {
-  const [showQuizDetails, setShowQuizDetails] = useState(true);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [generatedCertificateUrl, setGeneratedCertificateUrl] = useState<string | null>(null);
@@ -190,7 +190,7 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
 
   const courseId = hairSystemCourse?.id;
 
-  const { data: lessonsProgress, isLoading: isLoadingLessons } = useAllLessonsCompleted();
+  const { data: lessonsProgress, isLoading: isLoadingLessons } = useAllLessonsCompleted(courseId);
   const { data: trainingGames, isLoading: isLoadingTraining } = useTrainingGamesCompleted();
   const { data: eligibility, isLoading: isLoadingEligibility } = useCertificationEligibility(courseId);
   const {
@@ -272,6 +272,8 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
     const certificateName = typeof input === 'string' ? input : input.certificateName;
     const shippingAddress = typeof input === 'string' ? undefined : input.shippingAddress;
     const businessLocation = typeof input === 'string' ? undefined : input.businessLocation;
+    const existingVersion = Number(existingCertification?.certification_version ?? 1) || 1;
+    const legacyResubmission = !!existingCertification && existingVersion < 2 && openEditForm;
     setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId: courseId!,
@@ -279,6 +281,7 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
       shippingAddress,
       businessLocation,
       debug: debugOverride ?? isDebugMode,
+      legacyResubmission,
     });
 
     if (result?.certificateUrl) {
@@ -448,21 +451,8 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
 
   const passedQuizCount = eligibility?.quizProgress.filter((q) => q.passed).length ?? 0;
   const totalQuizCount = eligibility?.quizProgress.length ?? 0;
-
-  const requirements = [
-    {
-      label: 'Pass all quizzes',
-      completed: allQuizzesPassed,
-      detail: totalQuizCount > 0 ? `${passedQuizCount}/${totalQuizCount} passed` : undefined,
-      expandable: true,
-    },
-    {
-      label: 'Submit work photos',
-      completed: photoSubmitted,
-      detail: photoSubmitted ? `${photos?.length} photo(s)` : 'None yet',
-      showUploader: true,
-    },
-  ];
+  const remainingQuizCount = Math.max(totalQuizCount - passedQuizCount, 0);
+  const activeStep = allQuizzesPassed ? 2 : 1;
 
   return (
     <>
@@ -470,23 +460,23 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
         open={isOpen && !openEditForm}
         onOpenChange={(open) => !open && onClose()}
       >
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-xl max-h-[90vh] overflow-x-hidden overflow-y-auto overscroll-x-none p-0 gap-0">
+          <DialogHeader className="px-5 pt-5 pb-3">
+            <DialogTitle className="flex items-center gap-3 text-xl">
               <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center",
-                isCertified ? "gold-gradient" : "bg-secondary"
+                "w-10 h-10 rounded-full border flex items-center justify-center",
+                isCertified ? "border-primary bg-primary/10" : "border-border bg-secondary/60"
               )}>
                 <Award className={cn(
                   "w-5 h-5",
-                  isCertified ? "text-primary-foreground" : "text-muted-foreground"
+                  isCertified ? "text-primary" : "text-muted-foreground"
                 )} />
               </div>
-              <span className={isCertified ? "gold-text" : ""}>Level 1 Certification</span>
+              <span>Level 1 Certification</span>
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="min-w-0 space-y-4 overflow-x-hidden pb-5">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -852,100 +842,157 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
                 )}
               </div>
             ) : (
-              // Show requirements checklist
               <>
-                <p className="text-sm text-muted-foreground">
-                  Complete the requirements below to earn your Level 1 Certification.
-                </p>
-                <div className="space-y-3">
-                  {requirements.map((req, idx) => (
-                    <div key={idx} className="space-y-2">
-                      <div
-                        className={cn(
-                          'flex items-center justify-between p-3 rounded-lg border transition-colors',
-                          req.completed
-                            ? 'bg-green-500/10 border-green-500/30'
-                            : 'bg-amber-500/5 border-amber-500/40 border-l-4',
-                          req.expandable && 'cursor-pointer'
-                        )}
-                        onClick={() => req.expandable && setShowQuizDetails(!showQuizDetails)}
-                      >
-                        <div className="flex items-center gap-3">
-                          {req.completed ? (
-                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                          ) : (
-                            <Circle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-                          )}
-                          <span
-                            className={cn(
-                              'font-medium',
-                              req.completed ? 'text-green-500' : 'text-foreground'
-                            )}
-                          >
-                            {req.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {req.detail && (
-                            <span
-                              className={cn(
-                                'text-xs font-semibold',
-                                req.completed ? 'text-muted-foreground' : 'text-amber-400'
-                              )}
-                            >
-                              {req.detail}
-                            </span>
-                          )}
-                          {req.expandable &&
-                            (showQuizDetails ? (
-                              <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                            ))}
-                        </div>
-                      </div>
-
-                      {/* Quiz Details Expansion */}
-                      {req.expandable && showQuizDetails && (
-                        <div className="ml-8 p-3 rounded-lg bg-secondary/20 border border-border">
-                          <QuizProgressList
-                            quizProgress={eligibility?.quizProgress || []}
-                            onNavigate={onClose}
-                          />
-                        </div>
-                      )}
-
-                      {/* Photo Uploader */}
-                      {req.showUploader && (
-                        <div className="ml-8 p-3 rounded-lg bg-secondary/20 border border-border">
-                          <PhotoUploader
-                            photos={photos || []}
-                            onUpload={uploadPhoto}
-                            onDelete={deletePhoto}
-                            isUploading={isUploading}
-                            isDeleting={isDeleting}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <div className="px-5 pt-1 pb-2">
+                  <p className="text-sm text-muted-foreground">
+                    Complete the steps below to earn your Level 1 Certification.
+                  </p>
                 </div>
 
-                <div className="pt-2">
-                  <Button 
-                    className={cn(
-                      "w-full transition-all",
-                      allRequirementsMet ? "gold-gradient" : ""
-                    )}
+                {/* Two-step progress indicator */}
+                <div className="px-5 pb-3">
+                  <div className="relative flex items-start justify-between">
+                    <div className="absolute left-[12%] right-[12%] top-4 h-0.5 bg-border" aria-hidden="true">
+                      <div
+                        className={cn(
+                          'h-full bg-primary transition-all',
+                          activeStep === 2 ? 'w-full' : 'w-1/2'
+                        )}
+                      />
+                    </div>
+                    {[
+                      { number: 1, label: 'Complete Quizzes', complete: allQuizzesPassed },
+                      { number: 2, label: 'Submit Template', complete: photoSubmitted },
+                    ].map((step) => (
+                      <div key={step.number} className="relative z-10 flex w-1/2 flex-col items-center gap-2">
+                        <div
+                          className={cn(
+                            'flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold',
+                            step.complete
+                              ? 'border-green-500 bg-green-500/15 text-green-400'
+                              : activeStep === step.number
+                                ? 'border-primary bg-primary/15 text-primary'
+                                : 'border-border bg-background text-muted-foreground'
+                          )}
+                        >
+                          {step.complete ? <CheckCircle className="h-4 w-4" /> : step.number}
+                        </div>
+                        <span className={cn(
+                          'text-xs font-medium text-center',
+                          step.complete || activeStep === step.number ? 'text-primary' : 'text-muted-foreground'
+                        )}>
+                          {step.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3 px-5">
+                  {/* Step one: quizzes */}
+                  <section className={cn(
+                    'overflow-hidden rounded-xl border',
+                    allQuizzesPassed ? 'border-green-500/30 bg-green-500/5' : 'border-primary/50 bg-primary/5'
+                  )}>
+                    <div className="p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <span className={cn(
+                          'rounded-full border px-2.5 py-1 text-xs font-semibold',
+                          allQuizzesPassed ? 'border-green-500/30 text-green-400' : 'border-primary/40 text-primary'
+                        )}>
+                          Step 1 of 2
+                        </span>
+                        <span className={cn(
+                          'text-xs font-semibold',
+                          allQuizzesPassed ? 'text-green-400' : 'text-primary'
+                        )}>
+                          {allQuizzesPassed ? 'Complete' : `${remainingQuizCount} remaining`}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold">Complete Your Quizzes</h3>
+                      <div className="mt-2 flex items-baseline gap-2">
+                        <span className="text-4xl font-bold tracking-tight text-primary">{passedQuizCount}</span>
+                        <span className="text-lg text-muted-foreground">of {totalQuizCount} passed</span>
+                      </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${totalQuizCount > 0 ? (passedQuizCount / totalQuizCount) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {allQuizzesPassed
+                          ? 'All required quizzes passed.'
+                          : `${remainingQuizCount} quiz${remainingQuizCount === 1 ? '' : 'zes'} remaining`}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Pass every quiz. You may miss no more than 1 question per quiz.
+                      </p>
+                    </div>
+                    <div className="border-t border-border/70 p-3">
+                      <QuizProgressList
+                        quizProgress={eligibility?.quizProgress || []}
+                        onNavigate={onClose}
+                      />
+                    </div>
+                  </section>
+
+                  {/* Step two: template photo */}
+                  <section className={cn(
+                    'overflow-hidden rounded-xl border',
+                    photoSubmitted ? 'border-green-500/30 bg-green-500/5' : 'border-border bg-secondary/10'
+                  )}>
+                    <div className="p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <span className={cn(
+                          'rounded-full border px-2.5 py-1 text-xs font-semibold',
+                          photoSubmitted ? 'border-green-500/30 text-green-400' : 'border-border text-muted-foreground'
+                        )}>
+                          Step 2 of 2
+                        </span>
+                        <span className={cn(
+                          'rounded-full px-2.5 py-1 text-xs font-semibold',
+                          photoSubmitted ? 'bg-green-500/15 text-green-400' : 'bg-muted text-muted-foreground'
+                        )}>
+                          {photos?.length ?? 0} uploaded
+                        </span>
+                      </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-lg font-semibold">Submit Hair System Template</h3>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Upload at least one photo after your quizzes are passed.
+                          </p>
+                        </div>
+                        {photoSubmitted && <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0 text-green-400" />}
+                      </div>
+                    </div>
+                    <div className="border-t border-border/70 p-3">
+                      <PhotoUploader
+                        photos={photos || []}
+                        onUpload={uploadPhoto}
+                        onDelete={deletePhoto}
+                        isUploading={isUploading}
+                        isDeleting={isDeleting}
+                      />
+                    </div>
+                  </section>
+                </div>
+
+                <div className="space-y-2 px-5 pt-1">
+                  <Button
+                    className={cn('w-full h-12 text-base', allRequirementsMet ? 'gold-gradient' : '')}
                     disabled={!allRequirementsMet}
                     onClick={handleGetCertified}
                   >
-                    <Award className="w-4 h-4 mr-2" />
-                    {allRequirementsMet ? 'Enter Name & Generate Certificate' : 'Complete Requirements Above'}
+                    Continue
+                  </Button>
+                  <Button variant="ghost" className="w-full text-primary" onClick={onClose}>
+                    Close
                   </Button>
                   {!allRequirementsMet && (
-                    <p className="text-xs text-muted-foreground text-center mt-2">
-                      Complete all requirements to unlock certification
+                    <p className="text-center text-xs text-muted-foreground">
+                      Complete both steps to unlock certification.
                     </p>
                   )}
                 </div>

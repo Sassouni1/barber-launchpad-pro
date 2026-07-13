@@ -101,6 +101,13 @@ function BehindBadge({ behind }: { behind: number }) {
   );
 }
 
+function formatWatchTime(seconds: number) {
+  const total = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(total / 60);
+  const remaining = total % 60;
+  return `${minutes}:${remaining.toString().padStart(2, '0')}`;
+}
+
 function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; onClose: () => void; refetch: () => void }) {
   const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set());
   const { data: detail, isLoading } = useAdminMemberDetail(member.id);
@@ -636,6 +643,47 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
               </ScrollArea>
             ) : (
               <p className="text-muted-foreground text-sm">No lessons completed yet</p>
+            )}
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-3 flex items-center gap-2">
+              <Clock className="w-4 h-4" /> Video Watch Time
+            </h4>
+            {detail?.videoWatchProgress && detail.videoWatchProgress.length > 0 ? (
+              <ScrollArea className="h-48">
+                <div className="space-y-2">
+                  {detail.videoWatchProgress.map((video) => (
+                    <div
+                      key={`${video.module_id}-${video.lesson_title || 'main'}`}
+                      className="rounded-lg bg-secondary/20 p-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-sm font-medium">
+                          {video.lesson_title || video.module_title}
+                        </p>
+                        <Badge variant="secondary" className="shrink-0">
+                          {Math.round(video.watched_percent)}%
+                        </Badge>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {formatWatchTime(video.watched_seconds)} / {formatWatchTime(video.duration_seconds)} watched
+                        </span>
+                        <span>
+                          last position {formatWatchTime(video.last_position_seconds)}
+                        </span>
+                      </div>
+                      <Progress
+                        value={Math.min(100, Math.max(0, video.watched_percent))}
+                        className="mt-2 h-1.5"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <p className="text-muted-foreground text-sm">No video watch data yet</p>
             )}
           </div>
 

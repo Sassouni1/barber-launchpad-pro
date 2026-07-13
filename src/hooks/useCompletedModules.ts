@@ -169,10 +169,17 @@ export function useCompletedModules() {
       // June 1, 2026, and for anyone who already has a certification. This
       // keeps course cards from implying those members must complete newly
       // added quizzes just to finish their existing certification path.
+      const { data: hairCourse } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("category", "hair-system")
+        .limit(1)
+        .maybeSingle();
       const { data: certRow } = await supabase
         .from("certifications")
         .select("id")
         .eq("user_id", user.id)
+        .eq("course_id", hairCourse?.id ?? "")
         .limit(1)
         .maybeSingle();
       const requiresNewQuizzes = requiresNewCertificationQuizzes(
@@ -182,7 +189,9 @@ export function useCompletedModules() {
       if (!requiresNewQuizzes) {
         for (const moduleId of NEW_CERTIFICATION_MODULE_IDS) {
           if (!map[moduleId]?.passed) {
-            map[moduleId] = { passed: true, completionKind: "exempt" };
+            // Keep the exemption as internal metadata only. It must not make
+            // an untouched quiz look completed or green in the course UI.
+            map[moduleId] = { passed: false, completionKind: "exempt" };
         }
         }
       }

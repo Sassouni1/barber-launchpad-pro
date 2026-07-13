@@ -373,9 +373,6 @@ function DetailsStep({
         bio,
         hero_photo_url: existing?.hero_photo_url || heroFromProof || null,
         email: email || null,
-        approved: true,
-        approved_at: new Date().toISOString(),
-        visible: true,
       });
 
       toast.success(existing ? "Listing updated!" : "You're on the directory! 🎉");

@@ -179,6 +179,28 @@ function getRenderedTextInkBounds(text: string, font: string, color: string) {
 const NAME_FONT_FALLBACK_URL = 'https://fonts.gstatic.com/s/pinyonscript/v24/6xKpdSJbL9-e9LuoeQiDRQR8aOI.ttf';
 const DATE_FONT_URL = 'https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtZ6Ew-.ttf';
 
+class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+async function requireCaller(req: Request, supabaseUrl: string, anonKey: string) {
+  const authorization = req.headers.get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) {
+    throw new HttpError(401, 'Authentication required');
+  }
+
+  const callerClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authorization } },
+  });
+  const { data, error } = await callerClient.auth.getUser();
+  if (error || !data.user) {
+    throw new HttpError(401, 'Invalid authentication token');
+  }
+  return data.user;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -195,10 +217,24 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const caller = await requireCaller(req, supabaseUrl, anonKey);
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
+
+    const { data: callerRole } = caller.id === userId
+      ? { data: null }
+      : await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', caller.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+    if (caller.id !== userId && !callerRole) {
+      throw new HttpError(403, 'You are not allowed to generate this certificate');
+    }
 
     // Keep the server-side certificate path aligned with the UI. Existing
     // certificates are grandfathered; otherwise, accounts created on/after
@@ -207,7 +243,7 @@ serve(async (req) => {
     // pre-existing quiz set.
     const { data: existingCertification, error: existingCertificationError } = await supabase
       .from('certifications')
-      .select('id, created_at, certification_version')
+      .select('id, created_at, issued_at, downloaded_at, certification_version')
       .eq('user_id', userId)
       .eq('course_id', courseId)
       .maybeSingle();
@@ -229,8 +265,8 @@ serve(async (req) => {
 
       const { data: quizModules, error: quizModulesError } = await supabase
         .from('modules')
-        .select('id, has_quiz, course:courses!inner(category)')
-        .eq('courses.category', 'hair-system')
+        .select('id, has_quiz')
+        .eq('course_id', courseId)
         .eq('has_quiz', true);
 
       if (quizModulesError) {
@@ -259,6 +295,20 @@ serve(async (req) => {
 
       if (!allQuizzesPassed) {
         throw new Error('Complete all required quizzes before generating your Level 1 Certification.');
+      }
+
+      const { data: certificationPhoto, error: photoError } = await supabase
+        .from('certification_photos')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('course_id', courseId)
+        .limit(1)
+        .maybeSingle();
+      if (photoError) {
+        throw new Error(`Failed to check certification photo: ${photoError.message}`);
+      }
+      if (!certificationPhoto) {
+        throw new Error('Upload at least one certification photo before generating your certificate.');
       }
     }
 
@@ -482,18 +532,27 @@ serve(async (req) => {
     const nextVersion = Math.max(existingVersion, shouldEscalateToV2 ? 2 : 1);
     console.log('Certification version resolution:', { existingVersion, legacyResubmission, shouldEscalateToV2, nextVersion });
 
+    // Preserve the original issuance/download state for ordinary edits. An
+    // explicit legacy resubmission intentionally starts a new mailing window.
+    const shouldResetMailingState = !existingCertification || legacyResubmission === true;
+    const certificationData = {
+      user_id: userId,
+      course_id: courseId,
+      certificate_name: certificateName,
+      certificate_url: certificateUrl,
+      issued_at: shouldResetMailingState
+        ? new Date().toISOString()
+        : existingCertification.issued_at,
+      downloaded_at: shouldResetMailingState
+        ? null
+        : existingCertification.downloaded_at,
+      certification_version: nextVersion,
+    };
+
     // Save certification record
     const { data: certData, error: certError } = await supabase
       .from('certifications')
-      .upsert({
-        user_id: userId,
-        course_id: courseId,
-        certificate_name: certificateName,
-        certificate_url: certificateUrl,
-        issued_at: new Date().toISOString(),
-        downloaded_at: null,
-        certification_version: nextVersion,
-      }, {
+      .upsert(certificationData, {
         onConflict: 'user_id,course_id',
       })
       .select()
@@ -578,13 +637,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error generating certificate:', error);
+    const status = error instanceof HttpError ? error.status : 500;
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error',
         details: 'Certificate generation failed'
       }),
       { 
-        status: 500, 
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

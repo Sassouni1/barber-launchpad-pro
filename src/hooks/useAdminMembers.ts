@@ -77,6 +77,17 @@ export interface MemberDetail {
   dynamicTodoStatus: DynamicTodoStatus[];
   quizStatus: QuizModuleStatus[];
   quizByCoure: CourseQuizGroup[];
+  videoWatchProgress: {
+    module_id: string;
+    module_title: string;
+    lesson_title: string | null;
+    duration_seconds: number;
+    watched_seconds: number;
+    watched_percent: number;
+    last_position_seconds: number;
+    last_watched_at: string | null;
+    completed_at: string | null;
+  }[];
 }
 
 export function useAdminMembers() {
@@ -115,6 +126,15 @@ export function useAdminMembers() {
         .eq('completed', true);
 
       if (progressError) throw progressError;
+
+      // Watch analytics are intentionally separate from completion. Older
+      // environments may not have the migration yet, so keep member details
+      // usable until the new table is deployed.
+      const { data: videoProgress } = await supabase
+        .from('video_watch_progress')
+        .select('*, modules(title), lessons(title)')
+        .eq('user_id', userId)
+        .order('last_watched_at', { ascending: false });
 
       // Fetch all modules as the unit of completion (include has_quiz)
       const { data: allModules, error: modulesError } = await supabase
@@ -480,6 +500,17 @@ export function useAdminMemberDetail(userId: string | null) {
         dynamicTodoStatus,
         quizStatus,
         quizByCoure: quizByCourse,
+        videoWatchProgress: (videoProgress || []).map(p => ({
+          module_id: p.module_id,
+          module_title: (p.modules as any)?.title || 'Unknown Module',
+          lesson_title: (p.lessons as any)?.title || null,
+          duration_seconds: p.duration_seconds,
+          watched_seconds: p.watched_seconds,
+          watched_percent: Number(p.watched_percent) || 0,
+          last_position_seconds: Number(p.last_position_seconds) || 0,
+          last_watched_at: p.last_watched_at,
+          completed_at: p.completed_at,
+        })),
       } as MemberDetail;
     },
     enabled: !!userId,

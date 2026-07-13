@@ -84,7 +84,7 @@ export function PhotoUploader({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-sm">Upload Photo of Hair System Template</h4>
+        <h4 className="min-w-0 truncate font-semibold text-sm">Upload Photo of Hair System Template</h4>
         <span className={cn(
           "text-sm font-medium px-2 py-0.5 rounded-full",
           photos.length > 0 
