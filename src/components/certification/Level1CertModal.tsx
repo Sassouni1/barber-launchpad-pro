@@ -272,6 +272,8 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
     const certificateName = typeof input === 'string' ? input : input.certificateName;
     const shippingAddress = typeof input === 'string' ? undefined : input.shippingAddress;
     const businessLocation = typeof input === 'string' ? undefined : input.businessLocation;
+    const existingVersion = Number(existingCertification?.certification_version ?? 1) || 1;
+    const legacyResubmission = !!existingCertification && existingVersion < 2 && openEditForm;
     setDebugInfo(null);
     const result = await issueCertification.mutateAsync({
       courseId: courseId!,
@@ -279,6 +281,7 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
       shippingAddress,
       businessLocation,
       debug: debugOverride ?? isDebugMode,
+      legacyResubmission,
     });
 
     if (result?.certificateUrl) {

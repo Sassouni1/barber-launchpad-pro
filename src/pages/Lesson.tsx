@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useCourses } from "@/hooks/useCourses";
@@ -54,10 +54,14 @@ import {
   localizeCourseUi,
   localizeHairSystemLessonTitle,
   resolveVideoEmbedUrlForModule,
-  resolveVideoUrlForModule,
 } from "@/lib/i18n/spanishVideos";
 import { PhotoUploadSection } from "@/components/lesson/PhotoUploadSection";
 import { DirectoryEnrollmentLesson } from "@/components/lesson/DirectoryEnrollmentLesson";
+import {
+  TrackedVimeoPlayer,
+  type VimeoWatchProgress,
+  type VimeoWatchResumeState,
+} from "@/components/lesson/TrackedVimeoPlayer";
 import {
   FIRST_POST_MODULE_ID,
   FOURTH_POST_FALLBACK_COPY,
@@ -139,6 +143,8 @@ const VideoPlayer = React.memo(
   },
 );
 VideoPlayer.displayName = "VideoPlayer";
+
+const PLACING_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
 
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
 const SOCIAL_MEDIA_101_THUMBNAIL =
@@ -662,6 +668,61 @@ export default function Lesson() {
   );
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const lastVideoProgressPersistRef = useRef(0);
+
+  const persistVideoProgress = useCallback(
+    (progress: VimeoWatchProgress) => {
+      if (!user?.id || !module?.id || !module.course_id) return;
+      const now = Date.now();
+      if (!progress.flush && now - lastVideoProgressPersistRef.current < 5000) {
+        return;
+      }
+      lastVideoProgressPersistRef.current = now;
+
+      const videoKey = sublessonId ? `lesson:${sublessonId}` : `module:${module.id}`;
+      void supabase.from("video_watch_progress").upsert(
+        {
+          user_id: user.id,
+          course_id: module.course_id,
+          module_id: module.id,
+          lesson_id: sublessonId || null,
+          video_key: videoKey,
+          duration_seconds: Math.max(0, Math.round(progress.duration)),
+          watched_seconds: Math.max(0, Math.round(progress.watchedSeconds.length)),
+          watched_seconds_map: progress.watchedSeconds,
+          watched_percent: Math.max(0, Math.min(100, progress.watchedPercent)),
+          last_position_seconds: Math.max(0, Math.round(progress.position * 100) / 100),
+          last_watched_at: new Date().toISOString(),
+          completed_at: progress.completed ? new Date().toISOString() : null,
+        },
+        { onConflict: "user_id,video_key" },
+      );
+    },
+    [module?.course_id, module?.id, sublessonId, user?.id],
+  );
+
+  const loadVideoProgress = useCallback(async (): Promise<VimeoWatchResumeState | null> => {
+    if (!user?.id || !module?.course_id || !module?.id) return null;
+    const videoKey = sublessonId ? `lesson:${sublessonId}` : `module:${module.id}`;
+    const { data, error } = await supabase
+      .from("video_watch_progress")
+      .select(
+        "duration_seconds, watched_seconds_map, last_position_seconds, last_watched_at, completed_at",
+      )
+      .eq("user_id", user.id)
+      .eq("video_key", videoKey)
+      .maybeSingle();
+    if (error || !data) return null;
+    return {
+      position: Number(data.last_position_seconds) || 0,
+      duration: Number(data.duration_seconds) || 0,
+      watchedSeconds: Array.isArray(data.watched_seconds_map)
+        ? data.watched_seconds_map
+        : [],
+      completed: Boolean(data.completed_at),
+      savedAt: data.last_watched_at,
+    };
+  }, [module?.course_id, module?.id, sublessonId, user?.id]);
 
   // Check if module's lessons are already completed
   const { data: lessonCompletionData } = useQuery({
@@ -717,7 +778,7 @@ export default function Lesson() {
     ? !!sublessonCompletion
     : isModuleCompleted;
 
-  const markModuleComplete = async () => {
+  const markModuleComplete = useCallback(async () => {
     if (!user?.id) return;
 
     if (sublessonId) {
@@ -763,14 +824,9 @@ export default function Lesson() {
     });
     queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] });
     toast.success("Lesson marked as complete!");
-  };
+  }, [module?.id, queryClient, sublessonId, user?.id]);
 
-  // Resolve the source URL based on active locale (Spanish overrides fall back to English).
   const { locale } = useLocale();
-  const localizedVideoUrl = useMemo(
-    () => resolveVideoUrlForModule(module, locale),
-    [module, locale],
-  );
 
   // Memoize the embed URL so the iframe src stays stable across re-renders
   const vimeoEmbedUrl = useMemo(
@@ -780,58 +836,6 @@ export default function Lesson() {
         : resolveVideoEmbedUrlForModule(module, locale, getVimeoEmbedUrl),
     [module, locale, sublesson],
   );
-
-  // Auto-complete video lessons based on time on page
-  const [videoDuration, setVideoDuration] = useState<number | null>(null);
-  const elapsedSeconds = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autoCompletedRef = useRef(false);
-
-  // Fetch video duration from Vimeo oEmbed API
-  useEffect(() => {
-    if (!localizedVideoUrl || !localizedVideoUrl.includes("vimeo")) return;
-    const rawUrl = localizedVideoUrl.replace(
-      /player\.vimeo\.com\/video\//,
-      "vimeo.com/",
-    );
-    fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(rawUrl)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.duration) setVideoDuration(data.duration);
-      })
-      .catch(() => {
-        /* fallback to manual button */
-      });
-  }, [localizedVideoUrl]);
-
-  // Time-on-page tracker for auto-completion
-  useEffect(() => {
-    if (!videoDuration || isCurrentLessonCompleted || !user?.id || !module?.id)
-      return;
-    autoCompletedRef.current = false;
-    elapsedSeconds.current = 0;
-
-    const threshold = Math.max(60, videoDuration);
-
-    timerRef.current = setInterval(() => {
-      elapsedSeconds.current += 1;
-      if (elapsedSeconds.current >= threshold && !autoCompletedRef.current) {
-        autoCompletedRef.current = true;
-        if (timerRef.current) clearInterval(timerRef.current);
-        markModuleComplete();
-      }
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [
-    videoDuration,
-    isCurrentLessonCompleted,
-    user?.id,
-    module?.id,
-    sublessonId,
-  ]);
 
   const submitQuiz = useSubmitQuiz();
   const submitHomework = useSubmitHomework();
@@ -996,6 +1000,8 @@ export default function Lesson() {
   const displayVideoUrl = sublesson
     ? sublesson.video_url || ""
     : module.video_url;
+  const shouldTrackVimeoVideo =
+    courseType === "hair-system" && (displayVideoUrl || "").includes("vimeo");
   const isSocialMedia101Lesson =
     !sublessonId && module.id === SOCIAL_MEDIA_101_MODULE_ID;
   const videoPosterSrc =
@@ -1008,6 +1014,13 @@ export default function Lesson() {
     isFourthPostSubLesson ||
     ((!sublessonId || isSubLessonInFirstPostModule) && module.has_download);
   const activeHasQuiz = sublessonId ? !!sublesson?.has_quiz : module.has_quiz;
+  const isOrderTrackingModule =
+    !sublessonId && module.id === PLACING_ORDER_MODULE_ID;
+  const allowsManualCompletion =
+    !activeHasQuiz &&
+    !isOrderTrackingModule &&
+    !(module as any).is_certification_requirement &&
+    !(module as any).is_directory_enrollment;
   const activeHasHomework = sublessonId ? false : module.has_homework;
   const notesContent = sublessonId ? null : module.notes_content;
   const firstPostCopyDownloadFileName =
@@ -1100,7 +1113,7 @@ export default function Lesson() {
                 {localizeCourseUi("Completed", locale)}
               </span>
             </div>
-          ) : (
+          ) : allowsManualCompletion ? (
             <Button
               onClick={markModuleComplete}
               className="gold-gradient"
@@ -1109,19 +1122,35 @@ export default function Lesson() {
               <CheckCircle2 className="w-4 h-4 mr-2" />
               {localizeCourseUi("Mark Complete", locale)}
             </Button>
-          )}
+          ) : null}
         </div>
 
         {/* Video Player - only show if video exists and not a special lesson */}
         {displayVideoUrl?.trim() &&
           !(module as any).is_certification_requirement &&
           !(module as any).is_directory_enrollment && (
-            <VideoPlayer
-              key={`${module.id}-${sublesson?.id || "main"}-${locale}`}
-              src={vimeoEmbedUrl}
-              title={localizedModuleTitle}
-              posterSrc={videoPosterSrc}
-            />
+            shouldTrackVimeoVideo ? (
+              <div className="glass-card rounded-2xl overflow-hidden">
+                <div className="aspect-video max-h-[50vh] bg-black relative">
+                  <TrackedVimeoPlayer
+                    key={`${module.id}-${sublesson?.id || "main"}-${user?.id || "anonymous"}`}
+                    src={vimeoEmbedUrl}
+                    title={localizedModuleTitle}
+                    storageKey={`barber-launch:vimeo-watch:${user?.id || "anonymous"}:${module.id}:${sublessonId || "main"}`}
+                    onComplete={isOrderTrackingModule ? markModuleComplete : undefined}
+                    onProgress={persistVideoProgress}
+                    loadProgress={loadVideoProgress}
+                  />
+                </div>
+              </div>
+            ) : (
+              <VideoPlayer
+                key={`${module.id}-${sublesson?.id || "main"}-${locale}`}
+                src={vimeoEmbedUrl}
+                title={localizedModuleTitle}
+                posterSrc={videoPosterSrc}
+              />
+            )
           )}
 
         {/* Archived Instagramswipe section for later reuse. */}

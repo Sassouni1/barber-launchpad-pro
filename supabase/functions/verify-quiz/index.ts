@@ -68,23 +68,32 @@ serve(async (req) => {
     const questionIds = questions.map(q => q.id);
     console.log(`Found ${questionIds.length} questions`);
 
-    // Get all correct answers for these questions (server-side access to full table)
-    const { data: correctAnswers, error: answersError } = await supabase
+    if (questionIds.length === 0 || answers.length !== questionIds.length) {
+      return new Response(JSON.stringify({ error: 'Answer every quiz question exactly once' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Load the full answer set server-side so submitted answers can be checked
+    // against both the question and the allowed answer IDs.
+    const { data: allQuizAnswers, error: answersError } = await supabase
       .from('quiz_answers')
       .select('id, question_id, is_correct')
-      .in('question_id', questionIds)
-      .eq('is_correct', true);
+      .in('question_id', questionIds);
 
     if (answersError) {
       console.error('Failed to fetch correct answers:', answersError);
       throw answersError;
     }
 
-    console.log(`Found ${correctAnswers.length} correct answers`);
+    console.log(`Found ${allQuizAnswers.length} quiz answers`);
 
     // Build a map of question_id -> correct_answer_id
     const correctAnswerMap: Record<string, string> = {};
-    for (const answer of correctAnswers) {
+    const answerById = new Map(allQuizAnswers.map((answer) => [answer.id, answer]));
+    const questionIdSet = new Set(questionIds);
+    for (const answer of allQuizAnswers.filter((candidate) => candidate.is_correct)) {
       correctAnswerMap[answer.question_id] = answer.id;
     }
 
@@ -92,7 +101,22 @@ serve(async (req) => {
     let score = 0;
     const responses: { questionId: string; selectedAnswerId: string; isCorrect: boolean }[] = [];
 
+    const submittedQuestionIds = new Set<string>();
     for (const answer of answers) {
+      if (!questionIdSet.has(answer.questionId) || submittedQuestionIds.has(answer.questionId)) {
+        return new Response(JSON.stringify({ error: 'Invalid or duplicate quiz answer' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const selectedAnswer = answerById.get(answer.selectedAnswerId);
+      if (!selectedAnswer || selectedAnswer.question_id !== answer.questionId) {
+        return new Response(JSON.stringify({ error: 'Answer does not belong to this question' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      submittedQuestionIds.add(answer.questionId);
       const correctAnswerId = correctAnswerMap[answer.questionId];
       const isCorrect = correctAnswerId === answer.selectedAnswerId;
       if (isCorrect) score++;
@@ -105,6 +129,7 @@ serve(async (req) => {
     }
 
     console.log(`Quiz score: ${score}/${questions.length}`);
+    const passed = questions.length - score <= 1;
 
     // Insert the quiz attempt
     const { data: attempt, error: attemptError } = await supabase
@@ -144,8 +169,8 @@ serve(async (req) => {
       // Don't throw - the attempt was saved successfully
     }
 
-    // Auto-mark progress
-    if (lessonId) {
+    // Only a passing quiz completes the lesson/module progress.
+    if (passed && lessonId) {
       // Lesson-level quiz: mark just this sub-lesson complete
       await supabase
         .from('user_progress')
@@ -154,7 +179,7 @@ serve(async (req) => {
           { onConflict: 'user_id,lesson_id' }
         );
       console.log(`Auto-completed lesson ${lessonId}`);
-    } else if (moduleId) {
+    } else if (passed && moduleId) {
       // Module-level quiz: mark all sub-lessons complete
       const { data: moduleLessons, error: lessonsError } = await supabase
         .from('lessons')

@@ -22,10 +22,19 @@ export function useTrainingGamesUnlocked() {
         return { unlocked: false, totalQuizzes: 0, passedQuizzes: 0 };
       }
 
+      const { data: hairCourse, error: courseError } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('category', 'hair-system')
+        .limit(1)
+        .maybeSingle();
+      if (courseError) throw courseError;
+      if (!hairCourse?.id) return { unlocked: true, totalQuizzes: 0, passedQuizzes: 0 };
+
       const { data: modules, error: modulesError } = await supabase
         .from('modules')
-        .select('id, has_quiz, course:courses!inner(id, category)')
-        .eq('courses.category', 'hair-system');
+        .select('id, has_quiz')
+        .eq('course_id', hairCourse.id);
 
       if (modulesError) throw modulesError;
 
@@ -37,7 +46,7 @@ export function useTrainingGamesUnlocked() {
           .from('certifications')
           .select('id')
           .eq('user_id', user.id)
-          .eq('course_id', (modules?.[0] as any)?.course?.id ?? '')
+          .eq('course_id', hairCourse.id)
           .maybeSingle();
 
       if (certificationError) throw certificationError;

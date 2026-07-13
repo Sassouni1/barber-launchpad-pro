@@ -6,6 +6,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+async function requireCaller(req: Request, supabaseUrl: string, anonKey: string) {
+  const authorization = req.headers.get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) {
+    throw new HttpError(401, 'Authentication required');
+  }
+
+  const callerClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authorization } },
+  });
+  const { data, error } = await callerClient.auth.getUser();
+  if (error || !data.user) {
+    throw new HttpError(401, 'Invalid authentication token');
+  }
+  return data.user;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,6 +43,8 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const caller = await requireCaller(req, supabaseUrl, anonKey);
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
@@ -31,6 +55,18 @@ serve(async (req) => {
         },
       },
     });
+
+    const { data: callerRole } = caller.id === userId
+      ? { data: null }
+      : await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', caller.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+    if (caller.id !== userId && !callerRole) {
+      throw new HttpError(403, 'You are not allowed to reset this certification');
+    }
 
     // 1. Get certification to find the certificate file
     const { data: certification } = await supabase
@@ -122,6 +158,7 @@ serve(async (req) => {
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const status = error instanceof HttpError ? error.status : 500;
     console.error('Error resetting certification:', errorMessage);
     return new Response(
       JSON.stringify({
@@ -129,7 +166,7 @@ serve(async (req) => {
         error: errorMessage,
       }),
       {
-        status: 500,
+        status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

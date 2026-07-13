@@ -87,6 +87,7 @@ export function useCertificationEligibility(courseId: string | undefined) {
           has_quiz,
           course:courses!inner(id, category)
         `)
+        .eq('course_id', courseId)
         .eq('courses.category', 'hair-system');
 
       if (modulesError) throw modulesError;
@@ -158,6 +159,7 @@ export function useCertificationEligibility(courseId: string | undefined) {
         .from('certification_photos')
         .select('id')
         .eq('user_id', user.id)
+        .eq('course_id', courseId)
         .limit(1);
 
       if (photosError) throw photosError;
