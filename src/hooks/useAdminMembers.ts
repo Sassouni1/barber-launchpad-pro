@@ -127,14 +127,8 @@ export function useAdminMembers() {
 
       if (progressError) throw progressError;
 
-      // Watch analytics are intentionally separate from completion. Older
-      // environments may not have the migration yet, so keep member details
-      // usable until the new table is deployed.
-      const { data: videoProgress } = await supabase
-        .from('video_watch_progress')
-        .select('*, modules(title), lessons(title)')
-        .eq('user_id', userId)
-        .order('last_watched_at', { ascending: false });
+
+
 
       // Fetch all modules as the unit of completion (include has_quiz)
       const { data: allModules, error: modulesError } = await supabase
@@ -345,6 +339,13 @@ export function useAdminMemberDetail(userId: string | null) {
         .order('completed_at', { ascending: false });
 
       if (quizError) throw quizError;
+
+      // Watch analytics — separate from completion / certification.
+      const { data: videoProgress } = await supabase
+        .from('video_watch_progress')
+        .select('*, modules(title), lessons(title)')
+        .eq('user_id', userId)
+        .order('last_watched_at', { ascending: false });
 
       // Fetch completed lessons with lesson info
       const { data: lessonProgress, error: progressError } = await supabase
