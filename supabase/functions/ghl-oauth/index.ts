@@ -9,10 +9,44 @@ const corsHeaders = {
 const GHL_TOKEN_URL = "https://services.leadconnectorhq.com/oauth/token";
 const GHL_LOCATION_URL = "https://services.leadconnectorhq.com/locations";
 
+class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
 function getSupabase() {
   const url = Deno.env.get("SUPABASE_URL")!;
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   return createClient(url, key);
+}
+
+async function requireAdmin(req: Request, supabaseUrl: string, anonKey: string, serviceClient: ReturnType<typeof createClient>) {
+  const authorization = req.headers.get("Authorization");
+  if (!authorization?.startsWith("Bearer ")) {
+    throw new HttpError(401, "Authentication required");
+  }
+
+  const callerClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authorization } },
+  });
+  const { data, error } = await callerClient.auth.getUser();
+  if (error || !data.user) {
+    throw new HttpError(401, "Invalid authentication token");
+  }
+
+  const { data: adminRole, error: roleError } = await serviceClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", data.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (roleError) throw roleError;
+  if (!adminRole) {
+    throw new HttpError(403, "Admin access required");
+  }
+
+  return data.user;
 }
 
 function getGhlCredentials() {
@@ -232,6 +266,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceClient = getSupabase();
+    await requireAdmin(req, supabaseUrl, anonKey, serviceClient);
+
     const { action, ...params } = await req.json();
 
     let result: any;
@@ -263,7 +302,7 @@ Deno.serve(async (req) => {
         error: error instanceof Error ? error.message : "Unknown error",
       }),
       {
-        status: 500,
+        status: error instanceof HttpError ? error.status : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
