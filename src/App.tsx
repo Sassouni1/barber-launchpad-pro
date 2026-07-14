@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 
 import Dashboard from "./pages/Dashboard";
-import StartHere from "./pages/StartHere";
 import Courses from "./pages/Courses";
 import Lesson from "./pages/Lesson";
 import LessonLegacyRedirect from "./pages/LessonLegacyRedirect";
@@ -90,7 +89,7 @@ const MemberApp = () => (
         <Route path="/agreement" element={<ProtectedRoute skipAgreementCheck><Agreement /></ProtectedRoute>} />
         <Route path="/auth" element={<Navigate to="/login" replace />} />
 
-        <Route path="/start-here" element={<ProtectedRoute><StartHere /></ProtectedRoute>} />
+        <Route path="/start-here" element={<Navigate to="/courses/hair-system" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/courses" element={<Navigate to="/courses/hair-system" replace />} />
         <Route path="/courses/hair-system" element={<ProtectedRoute><Courses courseType="hair-system" /></ProtectedRoute>} />

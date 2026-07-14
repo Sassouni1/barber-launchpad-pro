@@ -19,7 +19,6 @@ import {
   User,
   ExternalLink,
   ClipboardCheck,
-  Sparkles,
   MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -100,7 +99,6 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const isNewAccount = useIsNewAccount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
   const restrictNav = isNewAccount && !allQuizzesPassed;
-  const hideStartHere = !isNewAccount;
 
   
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
@@ -300,9 +298,6 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                 {!isAdminView && (
                   <>
                     {/* Member Links */}
-                    {!hideStartHere && (
-                      <NavRow to="/start-here" icon={Sparkles} label="Start Here" onClick={closeMenu} />
-                    )}
                     <NavRow to="/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={closeMenu} />
                     {/* Courses: ALWAYS visible to every member, no exceptions */}
                     <NavRow to="/courses/hair-system" icon={BookOpen} label="Courses" onClick={closeMenu} />

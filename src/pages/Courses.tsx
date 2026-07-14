@@ -481,6 +481,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const positionedSelectedModuleRef = useRef<string | null>(null);
   const pendingSidebarScrollRef = useRef<SidebarScrollMode | null>(null);
+  const preserveExpandedAfterRouteClearRef = useRef(false);
   const previousCourseTypeRef = useRef(courseType);
   const [canScrollMore, setCanScrollMore] = useState(false);
   const isTabletOrDesktop = useIsTabletOrDesktop();
@@ -569,12 +570,23 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
       }
     }
 
+    if (!requestedTrack && !rememberedModule) {
+      if (preserveExpandedAfterRouteClearRef.current) {
+        preserveExpandedAfterRouteClearRef.current = false;
+        return;
+      }
+      setExpandedCourse(null);
+      setHighlightedModule(null);
+      return;
+    }
+
     if (requestedTrack !== courseType && !rememberedModule) return;
 
     setExpandedCourse(courseType);
     setHighlightedModule(rememberedModule);
 
     if (requestedTrack === courseType) {
+      preserveExpandedAfterRouteClearRef.current = true;
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [courseType, location.pathname, location.state, navigate]);
@@ -1593,7 +1605,143 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
         {!isTabletOrDesktop && <MobileModuleSheet />}
       </div>
 
+      {/* Desktop path landing: keep the first Courses screen consistent with mobile. */}
+      {isTabletOrDesktop && expandedCourse === null && !selectedModuleParam && (
+        <div className="hidden md:flex min-h-[calc(100vh-5rem)] flex-col gap-6 overflow-y-auto">
+          <div className="mx-auto w-full max-w-5xl space-y-2">
+            <h1 className="font-display text-3xl font-bold gold-text">Courses</h1>
+            <p className="text-muted-foreground">Choose a path to continue.</p>
+          </div>
+          <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-5 lg:grid-cols-2">
+            {courseCategories.map((category) => {
+              const allModules = category.courses.flatMap(
+                (course) => (course.modules || []) as Module[],
+              );
+              const trackable = allModules.filter(
+                (module: any) => !module.is_directory_enrollment,
+              );
+              const total = trackable.length;
+              const isHair = category.id === "hair-system";
+              const certificationComplete = isHair && !!hairSystemCertification;
+              const needsDatabaseListing = isHair && needsDirectoryListing;
+              const done = trackable.filter((module) =>
+                isModuleCompleted(module.id),
+              ).length;
+              const displayedDone = certificationComplete ? total : done;
+              const pct = total
+                ? Math.round((displayedDone / total) * 100)
+                : 0;
+              const description = needsDatabaseListing
+                ? "Get added into the Hair System Database. Click here to do so."
+                : directoryUploadWaiting && isHair
+                  ? "Your certificate is being mailed. Check back in about two weeks."
+                  : isHair
+                    ? "Master installation, maintenance, styling, and certification."
+                    : "Build your client pipeline and business systems.";
+
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => {
+                    setExpandedCourse(category.id);
+                    navigate(`/courses/${category.id}`, {
+                      state: { openTrack: category.id },
+                    });
+                  }}
+                  className={cn(
+                    "group rounded-3xl border-2 p-7 text-left transition-all hover:-translate-y-0.5 hover:border-primary/70 hover:bg-primary/[0.04]",
+                    needsDatabaseListing
+                      ? "border-warning/80 bg-warning/10 shadow-lg shadow-warning/15"
+                      : "border-border/80 bg-card/70 shadow-lg shadow-black/20",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]",
+                          needsDatabaseListing
+                            ? "border-warning/70 bg-warning/20 text-warning"
+                            : "border-primary/40 bg-primary/5 text-primary",
+                        )}
+                      >
+                        {needsDatabaseListing
+                          ? "Action step"
+                          : certificationComplete
+                            ? "Certified"
+                            : isHair
+                              ? "Certification"
+                              : "Business Growth"}
+                      </span>
+                      <h2 className="mt-5 font-sans text-2xl font-semibold tracking-tight text-foreground">
+                        {category.title}
+                      </h2>
+                      <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                        {description}
+                      </p>
+                    </div>
+                    {certificationComplete ? (
+                      <CheckCircle2 className="h-6 w-6 shrink-0 text-success-soft" />
+                    ) : (
+                      <ArrowRight className="h-6 w-6 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                    )}
+                  </div>
+                  <div className="mt-8 flex items-center gap-4">
+                    <div className="relative h-20 w-20 shrink-0 rounded-full p-2" style={{
+                      background: `conic-gradient(hsl(var(--primary)) ${pct * 3.6}deg, hsl(var(--secondary)) 0deg)`,
+                    }}>
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-card">
+                        <span className="font-sans text-xl font-semibold tabular-nums gold-text">
+                          {pct}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-sans text-sm font-semibold gold-text">
+                        {certificationComplete
+                          ? "You are certified"
+                          : `${displayedDone} of ${total} lessons`}
+                      </div>
+                      {certificationComplete && (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {displayedDone} of {total} lessons complete
+                        </div>
+                      )}
+                      {needsDatabaseListing && (
+                        <div className="mt-1 text-xs font-semibold text-warning">
+                          One action step remaining
+                        </div>
+                      )}
+                      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary/80">
+                        <div className="h-full rounded-full gold-gradient" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-sans text-sm font-semibold",
+                    needsDatabaseListing
+                      ? "border-warning bg-warning text-warning-foreground"
+                      : "border-primary/40 text-primary group-hover:bg-primary/5",
+                  )}>
+                    {needsDatabaseListing
+                      ? "Get added into the Hair System Database"
+                      : certificationComplete
+                        ? "Review lessons"
+                        : done > 0
+                          ? "Continue lesson"
+                          : "Start lesson"}
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Tablet & Desktop View */}
+      {(!isTabletOrDesktop || expandedCourse !== null || !!selectedModuleParam) && (
       <div className="hidden md:flex gap-6 h-[calc(100vh-5rem)] overflow-hidden">
         {/* Left Panel - Courses & Modules */}
         <div
@@ -2254,6 +2402,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
           </div>
         )}
       </div>
+      )}
       <Level1CertModal
         isOpen={isCertModalOpen}
         onClose={() => setIsCertModalOpen(false)}

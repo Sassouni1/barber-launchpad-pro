@@ -1,7 +1,6 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  Sparkles,
   BookOpen, 
   ListTodo, 
   Settings, 
@@ -242,7 +241,6 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const isNewAccount = useIsNewAccount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
   const restrictNav = isNewAccount && !allQuizzesPassed;
-  const hideStartHere = !isNewAccount;
 
   
   // Detect if we're currently in the manufacturer/supplier view
@@ -337,9 +335,6 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           ))
         ) : (
           <>
-            {!hideStartHere && (
-              <NavItem to="/start-here" icon={Sparkles} label="Start Here" collapsed={collapsed} />
-            )}
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
             {/* Courses: ALWAYS visible to every member, no exceptions */}
             <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>

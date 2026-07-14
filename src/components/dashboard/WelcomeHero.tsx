@@ -39,7 +39,8 @@ export function WelcomeHero() {
     return 'Good evening';
   };
 
-  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'there';
+  const fullName = profile?.full_name?.trim();
+  const displayName = fullName?.split(/\s+/)[0] || user?.email?.split('@')[0] || 'there';
 
   // Collapsed mobile view
   if (isMobile && isCollapsed) {
