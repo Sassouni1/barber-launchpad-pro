@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Trophy,
   RotateCcw,
+  Lock,
 } from "lucide-react";
 import { useCompletedModules, type ModuleCompletion } from "@/hooks/useCompletedModules";
 import {
@@ -1168,6 +1169,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 const total = trackable.length;
                 const isHair = category.id === "hair-system";
                 const certificationComplete = isHair && !!hairSystemCertification;
+                const businessLocked =
+                  category.id === "business" && !hairSystemCertification && !isAdmin;
                 const needsDatabaseListing = isHair && needsDirectoryListing;
                 const done = trackable.filter((m) =>
                   isModuleCompleted(m.id),
@@ -1178,7 +1181,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 const pct = total
                   ? Math.round((displayedDone / total) * 100)
                   : 0;
-                const trackDescription = needsDatabaseListing
+                const trackDescription = businessLocked
+                  ? "Complete Hair System Training first to unlock Business Mastery."
+                  : needsDatabaseListing
                   ? "Get added into the Hair System Database. Click here to do so."
                   : directoryUploadWaiting && isHair
                     ? "Your certificate is being mailed. Check back in about two weeks."
@@ -1189,7 +1194,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   <button
                     key={category.id}
                     type="button"
+                    disabled={businessLocked}
                     onClick={() => {
+                      if (businessLocked) return;
                       if (needsDatabaseListing) {
                         setIsCertModalOpen(true);
                         clearModuleSelection();
@@ -1201,6 +1208,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       "relative flex flex-col text-left overflow-hidden rounded-[1.5rem] border p-5 transition-all active:scale-[0.985]",
                       needsDatabaseListing
                         ? "border-warning/80 bg-warning/10 shadow-lg shadow-warning/20 hover:border-warning"
+                        : businessLocked
+                          ? "cursor-not-allowed border-border/50 bg-muted/20 opacity-65"
                         : "border-border/80 bg-card/80 shadow-lg shadow-black/40 hover:border-primary/50",
                       "min-h-[184px]",
                     )}
@@ -1210,12 +1219,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         <span
                           className={cn(
                             "inline-flex items-center rounded-lg border px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em]",
-                            needsDatabaseListing
+                            businessLocked
+                              ? "border-border/60 bg-muted/30 text-muted-foreground"
+                              : needsDatabaseListing
                               ? "border-warning/70 bg-warning/20 text-warning"
                               : "border-primary/40 bg-primary/5 text-primary",
                           )}
                         >
-                          {needsDatabaseListing
+                          {businessLocked
+                            ? "Locked"
+                            : needsDatabaseListing
                             ? "Action step"
                             : certificationComplete
                             ? "Certified"
@@ -1223,7 +1236,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               ? "Certification"
                               : "Business Growth"}
                         </span>
-                        {needsDatabaseListing ? (
+                        {businessLocked ? (
+                          <Lock className="h-5 w-5 text-muted-foreground" />
+                        ) : needsDatabaseListing ? (
                           <AlertTriangle className="h-5 w-5 animate-pulse text-warning" />
                         ) : certificationComplete ? (
                           <CheckCircle2 className="h-5 w-5 text-success-soft" />
@@ -1239,7 +1254,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       <p
                         className={cn(
                           "mt-1 max-w-[290px] font-sans text-sm leading-5",
-                          needsDatabaseListing
+                          businessLocked
+                            ? "font-semibold text-muted-foreground"
+                            : needsDatabaseListing
                             ? "font-semibold text-warning"
                             : "text-muted-foreground",
                         )}
@@ -1299,7 +1316,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           : "border-primary/40 text-primary hover:bg-primary/5",
                       )}
                     >
-                      {needsDatabaseListing
+                      {businessLocked
+                        ? "Complete Hair System Training first"
+                        : needsDatabaseListing
                         ? "Get added into the Hair System Database"
                         : certificationComplete
                           ? "Review lessons"
@@ -1646,6 +1665,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
               const total = trackable.length;
               const isHair = category.id === "hair-system";
               const certificationComplete = isHair && !!hairSystemCertification;
+              const businessLocked =
+                category.id === "business" && !hairSystemCertification && !isAdmin;
               const needsDatabaseListing = isHair && needsDirectoryListing;
               const done = trackable.filter((module) =>
                 isModuleCompleted(module.id),
@@ -1654,7 +1675,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
               const pct = total
                 ? Math.round((displayedDone / total) * 100)
                 : 0;
-              const description = needsDatabaseListing
+              const description = businessLocked
+                ? "Complete Hair System Training first to unlock Business Mastery."
+                : needsDatabaseListing
                 ? "Get added into the Hair System Database. Click here to do so."
                 : directoryUploadWaiting && isHair
                   ? "Your certificate is being mailed. Check back in about two weeks."
@@ -1666,7 +1689,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 <button
                   key={category.id}
                   type="button"
+                  disabled={businessLocked}
                   onClick={() => {
+                    if (businessLocked) return;
                     setExpandedCourse(category.id);
                     navigate(`/courses/${category.id}`, {
                       state: { openTrack: category.id },
@@ -1676,6 +1701,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                     "group rounded-3xl border-2 p-7 text-left transition-all hover:-translate-y-0.5 hover:border-primary/70 hover:bg-primary/[0.04]",
                     needsDatabaseListing
                       ? "border-warning/80 bg-warning/10 shadow-lg shadow-warning/15"
+                      : businessLocked
+                        ? "cursor-not-allowed border-border/50 bg-muted/20 opacity-65"
                       : "border-border/80 bg-card/70 shadow-lg shadow-black/20",
                   )}
                 >
@@ -1684,12 +1711,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       <span
                         className={cn(
                           "inline-flex rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]",
-                          needsDatabaseListing
+                          businessLocked
+                            ? "border-border/60 bg-muted/30 text-muted-foreground"
+                            : needsDatabaseListing
                             ? "border-warning/70 bg-warning/20 text-warning"
                             : "border-primary/40 bg-primary/5 text-primary",
                         )}
                       >
-                        {needsDatabaseListing
+                        {businessLocked
+                          ? "Locked"
+                          : needsDatabaseListing
                           ? "Action step"
                           : certificationComplete
                             ? "Certified"
@@ -1704,7 +1735,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         {description}
                       </p>
                     </div>
-                    {certificationComplete ? (
+                    {businessLocked ? (
+                      <Lock className="h-6 w-6 shrink-0 text-muted-foreground" />
+                    ) : certificationComplete ? (
                       <CheckCircle2 className="h-6 w-6 shrink-0 text-success-soft" />
                     ) : (
                       <ArrowRight className="h-6 w-6 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
@@ -1743,11 +1776,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   </div>
                   <div className={cn(
                     "mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-sans text-sm font-semibold",
-                    needsDatabaseListing
+                    businessLocked
+                      ? "border-border/50 bg-muted/30 text-muted-foreground"
+                      : needsDatabaseListing
                       ? "border-warning bg-warning text-warning-foreground"
                       : "border-primary/40 text-primary group-hover:bg-primary/5",
                   )}>
-                    {needsDatabaseListing
+                    {businessLocked
+                      ? "Complete Hair System Training first"
+                      : needsDatabaseListing
                       ? "Get added into the Hair System Database"
                       : certificationComplete
                         ? "Review lessons"
