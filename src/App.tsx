@@ -91,7 +91,8 @@ const MemberApp = () => (
 
         <Route path="/start-here" element={<Navigate to="/courses/hair-system" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/courses" element={<Navigate to="/courses/hair-system" replace />} />
+        {/* Training is the single course entry point; always open the two-path chooser. */}
+        <Route path="/courses" element={<Navigate to="/courses/hair-system?choose=1" replace />} />
         <Route path="/courses/hair-system" element={<ProtectedRoute><Courses courseType="hair-system" /></ProtectedRoute>} />
         <Route path="/courses/business" element={<ProtectedRoute><Courses courseType="business" /></ProtectedRoute>} />
         <Route path="/courses/:courseType/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />

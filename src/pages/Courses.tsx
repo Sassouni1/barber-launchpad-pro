@@ -489,6 +489,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const { data: completedMap = {} } = useCompletedModules();
   const isModuleCompleted = (id: string) => !!completedMap[id]?.passed;
   const selectedModuleParam = searchParams.get("module");
+  const shouldChoosePath = searchParams.get("choose") === "1";
   const [orderWatchPercent, setOrderWatchPercent] = useState(0);
   const [showBusinessWelcome, setShowBusinessWelcome] = useState(false);
 
@@ -554,6 +555,21 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   // Returning from a lesson should reopen the track list directly on mobile,
   // without selecting a module and reopening its preview sheet.
   useEffect(() => {
+    if (shouldChoosePath) {
+      preserveExpandedAfterRouteClearRef.current = false;
+      setExpandedCourse(null);
+      setHighlightedModule(null);
+      try {
+        window.sessionStorage.removeItem(getLastCourseModuleKey(courseType));
+      } catch {
+        // Ignore storage failures; the chooser still opens for this render.
+      }
+      if (location.search) {
+        navigate(location.pathname, { replace: true, state: null });
+      }
+      return;
+    }
+
     const routeState = location.state as
       | { openTrack?: string; highlightModule?: string }
       | null;
@@ -589,7 +605,14 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
       preserveExpandedAfterRouteClearRef.current = true;
       navigate(location.pathname, { replace: true, state: null });
     }
-  }, [courseType, location.pathname, location.state, navigate]);
+  }, [
+    courseType,
+    location.pathname,
+    location.search,
+    location.state,
+    navigate,
+    shouldChoosePath,
+  ]);
 
   // On mobile, bring the remembered module back into view after the track
   // list has expanded. The marker is intentionally subtle; the scroll is the
@@ -1609,8 +1632,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
       {isTabletOrDesktop && expandedCourse === null && !selectedModuleParam && (
         <div className="hidden md:flex min-h-[calc(100vh-5rem)] flex-col gap-6 overflow-y-auto">
           <div className="mx-auto w-full max-w-5xl space-y-2">
-            <h1 className="font-display text-3xl font-bold gold-text">Courses</h1>
-            <p className="text-muted-foreground">Choose a path to continue.</p>
+            <h1 className="font-display text-3xl font-bold gold-text">Choose your path</h1>
+            <p className="text-muted-foreground">Start with Hair System Training or Business Mastery.</p>
           </div>
           <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-5 lg:grid-cols-2">
             {courseCategories.map((category) => {

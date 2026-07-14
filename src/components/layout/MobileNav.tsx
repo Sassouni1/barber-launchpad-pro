@@ -299,8 +299,8 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                   <>
                     {/* Member Links */}
                     <NavRow to="/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={closeMenu} />
-                    {/* Courses: ALWAYS visible to every member, no exceptions */}
-                    <NavRow to="/courses/hair-system" icon={BookOpen} label="Courses" onClick={closeMenu} />
+                    {/* Training opens the two-path chooser. */}
+                    <NavRow to="/courses" icon={BookOpen} label="Training" onClick={closeMenu} />
                     {!restrictNav && (
                       <NavRow to="/training" icon={Target} label="Games" onClick={closeMenu} />
                     )}

@@ -17,8 +17,6 @@ import {
   ArrowLeftRight,
   Eye,
   EyeOff,
-  GraduationCap,
-  Briefcase,
   CalendarCheck,
   Phone,
   Award,
@@ -49,7 +47,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { useCourses } from '@/hooks/useCourses';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
@@ -246,12 +243,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   // Detect if we're currently in the manufacturer/supplier view
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
   
-  // Fetch courses to determine which categories have published content
-  const { data: courses = [] } = useCourses();
   const { data: checklistLists = [] } = useChecklistLists();
-  
-  const hasHairSystemCourses = courses.some(course => (course as any).category === 'hair-system');
-  const hasBusinessCourses = courses.some(course => (course as any).category === 'business');
 
   const handleSignOut = async () => {
     try {
@@ -265,7 +257,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
 
   const memberLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/courses', icon: BookOpen, label: 'Courses' },
+    { to: '/courses', icon: BookOpen, label: 'Training' },
     { to: '/training', icon: Target, label: 'Training Games' },
   ];
 
@@ -336,16 +328,9 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
         ) : (
           <>
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-            {/* Courses: ALWAYS visible to every member, no exceptions */}
-            <ExpandableNavItem icon={BookOpen} label="Courses" collapsed={collapsed} defaultOpen>
-              {hasHairSystemCourses && (
-                <SubNavItem to="/courses/hair-system" icon={GraduationCap} label="Hair System Training" />
-              )}
-              {hasBusinessCourses && (
-                <SubNavItem to="/courses/business" icon={Briefcase} label="Business Mastery" />
-              )}
-              <TrainingGamesSubNavItem collapsed={collapsed} />
-            </ExpandableNavItem>
+            {/* Training opens the two-path chooser; individual paths stay inside the page. */}
+            <NavItem to="/courses" icon={BookOpen} label="Training" collapsed={collapsed} />
+            <TrainingGamesSubNavItem collapsed={collapsed} />
 
 
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed}>
