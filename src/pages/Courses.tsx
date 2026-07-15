@@ -19,7 +19,6 @@ import {
   CheckCircle2,
   Trophy,
   RotateCcw,
-  Lock,
 } from "lucide-react";
 import { useCompletedModules, type ModuleCompletion } from "@/hooks/useCompletedModules";
 import {
@@ -62,6 +61,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Level1CertModal } from "@/components/certification/Level1CertModal";
 import {
   BUSINESS_MASTERY_WELCOME_PENDING_KEY,
@@ -493,6 +502,17 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   const shouldChoosePath = searchParams.get("choose") === "1";
   const [orderWatchPercent, setOrderWatchPercent] = useState(0);
   const [showBusinessWelcome, setShowBusinessWelcome] = useState(false);
+  const [showBusinessRecommendation, setShowBusinessRecommendation] =
+    useState(false);
+
+  const continueToBusinessMastery = useCallback(() => {
+    setShowBusinessRecommendation(false);
+    if (isTabletOrDesktop) {
+      navigate("/courses/business", { state: { openTrack: "business" } });
+    } else {
+      setExpandedCourse("business");
+    }
+  }, [isTabletOrDesktop, navigate]);
 
   // This is an orientation moment, not another course requirement. It appears
   // only after an explicit certification/database resubmission has set the
@@ -1194,9 +1214,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   <button
                     key={category.id}
                     type="button"
-                    disabled={businessLocked}
                     onClick={() => {
-                      if (businessLocked) return;
+                      if (businessLocked) {
+                        setShowBusinessRecommendation(true);
+                        return;
+                      }
                       if (needsDatabaseListing) {
                         setIsCertModalOpen(true);
                         clearModuleSelection();
@@ -1209,7 +1231,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       needsDatabaseListing
                         ? "border-warning/80 bg-warning/10 shadow-lg shadow-warning/20 hover:border-warning"
                         : businessLocked
-                          ? "cursor-not-allowed border-border/50 bg-muted/20 opacity-65"
+                          ? "border-border/50 bg-muted/20 opacity-65 hover:border-primary/40 hover:bg-muted/30"
                         : "border-border/80 bg-card/80 shadow-lg shadow-black/40 hover:border-primary/50",
                       "min-h-[184px]",
                     )}
@@ -1227,7 +1249,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           )}
                         >
                           {businessLocked
-                            ? "Locked"
+                            ? "Recommended first"
                             : needsDatabaseListing
                             ? "Action step"
                             : certificationComplete
@@ -1236,9 +1258,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               ? "Certification"
                               : "Business Growth"}
                         </span>
-                        {businessLocked ? (
-                          <Lock className="h-5 w-5 text-muted-foreground" />
-                        ) : needsDatabaseListing ? (
+                        {needsDatabaseListing ? (
                           <AlertTriangle className="h-5 w-5 animate-pulse text-warning" />
                         ) : certificationComplete ? (
                           <CheckCircle2 className="h-5 w-5 text-success-soft" />
@@ -1311,13 +1331,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         "mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-sans text-sm font-semibold transition-colors",
                         needsDatabaseListing
                           ? "border-warning bg-warning text-warning-foreground shadow-md shadow-warning/30 hover:brightness-105"
+                          : businessLocked
+                          ? "border-border/60 bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-primary"
                           : done > 0
                           ? "border-transparent gold-gradient text-primary-foreground hover:brightness-105"
                           : "border-primary/40 text-primary hover:bg-primary/5",
                       )}
                     >
                       {businessLocked
-                        ? "Complete Hair System Training first"
+                        ? "View Business Mastery anyway"
                         : needsDatabaseListing
                         ? "Get added into the Hair System Database"
                         : certificationComplete
@@ -1689,9 +1711,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 <button
                   key={category.id}
                   type="button"
-                  disabled={businessLocked}
                   onClick={() => {
-                    if (businessLocked) return;
+                    if (businessLocked) {
+                      setShowBusinessRecommendation(true);
+                      return;
+                    }
                     setExpandedCourse(category.id);
                     navigate(`/courses/${category.id}`, {
                       state: { openTrack: category.id },
@@ -1702,7 +1726,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                     needsDatabaseListing
                       ? "border-warning/80 bg-warning/10 shadow-lg shadow-warning/15"
                       : businessLocked
-                        ? "cursor-not-allowed border-border/50 bg-muted/20 opacity-65"
+                        ? "border-border/50 bg-muted/20 opacity-65 hover:border-primary/50 hover:bg-muted/30"
                       : "border-border/80 bg-card/70 shadow-lg shadow-black/20",
                   )}
                 >
@@ -1719,7 +1743,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         )}
                       >
                         {businessLocked
-                          ? "Locked"
+                          ? "Recommended first"
                           : needsDatabaseListing
                           ? "Action step"
                           : certificationComplete
@@ -1735,9 +1759,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         {description}
                       </p>
                     </div>
-                    {businessLocked ? (
-                      <Lock className="h-6 w-6 shrink-0 text-muted-foreground" />
-                    ) : certificationComplete ? (
+                    {certificationComplete ? (
                       <CheckCircle2 className="h-6 w-6 shrink-0 text-success-soft" />
                     ) : (
                       <ArrowRight className="h-6 w-6 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
@@ -1777,13 +1799,13 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   <div className={cn(
                     "mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-sans text-sm font-semibold",
                     businessLocked
-                      ? "border-border/50 bg-muted/30 text-muted-foreground"
+                      ? "border-border/60 bg-muted/30 text-muted-foreground"
                       : needsDatabaseListing
                       ? "border-warning bg-warning text-warning-foreground"
                       : "border-primary/40 text-primary group-hover:bg-primary/5",
                   )}>
                     {businessLocked
-                      ? "Complete Hair System Training first"
+                      ? "View Business Mastery anyway"
                       : needsDatabaseListing
                       ? "Get added into the Hair System Database"
                       : certificationComplete
@@ -2463,6 +2485,27 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
         )}
       </div>
       )}
+      <AlertDialog
+        open={showBusinessRecommendation}
+        onOpenChange={setShowBusinessRecommendation}
+      >
+        <AlertDialogContent className="glass-card border-border/60">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hair System Training is recommended first</AlertDialogTitle>
+            <AlertDialogDescription>
+              We recommend finishing Hair System Training before starting Business
+              Mastery so the business lessons build on your certification skills.
+              You can still continue to Business Mastery now if you prefer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay here</AlertDialogCancel>
+            <AlertDialogAction onClick={continueToBusinessMastery}>
+              Okay, continue anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Level1CertModal
         isOpen={isCertModalOpen}
         onClose={() => setIsCertModalOpen(false)}
