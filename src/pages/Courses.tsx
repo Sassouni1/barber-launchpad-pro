@@ -1202,7 +1202,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   ? Math.round((displayedDone / total) * 100)
                   : 0;
                 const trackDescription = businessLocked
-                  ? "Complete Hair System Training first to unlock Business Mastery."
+                  ? "We recommend finishing Hair System Training first."
                   : needsDatabaseListing
                   ? "Get added into the Hair System Database. Click here to do so."
                   : directoryUploadWaiting && isHair
@@ -1698,7 +1698,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 ? Math.round((displayedDone / total) * 100)
                 : 0;
               const description = businessLocked
-                ? "Complete Hair System Training first to unlock Business Mastery."
+                ? "We recommend finishing Hair System Training first."
                 : needsDatabaseListing
                 ? "Get added into the Hair System Database. Click here to do so."
                 : directoryUploadWaiting && isHair
