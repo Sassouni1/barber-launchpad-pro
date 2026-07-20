@@ -1,7 +1,8 @@
 // Calendar booking page
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
-import { Clock, Calendar, Globe } from "lucide-react";
+import { Clock, Calendar, Globe, Video } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function ScheduleCall() {
   return (
