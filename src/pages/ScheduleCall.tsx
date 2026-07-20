@@ -1,7 +1,8 @@
 // Calendar booking page
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card } from "@/components/ui/card";
-import { Clock, Calendar, Globe } from "lucide-react";
+import { Clock, Calendar, Globe, Video } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function ScheduleCall() {
   return (
@@ -29,6 +30,13 @@ export default function ScheduleCall() {
           <h2 className="text-xl font-bold text-foreground">
             VIP Support Calls (1 on 1)
           </h2>
+
+          <Button asChild className="w-full sm:w-auto gold-gradient text-primary-foreground font-semibold">
+            <a href="https://us06web.zoom.us/j/8221911581" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+              <Video className="w-4 h-4" />
+              Join Zoom
+            </a>
+          </Button>
           
           <div className="space-y-2 text-muted-foreground">
             <div className="flex items-center gap-2">
