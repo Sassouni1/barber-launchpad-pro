@@ -57,8 +57,42 @@ function getOrderSummary(details: Record<string, any> | null): { label: string; 
   return items;
 }
 
+function dedupeOrders<T extends { id: string; external_order_id: string | null; order_date: string; order_details: any }>(orders: T[]): T[] {
+  if (!orders?.length) return orders;
+  // Prefer rows with an external_order_id (real order webhook) over form-lead rows
+  // that arrived seconds earlier with the same product signature.
+  const kept: T[] = [];
+  for (const o of orders) {
+    const d = (o.order_details || {}) as Record<string, any>;
+    const sig = `${d['Lace or Skin'] || ''}|${d['Choose Color'] || ''}|${d['Curl Pattern — only if needed'] || ''}`.toLowerCase();
+    const ts = new Date(o.order_date).getTime();
+    const dupIdx = kept.findIndex((k) => {
+      const kd = (k.order_details || {}) as Record<string, any>;
+      const ksig = `${kd['Lace or Skin'] || ''}|${kd['Choose Color'] || ''}|${kd['Curl Pattern — only if needed'] || ''}`.toLowerCase();
+      const kts = new Date(k.order_date).getTime();
+      return ksig === sig && sig.replace(/\|/g, '').length > 0 && Math.abs(kts - ts) < 15 * 60 * 1000;
+    });
+    if (dupIdx === -1) {
+      kept.push(o);
+    } else {
+      // Keep the one with an external_order_id; if both/neither, keep the one with line_items.
+      const existing = kept[dupIdx];
+      const existingHasExt = !!existing.external_order_id;
+      const currentHasExt = !!o.external_order_id;
+      const existingHasItems = Array.isArray(((existing.order_details as any)?.order?.line_items) || (existing.order_details as any)?.line_items);
+      const currentHasItems = Array.isArray(((o.order_details as any)?.order?.line_items) || (o.order_details as any)?.line_items);
+      const preferCurrent = (currentHasExt && !existingHasExt) || (currentHasExt === existingHasExt && currentHasItems && !existingHasItems);
+      if (preferCurrent) kept[dupIdx] = o;
+    }
+  }
+  return kept;
+}
+
 export default function Orders() {
-  const { data: orders, isLoading } = useUserOrders();
+  const { data: rawOrders, isLoading } = useUserOrders();
+  const orders = rawOrders ? dedupeOrders(rawOrders) : rawOrders;
+
+
 
   return (
     <DashboardLayout>
