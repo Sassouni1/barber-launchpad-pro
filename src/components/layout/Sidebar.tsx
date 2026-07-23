@@ -351,7 +351,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
-              {/* Disabled: <SubNavItem to="/orders" icon={Package} label="Order History & Tracking" /> */}
+              <SubNavItem to="/orders" icon={Package} label="Order History & Tracking" />
             </ExpandableNavItem>
             
             <ExpandableNavItem icon={Phone} label="Barber Launch Calls" collapsed={collapsed} defaultOpen>
