@@ -134,12 +134,6 @@ For the member's own internal pricing knowledge (what to actually charge once th
 - Once they have 3+ clients, start promoting a $300/month unlimited retouch membership (most clients only come in 1x/week max, usually every 2 weeks)
 - Never ask "have you decided on your price?" — instead TELL them the recommended pricing above
 
-## HAIR SYSTEM KIT SHIPPING
-When members ask about their kit, shipping, or "where is my stuff":
-- The full kit takes approximately 9 business days to arrive
-- It ships in 2-3 separate packages, so don't worry if everything doesn't show up at the same time
-- If it's been longer than 9 business days from when they ordered and they still haven't received everything, tell them to use the "Contact a Person" tab to reach the admin team
-
 ## REFUNDS & THE 3 CLIENT GUARANTEE
 If a member sounds frustrated, asks about quitting, asks "how do I get a refund", asks if they can get their money back, or seems to be looking for the exit — DO NOT be defensive or dismissive. Acknowledge them as a real person first.
 
@@ -168,6 +162,62 @@ If you ever feel like someone is acting sketchy (asking about refunds without do
 - When teaching concepts, use the curriculum knowledge below as your source of truth
 - The CORRECT answers represent the factual knowledge you should teach
 - The INCORRECT answers represent common misconceptions — gently correct users who express these misconceptions`;
+
+type AionKnowledgeEntry = {
+  id: string;
+  keywords: string[];
+  content: string;
+};
+
+type AionChatMessage = {
+  role?: unknown;
+  content?: unknown;
+};
+
+// Operational facts live here instead of in the coaching instructions. Entries are
+// retrieved only when the member's question is relevant, so they inform a natural
+// answer without turning into a canned response or an unrelated repeat.
+const AION_KNOWLEDGE_BANK: AionKnowledgeEntry[] = [
+  {
+    id: "kit-delivery-timelines",
+    keywords: [
+      "kit",
+      "shipping",
+      "ship",
+      "delivery",
+      "deliver",
+      "tracking",
+      "track",
+      "package",
+      "where is my stuff",
+      "where's my stuff",
+      "where is my order",
+      "where's my order",
+      "missing",
+    ],
+    content: `Full Barber Launch kits usually arrive in 7-9 days, though they can occasionally take a little longer. This is a full kit, not a standard hair system order. Standard hair system orders usually arrive within 5 business days.
+
+Use these facts only when they help answer the member's specific question. Do not copy this wording or turn it into a fixed script. If a member says their full kit has been delayed beyond 9 days, offer the real next step naturally: [Schedule a 1-on-1 call with our team](/schedule-call). Do not claim to see an individual order, shipment, or tracking status unless that information is actually available.`,
+  },
+];
+
+function buildRelevantKnowledgeContext(messages: AionChatMessage[]): string {
+  const recentMemberText = messages
+    .filter((message) => message?.role === "user" && typeof message.content === "string")
+    .slice(-4)
+    .map((message) => (message.content as string).toLowerCase())
+    .join("\n");
+
+  if (!recentMemberText) return "";
+
+  const relevantEntries = AION_KNOWLEDGE_BANK.filter((entry) =>
+    entry.keywords.some((keyword) => recentMemberText.includes(keyword)),
+  );
+
+  if (relevantEntries.length === 0) return "";
+
+  return `\n\n--- RELEVANT KNOWLEDGE BANK ---\nUse only the entries that are relevant to the member's request. These are facts to draw from, not scripts to repeat. Match the response to the member's actual question.\n\n${relevantEntries.map((entry) => `## ${entry.id}\n${entry.content}`).join("\n\n")}`;
+}
 
 function getSupabaseAdmin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -617,13 +667,15 @@ ${greetingContext}`;
       } catch { /* proceed without user context */ }
     }
 
-    // Build system prompt with curriculum + user-specific data + conversation memory in parallel
+    // Build system prompt with curriculum + user-specific data + conversation memory in parallel.
+    // Relevant operational facts are then retrieved from Aion's knowledge bank.
     const [curriculumContext, userContext, memoryContext] = await Promise.all([
       buildCurriculumContext(),
       userId ? buildUserContext(userId) : Promise.resolve(""),
       userId ? buildConversationMemory(userId, conversationId) : Promise.resolve(""),
     ]);
-    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext + memoryContext;
+    const knowledgeContext = buildRelevantKnowledgeContext(messages);
+    const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext + memoryContext + knowledgeContext;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
