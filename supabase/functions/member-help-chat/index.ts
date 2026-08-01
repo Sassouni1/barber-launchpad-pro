@@ -227,16 +227,18 @@ async function buildCurriculumContext(): Promise<string> {
   const supabase = getSupabaseAdmin();
 
   try {
-    const [coursesRes, modulesRes, questionsRes, todoListsRes, todoItemsRes] = await Promise.all([
+    const [coursesRes, modulesRes, lessonsRes, questionsRes, todoListsRes, todoItemsRes] = await Promise.all([
       supabase.from("courses").select("id, title, description, category").eq("is_published", true).order("order_index"),
       supabase.from("modules").select("id, course_id, title, description").eq("is_published", true).order("order_index"),
-      supabase.from("quiz_questions").select("id, module_id, question_text, question_type").order("order_index"),
+      supabase.from("lessons").select("id, module_id, title, description").order("order_index"),
+      supabase.from("quiz_questions").select("id, module_id, lesson_id, question_text, question_type").order("order_index"),
       supabase.from("dynamic_todo_lists").select("id, title, order_index, due_days").order("order_index"),
       supabase.from("dynamic_todo_items").select("id, list_id, title, section_title, is_important, order_index").order("order_index"),
     ]);
 
     const courses = coursesRes.data || [];
     const modules = modulesRes.data || [];
+    const lessons = lessonsRes.data || [];
     const questions = questionsRes.data || [];
     const todoLists = todoListsRes.data || [];
     const todoItems = todoItemsRes.data || [];
@@ -267,6 +269,31 @@ async function buildCurriculumContext(): Promise<string> {
           if (modQuestions.length > 0) {
             context += `\nKey knowledge from this module's quiz:\n`;
             for (const q of modQuestions) {
+              context += `\nQ: ${q.question_text}\n`;
+              const qAnswers = answers.filter((a: any) => a.question_id === q.id);
+              const correct = qAnswers.filter((a: any) => a.is_correct);
+              const incorrect = qAnswers.filter((a: any) => !a.is_correct);
+              if (correct.length > 0) {
+                context += `✅ CORRECT: ${correct.map((a: any) => a.answer_text).join("; ")}\n`;
+              }
+              if (incorrect.length > 0) {
+                context += `❌ COMMON MISCONCEPTIONS: ${incorrect.map((a: any) => a.answer_text).join("; ")}\n`;
+              }
+            }
+          }
+
+          // Newer quizzes are attached to an individual lesson instead of the
+          // module. Keep them in the same live curriculum context so Aion can
+          // answer questions about recently added lessons as accurately as it
+          // can the original module quizzes.
+          const moduleLessons = lessons.filter((lesson: any) => lesson.module_id === mod.id);
+          for (const lesson of moduleLessons) {
+            const lessonQuestions = questions.filter((q: any) => q.lesson_id === lesson.id);
+            if (lessonQuestions.length === 0) continue;
+
+            context += `\n#### Lesson quiz: ${lesson.title}\n`;
+            if (lesson.description) context += `${lesson.description}\n`;
+            for (const q of lessonQuestions) {
               context += `\nQ: ${q.question_text}\n`;
               const qAnswers = answers.filter((a: any) => a.question_id === q.id);
               const correct = qAnswers.filter((a: any) => a.is_correct);
@@ -313,12 +340,17 @@ async function buildUserContext(userId: string): Promise<string> {
   const supabase = getSupabaseAdmin();
 
   try {
-    // Fetch profile, quiz attempts, todo progress, and dynamic todo progress in parallel
-    const [profileRes, quizAttemptsRes, todoProgressRes, dynamicProgressRes] = await Promise.all([
+    // Fetch every current checklist source and the member's quiz attempts in parallel.
+    // Dynamic lists include the Installation Checklist; `todos` is the older checklist
+    // system that is still present for some members.
+    const [profileRes, quizAttemptsRes, todoProgressRes, dynamicProgressRes, legacyTodosRes, listsRes, itemsRes] = await Promise.all([
       supabase.from("profiles").select("full_name, created_at").eq("id", userId).single(),
-      supabase.from("user_quiz_attempts").select("module_id, score, total_questions, completed_at").eq("user_id", userId).order("completed_at", { ascending: false }),
+      supabase.from("user_quiz_attempts").select("id, module_id, lesson_id, score, total_questions, completed_at").eq("user_id", userId).order("completed_at", { ascending: false }),
       supabase.from("user_todos").select("todo_id, completed, completed_at").eq("user_id", userId),
       supabase.from("user_dynamic_todo_progress").select("item_id, completed, completed_at").eq("user_id", userId),
+      supabase.from("todos").select("id, title, description, type, week_number, order_index").order("week_number").order("order_index"),
+      supabase.from("dynamic_todo_lists").select("id, title, order_index").order("order_index"),
+      supabase.from("dynamic_todo_items").select("id, list_id, title, is_important").order("order_index"),
     ]);
 
     let context = "\n\n--- THIS MEMBER'S PERSONAL PROGRESS ---\n";
@@ -333,27 +365,42 @@ async function buildUserContext(userId: string): Promise<string> {
       context += `Joined: ${joinDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} (${daysSinceJoin} days ago)\n`;
     }
 
-    // Quiz progress — fetch module titles for context
+    // Quiz progress — both legacy module quizzes and newer lesson quizzes.
     const quizAttempts = quizAttemptsRes.data || [];
+    const quizTargetTitles = new Map<string, string>();
     if (quizAttempts.length > 0) {
-      const moduleIds = [...new Set(quizAttempts.map((a: any) => a.module_id))];
-      const { data: modulesData } = await supabase
-        .from("modules")
-        .select("id, title")
-        .in("id", moduleIds);
+      const moduleIds = [...new Set(quizAttempts.map((a: any) => a.module_id).filter(Boolean))];
+      const lessonIds = [...new Set(quizAttempts.map((a: any) => a.lesson_id).filter(Boolean))];
+      const [modulesResult, lessonsResult] = await Promise.all([
+        moduleIds.length > 0
+          ? supabase.from("modules").select("id, title").in("id", moduleIds)
+          : Promise.resolve({ data: [] }),
+        lessonIds.length > 0
+          ? supabase.from("lessons").select("id, title, module_id").in("id", lessonIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const modulesData = modulesResult.data;
+      const lessonsData = lessonsResult.data;
       const moduleMap = new Map((modulesData || []).map((m: any) => [m.id, m.title]));
+      const lessonMap = new Map((lessonsData || []).map((lesson: any) => [lesson.id, lesson.title]));
+      for (const [id, title] of moduleMap) quizTargetTitles.set(`module:${id}`, title);
+      for (const [id, title] of lessonMap) quizTargetTitles.set(`lesson:${id}`, title);
 
       context += `\nQuiz results:\n`;
-      // Show best attempt per module
-      const bestByModule = new Map<string, any>();
+      // Show best attempt per specific lesson or module, rather than combining
+      // several new lesson quizzes under one old module record.
+      const bestByQuizTarget = new Map<string, any>();
       for (const attempt of quizAttempts) {
-        const existing = bestByModule.get(attempt.module_id);
+        const targetKey = attempt.lesson_id ? `lesson:${attempt.lesson_id}` : `module:${attempt.module_id}`;
+        const existing = bestByQuizTarget.get(targetKey);
         if (!existing || attempt.score > existing.score) {
-          bestByModule.set(attempt.module_id, attempt);
+          bestByQuizTarget.set(targetKey, attempt);
         }
       }
-      for (const [moduleId, attempt] of bestByModule) {
-        const title = moduleMap.get(moduleId) || "Unknown module";
+      for (const attempt of bestByQuizTarget.values()) {
+        const title = attempt.lesson_id
+          ? lessonMap.get(attempt.lesson_id) || "Unknown lesson"
+          : moduleMap.get(attempt.module_id) || "Unknown module";
         const passed = attempt.score >= Math.ceil(attempt.total_questions * 0.8);
         context += `  - ${title}: ${attempt.score}/${attempt.total_questions} ${passed ? "✅ PASSED" : "❌ NOT YET PASSED"}\n`;
       }
@@ -361,16 +408,62 @@ async function buildUserContext(userId: string): Promise<string> {
       context += `\nQuiz results: No quizzes taken yet.\n`;
     }
 
-    // Dynamic to-do progress (the main checklist stages)
+    // The most recent attempt tells Aion which concept may need help. A single
+    // miss is not evidence that someone "doesn't understand" it, so this is
+    // strictly a private support signal for quiz- or topic-related questions.
+    const latestByQuizTarget = new Map<string, any>();
+    for (const attempt of quizAttempts) {
+      const targetKey = attempt.lesson_id ? `lesson:${attempt.lesson_id}` : `module:${attempt.module_id}`;
+      if (!latestByQuizTarget.has(targetKey)) latestByQuizTarget.set(targetKey, attempt);
+    }
+    const latestAttemptIds = [...latestByQuizTarget.values()].map((attempt: any) => attempt.id);
+    if (latestAttemptIds.length > 0) {
+      const { data: responseData } = await supabase
+        .from("user_quiz_responses")
+        .select("attempt_id, question_id, is_correct")
+        .in("attempt_id", latestAttemptIds)
+        .eq("is_correct", false);
+      const missedResponses = responseData || [];
+      const missedQuestionIds = [...new Set(missedResponses.map((response: any) => response.question_id))];
+      if (missedQuestionIds.length > 0) {
+        const { data: missedQuestionsData } = await supabase
+          .from("quiz_questions")
+          .select("id, question_text")
+          .in("id", missedQuestionIds);
+        const missedQuestionMap = new Map((missedQuestionsData || []).map((question: any) => [question.id, question.question_text]));
+        const attemptById = new Map([...latestByQuizTarget.values()].map((attempt: any) => [attempt.id, attempt]));
+
+        context += `\nQUIZ SUPPORT SIGNALS (use only if they ask for quiz/topic help; never volunteer this or call them confused):\n`;
+        for (const response of missedResponses) {
+          const attempt = attemptById.get(response.attempt_id);
+          const targetKey = attempt?.lesson_id ? `lesson:${attempt.lesson_id}` : `module:${attempt?.module_id}`;
+          const title = quizTargetTitles.get(targetKey) || "a recent quiz";
+          const questionText = missedQuestionMap.get(response.question_id);
+          if (questionText) context += `  - ${title}: ${questionText}\n`;
+        }
+      }
+    }
+
+    // Legacy checklist progress. This source was previously fetched but not
+    // included in Aion's context at all.
+    const legacyTodos = legacyTodosRes.data || [];
+    if (legacyTodos.length > 0) {
+      const completedLegacyTodoIds = new Set((todoProgressRes.data || [])
+        .filter((progress: any) => progress.completed)
+        .map((progress: any) => progress.todo_id));
+      context += `\nLEGACY CHECKLIST PROGRESS:\n`;
+      for (const todo of legacyTodos) {
+        context += `  ${completedLegacyTodoIds.has(todo.id) ? "✅" : "⬜"} ${todo.title}\n`;
+      }
+    }
+
+    // Dynamic checklist progress. This includes every named checklist in the
+    // member portal, including the Installation Checklist, even for members
+    // who have not checked off anything yet.
     const dynamicProgress = dynamicProgressRes.data || [];
-    if (dynamicProgress.length > 0) {
-      // Fetch all items and lists to map progress
-      const [listsRes, itemsRes] = await Promise.all([
-        supabase.from("dynamic_todo_lists").select("id, title, order_index").order("order_index"),
-        supabase.from("dynamic_todo_items").select("id, list_id, title, is_important").order("order_index"),
-      ]);
-      const lists = listsRes.data || [];
-      const items = itemsRes.data || [];
+    const lists = listsRes.data || [];
+    const items = itemsRes.data || [];
+    if (lists.length > 0) {
       const completedIds = new Set(dynamicProgress.filter((p: any) => p.completed).map((p: any) => p.item_id));
 
       // Calculate overall completion
@@ -378,7 +471,7 @@ async function buildUserContext(userId: string): Promise<string> {
       const totalCompleted = items.filter((i: any) => completedIds.has(i.id)).length;
       const overallPct = totalItems ? Math.round((totalCompleted / totalItems) * 100) : 0;
 
-      context += `\nACEDEMY PROGRESS (quizzes/modules only — shown above).\n`;
+      context += `\nACADEMY PROGRESS (quizzes/modules only — shown above).\n`;
       context += `\nCHECKLIST PROGRESS (business tasks): ${totalCompleted}/${totalItems} tasks done (${overallPct}%)\n`;
       context += `⚠️ IMPORTANT: Do NOT say the user "finished all training", "completed everything", "knocked out all their tasks", or similar unless CHECKLIST PROGRESS is 100%. Passing quizzes only means coursework is done — NOT that all business/marketing tasks are done. Be precise about what they completed.\n\n`;
 
@@ -395,10 +488,14 @@ async function buildUserContext(userId: string): Promise<string> {
         // Show incomplete tasks so Aion can reference them
         if (done < total) {
           const incomplete = listItems.filter((i: any) => !completedIds.has(i.id));
-          for (const item of incomplete.slice(0, 5)) {
+          // Checklist pages are short, concrete operational aids. Include all
+          // outstanding items from them, especially Installation Checklist,
+          // rather than hiding the later steps behind a generic summary.
+          const itemsToShow = /checklist/i.test(list.title) ? incomplete : incomplete.slice(0, 5);
+          for (const item of itemsToShow) {
             context += `    ⬜ ${item.title}\n`;
           }
-          if (incomplete.length > 5) {
+          if (!/checklist/i.test(list.title) && incomplete.length > 5) {
             context += `    ... and ${incomplete.length - 5} more\n`;
           }
         }
@@ -422,7 +519,7 @@ async function buildUserContext(userId: string): Promise<string> {
         }
       }
     } else {
-      context += `\nTo-Do Checklist progress: No tasks completed yet (brand new member).\n`;
+      context += `\nDynamic checklist progress: No current checklist items found.\n`;
     }
 
     context += `\nUSE THIS DATA to personalize your responses. Reference their actual progress, incomplete tasks, and quiz results. Call them by their first name.\n`;
