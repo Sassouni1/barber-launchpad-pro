@@ -21,7 +21,16 @@ export default function AionPage() {
 
   const { data: dbMessages = [], isLoading: msgsLoading } = useAionMessages(activeId);
 
-  // Auto-select first conversation or create one
+  const handleNewChat = useCallback(async () => {
+    try {
+      const conv = await createConversation.mutateAsync('New Chat');
+      setActiveId(conv.id);
+    } catch { /* ignore */ }
+  }, [createConversation]);
+
+  // Select an existing conversation. Only create a record automatically when a
+  // dashboard message is already waiting to be sent; otherwise wait until the
+  // member intentionally starts a chat.
   useEffect(() => {
     if (convsLoading) return;
     if (conversations.length > 0 && !activeId) {
@@ -31,17 +40,10 @@ export default function AionPage() {
       } else {
         setActiveId(conversations[0].id);
       }
-    } else if (conversations.length === 0 && !convsLoading) {
+    } else if (conversations.length === 0 && pendingInitial && !activeId) {
       handleNewChat();
     }
-  }, [conversations, convsLoading]);
-
-  const handleNewChat = useCallback(async () => {
-    try {
-      const conv = await createConversation.mutateAsync('New Chat');
-      setActiveId(conv.id);
-    } catch { /* ignore */ }
-  }, [createConversation]);
+  }, [conversations, convsLoading, activeId, pendingInitial, handleNewChat]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -221,6 +223,13 @@ export default function AionPage() {
                 <div className="text-center space-y-3">
                   <Bot className="w-12 h-12 mx-auto opacity-50" />
                   <p>Start a new chat with Aion</p>
+                  <Button
+                    size="sm"
+                    className="gold-gradient"
+                    onClick={() => { setPendingInitial(undefined); handleNewChat(); }}
+                  >
+                    <Plus className="w-4 h-4 mr-1" /> Start Chat
+                  </Button>
                 </div>
               </div>
             )}
