@@ -7,7 +7,6 @@ import { ShippingNotification } from '@/components/dashboard/ShippingNotificatio
 import { ContactSection } from '@/components/dashboard/ContactSection';
 import { AionChatCard } from '@/components/dashboard/AionChatCard';
 
-import { GuaranteeCard } from '@/components/dashboard/GuaranteeCard';
 
 export default function Dashboard() {
   return (
@@ -28,7 +27,6 @@ export default function Dashboard() {
             <ContactSection />
           </div>
 
-          <GuaranteeCard />
         </div>
       </div>
     </DashboardLayout>
