@@ -179,6 +179,22 @@ type AionChatMessage = {
 // answer without turning into a canned response or an unrelated repeat.
 const AION_KNOWLEDGE_BANK: AionKnowledgeEntry[] = [
   {
+    id: "live-client-course-memory-index",
+    keywords: [
+      "live client", "part 1", "part 2", "part 3", "part 4", "lesson", "lessons",
+      "video", "videos", "course", "training", "quiz", "quizzes", "client service",
+      "client appointment", "cut in", "cut-in", "maintenance appointment",
+    ],
+    content: `Live Client course memory index:
+- Part 1: scalp and unit preparation, alcohol cleaning, skin versus lace cleaning, dry fit, natural hairline/reference marks, and adhesive placement.
+- Part 2: adhesive application/dry time, controlling the system with pins, rolling it into position without wrinkles, securing the bond, and protecting the front edge.
+- Part 3: conservative cut-in, gradual length removal, blending system and natural hair, 45-degree texturizing, and avoiding blunt or over-thinned bangs.
+- Part 4: softening the front hairline, final side/back balance, maintenance expectations, and honest client expectation-setting.
+- How and What to Charge: appointment timing, quality-versus-cheap hair, and the reasoning behind consultation and pricing guidance.
+
+These transcripts supplement the full Barber Launch curriculum, all published lessons, and the live quiz knowledge already in your context. They are not the only source of installation guidance, and you must never imply that an installation answer is limited to these four videos. Use them only when they meaningfully help answer the member's actual question — whether that is about a video, a quiz, a client conversation, pricing, or a technical technique.`,
+  },
+  {
     id: "kit-delivery-timelines",
     keywords: [
       "kit",
@@ -198,6 +214,73 @@ const AION_KNOWLEDGE_BANK: AionKnowledgeEntry[] = [
     content: `Full Barber Launch kits usually arrive in 7-9 days, though they can occasionally take a little longer. This is a full kit, not a standard hair system order. Standard hair system orders usually arrive within 5 business days.
 
 Use these facts only when they help answer the member's specific question. Do not copy this wording or turn it into a fixed script. If a member says their full kit has been delayed beyond 9 days, offer the real next step naturally: [Schedule a 1-on-1 call with our team](/schedule-call). Do not claim to see an individual order, shipment, or tracking status unless that information is actually available.`,
+  },
+  {
+    id: "live-client-part-1-prep-and-placement",
+    keywords: [
+      "prepare the scalp", "scalp prep", "99% alcohol", "alcohol", "clean the scalp",
+      "skin system", "lace system", "dry fit", "template", "hairline", "reference line",
+      "adhesive placement", "where do i put adhesive", "place the system",
+    ],
+    content: `Live Client Part 1 transcript knowledge — preparation and dry placement:
+- Prepare the top rather than framing it to the client as “shaving”; use the template or a careful dry fit to establish the wear area.
+- For scalp prep, 99% alcohol is used to break down oil and sweat. Let it work briefly before wiping; wiping with a towel immediately absorbs it too soon. Clean thoroughly, then let the scalp become dry before bonding.
+- Clean a skin system’s underside with alcohol. For lace, shampoo and clarify it because moisture, oil, or product can wick through the lace/knots.
+- Dry-fit before permanent placement. Use forehead/face proportions, existing wear/tan cues, and alignment marks to establish a natural reference line and center the unit; check it before making permanent cuts.
+- Put scalp adhesive about a pencil’s distance above the drawn front reference line, not directly on that reference line. Keep the system aligned to the marks and trim the unit to fit only after the placement plan is clear.
+Use this as technical guidance, not a verbatim script. If the member has a different base, adhesive, allergy, or scalp condition, ask the needed follow-up rather than pretending one technique fits every case.`,
+  },
+  {
+    id: "live-client-part-2-bonding-and-front-edge",
+    keywords: [
+      "bond", "bonding", "pins", "pin", "adhesive coat", "adhesive dry", "tacky",
+      "front edge", "wrinkle", "install", "installation", "attach", "secure the system",
+      "hair in adhesive", "system placement",
+    ],
+    content: `Live Client Part 2 transcript knowledge — bonding and protecting the front edge:
+- Pins can keep a skin system controlled and off the floor while the adhesive work is done, reducing contamination and helping keep hair out of the adhesive.
+- Work adhesive carefully across the intended surface. Brush/stroke it into contact rather than leaving a heavy, uneven puddle; remove loose hairs from the tool before they contaminate the bond.
+- Wait for the adhesive to dry clear/tacky according to its actual behavior and manufacturer directions — not a made-up fixed number of minutes.
+- When rolling the system into position, use the placement marks, keep control of the direction, and make small adjustments before committing the front. Avoid pulling in a way that creates wrinkles.
+- Once placed, press the system firmly so the system adhesive/tape and scalp adhesive bond together. Handle the front edge gently at first; do not aggressively comb, cut too close to it, or prematurely release it before the bond is secure.`,
+  },
+  {
+    id: "live-client-part-3-cutting-and-blending",
+    keywords: [
+      "cut in", "cutting", "blend", "blending", "texturizing shears", "thinning shears",
+      "45 degree", "angle", "bangs", "fade", "bulk", "cut the system", "too short",
+    ],
+    content: `Live Client Part 3 transcript knowledge — cutting and blending:
+- Start conservatively. Leave the system slightly longer than the desired finished look, because it is easy to remove more but impossible to put length back.
+- Build the initial shape through controlled center and pie-shaped sections rather than one hard straight cut. Preserve enough length and versatility for the client’s style.
+- Blend the system hair with the client’s natural hair using thin sections and texturizing shears around a 45-degree angle. Avoid blunt straight-across lines, which create obvious shelves and an artificial finish.
+- Use texturizing to remove bulk gradually and create different lengths. Be especially cautious around the bangs/front: cutting or thinning them too short is a common irreversible mistake.
+- A fade or short natural hair can expose more scalp, so adapt the blend and density to the client’s hair, head shape, and finished style instead of forcing a preset fade.`,
+  },
+  {
+    id: "live-client-part-4-finishing-and-expectations",
+    keywords: [
+      "finish", "finishing", "finish the cut", "front hairline", "baby hairs", "maintenance",
+      "three to six weeks", "expectations", "haircut", "thinning shears", "around the ears",
+      "square the back", "fade", "final look",
+    ],
+    content: `Live Client Part 4 transcript knowledge — finishing, maintenance, and expectations:
+- Soften a front hairline gradually with texturizing/thinning work to break up a straight edge and create natural-looking baby hairs; do not over-thin or make an aggressive cut at the bonded front.
+- Finish around the ears, sideburns, and back by following the client’s facial/head shape and checking the visual balance from both sides. Use thinning shears as a slower, safer way to soften and blend without leaving hard lines.
+- Keep enough density where the hair looks thin; do not chase a lower or sharper outline if it will make the result look sparse.
+- Set expectations honestly. A client who wants an aggressive fade may need a more conservative first cut-in; explain the choice, then refine at a return visit. The lesson discusses return timing in the roughly three-to-six-week range, but members should follow the actual system, adhesive, scalp, and service plan rather than promise one universal schedule.`,
+  },
+  {
+    id: "how-and-what-to-charge-transcript",
+    keywords: [
+      "how much", "what should i charge", "pricing", "price", "schedule", "appointment time",
+      "cut in time", "maintenance time", "retouch", "cost of hair", "consultation price",
+    ],
+    content: `How and What to Charge transcript knowledge:
+- The lesson frames the first client as slower while the barber learns the workflow, with speed improving after the first few clients.
+- Its working example schedules about two hours for a new-system cut-in and about one hour for a maintenance removal/reapplication appointment.
+- It warns against choosing hair only because it is inexpensive: low-quality hair can tangle, fade, shed from the base, have an unsuitable base thickness, or carry unsuitable density.
+This is training guidance, not a guarantee of appointment duration or a universal price. Give members the platform’s current pricing guidance when they ask what to charge, and use these transcript details to explain the reason behind it.`,
   },
 ];
 
