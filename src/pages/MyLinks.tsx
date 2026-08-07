@@ -103,6 +103,9 @@ export default function MyLinks() {
   const [customAmount, setCustomAmount] = useState('');
   const [customKlarna, setCustomKlarna] = useState(true);
   const [customPhone, setCustomPhone] = useState(true);
+  const [earnings, setEarnings] = useState<Earnings | null>(null);
+  const [earningsLoading, setEarningsLoading] = useState(false);
+
 
   const invoke = async (action: string, payload: Record<string, unknown> = {}) => {
     const { data, error } = await supabase.functions.invoke(FN_NAME, {
