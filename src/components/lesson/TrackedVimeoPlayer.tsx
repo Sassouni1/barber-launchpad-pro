@@ -142,6 +142,17 @@ export const TrackedVimeoPlayer = React.memo(
       const player = new Player(iframe);
       const handlePlay = () => {
         if (!completedRef.current) playingRef.current = true;
+        const pending = pendingSeekRef.current;
+        pendingSeekRef.current = null;
+        if (pending !== null && pending > 2) {
+          void player
+            .setCurrentTime(pending)
+            .then(() => {
+              positionRef.current = pending;
+              lastTimeRef.current = pending;
+            })
+            .catch(() => undefined);
+        }
       };
       const handlePause = () => {
         playingRef.current = false;
