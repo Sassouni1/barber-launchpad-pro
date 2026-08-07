@@ -39,6 +39,7 @@ export function StripeSignupCard() {
   const [busy, setBusy] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const [account, setAccount] = useState<AccountRow | null>(null);
+  const [tourOpen, setTourOpen] = useState(false);
 
   const invoke = async (action: string, payload: Record<string, unknown> = {}) => {
     const { data, error } = await supabase.functions.invoke(FN_NAME, {
