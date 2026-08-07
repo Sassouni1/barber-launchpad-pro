@@ -399,7 +399,67 @@ Deno.serve(async (req) => {
       return jsonResponse({ links: links ?? [] });
     }
 
+    if (action === "getEarnings") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse({ error: "No connected Stripe account." }, 400);
+      }
+      const accountId = existingAccount.stripe_account_id;
+
+      const balance = await stripeFetch("/balance", {
+        method: "GET",
+        secret: stripeSecret,
+        stripeAccount: accountId,
+      });
+
+      const since = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 30;
+      const charges = await stripeFetch(
+        `/charges?limit=100&created[gte]=${since}`,
+        { method: "GET", secret: stripeSecret, stripeAccount: accountId },
+      );
+
+      const succeeded = (charges.data ?? []).filter(
+        (c: any) => c.status === "succeeded" && !c.refunded,
+      );
+
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const todayTs = Math.floor(startOfToday.getTime() / 1000);
+      const weekTs = Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 7;
+
+      const sum = (list: any[]) =>
+        list.reduce((t, c) => t + (c.amount - (c.amount_refunded ?? 0)), 0);
+
+      const todayCharges = succeeded.filter((c: any) => c.created >= todayTs);
+
+      return jsonResponse({
+        currency: balance?.available?.[0]?.currency ?? "usd",
+        available: (balance?.available ?? []).reduce(
+          (t: number, b: any) => t + b.amount,
+          0,
+        ),
+        pending: (balance?.pending ?? []).reduce(
+          (t: number, b: any) => t + b.amount,
+          0,
+        ),
+        today: sum(todayCharges),
+        todayCount: todayCharges.length,
+        last7: sum(succeeded.filter((c: any) => c.created >= weekTs)),
+        last30: sum(succeeded),
+        last30Count: succeeded.length,
+        recent: succeeded.slice(0, 10).map((c: any) => ({
+          id: c.id,
+          amount: c.amount - (c.amount_refunded ?? 0),
+          currency: c.currency,
+          created: c.created,
+          description: c.description ?? c.calculated_statement_descriptor ?? null,
+          customerName: c.billing_details?.name ?? null,
+          customerEmail: c.billing_details?.email ?? c.receipt_email ?? null,
+        })),
+      });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
+
   } catch (err) {
     console.error("barber-launch-stripe error", err);
     const message = err instanceof Error ? err.message : "Internal error";
