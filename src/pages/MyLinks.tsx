@@ -139,6 +139,9 @@ export default function MyLinks() {
   const [customAmount, setCustomAmount] = useState('');
   const [customKlarna, setCustomKlarna] = useState(true);
   const [customPhone, setCustomPhone] = useState(true);
+  const [customInterval, setCustomInterval] = useState<
+    'one_time' | 'day' | 'week' | 'month'
+  >('one_time');
   const [earnings, setEarnings] = useState<Earnings | null>(null);
   const [earningsLoading, setEarningsLoading] = useState(false);
   const [refundTarget, setRefundTarget] = useState<RecentPayment | null>(null);
