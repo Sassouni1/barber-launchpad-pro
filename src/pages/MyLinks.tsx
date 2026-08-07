@@ -771,7 +771,9 @@ export default function MyLinks() {
                 </CardContent>
               </Card>
             )}
+              </TabsContent>
 
+              <TabsContent value="customers" className="mt-4">
             {ready && (
               <Card>
                 <CardHeader>
