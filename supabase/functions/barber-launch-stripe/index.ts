@@ -346,6 +346,38 @@ Deno.serve(async (req) => {
       return jsonResponse({ created: created.length, links: links ?? [] });
     }
 
+    if (action === "syncAllLinkCollection") {
+      const { data: isAdmin } = await admin.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (!isAdmin) return jsonResponse({ error: "Forbidden" }, 403);
+
+      const { data: allLinks } = await admin
+        .from("barber_launch_payment_links")
+        .select("stripe_payment_link_id, stripe_account_id, recurring_interval")
+        .eq("active", true);
+
+      let updated = 0;
+      const failures: string[] = [];
+      for (const l of allLinks ?? []) {
+        if (!l.stripe_payment_link_id || !l.stripe_account_id) continue;
+        try {
+          await stripeFetch(`/payment_links/${l.stripe_payment_link_id}`, {
+            secret: stripeSecret,
+            stripeAccount: l.stripe_account_id,
+            body: collectionFields(!l.recurring_interval),
+          });
+          updated++;
+        } catch (e) {
+          console.error("Upgrade failed", l.stripe_payment_link_id, e);
+          failures.push(l.stripe_payment_link_id);
+        }
+      }
+      return jsonResponse({ updated, failed: failures.length, failures });
+    }
+
+
     if (action === "createCustomLink") {
       if (!existingAccount?.stripe_account_id) {
         return jsonResponse(
