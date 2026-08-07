@@ -418,7 +418,7 @@ Deno.serve(async (req) => {
       );
 
       const succeeded = (charges.data ?? []).filter(
-        (c: any) => c.status === "succeeded" && !c.refunded,
+        (c: any) => c.status === "succeeded",
       );
 
       const startOfToday = new Date();
@@ -446,15 +446,68 @@ Deno.serve(async (req) => {
         last7: sum(succeeded.filter((c: any) => c.created >= weekTs)),
         last30: sum(succeeded),
         last30Count: succeeded.length,
-        recent: succeeded.slice(0, 10).map((c: any) => ({
+        recent: succeeded.slice(0, 15).map((c: any) => ({
           id: c.id,
-          amount: c.amount - (c.amount_refunded ?? 0),
+          amount: c.amount,
+          amountRefunded: c.amount_refunded ?? 0,
+          refunded: !!c.refunded,
           currency: c.currency,
           created: c.created,
           description: c.description ?? c.calculated_statement_descriptor ?? null,
           customerName: c.billing_details?.name ?? null,
           customerEmail: c.billing_details?.email ?? c.receipt_email ?? null,
         })),
+      });
+    }
+
+    if (action === "refundCharge") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse({ error: "No connected Stripe account." }, 400);
+      }
+      const accountId = existingAccount.stripe_account_id;
+
+      const chargeId = String(body?.chargeId ?? "").trim();
+      if (!/^(ch|py)_[A-Za-z0-9_]+$/.test(chargeId)) {
+        return jsonResponse({ error: "Invalid charge id." }, 400);
+      }
+
+      const charge = await stripeFetch(`/charges/${chargeId}`, {
+        method: "GET",
+        secret: stripeSecret,
+        stripeAccount: accountId,
+      });
+      if (charge.status !== "succeeded") {
+        return jsonResponse({ error: "This payment cannot be refunded." }, 400);
+      }
+      const remaining = charge.amount - (charge.amount_refunded ?? 0);
+      if (remaining <= 0) {
+        return jsonResponse({ error: "This payment is already fully refunded." }, 400);
+      }
+
+      let amountCents: number | undefined = undefined;
+      if (body?.amountCents !== undefined && body?.amountCents !== null) {
+        amountCents = Math.round(Number(body.amountCents));
+        if (!Number.isFinite(amountCents) || amountCents < 50 || amountCents > remaining) {
+          return jsonResponse(
+            { error: "Refund amount must be between $0.50 and the remaining balance." },
+            400,
+          );
+        }
+      }
+
+      const refund = await stripeFetch("/refunds", {
+        secret: stripeSecret,
+        stripeAccount: accountId,
+        body: {
+          charge: chargeId,
+          ...(amountCents ? { amount: amountCents } : {}),
+        },
+      });
+
+      return jsonResponse({
+        refundId: refund.id,
+        amount: refund.amount,
+        status: refund.status,
       });
     }
 
