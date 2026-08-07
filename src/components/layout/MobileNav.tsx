@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bot, CreditCard, Menu, ChevronDown, ChevronRight } from 'lucide-react';
 import { 
   LayoutDashboard, 
@@ -72,10 +72,11 @@ function useMobileMembers() {
   });
 }
 
-function NavRow({ to, icon: Icon, label, onClick }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; onClick?: () => void }) {
+function NavRow({ to, icon: Icon, label, onClick, dataTour }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; onClick?: () => void; dataTour?: string }) {
   return (
     <NavLink
       to={to}
+      data-tour={dataTour}
       onClick={onClick}
       className={({ isActive }) =>
         cn(
@@ -159,6 +160,14 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   };
 
   const closeMenu = () => setMenuOpen(false);
+
+  // Allow guided walkthroughs to open the mobile menu.
+  useEffect(() => {
+    const handler = () => setMenuOpen(true);
+    window.addEventListener('tour:open-mobile-menu', handler);
+    return () => window.removeEventListener('tour:open-mobile-menu', handler);
+  }, []);
+
 
   const adminLinks = [
     { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
@@ -412,7 +421,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                     </Collapsible>
 
                     <NavRow to="/social-media-post" icon={Megaphone} label="Hair System Content" onClick={closeMenu} />
-                    <NavRow to="/my-links" icon={CreditCard} label="My Links" onClick={closeMenu} />
+                    <NavRow to="/my-links" icon={CreditCard} label="My Links" onClick={closeMenu} dataTour="my-links" />
 
                     <div className="border-t border-border my-2" />
                     <NavRow to="/schedule-call" icon={Phone} label="1 on 1 Call" onClick={closeMenu} />

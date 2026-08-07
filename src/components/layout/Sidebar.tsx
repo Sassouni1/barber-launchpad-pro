@@ -67,15 +67,17 @@ interface NavItemProps {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   collapsed: boolean;
+  dataTour?: string;
 }
 
-function NavItem({ to, icon: Icon, label, collapsed }: NavItemProps) {
+function NavItem({ to, icon: Icon, label, collapsed, dataTour }: NavItemProps) {
   const location = useLocation();
   const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
 
   return (
     <NavLink
       to={to}
+      data-tour={dataTour}
       className={cn(
         'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 group relative',
         isActive 
@@ -346,7 +348,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
             </ExpandableNavItem>
             <NavItem to="/social-media-post" icon={Megaphone} label="Hair System Content" collapsed={collapsed} />
-            <NavItem to="/my-links" icon={CreditCard} label="My Links" collapsed={collapsed} />
+            <NavItem to="/my-links" icon={CreditCard} label="My Links" collapsed={collapsed} dataTour="my-links" />
             {/* Rewards hidden for now */}
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
