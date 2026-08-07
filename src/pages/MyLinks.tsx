@@ -4,6 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   CreditCard,
   ExternalLink,
@@ -13,6 +24,7 @@ import {
   RefreshCw,
   AlertTriangle,
   Sparkles,
+  Plus,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -34,6 +46,7 @@ interface LinkRow {
   currency: string;
   url: string | null;
   stripe_payment_link_id: string | null;
+  payment_method_types?: string[] | null;
 }
 
 const FN_NAME = 'barber-launch-stripe';
@@ -54,10 +67,15 @@ export default function MyLinks() {
   const [busy, setBusy] = useState<string | null>(null);
   const [backendUnavailable, setBackendUnavailable] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customAmount, setCustomAmount] = useState('');
+  const [customKlarna, setCustomKlarna] = useState(true);
+  const [customPhone, setCustomPhone] = useState(true);
 
-  const invoke = async (action: string) => {
+  const invoke = async (action: string, payload: Record<string, unknown> = {}) => {
     const { data, error } = await supabase.functions.invoke(FN_NAME, {
-      body: { action },
+      body: { action, ...payload },
     });
     if (error) {
       // Distinguish 404 (function not deployed) from runtime errors
@@ -142,6 +160,40 @@ export default function MyLinks() {
     } catch (e: any) {
       if (e?.message !== 'BACKEND_UNAVAILABLE') {
         toast.error(e?.message || 'Could not sync payment links');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onCreateCustom = async () => {
+    const amount = Number(customAmount);
+    if (!customName.trim()) {
+      toast.error('Give your link a name');
+      return;
+    }
+    if (!Number.isFinite(amount) || amount < 1) {
+      toast.error('Enter an amount of at least $1');
+      return;
+    }
+    setBusy('custom');
+    try {
+      const data = await invoke('createCustomLink', {
+        name: customName.trim(),
+        amountCents: Math.round(amount * 100),
+        allowKlarna: customKlarna,
+        collectPhone: customPhone,
+      });
+      setLinks(data.links ?? []);
+      toast.success('Custom payment link created');
+      setCustomOpen(false);
+      setCustomName('');
+      setCustomAmount('');
+      setCustomKlarna(true);
+      setCustomPhone(true);
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not create link');
       }
     } finally {
       setBusy(null);
@@ -281,21 +333,31 @@ export default function MyLinks() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex flex-wrap items-center justify-between gap-2">
                   <span>Payment Links</span>
                   {ready && (
-                    <Button
-                      size="sm"
-                      onClick={onSyncLinks}
-                      disabled={busy === 'sync' || backendUnavailable}
-                    >
-                      {busy === 'sync' ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : (
-                        <Sparkles className="w-4 h-4 mr-2" />
-                      )}
-                      {links.length ? 'Sync Links' : 'Create Links'}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCustomOpen(true)}
+                        disabled={backendUnavailable}
+                      >
+                        <Plus className="w-4 h-4 mr-2" /> Custom Link
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={onSyncLinks}
+                        disabled={busy === 'sync' || backendUnavailable}
+                      >
+                        {busy === 'sync' ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-2" />
+                        )}
+                        {links.length ? 'Sync Links' : 'Create Links'}
+                      </Button>
+                    </div>
                   )}
                 </CardTitle>
               </CardHeader>
@@ -319,7 +381,11 @@ export default function MyLinks() {
                         <div className="flex-1 min-w-0">
                           <div className="font-medium">{l.display_name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {formatMoney(l.amount_cents, l.currency)} · card + Klarna
+                            {formatMoney(l.amount_cents, l.currency)} ·{' '}
+                            {(l.payment_method_types?.length
+                              ? l.payment_method_types
+                              : ['card', 'klarna']
+                            ).join(' + ')}
                           </div>
                           {l.url && (
                             <div className="text-xs text-muted-foreground truncate mt-1">
@@ -357,6 +423,77 @@ export default function MyLinks() {
             </Card>
           </>
         )}
+
+        <Dialog open={customOpen} onOpenChange={setCustomOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create a custom payment link</DialogTitle>
+              <DialogDescription>
+                Name it whatever you want and set your own price. It goes straight to
+                your Stripe account.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="custom-name">Link name</Label>
+                <Input
+                  id="custom-name"
+                  placeholder="e.g. Custom Install — Consultation"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  maxLength={120}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="custom-amount">Price (USD)</Label>
+                <Input
+                  id="custom-amount"
+                  type="number"
+                  min={1}
+                  step="1"
+                  placeholder="450"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="custom-klarna"
+                  checked={customKlarna}
+                  onCheckedChange={(v) => setCustomKlarna(!!v)}
+                />
+                <Label htmlFor="custom-klarna" className="font-normal">
+                  Allow Klarna (pay over time)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="custom-phone"
+                  checked={customPhone}
+                  onCheckedChange={(v) => setCustomPhone(!!v)}
+                />
+                <Label htmlFor="custom-phone" className="font-normal">
+                  Collect client phone number
+                </Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCustomOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={onCreateCustom}
+                disabled={busy === 'custom'}
+                className="gold-gradient text-black font-semibold"
+              >
+                {busy === 'custom' && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                )}
+                Create Link
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
