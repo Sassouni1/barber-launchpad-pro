@@ -332,21 +332,31 @@ export default function MyLinks() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex flex-wrap items-center justify-between gap-2">
                   <span>Payment Links</span>
                   {ready && (
-                    <Button
-                      size="sm"
-                      onClick={onSyncLinks}
-                      disabled={busy === 'sync' || backendUnavailable}
-                    >
-                      {busy === 'sync' ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : (
-                        <Sparkles className="w-4 h-4 mr-2" />
-                      )}
-                      {links.length ? 'Sync Links' : 'Create Links'}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCustomOpen(true)}
+                        disabled={backendUnavailable}
+                      >
+                        <Plus className="w-4 h-4 mr-2" /> Custom Link
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={onSyncLinks}
+                        disabled={busy === 'sync' || backendUnavailable}
+                      >
+                        {busy === 'sync' ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-2" />
+                        )}
+                        {links.length ? 'Sync Links' : 'Create Links'}
+                      </Button>
+                    </div>
                   )}
                 </CardTitle>
               </CardHeader>
