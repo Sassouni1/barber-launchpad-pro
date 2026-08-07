@@ -147,6 +147,7 @@ VideoPlayer.displayName = "VideoPlayer";
 
 const PLACING_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
 
+const CONSUMER_FINANCING_MODULE_ID = "b1040000-0000-4000-8000-000000000104";
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
 const SOCIAL_MEDIA_101_THUMBNAIL =
   "/lesson-assets/thumbnails/social-media-101-thumbnail.png";
