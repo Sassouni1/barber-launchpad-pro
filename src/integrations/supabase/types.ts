@@ -184,6 +184,8 @@ export type Database = {
           display_name: string
           id: string
           payment_method_types: string[]
+          recurring_interval: string | null
+          recurring_interval_count: number | null
           stripe_account_id: string
           stripe_payment_link_id: string | null
           stripe_price_id: string | null
@@ -201,6 +203,8 @@ export type Database = {
           display_name: string
           id?: string
           payment_method_types?: string[]
+          recurring_interval?: string | null
+          recurring_interval_count?: number | null
           stripe_account_id: string
           stripe_payment_link_id?: string | null
           stripe_price_id?: string | null
@@ -218,6 +222,8 @@ export type Database = {
           display_name?: string
           id?: string
           payment_method_types?: string[]
+          recurring_interval?: string | null
+          recurring_interval_count?: number | null
           stripe_account_id?: string
           stripe_payment_link_id?: string | null
           stripe_price_id?: string | null
