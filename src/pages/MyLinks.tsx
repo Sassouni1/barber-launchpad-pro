@@ -138,6 +138,12 @@ export default function MyLinks() {
   const [earningsLoading, setEarningsLoading] = useState(false);
   const [refundTarget, setRefundTarget] = useState<RecentPayment | null>(null);
   const [refundAmount, setRefundAmount] = useState('');
+  const [subscriptions, setSubscriptions] = useState<SubscriptionRow[] | null>(null);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<SubscriptionRow | null>(null);
+  const [customers, setCustomers] = useState<CustomerRow[] | null>(null);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
 
   const onRefund = async () => {
     if (!refundTarget) return;
