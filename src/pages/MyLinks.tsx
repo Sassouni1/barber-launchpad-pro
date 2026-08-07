@@ -868,14 +868,32 @@ export default function MyLinks() {
                         className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border border-border bg-card/40"
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium">{l.display_name}</div>
+                          <div className="font-medium flex items-center gap-2 flex-wrap">
+                            {l.display_name}
+                            {l.recurring_interval && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {l.recurring_interval === 'month'
+                                  ? 'Monthly'
+                                  : l.recurring_interval === 'week'
+                                    ? 'Weekly'
+                                    : l.recurring_interval === 'day'
+                                      ? 'Daily'
+                                      : 'Recurring'}
+                              </Badge>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground">
-                            {formatMoney(l.amount_cents, l.currency)} ·{' '}
+                            {formatMoney(l.amount_cents, l.currency)}
+                            {l.recurring_interval
+                              ? `/${l.recurring_interval === 'month' ? 'mo' : l.recurring_interval === 'week' ? 'wk' : 'day'}`
+                              : ''}{' '}
+                            ·{' '}
                             {(l.payment_method_types?.length
                               ? l.payment_method_types
                               : ['card', 'klarna']
                             ).join(' + ')}
                           </div>
+
                           {l.url && (
                             <div className="text-xs text-muted-foreground truncate mt-1">
                               {l.url}
