@@ -382,6 +382,127 @@ export default function MyLinks() {
               </CardContent>
             </Card>
 
+            {ready && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-primary" /> Earnings
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={loadEarnings}
+                      disabled={earningsLoading}
+                    >
+                      {earningsLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {!earnings ? (
+                    <p className="text-sm text-muted-foreground">
+                      {earningsLoading ? 'Loading your numbers…' : 'No earnings data yet.'}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          {
+                            label: 'Today',
+                            value: earnings.today,
+                            sub: `${earnings.todayCount} payment${earnings.todayCount === 1 ? '' : 's'}`,
+                            highlight: true,
+                          },
+                          { label: 'Last 7 days', value: earnings.last7, sub: '' },
+                          {
+                            label: 'Last 30 days',
+                            value: earnings.last30,
+                            sub: `${earnings.last30Count} payment${earnings.last30Count === 1 ? '' : 's'}`,
+                          },
+                          {
+                            label: 'Available balance',
+                            value: earnings.available,
+                            sub:
+                              earnings.pending > 0
+                                ? `${formatMoneyExact(earnings.pending, earnings.currency)} pending`
+                                : 'Ready to pay out',
+                          },
+                        ].map((s) => (
+                          <div
+                            key={s.label}
+                            className={`p-3 rounded-lg border bg-card/40 ${
+                              s.highlight ? 'border-primary/40' : 'border-border'
+                            }`}
+                          >
+                            <div className="text-xs text-muted-foreground">{s.label}</div>
+                            <div
+                              className={`text-xl md:text-2xl font-bold mt-1 ${
+                                s.highlight ? 'text-primary' : ''
+                              }`}
+                            >
+                              {formatMoneyExact(s.value, earnings.currency)}
+                            </div>
+                            {s.sub && (
+                              <div className="text-[11px] text-muted-foreground mt-1">
+                                {s.sub}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-medium mb-2">Recent payments</div>
+                        {earnings.recent.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            No payments yet — share your links to get your first one.
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {earnings.recent.map((p) => (
+                              <div
+                                key={p.id}
+                                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card/40"
+                              >
+                                <div className="min-w-0">
+                                  <div className="font-medium truncate">
+                                    {p.customerName || p.customerEmail || 'Client payment'}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {p.description ? `${p.description} · ` : ''}
+                                    {new Date(p.created * 1000).toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="font-semibold shrink-0">
+                                  {formatMoneyExact(p.amount, p.currency)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        Totals are gross payments before Stripe fees. Payouts land in your
+                        bank on Stripe's schedule.
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex flex-wrap items-center justify-between gap-2">
