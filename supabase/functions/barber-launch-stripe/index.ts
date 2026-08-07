@@ -357,8 +357,19 @@ Deno.serve(async (req) => {
 
       const name = String(body?.name ?? "").trim();
       const amountCents = Math.round(Number(body?.amountCents));
-      const allowKlarna = body?.allowKlarna !== false;
       const collectPhone = body?.collectPhone !== false;
+
+      const rawInterval = body?.interval ? String(body.interval) : null;
+      const isRecurring = !!rawInterval && rawInterval !== "one_time";
+      const interval = isRecurring ? rawInterval : null;
+      if (interval && !["day", "week", "month", "year"].includes(interval)) {
+        return jsonResponse({ error: "Invalid billing frequency." }, 400);
+      }
+      let intervalCount = Math.round(Number(body?.intervalCount ?? 1));
+      if (!Number.isFinite(intervalCount) || intervalCount < 1) intervalCount = 1;
+
+      // Klarna cannot be used for recurring subscriptions.
+      const allowKlarna = !isRecurring && body?.allowKlarna !== false;
 
       if (!name || name.length > 120) {
         return jsonResponse({ error: "Enter a name (1-120 characters)." }, 400);
@@ -395,16 +406,30 @@ Deno.serve(async (req) => {
       const price = await stripeFetch("/prices", {
         secret: stripeSecret,
         stripeAccount: accountId,
-        body: { product: product.id, unit_amount: amountCents, currency: "usd" },
+        body: {
+          product: product.id,
+          unit_amount: amountCents,
+          currency: "usd",
+          ...(interval
+            ? {
+                "recurring[interval]": interval,
+                "recurring[interval_count]": intervalCount,
+              }
+            : {}),
+        },
       });
 
       const linkBody: Record<string, unknown> = {
         "line_items[0][price]": price.id,
         "line_items[0][quantity]": 1,
-        "phone_number_collection[enabled]": collectPhone ? "true" : "false",
+        ...collectionFields(collectPhone),
         "metadata[user_id]": userId,
         "metadata[template_key]": templateKey,
+        "metadata[display_name]": name,
         "metadata[app]": "barber_launch_pro",
+        ...(interval
+          ? { "subscription_data[metadata][display_name]": name }
+          : {}),
       };
       methods.forEach((m, i) => {
         linkBody[`payment_method_types[${i}]`] = m;
@@ -429,6 +454,8 @@ Deno.serve(async (req) => {
         url: link.url,
         active: true,
         payment_method_types: methods,
+        recurring_interval: interval,
+        recurring_interval_count: interval ? intervalCount : null,
       });
 
       const { data: links } = await admin
