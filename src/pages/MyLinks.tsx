@@ -66,6 +66,11 @@ export default function MyLinks() {
   const [busy, setBusy] = useState<string | null>(null);
   const [backendUnavailable, setBackendUnavailable] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customAmount, setCustomAmount] = useState('');
+  const [customKlarna, setCustomKlarna] = useState(true);
+  const [customPhone, setCustomPhone] = useState(true);
 
   const invoke = async (action: string, payload: Record<string, unknown> = {}) => {
     const { data, error } = await supabase.functions.invoke(FN_NAME, {
