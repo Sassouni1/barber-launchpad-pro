@@ -165,6 +165,40 @@ export default function MyLinks() {
     }
   };
 
+  const onCreateCustom = async () => {
+    const amount = Number(customAmount);
+    if (!customName.trim()) {
+      toast.error('Give your link a name');
+      return;
+    }
+    if (!Number.isFinite(amount) || amount < 1) {
+      toast.error('Enter an amount of at least $1');
+      return;
+    }
+    setBusy('custom');
+    try {
+      const data = await invoke('createCustomLink', {
+        name: customName.trim(),
+        amountCents: Math.round(amount * 100),
+        allowKlarna: customKlarna,
+        collectPhone: customPhone,
+      });
+      setLinks(data.links ?? []);
+      toast.success('Custom payment link created');
+      setCustomOpen(false);
+      setCustomName('');
+      setCustomAmount('');
+      setCustomKlarna(true);
+      setCustomPhone(true);
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not create link');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const copy = async (url: string, id: string) => {
     try {
       await navigator.clipboard.writeText(url);
