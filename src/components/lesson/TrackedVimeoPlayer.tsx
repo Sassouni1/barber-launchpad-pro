@@ -84,6 +84,10 @@ export const TrackedVimeoPlayer = React.memo(
     const durationRef = useRef(savedState.duration);
     const lastTimeRef = useRef<number | null>(null);
     const playingRef = useRef(false);
+    // Resume target applied on first play only. Seeking while the video is
+    // still idle forces Vimeo to load a frame and destroys the poster image,
+    // which is why previously-watched lessons rendered as a black box.
+    const pendingSeekRef = useRef<number | null>(null);
     const completedRef = useRef(savedState.completed);
     const onCompleteRef = useRef(onComplete);
     const onProgressRef = useRef(onProgress);
@@ -138,6 +142,17 @@ export const TrackedVimeoPlayer = React.memo(
       const player = new Player(iframe);
       const handlePlay = () => {
         if (!completedRef.current) playingRef.current = true;
+        const pending = pendingSeekRef.current;
+        pendingSeekRef.current = null;
+        if (pending !== null && pending > 2) {
+          void player
+            .setCurrentTime(pending)
+            .then(() => {
+              positionRef.current = pending;
+              lastTimeRef.current = pending;
+            })
+            .catch(() => undefined);
+        }
       };
       const handlePause = () => {
         playingRef.current = false;
@@ -249,7 +264,8 @@ export const TrackedVimeoPlayer = React.memo(
             durationRef.current = duration;
           }
           if (initialState.position > 2 && !initialState.completed) {
-            await player.setCurrentTime(initialState.position);
+            // Queue the resume instead of seeking now, so the thumbnail stays.
+            pendingSeekRef.current = initialState.position;
             lastTimeRef.current = initialState.position;
           } else {
             lastTimeRef.current = 0;
