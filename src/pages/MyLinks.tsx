@@ -380,7 +380,11 @@ export default function MyLinks() {
                         <div className="flex-1 min-w-0">
                           <div className="font-medium">{l.display_name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {formatMoney(l.amount_cents, l.currency)} · card + Klarna
+                            {formatMoney(l.amount_cents, l.currency)} ·{' '}
+                            {(l.payment_method_types?.length
+                              ? l.payment_method_types
+                              : ['card', 'klarna']
+                            ).join(' + ')}
                           </div>
                           {l.url && (
                             <div className="text-xs text-muted-foreground truncate mt-1">
