@@ -26,6 +26,7 @@ import {
   Sparkles,
   Plus,
   DollarSign,
+  Undo2,
 } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +64,8 @@ interface Earnings {
   recent: Array<{
     id: string;
     amount: number;
+    amountRefunded?: number;
+    refunded?: boolean;
     currency: string;
     created: number;
     description: string | null;
@@ -70,6 +73,9 @@ interface Earnings {
     customerEmail: string | null;
   }>;
 }
+
+type RecentPayment = Earnings['recent'][number];
+
 
 const FN_NAME = 'barber-launch-stripe';
 
@@ -105,6 +111,34 @@ export default function MyLinks() {
   const [customPhone, setCustomPhone] = useState(true);
   const [earnings, setEarnings] = useState<Earnings | null>(null);
   const [earningsLoading, setEarningsLoading] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<RecentPayment | null>(null);
+  const [refundAmount, setRefundAmount] = useState('');
+
+  const onRefund = async () => {
+    if (!refundTarget) return;
+    const remaining = refundTarget.amount - (refundTarget.amountRefunded ?? 0);
+    const amount = Math.round(Number(refundAmount) * 100);
+    if (!Number.isFinite(amount) || amount < 50 || amount > remaining) {
+      toast.error('Enter a refund amount up to the payment total');
+      return;
+    }
+    setBusy('refund');
+    try {
+      await invoke('refundCharge', {
+        chargeId: refundTarget.id,
+        amountCents: amount,
+      });
+      toast.success('Refund sent to your client');
+      setRefundTarget(null);
+      await loadEarnings();
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not process the refund');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
 
 
   const invoke = async (action: string, payload: Record<string, unknown> = {}) => {
@@ -464,33 +498,64 @@ export default function MyLinks() {
                           </p>
                         ) : (
                           <div className="space-y-2">
-                            {earnings.recent.map((p) => (
-                              <div
-                                key={p.id}
-                                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card/40"
-                              >
-                                <div className="min-w-0">
-                                  <div className="font-medium truncate">
-                                    {p.customerName || p.customerEmail || 'Client payment'}
+                            {earnings.recent.map((p) => {
+                              const remaining = p.amount - (p.amountRefunded ?? 0);
+                              const fullyRefunded = remaining <= 0;
+                              return (
+                                <div
+                                  key={p.id}
+                                  className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card/40"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="font-medium truncate">
+                                      {p.customerName || p.customerEmail || 'Client payment'}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      {p.description ? `${p.description} · ` : ''}
+                                      {new Date(p.created * 1000).toLocaleString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                      })}
+                                    </div>
                                   </div>
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    {p.description ? `${p.description} · ` : ''}
-                                    {new Date(p.created * 1000).toLocaleString('en-US', {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                    })}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <div className="text-right">
+                                      <div
+                                        className={`font-semibold ${fullyRefunded ? 'line-through text-muted-foreground' : ''}`}
+                                      >
+                                        {formatMoneyExact(p.amount, p.currency)}
+                                      </div>
+                                      {(p.amountRefunded ?? 0) > 0 && (
+                                        <div className="text-[11px] text-muted-foreground">
+                                          {fullyRefunded
+                                            ? 'Refunded'
+                                            : `${formatMoneyExact(p.amountRefunded, p.currency)} refunded`}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {!fullyRefunded && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setRefundTarget(p);
+                                          setRefundAmount((remaining / 100).toFixed(2));
+                                        }}
+                                      >
+                                        <Undo2 className="w-3.5 h-3.5 mr-1" />
+                                        Refund
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="font-semibold shrink-0">
-                                  {formatMoneyExact(p.amount, p.currency)}
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
+
 
                       <p className="text-xs text-muted-foreground">
                         Totals are gross payments before Stripe fees. Payouts land in your
@@ -666,7 +731,60 @@ export default function MyLinks() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog
+          open={!!refundTarget}
+          onOpenChange={(o) => !o && setRefundTarget(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Refund payment</DialogTitle>
+              <DialogDescription>
+                {refundTarget && (
+                  <>
+                    Refunding{' '}
+                    {refundTarget.customerName ||
+                      refundTarget.customerEmail ||
+                      'this client'}
+                    . The money goes back to their card in 5–10 business days.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label htmlFor="refund-amount">Refund amount (USD)</Label>
+              <Input
+                id="refund-amount"
+                type="number"
+                min="0.5"
+                step="0.01"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave the full amount for a full refund, or lower it for a partial
+                refund.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRefundTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={onRefund}
+                disabled={busy === 'refund'}
+              >
+                {busy === 'refund' && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                )}
+                Refund
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+
     </DashboardLayout>
   );
 }
