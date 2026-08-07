@@ -731,7 +731,60 @@ export default function MyLinks() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog
+          open={!!refundTarget}
+          onOpenChange={(o) => !o && setRefundTarget(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Refund payment</DialogTitle>
+              <DialogDescription>
+                {refundTarget && (
+                  <>
+                    Refunding{' '}
+                    {refundTarget.customerName ||
+                      refundTarget.customerEmail ||
+                      'this client'}
+                    . The money goes back to their card in 5–10 business days.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label htmlFor="refund-amount">Refund amount (USD)</Label>
+              <Input
+                id="refund-amount"
+                type="number"
+                min="0.5"
+                step="0.01"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave the full amount for a full refund, or lower it for a partial
+                refund.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRefundTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={onRefund}
+                disabled={busy === 'refund'}
+              >
+                {busy === 'refund' && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                )}
+                Refund
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+
     </DashboardLayout>
   );
 }
