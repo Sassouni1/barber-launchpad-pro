@@ -46,6 +46,7 @@ interface LinkRow {
   currency: string;
   url: string | null;
   stripe_payment_link_id: string | null;
+  payment_method_types?: string[] | null;
 }
 
 const FN_NAME = 'barber-launch-stripe';
