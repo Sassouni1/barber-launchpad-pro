@@ -133,6 +133,18 @@ export default function MyLinks() {
     return data;
   };
 
+  const loadEarnings = async () => {
+    setEarningsLoading(true);
+    try {
+      const data = await invoke('getEarnings');
+      setEarnings(data as Earnings);
+    } catch (_) {
+      /* silent — earnings are optional */
+    } finally {
+      setEarningsLoading(false);
+    }
+  };
+
   const refresh = async () => {
     setLoading(true);
     try {
@@ -150,6 +162,10 @@ export default function MyLinks() {
           /* silent — user can still tap the sync button */
         }
       }
+
+      if (data?.account?.charges_enabled) {
+        loadEarnings();
+      }
     } catch (e: any) {
       if (e?.message !== 'BACKEND_UNAVAILABLE') {
         toast.error(e?.message || 'Could not load Stripe status');
@@ -158,6 +174,7 @@ export default function MyLinks() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     if (user) refresh();
