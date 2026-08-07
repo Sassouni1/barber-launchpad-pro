@@ -404,10 +404,6 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <Megaphone className="w-4 h-4" />
                           <span className="font-medium">AI Social Media</span>
                         </NavLink>
-                        <NavLink to="/social-media-post" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
-                          <Megaphone className="w-4 h-4" />
-                          <span className="font-medium">Hair System Content</span>
-                        </NavLink>
                         <NavLink to="/business-card" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Digital Business Card</span>
@@ -415,6 +411,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                       </CollapsibleContent>
                     </Collapsible>
 
+                    <NavRow to="/social-media-post" icon={Megaphone} label="Hair System Content" onClick={closeMenu} />
                     <NavRow to="/my-links" icon={CreditCard} label="My Links" onClick={closeMenu} />
 
                     <div className="border-t border-border my-2" />
