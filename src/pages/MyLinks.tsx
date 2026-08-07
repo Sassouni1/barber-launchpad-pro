@@ -55,9 +55,9 @@ export default function MyLinks() {
   const [backendUnavailable, setBackendUnavailable] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const invoke = async (action: string) => {
+  const invoke = async (action: string, payload: Record<string, unknown> = {}) => {
     const { data, error } = await supabase.functions.invoke(FN_NAME, {
-      body: { action },
+      body: { action, ...payload },
     });
     if (error) {
       // Distinguish 404 (function not deployed) from runtime errors
