@@ -210,6 +210,69 @@ export default function MyLinks() {
     }
   };
 
+  const loadSubscriptions = async () => {
+    setSubsLoading(true);
+    try {
+      const data = await invoke('listSubscriptions');
+      setSubscriptions((data?.subscriptions ?? []) as SubscriptionRow[]);
+    } catch (_) {
+      /* silent */
+    } finally {
+      setSubsLoading(false);
+    }
+  };
+
+  const loadCustomers = async () => {
+    setCustomersLoading(true);
+    try {
+      const data = await invoke('listCustomers');
+      setCustomers((data?.customers ?? []) as CustomerRow[]);
+    } catch (_) {
+      /* silent */
+    } finally {
+      setCustomersLoading(false);
+    }
+  };
+
+  const onCancelSubscription = async (immediate: boolean) => {
+    if (!cancelTarget) return;
+    setBusy('cancel');
+    try {
+      await invoke('cancelSubscription', {
+        subscriptionId: cancelTarget.id,
+        immediate,
+      });
+      toast.success(
+        immediate
+          ? 'Subscription canceled immediately'
+          : 'Subscription will end at the end of the current period'
+      );
+      setCancelTarget(null);
+      await loadSubscriptions();
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not cancel the subscription');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onResumeSubscription = async (sub: SubscriptionRow) => {
+    setBusy(`resume-${sub.id}`);
+    try {
+      await invoke('resumeSubscription', { subscriptionId: sub.id });
+      toast.success('Subscription resumed');
+      await loadSubscriptions();
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not resume the subscription');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const refresh = async () => {
     setLoading(true);
     try {
