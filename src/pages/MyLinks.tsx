@@ -63,6 +63,8 @@ interface Earnings {
   recent: Array<{
     id: string;
     amount: number;
+    amountRefunded?: number;
+    refunded?: boolean;
     currency: string;
     created: number;
     description: string | null;
@@ -70,6 +72,9 @@ interface Earnings {
     customerEmail: string | null;
   }>;
 }
+
+type RecentPayment = Earnings['recent'][number];
+
 
 const FN_NAME = 'barber-launch-stripe';
 
