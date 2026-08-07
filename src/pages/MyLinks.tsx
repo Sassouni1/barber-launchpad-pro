@@ -55,7 +55,10 @@ interface LinkRow {
   url: string | null;
   stripe_payment_link_id: string | null;
   payment_method_types?: string[] | null;
+  recurring_interval?: string | null;
+  recurring_interval_count?: number | null;
 }
+
 
 interface Earnings {
   currency: string;
@@ -139,6 +142,9 @@ export default function MyLinks() {
   const [customAmount, setCustomAmount] = useState('');
   const [customKlarna, setCustomKlarna] = useState(true);
   const [customPhone, setCustomPhone] = useState(true);
+  const [customInterval, setCustomInterval] = useState<
+    'one_time' | 'day' | 'week' | 'month'
+  >('one_time');
   const [earnings, setEarnings] = useState<Earnings | null>(null);
   const [earningsLoading, setEarningsLoading] = useState(false);
   const [refundTarget, setRefundTarget] = useState<RecentPayment | null>(null);
@@ -369,14 +375,21 @@ export default function MyLinks() {
         amountCents: Math.round(amount * 100),
         allowKlarna: customKlarna,
         collectPhone: customPhone,
+        interval: customInterval,
+        intervalCount: 1,
       });
       setLinks(data.links ?? []);
-      toast.success('Custom payment link created');
+      toast.success(
+        customInterval === 'one_time'
+          ? 'Custom payment link created'
+          : 'Recurring payment link created'
+      );
       setCustomOpen(false);
       setCustomName('');
       setCustomAmount('');
       setCustomKlarna(true);
       setCustomPhone(true);
+      setCustomInterval('one_time');
     } catch (e: any) {
       if (e?.message !== 'BACKEND_UNAVAILABLE') {
         toast.error(e?.message || 'Could not create link');
@@ -855,14 +868,32 @@ export default function MyLinks() {
                         className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border border-border bg-card/40"
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium">{l.display_name}</div>
+                          <div className="font-medium flex items-center gap-2 flex-wrap">
+                            {l.display_name}
+                            {l.recurring_interval && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {l.recurring_interval === 'month'
+                                  ? 'Monthly'
+                                  : l.recurring_interval === 'week'
+                                    ? 'Weekly'
+                                    : l.recurring_interval === 'day'
+                                      ? 'Daily'
+                                      : 'Recurring'}
+                              </Badge>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground">
-                            {formatMoney(l.amount_cents, l.currency)} ·{' '}
+                            {formatMoney(l.amount_cents, l.currency)}
+                            {l.recurring_interval
+                              ? `/${l.recurring_interval === 'month' ? 'mo' : l.recurring_interval === 'week' ? 'wk' : 'day'}`
+                              : ''}{' '}
+                            ·{' '}
                             {(l.payment_method_types?.length
                               ? l.payment_method_types
                               : ['card', 'klarna']
                             ).join(' + ')}
                           </div>
+
                           {l.url && (
                             <div className="text-xs text-muted-foreground truncate mt-1">
                               {l.url}
@@ -1034,16 +1065,56 @@ export default function MyLinks() {
                   onChange={(e) => setCustomAmount(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="custom-klarna"
-                  checked={customKlarna}
-                  onCheckedChange={(v) => setCustomKlarna(!!v)}
-                />
-                <Label htmlFor="custom-klarna" className="font-normal">
-                  Allow Klarna (pay over time)
-                </Label>
+              <div className="space-y-2">
+                <Label>Billing frequency</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { v: 'one_time', label: 'One time' },
+                    { v: 'monthly', label: 'Monthly' },
+                    { v: 'week', label: 'Weekly' },
+                    { v: 'day', label: 'Daily' },
+                  ] as const).map((o) => {
+                    const value = o.v === 'monthly' ? 'month' : o.v;
+                    const active = customInterval === value;
+                    return (
+                      <Button
+                        key={value}
+                        type="button"
+                        size="sm"
+                        variant={active ? 'default' : 'outline'}
+                        className={active ? 'gold-gradient text-black font-semibold' : ''}
+                        onClick={() => setCustomInterval(value as any)}
+                      >
+                        {o.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+                {customInterval !== 'one_time' && (
+                  <p className="text-xs text-muted-foreground">
+                    The client is charged automatically every{' '}
+                    {customInterval === 'month'
+                      ? 'month'
+                      : customInterval === 'week'
+                        ? 'week'
+                        : 'day'}{' '}
+                    until they cancel. Recurring plans are card only (Klarna isn't
+                    supported for subscriptions).
+                  </p>
+                )}
               </div>
+              {customInterval === 'one_time' && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="custom-klarna"
+                    checked={customKlarna}
+                    onCheckedChange={(v) => setCustomKlarna(!!v)}
+                  />
+                  <Label htmlFor="custom-klarna" className="font-normal">
+                    Allow Klarna (pay over time)
+                  </Label>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="custom-phone"
@@ -1054,6 +1125,11 @@ export default function MyLinks() {
                   Collect client phone number
                 </Label>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Every link collects the client's first name, last name, billing
+                address and (when enabled) phone number at checkout.
+              </p>
+
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCustomOpen(false)}>

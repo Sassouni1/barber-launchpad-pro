@@ -24,6 +24,26 @@ const PRESET_LINKS: Array<{
   { template_key: "hair_system_install_1000", display_name: "Hair System Install — $1,000", amount_cents: 100000 },
 ];
 
+// Collect full customer details on every checkout:
+// name + full billing address (billing_address_collection), phone number,
+// and explicit first/last name custom fields.
+function collectionFields(collectPhone = true): Record<string, unknown> {
+  return {
+    billing_address_collection: "required",
+    "phone_number_collection[enabled]": collectPhone ? "true" : "false",
+    "custom_fields[0][key]": "first_name",
+    "custom_fields[0][label][type]": "custom",
+    "custom_fields[0][label][custom]": "First name",
+    "custom_fields[0][type]": "text",
+    "custom_fields[0][text][maximum_length]": 60,
+    "custom_fields[1][key]": "last_name",
+    "custom_fields[1][label][type]": "custom",
+    "custom_fields[1][label][custom]": "Last name",
+    "custom_fields[1][type]": "text",
+    "custom_fields[1][text][maximum_length]": 60,
+  };
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -267,7 +287,7 @@ Deno.serve(async (req) => {
             "line_items[0][quantity]": 1,
             "payment_method_types[0]": "card",
             "payment_method_types[1]": "klarna",
-            "phone_number_collection[enabled]": "true",
+            ...collectionFields(true),
             "metadata[user_id]": userId,
             "metadata[template_key]": preset.template_key,
             "metadata[app]": "barber_launch_pro",
@@ -296,6 +316,27 @@ Deno.serve(async (req) => {
         if (inserted) created.push(inserted);
       }
 
+      // Backfill: make sure every existing link collects name, phone and address.
+      const { data: allLinks } = await admin
+        .from("barber_launch_payment_links")
+        .select("stripe_payment_link_id")
+        .eq("user_id", userId)
+        .eq("active", true);
+      for (const l of allLinks ?? []) {
+        if (!l.stripe_payment_link_id) continue;
+        try {
+          await stripeFetch(`/payment_links/${l.stripe_payment_link_id}`, {
+            secret: stripeSecret,
+            stripeAccount: accountId,
+            body: collectionFields(true),
+          });
+        } catch (e) {
+          console.error("Could not upgrade link", l.stripe_payment_link_id, e);
+        }
+      }
+
+
+
       const { data: links } = await admin
         .from("barber_launch_payment_links")
         .select("*")
@@ -316,8 +357,19 @@ Deno.serve(async (req) => {
 
       const name = String(body?.name ?? "").trim();
       const amountCents = Math.round(Number(body?.amountCents));
-      const allowKlarna = body?.allowKlarna !== false;
       const collectPhone = body?.collectPhone !== false;
+
+      const rawInterval = body?.interval ? String(body.interval) : null;
+      const isRecurring = !!rawInterval && rawInterval !== "one_time";
+      const interval = isRecurring ? rawInterval : null;
+      if (interval && !["day", "week", "month", "year"].includes(interval)) {
+        return jsonResponse({ error: "Invalid billing frequency." }, 400);
+      }
+      let intervalCount = Math.round(Number(body?.intervalCount ?? 1));
+      if (!Number.isFinite(intervalCount) || intervalCount < 1) intervalCount = 1;
+
+      // Klarna cannot be used for recurring subscriptions.
+      const allowKlarna = !isRecurring && body?.allowKlarna !== false;
 
       if (!name || name.length > 120) {
         return jsonResponse({ error: "Enter a name (1-120 characters)." }, 400);
@@ -354,16 +406,30 @@ Deno.serve(async (req) => {
       const price = await stripeFetch("/prices", {
         secret: stripeSecret,
         stripeAccount: accountId,
-        body: { product: product.id, unit_amount: amountCents, currency: "usd" },
+        body: {
+          product: product.id,
+          unit_amount: amountCents,
+          currency: "usd",
+          ...(interval
+            ? {
+                "recurring[interval]": interval,
+                "recurring[interval_count]": intervalCount,
+              }
+            : {}),
+        },
       });
 
       const linkBody: Record<string, unknown> = {
         "line_items[0][price]": price.id,
         "line_items[0][quantity]": 1,
-        "phone_number_collection[enabled]": collectPhone ? "true" : "false",
+        ...collectionFields(collectPhone),
         "metadata[user_id]": userId,
         "metadata[template_key]": templateKey,
+        "metadata[display_name]": name,
         "metadata[app]": "barber_launch_pro",
+        ...(interval
+          ? { "subscription_data[metadata][display_name]": name }
+          : {}),
       };
       methods.forEach((m, i) => {
         linkBody[`payment_method_types[${i}]`] = m;
@@ -388,6 +454,8 @@ Deno.serve(async (req) => {
         url: link.url,
         active: true,
         payment_method_types: methods,
+        recurring_interval: interval,
+        recurring_interval_count: interval ? intervalCount : null,
       });
 
       const { data: links } = await admin
