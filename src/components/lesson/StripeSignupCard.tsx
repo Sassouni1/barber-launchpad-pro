@@ -133,48 +133,36 @@ export function StripeSignupCard() {
         ) : ready ? (
           <div className="space-y-5">
             <div className="flex items-center gap-3">
-              <div className="relative shrink-0">
-                <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
-                <span className="relative flex items-center justify-center rounded-full bg-primary/15 border border-primary/40 p-2.5">
-                  <Bot className="w-6 h-6 text-primary" />
-                </span>
-              </div>
+              <span className="flex items-center justify-center rounded-full bg-primary/10 border border-primary/30 p-2.5 shrink-0">
+                <LinkIcon className="w-5 h-5 text-primary" />
+              </span>
               <div>
                 <h3 className="text-lg font-semibold leading-tight">
-                  Your links live here now
+                  You're all set — your links live in My Links
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Going forward, this is where your payment links live.
+                  Going forward, that's where you'll find every payment link you create.
                 </p>
               </div>
             </div>
 
-            <Link
-              to="/my-links"
-              className="group relative block overflow-hidden rounded-xl border-2 border-primary/50 bg-primary/10 p-6 text-center shadow-[0_0_32px_hsl(var(--primary)/0.35)] transition-all duration-300 hover:shadow-[0_0_56px_hsl(var(--primary)/0.55)] hover:border-primary/70 animate-[pulse_2.5s_cubic-bezier(0.4,0,0.6,1)_infinite]"
-            >
-              <div className="absolute -right-3 -top-3 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
-                <ArrowRight className="w-24 h-24 text-primary rotate-12" />
-              </div>
-              <p className="relative text-lg md:text-xl font-bold text-primary">
-                “Hey, dude — going forward, here’s where your links will be.”
-              </p>
-              <span className="relative mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                Go to My Links
-                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" />
-              </span>
-            </Link>
-
-            <p className="text-sm text-muted-foreground text-center">
-              Look for <strong className="text-primary">My Links</strong> in the sidebar whenever you need it.
-            </p>
-
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={refresh}>
+              <Button onClick={() => setTourOpen(true)} className="gold-gradient text-black font-semibold">
+                <MapPin className="w-4 h-4 mr-2" /> Show me where
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/my-links">
+                  Go to My Links <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={refresh}>
                 <RefreshCw className="w-4 h-4 mr-2" /> Refresh
               </Button>
             </div>
+
+            <MyLinksTour open={tourOpen} onClose={() => setTourOpen(false)} />
           </div>
+
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
