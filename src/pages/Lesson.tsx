@@ -57,6 +57,7 @@ import {
 } from "@/lib/i18n/spanishVideos";
 import { PhotoUploadSection } from "@/components/lesson/PhotoUploadSection";
 import { DirectoryEnrollmentLesson } from "@/components/lesson/DirectoryEnrollmentLesson";
+import { StripeSignupCard } from "@/components/lesson/StripeSignupCard";
 import {
   TrackedVimeoPlayer,
   type VimeoWatchProgress,
