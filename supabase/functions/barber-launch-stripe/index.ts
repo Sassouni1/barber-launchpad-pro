@@ -24,6 +24,26 @@ const PRESET_LINKS: Array<{
   { template_key: "hair_system_install_1000", display_name: "Hair System Install — $1,000", amount_cents: 100000 },
 ];
 
+// Collect full customer details on every checkout:
+// name + full billing address (billing_address_collection), phone number,
+// and explicit first/last name custom fields.
+function collectionFields(collectPhone = true): Record<string, unknown> {
+  return {
+    billing_address_collection: "required",
+    "phone_number_collection[enabled]": collectPhone ? "true" : "false",
+    "custom_fields[0][key]": "first_name",
+    "custom_fields[0][label][type]": "custom",
+    "custom_fields[0][label][custom]": "First name",
+    "custom_fields[0][type]": "text",
+    "custom_fields[0][text][maximum_length]": 60,
+    "custom_fields[1][key]": "last_name",
+    "custom_fields[1][label][type]": "custom",
+    "custom_fields[1][label][custom]": "Last name",
+    "custom_fields[1][type]": "text",
+    "custom_fields[1][text][maximum_length]": 60,
+  };
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
