@@ -27,6 +27,9 @@ import {
   Plus,
   DollarSign,
   Undo2,
+  RotateCcw,
+  XCircle,
+  Users,
 } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -76,6 +79,31 @@ interface Earnings {
 
 type RecentPayment = Earnings['recent'][number];
 
+interface SubscriptionRow {
+  id: string;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: number | null;
+  canceledAt: number | null;
+  amount: number;
+  currency: string;
+  interval: string | null;
+  productName: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+}
+
+interface CustomerRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  created: number;
+  totalSpent: number;
+  paymentCount: number;
+  lastPayment: number | null;
+}
+
 
 const FN_NAME = 'barber-launch-stripe';
 
@@ -113,6 +141,12 @@ export default function MyLinks() {
   const [earningsLoading, setEarningsLoading] = useState(false);
   const [refundTarget, setRefundTarget] = useState<RecentPayment | null>(null);
   const [refundAmount, setRefundAmount] = useState('');
+  const [subscriptions, setSubscriptions] = useState<SubscriptionRow[] | null>(null);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<SubscriptionRow | null>(null);
+  const [customers, setCustomers] = useState<CustomerRow[] | null>(null);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
 
   const onRefund = async () => {
     if (!refundTarget) return;
@@ -179,6 +213,69 @@ export default function MyLinks() {
     }
   };
 
+  const loadSubscriptions = async () => {
+    setSubsLoading(true);
+    try {
+      const data = await invoke('listSubscriptions');
+      setSubscriptions((data?.subscriptions ?? []) as SubscriptionRow[]);
+    } catch (_) {
+      /* silent */
+    } finally {
+      setSubsLoading(false);
+    }
+  };
+
+  const loadCustomers = async () => {
+    setCustomersLoading(true);
+    try {
+      const data = await invoke('listCustomers');
+      setCustomers((data?.customers ?? []) as CustomerRow[]);
+    } catch (_) {
+      /* silent */
+    } finally {
+      setCustomersLoading(false);
+    }
+  };
+
+  const onCancelSubscription = async (immediate: boolean) => {
+    if (!cancelTarget) return;
+    setBusy('cancel');
+    try {
+      await invoke('cancelSubscription', {
+        subscriptionId: cancelTarget.id,
+        immediate,
+      });
+      toast.success(
+        immediate
+          ? 'Subscription canceled immediately'
+          : 'Subscription will end at the end of the current period'
+      );
+      setCancelTarget(null);
+      await loadSubscriptions();
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not cancel the subscription');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onResumeSubscription = async (sub: SubscriptionRow) => {
+    setBusy(`resume-${sub.id}`);
+    try {
+      await invoke('resumeSubscription', { subscriptionId: sub.id });
+      toast.success('Subscription resumed');
+      await loadSubscriptions();
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not resume the subscription');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const refresh = async () => {
     setLoading(true);
     try {
@@ -199,6 +296,8 @@ export default function MyLinks() {
 
       if (data?.account?.charges_enabled) {
         loadEarnings();
+        loadSubscriptions();
+        loadCustomers();
       }
     } catch (e: any) {
       if (e?.message !== 'BACKEND_UNAVAILABLE') {
@@ -567,6 +666,197 @@ export default function MyLinks() {
               </Card>
             )}
 
+            {ready && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <RotateCcw className="w-5 h-5 text-primary" /> Subscriptions
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={loadSubscriptions}
+                      disabled={subsLoading}
+                    >
+                      {subsLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!subscriptions || subscriptions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {subsLoading
+                        ? 'Loading subscriptions…'
+                        : 'No recurring plans yet. Any subscription a client starts through your Stripe account shows up here so you can cancel it.'}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {subscriptions.map((s) => {
+                        const active = s.status === 'active' || s.status === 'trialing';
+                        return (
+                          <div
+                            key={s.id}
+                            className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-3 rounded-lg border border-border bg-card/40"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">
+                                {s.customerName || s.customerEmail || 'Client'}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {s.productName ? `${s.productName} · ` : ''}
+                                {formatMoneyExact(s.amount, s.currency)}
+                                {s.interval ? ` / ${s.interval}` : ''}
+                                {s.currentPeriodEnd
+                                  ? ` · ${s.cancelAtPeriodEnd ? 'ends' : 'renews'} ${new Date(
+                                      s.currentPeriodEnd * 1000
+                                    ).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                    })}`
+                                  : ''}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  s.status === 'canceled'
+                                    ? 'text-muted-foreground'
+                                    : s.cancelAtPeriodEnd
+                                      ? 'text-yellow-500 border-yellow-500/40'
+                                      : active
+                                        ? 'text-green-500 border-green-500/40'
+                                        : ''
+                                }
+                              >
+                                {s.status === 'canceled'
+                                  ? 'Canceled'
+                                  : s.cancelAtPeriodEnd
+                                    ? 'Ending'
+                                    : s.status}
+                              </Badge>
+                              {s.status !== 'canceled' &&
+                                (s.cancelAtPeriodEnd ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onResumeSubscription(s)}
+                                    disabled={busy === `resume-${s.id}`}
+                                  >
+                                    {busy === `resume-${s.id}` && (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                                    )}
+                                    Resume
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setCancelTarget(s)}
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 mr-1" /> Cancel
+                                  </Button>
+                                ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {ready && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-primary" /> Customers
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={loadCustomers}
+                      disabled={customersLoading}
+                    >
+                      {customersLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {!customers || customers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {customersLoading
+                        ? 'Loading customers…'
+                        : 'No customers yet. Everyone who pays through your links will be listed here.'}
+                    </p>
+                  ) : (
+                    <>
+                      <Input
+                        placeholder="Search by name, email, or phone"
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                      />
+                      <div className="space-y-2">
+                        {customers
+                          .filter((c) => {
+                            const q = customerSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return [c.name, c.email, c.phone]
+                              .filter(Boolean)
+                              .some((v) => String(v).toLowerCase().includes(q));
+                          })
+                          .slice(0, 50)
+                          .map((c) => (
+                            <div
+                              key={c.id}
+                              className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card/40"
+                            >
+                              <div className="min-w-0">
+                                <div className="font-medium truncate">
+                                  {c.name || c.email || 'Client'}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {[c.email, c.phone].filter(Boolean).join(' · ') ||
+                                    'No contact info'}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="font-semibold">
+                                  {formatMoneyExact(c.totalSpent)}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground">
+                                  {c.paymentCount} payment{c.paymentCount === 1 ? '' : 's'}
+                                  {c.lastPayment
+                                    ? ` · ${new Date(c.lastPayment * 1000).toLocaleDateString(
+                                        'en-US',
+                                        { month: 'short', day: 'numeric' }
+                                      )}`
+                                    : ''}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Lifetime totals are based on your most recent 100 payments.
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
 
             <Card>
               <CardHeader>
@@ -779,6 +1069,51 @@ export default function MyLinks() {
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 )}
                 Refund
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={!!cancelTarget}
+          onOpenChange={(o) => !o && setCancelTarget(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel subscription</DialogTitle>
+              <DialogDescription>
+                {cancelTarget && (
+                  <>
+                    Canceling the plan for{' '}
+                    {cancelTarget.customerName ||
+                      cancelTarget.customerEmail ||
+                      'this client'}
+                    . You can end it now, or let them keep access until the current
+                    period is over.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setCancelTarget(null)}>
+                Keep it
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => onCancelSubscription(false)}
+                disabled={busy === 'cancel'}
+              >
+                {busy === 'cancel' && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                )}
+                End at period end
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => onCancelSubscription(true)}
+                disabled={busy === 'cancel'}
+              >
+                Cancel now
               </Button>
             </DialogFooter>
           </DialogContent>

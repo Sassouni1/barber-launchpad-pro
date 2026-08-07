@@ -511,6 +511,154 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "listSubscriptions") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse({ error: "No connected Stripe account." }, 400);
+      }
+      const accountId = existingAccount.stripe_account_id;
+
+      const subs = await stripeFetch(
+        `/subscriptions?limit=100&status=all&expand[0]=data.customer`,
+        { method: "GET", secret: stripeSecret, stripeAccount: accountId },
+      );
+
+      const list = (subs.data ?? [])
+        .filter((s: any) => s.status !== "incomplete_expired")
+        .map((s: any) => {
+          const item = s.items?.data?.[0];
+          const price = item?.price;
+          return {
+            id: s.id,
+            status: s.status,
+            cancelAtPeriodEnd: !!s.cancel_at_period_end,
+            currentPeriodEnd: s.current_period_end,
+            canceledAt: s.canceled_at ?? null,
+            amount: price?.unit_amount ?? 0,
+            currency: price?.currency ?? "usd",
+            interval: price?.recurring?.interval ?? null,
+            productName: s.metadata?.display_name ?? item?.price?.nickname ?? null,
+            customerName:
+              (typeof s.customer === "object" ? s.customer?.name : null) ?? null,
+            customerEmail:
+              (typeof s.customer === "object" ? s.customer?.email : null) ?? null,
+          };
+        });
+
+      return jsonResponse({ subscriptions: list });
+    }
+
+    if (action === "cancelSubscription") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse({ error: "No connected Stripe account." }, 400);
+      }
+      const accountId = existingAccount.stripe_account_id;
+
+      const subId = String(body?.subscriptionId ?? "").trim();
+      if (!/^sub_[A-Za-z0-9_]+$/.test(subId)) {
+        return jsonResponse({ error: "Invalid subscription id." }, 400);
+      }
+      const immediate = body?.immediate === true;
+
+      const updated = immediate
+        ? await stripeFetch(`/subscriptions/${subId}`, {
+            method: "DELETE",
+            secret: stripeSecret,
+            stripeAccount: accountId,
+          })
+        : await stripeFetch(`/subscriptions/${subId}`, {
+            secret: stripeSecret,
+            stripeAccount: accountId,
+            body: { cancel_at_period_end: "true" },
+          });
+
+      return jsonResponse({
+        id: updated.id,
+        status: updated.status,
+        cancelAtPeriodEnd: !!updated.cancel_at_period_end,
+      });
+    }
+
+    if (action === "resumeSubscription") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse({ error: "No connected Stripe account." }, 400);
+      }
+      const accountId = existingAccount.stripe_account_id;
+      const subId = String(body?.subscriptionId ?? "").trim();
+      if (!/^sub_[A-Za-z0-9_]+$/.test(subId)) {
+        return jsonResponse({ error: "Invalid subscription id." }, 400);
+      }
+      const updated = await stripeFetch(`/subscriptions/${subId}`, {
+        secret: stripeSecret,
+        stripeAccount: accountId,
+        body: { cancel_at_period_end: "false" },
+      });
+      return jsonResponse({
+        id: updated.id,
+        status: updated.status,
+        cancelAtPeriodEnd: !!updated.cancel_at_period_end,
+      });
+    }
+
+    if (action === "listCustomers") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse({ error: "No connected Stripe account." }, 400);
+      }
+      const accountId = existingAccount.stripe_account_id;
+
+      const customers = await stripeFetch("/customers?limit=100", {
+        method: "GET",
+        secret: stripeSecret,
+        stripeAccount: accountId,
+      });
+
+      // Roll up lifetime spend from the last 100 charges
+      const charges = await stripeFetch("/charges?limit=100", {
+        method: "GET",
+        secret: stripeSecret,
+        stripeAccount: accountId,
+      });
+      const spendByCustomer: Record<string, { total: number; count: number; last: number }> = {};
+      const spendByEmail: Record<string, { total: number; count: number; last: number }> = {};
+      for (const c of charges.data ?? []) {
+        if (c.status !== "succeeded") continue;
+        const net = c.amount - (c.amount_refunded ?? 0);
+        if (c.customer) {
+          const k = String(c.customer);
+          spendByCustomer[k] ??= { total: 0, count: 0, last: 0 };
+          spendByCustomer[k].total += net;
+          spendByCustomer[k].count += 1;
+          spendByCustomer[k].last = Math.max(spendByCustomer[k].last, c.created);
+        }
+        const email = (c.billing_details?.email ?? c.receipt_email ?? "").toLowerCase();
+        if (email) {
+          spendByEmail[email] ??= { total: 0, count: 0, last: 0 };
+          spendByEmail[email].total += net;
+          spendByEmail[email].count += 1;
+          spendByEmail[email].last = Math.max(spendByEmail[email].last, c.created);
+        }
+      }
+
+      const list = (customers.data ?? []).map((c: any) => {
+        const byId = spendByCustomer[c.id];
+        const byEmail = c.email ? spendByEmail[String(c.email).toLowerCase()] : undefined;
+        const stats = byId ?? byEmail ?? { total: 0, count: 0, last: 0 };
+        return {
+          id: c.id,
+          name: c.name ?? null,
+          email: c.email ?? null,
+          phone: c.phone ?? null,
+          created: c.created,
+          totalSpent: stats.total,
+          paymentCount: stats.count,
+          lastPayment: stats.last || null,
+        };
+      });
+
+      list.sort((a: any, b: any) => (b.lastPayment ?? 0) - (a.lastPayment ?? 0));
+
+      return jsonResponse({ customers: list });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (err) {
