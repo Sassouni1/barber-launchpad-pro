@@ -305,6 +305,100 @@ Deno.serve(async (req) => {
       return jsonResponse({ created: created.length, links: links ?? [] });
     }
 
+    if (action === "createCustomLink") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse(
+          { error: "No connected Stripe account. Complete onboarding first." },
+          400,
+        );
+      }
+      const accountId = existingAccount.stripe_account_id;
+
+      const name = String(body?.name ?? "").trim();
+      const amountCents = Math.round(Number(body?.amountCents));
+      const allowKlarna = body?.allowKlarna !== false;
+      const collectPhone = body?.collectPhone !== false;
+
+      if (!name || name.length > 120) {
+        return jsonResponse({ error: "Enter a name (1-120 characters)." }, 400);
+      }
+      if (!Number.isFinite(amountCents) || amountCents < 100 || amountCents > 5000000) {
+        return jsonResponse({ error: "Enter an amount between $1 and $50,000." }, 400);
+      }
+
+      const acct = await stripeFetch(`/accounts/${accountId}`, {
+        method: "GET",
+        secret: stripeSecret,
+      });
+      if (!acct.charges_enabled) {
+        return jsonResponse(
+          { error: "Your Stripe account is not ready to accept charges yet." },
+          400,
+        );
+      }
+
+      const methods = allowKlarna ? ["card", "klarna"] : ["card"];
+      const templateKey = `custom_${Date.now()}`;
+
+      const product = await stripeFetch("/products", {
+        secret: stripeSecret,
+        stripeAccount: accountId,
+        body: {
+          name,
+          "metadata[user_id]": userId,
+          "metadata[template_key]": templateKey,
+          "metadata[app]": "barber_launch_pro",
+        },
+      });
+
+      const price = await stripeFetch("/prices", {
+        secret: stripeSecret,
+        stripeAccount: accountId,
+        body: { product: product.id, unit_amount: amountCents, currency: "usd" },
+      });
+
+      const linkBody: Record<string, unknown> = {
+        "line_items[0][price]": price.id,
+        "line_items[0][quantity]": 1,
+        "phone_number_collection[enabled]": collectPhone ? "true" : "false",
+        "metadata[user_id]": userId,
+        "metadata[template_key]": templateKey,
+        "metadata[app]": "barber_launch_pro",
+      };
+      methods.forEach((m, i) => {
+        linkBody[`payment_method_types[${i}]`] = m;
+      });
+
+      const link = await stripeFetch("/payment_links", {
+        secret: stripeSecret,
+        stripeAccount: accountId,
+        body: linkBody,
+      });
+
+      await admin.from("barber_launch_payment_links").insert({
+        user_id: userId,
+        stripe_account_id: accountId,
+        template_key: templateKey,
+        display_name: name,
+        amount_cents: amountCents,
+        currency: "usd",
+        stripe_product_id: product.id,
+        stripe_price_id: price.id,
+        stripe_payment_link_id: link.id,
+        url: link.url,
+        active: true,
+        payment_method_types: methods,
+      });
+
+      const { data: links } = await admin
+        .from("barber_launch_payment_links")
+        .select("*")
+        .eq("user_id", userId)
+        .order("amount_cents", { ascending: true });
+
+      return jsonResponse({ links: links ?? [] });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
   } catch (err) {
     console.error("barber-launch-stripe error", err);
