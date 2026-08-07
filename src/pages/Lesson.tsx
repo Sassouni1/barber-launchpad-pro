@@ -1155,6 +1155,13 @@ export default function Lesson() {
             )
           )}
 
+        {/* Stripe sign-up directly under the Consumer Financing video */}
+        {!sublessonId && module.id === CONSUMER_FINANCING_MODULE_ID && (
+          <StripeSignupCard />
+        )}
+
+
+
         {/* Archived Instagramswipe section for later reuse. */}
         {isSocialMedia101Lesson && <SocialMedia101ReadAlong />}
 
