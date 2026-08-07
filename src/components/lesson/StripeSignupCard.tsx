@@ -10,11 +10,14 @@ import {
   Sparkles,
   RefreshCw,
   ArrowRight,
-  Bot,
+  Link as LinkIcon,
+  MapPin,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { MyLinksTour } from '@/components/tour/MyLinksTour';
+
 
 const FN_NAME = 'barber-launch-stripe';
 
