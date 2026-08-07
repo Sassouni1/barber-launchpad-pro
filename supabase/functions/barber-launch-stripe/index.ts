@@ -316,6 +316,27 @@ Deno.serve(async (req) => {
         if (inserted) created.push(inserted);
       }
 
+      // Backfill: make sure every existing link collects name, phone and address.
+      const { data: allLinks } = await admin
+        .from("barber_launch_payment_links")
+        .select("stripe_payment_link_id")
+        .eq("user_id", userId)
+        .eq("active", true);
+      for (const l of allLinks ?? []) {
+        if (!l.stripe_payment_link_id) continue;
+        try {
+          await stripeFetch(`/payment_links/${l.stripe_payment_link_id}`, {
+            secret: stripeSecret,
+            stripeAccount: accountId,
+            body: collectionFields(true),
+          });
+        } catch (e) {
+          console.error("Could not upgrade link", l.stripe_payment_link_id, e);
+        }
+      }
+
+
+
       const { data: links } = await admin
         .from("barber_launch_payment_links")
         .select("*")
