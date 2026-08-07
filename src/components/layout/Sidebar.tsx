@@ -67,15 +67,17 @@ interface NavItemProps {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   collapsed: boolean;
+  dataTour?: string;
 }
 
-function NavItem({ to, icon: Icon, label, collapsed }: NavItemProps) {
+function NavItem({ to, icon: Icon, label, collapsed, dataTour }: NavItemProps) {
   const location = useLocation();
   const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
 
   return (
     <NavLink
       to={to}
+      data-tour={dataTour}
       className={cn(
         'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 group relative',
         isActive 
