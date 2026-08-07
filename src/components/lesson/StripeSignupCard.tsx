@@ -10,6 +10,7 @@ import {
   Sparkles,
   RefreshCw,
   ArrowRight,
+  Bot,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -130,20 +131,44 @@ export function StripeSignupCard() {
             <Loader2 className="w-5 h-5 animate-spin text-primary" />
           </div>
         ) : ready ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                <span className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                <span className="relative flex items-center justify-center rounded-full bg-primary/15 border border-primary/40 p-2.5">
+                  <Bot className="w-6 h-6 text-primary" />
+                </span>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold leading-tight">
+                  Your links live here now
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Going forward, this is where your payment links live.
+                </p>
+              </div>
+            </div>
+
             <Link
               to="/my-links"
-              className="group block rounded-xl border border-primary/50 bg-primary/10 p-5 text-center shadow-[0_0_28px_hsl(var(--primary)/0.35)] transition-all duration-300 hover:shadow-[0_0_44px_hsl(var(--primary)/0.55)] animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]"
+              className="group relative block overflow-hidden rounded-xl border-2 border-primary/50 bg-primary/10 p-6 text-center shadow-[0_0_32px_hsl(var(--primary)/0.35)] transition-all duration-300 hover:shadow-[0_0_56px_hsl(var(--primary)/0.55)] hover:border-primary/70 animate-[pulse_2.5s_cubic-bezier(0.4,0,0.6,1)_infinite]"
             >
-              <p className="text-base md:text-lg font-semibold text-primary">
-                You're all set — visit My Links on the side any time you want to see
-                your links.
+              <div className="absolute -right-3 -top-3 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
+                <ArrowRight className="w-24 h-24 text-primary rotate-12" />
+              </div>
+              <p className="relative text-lg md:text-xl font-bold text-primary">
+                “Hey, dude — going forward, here’s where your links will be.”
               </p>
-              <span className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-primary">
+              <span className="relative mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary">
                 Go to My Links
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" />
               </span>
             </Link>
+
+            <p className="text-sm text-muted-foreground text-center">
+              Look for <strong className="text-primary">My Links</strong> in the sidebar whenever you need it.
+            </p>
+
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={refresh}>
                 <RefreshCw className="w-4 h-4 mr-2" /> Refresh
