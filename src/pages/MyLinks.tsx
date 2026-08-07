@@ -111,6 +111,34 @@ export default function MyLinks() {
   const [customPhone, setCustomPhone] = useState(true);
   const [earnings, setEarnings] = useState<Earnings | null>(null);
   const [earningsLoading, setEarningsLoading] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<RecentPayment | null>(null);
+  const [refundAmount, setRefundAmount] = useState('');
+
+  const onRefund = async () => {
+    if (!refundTarget) return;
+    const remaining = refundTarget.amount - (refundTarget.amountRefunded ?? 0);
+    const amount = Math.round(Number(refundAmount) * 100);
+    if (!Number.isFinite(amount) || amount < 50 || amount > remaining) {
+      toast.error('Enter a refund amount up to the payment total');
+      return;
+    }
+    setBusy('refund');
+    try {
+      await invoke('refundCharge', {
+        chargeId: refundTarget.id,
+        amountCents: amount,
+      });
+      toast.success('Refund sent to your client');
+      setRefundTarget(null);
+      await loadEarnings();
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not process the refund');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
 
 
   const invoke = async (action: string, payload: Record<string, unknown> = {}) => {
