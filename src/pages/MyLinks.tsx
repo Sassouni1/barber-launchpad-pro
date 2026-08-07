@@ -27,6 +27,9 @@ import {
   Plus,
   DollarSign,
   Undo2,
+  RotateCcw,
+  XCircle,
+  Users,
 } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
