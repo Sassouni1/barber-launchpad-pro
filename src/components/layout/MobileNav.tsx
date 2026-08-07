@@ -413,7 +413,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                     </Collapsible>
 
                     <NavRow to="/social-media-post" icon={Megaphone} label="Hair System Content" onClick={closeMenu} />
-                    <NavRow to="/my-links" icon={CreditCard} label="My Links" onClick={closeMenu} />
+                    <NavRow to="/my-links" icon={CreditCard} label="My Links" onClick={closeMenu} dataTour="my-links" />
 
                     <div className="border-t border-border my-2" />
                     <NavRow to="/schedule-call" icon={Phone} label="1 on 1 Call" onClick={closeMenu} />
