@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bot, CreditCard, Menu, ChevronDown, ChevronRight } from 'lucide-react';
 import { 
   LayoutDashboard, 
