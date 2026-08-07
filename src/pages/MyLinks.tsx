@@ -293,6 +293,8 @@ export default function MyLinks() {
 
       if (data?.account?.charges_enabled) {
         loadEarnings();
+        loadSubscriptions();
+        loadCustomers();
       }
     } catch (e: any) {
       if (e?.message !== 'BACKEND_UNAVAILABLE') {
