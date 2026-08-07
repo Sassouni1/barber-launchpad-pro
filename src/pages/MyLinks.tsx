@@ -666,6 +666,15 @@ export default function MyLinks() {
               </Card>
             )}
 
+            <Tabs defaultValue="links" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="links">Links</TabsTrigger>
+                <TabsTrigger value="transactions">Payments</TabsTrigger>
+                <TabsTrigger value="customers">Customers</TabsTrigger>
+                <TabsTrigger value="subscriptions">Plans</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="subscriptions" className="mt-4">
             {ready && (
               <Card>
                 <CardHeader>
