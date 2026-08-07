@@ -948,6 +948,108 @@ export default function MyLinks() {
                 )}
               </CardContent>
             </Card>
+              </TabsContent>
+
+              <TabsContent value="transactions" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="flex items-center gap-2">
+                        <Receipt className="w-5 h-5 text-primary" /> Transactions
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={loadEarnings}
+                        disabled={earningsLoading}
+                      >
+                        {earningsLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {!ready ? (
+                      <p className="text-sm text-muted-foreground">
+                        Finish connecting Stripe to see your payments.
+                      </p>
+                    ) : !earnings || earnings.recent.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {earningsLoading
+                          ? 'Loading your payments…'
+                          : 'No payments yet — share your links to get your first one.'}
+                      </p>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          {earnings.recent.map((p) => {
+                            const remaining = p.amount - (p.amountRefunded ?? 0);
+                            const fullyRefunded = remaining <= 0;
+                            return (
+                              <div
+                                key={p.id}
+                                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card/40"
+                              >
+                                <div className="min-w-0">
+                                  <div className="font-medium truncate">
+                                    {p.customerName || p.customerEmail || 'Client payment'}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {p.description ? `${p.description} · ` : ''}
+                                    {new Date(p.created * 1000).toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <div className="text-right">
+                                    <div
+                                      className={`font-semibold ${fullyRefunded ? 'line-through text-muted-foreground' : ''}`}
+                                    >
+                                      {formatMoneyExact(p.amount, p.currency)}
+                                    </div>
+                                    {(p.amountRefunded ?? 0) > 0 && (
+                                      <div className="text-[11px] text-muted-foreground">
+                                        {fullyRefunded
+                                          ? 'Refunded'
+                                          : `${formatMoneyExact(p.amountRefunded, p.currency)} refunded`}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {!fullyRefunded && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setRefundTarget(p);
+                                        setRefundAmount((remaining / 100).toFixed(2));
+                                      }}
+                                    >
+                                      <Undo2 className="w-3.5 h-3.5 mr-1" />
+                                      Refund
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Showing your most recent payments from the last 30 days. Amounts
+                          are gross, before Stripe fees.
+                        </p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </>
         )}
 
