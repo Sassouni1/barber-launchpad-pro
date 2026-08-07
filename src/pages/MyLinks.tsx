@@ -1047,16 +1047,56 @@ export default function MyLinks() {
                   onChange={(e) => setCustomAmount(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="custom-klarna"
-                  checked={customKlarna}
-                  onCheckedChange={(v) => setCustomKlarna(!!v)}
-                />
-                <Label htmlFor="custom-klarna" className="font-normal">
-                  Allow Klarna (pay over time)
-                </Label>
+              <div className="space-y-2">
+                <Label>Billing frequency</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { v: 'one_time', label: 'One time' },
+                    { v: 'monthly', label: 'Monthly' },
+                    { v: 'week', label: 'Weekly' },
+                    { v: 'day', label: 'Daily' },
+                  ] as const).map((o) => {
+                    const value = o.v === 'monthly' ? 'month' : o.v;
+                    const active = customInterval === value;
+                    return (
+                      <Button
+                        key={value}
+                        type="button"
+                        size="sm"
+                        variant={active ? 'default' : 'outline'}
+                        className={active ? 'gold-gradient text-black font-semibold' : ''}
+                        onClick={() => setCustomInterval(value as any)}
+                      >
+                        {o.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+                {customInterval !== 'one_time' && (
+                  <p className="text-xs text-muted-foreground">
+                    The client is charged automatically every{' '}
+                    {customInterval === 'month'
+                      ? 'month'
+                      : customInterval === 'week'
+                        ? 'week'
+                        : 'day'}{' '}
+                    until they cancel. Recurring plans are card only (Klarna isn't
+                    supported for subscriptions).
+                  </p>
+                )}
               </div>
+              {customInterval === 'one_time' && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="custom-klarna"
+                    checked={customKlarna}
+                    onCheckedChange={(v) => setCustomKlarna(!!v)}
+                  />
+                  <Label htmlFor="custom-klarna" className="font-normal">
+                    Allow Klarna (pay over time)
+                  </Label>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="custom-phone"
@@ -1067,6 +1107,11 @@ export default function MyLinks() {
                   Collect client phone number
                 </Label>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Every link collects the client's first name, last name, billing
+                address and (when enabled) phone number at checkout.
+              </p>
+
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCustomOpen(false)}>
