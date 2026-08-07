@@ -26,6 +26,7 @@ import {
   Sparkles,
   Plus,
   DollarSign,
+  Undo2,
 } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
