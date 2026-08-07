@@ -51,6 +51,26 @@ interface LinkRow {
   payment_method_types?: string[] | null;
 }
 
+interface Earnings {
+  currency: string;
+  available: number;
+  pending: number;
+  today: number;
+  todayCount: number;
+  last7: number;
+  last30: number;
+  last30Count: number;
+  recent: Array<{
+    id: string;
+    amount: number;
+    currency: string;
+    created: number;
+    description: string | null;
+    customerName: string | null;
+    customerEmail: string | null;
+  }>;
+}
+
 const FN_NAME = 'barber-launch-stripe';
 
 function formatMoney(cents: number, currency = 'usd') {
@@ -60,6 +80,15 @@ function formatMoney(cents: number, currency = 'usd') {
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }
+
+function formatMoneyExact(cents: number, currency = 'usd') {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+  }).format(cents / 100);
+}
+
+
 
 export default function MyLinks() {
   const { user } = useAuth();
