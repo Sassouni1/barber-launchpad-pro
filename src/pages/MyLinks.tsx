@@ -856,8 +856,9 @@ export default function MyLinks() {
                 </CardContent>
               </Card>
             )}
+              </TabsContent>
 
-
+              <TabsContent value="links" className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex flex-wrap items-center justify-between gap-2">
