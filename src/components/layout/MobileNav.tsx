@@ -72,10 +72,11 @@ function useMobileMembers() {
   });
 }
 
-function NavRow({ to, icon: Icon, label, onClick }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; onClick?: () => void }) {
+function NavRow({ to, icon: Icon, label, onClick, dataTour }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; onClick?: () => void; dataTour?: string }) {
   return (
     <NavLink
       to={to}
+      data-tour={dataTour}
       onClick={onClick}
       className={({ isActive }) =>
         cn(
