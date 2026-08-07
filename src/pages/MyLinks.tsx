@@ -375,14 +375,21 @@ export default function MyLinks() {
         amountCents: Math.round(amount * 100),
         allowKlarna: customKlarna,
         collectPhone: customPhone,
+        interval: customInterval,
+        intervalCount: 1,
       });
       setLinks(data.links ?? []);
-      toast.success('Custom payment link created');
+      toast.success(
+        customInterval === 'one_time'
+          ? 'Custom payment link created'
+          : 'Recurring payment link created'
+      );
       setCustomOpen(false);
       setCustomName('');
       setCustomAmount('');
       setCustomKlarna(true);
       setCustomPhone(true);
+      setCustomInterval('one_time');
     } catch (e: any) {
       if (e?.message !== 'BACKEND_UNAVAILABLE') {
         toast.error(e?.message || 'Could not create link');
