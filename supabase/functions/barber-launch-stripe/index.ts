@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
             "line_items[0][quantity]": 1,
             "payment_method_types[0]": "card",
             "payment_method_types[1]": "klarna",
-            "phone_number_collection[enabled]": "true",
+            ...collectionFields(true),
             "metadata[user_id]": userId,
             "metadata[template_key]": preset.template_key,
             "metadata[app]": "barber_launch_pro",
