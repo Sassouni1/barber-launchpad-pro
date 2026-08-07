@@ -55,7 +55,10 @@ interface LinkRow {
   url: string | null;
   stripe_payment_link_id: string | null;
   payment_method_types?: string[] | null;
+  recurring_interval?: string | null;
+  recurring_interval_count?: number | null;
 }
+
 
 interface Earnings {
   currency: string;
