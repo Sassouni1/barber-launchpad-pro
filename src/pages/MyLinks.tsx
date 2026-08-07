@@ -423,6 +423,77 @@ export default function MyLinks() {
             </Card>
           </>
         )}
+
+        <Dialog open={customOpen} onOpenChange={setCustomOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create a custom payment link</DialogTitle>
+              <DialogDescription>
+                Name it whatever you want and set your own price. It goes straight to
+                your Stripe account.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="custom-name">Link name</Label>
+                <Input
+                  id="custom-name"
+                  placeholder="e.g. Custom Install — Consultation"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  maxLength={120}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="custom-amount">Price (USD)</Label>
+                <Input
+                  id="custom-amount"
+                  type="number"
+                  min={1}
+                  step="1"
+                  placeholder="450"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="custom-klarna"
+                  checked={customKlarna}
+                  onCheckedChange={(v) => setCustomKlarna(!!v)}
+                />
+                <Label htmlFor="custom-klarna" className="font-normal">
+                  Allow Klarna (pay over time)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="custom-phone"
+                  checked={customPhone}
+                  onCheckedChange={(v) => setCustomPhone(!!v)}
+                />
+                <Label htmlFor="custom-phone" className="font-normal">
+                  Collect client phone number
+                </Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCustomOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={onCreateCustom}
+                disabled={busy === 'custom'}
+                className="gold-gradient text-black font-semibold"
+              >
+                {busy === 'custom' && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                )}
+                Create Link
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
