@@ -1073,6 +1073,51 @@ export default function MyLinks() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog
+          open={!!cancelTarget}
+          onOpenChange={(o) => !o && setCancelTarget(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel subscription</DialogTitle>
+              <DialogDescription>
+                {cancelTarget && (
+                  <>
+                    Canceling the plan for{' '}
+                    {cancelTarget.customerName ||
+                      cancelTarget.customerEmail ||
+                      'this client'}
+                    . You can end it now, or let them keep access until the current
+                    period is over.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setCancelTarget(null)}>
+                Keep it
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => onCancelSubscription(false)}
+                disabled={busy === 'cancel'}
+              >
+                {busy === 'cancel' && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                )}
+                End at period end
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => onCancelSubscription(true)}
+                disabled={busy === 'cancel'}
+              >
+                Cancel now
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
     </DashboardLayout>
