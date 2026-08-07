@@ -264,7 +264,8 @@ export const TrackedVimeoPlayer = React.memo(
             durationRef.current = duration;
           }
           if (initialState.position > 2 && !initialState.completed) {
-            await player.setCurrentTime(initialState.position);
+            // Queue the resume instead of seeking now, so the thumbnail stays.
+            pendingSeekRef.current = initialState.position;
             lastTimeRef.current = initialState.position;
           } else {
             lastTimeRef.current = 0;
