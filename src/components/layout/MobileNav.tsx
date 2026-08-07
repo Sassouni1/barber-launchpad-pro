@@ -161,6 +161,14 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
 
   const closeMenu = () => setMenuOpen(false);
 
+  // Allow guided walkthroughs to open the mobile menu.
+  useEffect(() => {
+    const handler = () => setMenuOpen(true);
+    window.addEventListener('tour:open-mobile-menu', handler);
+    return () => window.removeEventListener('tour:open-mobile-menu', handler);
+  }, []);
+
+
   const adminLinks = [
     { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
     { to: '/admin/members', icon: Users, label: 'Members' },
