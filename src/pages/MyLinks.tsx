@@ -76,6 +76,31 @@ interface Earnings {
 
 type RecentPayment = Earnings['recent'][number];
 
+interface SubscriptionRow {
+  id: string;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: number | null;
+  canceledAt: number | null;
+  amount: number;
+  currency: string;
+  interval: string | null;
+  productName: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+}
+
+interface CustomerRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  created: number;
+  totalSpent: number;
+  paymentCount: number;
+  lastPayment: number | null;
+}
+
 
 const FN_NAME = 'barber-launch-stripe';
 
