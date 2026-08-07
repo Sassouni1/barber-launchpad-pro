@@ -28,6 +28,7 @@ import {
   Plus,
   DollarSign,
   Undo2,
+  Receipt,
   RotateCcw,
   XCircle,
   Users,
