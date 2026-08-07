@@ -88,6 +88,16 @@ export default function MyLinks() {
       setAccount(data.account ?? null);
       setLinks(data.links ?? []);
       setBackendUnavailable(false);
+
+      // Auto-create the preset payment links the first time the account is ready.
+      if (data?.account?.charges_enabled && (data.links ?? []).length === 0) {
+        try {
+          const synced = await invoke('syncPaymentLinks');
+          if (synced?.links) setLinks(synced.links);
+        } catch (_) {
+          /* silent — user can still tap the sync button */
+        }
+      }
     } catch (e: any) {
       if (e?.message !== 'BACKEND_UNAVAILABLE') {
         toast.error(e?.message || 'Could not load Stripe status');
@@ -101,6 +111,7 @@ export default function MyLinks() {
     if (user) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
 
   const onStartOnboarding = async () => {
     setBusy('onboard');
