@@ -233,12 +233,17 @@ export function useCertificationEligibility(courseId: string | undefined) {
 }
 
 // Hook to manage certification photos
-export function useCertificationPhotos(courseId: string | undefined) {
+export type CertificationPhotoType = 'template' | 'installation';
+
+export function useCertificationPhotos(
+  courseId: string | undefined,
+  photoType: CertificationPhotoType = 'template',
+) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const photosQuery = useQuery({
-    queryKey: ['certification-photos', courseId, user?.id],
+    queryKey: ['certification-photos', courseId, user?.id, photoType],
     queryFn: async () => {
       if (!user?.id || !courseId) return [];
 
@@ -250,7 +255,12 @@ export function useCertificationPhotos(courseId: string | undefined) {
         .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
-      return data as CertificationPhoto[];
+      // Legacy rows have no photo_type; treat them as template submissions.
+      return (data as CertificationPhoto[]).filter((p) =>
+        photoType === 'installation'
+          ? (p as any).photo_type === 'installation'
+          : (p as any).photo_type !== 'installation',
+      );
     },
     enabled: !!user?.id && !!courseId,
     staleTime: 30000, // 30 seconds
@@ -283,9 +293,11 @@ export function useCertificationPhotos(courseId: string | undefined) {
           course_id: courseId,
           file_name: file.name,
           file_url: publicUrl,
+          photo_type: photoType,
         })
         .select()
         .single();
+
 
       if (error) throw error;
       supabase.functions.invoke('notify-certification-submission', {
