@@ -552,6 +552,36 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
               ) : null}
             </div>
           </div>
+          {/* Installation & Cut Photo Requirement Status */}
+          {eligibility?.requiresInstallationPhoto && (
+            <div className="p-4 rounded-lg bg-secondary/20 border border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Camera className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                      Installation & Cut Photo
+                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      {eligibility?.hasInstallationPhotos ? 'Photo uploaded' : 'Upload required'}
+                    </p>
+                  </div>
+                </div>
+                {eligibility?.hasInstallationPhotos ? (
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                ) : installUploadModule ? (
+                  <Link to={`/courses/${installUploadModule.courseCategory}/lesson/${installUploadModule.id}`}>
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      Learn more
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Status & Action */}
