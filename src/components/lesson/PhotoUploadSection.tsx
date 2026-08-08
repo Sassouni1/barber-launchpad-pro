@@ -1,13 +1,51 @@
 import { Link } from 'react-router-dom';
 import { Camera, CheckCircle, AlertCircle } from 'lucide-react';
 import { PhotoUploader } from '@/components/certification/PhotoUploader';
-import { useCertificationPhotos } from '@/hooks/useCertification';
+import { useCertificationPhotos, type CertificationPhotoType } from '@/hooks/useCertification';
 
 interface PhotoUploadSectionProps {
   courseId: string;
+  photoType?: CertificationPhotoType;
 }
 
-export function PhotoUploadSection({ courseId }: PhotoUploadSectionProps) {
+const COPY: Record<CertificationPhotoType, {
+  heading: string;
+  subheading: string;
+  intro: string;
+  steps: string[];
+  uploaderTitle: string;
+  uploaderHint: string;
+}> = {
+  template: {
+    heading: 'Upload Your Template Photo',
+    subheading: 'This is required to earn your certification',
+    intro:
+      "Send a picture of you doing a hair system template on yourself, loved one, or client. Show a picture of it cut out and on the person's head showing that it fit.",
+    steps: [
+      'Take a clear photo of your completed hair system template',
+      'Make sure the lighting is good and the template is clearly visible',
+      'Upload the photo using the uploader below',
+    ],
+    uploaderTitle: 'Upload Photo of Hair System Template',
+    uploaderHint: 'Upload a photo of your hair system template',
+  },
+  installation: {
+    heading: 'Upload Your Installation & Cut Photos',
+    subheading: 'This is required to earn your certification',
+    intro:
+      'Send photos of a hair system you installed on yourself, a loved one, or a client — after it has been cut in and blended. We want to see the finished install and the cut.',
+    steps: [
+      'Take a clear photo of the installed hair system on the head',
+      'Take a photo showing the cut and blend (front hairline and sides)',
+      'Make sure the lighting is good and nothing is blurry',
+      'Upload the photos using the uploader below',
+    ],
+    uploaderTitle: 'Upload Installation & Cut Photos',
+    uploaderHint: 'Upload photos of the finished install and cut',
+  },
+};
+
+export function PhotoUploadSection({ courseId, photoType = 'template' }: PhotoUploadSectionProps) {
   const {
     photos,
     isLoading,
@@ -15,8 +53,9 @@ export function PhotoUploadSection({ courseId }: PhotoUploadSectionProps) {
     isUploading,
     deletePhoto,
     isDeleting,
-  } = useCertificationPhotos(courseId);
+  } = useCertificationPhotos(courseId, photoType);
 
+  const copy = COPY[photoType];
   const hasPhotos = photos.length > 0;
 
   return (
@@ -28,31 +67,21 @@ export function PhotoUploadSection({ courseId }: PhotoUploadSectionProps) {
             <Camera className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold gold-text">Upload Your Template Photo</h2>
-            <p className="text-sm text-muted-foreground">
-              This is required to earn your certification
-            </p>
+            <h2 className="font-display text-lg font-bold gold-text">{copy.heading}</h2>
+            <p className="text-sm text-muted-foreground">{copy.subheading}</p>
           </div>
         </div>
 
         <div className="p-4 rounded-lg bg-secondary/20 border border-border space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Send a picture of you doing a hair system template on yourself, loved one, or client. Show a picture of it cut out and on the person's head showing that it fit.
-          </p>
+          <p className="text-sm text-muted-foreground">{copy.intro}</p>
           <h3 className="font-semibold text-sm">Instructions:</h3>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <span className="text-primary mt-0.5">1.</span>
-              <span>Take a clear photo of your completed hair system template</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary mt-0.5">2.</span>
-              <span>Make sure the lighting is good and the template is clearly visible</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary mt-0.5">3.</span>
-              <span>Upload the photo using the uploader below</span>
-            </li>
+            {copy.steps.map((step, index) => (
+              <li key={step} className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">{index + 1}.</span>
+                <span>{step}</span>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
@@ -65,6 +94,8 @@ export function PhotoUploadSection({ courseId }: PhotoUploadSectionProps) {
           onDelete={deletePhoto}
           isUploading={isUploading}
           isDeleting={isDeleting}
+          title={copy.uploaderTitle}
+          hint={copy.uploaderHint}
         />
       </div>
 
