@@ -102,6 +102,17 @@ export function useCompletedModules() {
 
         if (photosError) throw photosError;
 
+        // Members who already earned a certificate for a course are
+        // grandfathered past newer photo requirements for that course.
+        const { data: existingCerts, error: existingCertsError } = await supabase
+          .from("certifications")
+          .select("course_id")
+          .eq("user_id", user.id);
+        if (existingCertsError) throw existingCertsError;
+        const certifiedCourseIds = new Set(
+          (existingCerts || []).map((c) => c.course_id),
+        );
+
         // Legacy rows without a photo_type count as template submissions.
         const submitted = new Set(
           (photos || []).map(
@@ -115,7 +126,14 @@ export function useCompletedModules() {
             (m as any).certification_photo_type === "installation"
               ? "installation"
               : "template";
-          if (m.course_id && submitted.has(`${m.course_id}:${type}`)) {
+          const grandfathered =
+            type === "installation" &&
+            !!m.course_id &&
+            certifiedCourseIds.has(m.course_id);
+          if (
+            m.course_id &&
+            (submitted.has(`${m.course_id}:${type}`) || grandfathered)
+          ) {
             const existing = map[m.id];
             map[m.id] = {
               bestScore: existing?.bestScore,
@@ -125,6 +143,7 @@ export function useCompletedModules() {
           }
         }
       }
+
 
 
       // Video-only modules (such as "Placing a Hair System Order") complete
