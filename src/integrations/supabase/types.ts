@@ -559,6 +559,7 @@ export type Database = {
           file_name: string
           file_url: string
           id: string
+          photo_type: string
           uploaded_at: string
           user_id: string
         }
@@ -571,6 +572,7 @@ export type Database = {
           file_name: string
           file_url: string
           id?: string
+          photo_type?: string
           uploaded_at?: string
           user_id: string
         }
@@ -583,6 +585,7 @@ export type Database = {
           file_name?: string
           file_url?: string
           id?: string
+          photo_type?: string
           uploaded_at?: string
           user_id?: string
         }
@@ -1232,6 +1235,7 @@ export type Database = {
       }
       modules: {
         Row: {
+          certification_photo_type: string | null
           course_id: string
           created_at: string
           description: string | null
@@ -1250,6 +1254,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          certification_photo_type?: string | null
           course_id: string
           created_at?: string
           description?: string | null
@@ -1268,6 +1273,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          certification_photo_type?: string | null
           course_id?: string
           created_at?: string
           description?: string | null
