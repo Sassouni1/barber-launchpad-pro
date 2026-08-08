@@ -20,6 +20,8 @@ interface SubmissionRow {
   approved: boolean;
   approved_at: string | null;
   admin_note: string | null;
+  photo_type: string | null;
+
 }
 
 interface FulfillmentRequest {
@@ -67,7 +69,7 @@ export default function TemplateSubmissions() {
     queryFn: async () => {
       const { data: photos, error } = await supabase
         .from('certification_photos')
-        .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at, admin_note')
+        .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at, admin_note, photo_type')
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
 
@@ -406,7 +408,11 @@ export default function TemplateSubmissions() {
                                 <CheckCircle2 className="w-5 h-5 text-green-400 drop-shadow-md" />
                               </div>
                             )}
+                            <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-background/80 text-[10px] font-medium">
+                              {s.photo_type === 'installation' ? 'Install & Cut' : 'Template'}
+                            </div>
                           </div>
+
                           <div className="p-2">
                             <p className="text-xs text-muted-foreground truncate">
                               {format(new Date(s.uploaded_at), 'MMM d, yyyy')}

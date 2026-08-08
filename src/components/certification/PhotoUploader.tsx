@@ -50,6 +50,8 @@ interface PhotoUploaderProps {
   onDelete: (photoId: string) => void;
   isUploading: boolean;
   isDeleting: boolean;
+  title?: string;
+  hint?: string;
 }
 
 export function PhotoUploader({
@@ -58,8 +60,11 @@ export function PhotoUploader({
   onDelete,
   isUploading,
   isDeleting,
+  title = 'Upload Photo of Hair System Template',
+  hint = 'Upload a photo of your hair system template',
 }: PhotoUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
@@ -84,7 +89,7 @@ export function PhotoUploader({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="min-w-0 truncate font-semibold text-sm">Upload Photo of Hair System Template</h4>
+        <h4 className="min-w-0 truncate font-semibold text-sm">{title}</h4>
         <span className={cn(
           "text-sm font-medium px-2 py-0.5 rounded-full",
           photos.length > 0 
@@ -124,7 +129,7 @@ export function PhotoUploader({
           {isUploading ? 'Uploading...' : 'Drop images here or click to upload'}
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          Upload a photo of your hair system template
+          {hint}
         </p>
       </div>
 

@@ -201,6 +201,15 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
     deletePhoto,
     isDeleting,
   } = useCertificationPhotos(courseId);
+  const {
+    photos: installPhotos,
+    isLoading: isLoadingInstallPhotos,
+    uploadPhoto: uploadInstallPhoto,
+    isUploading: isUploadingInstall,
+    deletePhoto: deleteInstallPhoto,
+    isDeleting: isDeletingInstall,
+  } = useCertificationPhotos(courseId, 'installation');
+
   const { data: existingCertification, isLoading: isLoadingCert } = useUserCertification(courseId);
   const { data: layout } = useCertificateLayout(courseId);
   const { data: certDefaults } = useCertificationDefaults(courseId);
@@ -222,15 +231,19 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
     });
   }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size, layout?.date_font_family]);
 
-  const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingCert;
+  const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingInstallPhotos || isLoadingCert;
 
   const allLessonsDone = lessonsProgress?.completed ?? false;
   const trainingGamesDone = trainingGames?.completed ?? false;
   const photoSubmitted = (photos?.length ?? 0) > 0;
+  const installPhotoSubmitted = (installPhotos?.length ?? 0) > 0;
   const allQuizzesPassed = eligibility?.allQuizzesPassed ?? false;
   const isCertified = !!existingCertification;
-  // Only quizzes + photo are required. Lessons and training games tracked for reference only.
-  const allRequirementsMet = photoSubmitted && allQuizzesPassed;
+  const requiresInstallPhoto = eligibility?.requiresInstallationPhoto ?? !isCertified;
+  // Only quizzes + photos are required. Lessons and training games tracked for reference only.
+  const allRequirementsMet =
+    photoSubmitted && allQuizzesPassed && (!requiresInstallPhoto || installPhotoSubmitted);
+
 
   useEffect(() => {
     if (!isOpen) {
@@ -452,7 +465,14 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
   const passedQuizCount = eligibility?.quizProgress.filter((q) => q.passed).length ?? 0;
   const totalQuizCount = eligibility?.quizProgress.length ?? 0;
 
-  const requirements = [
+  const requirements: {
+    label: string;
+    completed: boolean;
+    detail?: string;
+    expandable?: boolean;
+    showUploader?: boolean;
+    showInstallUploader?: boolean;
+  }[] = [
     {
       label: 'Pass all quizzes',
       completed: allQuizzesPassed,
@@ -465,7 +485,18 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
       detail: photoSubmitted ? `${photos?.length} photo(s)` : 'None yet',
       showUploader: true,
     },
+    ...(requiresInstallPhoto
+      ? [
+          {
+            label: 'Submit Hair System Installation Photo & Cut',
+            completed: installPhotoSubmitted,
+            detail: installPhotoSubmitted ? `${installPhotos?.length} photo(s)` : 'None yet',
+            showInstallUploader: true,
+          },
+        ]
+      : []),
   ];
+
 
   return (
     <>
@@ -930,6 +961,22 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
                           />
                         </div>
                       )}
+
+                      {/* Installation & Cut Uploader */}
+                      {req.showInstallUploader && (
+                        <div className="ml-8 p-3 rounded-lg bg-secondary/20 border border-border">
+                          <PhotoUploader
+                            photos={installPhotos || []}
+                            onUpload={uploadInstallPhoto}
+                            onDelete={deleteInstallPhoto}
+                            isUploading={isUploadingInstall}
+                            isDeleting={isDeletingInstall}
+                            title="Upload Installation & Cut Photos"
+                            hint="Upload photos of the finished install and cut"
+                          />
+                        </div>
+                      )}
+
                     </div>
                   ))}
                 </div>

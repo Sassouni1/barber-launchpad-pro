@@ -89,7 +89,7 @@ export function useCompletedModules() {
       // photos for the module's course.
       const { data: certModules, error: certModulesError } = await supabase
         .from("modules")
-        .select("id, course_id")
+        .select("id, course_id, certification_photo_type")
         .eq("is_certification_requirement", true);
 
       if (certModulesError) throw certModulesError;
@@ -97,15 +97,25 @@ export function useCompletedModules() {
       if (certModules && certModules.length > 0) {
         const { data: photos, error: photosError } = await supabase
           .from("certification_photos")
-          .select("course_id")
+          .select("course_id, photo_type")
           .eq("user_id", user.id);
 
         if (photosError) throw photosError;
 
-        const coursesWithPhotos = new Set((photos || []).map((p) => p.course_id));
+        // Legacy rows without a photo_type count as template submissions.
+        const submitted = new Set(
+          (photos || []).map(
+            (p) =>
+              `${p.course_id}:${(p as any).photo_type === "installation" ? "installation" : "template"}`,
+          ),
+        );
 
         for (const m of certModules) {
-          if (m.course_id && coursesWithPhotos.has(m.course_id)) {
+          const type =
+            (m as any).certification_photo_type === "installation"
+              ? "installation"
+              : "template";
+          if (m.course_id && submitted.has(`${m.course_id}:${type}`)) {
             const existing = map[m.id];
             map[m.id] = {
               bestScore: existing?.bestScore,
@@ -115,6 +125,7 @@ export function useCompletedModules() {
           }
         }
       }
+
 
       // Video-only modules (such as "Placing a Hair System Order") complete
       // through user_progress rather than a quiz attempt. Reflect those

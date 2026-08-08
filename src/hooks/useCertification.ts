@@ -68,14 +68,17 @@ export function useCertificationEligibility(courseId: string | undefined) {
     queryFn: async () => {
       if (!user?.id || !courseId) {
         return {
-          quizProgress: [],
+          quizProgress: [] as QuizProgress[],
           allQuizzesPassed: false,
           hasPhotos: false,
+          hasInstallationPhotos: false,
+          requiresInstallationPhoto: true,
           allLessonsCompleted: false,
           isEligible: false,
           hasExistingCertification: false,
           requiresNewCertificationQuizzes: false,
         };
+
       }
 
       // Get all modules for hair-system courses with quizzes
@@ -154,17 +157,23 @@ export function useCertificationEligibility(courseId: string | undefined) {
 
       const allQuizzesPassed = quizProgress.length > 0 && quizProgress.every(q => q.passed);
 
-      // Check if user has uploaded photos for any hair-system course
+      // Check which photo submissions the user has completed for this course
       const { data: photos, error: photosError } = await supabase
         .from('certification_photos')
-        .select('id')
+        .select('id, photo_type')
         .eq('user_id', user.id)
-        .eq('course_id', courseId)
-        .limit(1);
+        .eq('course_id', courseId);
 
       if (photosError) throw photosError;
 
-      const hasPhotos = (photos?.length || 0) > 0;
+      const hasTemplatePhotos = (photos || []).some(
+        (p) => (p as any).photo_type !== 'installation',
+      );
+      const hasInstallationPhotos = (photos || []).some(
+        (p) => (p as any).photo_type === 'installation',
+      );
+      const hasPhotos = hasTemplatePhotos;
+
 
       // Check if all lessons are completed
       const allModuleIds = certificationModules.map(m => m.id);
@@ -197,15 +206,26 @@ export function useCertificationEligibility(courseId: string | undefined) {
         }
       }
 
+      // Existing certificate holders are grandfathered past the newer
+      // installation-photo requirement, same as the newer quizzes.
+      const requiresInstallationPhoto = !hasExistingCertification;
+
       return {
         quizProgress,
         allQuizzesPassed,
         hasPhotos,
+        hasInstallationPhotos,
+        requiresInstallationPhoto,
         allLessonsCompleted,
-        isEligible: allQuizzesPassed && hasPhotos && allLessonsCompleted,
+        isEligible:
+          allQuizzesPassed &&
+          hasPhotos &&
+          allLessonsCompleted &&
+          (!requiresInstallationPhoto || hasInstallationPhotos),
         hasExistingCertification,
         requiresNewCertificationQuizzes: requiresNewQuizzes,
       };
+
     },
     enabled: !!user?.id && !!courseId,
     staleTime: 30000, // 30 seconds
@@ -213,12 +233,17 @@ export function useCertificationEligibility(courseId: string | undefined) {
 }
 
 // Hook to manage certification photos
-export function useCertificationPhotos(courseId: string | undefined) {
+export type CertificationPhotoType = 'template' | 'installation';
+
+export function useCertificationPhotos(
+  courseId: string | undefined,
+  photoType: CertificationPhotoType = 'template',
+) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const photosQuery = useQuery({
-    queryKey: ['certification-photos', courseId, user?.id],
+    queryKey: ['certification-photos', courseId, user?.id, photoType],
     queryFn: async () => {
       if (!user?.id || !courseId) return [];
 
@@ -230,7 +255,12 @@ export function useCertificationPhotos(courseId: string | undefined) {
         .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
-      return data as CertificationPhoto[];
+      // Legacy rows have no photo_type; treat them as template submissions.
+      return (data as CertificationPhoto[]).filter((p) =>
+        photoType === 'installation'
+          ? (p as any).photo_type === 'installation'
+          : (p as any).photo_type !== 'installation',
+      );
     },
     enabled: !!user?.id && !!courseId,
     staleTime: 30000, // 30 seconds
@@ -263,9 +293,11 @@ export function useCertificationPhotos(courseId: string | undefined) {
           course_id: courseId,
           file_name: file.name,
           file_url: publicUrl,
+          photo_type: photoType,
         })
         .select()
         .single();
+
 
       if (error) throw error;
       supabase.functions.invoke('notify-certification-submission', {

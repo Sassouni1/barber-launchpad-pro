@@ -297,19 +297,28 @@ serve(async (req) => {
         throw new Error('Complete all required quizzes before generating your Level 1 Certification.');
       }
 
-      const { data: certificationPhoto, error: photoError } = await supabase
+      const { data: certificationPhotos, error: photoError } = await supabase
         .from('certification_photos')
-        .select('id')
+        .select('id, photo_type')
         .eq('user_id', userId)
-        .eq('course_id', courseId)
-        .limit(1)
-        .maybeSingle();
+        .eq('course_id', courseId);
       if (photoError) {
         throw new Error(`Failed to check certification photo: ${photoError.message}`);
       }
-      if (!certificationPhoto) {
+      // Legacy rows have no photo_type and count as template submissions.
+      const hasTemplatePhoto = (certificationPhotos || []).some(
+        (p: { photo_type?: string | null }) => p.photo_type !== 'installation',
+      );
+      const hasInstallationPhoto = (certificationPhotos || []).some(
+        (p: { photo_type?: string | null }) => p.photo_type === 'installation',
+      );
+      if (!hasTemplatePhoto) {
         throw new Error('Upload at least one certification photo before generating your certificate.');
       }
+      if (!hasInstallationPhoto) {
+        throw new Error('Upload your hair system installation photo and cut before generating your certificate.');
+      }
+
     }
 
     // Get stored layout from database (use maybeSingle to handle missing gracefully)

@@ -1168,7 +1168,15 @@ export default function Lesson() {
         {/* Photo Upload Section for certification requirement modules */}
         {(module as any).is_certification_requirement && (
           <div className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
-            <PhotoUploadSection courseId={module.courseId} />
+            <PhotoUploadSection
+              courseId={module.courseId}
+              photoType={
+                (module as any).certification_photo_type === 'installation'
+                  ? 'installation'
+                  : 'template'
+              }
+            />
+
           </div>
         )}
 
