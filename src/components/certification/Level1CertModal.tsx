@@ -465,7 +465,14 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
   const passedQuizCount = eligibility?.quizProgress.filter((q) => q.passed).length ?? 0;
   const totalQuizCount = eligibility?.quizProgress.length ?? 0;
 
-  const requirements = [
+  const requirements: {
+    label: string;
+    completed: boolean;
+    detail?: string;
+    expandable?: boolean;
+    showUploader?: boolean;
+    showInstallUploader?: boolean;
+  }[] = [
     {
       label: 'Pass all quizzes',
       completed: allQuizzesPassed,
@@ -478,7 +485,18 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
       detail: photoSubmitted ? `${photos?.length} photo(s)` : 'None yet',
       showUploader: true,
     },
+    ...(requiresInstallPhoto
+      ? [
+          {
+            label: 'Submit Hair System Installation Photo & Cut',
+            completed: installPhotoSubmitted,
+            detail: installPhotoSubmitted ? `${installPhotos?.length} photo(s)` : 'None yet',
+            showInstallUploader: true,
+          },
+        ]
+      : []),
   ];
+
 
   return (
     <>
