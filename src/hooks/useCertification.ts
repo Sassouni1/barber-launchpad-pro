@@ -203,15 +203,26 @@ export function useCertificationEligibility(courseId: string | undefined) {
         }
       }
 
+      // Existing certificate holders are grandfathered past the newer
+      // installation-photo requirement, same as the newer quizzes.
+      const requiresInstallationPhoto = !hasExistingCertification;
+
       return {
         quizProgress,
         allQuizzesPassed,
         hasPhotos,
+        hasInstallationPhotos,
+        requiresInstallationPhoto,
         allLessonsCompleted,
-        isEligible: allQuizzesPassed && hasPhotos && allLessonsCompleted,
+        isEligible:
+          allQuizzesPassed &&
+          hasPhotos &&
+          allLessonsCompleted &&
+          (!requiresInstallationPhoto || hasInstallationPhotos),
         hasExistingCertification,
         requiresNewCertificationQuizzes: requiresNewQuizzes,
       };
+
     },
     enabled: !!user?.id && !!courseId,
     staleTime: 30000, // 30 seconds
