@@ -930,6 +930,22 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
                           />
                         </div>
                       )}
+
+                      {/* Installation & Cut Uploader */}
+                      {req.showInstallUploader && (
+                        <div className="ml-8 p-3 rounded-lg bg-secondary/20 border border-border">
+                          <PhotoUploader
+                            photos={installPhotos || []}
+                            onUpload={uploadInstallPhoto}
+                            onDelete={deleteInstallPhoto}
+                            isUploading={isUploadingInstall}
+                            isDeleting={isDeletingInstall}
+                            title="Upload Installation & Cut Photos"
+                            hint="Upload photos of the finished install and cut"
+                          />
+                        </div>
+                      )}
+
                     </div>
                   ))}
                 </div>
