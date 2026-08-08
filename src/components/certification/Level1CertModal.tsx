@@ -201,6 +201,15 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
     deletePhoto,
     isDeleting,
   } = useCertificationPhotos(courseId);
+  const {
+    photos: installPhotos,
+    isLoading: isLoadingInstallPhotos,
+    uploadPhoto: uploadInstallPhoto,
+    isUploading: isUploadingInstall,
+    deletePhoto: deleteInstallPhoto,
+    isDeleting: isDeletingInstall,
+  } = useCertificationPhotos(courseId, 'installation');
+
   const { data: existingCertification, isLoading: isLoadingCert } = useUserCertification(courseId);
   const { data: layout } = useCertificateLayout(courseId);
   const { data: certDefaults } = useCertificationDefaults(courseId);
