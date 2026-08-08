@@ -20,6 +20,8 @@ interface SubmissionRow {
   approved: boolean;
   approved_at: string | null;
   admin_note: string | null;
+  photo_type: string | null;
+
 }
 
 interface FulfillmentRequest {
