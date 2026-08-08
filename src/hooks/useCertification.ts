@@ -68,14 +68,17 @@ export function useCertificationEligibility(courseId: string | undefined) {
     queryFn: async () => {
       if (!user?.id || !courseId) {
         return {
-          quizProgress: [],
+          quizProgress: [] as QuizProgress[],
           allQuizzesPassed: false,
           hasPhotos: false,
+          hasInstallationPhotos: false,
+          requiresInstallationPhoto: true,
           allLessonsCompleted: false,
           isEligible: false,
           hasExistingCertification: false,
           requiresNewCertificationQuizzes: false,
         };
+
       }
 
       // Get all modules for hair-system courses with quizzes
