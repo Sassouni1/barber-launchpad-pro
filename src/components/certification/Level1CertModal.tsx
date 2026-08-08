@@ -231,15 +231,19 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
     });
   }, [layout?.id, layout?.name_x, layout?.name_y, layout?.name_font_size, layout?.date_x, layout?.date_y, layout?.date_font_size, layout?.date_font_family]);
 
-  const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingCert;
+  const isLoading = isLoadingLessons || isLoadingTraining || isLoadingEligibility || isLoadingPhotos || isLoadingInstallPhotos || isLoadingCert;
 
   const allLessonsDone = lessonsProgress?.completed ?? false;
   const trainingGamesDone = trainingGames?.completed ?? false;
   const photoSubmitted = (photos?.length ?? 0) > 0;
+  const installPhotoSubmitted = (installPhotos?.length ?? 0) > 0;
   const allQuizzesPassed = eligibility?.allQuizzesPassed ?? false;
   const isCertified = !!existingCertification;
-  // Only quizzes + photo are required. Lessons and training games tracked for reference only.
-  const allRequirementsMet = photoSubmitted && allQuizzesPassed;
+  const requiresInstallPhoto = eligibility?.requiresInstallationPhoto ?? !isCertified;
+  // Only quizzes + photos are required. Lessons and training games tracked for reference only.
+  const allRequirementsMet =
+    photoSubmitted && allQuizzesPassed && (!requiresInstallPhoto || installPhotoSubmitted);
+
 
   useEffect(() => {
     if (!isOpen) {
