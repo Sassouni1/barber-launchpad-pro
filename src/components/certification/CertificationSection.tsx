@@ -88,10 +88,18 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
   const resetCertification = useResetCertification();
   const markDownloaded = useMarkCertificateDownloaded();
 
-  // Find the photo upload module (has is_certification_requirement = true)
-  const photoUploadModule = courses
-    .flatMap(c => (c.modules || []).map(m => ({ ...m, courseCategory: (c as any).category })))
-    .find(m => (m as any).is_certification_requirement);
+  // Find the photo upload modules (is_certification_requirement = true)
+  const certRequirementModules = courses
+    .flatMap(c => (c.modules || []).map(m => ({ ...m, courseCategory: (c as any).category })));
+  const photoUploadModule = certRequirementModules.find(
+    m => (m as any).is_certification_requirement &&
+      (m as any).certification_photo_type !== 'installation',
+  );
+  const installUploadModule = certRequirementModules.find(
+    m => (m as any).is_certification_requirement &&
+      (m as any).certification_photo_type === 'installation',
+  );
+
 
   const isLoading = isLoadingEligibility || isLoadingCertification || isLoadingPhotos;
 
