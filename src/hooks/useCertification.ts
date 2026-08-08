@@ -154,17 +154,23 @@ export function useCertificationEligibility(courseId: string | undefined) {
 
       const allQuizzesPassed = quizProgress.length > 0 && quizProgress.every(q => q.passed);
 
-      // Check if user has uploaded photos for any hair-system course
+      // Check which photo submissions the user has completed for this course
       const { data: photos, error: photosError } = await supabase
         .from('certification_photos')
-        .select('id')
+        .select('id, photo_type')
         .eq('user_id', user.id)
-        .eq('course_id', courseId)
-        .limit(1);
+        .eq('course_id', courseId);
 
       if (photosError) throw photosError;
 
-      const hasPhotos = (photos?.length || 0) > 0;
+      const hasTemplatePhotos = (photos || []).some(
+        (p) => (p as any).photo_type !== 'installation',
+      );
+      const hasInstallationPhotos = (photos || []).some(
+        (p) => (p as any).photo_type === 'installation',
+      );
+      const hasPhotos = hasTemplatePhotos;
+
 
       // Check if all lessons are completed
       const allModuleIds = certificationModules.map(m => m.id);
