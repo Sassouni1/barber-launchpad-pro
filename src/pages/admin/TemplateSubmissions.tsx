@@ -69,7 +69,7 @@ export default function TemplateSubmissions() {
     queryFn: async () => {
       const { data: photos, error } = await supabase
         .from('certification_photos')
-        .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at, admin_note')
+        .select('id, user_id, course_id, file_name, file_url, uploaded_at, approved, approved_at, admin_note, photo_type')
         .order('uploaded_at', { ascending: false });
       if (error) throw error;
 
