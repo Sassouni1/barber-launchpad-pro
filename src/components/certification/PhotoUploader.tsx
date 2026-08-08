@@ -50,6 +50,8 @@ interface PhotoUploaderProps {
   onDelete: (photoId: string) => void;
   isUploading: boolean;
   isDeleting: boolean;
+  title?: string;
+  hint?: string;
 }
 
 export function PhotoUploader({
@@ -58,8 +60,11 @@ export function PhotoUploader({
   onDelete,
   isUploading,
   isDeleting,
+  title = 'Upload Photo of Hair System Template',
+  hint = 'Upload a photo of your hair system template',
 }: PhotoUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
