@@ -99,6 +99,41 @@ export function SocialMediaPostAssets() {
         )}
       </div>
 
+      <div className="rounded-lg border border-border/50 bg-secondary/20 p-4 space-y-3">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <MapPin className="w-3.5 h-3.5 text-primary" /> Your Location
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="asset-city" className="text-xs">City</Label>
+            <Input
+              id="asset-city"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Dallas"
+              className="h-10"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="asset-state" className="text-xs">State</Label>
+            <Input
+              id="asset-state"
+              value={stateCode}
+              onChange={(e) => setStateCode(e.target.value.slice(0, 2))}
+              placeholder="TX"
+              maxLength={2}
+              className="h-10 uppercase"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {locationLabel
+            ? `Downloads will be named for ${locationLabel} automatically.`
+            : 'Add your city and state and downloads will use it instead of "Your City".'}
+        </p>
+      </div>
+
+
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
