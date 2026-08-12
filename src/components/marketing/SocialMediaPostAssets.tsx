@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Download, Image as ImageIcon, Loader2, MapPin } from 'lucide-react';
+
+const LOCATION_KEY = 'hair-system-content-location';
 
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
 
@@ -23,6 +27,28 @@ const normalizeAssetKey = (file: AssetFile) => {
 
 export function SocialMediaPostAssets() {
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [city, setCity] = useState('');
+  const [stateCode, setStateCode] = useState('');
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LOCATION_KEY) || '{}');
+      if (saved.city) setCity(saved.city);
+      if (saved.state) setStateCode(saved.state);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LOCATION_KEY, JSON.stringify({ city, state: stateCode }));
+  }, [city, stateCode]);
+
+  const locationLabel = [city.trim(), stateCode.trim().toUpperCase()].filter(Boolean).join(', ');
+
+  const displayName = (name: string) =>
+    locationLabel
+      ? name.replace(/\(\s*your\s+city(?:\s*,?\s*your\s+state)?\s*\)/gi, `(${locationLabel})`)
+      : name;
+
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['social-media-post-assets', 'deduped-v2'],
     queryFn: async () => {
@@ -51,10 +77,11 @@ export function SocialMediaPostAssets() {
 
   const download = (file: AssetFile) => {
     setSavingId(file.id);
-    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(file.file_url)}&name=${encodeURIComponent(file.file_name)}`;
+    const outName = displayName(file.file_name);
+    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(file.file_url)}&name=${encodeURIComponent(outName)}`;
     const link = document.createElement('a');
     link.href = proxyUrl;
-    link.download = file.file_name;
+    link.download = outName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -72,6 +99,41 @@ export function SocialMediaPostAssets() {
         )}
       </div>
 
+      <div className="rounded-lg border border-border/50 bg-secondary/20 p-4 space-y-3">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <MapPin className="w-3.5 h-3.5 text-primary" /> Your Location
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="asset-city" className="text-xs">City</Label>
+            <Input
+              id="asset-city"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Dallas"
+              className="h-10"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="asset-state" className="text-xs">State</Label>
+            <Input
+              id="asset-state"
+              value={stateCode}
+              onChange={(e) => setStateCode(e.target.value.slice(0, 2))}
+              placeholder="TX"
+              maxLength={2}
+              className="h-10 uppercase"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {locationLabel
+            ? `Downloads will be named for ${locationLabel} automatically.`
+            : 'Add your city and state and downloads will use it instead of "Your City".'}
+        </p>
+      </div>
+
+
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -85,7 +147,7 @@ export function SocialMediaPostAssets() {
               <div className="aspect-square">
                 <img
                   src={f.file_url}
-                  alt={f.file_name}
+                  alt={displayName(f.file_name)}
                   loading="lazy"
                   className="w-full h-full object-cover"
                 />
