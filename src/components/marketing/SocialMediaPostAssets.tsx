@@ -27,6 +27,28 @@ const normalizeAssetKey = (file: AssetFile) => {
 
 export function SocialMediaPostAssets() {
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [city, setCity] = useState('');
+  const [stateCode, setStateCode] = useState('');
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LOCATION_KEY) || '{}');
+      if (saved.city) setCity(saved.city);
+      if (saved.state) setStateCode(saved.state);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LOCATION_KEY, JSON.stringify({ city, state: stateCode }));
+  }, [city, stateCode]);
+
+  const locationLabel = [city.trim(), stateCode.trim().toUpperCase()].filter(Boolean).join(', ');
+
+  const displayName = (name: string) =>
+    locationLabel
+      ? name.replace(/\(\s*your\s+city(?:\s*,?\s*your\s+state)?\s*\)/gi, `(${locationLabel})`)
+      : name;
+
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['social-media-post-assets', 'deduped-v2'],
     queryFn: async () => {
