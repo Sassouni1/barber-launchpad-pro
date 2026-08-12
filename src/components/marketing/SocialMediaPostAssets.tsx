@@ -147,7 +147,7 @@ export function SocialMediaPostAssets() {
               <div className="aspect-square">
                 <img
                   src={f.file_url}
-                  alt={f.file_name}
+                  alt={displayName(f.file_name)}
                   loading="lazy"
                   className="w-full h-full object-cover"
                 />
