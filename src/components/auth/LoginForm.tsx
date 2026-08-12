@@ -107,6 +107,20 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
     setLoading(true);
 
     try {
+      // Re-check server-side right before sign-in (covers browser autofill,
+      // where the debounced email check never ran).
+      const { data: mustReset } = await (supabase as any).rpc('password_reset_required_for_email', {
+        _email: normalizedEmail,
+      });
+      if (mustReset) {
+        lastCheckedEmail.current = normalizedEmail;
+        setResetRequired(true);
+        setPassword('');
+        setLoading(false);
+        await sendResetEmail();
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password,
