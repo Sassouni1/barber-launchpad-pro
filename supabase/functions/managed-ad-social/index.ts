@@ -169,6 +169,33 @@ Deno.serve(async (req) => {
       return json({ page: publicPages([page])[0] });
     }
 
+    if (action === "syncPage") {
+      const { data: connection, error: connectionError } = await admin
+        .from("ad_social_connections")
+        .select("facebook_page_id")
+        .eq("customer_id", userId)
+        .maybeSingle();
+      if (connectionError) throw connectionError;
+      if (!connection?.facebook_page_id) return json({ error: "Connect a Facebook Page before checking Instagram." }, 409);
+
+      const { data: credentials, error: credentialsError } = await admin
+        .from("ad_social_credentials")
+        .select("facebook_user_access_token")
+        .eq("customer_id", userId)
+        .maybeSingle();
+      if (credentialsError) throw credentialsError;
+      if (!credentials?.facebook_user_access_token) return json({ error: "Reconnect Facebook before checking Instagram." }, 409);
+
+      const page = (await listPages(credentials.facebook_user_access_token)).find((item) => item.id === connection.facebook_page_id);
+      if (!page) return json({ error: "That Facebook Page is no longer available for this connection." }, 404);
+      const { error: updateError } = await admin.from("ad_social_connections").update({
+        instagram_business_account_id: page.instagram_business_account?.id ?? null,
+        last_synced_at: new Date().toISOString(),
+      }).eq("customer_id", userId);
+      if (updateError) throw updateError;
+      return json({ page: publicPages([page])[0] });
+    }
+
     return json({ error: "Unsupported action" }, 400);
   } catch (error) {
     console.error("managed-ad-social", error);
