@@ -112,6 +112,7 @@ const MemberApp = () => (
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
         <Route path="/social-media-post" element={<ProtectedRoute><SocialMediaPost /></ProtectedRoute>} />
         <Route path="/aion" element={<ProtectedRoute><AionPage /></ProtectedRoute>} />
+        <Route path="/ads" element={<ProtectedRoute><Ads /></ProtectedRoute>} />
 
         <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
         <Route path="/checklist" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
