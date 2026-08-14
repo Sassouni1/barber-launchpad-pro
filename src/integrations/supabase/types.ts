@@ -124,6 +124,50 @@ export type Database = {
           },
         ]
       }
+      ad_social_tokens: {
+        Row: {
+          created_at: string
+          customer_id: string
+          facebook_page_id: string | null
+          page_access_token: string | null
+          provider: string
+          scopes: string | null
+          updated_at: string
+          user_access_token: string | null
+          user_token_expires_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          facebook_page_id?: string | null
+          page_access_token?: string | null
+          provider?: string
+          scopes?: string | null
+          updated_at?: string
+          user_access_token?: string | null
+          user_token_expires_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          facebook_page_id?: string | null
+          page_access_token?: string | null
+          provider?: string
+          scopes?: string | null
+          updated_at?: string
+          user_access_token?: string | null
+          user_token_expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_social_tokens_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aion_conversations: {
         Row: {
           created_at: string
