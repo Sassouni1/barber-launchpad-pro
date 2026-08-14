@@ -41,6 +41,24 @@ function detectAspect(text: string): 'square' | 'portrait' | 'landscape' {
   return 'square';
 }
 
+async function downloadImage(url: string, id?: string) {
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = `aion-${id || 'image'}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, '_blank');
+  }
+}
+
+
 
 async function streamChat({
   messages,
