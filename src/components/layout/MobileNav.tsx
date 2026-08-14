@@ -313,6 +313,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                     {!restrictNav && (
                       <NavRow to="/training" icon={Target} label="Games" onClick={closeMenu} />
                     )}
+                    <NavRow to="/ads" icon={Megaphone} label="Ads" onClick={closeMenu} />
 
 
 

@@ -54,4 +54,17 @@ verify_jwt = false
 [functions.barber-launch-stripe]
 verify_jwt = false
 
+[functions.managed-ad-campaigns]
+verify_jwt = false
 
+[functions.managed-ad-billing]
+verify_jwt = false
+
+[functions.managed-ad-stripe-webhook]
+verify_jwt = false
+
+[functions.managed-ad-dispatch]
+verify_jwt = false
+
+[functions.managed-ad-social]
+verify_jwt = false

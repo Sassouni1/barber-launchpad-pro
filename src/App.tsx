@@ -22,6 +22,8 @@ import QRCodesAdmin from "./pages/admin/QRCodes";
 import AccessLog from "./pages/admin/AccessLog";
 import AionConversations from "./pages/admin/AionConversations";
 import AdsManager from "./pages/admin/AdsManager";
+import Ads from "./pages/Ads";
+import FacebookCallback from "./pages/FacebookCallback";
 import AionPage from "./pages/AionPage";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
@@ -51,6 +53,8 @@ import MyLinks from "./pages/MyLinks";
 import GHLCallback from "./pages/GHLCallback";
 import FindASpecialist from "./pages/FindASpecialist";
 import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import DataDeletion from "./pages/DataDeletion";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LocaleProvider } from "./lib/i18n/LocaleProvider";
@@ -87,6 +91,8 @@ const MemberApp = () => (
         <Route path="/create" element={<CreateAccount />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/data-deletion" element={<DataDeletion />} />
         <Route path="/agreement" element={<ProtectedRoute skipAgreementCheck><Agreement /></ProtectedRoute>} />
         <Route path="/auth" element={<Navigate to="/login" replace />} />
 
@@ -110,6 +116,8 @@ const MemberApp = () => (
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
         <Route path="/social-media-post" element={<ProtectedRoute><SocialMediaPost /></ProtectedRoute>} />
         <Route path="/aion" element={<ProtectedRoute><AionPage /></ProtectedRoute>} />
+        <Route path="/ads" element={<ProtectedRoute><Ads /></ProtectedRoute>} />
+        <Route path="/integrations/facebook/callback" element={<ProtectedRoute skipAgreementCheck><FacebookCallback /></ProtectedRoute>} />
 
         <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
         <Route path="/checklist" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
