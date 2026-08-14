@@ -39,8 +39,18 @@ export function FacebookConnectButton() {
       toast.error(error?.message || data?.error || 'Could not start the Facebook connection.');
       return;
     }
-    window.location.href = data.url as string;
+    // Facebook refuses to load inside an iframe (and the Lovable preview is one),
+    // so always hand the OAuth screen to a real top-level browser tab.
+    const opened = window.open(data.url as string, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      try {
+        window.top!.location.href = data.url as string;
+      } catch {
+        toast.error('Please allow pop-ups so Facebook can open in a new tab.');
+      }
+    }
   };
+
 
   const connected = connection?.connection_status === 'connected';
 
