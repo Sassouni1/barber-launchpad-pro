@@ -77,6 +77,150 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_campaign_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          creative_notes: string | null
+          default_daily_budget_cents: number
+          id: string
+          meta_ad_account_id: string
+          name: string
+          objective: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          creative_notes?: string | null
+          default_daily_budget_cents?: number
+          id?: string
+          meta_ad_account_id: string
+          name: string
+          objective?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          creative_notes?: string | null
+          default_daily_budget_cents?: number
+          id?: string
+          meta_ad_account_id?: string
+          name?: string
+          objective?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaign_templates_meta_ad_account_id_fkey"
+            columns: ["meta_ad_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ad_accounts"
+            referencedColumns: ["meta_ad_account_id"]
+          },
+        ]
+      }
+      ad_campaigns: {
+        Row: {
+          audience_notes: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          daily_budget_cents: number
+          desired_status: string
+          funded_cents: number
+          id: string
+          landing_page_url: string | null
+          launched_at: string | null
+          lifetime_budget_cents: number | null
+          member_visible: boolean
+          meta_ad_account_id: string
+          meta_campaign_id: string | null
+          meta_page_id: string | null
+          name: string
+          objective: string
+          paused_at: string | null
+          platform: string
+          spent_cents: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audience_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id: string
+          daily_budget_cents?: number
+          desired_status?: string
+          funded_cents?: number
+          id?: string
+          landing_page_url?: string | null
+          launched_at?: string | null
+          lifetime_budget_cents?: number | null
+          member_visible?: boolean
+          meta_ad_account_id: string
+          meta_campaign_id?: string | null
+          meta_page_id?: string | null
+          name: string
+          objective?: string
+          paused_at?: string | null
+          platform?: string
+          spent_cents?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audience_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          daily_budget_cents?: number
+          desired_status?: string
+          funded_cents?: number
+          id?: string
+          landing_page_url?: string | null
+          launched_at?: string | null
+          lifetime_budget_cents?: number | null
+          member_visible?: boolean
+          meta_ad_account_id?: string
+          meta_campaign_id?: string | null
+          meta_page_id?: string | null
+          name?: string
+          objective?: string
+          paused_at?: string | null
+          platform?: string
+          spent_cents?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_campaigns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_campaigns_meta_ad_account_id_fkey"
+            columns: ["meta_ad_account_id"]
+            isOneToOne: false
+            referencedRelation: "meta_ad_accounts"
+            referencedColumns: ["meta_ad_account_id"]
+          },
+        ]
+      }
       ad_social_connections: {
         Row: {
           connected_at: string | null
@@ -163,6 +307,64 @@ export type Database = {
             foreignKeyName: "ad_social_tokens_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_spend_ledger_entries: {
+        Row: {
+          amount_cents: number
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          entry_type: string
+          external_reference: string | null
+          id: string
+          note: string | null
+        }
+        Insert: {
+          amount_cents: number
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          entry_type: string
+          external_reference?: string | null
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          entry_type?: string
+          external_reference?: string | null
+          id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_spend_ledger_entries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_spend_ledger_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_spend_ledger_entries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1213,6 +1415,36 @@ export type Database = {
           user_id?: string
           variation_type?: string
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      meta_ad_accounts: {
+        Row: {
+          account_mode: string
+          active: boolean
+          created_at: string
+          currency: string
+          meta_ad_account_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          account_mode?: string
+          active?: boolean
+          created_at?: string
+          currency?: string
+          meta_ad_account_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          account_mode?: string
+          active?: boolean
+          created_at?: string
+          currency?: string
+          meta_ad_account_id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

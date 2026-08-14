@@ -58,3 +58,6 @@ verify_jwt = false
 verify_jwt = false
 
 
+
+[functions.managed-ad-campaigns]
+verify_jwt = false

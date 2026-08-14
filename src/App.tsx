@@ -50,6 +50,7 @@ import HairSystemChecklist from "./pages/HairSystemChecklist";
 import MyLinks from "./pages/MyLinks";
 import GHLCallback from "./pages/GHLCallback";
 import FacebookCallback from "./pages/FacebookCallback";
+import Ads from "./pages/Ads";
 import FindASpecialist from "./pages/FindASpecialist";
 import Terms from "./pages/Terms";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -111,6 +112,7 @@ const MemberApp = () => (
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
         <Route path="/social-media-post" element={<ProtectedRoute><SocialMediaPost /></ProtectedRoute>} />
         <Route path="/aion" element={<ProtectedRoute><AionPage /></ProtectedRoute>} />
+        <Route path="/ads" element={<ProtectedRoute><Ads /></ProtectedRoute>} />
 
         <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
         <Route path="/checklist" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
