@@ -206,9 +206,9 @@ export function useCertificationEligibility(courseId: string | undefined) {
         }
       }
 
-      // Existing certificate holders are grandfathered past the newer
-      // installation-photo requirement, same as the newer quizzes.
-      const requiresInstallationPhoto = !hasExistingCertification;
+      // The installation photo is now required for every new certification,
+      // including members who hold an older certificate.
+      const requiresInstallationPhoto = true;
 
       return {
         quizProgress,

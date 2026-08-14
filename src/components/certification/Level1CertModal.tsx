@@ -239,7 +239,7 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
   const installPhotoSubmitted = (installPhotos?.length ?? 0) > 0;
   const allQuizzesPassed = eligibility?.allQuizzesPassed ?? false;
   const isCertified = !!existingCertification;
-  const requiresInstallPhoto = eligibility?.requiresInstallationPhoto ?? !isCertified;
+  const requiresInstallPhoto = eligibility?.requiresInstallationPhoto ?? true;
   // Only quizzes + photos are required. Lessons and training games tracked for reference only.
   const allRequirementsMet =
     photoSubmitted && allQuizzesPassed && (!requiresInstallPhoto || installPhotoSubmitted);
