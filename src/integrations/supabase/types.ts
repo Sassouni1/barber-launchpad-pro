@@ -273,6 +273,8 @@ export type Database = {
           created_at: string
           customer_id: string
           facebook_page_id: string | null
+          oauth_state: string | null
+          oauth_state_created_at: string | null
           page_access_token: string | null
           provider: string
           scopes: string | null
@@ -284,6 +286,8 @@ export type Database = {
           created_at?: string
           customer_id: string
           facebook_page_id?: string | null
+          oauth_state?: string | null
+          oauth_state_created_at?: string | null
           page_access_token?: string | null
           provider?: string
           scopes?: string | null
@@ -295,6 +299,8 @@ export type Database = {
           created_at?: string
           customer_id?: string
           facebook_page_id?: string | null
+          oauth_state?: string | null
+          oauth_state_created_at?: string | null
           page_access_token?: string | null
           provider?: string
           scopes?: string | null
