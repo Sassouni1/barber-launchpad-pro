@@ -38,7 +38,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    if (action === 'listCampaigns') {
+    // getDashboard (and legacy listCampaigns) — Barber Launch preloads campaigns; members cannot create them.
+    if (action === 'getDashboard' || action === 'listCampaigns') {
       const { data, error } = await admin
         .from('ad_campaigns')
         .select('id,name,status,desired_status,daily_budget_cents,funded_cents,spent_cents,currency,landing_page_url,created_at')
@@ -47,47 +48,28 @@ Deno.serve(async (req) => {
         .neq('status', 'archived')
         .order('created_at', { ascending: false });
       if (error) return json({ error: error.message }, 400);
-      return json({ campaigns: data ?? [] });
+      return json({ campaigns: data ?? [], payments_enabled: false });
     }
 
-    if (action === 'createCampaign') {
-      const { data: template } = await admin
-        .from('ad_campaign_templates')
-        .select('id,name,objective,meta_ad_account_id,default_daily_budget_cents')
-        .eq('active', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!template) {
-        return json({ error: 'No active Barber Launch campaign template is configured' }, 409);
-      }
-
-      const requested = Number(body?.daily_budget_cents ?? template.default_daily_budget_cents);
-      const dailyBudget = Number.isFinite(requested) ? Math.round(requested) : 0;
-      if (dailyBudget < 1000) {
+    if (action === 'setBudget') {
+      const id = String(body?.campaign_id ?? '');
+      const requested = Number(body?.daily_budget_cents);
+      if (!id) return json({ error: 'campaign_id is required' }, 400);
+      if (!Number.isFinite(requested) || Math.round(requested) < 1000) {
         return json({ error: 'Daily budget must be at least $10.00 per day.' }, 400);
       }
-
-      const name = typeof body?.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 120) : template.name;
-
       const { data, error } = await admin
         .from('ad_campaigns')
-        .insert({
-          customer_id: customerId,
-          name,
-          objective: template.objective,
-          meta_ad_account_id: template.meta_ad_account_id,
-          daily_budget_cents: dailyBudget,
-          status: 'payment_required',
-          desired_status: 'paused',
-          member_visible: true,
-        })
-        .select('id,name,status,desired_status,daily_budget_cents,funded_cents,spent_cents')
-        .single();
+        .update({ daily_budget_cents: Math.round(requested) })
+        .eq('id', id)
+        .eq('customer_id', customerId)
+        .select('id,daily_budget_cents')
+        .maybeSingle();
       if (error) return json({ error: error.message }, 400);
+      if (!data) return json({ error: 'Campaign not found' }, 404);
       return json({ campaign: data });
     }
+
 
     // setDesiredStatus — intent only, no Meta call. Unfunded campaigns can never go active.
     const campaignId = String(body?.campaign_id ?? '');
