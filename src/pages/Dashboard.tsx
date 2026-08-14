@@ -6,9 +6,20 @@ import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 import { ContactSection } from '@/components/dashboard/ContactSection';
 import { AionChatCard } from '@/components/dashboard/AionChatCard';
-
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function Dashboard() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash === '#contact') {
+      const el = document.getElementById('contact');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [location.hash]);
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-8">

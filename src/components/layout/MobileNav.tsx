@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Bot, CreditCard, Menu, ChevronDown, ChevronRight } from 'lucide-react';
+import { Bot, CreditCard, Menu, ChevronDown, ChevronRight, MessageSquare, CalendarCheck } from 'lucide-react';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -113,6 +113,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const [checklistsOpen, setChecklistsOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [marketingOpen, setMarketingOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const { data: checklistLists = [] } = useChecklistLists();
 
   const handleSignOut = async () => {
@@ -428,7 +429,34 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                     <NavRow to="/my-links" icon={CreditCard} label="My Links" onClick={closeMenu} dataTour="my-links" />
 
                     <div className="border-t border-border my-2" />
-                    <NavRow to="/schedule-call" icon={Phone} label="1 on 1 Call" onClick={closeMenu} />
+                    <Collapsible open={contactOpen} onOpenChange={setContactOpen}>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          className={cn(
+                            'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
+                            ['/schedule-call', '/dashboard'].some(p => location.pathname === p)
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Phone className="w-5 h-5" />
+                            <span>Contact</span>
+                          </div>
+                          <ChevronDown className={cn('w-4 h-4 transition-transform', contactOpen && 'rotate-180')} />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                        <NavLink to="/schedule-call" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <CalendarCheck className="w-4 h-4" />
+                          <span className="font-medium">Schedule one-on-one calls</span>
+                        </NavLink>
+                        <NavLink to="/dashboard#contact" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <MessageSquare className="w-4 h-4" />
+                          <span className="font-medium">Message</span>
+                        </NavLink>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </>
                 )}
 
