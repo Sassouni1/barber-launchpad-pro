@@ -29,6 +29,7 @@ ${prompt}
 QUALITY AND REALISM STANDARD:
 - Photographic, high-end commercial quality. Realistic lighting, realistic skin texture and tones, natural depth of field.
 - If the scene involves a hair system or hair replacement process, show an adult client and a trained professional working in a clean, real barbershop or studio.
+- When the member asks for someone 'doing a hair system' or otherwise describes the installation process, make the scene unmistakably show a professional actively fitting or installing a non-surgical hair replacement system on a client's thinning or prepared crown. Show a credible system base, placement, fitting, or attachment step so the result cannot be mistaken for an ordinary haircut, combing, or styling photo.
 - Hands, fingers, tools, clippers, shears, combs, tape, adhesive, and hair-system materials must be anatomically and physically correct, and used with credible, professional technique.
 - The client must look dignified and respected — never embarrassed, comedic, exaggerated, or distressed.
 - Composition should feel intentional and premium: clean background, tidy station, professional wardrobe.
