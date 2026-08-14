@@ -343,7 +343,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                   <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
                 ))}
             </ExpandableNavItem>
-            <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed}>
+            <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
