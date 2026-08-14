@@ -134,6 +134,9 @@ Deno.serve(async (req) => {
           user_access_token: userToken,
           user_token_expires_at: expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null,
           scopes: SCOPES,
+          // One-time use: the state cannot be replayed.
+          oauth_state: null,
+          oauth_state_created_at: null,
         },
         { onConflict: 'customer_id' },
       );
