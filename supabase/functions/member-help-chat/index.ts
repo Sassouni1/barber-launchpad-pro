@@ -822,7 +822,7 @@ function lintMarketingDraft(draft: string, userText: string): string[] {
   if (/[\u26A1\u{1F680}\u{1F525}\u{1F447}\u{1F449}\u{1F448}\u{1F446}\u2705\u2728\u{1F4A5}\u{1F3AF}]/u.test(draft)) {
     defects.push("decorative emoji");
   }
-  if (!PROGRESS_REQUEST.test(userText) && /(checklist|quiz|stage\s*\d|\d{1,3}\s?%|percent complete|incomplete task)/i.test(draft)) {
+  if (!PROGRESS_REQUEST.test(userText) && /(checklist|quiz|stage\s*\d|\d{1,3}\s?%|percent complete|incomplete task|based on your progress|your progress)/i.test(draft)) {
     defects.push("unasked progress data");
   }
   const tail = draft.trim().slice(-220);
