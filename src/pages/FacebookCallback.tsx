@@ -103,6 +103,16 @@ export default function FacebookCallback() {
                   <Facebook className="w-4 h-4 text-primary shrink-0" />
                   <div className="min-w-0">
                     <p className="font-medium truncate">{page.name}</p>
+                    <span
+                      className={`inline-flex items-center gap-1 mt-1 rounded-full border px-2 py-0.5 text-[11px] ${
+                        page.instagram_business_account_id
+                          ? 'border-primary/40 text-primary'
+                          : 'border-border text-muted-foreground'
+                      }`}
+                    >
+                      <Instagram className="w-3 h-3" />
+                      {page.instagram_business_account_id ? 'Instagram connected' : 'No Instagram'}
+                    </span>
                   </div>
                 </div>
                 <Button size="sm" disabled={saving === page.id} onClick={() => selectPage(page)}>
