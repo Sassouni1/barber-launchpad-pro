@@ -67,7 +67,10 @@ export default function AionPage() {
   const chatMessages = dbMessages.map(m => ({
     role: m.role as 'user' | 'assistant',
     content: m.content,
+    messageType: (m.message_type === 'image' ? 'image' : 'text') as 'text' | 'image',
+    metadata: (m.metadata || {}) as Record<string, unknown>,
   }));
+
 
   return (
     <DashboardLayout>
