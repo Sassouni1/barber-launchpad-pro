@@ -140,17 +140,17 @@ You have access to THIS MEMBER'S PERSONAL PROGRESS (their checklist stages, quiz
 - If a task is marked ⚡ (important), emphasize it — those are must-dos
 
 ### When they ask "what can I do today?" or "how do I get clients?"
-- Look at their incomplete checklist tasks AND think about which ones could produce a quick win TODAY
-- Pick 1-3 tasks that are actionable RIGHT NOW — things they can do in the next hour, not "eventually"
-- Explain WHY each task gets them closer to a hair-system client or a result
-- Give them the EXACT words to say, post, or type — copy-paste ready
-- Prioritize in this order (warmest, fastest wins first):
-  1. Talk to people already in your chair — say: "Hey, I'm now doing hair replacement systems for men. Know anyone dealing with thinning?" Zero cost, zero effort, highest trust.
-  2. Post a quick story on Instagram/Facebook — not polished, just announce you offer hair systems. This is a Stage 4 checklist task.
-  3. DM 20 people on Facebook or Instagram — not a sales pitch: "Hey, wanted to let you know I'm offering hair systems now. Know anyone who might be interested?"
-  4. Message past clients — reconnect and let them know what you're offering now.
-  5. Ask for referrals — reward clients who send hair-system prospects your way.
-  6. Run a paid advertising test — may be appropriate once the offer, proof, and consultation are in place, but never promise results. Treat it as a test, not a guaranteed source of clients.
+- Choose the ONE highest-leverage action they can take today. Lead with it.
+- Add a second, supporting setup action ONLY if the first action would otherwise have nowhere to send an interested person (for example, no way to book a consultation).
+- Explain it in natural prose, like a person talking. Give exact words to say or send only when the exact wording is actually useful — put any script in its own Markdown blockquote.
+- Do NOT cite checklist percentages, stage names, quiz results, or lists of incomplete tasks unless the member explicitly asks for a progress review.
+- Use this ranking INTERNALLY to decide what to recommend — never dump it as a four-part or six-part worksheet, and never output it as a numbered menu:
+  1. Talk to people already in your chair — highest trust, zero cost.
+  2. Post a quick, unpolished story announcing you offer hair systems.
+  3. DM people directly — not a pitch, just letting them know.
+  4. Message past clients and reconnect.
+  5. Ask for referrals.
+  6. Run a paid advertising test — only once the offer, proof, and consultation flow exist, and never promised as a guaranteed source of clients.
 - When the member is asking how to move a potential client toward booking, coach them to invite that person to a free hair system consultation. Do not bring this up in unrelated support, technical, course, or account questions.
 - For lead-facing pricing questions, do not coach them to quote a price before the consultation. The goal is to get the potential client into a free hair system consultation first.
 
@@ -799,6 +799,65 @@ function buildGreetingSSE(text: string): string {
   return `data: ${chunk}\n\ndata: [DONE]\n\n`;
 }
 
+// ===== Marketing response quality gate =====
+
+const MARKETING_INTENT = /(marketing|market\s+my|caption|social\s*(media)?|instagram|facebook|tiktok|post(s|ing)?\b|reel|story|content\s+(idea|plan|calendar)|video\s+(script|plan|idea)|ad(s|vertis\w*)?\b|campaign|lead(s)?\b|client(s)?\b|customer(s)?\b|consultation|book(ing|ings)?\b|rebook\w*|vip|membership|offer\b|package|pricing|price|sell|sales|revenue|money|grow(th|ing)?\b|busy|slow\s+season|more\s+clients)/i;
+
+function isMarketingIntent(messages: any[]): boolean {
+  if (!messages || messages.length === 0) return false;
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "user" || typeof last.content !== "string") return false;
+  return MARKETING_INTENT.test(last.content);
+}
+
+const PROGRESS_REQUEST = /(progress|how\s+am\s+i\s+doing|where\s+am\s+i|checklist|quiz|stage\b|completed|% ?complete|percent)/i;
+
+function lintMarketingDraft(draft: string, userText: string): string[] {
+  const defects: string[] = [];
+  const numbered = (draft.match(/^\s*(\d+[\.\)]|\*\*\d+[\.\)])/gm) || []).length;
+  if (numbered >= 3) defects.push("three or more numbered blocks");
+  if (/\b(Action|The Goal|Quick Task|Coach check-?in|Diagnosis)\b\s*[:\-–]|\*\*\s*(Action|The Goal|Quick Task|Coach check-?in|Diagnosis)/i.test(draft)) {
+    defects.push("banned labels");
+  }
+  if (/[\u26A1\u{1F680}\u{1F525}\u{1F447}\u{1F449}\u{1F448}\u{1F446}\u2705\u2728\u{1F4A5}\u{1F3AF}]/u.test(draft)) {
+    defects.push("decorative emoji");
+  }
+  if (!PROGRESS_REQUEST.test(userText) && /(checklist|quiz|stage\s*\d|\d{1,3}\s?%|percent complete|incomplete task)/i.test(draft)) {
+    defects.push("unasked progress data");
+  }
+  const tail = draft.trim().slice(-220);
+  if (/\?\s*$/.test(draft.trim()) && !/\?/.test(userText.slice(-1)) && /(want me|should i|which one|ready to|let me know|sound good|shall we|do you want)/i.test(tail)) {
+    defects.push("forced closing question");
+  }
+  if (/here('?s| is) the caption|caption option/i.test(draft)) defects.push("caption scaffolding");
+  if (userText.length < 260 && draft.length > 1800) defects.push("overlong response");
+  return defects;
+}
+
+const EDITOR_SYSTEM_PROMPT = `You are the final editor for a marketing coach's answer to a barber. Return ONLY the final member-facing answer — no preamble, no notes about your edits.
+
+Rules:
+- Preserve every accurate recommendation and every approved number already in the draft.
+- Add NO new facts, claims, prices, package benefits, proof, results, or platform actions.
+- Lead naturally with the substance. No recap of the question, no restated goal, no forced closing question.
+- For a general client-growth question: give ONE strongest recommendation, plus at most one supporting action and only if the first action would otherwise have nowhere to send an interested person.
+- No long numbered list unless the member explicitly asked for one or the steps are truly sequential.
+- Remove the labels Action, The Goal, Quick Task, Coach check-in, Diagnosis, and remove any checklist percentage, stage name, quiz result, or incomplete-task list the member did not ask for.
+- Put any exact script or copy-paste wording in its own Markdown blockquote.
+- No decorative emoji.
+- If the answer is a caption, the caption starts immediately as the first content, with at most one short visual note after it.
+- Keep dignity in all hair-loss language and keep every claim-safety boundary already respected in the draft.`;
+
+async function callModel(apiKey: string, body: Record<string, unknown>): Promise<Response> {
+  return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -977,6 +1036,76 @@ ${greetingContext}`;
     ]);
     const knowledgeContext = buildRelevantKnowledgeContext(messages);
     const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext + memoryContext + knowledgeContext;
+
+    const errorResponseFor = (status: number, bodyText: string) => {
+      if (status === 429) {
+        return new Response(
+          JSON.stringify({ error: "I'm getting a lot of questions right now. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits have been exhausted. Please contact the admin." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.error("AI gateway error:", status, bodyText);
+      return new Response(
+        JSON.stringify({ error: "Something went wrong with the AI service." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    };
+
+    // Marketing-intent requests go through the server-side quality gate (non-streaming + lint + editor pass)
+    if (isMarketingIntent(messages)) {
+      const userText = String(messages[messages.length - 1]?.content || "");
+      const draftRes = await callModel(LOVABLE_API_KEY, {
+        model: "google/gemini-3-flash-preview",
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        stream: false,
+      });
+      if (!draftRes.ok) {
+        return errorResponseFor(draftRes.status, await draftRes.text());
+      }
+      const draftJson = await draftRes.json();
+      const draft: string = draftJson?.choices?.[0]?.message?.content ?? "";
+      let finalText = draft;
+
+      if (draft) {
+        const defects = lintMarketingDraft(draft, userText);
+        if (defects.length > 0) {
+          console.log("Marketing quality gate defects:", defects.join(", "));
+          try {
+            const editRes = await callModel(LOVABLE_API_KEY, {
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                { role: "system", content: EDITOR_SYSTEM_PROMPT },
+                { role: "user", content: `Member request:\n${userText}\n\nDraft answer to edit:\n${draft}` },
+              ],
+              stream: false,
+            });
+            if (editRes.ok) {
+              const editJson = await editRes.json();
+              const edited: string = editJson?.choices?.[0]?.message?.content ?? "";
+              if (edited.trim()) finalText = edited.trim();
+            } else {
+              console.error("Editor pass failed:", editRes.status, await editRes.text());
+            }
+          } catch (editErr) {
+            console.error("Editor pass threw:", editErr);
+          }
+        }
+      }
+
+      if (!finalText) {
+        return errorResponseFor(500, "Empty draft from model");
+      }
+
+      return new Response(buildGreetingSSE(finalText), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
