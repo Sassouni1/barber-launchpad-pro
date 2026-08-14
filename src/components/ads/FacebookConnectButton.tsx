@@ -17,11 +17,15 @@ export function FacebookConnectButton() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('ad_social_connections')
-        .select('facebook_page_name, connection_status')
+        .select('connection_status, facebook_page_id, facebook_page_name, instagram_business_account_id')
         .eq('customer_id', user!.id)
         .maybeSingle();
       if (error) throw error;
-      return data as { facebook_page_name: string | null; connection_status: string } | null;
+      return data as {
+        facebook_page_name: string | null;
+        connection_status: string;
+        instagram_business_account_id: string | null;
+      } | null;
     },
   });
 
