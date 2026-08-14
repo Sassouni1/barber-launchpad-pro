@@ -333,9 +333,37 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
                 }`}
               >
                 {m.role === 'assistant' ? (
-                  <div className="prose prose-sm prose-invert max-w-none [&>p]:my-4 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>ul]:my-3 [&>ol]:my-3 [&>h1]:mt-5 [&>h2]:mt-5 [&>h3]:mt-4 [&>h1]:mb-2 [&>h2]:mb-2 [&>h3]:mb-2 [&_li]:my-1.5">
-                    <ReactMarkdown>{m.content}</ReactMarkdown>
-                  </div>
+                  m.messageType === 'image' && (m.metadata as ImageMeta)?.imageUrl ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Created it.</p>
+                      <img
+                        src={(m.metadata as ImageMeta).imageUrl}
+                        alt={(m.metadata as ImageMeta).imagePrompt || 'Generated image'}
+                        loading="lazy"
+                        className="rounded-lg max-w-full border border-border/50"
+                      />
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => downloadImage((m.metadata as ImageMeta).imageUrl!, (m.metadata as ImageMeta).imageId)}
+                        >
+                          <Download className="w-3.5 h-3.5 mr-1.5" /> Download
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setInput(`Create a variation of this image: ${(m.metadata as ImageMeta).imagePrompt || ''}`)}
+                        >
+                          <Wand2 className="w-3.5 h-3.5 mr-1.5" /> Create variation
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm prose-invert max-w-none [&>p]:my-4 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>ul]:my-3 [&>ol]:my-3 [&>h1]:mt-5 [&>h2]:mt-5 [&>h3]:mt-4 [&>h1]:mb-2 [&>h2]:mb-2 [&>h3]:mb-2 [&_li]:my-1.5">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  )
                 ) : (
                   m.content
                 )}
