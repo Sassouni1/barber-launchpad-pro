@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Download, Wand2, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,9 +8,39 @@ import { toast } from '@/hooks/use-toast';
 import { saveAionMessage } from '@/hooks/useAionChat';
 import { useQueryClient } from '@tanstack/react-query';
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+type ImageMeta = {
+  imageUrl?: string;
+  imageId?: string;
+  imagePrompt?: string;
+  provider?: string;
+  model?: string;
+  width?: number;
+  height?: number;
+};
+
+type Msg = {
+  role: 'user' | 'assistant';
+  content: string;
+  messageType?: 'text' | 'image';
+  metadata?: ImageMeta | Record<string, unknown>;
+};
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/member-help-chat`;
+const IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/aion-generate-image`;
+
+const IMAGE_VERB = /\b(generate|create|make|design|render|produce|build|show)\b/i;
+const IMAGE_NOUN = /\b(image|images|photo|photos|picture|pictures|graphic|graphics|visual|visuals|flyer|flyers|poster|posters|creative|creatives)\b/i;
+
+function isImageRequest(text: string): boolean {
+  return IMAGE_VERB.test(text) && IMAGE_NOUN.test(text);
+}
+
+function detectAspect(text: string): 'square' | 'portrait' | 'landscape' {
+  if (/\b(story|stories|reel|reels|vertical|portrait|9:16)\b/i.test(text)) return 'portrait';
+  if (/\b(wide|banner|landscape|horizontal|16:9)\b/i.test(text)) return 'landscape';
+  return 'square';
+}
+
 
 async function streamChat({
   messages,
