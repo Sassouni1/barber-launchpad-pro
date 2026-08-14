@@ -347,6 +347,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
+              <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
             </ExpandableNavItem>
             <NavItem to="/social-media-post" icon={Megaphone} label="Hair System Content" collapsed={collapsed} />
             <NavItem to="/my-links" icon={CreditCard} label="My Links" collapsed={collapsed} dataTour="my-links" />

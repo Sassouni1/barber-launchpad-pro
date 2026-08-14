@@ -392,7 +392,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <button
                           className={cn(
                             'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
-                            ['/marketing', '/aion', '/business-card', '/social-media-post'].some(p => location.pathname.startsWith(p))
+                            ['/marketing', '/aion', '/business-card', '/social-media-post', '/ads'].some(p => location.pathname.startsWith(p))
                               ? 'bg-primary/10 text-primary'
                               : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                           )}
@@ -416,6 +416,10 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <NavLink to="/business-card" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Digital Business Card</span>
+                        </NavLink>
+                        <NavLink to="/ads" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <Megaphone className="w-4 h-4" />
+                          <span className="font-medium">Ads</span>
                         </NavLink>
                       </CollapsibleContent>
                     </Collapsible>
