@@ -799,6 +799,65 @@ function buildGreetingSSE(text: string): string {
   return `data: ${chunk}\n\ndata: [DONE]\n\n`;
 }
 
+// ===== Marketing response quality gate =====
+
+const MARKETING_INTENT = /(marketing|market\s+my|caption|social\s*(media)?|instagram|facebook|tiktok|post(s|ing)?\b|reel|story|content\s+(idea|plan|calendar)|video\s+(script|plan|idea)|ad(s|vertis\w*)?\b|campaign|lead(s)?\b|client(s)?\b|customer(s)?\b|consultation|book(ing|ings)?\b|rebook\w*|vip|membership|offer\b|package|pricing|price|sell|sales|revenue|money|grow(th|ing)?\b|busy|slow\s+season|more\s+clients)/i;
+
+function isMarketingIntent(messages: any[]): boolean {
+  if (!messages || messages.length === 0) return false;
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "user" || typeof last.content !== "string") return false;
+  return MARKETING_INTENT.test(last.content);
+}
+
+const PROGRESS_REQUEST = /(progress|how\s+am\s+i\s+doing|where\s+am\s+i|checklist|quiz|stage\b|completed|% ?complete|percent)/i;
+
+function lintMarketingDraft(draft: string, userText: string): string[] {
+  const defects: string[] = [];
+  const numbered = (draft.match(/^\s*(\d+[\.\)]|\*\*\d+[\.\)])/gm) || []).length;
+  if (numbered >= 3) defects.push("three or more numbered blocks");
+  if (/\b(Action|The Goal|Quick Task|Coach check-?in|Diagnosis)\b\s*[:\-–]|\*\*\s*(Action|The Goal|Quick Task|Coach check-?in|Diagnosis)/i.test(draft)) {
+    defects.push("banned labels");
+  }
+  if (/[\u26A1\u{1F680}\u{1F525}\u{1F447}\u{1F449}\u{1F448}\u{1F446}\u2705\u2728\u{1F4A5}\u{1F3AF}]/u.test(draft)) {
+    defects.push("decorative emoji");
+  }
+  if (!PROGRESS_REQUEST.test(userText) && /(checklist|quiz|stage\s*\d|\d{1,3}\s?%|percent complete|incomplete task)/i.test(draft)) {
+    defects.push("unasked progress data");
+  }
+  const tail = draft.trim().slice(-220);
+  if (/\?\s*$/.test(draft.trim()) && !/\?/.test(userText.slice(-1)) && /(want me|should i|which one|ready to|let me know|sound good|shall we|do you want)/i.test(tail)) {
+    defects.push("forced closing question");
+  }
+  if (/here('?s| is) the caption|caption option/i.test(draft)) defects.push("caption scaffolding");
+  if (userText.length < 260 && draft.length > 1800) defects.push("overlong response");
+  return defects;
+}
+
+const EDITOR_SYSTEM_PROMPT = `You are the final editor for a marketing coach's answer to a barber. Return ONLY the final member-facing answer — no preamble, no notes about your edits.
+
+Rules:
+- Preserve every accurate recommendation and every approved number already in the draft.
+- Add NO new facts, claims, prices, package benefits, proof, results, or platform actions.
+- Lead naturally with the substance. No recap of the question, no restated goal, no forced closing question.
+- For a general client-growth question: give ONE strongest recommendation, plus at most one supporting action and only if the first action would otherwise have nowhere to send an interested person.
+- No long numbered list unless the member explicitly asked for one or the steps are truly sequential.
+- Remove the labels Action, The Goal, Quick Task, Coach check-in, Diagnosis, and remove any checklist percentage, stage name, quiz result, or incomplete-task list the member did not ask for.
+- Put any exact script or copy-paste wording in its own Markdown blockquote.
+- No decorative emoji.
+- If the answer is a caption, the caption starts immediately as the first content, with at most one short visual note after it.
+- Keep dignity in all hair-loss language and keep every claim-safety boundary already respected in the draft.`;
+
+async function callModel(apiKey: string, body: Record<string, unknown>): Promise<Response> {
+  return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
