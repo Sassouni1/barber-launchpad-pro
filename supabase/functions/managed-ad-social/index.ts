@@ -38,11 +38,11 @@ Deno.serve(async (req) => {
 
     const appId = Deno.env.get('FACEBOOK_APP_ID');
     const appSecret = Deno.env.get('FACEBOOK_APP_SECRET');
-    const appUrl = Deno.env.get('APP_URL');
-    if (!appId || !appSecret || !appUrl) {
+    if (!appId || !appSecret) {
       return json({ error: 'Facebook connection is not configured yet.' }, 500);
     }
-    const redirectUri = `${appUrl.replace(/\/$/, '')}/integrations/facebook/callback`;
+    // Must match the URI whitelisted in the Facebook app exactly.
+    const redirectUri = 'https://member.thebarberlaunch.com/integrations/facebook/callback';
 
     // Service-role client: tokens live in a table with no anon/authenticated grants.
     const admin = createClient(
@@ -67,7 +67,13 @@ Deno.serve(async (req) => {
     if (action === 'getConnectUrl') {
       const state = crypto.randomUUID();
       await admin.from('ad_social_tokens').upsert(
-        { customer_id: customerId, provider: 'facebook', scopes: SCOPES },
+        {
+          customer_id: customerId,
+          provider: 'facebook',
+          scopes: SCOPES,
+          oauth_state: state,
+          oauth_state_created_at: new Date().toISOString(),
+        },
         { onConflict: 'customer_id' },
       );
       await admin.from('ad_social_connections').upsert(
@@ -81,6 +87,21 @@ Deno.serve(async (req) => {
     if (action === 'completeConnection') {
       const code = body?.code;
       if (typeof code !== 'string' || code.length < 4) return json({ error: 'Missing OAuth code' }, 400);
+
+      // The state must be the one we issued to THIS authenticated member, and still fresh (30 min).
+      const { data: pending } = await admin
+        .from('ad_social_tokens')
+        .select('oauth_state, oauth_state_created_at')
+        .eq('customer_id', customerId)
+        .maybeSingle();
+      const state = typeof body?.state === 'string' ? body.state : '';
+      const issuedAt = pending?.oauth_state_created_at ? Date.parse(pending.oauth_state_created_at) : 0;
+      if (!pending?.oauth_state || !state || state !== pending.oauth_state) {
+        return json({ error: 'This Facebook connection link is no longer valid. Please start the connection again.' }, 400);
+      }
+      if (!issuedAt || Date.now() - issuedAt > 30 * 60 * 1000) {
+        return json({ error: 'This Facebook connection link expired. Please start the connection again.' }, 400);
+      }
 
       const tokenRes = await fetch(
         `${GRAPH}/oauth/access_token?client_id=${appId}&client_secret=${encodeURIComponent(appSecret)}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${encodeURIComponent(code)}`,
@@ -113,6 +134,9 @@ Deno.serve(async (req) => {
           user_access_token: userToken,
           user_token_expires_at: expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null,
           scopes: SCOPES,
+          // One-time use: the state cannot be replayed.
+          oauth_state: null,
+          oauth_state_created_at: null,
         },
         { onConflict: 'customer_id' },
       );
