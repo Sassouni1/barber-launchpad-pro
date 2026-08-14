@@ -216,6 +216,60 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
       try { await saveAionMessage(conversationId, 'user', text.trim()); } catch { /* ignore */ }
     }
 
+    // Explicit image request → go straight to the image engine
+    if (isImageRequest(text)) {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
+        if (!accessToken) {
+          toast({ title: 'Sign in required', description: 'Please sign in again to generate images.', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+
+        const resp = await fetch(IMAGE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ prompt: text.trim(), conversationId, aspect: detectAspect(text) }),
+        });
+        const result = await resp.json().catch(() => ({ success: false, error: 'Image generation failed.' }));
+
+        if (!resp.ok || !result?.success || !result?.url) {
+          toast({
+            title: 'Image not generated',
+            description: result?.error || 'Image generation failed. Please try again.',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+
+        const metadata: ImageMeta = {
+          imageUrl: result.url,
+          imageId: result.id,
+          imagePrompt: result.prompt || text.trim(),
+          provider: result.provider,
+          model: result.model,
+          width: result.width,
+          height: result.height,
+        };
+
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Created it.', messageType: 'image', metadata }]);
+
+        if (conversationId) {
+          try {
+            await saveAionMessage(conversationId, 'assistant', 'Created it.', { messageType: 'image', metadata });
+            queryClient.invalidateQueries({ queryKey: ['aion-messages', conversationId] });
+          } catch { /* ignore */ }
+        }
+      } catch {
+        toast({ title: 'Image not generated', description: 'Could not reach the image engine. Try again.', variant: 'destructive' });
+      }
+      setLoading(false);
+      return;
+    }
+
     let assistantSoFar = '';
     const upsert = (chunk: string) => {
       assistantSoFar += chunk;
@@ -228,7 +282,10 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
       });
     };
 
-    const allMessages = [...messages, userMsg];
+    const allMessages = [...messages, userMsg]
+      .filter(m => m.messageType !== 'image')
+      .map(m => ({ role: m.role, content: m.content }));
+
 
     try {
       await streamChat({
