@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Megaphone, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
+import { InstagramStatusCard } from '@/components/ads/InstagramStatusCard';
 
 type Campaign = {
   id: string;
@@ -56,6 +57,9 @@ export default function Ads() {
           </div>
           <FacebookConnectButton />
         </div>
+
+        <InstagramStatusCard />
+
 
         {isLoading ? (
           <div className="glass-card rounded-xl p-6 text-sm text-muted-foreground">Loading campaigns…</div>

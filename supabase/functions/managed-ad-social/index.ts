@@ -10,8 +10,8 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage';
-const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage'];
+type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage';
+const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -143,7 +143,14 @@ Deno.serve(async (req) => {
 
       const pages = await fetchPages(userToken);
       // Only public Page metadata is returned to the browser — never tokens.
-      return json({ ok: true, pages: pages.map((p) => ({ id: p.id, name: p.name })) });
+      return json({
+        ok: true,
+        pages: pages.map((p) => ({
+          id: p.id,
+          name: p.name,
+          instagram_business_account_id: p.instagram_business_account?.id ?? null,
+        })),
+      });
     }
 
     const { data: stored } = await admin
@@ -172,8 +179,45 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'listPages') {
-      return json({ ok: true, pages: pages.map((p) => ({ id: p.id, name: p.name })) });
+      return json({
+        ok: true,
+        pages: pages.map((p) => ({
+          id: p.id,
+          name: p.name,
+          instagram_business_account_id: p.instagram_business_account?.id ?? null,
+        })),
+      });
     }
+
+    if (action === 'syncPage') {
+      const { data: connection } = await admin
+        .from('ad_social_connections')
+        .select('facebook_page_id')
+        .eq('customer_id', customerId)
+        .maybeSingle();
+      if (!connection?.facebook_page_id) {
+        return json({ error: 'No Facebook Page is selected yet. Connect a Page first.' }, 400);
+      }
+      const selected = pages.find((p) => p.id === connection.facebook_page_id);
+      if (!selected) {
+        return json({ error: 'Your selected Page is no longer available on your Facebook account.' }, 404);
+      }
+      const instagramId = selected.instagram_business_account?.id ?? null;
+      const { error: syncError } = await admin
+        .from('ad_social_connections')
+        .update({
+          facebook_page_name: selected.name,
+          instagram_business_account_id: instagramId,
+          last_synced_at: new Date().toISOString(),
+        })
+        .eq('customer_id', customerId);
+      if (syncError) return json({ error: syncError.message }, 500);
+      return json({
+        ok: true,
+        page: { id: selected.id, name: selected.name, instagram_business_account_id: instagramId },
+      });
+    }
+
 
     // selectPage — the Page must belong to this member's own Facebook account.
     const pageId = body?.facebookPageId;
