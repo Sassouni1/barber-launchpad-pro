@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Facebook, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-type Page = { id: string; name: string };
+type Page = { id: string; name: string; instagram_business_account_id?: string | null };
 
 export default function FacebookCallback() {
   const navigate = useNavigate();
