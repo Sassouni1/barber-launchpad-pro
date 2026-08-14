@@ -392,7 +392,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <button
                           className={cn(
                             'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
-                            ['/marketing', '/aion', '/business-card', '/social-media-post'].some(p => location.pathname.startsWith(p))
+                            ['/marketing', '/aion', '/business-card', '/social-media-post', '/ads'].some(p => location.pathname.startsWith(p))
                               ? 'bg-primary/10 text-primary'
                               : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                           )}
