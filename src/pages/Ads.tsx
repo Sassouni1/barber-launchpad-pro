@@ -58,6 +58,9 @@ export default function Ads() {
           <FacebookConnectButton />
         </div>
 
+        <InstagramStatusCard />
+
+
         {isLoading ? (
           <div className="glass-card rounded-xl p-6 text-sm text-muted-foreground">Loading campaigns…</div>
         ) : campaigns.length === 0 ? (
