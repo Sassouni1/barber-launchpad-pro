@@ -50,6 +50,7 @@ import HairSystemChecklist from "./pages/HairSystemChecklist";
 import MyLinks from "./pages/MyLinks";
 import GHLCallback from "./pages/GHLCallback";
 import FacebookCallback from "./pages/FacebookCallback";
+import Ads from "./pages/Ads";
 import FindASpecialist from "./pages/FindASpecialist";
 import Terms from "./pages/Terms";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
