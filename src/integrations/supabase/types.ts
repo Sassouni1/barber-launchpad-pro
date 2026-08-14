@@ -77,6 +77,53 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_social_connections: {
+        Row: {
+          connected_at: string | null
+          connection_status: string
+          created_at: string
+          customer_id: string
+          facebook_page_id: string | null
+          facebook_page_name: string | null
+          instagram_business_account_id: string | null
+          last_synced_at: string | null
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          connected_at?: string | null
+          connection_status?: string
+          created_at?: string
+          customer_id: string
+          facebook_page_id?: string | null
+          facebook_page_name?: string | null
+          instagram_business_account_id?: string | null
+          last_synced_at?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          connected_at?: string | null
+          connection_status?: string
+          created_at?: string
+          customer_id?: string
+          facebook_page_id?: string | null
+          facebook_page_name?: string | null
+          instagram_business_account_id?: string | null
+          last_synced_at?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_social_connections_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aion_conversations: {
         Row: {
           created_at: string
