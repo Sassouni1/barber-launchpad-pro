@@ -48,7 +48,12 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
     const body = await req.json();
-    const action = body?.action as string | undefined;
+    const requestedAction = body?.action as string | undefined;
+    const action = requestedAction === "setBudget"
+      ? "updateBudget"
+      : requestedAction === "setDesiredStatus"
+        ? "setEnabled"
+        : requestedAction;
 
     const getCampaign = async (campaignId: unknown) => {
       if (!isUuid(campaignId)) throw new Error("Invalid campaign");
@@ -175,7 +180,9 @@ Deno.serve(async (req) => {
 
     if (action === "setEnabled") {
       const campaign = await getCampaign(body?.campaignId);
-      const enabled = body?.enabled === true;
+      const enabled = requestedAction === "setDesiredStatus"
+        ? body?.desiredStatus === "active"
+        : body?.enabled === true;
       const availableCents = Number(campaign.funded_cents) - Number(campaign.spent_cents);
 
       if (enabled && availableCents < Number(campaign.daily_budget_cents)) {

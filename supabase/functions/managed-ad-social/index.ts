@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       url.searchParams.set("redirect_uri", redirectUri);
       url.searchParams.set("response_type", "code");
       url.searchParams.set("state", state);
-      url.searchParams.set("scope", "pages_show_list,pages_read_engagement,instagram_basic");
+      url.searchParams.set("scope", "pages_show_list,pages_read_engagement");
       return json({ url: url.toString() });
     }
 
