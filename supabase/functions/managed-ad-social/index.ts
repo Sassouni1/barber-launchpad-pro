@@ -10,8 +10,8 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage';
-const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage'];
+type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage';
+const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -143,7 +143,14 @@ Deno.serve(async (req) => {
 
       const pages = await fetchPages(userToken);
       // Only public Page metadata is returned to the browser — never tokens.
-      return json({ ok: true, pages: pages.map((p) => ({ id: p.id, name: p.name })) });
+      return json({
+        ok: true,
+        pages: pages.map((p) => ({
+          id: p.id,
+          name: p.name,
+          instagram_business_account_id: p.instagram_business_account?.id ?? null,
+        })),
+      });
     }
 
     const { data: stored } = await admin
