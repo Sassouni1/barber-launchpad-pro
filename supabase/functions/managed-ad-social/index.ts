@@ -38,11 +38,11 @@ Deno.serve(async (req) => {
 
     const appId = Deno.env.get('FACEBOOK_APP_ID');
     const appSecret = Deno.env.get('FACEBOOK_APP_SECRET');
-    const appUrl = Deno.env.get('APP_URL');
-    if (!appId || !appSecret || !appUrl) {
+    if (!appId || !appSecret) {
       return json({ error: 'Facebook connection is not configured yet.' }, 500);
     }
-    const redirectUri = `${appUrl.replace(/\/$/, '')}/integrations/facebook/callback`;
+    // Must match the URI whitelisted in the Facebook app exactly.
+    const redirectUri = 'https://member.thebarberlaunch.com/integrations/facebook/callback';
 
     // Service-role client: tokens live in a table with no anon/authenticated grants.
     const admin = createClient(
