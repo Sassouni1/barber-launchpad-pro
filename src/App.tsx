@@ -21,6 +21,7 @@ import DirectoryAdmin from "./pages/admin/DirectoryAdmin";
 import QRCodesAdmin from "./pages/admin/QRCodes";
 import AccessLog from "./pages/admin/AccessLog";
 import AionConversations from "./pages/admin/AionConversations";
+import AdsManager from "./pages/admin/AdsManager";
 import AionPage from "./pages/AionPage";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
@@ -135,6 +136,7 @@ const MemberApp = () => (
         <Route path="/admin/qr-codes" element={<ProtectedRoute requireAdmin><QRCodesAdmin /></ProtectedRoute>} />
         <Route path="/admin/access-log" element={<ProtectedRoute requireAdmin><AccessLog /></ProtectedRoute>} />
         <Route path="/admin/aion" element={<ProtectedRoute requireAdmin><AionConversations /></ProtectedRoute>} />
+        <Route path="/admin/ads" element={<ProtectedRoute requireAdmin><AdsManager /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

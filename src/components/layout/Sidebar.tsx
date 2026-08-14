@@ -275,6 +275,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
     { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
     { to: '/admin/aion', icon: Bot, label: 'Aion Conversations' },
+    { to: '/admin/ads', icon: Megaphone, label: 'Ads Manager' },
   ];
 
   const links = isAdminView ? adminLinks : memberLinks;
