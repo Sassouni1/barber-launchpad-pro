@@ -400,12 +400,67 @@ export type Database = {
         }
         Relationships: []
       }
+      aion_generated_images: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          enhanced_prompt: string | null
+          height: number | null
+          id: string
+          model: string
+          prompt: string
+          provider: string
+          public_url: string
+          storage_path: string
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          enhanced_prompt?: string | null
+          height?: number | null
+          id?: string
+          model: string
+          prompt: string
+          provider: string
+          public_url: string
+          storage_path: string
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          enhanced_prompt?: string | null
+          height?: number | null
+          id?: string
+          model?: string
+          prompt?: string
+          provider?: string
+          public_url?: string
+          storage_path?: string
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aion_generated_images_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "aion_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aion_messages: {
         Row: {
           content: string
           conversation_id: string
           created_at: string
           id: string
+          message_type: string
+          metadata: Json
           role: string
         }
         Insert: {
@@ -413,6 +468,8 @@ export type Database = {
           conversation_id: string
           created_at?: string
           id?: string
+          message_type?: string
+          metadata?: Json
           role: string
         }
         Update: {
@@ -420,6 +477,8 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: string
+          message_type?: string
+          metadata?: Json
           role?: string
         }
         Relationships: [

@@ -15,6 +15,8 @@ export interface AionMessage {
   conversation_id: string;
   role: 'user' | 'assistant';
   content: string;
+  message_type?: 'text' | 'image';
+  metadata?: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -102,10 +104,21 @@ export function useAionMessages(conversationId: string | null) {
   });
 }
 
-export async function saveAionMessage(conversationId: string, role: 'user' | 'assistant', content: string) {
+export async function saveAionMessage(
+  conversationId: string,
+  role: 'user' | 'assistant',
+  content: string,
+  options?: { messageType?: 'text' | 'image'; metadata?: Record<string, unknown> },
+) {
   const { error } = await supabase
     .from('aion_messages')
-    .insert({ conversation_id: conversationId, role, content });
+    .insert({
+      conversation_id: conversationId,
+      role,
+      content,
+      message_type: options?.messageType ?? 'text',
+      metadata: (options?.metadata ?? {}) as never,
+    });
   if (error) throw error;
 
   // Touch conversation updated_at

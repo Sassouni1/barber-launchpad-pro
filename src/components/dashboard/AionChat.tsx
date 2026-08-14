@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Download, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,9 +8,57 @@ import { toast } from '@/hooks/use-toast';
 import { saveAionMessage } from '@/hooks/useAionChat';
 import { useQueryClient } from '@tanstack/react-query';
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+type ImageMeta = {
+  imageUrl?: string;
+  imageId?: string;
+  imagePrompt?: string;
+  provider?: string;
+  model?: string;
+  width?: number;
+  height?: number;
+};
+
+type Msg = {
+  role: 'user' | 'assistant';
+  content: string;
+  messageType?: 'text' | 'image';
+  metadata?: ImageMeta | Record<string, unknown>;
+};
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/member-help-chat`;
+const IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/aion-generate-image`;
+
+const IMAGE_VERB = /\b(generate|create|make|design|render|produce|build|show)\b/i;
+const IMAGE_NOUN = /\b(image|images|photo|photos|picture|pictures|graphic|graphics|visual|visuals|flyer|flyers|poster|posters|creative|creatives)\b/i;
+
+function isImageRequest(text: string): boolean {
+  return IMAGE_VERB.test(text) && IMAGE_NOUN.test(text);
+}
+
+function detectAspect(text: string): 'square' | 'portrait' | 'landscape' {
+  if (/\b(story|stories|reel|reels|vertical|portrait|9:16)\b/i.test(text)) return 'portrait';
+  if (/\b(wide|banner|landscape|horizontal|16:9)\b/i.test(text)) return 'landscape';
+  return 'square';
+}
+
+async function downloadImage(url: string, id?: string) {
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = `aion-${id || 'image'}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, '_blank');
+  }
+}
+
+
 
 async function streamChat({
   messages,
@@ -186,6 +234,60 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
       try { await saveAionMessage(conversationId, 'user', text.trim()); } catch { /* ignore */ }
     }
 
+    // Explicit image request → go straight to the image engine
+    if (isImageRequest(text)) {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
+        if (!accessToken) {
+          toast({ title: 'Sign in required', description: 'Please sign in again to generate images.', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+
+        const resp = await fetch(IMAGE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ prompt: text.trim(), conversationId, aspect: detectAspect(text) }),
+        });
+        const result = await resp.json().catch(() => ({ success: false, error: 'Image generation failed.' }));
+
+        if (!resp.ok || !result?.success || !result?.url) {
+          toast({
+            title: 'Image not generated',
+            description: result?.error || 'Image generation failed. Please try again.',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+
+        const metadata: ImageMeta = {
+          imageUrl: result.url,
+          imageId: result.id,
+          imagePrompt: result.prompt || text.trim(),
+          provider: result.provider,
+          model: result.model,
+          width: result.width,
+          height: result.height,
+        };
+
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Created it.', messageType: 'image', metadata }]);
+
+        if (conversationId) {
+          try {
+            await saveAionMessage(conversationId, 'assistant', 'Created it.', { messageType: 'image', metadata });
+            queryClient.invalidateQueries({ queryKey: ['aion-messages', conversationId] });
+          } catch { /* ignore */ }
+        }
+      } catch {
+        toast({ title: 'Image not generated', description: 'Could not reach the image engine. Try again.', variant: 'destructive' });
+      }
+      setLoading(false);
+      return;
+    }
+
     let assistantSoFar = '';
     const upsert = (chunk: string) => {
       assistantSoFar += chunk;
@@ -198,7 +300,10 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
       });
     };
 
-    const allMessages = [...messages, userMsg];
+    const allMessages = [...messages, userMsg]
+      .filter(m => m.messageType !== 'image')
+      .map(m => ({ role: m.role, content: m.content }));
+
 
     try {
       await streamChat({
@@ -246,9 +351,37 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
                 }`}
               >
                 {m.role === 'assistant' ? (
-                  <div className="prose prose-sm prose-invert max-w-none [&>p]:my-4 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>ul]:my-3 [&>ol]:my-3 [&>h1]:mt-5 [&>h2]:mt-5 [&>h3]:mt-4 [&>h1]:mb-2 [&>h2]:mb-2 [&>h3]:mb-2 [&_li]:my-1.5">
-                    <ReactMarkdown>{m.content}</ReactMarkdown>
-                  </div>
+                  m.messageType === 'image' && (m.metadata as ImageMeta)?.imageUrl ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Created it.</p>
+                      <img
+                        src={(m.metadata as ImageMeta).imageUrl}
+                        alt={(m.metadata as ImageMeta).imagePrompt || 'Generated image'}
+                        loading="lazy"
+                        className="rounded-lg max-w-full border border-border/50"
+                      />
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => downloadImage((m.metadata as ImageMeta).imageUrl!, (m.metadata as ImageMeta).imageId)}
+                        >
+                          <Download className="w-3.5 h-3.5 mr-1.5" /> Download
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setInput(`Create a variation of this image: ${(m.metadata as ImageMeta).imagePrompt || ''}`)}
+                        >
+                          <Wand2 className="w-3.5 h-3.5 mr-1.5" /> Create variation
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm prose-invert max-w-none [&>p]:my-4 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>ul]:my-3 [&>ol]:my-3 [&>h1]:mt-5 [&>h2]:mt-5 [&>h3]:mt-4 [&>h1]:mb-2 [&>h2]:mb-2 [&>h3]:mb-2 [&_li]:my-1.5">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  )
                 ) : (
                   m.content
                 )}
