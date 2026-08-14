@@ -113,6 +113,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const [checklistsOpen, setChecklistsOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [marketingOpen, setMarketingOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const { data: checklistLists = [] } = useChecklistLists();
 
   const handleSignOut = async () => {
