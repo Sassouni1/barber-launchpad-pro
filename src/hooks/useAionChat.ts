@@ -15,6 +15,8 @@ export interface AionMessage {
   conversation_id: string;
   role: 'user' | 'assistant';
   content: string;
+  message_type?: 'text' | 'image';
+  metadata?: Record<string, unknown> | null;
   created_at: string;
 }
 
