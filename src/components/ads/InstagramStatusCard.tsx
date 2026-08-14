@@ -56,11 +56,17 @@ export function InstagramStatusCard() {
   };
 
   const addInstagram = () => {
-    window.open(
-      `https://www.facebook.com/settings/?tab=linked_profiles&page_id=${connection.facebook_page_id}`,
-      '_blank',
-      'noopener,noreferrer',
-    );
+    // Page-scoped Instagram linking screen (the old /settings?tab=linked_profiles
+    // link no longer resolves and lands on a broken Facebook page).
+    const url = `https://www.facebook.com/${connection.facebook_page_id}/settings/?tab=instagram_management`;
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      try {
+        window.top!.location.href = url;
+      } catch {
+        toast.error('Please allow pop-ups so Facebook can open in a new tab.');
+      }
+    }
   };
 
   return (
