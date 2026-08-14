@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Facebook, Loader2 } from 'lucide-react';
+import { Facebook, Instagram, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Page = { id: string; name: string; instagram_business_account_id?: string | null };
