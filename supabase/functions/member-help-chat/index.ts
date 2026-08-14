@@ -1037,6 +1037,76 @@ ${greetingContext}`;
     const knowledgeContext = buildRelevantKnowledgeContext(messages);
     const systemPrompt = BASE_SYSTEM_PROMPT + curriculumContext + userContext + memoryContext + knowledgeContext;
 
+    const errorResponseFor = (status: number, bodyText: string) => {
+      if (status === 429) {
+        return new Response(
+          JSON.stringify({ error: "I'm getting a lot of questions right now. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits have been exhausted. Please contact the admin." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.error("AI gateway error:", status, bodyText);
+      return new Response(
+        JSON.stringify({ error: "Something went wrong with the AI service." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    };
+
+    // Marketing-intent requests go through the server-side quality gate (non-streaming + lint + editor pass)
+    if (isMarketingIntent(messages)) {
+      const userText = String(messages[messages.length - 1]?.content || "");
+      const draftRes = await callModel(LOVABLE_API_KEY, {
+        model: "google/gemini-3-flash-preview",
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        stream: false,
+      });
+      if (!draftRes.ok) {
+        return errorResponseFor(draftRes.status, await draftRes.text());
+      }
+      const draftJson = await draftRes.json();
+      const draft: string = draftJson?.choices?.[0]?.message?.content ?? "";
+      let finalText = draft;
+
+      if (draft) {
+        const defects = lintMarketingDraft(draft, userText);
+        if (defects.length > 0) {
+          console.log("Marketing quality gate defects:", defects.join(", "));
+          try {
+            const editRes = await callModel(LOVABLE_API_KEY, {
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                { role: "system", content: EDITOR_SYSTEM_PROMPT },
+                { role: "user", content: `Member request:\n${userText}\n\nDraft answer to edit:\n${draft}` },
+              ],
+              stream: false,
+            });
+            if (editRes.ok) {
+              const editJson = await editRes.json();
+              const edited: string = editJson?.choices?.[0]?.message?.content ?? "";
+              if (edited.trim()) finalText = edited.trim();
+            } else {
+              console.error("Editor pass failed:", editRes.status, await editRes.text());
+            }
+          } catch (editErr) {
+            console.error("Editor pass threw:", editErr);
+          }
+        }
+      }
+
+      if (!finalText) {
+        return errorResponseFor(500, "Empty draft from model");
+      }
+
+      return new Response(buildGreetingSSE(finalText), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
