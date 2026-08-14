@@ -49,6 +49,7 @@ import BusinessCardSetup from "./pages/BusinessCardSetup";
 import HairSystemChecklist from "./pages/HairSystemChecklist";
 import MyLinks from "./pages/MyLinks";
 import GHLCallback from "./pages/GHLCallback";
+import FacebookCallback from "./pages/FacebookCallback";
 import FindASpecialist from "./pages/FindASpecialist";
 import Terms from "./pages/Terms";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -118,6 +119,7 @@ const MemberApp = () => (
         <Route path="/r/:shortCode" element={<QRRedirect />} />
         <Route path="/integrations/crm/callback" element={<GHLCallback />} />
         <Route path="/integrations/ghl/callback" element={<GHLCallback />} />
+        <Route path="/integrations/facebook/callback" element={<ProtectedRoute><FacebookCallback /></ProtectedRoute>} />
         <Route path="/card/:shortCode" element={<CardView />} />
         <Route path="/client/:userId" element={<ClientHub />} />
         <Route path="/business-card" element={<ProtectedRoute><BusinessCardSetup /></ProtectedRoute>} />
