@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
-const SCOPES = 'pages_show_list,pages_read_engagement,instagram_basic';
+const SCOPES = 'pages_show_list,pages_read_engagement';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

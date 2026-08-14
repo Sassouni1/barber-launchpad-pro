@@ -7,8 +7,8 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-type Action = 'listCampaigns' | 'createCampaign' | 'setDesiredStatus';
-const ACTIONS: Action[] = ['listCampaigns', 'createCampaign', 'setDesiredStatus'];
+type Action = 'getDashboard' | 'listCampaigns' | 'setDesiredStatus' | 'setBudget';
+const ACTIONS: Action[] = ['getDashboard', 'listCampaigns', 'setDesiredStatus', 'setBudget'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
