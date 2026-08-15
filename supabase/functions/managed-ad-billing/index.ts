@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     if (action === "createCheckout") {
       if (!isUuid(body?.campaignId) || !isUuid(body?.idempotencyKey)) return json({ error: "Invalid campaign or idempotency key." }, 400);
       const requestedAmountCents = Number(body?.amountCents);
-      if (!Number.isInteger(requestedAmountCents) || requestedAmountCents < 1000) return json({ error: "Choose a prepaid amount of at least $10." }, 400);
+      if (!Number.isInteger(requestedAmountCents) || requestedAmountCents < 200) return json({ error: "Choose a prepaid amount of at least $2." }, 400);
       const [{ data: campaign, error: campaignError }, { data: profile, error: profileError }] = await Promise.all([
         admin.from("ad_campaigns").select("id,name,daily_budget_cents,currency").eq("id", body.campaignId).eq("customer_id", userId).maybeSingle(),
         admin.from("profiles").select("email,full_name").eq("id", userId).maybeSingle(),
