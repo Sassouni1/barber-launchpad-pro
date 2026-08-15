@@ -446,6 +446,9 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
         <WalletCards className="w-4 h-4 text-primary" />
         <span>{money(balance)} media balance</span>
       </div>
+
+      <CampaignResults campaignId={campaign.id} />
+
     </div>
   );
 }
