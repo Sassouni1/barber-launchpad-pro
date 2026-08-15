@@ -2217,6 +2217,10 @@ export type Database = {
       support_message_events: {
         Row: {
           actor_id: string | null
+          attachment_mime_type: string | null
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
           body: string
           conversation_id: string
           event_type: string
@@ -2227,6 +2231,10 @@ export type Database = {
         }
         Insert: {
           actor_id?: string | null
+          attachment_mime_type?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           body: string
           conversation_id: string
           event_type: string
@@ -2237,6 +2245,10 @@ export type Database = {
         }
         Update: {
           actor_id?: string | null
+          attachment_mime_type?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           body?: string
           conversation_id?: string
           event_type?: string
@@ -2271,6 +2283,10 @@ export type Database = {
       }
       support_messages: {
         Row: {
+          attachment_mime_type: string | null
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
           body: string
           conversation_id: string
           created_at: string
@@ -2283,6 +2299,10 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          attachment_mime_type?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           body: string
           conversation_id: string
           created_at?: string
@@ -2295,6 +2315,10 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          attachment_mime_type?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           body?: string
           conversation_id?: string
           created_at?: string
