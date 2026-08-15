@@ -10,8 +10,9 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage';
-const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage'];
+type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage' | 'skipInstagram';
+const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage', 'skipInstagram'];
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
