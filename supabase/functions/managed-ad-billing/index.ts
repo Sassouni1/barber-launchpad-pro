@@ -131,11 +131,11 @@ Deno.serve(async (req) => {
       }
 
       const { data: existing, error: existingError } = await admin.from("ad_payment_transactions")
-        .select("stripe_checkout_session_id,status").eq("idempotency_key", body.idempotencyKey).eq("customer_id", userId).maybeSingle();
+        .select("id,stripe_checkout_session_id,status").eq("idempotency_key", body.idempotencyKey).eq("customer_id", userId).maybeSingle();
       if (existingError) throw existingError;
       if (existing?.stripe_checkout_session_id && existing.status !== "failed") {
         const session = await stripeFetch(`/checkout/sessions/${existing.stripe_checkout_session_id}`, stripeSecret, { method: "GET" });
-        return json({ checkoutUrl: session.url, reused: true });
+        return json({ clientSecret: session.client_secret ?? null, checkoutUrl: session.url ?? null, transactionId: existing.id, reused: true });
       }
 
       let stripeCustomerId = billing.stripe_customer_id as string | null;
