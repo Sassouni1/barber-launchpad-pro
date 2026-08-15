@@ -7,7 +7,9 @@ export type AdSocialConnection = {
   facebook_page_id: string | null;
   facebook_page_name: string | null;
   instagram_business_account_id: string | null;
+  instagram_skipped_at: string | null;
 };
+
 
 export function useAdSocialConnection() {
   const { user } = useAuth();
