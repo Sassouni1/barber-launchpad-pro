@@ -228,12 +228,13 @@ Deno.serve(async (req) => {
 
     if (action === 'sync') {
       // Server-only: authenticated by a shared scheduler secret, never a member JWT.
-      const expected = Deno.env.get('REPORTING_SYNC_SECRET');
       const provided = req.headers.get('x-reporting-sync-secret');
+      const expected = Deno.env.get('REPORTING_SYNC_SECRET') ?? (await readVaultSyncSecret());
       if (!expected) return json({ error: 'Sync is not configured' }, 503);
       if (!provided || provided !== expected) return json({ error: 'Unauthorized' }, 401);
       return await runSync();
     }
+
 
     if (action !== 'getResults') return json({ error: 'Invalid action' }, 400);
 
