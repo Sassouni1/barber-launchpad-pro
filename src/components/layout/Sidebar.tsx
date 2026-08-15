@@ -40,6 +40,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
+import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
 
 
 import { Switch } from '@/components/ui/switch';
@@ -168,6 +169,35 @@ function SubNavItem({ to, icon: Icon, label }: { to: string; icon: React.Compone
   );
 }
 
+function MessageSupportSubNavItem() {
+  const location = useLocation();
+  const { data: unreadCount = 0 } = useSupportUnreadCount();
+  const to = '/support';
+  const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
+
+  return (
+    <NavLink
+      to={to}
+      className={cn(
+        'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-300 group relative',
+        isActive
+          ? 'bg-primary/10 text-primary border border-primary/30'
+          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent'
+      )}
+    >
+      <MessageSquare className={cn('w-4 h-4 flex-shrink-0 transition-all', isActive && 'text-primary')} />
+      <span className="font-medium text-sm flex-1">Message Support</span>
+      {unreadCount > 0 && (
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+          {unreadCount}
+        </span>
+      )}
+    </NavLink>
+  );
+}
+
+
+
 function TrainingGamesSubNavItem({ collapsed }: { collapsed: boolean }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -273,6 +303,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/templates', icon: Award, label: 'Template Submissions' },
     { to: '/admin/directory', icon: MapPin, label: 'Directory' },
     { to: '/admin/qr-codes', icon: QrCode, label: 'QR Codes' },
+    { to: '/admin/support', icon: MessageSquare, label: 'Member Support' },
     { to: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
     { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
     { to: '/admin/aion', icon: Bot, label: 'Aion Conversations' },
@@ -377,6 +408,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <ExpandableNavItem icon={Phone} label="Get Support" collapsed={collapsed}>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule a 1-on-1 Call" />
               <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
+              <MessageSupportSubNavItem />
             </ExpandableNavItem>
           </>
         )}

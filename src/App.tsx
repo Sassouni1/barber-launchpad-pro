@@ -23,6 +23,8 @@ import AccessLog from "./pages/admin/AccessLog";
 import AionConversations from "./pages/admin/AionConversations";
 import AdsManager from "./pages/admin/AdsManager";
 import PushNotifications from "./pages/admin/PushNotifications";
+import SupportInbox from "./pages/admin/SupportInbox";
+import Support from "./pages/Support";
 import AionPage from "./pages/AionPage";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
@@ -115,6 +117,7 @@ const MemberApp = () => (
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
         <Route path="/social-media-post" element={<ProtectedRoute><SocialMediaPost /></ProtectedRoute>} />
         <Route path="/aion" element={<ProtectedRoute><AionPage /></ProtectedRoute>} />
+        <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
         <Route path="/ads" element={<ProtectedRoute><Ads /></ProtectedRoute>} />
 
         <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
@@ -145,6 +148,7 @@ const MemberApp = () => (
         <Route path="/admin/aion" element={<ProtectedRoute requireAdmin><AionConversations /></ProtectedRoute>} />
         <Route path="/admin/ads" element={<ProtectedRoute requireAdmin><AdsManager /></ProtectedRoute>} />
         <Route path="/admin/notifications" element={<ProtectedRoute requireAdmin><PushNotifications /></ProtectedRoute>} />
+        <Route path="/admin/support" element={<ProtectedRoute requireAdmin><SupportInbox /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
