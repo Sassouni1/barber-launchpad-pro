@@ -273,6 +273,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/templates', icon: Award, label: 'Template Submissions' },
     { to: '/admin/directory', icon: MapPin, label: 'Directory' },
     { to: '/admin/qr-codes', icon: QrCode, label: 'QR Codes' },
+    { to: '/admin/support', icon: MessageSquare, label: 'Member Support' },
     { to: '/admin/feedback', icon: MessageSquare, label: 'Feedback' },
     { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
     { to: '/admin/aion', icon: Bot, label: 'Aion Conversations' },
@@ -377,6 +378,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <ExpandableNavItem icon={Phone} label="Get Support" collapsed={collapsed}>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule a 1-on-1 Call" />
               <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
+              <MessageSupportSubNavItem />
             </ExpandableNavItem>
           </>
         )}
