@@ -20,12 +20,14 @@ import {
   ExternalLink,
   ClipboardCheck,
   MapPin,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
+import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
 import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import {
@@ -468,6 +470,15 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <NavLink to="/aion" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <Bot className="w-4 h-4" />
                           <span className="font-medium">Ask Aion AI</span>
+                        </NavLink>
+                        <NavLink to="/support" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <MessageSquare className="w-4 h-4" />
+                          <span className="font-medium flex-1">Message Support</span>
+                          {supportUnreadCount > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+                              {supportUnreadCount}
+                            </span>
+                          )}
                         </NavLink>
                       </CollapsibleContent>
                     </Collapsible>
