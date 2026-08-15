@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Bot, CreditCard, Menu, ChevronDown, ChevronRight, MessageSquare, CalendarCheck, Award } from 'lucide-react';
+import { Bot, CreditCard, Menu, ChevronDown, ChevronRight, CalendarCheck, Award } from 'lucide-react';
 import { 
   LayoutDashboard, 
   BookOpen, 
