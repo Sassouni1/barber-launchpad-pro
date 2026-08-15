@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Bot, CreditCard, Menu, ChevronDown, ChevronRight, MessageSquare, CalendarCheck } from 'lucide-react';
+import { Bot, CreditCard, Menu, ChevronDown, ChevronRight, MessageSquare, CalendarCheck, Award } from 'lucide-react';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -52,6 +52,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Logo } from '@/components/ui/Logo';
+import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { LanguageToggle } from '@/lib/i18n/LocaleProvider';
 
 interface MobileNavProps {
