@@ -145,13 +145,18 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
     onChanged();
   };
 
-  const addFunds = async () => {
+  const startPayment = async () => {
     const dollars = Number(fundingAmount);
     const amountCents = Math.round(dollars * 100);
     if (!Number.isFinite(dollars) || amountCents < 200) {
       return toast.error('Enter a funding amount of at least $2.00.');
     }
+    if (!getStripe()) {
+      setFundingError('Card payments are not configured yet. Please contact Barber Launch support.');
+      return;
+    }
     setFundingBusy(true);
+    setFundingError(null);
     try {
       const { data, error } = await supabase.functions.invoke('managed-ad-billing', {
         body: {
@@ -162,19 +167,40 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
         },
       });
       if (error) throw error;
-      const checkoutUrl = (data as { checkoutUrl?: string } | null)?.checkoutUrl;
-      if (typeof checkoutUrl === 'string' && checkoutUrl) {
-        window.location.href = checkoutUrl;
+      const secret = (data as { clientSecret?: string | null } | null)?.clientSecret;
+      if (typeof secret === 'string' && secret) {
+        setPendingCents(amountCents);
+        setClientSecret(secret);
         return;
       }
       const message = (data as { error?: string } | null)?.error;
-      toast.error(message || 'Could not start the checkout session.');
+      setFundingError(message || 'Could not start the secure payment form. Please try again.');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not start the checkout session.');
+      setFundingError(err instanceof Error ? err.message : 'Could not start the secure payment form. Please try again.');
     } finally {
       setFundingBusy(false);
     }
   };
+
+  const cancelPayment = () => {
+    setClientSecret(null);
+    setPendingCents(null);
+    setFundingError(null);
+  };
+
+  const onCheckoutComplete = useCallback(() => {
+    setClientSecret(null);
+    setPendingCents(null);
+    toast.success('Payment submitted. Your media balance updates as soon as Stripe confirms it.');
+    onChanged();
+  }, [onChanged]);
+
+  const checkoutOptions = useMemo(
+    () => (clientSecret ? { clientSecret, onComplete: onCheckoutComplete } : null),
+    [clientSecret, onCheckoutComplete],
+  );
+
+
 
   return (
     <div className="glass-card rounded-xl p-5 space-y-4">
