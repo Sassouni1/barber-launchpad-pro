@@ -84,6 +84,8 @@ export default function Ads() {
 function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: () => void }) {
   const [budget, setBudget] = useState((campaign.daily_budget_cents / 100).toFixed(2));
   const [busy, setBusy] = useState(false);
+  const [fundingAmount, setFundingAmount] = useState('2.00');
+  const [fundingBusy, setFundingBusy] = useState(false);
   const balance = campaign.funded_cents - campaign.spent_cents;
   const on = campaign.desired_status === 'active';
 
@@ -115,6 +117,37 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
     if (error || message) return toast.error(message || 'Could not update the daily budget.');
     toast.success('Daily budget updated.');
     onChanged();
+  };
+
+  const addFunds = async () => {
+    const dollars = Number(fundingAmount);
+    const amountCents = Math.round(dollars * 100);
+    if (!Number.isFinite(dollars) || amountCents < 200) {
+      return toast.error('Enter a funding amount of at least $2.00.');
+    }
+    setFundingBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('managed-ad-billing', {
+        body: {
+          action: 'createCheckout',
+          campaignId: campaign.id,
+          amountCents,
+          idempotencyKey: crypto.randomUUID(),
+        },
+      });
+      if (error) throw error;
+      const checkoutUrl = (data as { checkoutUrl?: string } | null)?.checkoutUrl;
+      if (typeof checkoutUrl === 'string' && checkoutUrl) {
+        window.location.href = checkoutUrl;
+        return;
+      }
+      const message = (data as { error?: string } | null)?.error;
+      toast.error(message || 'Could not start the checkout session.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not start the checkout session.');
+    } finally {
+      setFundingBusy(false);
+    }
   };
 
   return (
@@ -150,16 +183,28 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border/60 pt-4">
         <div className="flex items-center gap-2 text-sm">
           <WalletCards className="w-4 h-4 text-primary" />
           <span>{money(balance)} media balance</span>
         </div>
-        <div className="text-right">
-          <Button size="sm" variant="outline" disabled>
-            Add funds
-          </Button>
-          <p className="text-xs text-muted-foreground mt-1">Payments are not enabled for this test.</p>
+        <div className="flex-1 min-w-[180px] max-w-xs">
+          <Label className="text-xs">Add funds (USD)</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <Input
+              type="number"
+              min="2"
+              step="0.01"
+              value={fundingAmount}
+              onChange={(e) => setFundingAmount(e.target.value)}
+              disabled={fundingBusy}
+              className="flex-1"
+            />
+            <Button size="sm" onClick={addFunds} disabled={fundingBusy}>
+              Add funds
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Funds your managed ad campaign media balance.</p>
         </div>
       </div>
     </div>
