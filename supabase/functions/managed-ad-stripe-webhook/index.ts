@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { readManagedAdsWebhookSecret } from "../_shared/managedAdVault.ts";
+
 
 function hex(bytes: ArrayBuffer) {
   return Array.from(new Uint8Array(bytes)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
