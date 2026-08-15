@@ -1,4 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  readManagedAdsWebhookSecret,
+  writeManagedAdsWebhookSecret,
+  VaultUnavailableError,
+} from "../_shared/managedAdVault.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,6 +11,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const STRIPE_API = "https://api.stripe.com/v1";
+const WEBHOOK_EVENT = "checkout.session.completed";
+const MANAGED_ADS_ENDPOINT_TAG = "barber_launch_managed_ads";
+
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
