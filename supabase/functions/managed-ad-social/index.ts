@@ -85,6 +85,19 @@ Deno.serve(async (req) => {
       return json({ ok: true, url, state });
     }
 
+    if (action === 'skipInstagram') {
+      // Owner-scoped: customerId always comes from the verified JWT.
+      const { error: skipError } = await admin
+        .from('ad_social_connections')
+        .update({ instagram_skipped_at: new Date().toISOString() })
+        .eq('customer_id', customerId)
+        .is('instagram_business_account_id', null);
+      if (skipError) return json({ error: skipError.message }, 500);
+      return json({ ok: true });
+    }
+
+
+
     if (action === 'completeConnection') {
       const code = body?.code;
       if (typeof code !== 'string' || code.length < 4) return json({ error: 'Missing OAuth code' }, 400);
