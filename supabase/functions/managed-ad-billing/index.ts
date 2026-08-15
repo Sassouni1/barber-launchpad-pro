@@ -45,6 +45,49 @@ async function stripeFetch(path: string, secret: string, options: { method?: str
   return data;
 }
 
+/**
+ * Idempotently ensures exactly one enabled Stripe webhook endpoint for the managed-ads webhook URL
+ * listening to checkout.session.completed, with its signing secret stored in Supabase Vault.
+ * Never returns or logs the signing secret.
+ */
+async function ensureManagedAdsWebhookEndpoint(stripeSecret: string) {
+  const webhookUrl = `${Deno.env.get("SUPABASE_URL")!.replace(/\/$/, "")}/functions/v1/managed-ad-stripe-webhook`;
+  const storedSecret = await readManagedAdsWebhookSecret();
+
+  const list = await stripeFetch("/webhook_endpoints?limit=100", stripeSecret, { method: "GET" });
+  const endpoints: Array<Record<string, any>> = Array.isArray(list?.data) ? list.data : [];
+  const sameUrl = endpoints.filter((endpoint) => endpoint?.url === webhookUrl);
+  const usable = sameUrl.find(
+    (endpoint) => endpoint?.status === "enabled" && Array.isArray(endpoint?.enabled_events) &&
+      (endpoint.enabled_events.includes(WEBHOOK_EVENT) || endpoint.enabled_events.includes("*")),
+  );
+  if (usable && storedSecret) return;
+
+  const created = await stripeFetch("/webhook_endpoints", stripeSecret, {
+    body: {
+      url: webhookUrl,
+      "enabled_events[0]": WEBHOOK_EVENT,
+      description: "Barber Launch managed ads funding",
+      [`metadata[${MANAGED_ADS_ENDPOINT_TAG}]`]: "true",
+    },
+  });
+  if (typeof created?.secret !== "string" || created.secret.length === 0) {
+    throw new Error("Stripe did not return a webhook signing secret.");
+  }
+  await writeManagedAdsWebhookSecret(created.secret);
+
+  for (const endpoint of sameUrl) {
+    if (!endpoint?.id || endpoint.id === created.id || endpoint.status === "disabled") continue;
+    try {
+      await stripeFetch(`/webhook_endpoints/${endpoint.id}`, stripeSecret, { body: { disabled: true } });
+    } catch (error) {
+      console.error("managed-ad-billing: failed to disable stale webhook endpoint", endpoint.id, error);
+    }
+  }
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
