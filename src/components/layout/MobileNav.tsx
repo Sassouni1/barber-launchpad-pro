@@ -601,6 +601,11 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Level1CertModal
+        isOpen={isCertModalOpen}
+        onClose={() => setIsCertModalOpen(false)}
+      />
     </>
   );
 }
