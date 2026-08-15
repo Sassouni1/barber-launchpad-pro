@@ -65,3 +65,6 @@ verify_jwt = false
 [functions.aion-generate-image]
 verify_jwt = false
 
+[functions.managed-ad-billing]
+verify_jwt = false
+
