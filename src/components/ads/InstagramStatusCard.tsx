@@ -1,37 +1,19 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Instagram, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-
-type Connection = {
-  connection_status: string;
-  facebook_page_id: string | null;
-  facebook_page_name: string | null;
-  instagram_business_account_id: string | null;
-};
+import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
 
 export function InstagramStatusCard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [checking, setChecking] = useState(false);
 
-  const { data: connection } = useQuery({
-    queryKey: ['ad-social-connection', user?.id],
-    enabled: !!user?.id,
-    staleTime: 300000,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('ad_social_connections')
-        .select('connection_status, facebook_page_id, facebook_page_name, instagram_business_account_id')
-        .eq('customer_id', user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Connection | null;
-    },
-  });
+  const { data: connection } = useAdSocialConnection();
+
 
   if (!connection || connection.connection_status !== 'connected' || !connection.facebook_page_id) return null;
 
