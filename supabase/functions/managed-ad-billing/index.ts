@@ -149,7 +149,19 @@ Deno.serve(async (req) => {
         if (error) throw error;
       }
 
+      try {
+        await ensureManagedAdsWebhookEndpoint(stripeSecret);
+      } catch (error) {
+        if (error instanceof VaultUnavailableError) {
+          console.error("managed-ad-billing: vault unavailable", error.message);
+          return json({ error: "Managed ad billing is not configured: secure secret storage is unavailable." }, 503);
+        }
+        console.error("managed-ad-billing: webhook endpoint registration failed", error);
+        return json({ error: "Managed ad billing is not configured: Stripe webhook registration failed." }, 503);
+      }
+
       const amountCents = Math.max(requestedAmountCents, Number(campaign.daily_budget_cents));
+
       const { data: transaction, error: transactionError } = await admin.from("ad_payment_transactions").insert({
         customer_id: userId,
         campaign_id: campaign.id,
