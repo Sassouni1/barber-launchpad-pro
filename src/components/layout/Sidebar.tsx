@@ -21,6 +21,7 @@ import {
   Phone,
   Award,
   Megaphone,
+  Bell,
   QrCode,
   CreditCard,
   Gift,
@@ -276,6 +277,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
     { to: '/admin/aion', icon: Bot, label: 'Aion Conversations' },
     { to: '/admin/ads', icon: Megaphone, label: 'Ads Manager' },
+    { to: '/admin/notifications', icon: Bell, label: 'Push Notifications' },
   ];
 
   const links = isAdminView ? adminLinks : memberLinks;

@@ -22,6 +22,7 @@ import QRCodesAdmin from "./pages/admin/QRCodes";
 import AccessLog from "./pages/admin/AccessLog";
 import AionConversations from "./pages/admin/AionConversations";
 import AdsManager from "./pages/admin/AdsManager";
+import PushNotifications from "./pages/admin/PushNotifications";
 import AionPage from "./pages/AionPage";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
@@ -57,6 +58,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LocaleProvider } from "./lib/i18n/LocaleProvider";
 import { AccessLogger } from "./components/AccessLogger";
+import { NotificationPrompt } from "./components/notifications/NotificationPrompt";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +84,7 @@ const MemberApp = () => (
   <AuthProvider>
     <BrowserRouter>
       <AccessLogger />
+      <NotificationPrompt />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
@@ -141,6 +144,7 @@ const MemberApp = () => (
         <Route path="/admin/access-log" element={<ProtectedRoute requireAdmin><AccessLog /></ProtectedRoute>} />
         <Route path="/admin/aion" element={<ProtectedRoute requireAdmin><AionConversations /></ProtectedRoute>} />
         <Route path="/admin/ads" element={<ProtectedRoute requireAdmin><AdsManager /></ProtectedRoute>} />
+        <Route path="/admin/notifications" element={<ProtectedRoute requireAdmin><PushNotifications /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
