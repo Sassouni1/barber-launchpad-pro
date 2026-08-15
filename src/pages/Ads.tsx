@@ -109,6 +109,9 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
   const [busy, setBusy] = useState(false);
   const [fundingAmount, setFundingAmount] = useState('2.00');
   const [fundingBusy, setFundingBusy] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [fundingError, setFundingError] = useState<string | null>(null);
+  const [pendingCents, setPendingCents] = useState<number | null>(null);
   const balance = campaign.funded_cents - campaign.spent_cents;
   const on = campaign.desired_status === 'active';
 
