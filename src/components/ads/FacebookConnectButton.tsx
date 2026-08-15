@@ -5,7 +5,7 @@ import { Facebook, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
 
-export function FacebookConnectButton() {
+export function FacebookConnectButton({ showPageName = true }: { showPageName?: boolean } = {}) {
   const [loading, setLoading] = useState(false);
 
   const { data: connection } = useAdSocialConnection();
@@ -42,7 +42,7 @@ export function FacebookConnectButton() {
         {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Facebook className="w-4 h-4 mr-2" />}
         {connected ? 'Reconnect Facebook' : 'Connect Facebook'}
       </Button>
-      {connection?.facebook_page_name && (
+      {showPageName && connection?.facebook_page_name && (
         <span className="text-sm text-muted-foreground truncate">
           Page: <span className="text-foreground">{connection.facebook_page_name}</span>
         </span>

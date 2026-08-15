@@ -139,7 +139,7 @@ export default function Ads() {
                 </span>
               )}
             </div>
-            <FacebookConnectButton />
+            <FacebookConnectButton showPageName={false} />
           </div>
         </div>
 
