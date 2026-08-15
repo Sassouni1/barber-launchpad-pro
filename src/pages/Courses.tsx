@@ -209,6 +209,7 @@ const TrackedCoursePreviewIframe = ({
           video_key: videoKey,
           duration_seconds: Math.max(0, Math.round(progress.duration)),
           watched_seconds: Math.max(0, Math.round(progress.watchedSeconds.length)),
+          watched_seconds_map: progress.watchedSeconds,
           watched_percent: Math.max(0, Math.min(100, progress.watchedPercent)),
           last_position_seconds: Math.max(0, Math.round(progress.position * 100) / 100),
           last_watched_at: new Date().toISOString(),
