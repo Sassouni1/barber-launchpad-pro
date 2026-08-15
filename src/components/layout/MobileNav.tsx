@@ -105,6 +105,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
   const [viewOpen, setViewOpen] = useState(false);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [memberPickerOpen, setMemberPickerOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [impersonating, setImpersonating] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const [checklistsOpen, setChecklistsOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [marketingOpen, setMarketingOpen] = useState(false);
-  const [contactOpen, setContactOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const { data: checklistLists = [] } = useChecklistLists();
 
   const handleSignOut = async () => {
