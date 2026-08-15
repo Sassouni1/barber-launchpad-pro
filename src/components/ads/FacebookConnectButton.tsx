@@ -1,33 +1,15 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Facebook, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
 
 export function FacebookConnectButton() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const { data: connection } = useQuery({
-    queryKey: ['ad-social-connection', user?.id],
-    enabled: !!user?.id,
-    staleTime: 300000,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('ad_social_connections')
-        .select('connection_status, facebook_page_id, facebook_page_name, instagram_business_account_id')
-        .eq('customer_id', user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as {
-        facebook_page_name: string | null;
-        connection_status: string;
-        instagram_business_account_id: string | null;
-      } | null;
-    },
-  });
+  const { data: connection } = useAdSocialConnection();
+
 
   const connect = async () => {
     setLoading(true);
