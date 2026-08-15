@@ -31,9 +31,18 @@ function response(body: unknown, status = 200) {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return response({ error: "Method not allowed" }, 405);
   try {
-    const webhookSecret = Deno.env.get("STRIPE_MANAGED_ADS_WEBHOOK_SECRET");
+    let webhookSecret = Deno.env.get("STRIPE_MANAGED_ADS_WEBHOOK_SECRET") ?? null;
+    if (!webhookSecret) {
+      try {
+        webhookSecret = await readManagedAdsWebhookSecret();
+      } catch (error) {
+        console.error("managed-ad-stripe-webhook: vault read failed", error instanceof Error ? error.message : error);
+        webhookSecret = null;
+      }
+    }
     const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
     if (!webhookSecret || !stripeSecret) return response({ error: "Webhook is not configured" }, 503);
+
     const rawBody = await req.text();
     if (!(await verifyStripeSignature(rawBody, req.headers.get("Stripe-Signature"), webhookSecret))) return response({ error: "Invalid signature" }, 400);
     const event = JSON.parse(rawBody);
