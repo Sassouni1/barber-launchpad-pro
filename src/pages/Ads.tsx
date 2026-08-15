@@ -235,30 +235,77 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border/60 pt-4">
+      <div className="border-t border-border/60 pt-4 space-y-3">
         <div className="flex items-center gap-2 text-sm">
           <WalletCards className="w-4 h-4 text-primary" />
           <span>{money(balance)} media balance</span>
         </div>
-        <div className="flex-1 min-w-[180px] max-w-xs">
-          <Label className="text-xs">Add funds (USD)</Label>
-          <div className="flex items-center gap-2 mt-1">
-            <Input
-              type="number"
-              min="2"
-              step="0.01"
-              value={fundingAmount}
-              onChange={(e) => setFundingAmount(e.target.value)}
-              disabled={fundingBusy}
-              className="flex-1"
-            />
-            <Button size="sm" onClick={addFunds} disabled={fundingBusy}>
-              Add funds
-            </Button>
+
+        <div className="rounded-lg border border-border/60 bg-background/40 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-primary" />
+            <p className="text-sm font-medium">Ad billing information</p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Funds your managed ad campaign media balance.</p>
+          <p className="text-xs text-muted-foreground">
+            Add prepaid media funds for <span className="text-foreground">{campaign.name}</span>. Payment is handled
+            securely by Stripe right here on this page. Minimum $2.00.
+          </p>
+
+          {!clientSecret ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[140px]">
+                <Label className="text-xs">Amount (USD)</Label>
+                <Input
+                  type="number"
+                  min="2"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={fundingAmount}
+                  onChange={(e) => setFundingAmount(e.target.value)}
+                  disabled={fundingBusy}
+                  className="mt-1"
+                />
+              </div>
+              <Button size="sm" onClick={startPayment} disabled={fundingBusy}>
+                {fundingBusy ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Preparing…
+                  </>
+                ) : (
+                  'Continue to secure payment'
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Funding <span className="text-foreground font-medium">{money(pendingCents ?? 0)}</span> to{' '}
+                  {campaign.name}
+                </p>
+                <Button size="sm" variant="ghost" onClick={cancelPayment}>
+                  Cancel payment
+                </Button>
+              </div>
+              <div className="rounded-lg bg-white p-2 overflow-hidden">
+                {checkoutOptions && (
+                  <EmbeddedCheckoutProvider stripe={getStripe()!} options={checkoutOptions}>
+                    <EmbeddedCheckout className="min-h-[420px]" />
+                  </EmbeddedCheckoutProvider>
+                )}
+              </div>
+            </div>
+          )}
+
+          {fundingError && (
+            <p className="text-xs text-destructive" role="alert">
+              {fundingError}
+            </p>
+          )}
         </div>
       </div>
+
     </div>
   );
 }
