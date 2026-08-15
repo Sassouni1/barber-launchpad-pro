@@ -19,17 +19,27 @@ const LEAD_ACTION_TYPES = new Set([
   'onsite_conversion.lead',
 ]);
 
+/**
+ * Meta may repeat the same action_type across attribution windows. Dedupe by
+ * taking the highest count per exact supported lead action_type, then sum those
+ * distinct true lead types. Non-lead actions are never counted.
+ */
 function countLeads(actions: unknown): number {
   if (!Array.isArray(actions)) return 0;
-  let best = 0;
+  const bestByType = new Map<string, number>();
   for (const raw of actions) {
     const a = raw as { action_type?: string; value?: string | number };
     if (!a?.action_type || !LEAD_ACTION_TYPES.has(a.action_type)) continue;
     const value = Number(a.value ?? 0);
-    if (Number.isFinite(value) && value > best) best = value;
+    if (!Number.isFinite(value) || value <= 0) continue;
+    const current = bestByType.get(a.action_type) ?? 0;
+    if (value > current) bestByType.set(a.action_type, value);
   }
-  return Math.round(best);
+  let total = 0;
+  for (const v of bestByType.values()) total += v;
+  return Math.round(total);
 }
+
 
 const toInt = (v: unknown) => {
   const n = Number(v ?? 0);
@@ -219,32 +229,6 @@ async function getResults(customerId: string, campaignId: string) {
 
 /* -------------------------------------------------------------------------- */
 
-/**
- * Fallback shared secret used by the in-database hourly scheduler. The value
- * lives in Supabase Vault so the cron job never stores it in plaintext and the
- * browser can never reach it.
- */
-async function readVaultSyncSecret(): Promise<string | null> {
-  const dbUrl = Deno.env.get('SUPABASE_DB_URL');
-  if (!dbUrl) return null;
-  const postgres = (await import('npm:postgres@3.4.4')).default;
-  const sql = postgres(dbUrl, { prepare: false, max: 1, idle_timeout: 5 });
-  try {
-    const rows = await sql`
-      select decrypted_secret from vault.decrypted_secrets
-      where name = 'REPORTING_SYNC_SECRET' limit 1
-    `;
-    const value = rows[0]?.decrypted_secret as string | undefined;
-    return value && value.length > 0 ? value : null;
-  } catch {
-    return null;
-  } finally {
-    await sql.end({ timeout: 5 }).catch(() => {});
-  }
-}
-
-
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -254,18 +238,18 @@ Deno.serve(async (req) => {
 
     if (action === 'sync') {
       // Server-only: authenticated by a shared scheduler secret, never a member JWT.
-      // Either the function env secret or the Vault secret used by the hourly
-      // in-database scheduler is accepted.
+      // The hourly pg_cron job reads the same value from Supabase Vault and sends
+      // it in the x-reporting-sync-secret header.
       const provided = req.headers.get('x-reporting-sync-secret');
       if (!provided) return json({ error: 'Unauthorized' }, 401);
-      const candidates = [Deno.env.get('REPORTING_SYNC_SECRET'), await readVaultSyncSecret()].filter(
-        (v): v is string => !!v,
-      );
-      if (candidates.length === 0) return json({ error: 'Sync is not configured' }, 503);
-      if (!candidates.includes(provided)) return json({ error: 'Unauthorized' }, 401);
+      const expected = Deno.env.get('REPORTING_SYNC_SECRET');
+      if (!expected) return json({ error: 'Sync is not configured' }, 503);
+      if (provided !== expected) return json({ error: 'Unauthorized' }, 401);
 
       return await runSync();
     }
+
+
 
 
     if (action !== 'getResults') return json({ error: 'Invalid action' }, 400);
