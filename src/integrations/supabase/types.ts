@@ -2214,11 +2214,69 @@ export type Database = {
           },
         ]
       }
+      support_message_events: {
+        Row: {
+          actor_id: string | null
+          body: string
+          conversation_id: string
+          event_type: string
+          id: string
+          message_id: string
+          occurred_at: string
+          previous_body: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          body: string
+          conversation_id: string
+          event_type: string
+          id?: string
+          message_id: string
+          occurred_at?: string
+          previous_body?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string
+          conversation_id?: string
+          event_type?: string
+          id?: string
+          message_id?: string
+          occurred_at?: string
+          previous_body?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_message_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_message_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_message_events_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_messages: {
         Row: {
           body: string
           conversation_id: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          edited_at: string | null
           id: string
           read_by_admin_at: string | null
           read_by_member_at: string | null
@@ -2228,6 +2286,9 @@ export type Database = {
           body: string
           conversation_id: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edited_at?: string | null
           id?: string
           read_by_admin_at?: string | null
           read_by_member_at?: string | null
@@ -2237,6 +2298,9 @@ export type Database = {
           body?: string
           conversation_id?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edited_at?: string | null
           id?: string
           read_by_admin_at?: string | null
           read_by_member_at?: string | null
@@ -2248,6 +2312,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "support_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2762,6 +2833,10 @@ export type Database = {
         Args: { encryption_key: string; token_id: string }
         Returns: string
       }
+      edit_support_message: {
+        Args: { p_body: string; p_message_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2804,6 +2879,10 @@ export type Database = {
       store_encrypted_token: {
         Args: { encryption_key: string; token_value: string }
         Returns: string
+      }
+      unsend_support_message: {
+        Args: { p_message_id: string }
+        Returns: undefined
       }
     }
     Enums: {
