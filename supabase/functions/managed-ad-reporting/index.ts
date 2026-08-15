@@ -219,6 +219,32 @@ async function getResults(customerId: string, campaignId: string) {
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Fallback shared secret used by the in-database hourly scheduler. The value
+ * lives in Supabase Vault so the cron job never stores it in plaintext and the
+ * browser can never reach it.
+ */
+async function readVaultSyncSecret(): Promise<string | null> {
+  const dbUrl = Deno.env.get('SUPABASE_DB_URL');
+  if (!dbUrl) return null;
+  const postgres = (await import('npm:postgres@3.4.4')).default;
+  const sql = postgres(dbUrl, { prepare: false, max: 1, idle_timeout: 5 });
+  try {
+    const rows = await sql`
+      select decrypted_secret from vault.decrypted_secrets
+      where name = 'REPORTING_SYNC_SECRET' limit 1
+    `;
+    const value = rows[0]?.decrypted_secret as string | undefined;
+    return value && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  } finally {
+    await sql.end({ timeout: 5 }).catch(() => {});
+  }
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
