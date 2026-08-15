@@ -333,10 +333,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
         ) : (
           <>
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
-            {/* Training opens the two-path chooser; individual paths stay inside the page. */}
             <NavItem to="/courses" icon={BookOpen} label="Training" collapsed={collapsed} />
             <TrainingGamesSubNavItem collapsed={collapsed} />
-
 
             <ExpandableNavItem icon={ClipboardCheck} label="Checklists" collapsed={collapsed}>
               {checklistLists
@@ -345,26 +343,21 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                   <SubNavItem key={list.id} to={`/checklist/${list.id}`} icon={ClipboardCheck} label={list.title} />
                 ))}
             </ExpandableNavItem>
-            <ExpandableNavItem icon={Megaphone} label="Marketing Tools" collapsed={collapsed} defaultOpen>
-              <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
+
+            <ExpandableNavItem icon={Megaphone} label="Growth Tools" collapsed={collapsed} defaultOpen>
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
-              <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
+              <SubNavItem to="/social-media-post" icon={Megaphone} label="Content Library" />
+              <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
+              <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
             </ExpandableNavItem>
-            <NavItem to="/social-media-post" icon={Megaphone} label="Hair System Content" collapsed={collapsed} />
-            <NavItem to="/my-links" icon={CreditCard} label="My Links" collapsed={collapsed} dataTour="my-links" />
-            {/* Rewards hidden for now */}
+
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
               <SubNavItem to="/orders" icon={Package} label="Order History & Tracking" />
             </ExpandableNavItem>
-            
-            <ExpandableNavItem icon={Phone} label="Contact" collapsed={collapsed} defaultOpen>
-              <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule one-on-one calls" />
-              <SubNavItem to="/dashboard#contact" icon={MessageSquare} label="Message" />
-            </ExpandableNavItem>
-            
+
             {/* Level 1 Cert Button */}
             <button
               onClick={() => setIsCertModalOpen(true)}
@@ -378,6 +371,13 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                 <span className="font-medium text-sm">Level 1 Cert</span>
               )}
             </button>
+
+            <div className="my-2 border-t border-sidebar-border" />
+
+            <ExpandableNavItem icon={Phone} label="Get Support" collapsed={collapsed}>
+              <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule a 1-on-1 Call" />
+              <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
+            </ExpandableNavItem>
           </>
         )}
         
