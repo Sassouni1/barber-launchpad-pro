@@ -19,17 +19,27 @@ const LEAD_ACTION_TYPES = new Set([
   'onsite_conversion.lead',
 ]);
 
+/**
+ * Meta may repeat the same action_type across attribution windows. Dedupe by
+ * taking the highest count per exact supported lead action_type, then sum those
+ * distinct true lead types. Non-lead actions are never counted.
+ */
 function countLeads(actions: unknown): number {
   if (!Array.isArray(actions)) return 0;
-  let best = 0;
+  const bestByType = new Map<string, number>();
   for (const raw of actions) {
     const a = raw as { action_type?: string; value?: string | number };
     if (!a?.action_type || !LEAD_ACTION_TYPES.has(a.action_type)) continue;
     const value = Number(a.value ?? 0);
-    if (Number.isFinite(value) && value > best) best = value;
+    if (!Number.isFinite(value) || value <= 0) continue;
+    const current = bestByType.get(a.action_type) ?? 0;
+    if (value > current) bestByType.set(a.action_type, value);
   }
-  return Math.round(best);
+  let total = 0;
+  for (const v of bestByType.values()) total += v;
+  return Math.round(total);
 }
+
 
 const toInt = (v: unknown) => {
   const n = Number(v ?? 0);
