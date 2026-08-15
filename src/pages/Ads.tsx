@@ -139,7 +139,7 @@ export default function Ads() {
                 </span>
               )}
             </div>
-            <FacebookConnectButton showPageName={false} />
+            <FacebookConnectButton showPageName={false} connectedLabel="Switch Facebook" />
           </div>
         </div>
 
