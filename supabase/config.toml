@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.managed-ad-stripe-webhook]
 verify_jwt = false
+
+[functions.managed-ad-reporting]
+verify_jwt = false
