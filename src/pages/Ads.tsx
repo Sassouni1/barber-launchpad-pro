@@ -50,6 +50,18 @@ export default function Ads() {
     },
   });
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get('funding_session_id')) return;
+    toast.success('Payment submitted. Your media balance updates as soon as Stripe confirms it.');
+    queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] });
+    params.delete('funding_session_id');
+    const query = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [queryClient]);
+
+
+
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
