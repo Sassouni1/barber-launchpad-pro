@@ -177,6 +177,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const adminLinks = [
     { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
     { to: '/admin/members', icon: Users, label: 'Members' },
+    { to: '/admin/support', icon: MessageSquare, label: 'Member Support' },
     { to: '/admin/courses', icon: FileEdit, label: 'Courses' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos' },
     { to: '/admin/products', icon: Package, label: 'Products' },
