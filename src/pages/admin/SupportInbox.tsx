@@ -35,7 +35,7 @@ function useSupportInbox() {
 
 function InboxPreview({ conversation, selected, onSelect }: { conversation: SupportConversation & { member: MemberProfile | null }; selected: boolean; onSelect: () => void }) {
   const { data: messages = [] } = useSupportMessages(conversation.id);
-  const lastMessage = messages.at(-1);
+  const lastMessage = messages[messages.length - 1];
   const unread = messages.filter((message) => message.sender_id === conversation.member_id && !message.read_by_admin_at).length;
   const name = conversation.member?.full_name || conversation.member?.email || 'Member';
 
