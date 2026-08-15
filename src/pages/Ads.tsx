@@ -14,6 +14,9 @@ import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
 import { InstagramStatusCard } from '@/components/ads/InstagramStatusCard';
 import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
+import { useAdBillingProfile } from '@/hooks/useAdBillingProfile';
+import { useAuth } from '@/hooks/useAuth';
+
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 let stripePromise: Promise<Stripe | null> | null = null;
