@@ -256,6 +256,8 @@ Deno.serve(async (req) => {
         facebook_page_id: page.id,
         facebook_page_name: page.name,
         instagram_business_account_id: page.instagram_business_account?.id ?? null,
+        ...(page.instagram_business_account?.id ? { instagram_skipped_at: null } : {}),
+
         connection_status: 'connected',
         connected_at: new Date().toISOString(),
         last_synced_at: new Date().toISOString(),
