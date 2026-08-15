@@ -670,16 +670,37 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     };
   }, [expandedCourse, highlightedModule, isTabletOrDesktop]);
 
-  // Keep the preview card synchronized with the latest local resume record.
+  // Keep the preview card synchronized with the latest resume record. Local
+  // storage covers this browser; the saved row covers watching from the other
+  // panel or another device.
   useEffect(() => {
-    const refreshOrderWatch = () =>
-      setOrderWatchPercent(readOrderWatchPercent(user?.id));
+    let cancelled = false;
+
+    const refreshOrderWatch = () => {
+      const localPercent = readOrderWatchPercent(user?.id);
+      setOrderWatchPercent((current) => Math.max(current, localPercent));
+      if (!user?.id) return;
+      void supabase
+        .from("video_watch_progress")
+        .select("watched_percent, completed_at")
+        .eq("user_id", user.id)
+        .eq("video_key", `module:${HAIR_SYSTEM_ORDER_MODULE_ID}`)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (cancelled || !data) return;
+          const remotePercent = data.completed_at
+            ? 100
+            : Math.max(0, Math.min(100, Math.round(Number(data.watched_percent) || 0)));
+          setOrderWatchPercent((current) => Math.max(current, remotePercent));
+        });
+    };
 
     refreshOrderWatch();
     window.addEventListener("focus", refreshOrderWatch);
     window.addEventListener("visibilitychange", refreshOrderWatch);
     window.addEventListener("storage", refreshOrderWatch);
     return () => {
+      cancelled = true;
       window.removeEventListener("focus", refreshOrderWatch);
       window.removeEventListener("visibilitychange", refreshOrderWatch);
       window.removeEventListener("storage", refreshOrderWatch);
