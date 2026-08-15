@@ -357,6 +357,7 @@ export type Database = {
           facebook_page_id: string | null
           facebook_page_name: string | null
           instagram_business_account_id: string | null
+          instagram_skipped_at: string | null
           last_synced_at: string | null
           provider: string
           updated_at: string
@@ -369,6 +370,7 @@ export type Database = {
           facebook_page_id?: string | null
           facebook_page_name?: string | null
           instagram_business_account_id?: string | null
+          instagram_skipped_at?: string | null
           last_synced_at?: string | null
           provider?: string
           updated_at?: string
@@ -381,6 +383,7 @@ export type Database = {
           facebook_page_id?: string | null
           facebook_page_name?: string | null
           instagram_business_account_id?: string | null
+          instagram_skipped_at?: string | null
           last_synced_at?: string | null
           provider?: string
           updated_at?: string

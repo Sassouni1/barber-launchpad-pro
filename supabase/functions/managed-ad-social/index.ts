@@ -10,8 +10,9 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage';
-const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage'];
+type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage' | 'skipInstagram';
+const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage', 'skipInstagram'];
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -83,6 +84,19 @@ Deno.serve(async (req) => {
       const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&response_type=code&scope=${encodeURIComponent(SCOPES)}`;
       return json({ ok: true, url, state });
     }
+
+    if (action === 'skipInstagram') {
+      // Owner-scoped: customerId always comes from the verified JWT.
+      const { error: skipError } = await admin
+        .from('ad_social_connections')
+        .update({ instagram_skipped_at: new Date().toISOString() })
+        .eq('customer_id', customerId)
+        .is('instagram_business_account_id', null);
+      if (skipError) return json({ error: skipError.message }, 500);
+      return json({ ok: true });
+    }
+
+
 
     if (action === 'completeConnection') {
       const code = body?.code;
@@ -208,8 +222,11 @@ Deno.serve(async (req) => {
         .update({
           facebook_page_name: selected.name,
           instagram_business_account_id: instagramId,
+          // Connecting an Instagram account clears any earlier "skip" decision.
+          ...(instagramId ? { instagram_skipped_at: null } : {}),
           last_synced_at: new Date().toISOString(),
         })
+
         .eq('customer_id', customerId);
       if (syncError) return json({ error: syncError.message }, 500);
       return json({
@@ -239,6 +256,8 @@ Deno.serve(async (req) => {
         facebook_page_id: page.id,
         facebook_page_name: page.name,
         instagram_business_account_id: page.instagram_business_account?.id ?? null,
+        ...(page.instagram_business_account?.id ? { instagram_skipped_at: null } : {}),
+
         connection_status: 'connected',
         connected_at: new Date().toISOString(),
         last_synced_at: new Date().toISOString(),

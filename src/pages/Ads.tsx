@@ -14,6 +14,9 @@ import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
 import { InstagramStatusCard } from '@/components/ads/InstagramStatusCard';
 import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
+import { useAdBillingProfile } from '@/hooks/useAdBillingProfile';
+import { useAuth } from '@/hooks/useAuth';
+
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 let stripePromise: Promise<Stripe | null> | null = null;
@@ -57,8 +60,18 @@ function StepHeader({ index, title, done }: { index: number; title: string; done
 
 export default function Ads() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: connection, isLoading: connectionLoading } = useAdSocialConnection();
+  const { data: billingProfile } = useAdBillingProfile();
   const connected = connection?.connection_status === 'connected';
+  const instagramConnected = !!connection?.instagram_business_account_id;
+  const instagramSkipped = !!connection?.instagram_skipped_at;
+  const instagramDecided = instagramConnected || instagramSkipped;
+  // Durable completion signal: a saved default payment method (not a $0 balance
+  // and not an in-progress checkout attempt).
+  const billingComplete = !!billingProfile?.default_payment_method_id;
+  const onboardingComplete = connected && instagramDecided && billingComplete;
+  const [skipping, setSkipping] = useState(false);
 
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: ['member-ad-campaigns'],
@@ -77,10 +90,30 @@ export default function Ads() {
     if (!params.get('funding_session_id')) return;
     toast.success('Payment submitted. Your media balance updates as soon as Stripe confirms it.');
     queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] });
+    queryClient.invalidateQueries({ queryKey: ['ad-billing-profile', user?.id] });
     params.delete('funding_session_id');
     const query = params.toString();
     window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-  }, [queryClient]);
+  }, [queryClient, user?.id]);
+
+  const refreshAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] });
+    queryClient.invalidateQueries({ queryKey: ['ad-billing-profile', user?.id] });
+  };
+
+  const skipInstagram = async () => {
+    setSkipping(true);
+    const { data, error } = await supabase.functions.invoke('managed-ad-social', {
+      body: { action: 'skipInstagram' },
+    });
+    setSkipping(false);
+    const message = (data as { error?: string } | null)?.error;
+    if (error || message) {
+      return toast.error(message || error?.message || 'Could not save that choice.');
+    }
+    await queryClient.invalidateQueries({ queryKey: ['ad-social-connection', user?.id] });
+    toast.success('Skipped Instagram for now. You can connect it later.');
+  };
 
   const intro = (
     <p className="text-muted-foreground text-sm mt-1">
@@ -117,7 +150,34 @@ export default function Ads() {
     );
   }
 
-  // ---- Connected: staged setup ----
+  // ---- Campaign management (onboarding finished) ----
+  if (onboardingComplete) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div>
+            <span className="text-xs tracking-[.18em] text-primary font-semibold">BARBER LAUNCH ADS</span>
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold mt-2">Your campaigns</h1>
+            {intro}
+          </div>
+
+          {isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading campaigns…</div>
+          ) : campaigns.length === 0 ? (
+            <div className="glass-card rounded-xl p-5 text-sm text-muted-foreground">
+              Barber Launch will add your campaign here as soon as it's live.
+            </div>
+          ) : (
+            campaigns.map((c) => <CampaignCard key={c.id} campaign={c} onChanged={refreshAll} />)
+          )}
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ---- Onboarding: Facebook connected, remaining steps ----
+  const billingStepIndex = instagramConnected ? 2 : 3;
+
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
@@ -143,50 +203,44 @@ export default function Ads() {
           </div>
         </div>
 
-        <div className="glass-card rounded-xl p-5 space-y-4">
-          <StepHeader index={2} title="Ad Billing" />
-          <p className="text-sm text-muted-foreground">
-            Add prepaid media funds so your campaigns can run. Payment is handled securely by Stripe right here on this
-            page. Minimum $2.00.
-          </p>
-          {isLoading ? (
-            <div className="text-sm text-muted-foreground">Loading campaigns…</div>
-          ) : campaigns.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              Barber Launch will add your campaign here — billing opens up as soon as it's live.
+        {!instagramDecided ? (
+          <div className="glass-card rounded-xl p-5 space-y-4">
+            <StepHeader index={2} title="Connect your Instagram (optional)" />
+            <p className="text-sm text-muted-foreground">
+              Linking a professional Instagram account to your Facebook Page lets your ads run on Instagram too.
+            </p>
+            <InstagramStatusCard />
+            <div className="border-t border-border/60 pt-4 space-y-2">
+              <Button variant="outline" size="sm" onClick={skipInstagram} disabled={skipping}>
+                {skipping ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Skip Instagram for now
+              </Button>
+              <p className="text-xs text-muted-foreground">I do not have an Instagram to connect right now.</p>
             </div>
-          ) : (
-            campaigns.map((c) => (
-              <AdBillingPanel
-                key={c.id}
-                campaign={c}
-                onChanged={() => queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] })}
-              />
-            ))
-          )}
-        </div>
-
-        <div className="glass-card rounded-xl p-5 space-y-4">
-          <StepHeader index={3} title="Instagram (optional)" />
-          <InstagramStatusCard />
-        </div>
-
-        {campaigns.length > 0 && (
-          <div className="space-y-4">
-            <p className="text-xs tracking-[.18em] text-muted-foreground font-semibold">YOUR CAMPAIGNS</p>
-            {campaigns.map((c) => (
-              <CampaignCard
-                key={c.id}
-                campaign={c}
-                onChanged={() => queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] })}
-              />
-            ))}
+          </div>
+        ) : (
+          <div className="glass-card rounded-xl p-5 space-y-4">
+            <StepHeader index={billingStepIndex} title="Ad Billing" />
+            <p className="text-sm text-muted-foreground">
+              Add prepaid media funds so your campaigns can run. Payment is handled securely by Stripe right here on this
+              page. Minimum $2.00.
+            </p>
+            {isLoading ? (
+              <div className="text-sm text-muted-foreground">Loading campaigns…</div>
+            ) : campaigns.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                Barber Launch will add your campaign here — billing opens up as soon as it's live.
+              </div>
+            ) : (
+              <AdBillingPanel campaign={campaigns[0]} onChanged={refreshAll} />
+            )}
           </div>
         )}
       </div>
     </DashboardLayout>
   );
 }
+
 
 function AdBillingPanel({ campaign, onChanged }: { campaign: Campaign; onChanged: () => void }) {
   const [fundingAmount, setFundingAmount] = useState('2.00');

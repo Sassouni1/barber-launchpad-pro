@@ -7,7 +7,9 @@ export type AdSocialConnection = {
   facebook_page_id: string | null;
   facebook_page_name: string | null;
   instagram_business_account_id: string | null;
+  instagram_skipped_at: string | null;
 };
+
 
 export function useAdSocialConnection() {
   const { user } = useAuth();
@@ -23,7 +25,7 @@ export function useAdSocialConnection() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('ad_social_connections')
-        .select('connection_status, facebook_page_id, facebook_page_name, instagram_business_account_id')
+        .select('connection_status, facebook_page_id, facebook_page_name, instagram_business_account_id, instagram_skipped_at')
         .eq('customer_id', user!.id)
         .maybeSingle();
       if (error) throw error;

@@ -1,0 +1,1 @@
+ALTER TABLE public.ad_social_connections ADD COLUMN IF NOT EXISTS instagram_skipped_at timestamptz NULL;
