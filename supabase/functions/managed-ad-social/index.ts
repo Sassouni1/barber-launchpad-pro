@@ -222,8 +222,11 @@ Deno.serve(async (req) => {
         .update({
           facebook_page_name: selected.name,
           instagram_business_account_id: instagramId,
+          // Connecting an Instagram account clears any earlier "skip" decision.
+          ...(instagramId ? { instagram_skipped_at: null } : {}),
           last_synced_at: new Date().toISOString(),
         })
+
         .eq('customer_id', customerId);
       if (syncError) return json({ error: syncError.message }, 500);
       return json({
