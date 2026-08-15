@@ -13,6 +13,8 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
 import { InstagramStatusCard } from '@/components/ads/InstagramStatusCard';
+import { CampaignResults } from '@/components/ads/CampaignResults';
+
 import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
 import { useAdBillingProfile } from '@/hooks/useAdBillingProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -446,6 +448,9 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
         <WalletCards className="w-4 h-4 text-primary" />
         <span>{money(balance)} media balance</span>
       </div>
+
+      <CampaignResults campaignId={campaign.id} />
+
     </div>
   );
 }

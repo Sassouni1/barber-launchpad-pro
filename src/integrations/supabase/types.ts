@@ -113,6 +113,50 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_campaign_appointments: {
+        Row: {
+          booked_at: string
+          campaign_id: string
+          created_at: string
+          customer_id: string
+          external_appointment_id: string
+          id: string
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          booked_at: string
+          campaign_id: string
+          created_at?: string
+          customer_id: string
+          external_appointment_id: string
+          id?: string
+          provider: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          booked_at?: string
+          campaign_id?: string
+          created_at?: string
+          customer_id?: string
+          external_appointment_id?: string
+          id?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaign_appointments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_campaign_events: {
         Row: {
           campaign_id: string | null
@@ -141,6 +185,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ad_campaign_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_campaign_metrics_daily: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          customer_id: string
+          fetched_at: string
+          id: string
+          metric_date: string
+          raw_insight: Json | null
+          source_updated_at: string | null
+          spend_cents: number
+          total_impressions: number
+          total_leads: number
+          total_reach: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          customer_id: string
+          fetched_at?: string
+          id?: string
+          metric_date: string
+          raw_insight?: Json | null
+          source_updated_at?: string | null
+          spend_cents?: number
+          total_impressions?: number
+          total_leads?: number
+          total_reach?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          customer_id?: string
+          fetched_at?: string
+          id?: string
+          metric_date?: string
+          raw_insight?: Json | null
+          source_updated_at?: string | null
+          spend_cents?: number
+          total_impressions?: number
+          total_leads?: number
+          total_reach?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaign_metrics_daily_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "ad_campaigns"
