@@ -131,11 +131,11 @@ Deno.serve(async (req) => {
       }
 
       const { data: existing, error: existingError } = await admin.from("ad_payment_transactions")
-        .select("stripe_checkout_session_id,status").eq("idempotency_key", body.idempotencyKey).eq("customer_id", userId).maybeSingle();
+        .select("id,stripe_checkout_session_id,status").eq("idempotency_key", body.idempotencyKey).eq("customer_id", userId).maybeSingle();
       if (existingError) throw existingError;
       if (existing?.stripe_checkout_session_id && existing.status !== "failed") {
         const session = await stripeFetch(`/checkout/sessions/${existing.stripe_checkout_session_id}`, stripeSecret, { method: "GET" });
-        return json({ checkoutUrl: session.url, reused: true });
+        return json({ clientSecret: session.client_secret ?? null, checkoutUrl: session.url ?? null, transactionId: existing.id, reused: true });
       }
 
       let stripeCustomerId = billing.stripe_customer_id as string | null;
@@ -176,9 +176,9 @@ Deno.serve(async (req) => {
         idempotencyKey: `ad-checkout-${body.idempotencyKey}`,
         body: {
           mode: "payment",
+          ui_mode: "embedded",
           customer: stripeCustomerId,
-          success_url: `${appUrl}/ads?funded=1`,
-          cancel_url: `${appUrl}/ads?funding=cancelled`,
+          return_url: `${appUrl}/ads?funding_session_id={CHECKOUT_SESSION_ID}`,
           "line_items[0][price_data][currency]": campaign.currency,
           "line_items[0][price_data][product_data][name]": `${campaign.name} — prepaid media balance`,
           "line_items[0][price_data][unit_amount]": amountCents,
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
         .update({ stripe_checkout_session_id: session.id, status: "requires_action" })
         .eq("id", transaction.id);
       if (updateError) throw updateError;
-      return json({ checkoutUrl: session.url, transactionId: transaction.id });
+      return json({ clientSecret: session.client_secret ?? null, transactionId: transaction.id });
     }
 
     if (action === "setAutopay") {

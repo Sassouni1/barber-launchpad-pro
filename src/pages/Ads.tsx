@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,10 +7,21 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Megaphone, WalletCards } from 'lucide-react';
+import { CreditCard, Loader2, Megaphone, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
+import { loadStripe, type Stripe } from '@stripe/stripe-js';
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
 import { InstagramStatusCard } from '@/components/ads/InstagramStatusCard';
+
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+let stripePromise: Promise<Stripe | null> | null = null;
+const getStripe = () => {
+  if (!STRIPE_PUBLISHABLE_KEY) return null;
+  if (!stripePromise) stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
+  return stripePromise;
+};
+
 
 type Campaign = {
   id: string;
@@ -38,6 +49,18 @@ export default function Ads() {
       return (data?.campaigns ?? []) as Campaign[];
     },
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get('funding_session_id')) return;
+    toast.success('Payment submitted. Your media balance updates as soon as Stripe confirms it.');
+    queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] });
+    params.delete('funding_session_id');
+    const query = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [queryClient]);
+
+
 
   return (
     <DashboardLayout>
@@ -86,6 +109,9 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
   const [busy, setBusy] = useState(false);
   const [fundingAmount, setFundingAmount] = useState('2.00');
   const [fundingBusy, setFundingBusy] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [fundingError, setFundingError] = useState<string | null>(null);
+  const [pendingCents, setPendingCents] = useState<number | null>(null);
   const balance = campaign.funded_cents - campaign.spent_cents;
   const on = campaign.desired_status === 'active';
 
@@ -119,13 +145,18 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
     onChanged();
   };
 
-  const addFunds = async () => {
+  const startPayment = async () => {
     const dollars = Number(fundingAmount);
     const amountCents = Math.round(dollars * 100);
     if (!Number.isFinite(dollars) || amountCents < 200) {
       return toast.error('Enter a funding amount of at least $2.00.');
     }
+    if (!getStripe()) {
+      setFundingError('Card payments are not configured yet. Please contact Barber Launch support.');
+      return;
+    }
     setFundingBusy(true);
+    setFundingError(null);
     try {
       const { data, error } = await supabase.functions.invoke('managed-ad-billing', {
         body: {
@@ -136,19 +167,40 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
         },
       });
       if (error) throw error;
-      const checkoutUrl = (data as { checkoutUrl?: string } | null)?.checkoutUrl;
-      if (typeof checkoutUrl === 'string' && checkoutUrl) {
-        window.location.href = checkoutUrl;
+      const secret = (data as { clientSecret?: string | null } | null)?.clientSecret;
+      if (typeof secret === 'string' && secret) {
+        setPendingCents(amountCents);
+        setClientSecret(secret);
         return;
       }
       const message = (data as { error?: string } | null)?.error;
-      toast.error(message || 'Could not start the checkout session.');
+      setFundingError(message || 'Could not start the secure payment form. Please try again.');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not start the checkout session.');
+      setFundingError(err instanceof Error ? err.message : 'Could not start the secure payment form. Please try again.');
     } finally {
       setFundingBusy(false);
     }
   };
+
+  const cancelPayment = () => {
+    setClientSecret(null);
+    setPendingCents(null);
+    setFundingError(null);
+  };
+
+  const onCheckoutComplete = useCallback(() => {
+    setClientSecret(null);
+    setPendingCents(null);
+    toast.success('Payment submitted. Your media balance updates as soon as Stripe confirms it.');
+    onChanged();
+  }, [onChanged]);
+
+  const checkoutOptions = useMemo(
+    () => (clientSecret ? { clientSecret, onComplete: onCheckoutComplete } : null),
+    [clientSecret, onCheckoutComplete],
+  );
+
+
 
   return (
     <div className="glass-card rounded-xl p-5 space-y-4">
@@ -183,30 +235,77 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border/60 pt-4">
+      <div className="border-t border-border/60 pt-4 space-y-3">
         <div className="flex items-center gap-2 text-sm">
           <WalletCards className="w-4 h-4 text-primary" />
           <span>{money(balance)} media balance</span>
         </div>
-        <div className="flex-1 min-w-[180px] max-w-xs">
-          <Label className="text-xs">Add funds (USD)</Label>
-          <div className="flex items-center gap-2 mt-1">
-            <Input
-              type="number"
-              min="2"
-              step="0.01"
-              value={fundingAmount}
-              onChange={(e) => setFundingAmount(e.target.value)}
-              disabled={fundingBusy}
-              className="flex-1"
-            />
-            <Button size="sm" onClick={addFunds} disabled={fundingBusy}>
-              Add funds
-            </Button>
+
+        <div className="rounded-lg border border-border/60 bg-background/40 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-primary" />
+            <p className="text-sm font-medium">Ad billing information</p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Funds your managed ad campaign media balance.</p>
+          <p className="text-xs text-muted-foreground">
+            Add prepaid media funds for <span className="text-foreground">{campaign.name}</span>. Payment is handled
+            securely by Stripe right here on this page. Minimum $2.00.
+          </p>
+
+          {!clientSecret ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[140px]">
+                <Label className="text-xs">Amount (USD)</Label>
+                <Input
+                  type="number"
+                  min="2"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={fundingAmount}
+                  onChange={(e) => setFundingAmount(e.target.value)}
+                  disabled={fundingBusy}
+                  className="mt-1"
+                />
+              </div>
+              <Button size="sm" onClick={startPayment} disabled={fundingBusy}>
+                {fundingBusy ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Preparing…
+                  </>
+                ) : (
+                  'Continue to secure payment'
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Funding <span className="text-foreground font-medium">{money(pendingCents ?? 0)}</span> to{' '}
+                  {campaign.name}
+                </p>
+                <Button size="sm" variant="ghost" onClick={cancelPayment}>
+                  Cancel payment
+                </Button>
+              </div>
+              <div className="rounded-lg bg-white p-2 overflow-hidden">
+                {checkoutOptions && (
+                  <EmbeddedCheckoutProvider stripe={getStripe()!} options={checkoutOptions}>
+                    <EmbeddedCheckout className="min-h-[420px]" />
+                  </EmbeddedCheckoutProvider>
+                )}
+              </div>
+            </div>
+          )}
+
+          {fundingError && (
+            <p className="text-xs text-destructive" role="alert">
+              {fundingError}
+            </p>
+          )}
         </div>
       </div>
+
     </div>
   );
 }
