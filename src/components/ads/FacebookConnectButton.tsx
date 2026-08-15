@@ -5,7 +5,7 @@ import { Facebook, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
 
-export function FacebookConnectButton() {
+export function FacebookConnectButton({ showPageName = true }: { showPageName?: boolean } = {}) {
   const [loading, setLoading] = useState(false);
 
   const { data: connection } = useAdSocialConnection();
