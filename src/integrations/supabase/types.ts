@@ -77,6 +77,77 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_billing_profiles: {
+        Row: {
+          auto_recharge_amount_cents: number
+          autopay_consent_at: string | null
+          autopay_enabled: boolean
+          created_at: string
+          currency: string
+          customer_id: string
+          default_payment_method_id: string | null
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_recharge_amount_cents?: number
+          autopay_consent_at?: string | null
+          autopay_enabled?: boolean
+          created_at?: string
+          currency?: string
+          customer_id: string
+          default_payment_method_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_recharge_amount_cents?: number
+          autopay_consent_at?: string | null
+          autopay_enabled?: boolean
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          default_payment_method_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ad_campaign_events: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          customer_id: string
+          detail: Json
+          event_type: string
+          id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          customer_id: string
+          detail?: Json
+          event_type: string
+          id?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          customer_id?: string
+          detail?: Json
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_campaign_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_campaign_templates: {
         Row: {
           active: boolean
@@ -221,6 +292,62 @@ export type Database = {
           },
         ]
       }
+      ad_payment_transactions: {
+        Row: {
+          amount_cents: number
+          campaign_id: string | null
+          completed_at: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          id: string
+          idempotency_key: string
+          purpose: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          campaign_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_id: string
+          id?: string
+          idempotency_key: string
+          purpose?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          campaign_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          id?: string
+          idempotency_key?: string
+          purpose?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_payment_transactions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_social_connections: {
         Row: {
           connected_at: string | null
@@ -329,6 +456,7 @@ export type Database = {
           external_reference: string | null
           id: string
           note: string | null
+          payment_transaction_id: string | null
         }
         Insert: {
           amount_cents: number
@@ -340,6 +468,7 @@ export type Database = {
           external_reference?: string | null
           id?: string
           note?: string | null
+          payment_transaction_id?: string | null
         }
         Update: {
           amount_cents?: number
@@ -351,6 +480,7 @@ export type Database = {
           external_reference?: string | null
           id?: string
           note?: string | null
+          payment_transaction_id?: string | null
         }
         Relationships: [
           {
@@ -372,6 +502,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_spend_ledger_entries_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ad_payment_transactions"
             referencedColumns: ["id"]
           },
         ]

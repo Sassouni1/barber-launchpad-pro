@@ -68,3 +68,6 @@ verify_jwt = false
 [functions.managed-ad-billing]
 verify_jwt = false
 
+
+[functions.managed-ad-stripe-webhook]
+verify_jwt = false
