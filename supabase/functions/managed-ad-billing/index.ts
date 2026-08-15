@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
     const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
-    const appUrl = Deno.env.get("APP_URL");
+    const appUrl = Deno.env.get("MANAGED_AD_APP_URL");
     if (!stripeSecret || !appUrl) return json({ error: "Managed ad billing is not configured." }, 503);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
