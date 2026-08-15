@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,10 +7,21 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Megaphone, WalletCards } from 'lucide-react';
+import { CreditCard, Loader2, Megaphone, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
+import { loadStripe, type Stripe } from '@stripe/stripe-js';
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
 import { InstagramStatusCard } from '@/components/ads/InstagramStatusCard';
+
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+let stripePromise: Promise<Stripe | null> | null = null;
+const getStripe = () => {
+  if (!STRIPE_PUBLISHABLE_KEY) return null;
+  if (!stripePromise) stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
+  return stripePromise;
+};
+
 
 type Campaign = {
   id: string;
