@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
         return json({ error: "Managed ad billing is not configured: Stripe webhook registration failed." }, 503);
       }
 
-      const amountCents = Math.max(requestedAmountCents, Number(campaign.daily_budget_cents));
+      const amountCents = requestedAmountCents;
 
       const { data: transaction, error: transactionError } = await admin.from("ad_payment_transactions").insert({
         customer_id: userId,
