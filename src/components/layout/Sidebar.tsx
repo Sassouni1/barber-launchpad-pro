@@ -21,6 +21,7 @@ import {
   Phone,
   Award,
   Megaphone,
+  Bell,
   QrCode,
   CreditCard,
   Gift,
