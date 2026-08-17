@@ -296,6 +296,8 @@ export default function MyLinks() {
     try {
       const data = await invoke('getStatus');
       setAccount(data.account ?? null);
+      setRequirements(data.requirements ?? null);
+
       setLinks(data.links ?? []);
       setBackendUnavailable(false);
 
