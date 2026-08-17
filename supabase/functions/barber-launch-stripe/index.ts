@@ -95,6 +95,29 @@ async function stripeFetch(
   return json;
 }
 
+const FALLBACK_BUSINESS_URL = "https://find.menshairexpert.com";
+
+// Stripe requires a publicly reachable business_profile.url. Members often type
+// a private/social URL Stripe can't load, which hard-blocks charges_enabled.
+// Resolve a URL we know Stripe can reach.
+async function resolveBusinessUrl(admin: any, userId: string): Promise<string> {
+  try {
+    const { data: card } = await admin
+      .from("business_cards")
+      .select("short_code")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (card?.short_code) {
+      return `https://member.thebarberlaunch.com/card/${card.short_code}`;
+    }
+  } catch (_e) {
+    // fall through to default
+  }
+  return FALLBACK_BUSINESS_URL;
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -219,12 +242,16 @@ Deno.serve(async (req) => {
 
     if (action === "startOnboarding") {
       let accountId = existingAccount?.stripe_account_id;
+      const businessUrl = await resolveBusinessUrl(admin, userId);
       if (!accountId) {
         const acct = await stripeFetch("/accounts", {
           secret: stripeSecret,
           body: {
             type: "standard",
             email: userEmail,
+            "business_profile[url]": businessUrl,
+            "business_profile[product_description]":
+              "Hair replacement and barbering services",
             "metadata[user_id]": userId,
             "metadata[app]": "barber_launch_pro",
           },
@@ -241,10 +268,33 @@ Deno.serve(async (req) => {
           synced_at: new Date().toISOString(),
         });
       } else {
+        // Repair an existing account that Stripe blocked on business_profile.url
+        try {
+          const acct = await stripeFetch(`/accounts/${accountId}`, {
+            method: "GET",
+            secret: stripeSecret,
+          });
+          const due: string[] = [
+            ...(acct.requirements?.currently_due ?? []),
+            ...(acct.requirements?.past_due ?? []),
+            ...(acct.requirements?.errors ?? []).map((e: any) => e?.requirement),
+          ].filter(Boolean);
+          const urlBlocked = due.includes("business_profile.url");
+          if (!acct.business_profile?.url || urlBlocked) {
+            await stripeFetch(`/accounts/${accountId}`, {
+              secret: stripeSecret,
+              body: { "business_profile[url]": businessUrl },
+            });
+          }
+        } catch (e) {
+          console.error("Failed to repair business_profile.url", e);
+        }
+
         await admin
           .from("barber_launch_stripe_accounts")
           .update({ onboarding_started_at: new Date().toISOString() })
           .eq("user_id", userId);
+
       }
 
       const origin = req.headers.get("origin") || body.returnOrigin || "";
