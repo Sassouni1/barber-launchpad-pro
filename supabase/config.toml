@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.managed-ad-reporting]
 verify_jwt = false
+
+[functions.commandiq-member-messages]
+verify_jwt = false
