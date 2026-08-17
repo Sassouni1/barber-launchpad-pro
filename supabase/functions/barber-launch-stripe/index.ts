@@ -144,8 +144,41 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
 
+    // Admin-only diagnostic: read another member's Stripe verification state.
+    if (action === "adminAccountStatus") {
+      const { data: isAdmin } = await admin.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (!isAdmin) return jsonResponse({ error: "Forbidden" }, 403);
+      const targetUserId = body?.userId as string | undefined;
+      if (!targetUserId) return jsonResponse({ error: "Missing userId" }, 400);
+      const { data: target } = await admin
+        .from("barber_launch_stripe_accounts")
+        .select("*")
+        .eq("user_id", targetUserId)
+        .maybeSingle();
+      if (!target?.stripe_account_id) {
+        return jsonResponse({ account: null, requirements: null });
+      }
+      const acct = await stripeFetch(`/accounts/${target.stripe_account_id}`, {
+        method: "GET",
+        secret: stripeSecret,
+      });
+      return jsonResponse({
+        account: target,
+        charges_enabled: !!acct.charges_enabled,
+        payouts_enabled: !!acct.payouts_enabled,
+        details_submitted: !!acct.details_submitted,
+        requirements: acct.requirements ?? null,
+        future_requirements: acct.future_requirements ?? null,
+        capabilities: acct.capabilities ?? null,
+      });
+    }
+
     if (action === "getStatus") {
       let account = existingAccount;
+      let requirements: Record<string, unknown> | null = null;
       if (account?.stripe_account_id) {
         try {
           const acct = await stripeFetch(`/accounts/${account.stripe_account_id}`, {
@@ -163,6 +196,12 @@ Deno.serve(async (req) => {
             .update(updates)
             .eq("id", account.id);
           account = { ...account, ...updates };
+          requirements = {
+            disabled_reason: acct.requirements?.disabled_reason ?? null,
+            currently_due: acct.requirements?.currently_due ?? [],
+            past_due: acct.requirements?.past_due ?? [],
+            pending_verification: acct.requirements?.pending_verification ?? [],
+          };
         } catch (e) {
           console.error("Failed to refresh Stripe account", e);
         }
@@ -174,8 +213,9 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .order("amount_cents", { ascending: true });
 
-      return jsonResponse({ account: account ?? null, links: links ?? [] });
+      return jsonResponse({ account: account ?? null, links: links ?? [], requirements });
     }
+
 
     if (action === "startOnboarding") {
       let accountId = existingAccount?.stripe_account_id;
