@@ -25,25 +25,41 @@ async function verifyCommandIqOperator(request: Request) {
     throw Object.assign(new Error("The CommandIQ membership bridge is not configured yet."), { status: 503 });
   }
   if (!authorization.toLowerCase().startsWith("bearer ")) {
+    console.log("stage=bearer-header result=missing-or-malformed");
     throw Object.assign(new Error("Unauthorized"), { status: 401 });
   }
 
   const sharedHeaders = { Authorization: authorization, apikey: commandIqKey };
   const userResponse = await fetch(`${commandIqUrl}/auth/v1/user`, { headers: sharedHeaders });
-  if (!userResponse.ok) throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  if (!userResponse.ok) {
+    console.log("stage=auth-user result=failed status=" + userResponse.status);
+    throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  }
   const user = await userResponse.json();
-  if (!user?.id) throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  if (!user?.id) {
+    console.log("stage=auth-user result=no-user-id");
+    throw Object.assign(new Error("Unauthorized"), { status: 401 });
+  }
 
   const profileResponse = await fetch(
     `${commandIqUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=id,organization_id,email&limit=1`,
     { headers: { ...sharedHeaders, Accept: "application/json" } },
   );
-  if (!profileResponse.ok) throw Object.assign(new Error("CommandIQ operator verification failed."), { status: 403 });
+  if (!profileResponse.ok) {
+    console.log("stage=profiles-query result=failed status=" + profileResponse.status);
+    throw Object.assign(new Error("CommandIQ operator verification failed."), { status: 403 });
+  }
   const profiles = await profileResponse.json();
   const profile = Array.isArray(profiles) ? profiles[0] : null;
-  if (!profile || profile.organization_id !== allowedOrganizationId) {
+  if (!profile) {
+    console.log("stage=profiles-query result=no-profile-row");
     throw Object.assign(new Error("This CommandIQ workspace is not authorized for Barber Launch member messages."), { status: 403 });
   }
+  if (profile.organization_id !== allowedOrganizationId) {
+    console.log("stage=org-check result=org-mismatch");
+    throw Object.assign(new Error("This CommandIQ workspace is not authorized for Barber Launch member messages."), { status: 403 });
+  }
+  console.log("stage=verify result=ok");
   return { user, profile };
 }
 
