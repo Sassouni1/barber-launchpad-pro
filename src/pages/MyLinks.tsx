@@ -479,11 +479,51 @@ export default function MyLinks() {
                 )}
 
                 {account && !ready && (
-                  <p className="text-sm text-muted-foreground">
-                    You started onboarding but Stripe hasn't fully verified your account
-                    yet. Continue to finish.
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      You started onboarding but Stripe hasn't fully verified your account
+                      yet. Continue to finish.
+                    </p>
+                    {(() => {
+                      const due = [
+                        ...(requirements?.past_due ?? []),
+                        ...(requirements?.currently_due ?? []),
+                      ].filter((v, i, a) => a.indexOf(v) === i);
+                      const pending = requirements?.pending_verification ?? [];
+                      if (due.length === 0 && pending.length === 0) return null;
+                      const label = (key: string) =>
+                        ({
+                          'business_profile.url':
+                            'A working business website or public social media profile URL (Stripe must be able to open it)',
+                          'individual.verification.document': 'A photo of your government ID',
+                          'external_account': 'Your bank account details',
+                        } as Record<string, string>)[key] || key.replace(/[._]/g, ' ');
+                      return (
+                        <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3">
+                          {due.length > 0 && (
+                            <>
+                              <p className="text-sm font-medium text-yellow-500">
+                                Stripe still needs:
+                              </p>
+                              <ul className="mt-1 list-disc pl-5 text-sm text-muted-foreground">
+                                {due.map((r) => (
+                                  <li key={r}>{label(r)}</li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+                          {pending.length > 0 && (
+                            <p className="mt-2 text-sm text-muted-foreground">
+                              Stripe is currently reviewing:{' '}
+                              {pending.map((r) => label(r)).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
+
 
                 {account && ready && (
                   <p className="text-sm text-muted-foreground">
