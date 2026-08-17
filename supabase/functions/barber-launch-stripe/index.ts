@@ -95,6 +95,29 @@ async function stripeFetch(
   return json;
 }
 
+const FALLBACK_BUSINESS_URL = "https://find.menshairexpert.com";
+
+// Stripe requires a publicly reachable business_profile.url. Members often type
+// a private/social URL Stripe can't load, which hard-blocks charges_enabled.
+// Resolve a URL we know Stripe can reach.
+async function resolveBusinessUrl(admin: any, userId: string): Promise<string> {
+  try {
+    const { data: card } = await admin
+      .from("business_cards")
+      .select("short_code")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (card?.short_code) {
+      return `https://member.thebarberlaunch.com/card/${card.short_code}`;
+    }
+  } catch (_e) {
+    // fall through to default
+  }
+  return FALLBACK_BUSINESS_URL;
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
