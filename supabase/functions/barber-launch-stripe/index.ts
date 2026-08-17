@@ -243,17 +243,25 @@ Deno.serve(async (req) => {
     if (action === "startOnboarding") {
       let accountId = existingAccount?.stripe_account_id;
       const businessUrl = await resolveBusinessUrl(admin, userId);
+      // Prefill defaults: beauty salon / barber shop category, individual seller,
+      // no charitable/donation classification, no automatic tax handling.
+      const PRODUCT_DESCRIPTION =
+        "We help those dealing with hair loss through hair systems, hair units and other styling services.";
+      const MCC = "7230"; // Beauty shops / barber shops
       if (!accountId) {
         const acct = await stripeFetch("/accounts", {
           secret: stripeSecret,
           body: {
             type: "standard",
             email: userEmail,
+            business_type: "individual",
             "business_profile[url]": businessUrl,
-            "business_profile[product_description]":
-              "Hair replacement and barbering services",
+            "business_profile[mcc]": MCC,
+            "business_profile[product_description]": PRODUCT_DESCRIPTION,
             "metadata[user_id]": userId,
             "metadata[app]": "barber_launch_pro",
+            "metadata[nonprofit]": "false",
+            "metadata[automatic_tax]": "false",
           },
         });
 
@@ -268,7 +276,7 @@ Deno.serve(async (req) => {
           synced_at: new Date().toISOString(),
         });
       } else {
-        // Repair an existing account that Stripe blocked on business_profile.url
+        // Repair/prefill an existing account (url, category, description)
         try {
           const acct = await stripeFetch(`/accounts/${accountId}`, {
             method: "GET",
@@ -279,16 +287,32 @@ Deno.serve(async (req) => {
             ...(acct.requirements?.past_due ?? []),
             ...(acct.requirements?.errors ?? []).map((e: any) => e?.requirement),
           ].filter(Boolean);
-          const urlBlocked = due.includes("business_profile.url");
-          if (!acct.business_profile?.url || urlBlocked) {
+          const patch: Record<string, string> = {};
+          if (!acct.business_profile?.url || due.includes("business_profile.url")) {
+            patch["business_profile[url]"] = businessUrl;
+          }
+          if (!acct.business_profile?.mcc || due.includes("business_profile.mcc")) {
+            patch["business_profile[mcc]"] = MCC;
+          }
+          if (
+            !acct.business_profile?.product_description ||
+            due.includes("business_profile.product_description")
+          ) {
+            patch["business_profile[product_description]"] = PRODUCT_DESCRIPTION;
+          }
+          if (!acct.business_type && due.includes("business_type")) {
+            patch["business_type"] = "individual";
+          }
+          if (Object.keys(patch).length > 0) {
             await stripeFetch(`/accounts/${accountId}`, {
               secret: stripeSecret,
-              body: { "business_profile[url]": businessUrl },
+              body: patch,
             });
           }
         } catch (e) {
-          console.error("Failed to repair business_profile.url", e);
+          console.error("Failed to prefill Stripe business profile", e);
         }
+
 
         await admin
           .from("barber_launch_stripe_accounts")
