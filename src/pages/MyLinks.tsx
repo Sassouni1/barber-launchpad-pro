@@ -133,6 +133,13 @@ export default function MyLinks() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [account, setAccount] = useState<AccountRow | null>(null);
+  const [requirements, setRequirements] = useState<{
+    disabled_reason?: string | null;
+    currently_due?: string[];
+    past_due?: string[];
+    pending_verification?: string[];
+  } | null>(null);
+
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [backendUnavailable, setBackendUnavailable] = useState(false);
