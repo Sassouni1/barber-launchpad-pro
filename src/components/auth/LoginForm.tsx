@@ -221,7 +221,25 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
               </div>
             </div>
 
-            {resetRequired ? (
+            {forgotMode ? (
+              <div className="rounded-md border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">
+                {recoverySubmitted ? (
+                  <div className="flex gap-3">
+                    <Mail className="mt-0.5 h-4 w-4 text-primary" />
+                    <p>
+                      Your secure recovery request has been processed. Check your email for the reset
+                      link, and check your text messages for a security notice if we have a phone
+                      number on file.
+                    </p>
+                  </div>
+                ) : (
+                  <p>
+                    We’ll email a password reset link to the account on file and, where possible, text
+                    a security notice. The reset link is never sent by text.
+                  </p>
+                )}
+              </div>
+            ) : resetRequired ? (
               <div className="rounded-md border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">
                 {resetEmailSent ? (
                   <div className="flex gap-3">
@@ -258,6 +276,21 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
                 </div>
               </div>
             )}
+
+            {!resetRequired && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotMode((v) => !v);
+                    setRecoverySubmitted(false);
+                  }}
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  {forgotMode ? 'Back to sign in' : 'Forgot password?'}
+                </button>
+              </div>
+            )}
           </div>
 
           <Button 
@@ -268,8 +301,10 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {resetRequired ? 'Sending reset...' : 'Signing in...'}
+                {forgotMode ? 'Processing request...' : resetRequired ? 'Sending reset...' : 'Signing in...'}
               </>
+            ) : forgotMode ? (
+              recoverySubmitted ? 'Resend Recovery Request' : 'Send Recovery Request'
             ) : resetRequired ? (
               'Send Reset Link'
             ) : (
@@ -277,6 +312,7 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
             )}
           </Button>
         </form>
+
 
         {showCreateLink && !resetRequired && (
           <p className="text-center text-sm text-muted-foreground">
