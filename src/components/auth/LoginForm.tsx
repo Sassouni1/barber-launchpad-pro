@@ -49,7 +49,9 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
 
   useEffect(() => {
     setResetEmailSent(false);
+    setRecoverySubmitted(false);
     setPassword('');
+
 
     if (!isValidEmail(normalizedEmail)) {
       setResetRequired(false);
