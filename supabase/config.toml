@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.commandiq-member-messages]
 verify_jwt = false
+
+[functions.password-recovery-request]
+verify_jwt = false
