@@ -309,11 +309,26 @@ Deno.serve(async (req) => {
     let result: any;
 
     switch (action) {
+      case "getConfig": {
+        const cfg = getCanonicalRedirectUri();
+        result = {
+          redirectUri: cfg.redirectUri,
+          canonicalOrigin: cfg.origin,
+          configured: cfg.configured,
+        };
+        break;
+      }
       case "getAuthUrl":
-        result = { url: await getAuthUrl(params.redirectUri) };
+        if (typeof params.state !== "string") {
+          throw new HttpError(400, "Missing state parameter");
+        }
+        result = getAuthUrl(params.state);
         break;
       case "exchangeToken":
-        result = await exchangeToken(params.code, params.redirectUri);
+        if (typeof params.code !== "string" || params.code.length < 4) {
+          throw new HttpError(400, "Missing authorization code");
+        }
+        result = await exchangeToken(params.code);
         break;
       case "disconnect":
         result = await disconnect(params.locationId);
