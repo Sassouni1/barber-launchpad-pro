@@ -1985,6 +1985,45 @@ export type Database = {
           },
         ]
       }
+      password_recovery_audit: {
+        Row: {
+          channel: string
+          created_at: string
+          email_hash: string
+          id: string
+          ip_hash: string | null
+          provider_message_id: string | null
+          reason: string | null
+          requested_at: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          email_hash: string
+          id?: string
+          ip_hash?: string | null
+          provider_message_id?: string | null
+          reason?: string | null
+          requested_at?: string
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          email_hash?: string
+          id?: string
+          ip_hash?: string | null
+          provider_message_id?: string | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       password_reset_requirements: {
         Row: {
           completed_at: string | null
