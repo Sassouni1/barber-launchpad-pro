@@ -20,6 +20,8 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
   const [checkingReset, setCheckingReset] = useState(false);
   const [resetRequired, setResetRequired] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [recoverySubmitted, setRecoverySubmitted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +29,7 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
   const navigate = useNavigate();
 
   const normalizedEmail = email.trim().toLowerCase();
+
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
