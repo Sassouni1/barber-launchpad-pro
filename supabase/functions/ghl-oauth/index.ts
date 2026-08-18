@@ -108,8 +108,9 @@ function getAuthUrl(state: string) {
   return { url: url.toString(), redirectUri, canonicalOrigin: origin, configured };
 }
 
-async function exchangeToken(code: string, redirectUri: string) {
+async function exchangeToken(code: string) {
   const { clientId, clientSecret, encryptionKey } = getGhlCredentials();
+  const { redirectUri } = getCanonicalRedirectUri();
   const supabase = getSupabase();
 
   // Exchange code for tokens
