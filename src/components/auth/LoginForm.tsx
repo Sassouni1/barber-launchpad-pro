@@ -188,12 +188,17 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
             <Logo size="lg" />
           </div>
           <h1 className="text-3xl font-display font-bold text-foreground">
-            {resetRequired ? 'Reset Your Password' : 'Welcome Back'}
+            {forgotMode ? 'Account Recovery' : resetRequired ? 'Reset Your Password' : 'Welcome Back'}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            {resetRequired ? 'Create a new password to access your account' : 'Sign in to your account'}
+            {forgotMode
+              ? 'Enter your account email and we’ll process a secure recovery request'
+              : resetRequired
+                ? 'Create a new password to access your account'
+                : 'Sign in to your account'}
           </p>
         </div>
+
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-4">
