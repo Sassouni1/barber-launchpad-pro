@@ -20,6 +20,8 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
   const [checkingReset, setCheckingReset] = useState(false);
   const [resetRequired, setResetRequired] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [recoverySubmitted, setRecoverySubmitted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +29,7 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
   const navigate = useNavigate();
 
   const normalizedEmail = email.trim().toLowerCase();
+
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -46,7 +49,9 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
 
   useEffect(() => {
     setResetEmailSent(false);
+    setRecoverySubmitted(false);
     setPassword('');
+
 
     if (!isValidEmail(normalizedEmail)) {
       setResetRequired(false);
@@ -96,13 +101,43 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
     }
   };
 
+  const submitRecoveryRequest = async () => {
+    if (!isValidEmail(normalizedEmail)) {
+      toast.error('Enter the account email first');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await supabase.functions.invoke('password-recovery-request', {
+        body: {
+          email: normalizedEmail,
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
+      });
+    } catch {
+      // Response is intentionally generic — never reveal delivery details.
+    } finally {
+      setRecoverySubmitted(true);
+      setLoading(false);
+      toast.success('Secure recovery request processed');
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (forgotMode) {
+      await submitRecoveryRequest();
+      return;
+    }
 
     if (resetRequired) {
       await sendResetEmail();
       return;
     }
+
+
 
     setLoading(true);
 
@@ -153,12 +188,17 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
             <Logo size="lg" />
           </div>
           <h1 className="text-3xl font-display font-bold text-foreground">
-            {resetRequired ? 'Reset Your Password' : 'Welcome Back'}
+            {forgotMode ? 'Account Recovery' : resetRequired ? 'Reset Your Password' : 'Welcome Back'}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            {resetRequired ? 'Create a new password to access your account' : 'Sign in to your account'}
+            {forgotMode
+              ? 'Enter your account email and we’ll process a secure recovery request'
+              : resetRequired
+                ? 'Create a new password to access your account'
+                : 'Sign in to your account'}
           </p>
         </div>
+
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-4">
@@ -181,7 +221,25 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
               </div>
             </div>
 
-            {resetRequired ? (
+            {forgotMode ? (
+              <div className="rounded-md border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">
+                {recoverySubmitted ? (
+                  <div className="flex gap-3">
+                    <Mail className="mt-0.5 h-4 w-4 text-primary" />
+                    <p>
+                      Your secure recovery request has been processed. Check your email for the reset
+                      link, and check your text messages for a security notice if we have a phone
+                      number on file.
+                    </p>
+                  </div>
+                ) : (
+                  <p>
+                    We’ll email a password reset link to the account on file and, where possible, text
+                    a security notice. The reset link is never sent by text.
+                  </p>
+                )}
+              </div>
+            ) : resetRequired ? (
               <div className="rounded-md border border-border/70 bg-card/70 p-4 text-sm text-muted-foreground">
                 {resetEmailSent ? (
                   <div className="flex gap-3">
@@ -218,6 +276,21 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
                 </div>
               </div>
             )}
+
+            {!resetRequired && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotMode((v) => !v);
+                    setRecoverySubmitted(false);
+                  }}
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  {forgotMode ? 'Back to sign in' : 'Forgot password?'}
+                </button>
+              </div>
+            )}
           </div>
 
           <Button 
@@ -228,8 +301,10 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                {resetRequired ? 'Sending reset...' : 'Signing in...'}
+                {forgotMode ? 'Processing request...' : resetRequired ? 'Sending reset...' : 'Signing in...'}
               </>
+            ) : forgotMode ? (
+              recoverySubmitted ? 'Resend Recovery Request' : 'Send Recovery Request'
             ) : resetRequired ? (
               'Send Reset Link'
             ) : (
@@ -237,6 +312,7 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
             )}
           </Button>
         </form>
+
 
         {showCreateLink && !resetRequired && (
           <p className="text-center text-sm text-muted-foreground">
