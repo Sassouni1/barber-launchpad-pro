@@ -67,13 +67,17 @@ function safeRedirect(raw: unknown): string {
     const hostAllowed = ALLOWED_HOSTS.some(
       (h) => url.hostname === h || url.hostname.endsWith(`.${h}`),
     );
-    if (!hostAllowed) return fallback;
+    const isPreviewHost =
+      url.hostname === "barber-launch-pwa-preview.pages.dev" ||
+      url.hostname.endsWith(".barber-launch-pwa-preview.pages.dev");
+    if (!hostAllowed && !isPreviewHost) return fallback;
     if (!url.pathname.endsWith("/reset-password")) return fallback;
     return `${url.origin}${url.pathname}`;
   } catch {
     return fallback;
   }
 }
+
 
 function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null;
