@@ -98,14 +98,22 @@ function getAuthUrl(state: string) {
     "locations.readonly",
   ].join(" ");
 
-  const url = new URL("https://marketplace.gohighlevel.com/v2/oauth/chooselocation");
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("redirect_uri", redirectUri);
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("scope", scopes);
-  url.searchParams.set("state", state);
+  // Build the query manually: URLSearchParams encodes spaces as "+", which the
+  // HighLevel Marketplace install step does not always parse back into separate
+  // scopes. RFC 3986 percent-encoding (%20) is what HighLevel documents.
+  const query = [
+    ["response_type", "code"],
+    ["redirect_uri", redirectUri],
+    ["client_id", clientId],
+    ["scope", scopes],
+    ["state", state],
+  ]
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join("&");
 
-  return { url: url.toString(), redirectUri, canonicalOrigin: origin, configured };
+  const url = `https://marketplace.gohighlevel.com/v2/oauth/chooselocation?${query}`;
+
+  return { url, redirectUri, canonicalOrigin: origin, configured };
 }
 
 async function exchangeToken(code: string) {
