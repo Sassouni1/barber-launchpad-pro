@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface AttachmentLightboxProps {
   url?: string;
@@ -28,7 +29,7 @@ export function AttachmentLightbox({ url, alt, onClose }: AttachmentLightboxProp
 
   if (!url) return null;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -50,6 +51,7 @@ export function AttachmentLightbox({ url, alt, onClose }: AttachmentLightboxProp
         onClick={(event) => event.stopPropagation()}
         className="max-h-[88dvh] max-w-full rounded-xl object-contain"
       />
-    </div>
+    </div>,
+    document.body
   );
 }
