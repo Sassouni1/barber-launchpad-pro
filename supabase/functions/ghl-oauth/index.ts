@@ -59,8 +59,38 @@ function getGhlCredentials() {
   return { clientId, clientSecret, encryptionKey };
 }
 
-async function getAuthUrl(redirectUri: string) {
+// The OAuth redirect URI is server-owned. It must exactly match the redirect URI
+// registered on the GHL Marketplace app. Never derived from the browser origin,
+// so ephemeral Lovable/preview origins can never be used as the OAuth return URL.
+const DEFAULT_CANONICAL_REDIRECT_URI =
+  "https://member.thebarberlaunch.com/integrations/crm/callback";
+
+function getCanonicalRedirectUri() {
+  const configured = Deno.env.get("GHL_REDIRECT_URI")?.trim();
+  const value = configured && configured.length > 0
+    ? configured
+    : DEFAULT_CANONICAL_REDIRECT_URI;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new HttpError(500, `Invalid GHL_REDIRECT_URI configured: ${value}`);
+  }
+  if (parsed.protocol !== "https:") {
+    throw new HttpError(500, "GHL_REDIRECT_URI must be an https URL");
+  }
+  return { redirectUri: parsed.toString(), origin: parsed.origin, configured: !!configured };
+}
+
+function getAuthUrl(state: string) {
   const { clientId } = getGhlCredentials();
+  const { redirectUri, origin, configured } = getCanonicalRedirectUri();
+
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(state)) {
+    throw new HttpError(400, "Invalid state parameter");
+  }
+
   const scopes = [
     "contacts.readonly",
     "contacts.write",
@@ -73,8 +103,9 @@ async function getAuthUrl(redirectUri: string) {
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("scope", scopes);
+  url.searchParams.set("state", state);
 
-  return url.toString();
+  return { url: url.toString(), redirectUri, canonicalOrigin: origin, configured };
 }
 
 async function exchangeToken(code: string, redirectUri: string) {
