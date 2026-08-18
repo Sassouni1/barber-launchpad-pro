@@ -59,8 +59,38 @@ function getGhlCredentials() {
   return { clientId, clientSecret, encryptionKey };
 }
 
-async function getAuthUrl(redirectUri: string) {
+// The OAuth redirect URI is server-owned. It must exactly match the redirect URI
+// registered on the GHL Marketplace app. Never derived from the browser origin,
+// so ephemeral Lovable/preview origins can never be used as the OAuth return URL.
+const DEFAULT_CANONICAL_REDIRECT_URI =
+  "https://member.thebarberlaunch.com/integrations/crm/callback";
+
+function getCanonicalRedirectUri() {
+  const configured = Deno.env.get("GHL_REDIRECT_URI")?.trim();
+  const value = configured && configured.length > 0
+    ? configured
+    : DEFAULT_CANONICAL_REDIRECT_URI;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new HttpError(500, `Invalid GHL_REDIRECT_URI configured: ${value}`);
+  }
+  if (parsed.protocol !== "https:") {
+    throw new HttpError(500, "GHL_REDIRECT_URI must be an https URL");
+  }
+  return { redirectUri: parsed.toString(), origin: parsed.origin, configured: !!configured };
+}
+
+function getAuthUrl(state: string) {
   const { clientId } = getGhlCredentials();
+  const { redirectUri, origin, configured } = getCanonicalRedirectUri();
+
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(state)) {
+    throw new HttpError(400, "Invalid state parameter");
+  }
+
   const scopes = [
     "contacts.readonly",
     "contacts.write",
@@ -73,12 +103,14 @@ async function getAuthUrl(redirectUri: string) {
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("scope", scopes);
+  url.searchParams.set("state", state);
 
-  return url.toString();
+  return { url: url.toString(), redirectUri, canonicalOrigin: origin, configured };
 }
 
-async function exchangeToken(code: string, redirectUri: string) {
+async function exchangeToken(code: string) {
   const { clientId, clientSecret, encryptionKey } = getGhlCredentials();
+  const { redirectUri } = getCanonicalRedirectUri();
   const supabase = getSupabase();
 
   // Exchange code for tokens
@@ -277,11 +309,26 @@ Deno.serve(async (req) => {
     let result: any;
 
     switch (action) {
+      case "getConfig": {
+        const cfg = getCanonicalRedirectUri();
+        result = {
+          redirectUri: cfg.redirectUri,
+          canonicalOrigin: cfg.origin,
+          configured: cfg.configured,
+        };
+        break;
+      }
       case "getAuthUrl":
-        result = { url: await getAuthUrl(params.redirectUri) };
+        if (typeof params.state !== "string") {
+          throw new HttpError(400, "Missing state parameter");
+        }
+        result = getAuthUrl(params.state);
         break;
       case "exchangeToken":
-        result = await exchangeToken(params.code, params.redirectUri);
+        if (typeof params.code !== "string" || params.code.length < 4) {
+          throw new HttpError(400, "Missing authorization code");
+        }
+        result = await exchangeToken(params.code);
         break;
       case "disconnect":
         result = await disconnect(params.locationId);
