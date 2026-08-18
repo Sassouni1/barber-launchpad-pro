@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ImagePlus, Loader2, Pencil, Send, SmilePlus, Trash2, X } from 'lucide-react';
+import { ImagePlus, Loader2, Paperclip, Pencil, Send, SmilePlus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useEditSupportMessage, useMarkSupportMessagesRead, useSendSupportMessage, useSupportMessages, useSupportReactions, useToggleSupportReaction, useUnsendSupportMessage } from '@/hooks/useSupportMessages';
 import { playMessageReceivedSound, playMessageSentSound, primeMessageSounds } from '@/lib/messageSounds';
+import { normalizeAttachments } from '@/lib/messageAttachments';
+import { AttachmentLightbox } from '@/components/support/AttachmentLightbox';
 import { toast } from 'sonner';
+
+// Support messages synced from external sources (e.g. GHL) can carry loosely
+// shaped attachment payloads alongside the native storage attachment.
+function extraAttachments(message: unknown) {
+  const record = (message || {}) as Record<string, unknown>;
+  return normalizeAttachments(record.attachments ?? record.attachment ?? null);
+}
+
 
 interface SupportThreadProps {
   conversationId?: string;
@@ -25,6 +35,8 @@ export function SupportThread({ conversationId, title, description, participantN
   const [editingMessageId, setEditingMessageId] = useState<string>();
   const [editingBody, setEditingBody] = useState('');
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string>();
+  const [lightbox, setLightbox] = useState<{ url: string; alt: string }>();
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const firstUnreadId = useRef<string>();
