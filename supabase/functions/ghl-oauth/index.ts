@@ -98,7 +98,7 @@ function getAuthUrl(state: string) {
     "locations.readonly",
   ].join(" ");
 
-  const url = new URL("https://marketplace.gohighlevel.com/oauth/chooselocation");
+  const url = new URL("https://marketplace.gohighlevel.com/v2/oauth/chooselocation");
   url.searchParams.set("response_type", "code");
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("client_id", clientId);
