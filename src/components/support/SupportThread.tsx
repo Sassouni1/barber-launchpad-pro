@@ -291,6 +291,9 @@ export function SupportThread({ conversationId, title, description, participantN
           </Button>
         </div>
       </form>
+
+      <AttachmentLightbox url={lightbox?.url} alt={lightbox?.alt || 'Attached image'} onClose={() => setLightbox(undefined)} />
     </section>
+
   );
 }
