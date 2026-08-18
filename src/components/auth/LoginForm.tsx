@@ -109,7 +109,7 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
 
     setLoading(true);
     try {
-      await supabase.functions.invoke('password-recovery-request', {
+      await supabase.functions.invoke('request-password-reset', {
         body: {
           email: normalizedEmail,
           redirectTo: `${window.location.origin}/reset-password`,
@@ -120,7 +120,7 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
     } finally {
       setRecoverySubmitted(true);
       setLoading(false);
-      toast.success('Secure recovery request processed');
+      toast.success('Recovery request processed');
     }
   };
 
@@ -227,15 +227,14 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
                   <div className="flex gap-3">
                     <Mail className="mt-0.5 h-4 w-4 text-primary" />
                     <p>
-                      Your secure recovery request has been processed. Check your email for the reset
-                      link, and check your text messages for a security notice if we have a phone
-                      number on file.
+                      If an account matches that email, reset instructions were sent to the email
+                      address and, when a mobile number is on file, by text.
                     </p>
                   </div>
                 ) : (
                   <p>
-                    We’ll email a password reset link to the account on file and, where possible, text
-                    a security notice. The reset link is never sent by text.
+                    If an account matches that email, reset instructions were sent to the email
+                    address and, when a mobile number is on file, by text.
                   </p>
                 )}
               </div>

@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.password-recovery-request]
 verify_jwt = false
+
+[functions.request-password-reset]
+verify_jwt = false
