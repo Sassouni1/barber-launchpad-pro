@@ -2024,6 +2024,42 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_delivery_attempts: {
+        Row: {
+          channel: string
+          created_at: string
+          email: string
+          id: string
+          ip_hash: string | null
+          outcome: string
+          reason: string | null
+          requested_at: string
+          user_id: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          email: string
+          id?: string
+          ip_hash?: string | null
+          outcome: string
+          reason?: string | null
+          requested_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          email?: string
+          id?: string
+          ip_hash?: string | null
+          outcome?: string
+          reason?: string | null
+          requested_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       password_reset_requirements: {
         Row: {
           completed_at: string | null
