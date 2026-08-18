@@ -99,13 +99,43 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
     }
   };
 
+  const submitRecoveryRequest = async () => {
+    if (!isValidEmail(normalizedEmail)) {
+      toast.error('Enter the account email first');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await supabase.functions.invoke('password-recovery-request', {
+        body: {
+          email: normalizedEmail,
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
+      });
+    } catch {
+      // Response is intentionally generic — never reveal delivery details.
+    } finally {
+      setRecoverySubmitted(true);
+      setLoading(false);
+      toast.success('Secure recovery request processed');
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (forgotMode) {
+      await submitRecoveryRequest();
+      return;
+    }
 
     if (resetRequired) {
       await sendResetEmail();
       return;
     }
+
+
 
     setLoading(true);
 
