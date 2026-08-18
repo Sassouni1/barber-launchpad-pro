@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ImagePlus, Loader2, Pencil, Send, SmilePlus, Trash2, X } from 'lucide-react';
+import { ImagePlus, Loader2, Paperclip, Pencil, Send, SmilePlus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useEditSupportMessage, useMarkSupportMessagesRead, useSendSupportMessage, useSupportMessages, useSupportReactions, useToggleSupportReaction, useUnsendSupportMessage } from '@/hooks/useSupportMessages';
 import { playMessageReceivedSound, playMessageSentSound, primeMessageSounds } from '@/lib/messageSounds';
+import { normalizeAttachments } from '@/lib/messageAttachments';
+import { AttachmentLightbox } from '@/components/support/AttachmentLightbox';
 import { toast } from 'sonner';
+
+// Support messages synced from external sources (e.g. GHL) can carry loosely
+// shaped attachment payloads alongside the native storage attachment.
+function extraAttachments(message: unknown) {
+  const record = (message || {}) as Record<string, unknown>;
+  return normalizeAttachments(record.attachments ?? record.attachment ?? null);
+}
+
 
 interface SupportThreadProps {
   conversationId?: string;
@@ -25,6 +35,8 @@ export function SupportThread({ conversationId, title, description, participantN
   const [editingMessageId, setEditingMessageId] = useState<string>();
   const [editingBody, setEditingBody] = useState('');
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string>();
+  const [lightbox, setLightbox] = useState<{ url: string; alt: string }>();
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const firstUnreadId = useRef<string>();
@@ -200,12 +212,34 @@ export function SupportThread({ conversationId, title, description, participantN
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
                         {message.attachment_url && (
-                          <a href={message.attachment_url} target="_blank" rel="noreferrer" className="mb-2 block w-fit" aria-label={`Open ${message.attachment_name || 'attached image'}`}>
-                            <img src={message.attachment_url} alt={message.attachment_name || 'Attached support image'} className="max-h-72 max-w-full rounded-xl border border-border object-contain" />
-                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setLightbox({ url: message.attachment_url!, alt: message.attachment_name || 'Attached support image' })}
+                            className="mb-2 block w-fit max-w-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            aria-label={`View ${message.attachment_name || 'attached image'} full screen`}
+                          >
+                            <img src={message.attachment_url} alt={message.attachment_name || 'Attached support image'} className="max-h-72 w-auto max-w-[min(360px,100%)] rounded-xl border border-border object-contain" />
+                          </button>
                         )}
+                        {extraAttachments(message).map((attachment) => attachment.isImage ? (
+                          <button
+                            key={attachment.url}
+                            type="button"
+                            onClick={() => setLightbox({ url: attachment.url, alt: attachment.name })}
+                            className="mb-2 block w-fit max-w-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            aria-label={`View ${attachment.name} full screen`}
+                          >
+                            <img src={attachment.url} alt={attachment.name} className="max-h-72 w-auto max-w-[min(360px,100%)] rounded-xl border border-border object-contain" />
+                          </button>
+                        ) : (
+                          <a key={attachment.url} href={attachment.url} target="_blank" rel="noreferrer" download className="mb-2 flex w-fit max-w-full items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs text-foreground/90">
+                            <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{attachment.name}</span>
+                          </a>
+                        ))}
                         {message.body && <p className="whitespace-pre-wrap break-words text-foreground/90">{message.body}</p>}
                       </div>
+
                       <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                         <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setReactionPickerMessageId(reactionPickerMessageId === message.id ? undefined : message.id)} title="Add reaction" aria-label="Add reaction"><SmilePlus className="h-3.5 w-3.5" /></Button>
                         {isMine && <>
@@ -257,6 +291,9 @@ export function SupportThread({ conversationId, title, description, participantN
           </Button>
         </div>
       </form>
+
+      <AttachmentLightbox url={lightbox?.url} alt={lightbox?.alt || 'Attached image'} onClose={() => setLightbox(undefined)} />
     </section>
+
   );
 }
