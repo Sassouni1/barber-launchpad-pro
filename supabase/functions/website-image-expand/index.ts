@@ -95,48 +95,122 @@ Deno.serve(async (req) => {
     }
 
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_AI_STUDIO_KEY');
+    if (!OPENAI_API_KEY && !GOOGLE_API_KEY) {
       return json({ success: false, error: 'Image expansion is not configured.' }, 503);
     }
 
     const { width, height, openaiSize } = SIZES[orientation];
     const ext = decoded.mime === 'image/png' ? 'png' : decoded.mime === 'image/webp' ? 'webp' : 'jpg';
 
-    const form = new FormData();
-    form.append('model', 'gpt-image-1');
-    form.append('prompt', PROMPT);
-    form.append('size', openaiSize);
-    form.append('n', '1');
-    form.append('quality', 'high');
-    form.append(
-      'image',
-      new File([decoded.bytes as unknown as BlobPart], `source.${ext}`, { type: decoded.mime }),
-    );
+    let outBytes: Uint8Array | null = null;
 
-    const resp = await fetch('https://api.openai.com/v1/images/edits', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
-      body: form,
-    });
+    const toBytes = (b64: string) => {
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return arr;
+    };
 
-    if (!resp.ok) {
-      const errText = await resp.text();
-      console.error('OpenAI edits error:', resp.status, errText.slice(0, 500));
-      if (resp.status === 429) {
-        return json({ success: false, error: 'Image service is busy. Try again in a moment.' }, 429);
+    if (OPENAI_API_KEY) {
+      const form = new FormData();
+      form.append('model', 'gpt-image-1');
+      form.append('prompt', PROMPT);
+      form.append('size', openaiSize);
+      form.append('n', '1');
+      form.append('quality', 'high');
+      form.append(
+        'image',
+        new File([decoded.bytes as unknown as BlobPart], `source.${ext}`, { type: decoded.mime }),
+      );
+
+      const resp = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: form,
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error('OpenAI edits error:', resp.status, errText.slice(0, 500));
+        if (!GOOGLE_API_KEY) {
+          if (resp.status === 429) {
+            return json({ success: false, error: 'Image service is busy. Try again in a moment.' }, 429);
+          }
+          return json({ success: false, error: 'Image expansion failed. Please try again.' }, 502);
+        }
+        console.log('Falling back to Google AI Studio for image expansion.');
+      } else {
+        const data = await resp.json();
+        const b64 = data?.data?.[0]?.b64_json;
+        if (b64) {
+          outBytes = toBytes(b64);
+        } else {
+          console.error('OpenAI returned no image payload');
+          if (!GOOGLE_API_KEY) {
+            return json({ success: false, error: 'No image was generated. Please try again.' }, 502);
+          }
+        }
       }
+    }
+
+    if (!outBytes && GOOGLE_API_KEY) {
+      const base64Source = imageDataUrl.trim().split(',')[1].replace(/\s+/g, '');
+      const geminiUrl =
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GOOGLE_API_KEY}`;
+
+      const geminiPrompt = `${PROMPT}
+
+Target output aspect: ${orientation} (${width}x${height}). Outpaint ONLY the empty/transparent surrounding area of the provided image. The original centered photograph must remain pixel-faithful: same subject, face, hair, hairline, hair system, clothing, products, lighting, and perspective. Extend only the surrounding environment naturally. Output no text, letters, logos, watermarks, or unrelated objects.`;
+
+      let gResp: Response | null = null;
+      const delays = [0, 5000, 10000];
+      for (let attempt = 0; attempt < delays.length; attempt++) {
+        if (delays[attempt]) await new Promise((r) => setTimeout(r, delays[attempt]));
+        gResp = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  { text: geminiPrompt },
+                  { inlineData: { mimeType: decoded.mime, data: base64Source } },
+                ],
+              },
+            ],
+            generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+          }),
+        });
+        if (gResp.status === 429 || gResp.status === 503 || gResp.status === 500) continue;
+        break;
+      }
+
+      if (!gResp || !gResp.ok) {
+        const errText = gResp ? await gResp.text() : 'No response';
+        console.error('Google AI Studio expand error:', gResp?.status, errText.slice(0, 500));
+        if (gResp?.status === 429) {
+          return json({ success: false, error: 'Image service is busy. Try again in a moment.' }, 429);
+        }
+        return json({ success: false, error: 'Image expansion failed. Please try again.' }, 502);
+      }
+
+      const gData = await gResp.json();
+      const parts = gData?.candidates?.[0]?.content?.parts ?? [];
+      const imagePart = parts.find((p: { inlineData?: { data?: string } }) => p?.inlineData?.data);
+      const b64 = imagePart?.inlineData?.data;
+      if (!b64) {
+        console.error('Gemini returned no image payload');
+        return json({ success: false, error: 'No image was generated. Please try again.' }, 502);
+      }
+      outBytes = toBytes(b64);
+    }
+
+    if (!outBytes) {
       return json({ success: false, error: 'Image expansion failed. Please try again.' }, 502);
     }
 
-    const data = await resp.json();
-    const b64 = data?.data?.[0]?.b64_json;
-    if (!b64) {
-      console.error('OpenAI returned no image payload');
-      return json({ success: false, error: 'No image was generated. Please try again.' }, 502);
-    }
-    const bin = atob(b64);
-    const outBytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) outBytes[i] = bin.charCodeAt(i);
 
     const storagePath = `${user.id}/generated-expansions/${crypto.randomUUID()}.png`;
     const { error: uploadErr } = await admin.storage
