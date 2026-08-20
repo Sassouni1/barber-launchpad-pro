@@ -1,5 +1,5 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { requireUser, serviceClient } from "../_shared/websiteAuth.ts";
+import { requireUser, serviceClient, slugify } from "../_shared/websiteAuth.ts";
 
 const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z]{2,24})+$/;
 
@@ -30,6 +30,53 @@ async function cf(path: string, init: RequestInit, token: string) {
   return { ok: res.ok && payload?.success !== false, status: res.status, payload };
 }
 
+function cfError(payload: Record<string, unknown> | undefined, fallback: string) {
+  const errors = (payload as { errors?: Array<{ message?: string }> } | undefined)?.errors;
+  return errors?.[0]?.message ?? fallback;
+}
+
+type CheckResult = {
+  domain: string;
+  available: boolean;
+  price: number | null;
+  renewalPrice: number | null;
+  currency: string;
+  reason: string | null;
+};
+
+/** Authoritative availability + pricing via the current domain-check endpoint. */
+async function checkDomains(domains: string[], accountId: string, token: string) {
+  const res = await cf(
+    `/accounts/${accountId}/registrar/domain-check`,
+    { method: "POST", body: JSON.stringify({ domains }) },
+    token,
+  );
+  if (!res.ok) {
+    return { ok: false as const, error: cfError(res.payload, `Cloudflare error ${res.status}`) };
+  }
+  const rows = Array.isArray(res.payload?.result) ? res.payload.result : [];
+  const results: CheckResult[] = rows.map((row: Record<string, any>) => {
+    const pricing = row?.pricing ?? {};
+    const registrable = row?.registrable === true;
+    const premium = row?.tier === "premium";
+    const price = Number(pricing?.registration_cost);
+    const renewal = Number(pricing?.renewal_cost);
+    let reason: string | null = null;
+    if (!registrable) reason = row?.reason ?? "This domain is not available for registration";
+    else if (premium) reason = "Premium domains cannot be purchased here";
+    else if (!Number.isFinite(price)) reason = "Pricing unavailable for this domain";
+    return {
+      domain: row?.name ?? row?.domain ?? "",
+      available: registrable && !premium && Number.isFinite(price),
+      price: Number.isFinite(price) ? price : null,
+      renewalPrice: Number.isFinite(renewal) ? renewal : null,
+      currency: pricing?.currency ?? "USD",
+      reason,
+    };
+  });
+  return { ok: true as const, results };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -50,32 +97,21 @@ Deno.serve(async (req) => {
       }, 503);
     }
 
-    if (action === "search") {
-      const query = typeof body.domain === "string" ? body.domain.trim().toLowerCase() : "";
-      if (!DOMAIN_RE.test(query)) return json({ error: "Enter a valid domain name" }, 400);
+    if (action === "check") {
+      const raw = Array.isArray(body.domains) ? body.domains : [];
+      const domains = raw
+        .filter((d): d is string => typeof d === "string")
+        .map((d) => d.trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 20);
+      if (domains.length === 0) return json({ error: "Provide at least one domain name" }, 400);
+      if (domains.some((d) => !DOMAIN_RE.test(d))) {
+        return json({ error: "Enter a complete domain name, for example yourshop.com" }, 400);
+      }
 
-      const result = await cf(
-        `/accounts/${config.accountId}/registrar/domains/${encodeURIComponent(query)}`,
-        { method: "GET" },
-        config.token,
-      );
-
-      // 404 from the registrar means the name is not in this account; ask availability.
-      const availability = await cf(
-        `/accounts/${config.accountId}/registrar/domains/${encodeURIComponent(query)}/availability`,
-        { method: "GET" },
-        config.token,
-      );
-
-      return json({
-        configured: true,
-        domain: query,
-        ownedByAccount: result.ok,
-        available: availability.payload?.result?.available ?? null,
-        price: availability.payload?.result?.price ?? null,
-        currency: availability.payload?.result?.currency ?? "USD",
-        raw: availability.ok ? undefined : availability.payload?.errors?.[0]?.message ?? null,
-      });
+      const checked = await checkDomains(domains, config.accountId, config.token);
+      if (!checked.ok) return json({ error: checked.error }, 502);
+      return json({ configured: true, results: checked.results });
     }
 
     if (action === "register") {
@@ -85,54 +121,76 @@ Deno.serve(async (req) => {
         : "";
       const confirmedPrice = Number(body.confirmedPrice);
 
-      if (!DOMAIN_RE.test(domain)) return json({ error: "Enter a valid domain name" }, 400);
-      if (body.confirm !== true || confirmedDomain !== domain) {
+      if (!DOMAIN_RE.test(domain)) return json({ error: "Enter a complete domain name" }, 400);
+      if (body.confirmPurchase !== true || confirmedDomain !== domain) {
         return json({ error: "Registration requires explicit confirmation of the selected domain" }, 400);
       }
       if (!Number.isFinite(confirmedPrice) || confirmedPrice <= 0) {
         return json({ error: "Registration requires the confirmed displayed price" }, 400);
       }
 
-      // Re-check price server-side so we never charge a different amount than displayed.
-      const availability = await cf(
-        `/accounts/${config.accountId}/registrar/domains/${encodeURIComponent(domain)}/availability`,
-        { method: "GET" },
-        config.token,
-      );
-      const livePrice = Number(availability.payload?.result?.price);
-      if (availability.payload?.result?.available === false) {
-        return json({ error: "That domain is no longer available" }, 409);
+      // Re-check immediately so we never register an unavailable name or a changed price.
+      const checked = await checkDomains([domain], config.accountId, config.token);
+      if (!checked.ok) return json({ error: checked.error }, 502);
+      const current = checked.results.find((r) => r.domain === domain) ?? checked.results[0];
+      if (!current || !current.available || current.price === null) {
+        return json({ error: current?.reason ?? "That domain is no longer available" }, 409);
       }
-      if (Number.isFinite(livePrice) && Math.abs(livePrice - confirmedPrice) > 0.01) {
+      if (Math.abs(current.price - confirmedPrice) > 0.01) {
         return json({
-          error: `Price changed to ${livePrice}. Please review and confirm again.`,
-          price: livePrice,
+          error: `The price changed to ${current.currency} ${current.price}. Please review and confirm again.`,
+          price: current.price,
+          currency: current.currency,
         }, 409);
       }
 
       const registration = await cf(
-        `/accounts/${config.accountId}/registrar/domains/${encodeURIComponent(domain)}`,
-        { method: "PUT", body: JSON.stringify({ auto_renew: true, privacy: true }) },
+        `/accounts/${config.accountId}/registrar/registrations`,
+        { method: "POST", body: JSON.stringify({ domain_name: domain, auto_renew: false }) },
         config.token,
       );
       if (!registration.ok) {
-        return json({
-          error: registration.payload?.errors?.[0]?.message ?? "Cloudflare registration failed",
-        }, 502);
+        return json({ error: cfError(registration.payload, "Cloudflare registration failed") }, 502);
       }
 
       const supabase = serviceClient();
-      const { error: updateError } = await supabase
+      const { data: existing } = await supabase
         .from("member_websites")
-        .update({
-          custom_domain: domain,
-          cloudflare_registration_status: "registered",
-          cloudflare_attachment_status: "pending",
-        })
-        .eq("user_id", user.id);
-      if (updateError) return json({ error: updateError.message }, 500);
+        .select("id, site_slug")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      return json({ success: true, domain, registrationStatus: "registered" });
+      const registrationStatus = registration.payload?.result?.status ?? "pending";
+
+      if (existing) {
+        const { error: updateError } = await supabase
+          .from("member_websites")
+          .update({
+            custom_domain: domain,
+            cloudflare_registration_status: registrationStatus,
+            cloudflare_attachment_status: "pending",
+            cloudflare_last_error: null,
+          })
+          .eq("id", existing.id);
+        if (updateError) return json({ error: updateError.message }, 500);
+      } else {
+        const { error: insertError } = await supabase.from("member_websites").insert({
+          user_id: user.id,
+          site_slug: slugify(domain.split(".")[0], `site-${user.id.slice(0, 8)}`),
+          custom_domain: domain,
+          cloudflare_registration_status: registrationStatus,
+          cloudflare_attachment_status: "pending",
+          deployment_status: "draft",
+        });
+        if (insertError) return json({ error: insertError.message }, 500);
+      }
+
+      return json({
+        success: true,
+        domain,
+        registration: registration.payload?.result ?? null,
+        registrationStatus,
+      });
     }
 
     return json({ error: "Unknown action" }, 400);
