@@ -24,12 +24,7 @@ const SIZES: Record<Orientation, { width: number; height: number; openaiSize: st
 const MAX_BYTES = 12 * 1024 * 1024;
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp'];
 
-const PROMPT = `Outpaint and expand the surrounding transparent area of this photograph so the total scene is about twice as large.
-STRICT RULES:
-- Preserve the original center photo EXACTLY: do not alter, restyle, retouch, move, or regenerate the subject, face, hair, hairline, hair system, skin, clothing, products, lighting, colors, or perspective.
-- Only fill the empty/transparent area, continuing the real environment seamlessly with matching lighting, focus, grain, color temperature, and perspective.
-- No text, letters, captions, logos, watermarks, badges, or added people/objects that were not implied by the original scene.
-- Photographic realism, no distortion at the seam.`;
+const PROMPT = `Make sure you don't generate a brand new person, your only job to expand the size of the image through image generation`;
 
 function decodeDataUrl(dataUrl: string): { bytes: Uint8Array; mime: string } | null {
   const match = /^data:([a-zA-Z0-9/+.-]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(dataUrl.trim());
@@ -159,9 +154,7 @@ Deno.serve(async (req) => {
       const geminiUrl =
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GOOGLE_API_KEY}`;
 
-      const geminiPrompt = `${PROMPT}
-
-Target output aspect: ${orientation} (${width}x${height}). Outpaint ONLY the empty/transparent surrounding area of the provided image. The original centered photograph must remain pixel-faithful: same subject, face, hair, hairline, hair system, clothing, products, lighting, and perspective. Extend only the surrounding environment naturally. Output no text, letters, logos, watermarks, or unrelated objects.`;
+      const geminiPrompt = PROMPT;
 
       let gResp: Response | null = null;
       const delays = [0, 5000, 10000];
