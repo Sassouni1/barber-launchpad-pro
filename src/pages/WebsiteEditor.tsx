@@ -310,19 +310,26 @@ export default function WebsiteEditor() {
           </CardContent>
         </Card>
 
-        <Button className="w-full" size="lg" onClick={handlePublish} disabled={publish.isPending}>
-          {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
-          Save &amp; publish
-        </Button>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button variant="outline" size="lg" onClick={handleSaveDraft} disabled={saveDraft.isPending}>
+            {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save draft
+          </Button>
+          <Button size="lg" onClick={handlePublish} disabled={publish.isPending}>
+            {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
+            Save &amp; publish
+          </Button>
+        </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Custom domain</CardTitle>
+            <CardTitle>Set up domain</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {website?.custom_domain && (
               <p className="text-sm text-muted-foreground">
-                Connected: <span className="text-foreground">{website.custom_domain}</span> ({website.cloudflare_attachment_status})
+                Your domain: <span className="text-foreground">{website.custom_domain}</span>{' '}
+                ({website.cloudflare_attachment_status === 'active' ? 'connected' : 'setting up'})
               </p>
             )}
             <div className="flex gap-2">
@@ -338,24 +345,61 @@ export default function WebsiteEditor() {
             {domainResult && (
               <div className="rounded-lg border border-border p-3 text-sm">
                 <p className="font-medium text-foreground">{domainResult.domain}</p>
-                {domainResult.available === false ? (
-                  <p className="text-muted-foreground">Not available.</p>
-                ) : domainResult.price ? (
+                {domainResult.available && domainResult.price !== null ? (
                   <>
                     <p className="text-muted-foreground">
-                      Available — {domainResult.currency} {domainResult.price}/year
+                      Available — {money(domainResult.currency, domainResult.price)} for the first year
+                      {domainResult.renewalPrice !== null && (
+                        <> · renews at {money(domainResult.currency, domainResult.renewalPrice)}/year</>
+                      )}
                     </p>
-                    <Button className="mt-3" size="sm" onClick={handleBuyDomain} disabled={domainBusy}>
-                      Confirm &amp; register
+                    <Button className="mt-3" size="sm" onClick={() => setConfirmOpen(true)} disabled={domainBusy}>
+                      Purchase domain
                     </Button>
                   </>
                 ) : (
-                  <p className="text-muted-foreground">Pricing unavailable.</p>
+                  <p className="text-muted-foreground">
+                    {domainResult.reason ?? 'This domain is not available.'}
+                  </p>
                 )}
               </div>
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={confirmOpen} onOpenChange={(open) => !domainBusy && setConfirmOpen(open)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm domain purchase</DialogTitle>
+              <DialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <p>
+                    You are registering <span className="font-medium text-foreground">{domainResult?.domain}</span> for{' '}
+                    <span className="font-medium text-foreground">
+                      {domainResult && domainResult.price !== null
+                        ? money(domainResult.currency, domainResult.price)
+                        : ''}
+                    </span>{' '}
+                    for the first year.
+                  </p>
+                  <p>
+                    Cloudflare will charge the Cloudflare account's payment method for that exact first-year price.
+                    Domain registrations are non-refundable. Auto-renew will be turned off.
+                  </p>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={domainBusy}>
+                Cancel
+              </Button>
+              <Button onClick={handleBuyDomain} disabled={domainBusy}>
+                {domainBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirm purchase
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
