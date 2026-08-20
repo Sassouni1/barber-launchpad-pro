@@ -83,3 +83,9 @@ verify_jwt = false
 
 [functions.request-password-reset]
 verify_jwt = false
+
+[functions.website-publish]
+verify_jwt = false
+
+[functions.cloudflare-domains]
+verify_jwt = false
