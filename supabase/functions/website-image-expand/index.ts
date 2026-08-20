@@ -154,9 +154,7 @@ Deno.serve(async (req) => {
       const geminiUrl =
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GOOGLE_API_KEY}`;
 
-      const geminiPrompt = `${PROMPT}
-
-Target output aspect: ${orientation} (${width}x${height}). Outpaint ONLY the empty/transparent surrounding area of the provided image. The original centered photograph must remain pixel-faithful: same subject, face, hair, hairline, hair system, clothing, products, lighting, and perspective. Extend only the surrounding environment naturally. Output no text, letters, logos, watermarks, or unrelated objects.`;
+      const geminiPrompt = PROMPT;
 
       let gResp: Response | null = null;
       const delays = [0, 5000, 10000];
