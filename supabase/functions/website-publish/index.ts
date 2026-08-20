@@ -23,26 +23,51 @@ function cloudflareConfig() {
   return { accountId, token, worker };
 }
 
-/** Idempotently binds an already-registered custom domain to the member sites Worker. */
-async function attachCustomDomain(hostname: string) {
+type AttachOutcome = {
+  status: "active" | "pending" | "failed" | "unavailable" | "none";
+  workerDomainId: string | null;
+  error: string | null;
+};
+
+/**
+ * Reads the domain's registration, and once it is active attaches the apex to the
+ * member sites Worker. Idempotent: an existing binding is reused.
+ */
+async function attachCustomDomain(hostname: string): Promise<AttachOutcome> {
   const cf = cloudflareConfig();
   if (!cf) {
-    return { status: "unavailable", error: "Cloudflare credentials are not configured" };
+    return { status: "unavailable", workerDomainId: null, error: "Cloudflare credentials are not configured" };
   }
   const headers = {
     Authorization: `Bearer ${cf.token}`,
     "Content-Type": "application/json",
   };
 
-  const apex = hostname.split(".").slice(-2).join(".");
+  const regRes = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${cf.accountId}/registrar/registrations/${encodeURIComponent(hostname)}`,
+    { headers },
+  );
+  const regJson = await regRes.json().catch(() => ({}));
+  const regStatus = String(regJson?.result?.status ?? "").toLowerCase();
+  if (!regRes.ok || regJson?.success === false) {
+    return {
+      status: "pending",
+      workerDomainId: null,
+      error: regJson?.errors?.[0]?.message ?? "Cloudflare is still processing this registration",
+    };
+  }
+  if (regStatus !== "active") {
+    return { status: "pending", workerDomainId: null, error: null };
+  }
+
   const zoneRes = await fetch(
-    `https://api.cloudflare.com/client/v4/zones?name=${encodeURIComponent(apex)}`,
+    `https://api.cloudflare.com/client/v4/zones?name=${encodeURIComponent(hostname)}&status=active`,
     { headers },
   );
   const zoneJson = await zoneRes.json().catch(() => ({}));
-  const zoneId = zoneJson?.result?.[0]?.id;
-  if (!zoneId) {
-    return { status: "failed", error: `No Cloudflare zone found for ${apex}` };
+  const zone = zoneJson?.result?.[0];
+  if (!zone?.id) {
+    return { status: "pending", workerDomainId: null, error: null };
   }
 
   const existingRes = await fetch(
@@ -50,8 +75,9 @@ async function attachCustomDomain(hostname: string) {
     { headers },
   );
   const existingJson = await existingRes.json().catch(() => ({}));
-  if (Array.isArray(existingJson?.result) && existingJson.result.length > 0) {
-    return { status: "attached", error: null };
+  const existing = Array.isArray(existingJson?.result) ? existingJson.result[0] : null;
+  if (existing?.id) {
+    return { status: "active", workerDomainId: String(existing.id), error: null };
   }
 
   const attachRes = await fetch(
@@ -63,16 +89,20 @@ async function attachCustomDomain(hostname: string) {
         environment: "production",
         hostname,
         service: cf.worker,
-        zone_id: zoneId,
+        zone_id: zone.id,
+        zone_name: zone.name ?? hostname,
       }),
     },
   );
   const attachJson = await attachRes.json().catch(() => ({}));
   if (!attachRes.ok || attachJson?.success === false) {
-    const msg = attachJson?.errors?.[0]?.message ?? `Cloudflare error ${attachRes.status}`;
-    return { status: "failed", error: String(msg) };
+    return {
+      status: "failed",
+      workerDomainId: null,
+      error: String(attachJson?.errors?.[0]?.message ?? `Cloudflare error ${attachRes.status}`),
+    };
   }
-  return { status: "attached", error: null };
+  return { status: "active", workerDomainId: attachJson?.result?.id ? String(attachJson.result.id) : null, error: null };
 }
 
 Deno.serve(async (req) => {
@@ -125,16 +155,21 @@ Deno.serve(async (req) => {
       slug = candidate;
     }
 
+    const previewUrl = `${previewBase()}/${slug}`;
     const customDomain = (existing?.custom_domain as string | null) ?? null;
 
-    let attachment = { status: existing?.cloudflare_attachment_status ?? "none", error: null as string | null };
+    let attachment: AttachOutcome = {
+      status: (existing?.cloudflare_attachment_status as AttachOutcome["status"]) ?? "none",
+      workerDomainId: (existing?.cloudflare_worker_domain_id as string | null) ?? null,
+      error: null,
+    };
     if (customDomain) {
       attachment = await attachCustomDomain(customDomain);
     }
 
-    const liveUrl = customDomain && attachment.status === "attached"
-      ? `https://${customDomain}`
-      : `${previewBase()}/${slug}`;
+    const domainActive = Boolean(customDomain) && attachment.status === "active";
+    const deploymentStatus = customDomain && !domainActive ? "domain_pending" : "published";
+    const liveUrl = domainActive ? `https://${customDomain}` : previewUrl;
 
     const payload = {
       user_id: user.id,
@@ -143,10 +178,12 @@ Deno.serve(async (req) => {
       hair_system_html: hairSystemHtml,
       home_document: body.homeDocument ?? existing?.home_document ?? {},
       hair_system_document: body.hairSystemDocument ?? existing?.hair_system_document ?? {},
-      deployment_status: "published",
+      deployment_status: deploymentStatus,
       published_at: new Date().toISOString(),
       live_url: liveUrl,
-      cloudflare_attachment_status: attachment.status,
+      cloudflare_attachment_status: customDomain ? attachment.status : "none",
+      cloudflare_worker_domain_id: attachment.workerDomainId ??
+        (existing?.cloudflare_worker_domain_id as string | null) ?? null,
       cloudflare_last_error: attachment.error,
     };
 
@@ -160,9 +197,10 @@ Deno.serve(async (req) => {
       success: true,
       siteSlug: saved.site_slug,
       liveUrl: saved.live_url,
-      previewUrl: `${previewBase()}/${saved.site_slug}`,
+      previewUrl,
       customDomain: saved.custom_domain,
-      customDomainStatus: attachment.status,
+      deploymentStatus,
+      customDomainStatus: customDomain ? (domainActive ? "active" : "pending") : "none",
       customDomainError: attachment.error,
       publishedAt: saved.published_at,
     });
