@@ -49,6 +49,13 @@ async function sha256(value: string) {
     .join("");
 }
 
+function createResetCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 function clientIp(req: Request) {
   const fwd = req.headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0].trim();
@@ -267,6 +274,42 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
+
+    // Resolve the opaque, member-domain reset URL. The Supabase recovery token
+    // never appears in an SMS/email URL or in this response.
+    if (body?.action === "resolve-reset-link" && typeof body?.code === "string") {
+      const code = body.code.trim();
+      if (!/^[A-Za-z0-9_-]{24,64}$/.test(code)) {
+        return new Response(JSON.stringify({ ok: false }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabase = service();
+      const codeHash = await sha256(`reset-link:${code}`);
+      const { data: shortLink } = await supabase
+        .from("password_reset_short_links")
+        .update({ used_at: new Date().toISOString() })
+        .eq("code_hash", codeHash)
+        .is("used_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .select("token_hash")
+        .maybeSingle();
+
+      if (!shortLink?.token_hash) {
+        return new Response(JSON.stringify({ ok: false }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ ok: true, tokenHash: shortLink.token_hash }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const email = String(body?.email ?? "").trim().toLowerCase();
     const redirectTo = safeRedirect(body?.redirectTo);
 
@@ -346,7 +389,18 @@ Deno.serve(async (req) => {
         options: { redirectTo },
       });
       if (linkError) throw new Error("generate_link_failed");
-      recoveryLink = linkData?.properties?.action_link ?? null;
+      const tokenHash = linkData?.properties?.hashed_token ?? null;
+      if (!tokenHash) throw new Error("recovery_token_unavailable");
+
+      const resetCode = createResetCode();
+      const codeHash = await sha256(`reset-link:${resetCode}`);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      const { error: shortLinkError } = await supabase
+        .from("password_reset_short_links")
+        .insert({ user_id: userId, code_hash: codeHash, token_hash: tokenHash, expires_at: expiresAt });
+      if (shortLinkError) throw new Error("branded_link_unavailable");
+
+      recoveryLink = `${appUrl()}/reset-password/${resetCode}`;
     } catch {
       recoveryLink = null;
     }
@@ -419,7 +473,7 @@ Deno.serve(async (req) => {
       ip_hash: ipHash,
     });
 
-    // 5) Same link by SMS when a valid phone exists (profile first, then GHL contact).
+    // 5) Same individual member-domain link by SMS when a valid phone exists.
     const phone = normalizePhone(profile?.phone) ?? normalizePhone(contact.phone);
     if (!phone) {
       await audit(supabase, {
@@ -447,7 +501,7 @@ Deno.serve(async (req) => {
       contactId: contact.id,
       phone,
       message:
-        "The Barber Launch: To reset your password, open https://member.thebarberlaunch.com/auth and select Forgot password. If you didn't request this, you can ignore this text.",
+        `The Barber Launch: reset your password here: ${recoveryLink}. This link expires and can only be used once.`,
     });
 
     await audit(supabase, {

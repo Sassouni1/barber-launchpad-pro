@@ -26,10 +26,41 @@ export default function ResetPassword() {
       setCheckingSession(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const establishRecoverySession = async () => {
+      const match = window.location.pathname.match(/^\/reset-password\/([A-Za-z0-9_-]{24,64})$/);
+      const code = match?.[1];
+
+      if (code) {
+        const { data, error: resolveError } = await supabase.functions.invoke('request-password-reset', {
+          body: { action: 'resolve-reset-link', code },
+        });
+        const tokenHash = data?.tokenHash as string | undefined;
+
+        if (resolveError || !tokenHash) {
+          toast.error('This password-reset link is invalid or has expired.');
+          setCheckingSession(false);
+          return;
+        }
+
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        });
+        if (verifyError) {
+          toast.error('This password-reset link is invalid or has expired.');
+          setCheckingSession(false);
+          return;
+        }
+
+        window.history.replaceState({}, '', '/reset-password');
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
       setHasSession(Boolean(session?.user));
       setCheckingSession(false);
-    });
+    };
+
+    void establishRecoverySession();
 
     return () => subscription.unsubscribe();
   }, []);
