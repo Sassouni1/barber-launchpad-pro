@@ -350,6 +350,10 @@ Deno.serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .eq("ip_hash", ipHash)
         .eq("channel", "email")
+        // One logical request creates an `attempted` row and then a terminal
+        // result. Count only the first row so audit bookkeeping and rejected
+        // retries cannot lock a real user out of recovery.
+        .eq("outcome", "attempted")
         .gte("requested_at", ipSince),
     ]);
 
