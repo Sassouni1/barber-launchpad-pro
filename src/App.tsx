@@ -93,6 +93,7 @@ const MemberApp = () => (
         <Route path="/signin" element={<SignIn />} />
         <Route path="/create" element={<CreateAccount />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/reset-password/*" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/agreement" element={<ProtectedRoute skipAgreementCheck><Agreement /></ProtectedRoute>} />
         <Route path="/auth" element={<Navigate to="/login" replace />} />
