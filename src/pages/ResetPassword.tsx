@@ -19,51 +19,63 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let cancelled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY' || session?.user) {
         setHasSession(true);
+        setCheckingSession(false);
       }
-      setCheckingSession(false);
     });
 
-    const establishRecoverySession = async () => {
-      const match = window.location.pathname.match(/^\/reset-password\/([A-Za-z0-9_-]{24,64})$/);
-      const code = match?.[1];
-
-      if (code) {
-        const { data, error: resolveError } = await supabase.functions.invoke('request-password-reset', {
-          body: { action: 'resolve-reset-link', code },
-        });
-        const tokenHash = data?.tokenHash as string | undefined;
-
-        if (resolveError || !tokenHash) {
-          toast.error('This password-reset link is invalid or has expired.');
-          setCheckingSession(false);
-          return;
-        }
-
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: 'recovery',
-        });
-        if (verifyError) {
-          toast.error('This password-reset link is invalid or has expired.');
-          setCheckingSession(false);
-          return;
-        }
-
+    const run = async () => {
+      // Branded short-link path: /reset-password/<opaque-code>
+      const match = window.location.pathname.match(/^\/reset-password\/([A-Za-z0-9_-]{32,64})$/);
+      if (match) {
+        const code = match[1];
+        // Strip the code from browser history immediately.
         window.history.replaceState({}, '', '/reset-password');
+        try {
+          const { data, error } = await supabase.functions.invoke('request-password-reset', {
+            body: { action: 'resolve-reset-link', code },
+          });
+          const tokenHash = (data as any)?.token_hash;
+          if (!error && tokenHash) {
+            const { error: otpError } = await supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: 'recovery',
+            });
+            if (!cancelled && !otpError) {
+              setHasSession(true);
+              setCheckingSession(false);
+              return;
+            }
+          }
+        } catch {
+          /* fall through to generic failure */
+        }
+        if (!cancelled) {
+          toast.error('This reset link is invalid or has expired. Request a new one.');
+          setHasSession(false);
+          setCheckingSession(false);
+        }
+        return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
       setHasSession(Boolean(session?.user));
       setCheckingSession(false);
     };
 
-    void establishRecoverySession();
+    run();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
+
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -49,13 +49,6 @@ async function sha256(value: string) {
     .join("");
 }
 
-function createResetCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 function clientIp(req: Request) {
   const fwd = req.headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0].trim();
@@ -259,6 +252,30 @@ function resetEmailHtml(firstName: string, link: string) {
 
 // ── Handler ──────────────────────────────────────────────────
 
+// ── Opaque short-code helpers ────────────────────────────────
+
+const CODE_RE = /^[A-Za-z0-9_-]{32,64}$/;
+
+function generateCode() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function hashCode(code: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`prsl:${code}`),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// ── Handler ──────────────────────────────────────────────────
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -270,48 +287,45 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
+  const json = (payload: unknown, status = 200) =>
+    new Response(JSON.stringify(payload), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   if (req.method !== "POST") return respond();
+
 
   try {
     const body = await req.json().catch(() => ({}));
 
-    // Resolve the opaque, member-domain reset URL. The Supabase recovery token
-    // never appears in an SMS/email URL or in this response.
-    if (body?.action === "resolve-reset-link" && typeof body?.code === "string") {
-      const code = body.code.trim();
-      if (!/^[A-Za-z0-9_-]{24,64}$/.test(code)) {
-        return new Response(JSON.stringify({ ok: false }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // ── Action: resolve an opaque short code into its recovery token_hash ──
+    if (body?.action === "resolve-reset-link") {
+      const genericFail = () => json({ ok: false, error: "invalid_or_expired" }, 400);
+      const code = String(body?.code ?? "");
+      if (!CODE_RE.test(code)) return genericFail();
 
       const supabase = service();
-      const codeHash = await sha256(`reset-link:${code}`);
-      const { data: shortLink } = await supabase
+      const codeHash = await hashCode(code);
+      const nowIso = new Date().toISOString();
+
+      // Atomic single-use consumption.
+      const { data: consumed, error: consumeError } = await supabase
         .from("password_reset_short_links")
-        .update({ used_at: new Date().toISOString() })
+        .update({ used_at: nowIso })
         .eq("code_hash", codeHash)
         .is("used_at", null)
-        .gt("expires_at", new Date().toISOString())
+        .gt("expires_at", nowIso)
         .select("token_hash")
         .maybeSingle();
 
-      if (!shortLink?.token_hash) {
-        return new Response(JSON.stringify({ ok: false }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify({ ok: true, tokenHash: shortLink.token_hash }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (consumeError || !consumed?.token_hash) return genericFail();
+      return json({ ok: true, token_hash: consumed.token_hash });
     }
 
     const email = String(body?.email ?? "").trim().toLowerCase();
     const redirectTo = safeRedirect(body?.redirectTo);
+
 
     if (!email || email.length > 255 || !EMAIL_RE.test(email)) {
       return respond();
@@ -380,8 +394,10 @@ Deno.serve(async (req) => {
       ip_hash: ipHash,
     });
 
-    // 1) Server-side one-time recovery link (no Lovable Auth mail is sent).
-    let recoveryLink: string | null = null;
+    // 1) Server-side one-time recovery token (no Lovable Auth mail is sent).
+    //    We use properties.hashed_token only — the raw Supabase action_link is
+    //    never sent, logged, or audited.
+    let hashedToken: string | null = null;
     try {
       const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
         type: "recovery",
@@ -389,20 +405,31 @@ Deno.serve(async (req) => {
         options: { redirectTo },
       });
       if (linkError) throw new Error("generate_link_failed");
-      const tokenHash = linkData?.properties?.hashed_token ?? null;
-      if (!tokenHash) throw new Error("recovery_token_unavailable");
-
-      const resetCode = createResetCode();
-      const codeHash = await sha256(`reset-link:${resetCode}`);
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-      const { error: shortLinkError } = await supabase
-        .from("password_reset_short_links")
-        .insert({ user_id: userId, code_hash: codeHash, token_hash: tokenHash, expires_at: expiresAt });
-      if (shortLinkError) throw new Error("branded_link_unavailable");
-
-      recoveryLink = `${appUrl()}/reset-password/${resetCode}`;
+      hashedToken = linkData?.properties?.hashed_token ?? null;
     } catch {
-      recoveryLink = null;
+      hashedToken = null;
+    }
+
+    // 1b) Mint an opaque short code that maps to that token, server-side only.
+    let recoveryLink: string | null = null;
+    if (hashedToken) {
+      const code = generateCode();
+      const codeHash = await hashCode(code);
+      const { error: insertError } = await supabase
+        .from("password_reset_short_links")
+        .insert({
+          user_id: userId,
+          code_hash: codeHash,
+          token_hash: hashedToken,
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        });
+      if (!insertError) {
+        let origin = appUrl();
+        try {
+          origin = new URL(redirectTo).origin;
+        } catch { /* keep default */ }
+        recoveryLink = `${origin}/reset-password/${code}`;
+      }
     }
 
     if (!recoveryLink) {
@@ -418,6 +445,7 @@ Deno.serve(async (req) => {
       }
       return respond();
     }
+
 
     // 2) GHL credentials from secrets only.
     const creds = getGhlCredentials();
@@ -473,7 +501,7 @@ Deno.serve(async (req) => {
       ip_hash: ipHash,
     });
 
-    // 5) Same individual member-domain link by SMS when a valid phone exists.
+    // 5) Same link by SMS when a valid phone exists (profile first, then GHL contact).
     const phone = normalizePhone(profile?.phone) ?? normalizePhone(contact.phone);
     if (!phone) {
       await audit(supabase, {
@@ -501,7 +529,8 @@ Deno.serve(async (req) => {
       contactId: contact.id,
       phone,
       message:
-        `The Barber Launch: reset your password here: ${recoveryLink}. This link expires and can only be used once.`,
+        `The Barber Launch: reset your password here: ${recoveryLink} — this link expires in 1 hour and can only be used once.`,
+
     });
 
     await audit(supabase, {
