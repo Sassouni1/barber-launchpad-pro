@@ -75,32 +75,6 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
     return () => window.clearTimeout(timer);
   }, [normalizedEmail]);
 
-  const sendResetEmail = async () => {
-    if (!isValidEmail(normalizedEmail)) {
-      toast.error('Enter the account email first');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      setResetEmailSent(true);
-      toast.success('Password reset link sent');
-    } catch {
-      toast.error('An unexpected error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const submitRecoveryRequest = async () => {
     if (!isValidEmail(normalizedEmail)) {
       toast.error('Enter the account email first');
@@ -122,6 +96,11 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
       setLoading(false);
       toast.success('Recovery request processed');
     }
+  };
+
+  const sendResetEmail = async () => {
+    await submitRecoveryRequest();
+    setResetEmailSent(true);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
