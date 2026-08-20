@@ -129,6 +129,11 @@ Deno.serve(async (req) => {
       'image',
       new File([decoded.bytes as unknown as BlobPart], `source.${ext}`, { type: decoded.mime }),
     );
+    form.append(
+      'mask',
+      new File([decodedMask.bytes as unknown as BlobPart], 'mask.png', { type: 'image/png' }),
+    );
+
 
     const resp = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
