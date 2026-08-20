@@ -143,9 +143,51 @@ export function usePublishWebsite() {
         liveUrl: string;
         previewUrl: string;
         siteSlug: string;
+        deploymentStatus: string;
         customDomainStatus: string;
         customDomainError: string | null;
       };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["member-website", user?.id] });
+    },
+  });
+}
+
+/** Saves page content only — never publishes or changes the live site. */
+export function useSaveWebsiteDraft() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (input: { home: WebsitePageDocument; hairSystem: WebsitePageDocument }) => {
+      const { data: existing } = await supabase
+        .from("member_websites")
+        .select("id")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      const documents = {
+        home_document: input.home as unknown as Record<string, unknown>,
+        hair_system_document: input.hairSystem as unknown as Record<string, unknown>,
+      };
+
+      if (existing) {
+        const { error } = await supabase
+          .from("member_websites")
+          .update(documents)
+          .eq("id", existing.id);
+        if (error) throw error;
+        return;
+      }
+
+      const { error } = await supabase.from("member_websites").insert({
+        user_id: user!.id,
+        site_slug: `site-${user!.id.slice(0, 8)}`,
+        deployment_status: "draft",
+        ...documents,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["member-website", user?.id] });
