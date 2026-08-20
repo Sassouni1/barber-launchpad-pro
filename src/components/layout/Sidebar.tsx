@@ -31,6 +31,7 @@ import {
   Bot,
   MapPin,
   Shield,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
