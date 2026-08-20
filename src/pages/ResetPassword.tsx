@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 
 export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -76,6 +77,14 @@ export default function ResetPassword() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!passwordChanged) return;
+    // Keep the successful password form visible long enough for Safari and
+    // other password managers to offer an update before navigating away.
+    const timer = window.setTimeout(() => navigate('/dashboard', { replace: true }), 2500);
+    return () => window.clearTimeout(timer);
+  }, [navigate, passwordChanged]);
+
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,9 +108,8 @@ export default function ResetPassword() {
       }
 
       await (supabase as any).rpc('complete_current_user_password_reset');
-      await supabase.auth.signOut();
-      toast.success('Password updated. Sign in with the new password.');
-      navigate('/login', { replace: true });
+      setPasswordChanged(true);
+      toast.success('Password successfully changed.');
     } catch {
       toast.error('An unexpected error occurred');
     } finally {
@@ -126,14 +134,21 @@ export default function ResetPassword() {
           <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
+        ) : hasSession && passwordChanged ? (
+          <div className="rounded-md border border-primary/40 bg-primary/10 p-5 text-center" role="status">
+            <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-primary" />
+            <p className="font-semibold text-foreground">Password successfully changed</p>
+            <p className="mt-1 text-sm text-muted-foreground">Logging you in now…</p>
+          </div>
         ) : hasSession ? (
-          <form onSubmit={handleReset} className="space-y-6">
+          <form onSubmit={handleReset} className="space-y-6" autoComplete="on">
             <div className="space-y-4">
               <div>
                 <Label htmlFor="password">Create Password</Label>
                 <div className="relative mt-1">
                   <Input
                     id="password"
+                    name="new-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -159,6 +174,7 @@ export default function ResetPassword() {
                 <div className="relative mt-1">
                   <Input
                     id="confirmPassword"
+                    name="confirm-new-password"
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
