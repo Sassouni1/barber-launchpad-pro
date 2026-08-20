@@ -1728,6 +1728,7 @@ export type Database = {
           cloudflare_attachment_status: string
           cloudflare_last_error: string | null
           cloudflare_registration_status: string
+          cloudflare_worker_domain_id: string | null
           created_at: string
           custom_domain: string | null
           deployment_status: string
@@ -1746,6 +1747,7 @@ export type Database = {
           cloudflare_attachment_status?: string
           cloudflare_last_error?: string | null
           cloudflare_registration_status?: string
+          cloudflare_worker_domain_id?: string | null
           created_at?: string
           custom_domain?: string | null
           deployment_status?: string
@@ -1764,6 +1766,7 @@ export type Database = {
           cloudflare_attachment_status?: string
           cloudflare_last_error?: string | null
           cloudflare_registration_status?: string
+          cloudflare_worker_domain_id?: string | null
           created_at?: string
           custom_domain?: string | null
           deployment_status?: string

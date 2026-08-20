@@ -6,7 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Image as ImageIcon, Loader2, ExternalLink, Search } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Globe, Image as ImageIcon, Loader2, ExternalLink, Search, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +23,7 @@ import {
   uploadWebsiteImage,
   useMemberWebsite,
   usePublishWebsite,
+  useSaveWebsiteDraft,
   type WebsitePageDocument,
 } from '@/hooks/useMemberWebsite';
 
@@ -105,25 +114,41 @@ function PageForm({
   );
 }
 
+type DomainCheck = {
+  domain: string;
+  available: boolean;
+  price: number | null;
+  renewalPrice: number | null;
+  currency: string;
+  reason: string | null;
+};
+
+const money = (currency: string, amount: number) =>
+  `${currency} ${amount.toFixed(2)}`;
+
 export default function WebsiteEditor() {
   const { user } = useAuth();
   const { data: website, isLoading } = useMemberWebsite();
   const publish = usePublishWebsite();
+  const saveDraft = useSaveWebsiteDraft();
 
   const [home, setHome] = useState<WebsitePageDocument>(emptyPage());
   const [hairSystem, setHairSystem] = useState<WebsitePageDocument>(emptyPage());
   const [uploading, setUploading] = useState<'home' | 'hair' | null>(null);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [domainPending, setDomainPending] = useState(false);
 
   const [domainQuery, setDomainQuery] = useState('');
-  const [domainResult, setDomainResult] = useState<{ domain: string; available: boolean | null; price: number | null; currency: string } | null>(null);
+  const [domainResult, setDomainResult] = useState<DomainCheck | null>(null);
   const [domainBusy, setDomainBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!website) return;
     setHome({ ...emptyPage(), ...(website.home_document || {}) });
     setHairSystem({ ...emptyPage(), ...(website.hair_system_document || {}) });
     setLiveUrl(website.live_url);
+    setDomainPending(website.deployment_status === 'domain_pending');
   }, [website]);
 
   const handleUpload = async (which: 'home' | 'hair', file: File) => {
@@ -141,11 +166,25 @@ export default function WebsiteEditor() {
     }
   };
 
+  const handleSaveDraft = async () => {
+    try {
+      await saveDraft.mutateAsync({ home, hairSystem });
+      toast.success('Draft saved');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Save failed');
+    }
+  };
+
   const handlePublish = async () => {
     try {
       const result = await publish.mutateAsync({ home, hairSystem });
       setLiveUrl(result.liveUrl);
-      toast.success('Website published');
+      setDomainPending(result.deploymentStatus === 'domain_pending');
+      if (result.deploymentStatus === 'domain_pending') {
+        toast.success('Website published to your temporary address while your domain finishes setup');
+      } else {
+        toast.success('Website published');
+      }
       if (result.customDomainError) toast.warning(result.customDomainError);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Publish failed');
@@ -165,45 +204,45 @@ export default function WebsiteEditor() {
   };
 
   const handleSearchDomain = async () => {
+    const normalized = domainQuery.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!normalized.includes('.')) {
+      toast.error('Enter a complete domain name, for example yourshop.com');
+      return;
+    }
     setDomainBusy(true);
     setDomainResult(null);
     try {
-      const data = await callDomains({ action: 'search', domain: domainQuery.trim().toLowerCase() });
-      setDomainResult({
-        domain: data.domain,
-        available: data.available,
-        price: data.price,
-        currency: data.currency ?? 'USD',
-      });
+      const data = await callDomains({ action: 'check', domains: [normalized] });
+      const result: DomainCheck | undefined = data?.results?.[0];
+      if (!result) throw new Error('No result returned for that domain');
+      setDomainResult(result);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Domain search failed');
+      toast.error(e instanceof Error ? e.message : 'Domain check failed');
     } finally {
       setDomainBusy(false);
     }
   };
 
   const handleBuyDomain = async () => {
-    if (!domainResult?.price) return;
-    const ok = window.confirm(
-      `Register ${domainResult.domain} for ${domainResult.currency} ${domainResult.price}? This is a real purchase.`,
-    );
-    if (!ok) return;
+    if (!domainResult?.available || domainResult.price === null) return;
     setDomainBusy(true);
     try {
       await callDomains({
         action: 'register',
         domain: domainResult.domain,
-        confirm: true,
+        confirmPurchase: true,
         confirmedDomain: domainResult.domain,
         confirmedPrice: domainResult.price,
       });
-      toast.success(`${domainResult.domain} registered. Publish again to attach it.`);
+      setConfirmOpen(false);
+      toast.success(`${domainResult.domain} purchased. Save & publish to connect it to your site.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Registration failed');
     } finally {
       setDomainBusy(false);
     }
   };
+
 
   return (
     <DashboardLayout>
@@ -219,6 +258,12 @@ export default function WebsiteEditor() {
               <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">Your live website</p>
                 <p className="truncate font-medium text-foreground">{liveUrl}</p>
+                {domainPending && website?.custom_domain && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {website.custom_domain} is still being set up at Cloudflare. Your site stays live at this
+                    address until it is ready.
+                  </p>
+                )}
               </div>
               <Button asChild variant="outline" size="sm">
                 <a href={liveUrl} target="_blank" rel="noopener noreferrer">
@@ -265,19 +310,26 @@ export default function WebsiteEditor() {
           </CardContent>
         </Card>
 
-        <Button className="w-full" size="lg" onClick={handlePublish} disabled={publish.isPending}>
-          {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
-          Save &amp; publish
-        </Button>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button variant="outline" size="lg" onClick={handleSaveDraft} disabled={saveDraft.isPending}>
+            {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save draft
+          </Button>
+          <Button size="lg" onClick={handlePublish} disabled={publish.isPending}>
+            {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
+            Save &amp; publish
+          </Button>
+        </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Custom domain</CardTitle>
+            <CardTitle>Set up domain</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {website?.custom_domain && (
               <p className="text-sm text-muted-foreground">
-                Connected: <span className="text-foreground">{website.custom_domain}</span> ({website.cloudflare_attachment_status})
+                Your domain: <span className="text-foreground">{website.custom_domain}</span>{' '}
+                ({website.cloudflare_attachment_status === 'active' ? 'connected' : 'setting up'})
               </p>
             )}
             <div className="flex gap-2">
@@ -293,24 +345,61 @@ export default function WebsiteEditor() {
             {domainResult && (
               <div className="rounded-lg border border-border p-3 text-sm">
                 <p className="font-medium text-foreground">{domainResult.domain}</p>
-                {domainResult.available === false ? (
-                  <p className="text-muted-foreground">Not available.</p>
-                ) : domainResult.price ? (
+                {domainResult.available && domainResult.price !== null ? (
                   <>
                     <p className="text-muted-foreground">
-                      Available — {domainResult.currency} {domainResult.price}/year
+                      Available — {money(domainResult.currency, domainResult.price)} for the first year
+                      {domainResult.renewalPrice !== null && (
+                        <> · renews at {money(domainResult.currency, domainResult.renewalPrice)}/year</>
+                      )}
                     </p>
-                    <Button className="mt-3" size="sm" onClick={handleBuyDomain} disabled={domainBusy}>
-                      Confirm &amp; register
+                    <Button className="mt-3" size="sm" onClick={() => setConfirmOpen(true)} disabled={domainBusy}>
+                      Purchase domain
                     </Button>
                   </>
                 ) : (
-                  <p className="text-muted-foreground">Pricing unavailable.</p>
+                  <p className="text-muted-foreground">
+                    {domainResult.reason ?? 'This domain is not available.'}
+                  </p>
                 )}
               </div>
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={confirmOpen} onOpenChange={(open) => !domainBusy && setConfirmOpen(open)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm domain purchase</DialogTitle>
+              <DialogDescription asChild>
+                <div className="space-y-3 text-sm">
+                  <p>
+                    You are registering <span className="font-medium text-foreground">{domainResult?.domain}</span> for{' '}
+                    <span className="font-medium text-foreground">
+                      {domainResult && domainResult.price !== null
+                        ? money(domainResult.currency, domainResult.price)
+                        : ''}
+                    </span>{' '}
+                    for the first year.
+                  </p>
+                  <p>
+                    Cloudflare will charge the Cloudflare account's payment method for that exact first-year price.
+                    Domain registrations are non-refundable. Auto-renew will be turned off.
+                  </p>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={domainBusy}>
+                Cancel
+              </Button>
+              <Button onClick={handleBuyDomain} disabled={domainBusy}>
+                {domainBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirm purchase
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
