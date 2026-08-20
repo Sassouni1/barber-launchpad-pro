@@ -227,14 +227,14 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
                   <div className="flex gap-3">
                     <Mail className="mt-0.5 h-4 w-4 text-primary" />
                     <p>
-                      If an account matches that email, reset instructions were sent to the email
-                      address and, when a mobile number is on file, by text.
+                      If an account matches that email, reset instructions will be sent through
+                      Barber Launch's configured delivery channels.
                     </p>
                   </div>
                 ) : (
                   <p>
-                    If an account matches that email, reset instructions were sent to the email
-                    address and, when a mobile number is on file, by text.
+                    If an account matches that email, reset instructions will be sent through
+                    Barber Launch's configured delivery channels.
                   </p>
                 )}
               </div>
