@@ -119,7 +119,8 @@ Deno.serve(async (req) => {
 
       const checked = await checkDomains(domains, config.accountId, config.token);
       if (!checked.ok) return json({ error: checked.error }, 502);
-      return json({ configured: true, results: checked.results });
+      // Return both `results` and `domains` for compatibility with current Website Editor consumers.
+      return json({ configured: true, results: checked.results, domains: checked.results });
     }
 
     if (action === "register") {
