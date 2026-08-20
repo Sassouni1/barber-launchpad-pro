@@ -1723,6 +1723,63 @@ export type Database = {
         }
         Relationships: []
       }
+      member_websites: {
+        Row: {
+          cloudflare_attachment_status: string
+          cloudflare_last_error: string | null
+          cloudflare_registration_status: string
+          created_at: string
+          custom_domain: string | null
+          deployment_status: string
+          hair_system_document: Json
+          hair_system_html: string | null
+          home_document: Json
+          home_html: string | null
+          id: string
+          live_url: string | null
+          published_at: string | null
+          site_slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cloudflare_attachment_status?: string
+          cloudflare_last_error?: string | null
+          cloudflare_registration_status?: string
+          created_at?: string
+          custom_domain?: string | null
+          deployment_status?: string
+          hair_system_document?: Json
+          hair_system_html?: string | null
+          home_document?: Json
+          home_html?: string | null
+          id?: string
+          live_url?: string | null
+          published_at?: string | null
+          site_slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cloudflare_attachment_status?: string
+          cloudflare_last_error?: string | null
+          cloudflare_registration_status?: string
+          created_at?: string
+          custom_domain?: string | null
+          deployment_status?: string
+          hair_system_document?: Json
+          hair_system_html?: string | null
+          home_document?: Json
+          home_html?: string | null
+          id?: string
+          live_url?: string | null
+          published_at?: string | null
+          site_slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       meta_ad_accounts: {
         Row: {
           account_mode: string
@@ -3279,6 +3336,30 @@ export type Database = {
       }
     }
     Views: {
+      published_sites: {
+        Row: {
+          custom_domain: string | null
+          hair_system_html: string | null
+          home_html: string | null
+          published_at: string | null
+          site_slug: string | null
+        }
+        Insert: {
+          custom_domain?: string | null
+          hair_system_html?: string | null
+          home_html?: string | null
+          published_at?: string | null
+          site_slug?: string | null
+        }
+        Update: {
+          custom_domain?: string | null
+          hair_system_html?: string | null
+          home_html?: string | null
+          published_at?: string | null
+          site_slug?: string | null
+        }
+        Relationships: []
+      }
       quiz_answer_options: {
         Row: {
           answer_text: string | null
