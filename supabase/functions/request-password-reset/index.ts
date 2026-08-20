@@ -529,7 +529,8 @@ Deno.serve(async (req) => {
       contactId: contact.id,
       phone,
       message:
-        "The Barber Launch: To reset your password, open https://member.thebarberlaunch.com/auth and select Forgot password. If you didn't request this, you can ignore this text.",
+        `The Barber Launch: reset your password here: ${recoveryLink} — this link expires in 1 hour and can only be used once.`,
+
     });
 
     await audit(supabase, {
