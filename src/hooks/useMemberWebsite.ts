@@ -31,6 +31,7 @@ export interface MemberWebsite {
   published_at: string | null;
   cloudflare_registration_status: string;
   cloudflare_attachment_status: string;
+  cloudflare_worker_domain_id: string | null;
   home_document: WebsitePageDocument;
   hair_system_document: WebsitePageDocument;
 }
