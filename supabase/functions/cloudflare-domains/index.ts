@@ -54,7 +54,15 @@ async function checkDomains(domains: string[], accountId: string, token: string)
   if (!res.ok) {
     return { ok: false as const, error: cfError(res.payload, `Cloudflare error ${res.status}`) };
   }
-  const rows = Array.isArray(res.payload?.result) ? res.payload.result : [];
+
+  // Cloudflare currently nests the checked array under result.domains; fall back to a top-level array only if that is what it actually returns.
+  const result = res.payload?.result;
+  const rows = Array.isArray(result?.domains)
+    ? result.domains
+    : Array.isArray(result)
+    ? result
+    : [];
+
   const results: CheckResult[] = rows.map((row: Record<string, any>) => {
     const pricing = row?.pricing ?? {};
     const registrable = row?.registrable === true;
@@ -111,7 +119,8 @@ Deno.serve(async (req) => {
 
       const checked = await checkDomains(domains, config.accountId, config.token);
       if (!checked.ok) return json({ error: checked.error }, 502);
-      return json({ configured: true, results: checked.results });
+      // Return both `results` and `domains` for compatibility with current Website Editor consumers.
+      return json({ configured: true, results: checked.results, domains: checked.results });
     }
 
     if (action === "register") {
