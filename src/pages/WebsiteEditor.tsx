@@ -258,6 +258,12 @@ export default function WebsiteEditor() {
               <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">Your live website</p>
                 <p className="truncate font-medium text-foreground">{liveUrl}</p>
+                {domainPending && website?.custom_domain && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {website.custom_domain} is still being set up at Cloudflare. Your site stays live at this
+                    address until it is ready.
+                  </p>
+                )}
               </div>
               <Button asChild variant="outline" size="sm">
                 <a href={liveUrl} target="_blank" rel="noopener noreferrer">
