@@ -1,0 +1,1 @@
+DELETE FROM public.member_websites WHERE site_slug = 'alec-borum' AND home_html = '<html>home</html>';
