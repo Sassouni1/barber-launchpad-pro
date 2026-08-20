@@ -89,6 +89,22 @@ Deno.serve(async (req) => {
       return json({ success: false, error: 'Image is too large. Maximum size is 12 MB.' }, 413);
     }
 
+    const maskDataUrl = typeof body.maskDataUrl === 'string' ? body.maskDataUrl : '';
+    if (!maskDataUrl) {
+      return json({ success: false, error: 'maskDataUrl is required.' }, 400);
+    }
+    const decodedMask = decodeDataUrl(maskDataUrl);
+    if (!decodedMask) {
+      return json(
+        { success: false, error: 'maskDataUrl must be a base64 data URL of type PNG, JPEG, or WebP.' },
+        400,
+      );
+    }
+    if (decodedMask.bytes.byteLength > MAX_BYTES) {
+      return json({ success: false, error: 'Mask is too large. Maximum size is 12 MB.' }, 413);
+    }
+
+
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
       return json({ success: false, error: 'Image expansion is not configured.' }, 503);
