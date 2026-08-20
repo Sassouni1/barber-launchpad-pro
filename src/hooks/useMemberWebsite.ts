@@ -168,8 +168,8 @@ export function useSaveWebsiteDraft() {
         .maybeSingle();
 
       const documents = {
-        home_document: input.home as unknown as Record<string, unknown>,
-        hair_system_document: input.hairSystem as unknown as Record<string, unknown>,
+        home_document: input.home as unknown as never,
+        hair_system_document: input.hairSystem as unknown as never,
       };
 
       if (existing) {
@@ -181,12 +181,12 @@ export function useSaveWebsiteDraft() {
         return;
       }
 
-      const { error } = await supabase.from("member_websites").insert({
+      const { error } = await supabase.from("member_websites").insert([{
         user_id: user!.id,
         site_slug: `site-${user!.id.slice(0, 8)}`,
         deployment_status: "draft",
         ...documents,
-      });
+      }]);
       if (error) throw error;
     },
     onSuccess: () => {
