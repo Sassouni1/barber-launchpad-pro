@@ -394,8 +394,10 @@ Deno.serve(async (req) => {
       ip_hash: ipHash,
     });
 
-    // 1) Server-side one-time recovery link (no Lovable Auth mail is sent).
-    let recoveryLink: string | null = null;
+    // 1) Server-side one-time recovery token (no Lovable Auth mail is sent).
+    //    We use properties.hashed_token only — the raw Supabase action_link is
+    //    never sent, logged, or audited.
+    let hashedToken: string | null = null;
     try {
       const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
         type: "recovery",
@@ -403,9 +405,31 @@ Deno.serve(async (req) => {
         options: { redirectTo },
       });
       if (linkError) throw new Error("generate_link_failed");
-      recoveryLink = linkData?.properties?.action_link ?? null;
+      hashedToken = linkData?.properties?.hashed_token ?? null;
     } catch {
-      recoveryLink = null;
+      hashedToken = null;
+    }
+
+    // 1b) Mint an opaque short code that maps to that token, server-side only.
+    let recoveryLink: string | null = null;
+    if (hashedToken) {
+      const code = generateCode();
+      const codeHash = await hashCode(code);
+      const { error: insertError } = await supabase
+        .from("password_reset_short_links")
+        .insert({
+          user_id: userId,
+          code_hash: codeHash,
+          token_hash: hashedToken,
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        });
+      if (!insertError) {
+        let origin = appUrl();
+        try {
+          origin = new URL(redirectTo).origin;
+        } catch { /* keep default */ }
+        recoveryLink = `${origin}/reset-password/${code}`;
+      }
     }
 
     if (!recoveryLink) {
@@ -421,6 +445,7 @@ Deno.serve(async (req) => {
       }
       return respond();
     }
+
 
     // 2) GHL credentials from secrets only.
     const creds = getGhlCredentials();
