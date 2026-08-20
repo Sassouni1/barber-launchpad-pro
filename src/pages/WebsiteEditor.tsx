@@ -114,25 +114,41 @@ function PageForm({
   );
 }
 
+type DomainCheck = {
+  domain: string;
+  available: boolean;
+  price: number | null;
+  renewalPrice: number | null;
+  currency: string;
+  reason: string | null;
+};
+
+const money = (currency: string, amount: number) =>
+  `${currency} ${amount.toFixed(2)}`;
+
 export default function WebsiteEditor() {
   const { user } = useAuth();
   const { data: website, isLoading } = useMemberWebsite();
   const publish = usePublishWebsite();
+  const saveDraft = useSaveWebsiteDraft();
 
   const [home, setHome] = useState<WebsitePageDocument>(emptyPage());
   const [hairSystem, setHairSystem] = useState<WebsitePageDocument>(emptyPage());
   const [uploading, setUploading] = useState<'home' | 'hair' | null>(null);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [domainPending, setDomainPending] = useState(false);
 
   const [domainQuery, setDomainQuery] = useState('');
-  const [domainResult, setDomainResult] = useState<{ domain: string; available: boolean | null; price: number | null; currency: string } | null>(null);
+  const [domainResult, setDomainResult] = useState<DomainCheck | null>(null);
   const [domainBusy, setDomainBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!website) return;
     setHome({ ...emptyPage(), ...(website.home_document || {}) });
     setHairSystem({ ...emptyPage(), ...(website.hair_system_document || {}) });
     setLiveUrl(website.live_url);
+    setDomainPending(website.deployment_status === 'domain_pending');
   }, [website]);
 
   const handleUpload = async (which: 'home' | 'hair', file: File) => {
@@ -150,11 +166,25 @@ export default function WebsiteEditor() {
     }
   };
 
+  const handleSaveDraft = async () => {
+    try {
+      await saveDraft.mutateAsync({ home, hairSystem });
+      toast.success('Draft saved');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Save failed');
+    }
+  };
+
   const handlePublish = async () => {
     try {
       const result = await publish.mutateAsync({ home, hairSystem });
       setLiveUrl(result.liveUrl);
-      toast.success('Website published');
+      setDomainPending(result.deploymentStatus === 'domain_pending');
+      if (result.deploymentStatus === 'domain_pending') {
+        toast.success('Website published to your temporary address while your domain finishes setup');
+      } else {
+        toast.success('Website published');
+      }
       if (result.customDomainError) toast.warning(result.customDomainError);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Publish failed');
@@ -174,45 +204,45 @@ export default function WebsiteEditor() {
   };
 
   const handleSearchDomain = async () => {
+    const normalized = domainQuery.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!normalized.includes('.')) {
+      toast.error('Enter a complete domain name, for example yourshop.com');
+      return;
+    }
     setDomainBusy(true);
     setDomainResult(null);
     try {
-      const data = await callDomains({ action: 'search', domain: domainQuery.trim().toLowerCase() });
-      setDomainResult({
-        domain: data.domain,
-        available: data.available,
-        price: data.price,
-        currency: data.currency ?? 'USD',
-      });
+      const data = await callDomains({ action: 'check', domains: [normalized] });
+      const result: DomainCheck | undefined = data?.results?.[0];
+      if (!result) throw new Error('No result returned for that domain');
+      setDomainResult(result);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Domain search failed');
+      toast.error(e instanceof Error ? e.message : 'Domain check failed');
     } finally {
       setDomainBusy(false);
     }
   };
 
   const handleBuyDomain = async () => {
-    if (!domainResult?.price) return;
-    const ok = window.confirm(
-      `Register ${domainResult.domain} for ${domainResult.currency} ${domainResult.price}? This is a real purchase.`,
-    );
-    if (!ok) return;
+    if (!domainResult?.available || domainResult.price === null) return;
     setDomainBusy(true);
     try {
       await callDomains({
         action: 'register',
         domain: domainResult.domain,
-        confirm: true,
+        confirmPurchase: true,
         confirmedDomain: domainResult.domain,
         confirmedPrice: domainResult.price,
       });
-      toast.success(`${domainResult.domain} registered. Publish again to attach it.`);
+      setConfirmOpen(false);
+      toast.success(`${domainResult.domain} purchased. Save & publish to connect it to your site.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Registration failed');
     } finally {
       setDomainBusy(false);
     }
   };
+
 
   return (
     <DashboardLayout>
