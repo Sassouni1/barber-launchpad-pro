@@ -298,8 +298,34 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
+
+    // ── Action: resolve an opaque short code into its recovery token_hash ──
+    if (body?.action === "resolve-reset-link") {
+      const genericFail = () => json({ ok: false, error: "invalid_or_expired" }, 400);
+      const code = String(body?.code ?? "");
+      if (!CODE_RE.test(code)) return genericFail();
+
+      const supabase = service();
+      const codeHash = await hashCode(code);
+      const nowIso = new Date().toISOString();
+
+      // Atomic single-use consumption.
+      const { data: consumed, error: consumeError } = await supabase
+        .from("password_reset_short_links")
+        .update({ used_at: nowIso })
+        .eq("code_hash", codeHash)
+        .is("used_at", null)
+        .gt("expires_at", nowIso)
+        .select("token_hash")
+        .maybeSingle();
+
+      if (consumeError || !consumed?.token_hash) return genericFail();
+      return json({ ok: true, token_hash: consumed.token_hash });
+    }
+
     const email = String(body?.email ?? "").trim().toLowerCase();
     const redirectTo = safeRedirect(body?.redirectTo);
+
 
     if (!email || email.length > 255 || !EMAIL_RE.test(email)) {
       return respond();
