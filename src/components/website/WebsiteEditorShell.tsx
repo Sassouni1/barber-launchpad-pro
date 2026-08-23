@@ -76,6 +76,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const fieldsRef = useRef<EditableField[]>([]);
   const draftRef = useRef<EditorDraft>({});
   draftRef.current = draft;
+  // Kept fresh so the iframe click listener always runs the latest closure.
+  const runItemOpRef = useRef<(kind: 'duplicate' | 'earlier' | 'later', itemEl?: HTMLElement) => void>(() => {});
 
   const repeatRules = useMemo(() => template.repeatRules ?? [], [template.repeatRules]);
   const page = template.pages.find((p) => p.key === pageKey) ?? template.pages[0];
@@ -110,6 +112,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
       const scanned = scanFields(doc, template.fieldRules);
       decorateFields(doc, scanned);
       applyDraft(doc, nextPageDraft);
+      // Overlays are added after scanning so they never become editable fields.
+      decorateItems(doc, repeatRules);
       fieldsRef.current = scanned;
       setFields(scanned);
       return scanned;
@@ -290,6 +294,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         : `Moved this ${rule.label} ${kind === 'earlier' ? 'earlier' : 'later'}.`,
     );
   };
+
+  runItemOpRef.current = runItemOp;
 
   const currentValue = selectedField ? (pageDraft[selectedField.key] ?? selectedField.original) : '';
   const overLimit = !!selectedField?.limit && currentValue.length > selectedField.limit;
