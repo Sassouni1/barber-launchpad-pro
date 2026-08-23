@@ -3385,6 +3385,7 @@ export type Database = {
           display_name: string
           field_rules: Json
           pages: Json
+          repeat_rules: Json
           template_key: string
           updated_at: string
         }
@@ -3394,6 +3395,7 @@ export type Database = {
           display_name: string
           field_rules?: Json
           pages?: Json
+          repeat_rules?: Json
           template_key: string
           updated_at?: string
         }
@@ -3403,6 +3405,7 @@ export type Database = {
           display_name?: string
           field_rules?: Json
           pages?: Json
+          repeat_rules?: Json
           template_key?: string
           updated_at?: string
         }

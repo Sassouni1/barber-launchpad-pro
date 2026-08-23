@@ -25,6 +25,27 @@ export type FieldRule = {
   locked?: boolean;
 };
 
+/**
+ * Declares one explicitly repeatable card group. Templates opt in by adding
+ * rules to `website_templates.repeat_rules` — the editor never clones arbitrary
+ * DOM, only items matched by these configured selectors.
+ */
+export type RepeatRule = {
+  /** Stable id used as the draft layout key. */
+  key: string;
+  /** Singular noun shown in the editor controls, e.g. "service". */
+  label: string;
+  /** CSS selector for the wrapper that holds the repeated items. */
+  container: string;
+  /** CSS selector for one repeatable item inside the container. */
+  item: string;
+  /** Optional cap on how many items a member may create. */
+  max?: number;
+};
+
+/** ruleKey -> ordered list of original item indices (duplicates repeat an index). */
+export type LayoutState = Record<string, number[]>;
+
 export type WebsiteTemplateConfig = {
   templateKey: string;
   displayName: string;
@@ -32,7 +53,9 @@ export type WebsiteTemplateConfig = {
   assetOrigin: string | null;
   pages: TemplatePage[];
   fieldRules: Record<string, FieldRule>;
+  repeatRules: RepeatRule[];
 };
+
 
 export type EditableField = {
   key: string;
@@ -179,12 +202,136 @@ export function scanFields(doc: Document, rules: Record<string, FieldRule> = {})
 
 export function applyDraft(root: Document | HTMLElement, draft: PageDraft) {
   Object.entries(draft).forEach(([key, value]) => {
+    if (key.startsWith('__')) return; // reserved editor state, not a field
     const el = elementFromKey(root, key);
     if (!el) return;
     if (el.tagName === 'IMG') el.setAttribute('src', value);
     else el.textContent = value;
   });
 }
+
+/* ------------------------------------------------------------------ *
+ * Repeatable items (configured card groups only)
+ * ------------------------------------------------------------------ */
+
+/** Reserved page-draft key holding the serialized repeat layout. */
+export const LAYOUT_KEY = '__layout';
+
+export function readLayout(pageDraft: PageDraft): LayoutState {
+  try {
+    const raw = pageDraft[LAYOUT_KEY];
+    return raw ? (JSON.parse(raw) as LayoutState) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writeLayout(pageDraft: PageDraft, layout: LayoutState): PageDraft {
+  return { ...pageDraft, [LAYOUT_KEY]: JSON.stringify(layout) };
+}
+
+/** Pristine copies of each rule's items, captured before any rebuild. */
+export type RepeatOriginals = Record<string, Element[]>;
+
+export const ITEM_ATTR = 'data-we-item';
+export const ITEM_POS_ATTR = 'data-we-item-pos';
+
+function containerFor(root: Document | HTMLElement, rule: RepeatRule): Element | null {
+  const scope: ParentNode = 'body' in root ? (root.body as ParentNode) : root;
+  return scope.querySelector(rule.container);
+}
+
+function itemsIn(container: Element, rule: RepeatRule): Element[] {
+  return Array.from(container.querySelectorAll(rule.item)).filter((el) => el.parentElement === container);
+}
+
+/**
+ * Rebuilds every configured repeat container from its pristine items following
+ * the member's layout. Deterministic: the same layout always produces the same
+ * DOM, so structural field keys stay stable.
+ */
+export function applyLayout(
+  root: Document | HTMLElement,
+  rules: RepeatRule[],
+  layout: LayoutState,
+  originals: RepeatOriginals = {},
+): RepeatOriginals {
+  rules.forEach((rule) => {
+    const container = containerFor(root, rule);
+    if (!container) return;
+
+    if (!originals[rule.key]) {
+      originals[rule.key] = itemsIn(container, rule).map((el) => el.cloneNode(true) as Element);
+    }
+    const pristine = originals[rule.key];
+    if (!pristine.length) return;
+
+    const order = (layout[rule.key] ?? pristine.map((_, i) => i)).filter(
+      (index) => Number.isInteger(index) && index >= 0 && index < pristine.length,
+    );
+    const finalOrder = order.length ? order : pristine.map((_, i) => i);
+
+    const current = itemsIn(container, rule);
+    // A placeholder keeps the group's exact position among any sibling markup.
+    const anchor = container.ownerDocument.createComment('we-items');
+    if (current[0]) container.insertBefore(anchor, current[0]);
+    else container.appendChild(anchor);
+    current.forEach((el) => el.remove());
+
+    finalOrder.forEach((sourceIndex, position) => {
+      const clone = pristine[sourceIndex].cloneNode(true) as Element;
+      clone.setAttribute(ITEM_ATTR, rule.key);
+      clone.setAttribute(ITEM_POS_ATTR, String(position));
+      container.insertBefore(clone, anchor);
+    });
+    anchor.remove();
+  });
+  return originals;
+}
+
+/** Element keys of a rule's items in their current rendered order. */
+export function itemKeys(root: Document | HTMLElement, rule: RepeatRule): string[] {
+  const container = containerFor(root, rule);
+  if (!container) return [];
+  return itemsIn(container, rule).map((el) => elementKey(el));
+}
+
+/**
+ * Moves the member's edits with their card. `mapping[newPosition] = oldPosition`
+ * (an old position may appear twice when a card is duplicated).
+ */
+export function remapItemDraft(
+  pageDraft: PageDraft,
+  oldKeys: string[],
+  newKeys: string[],
+  mapping: number[],
+): PageDraft {
+  const next: PageDraft = {};
+  const owned = (key: string) => oldKeys.some((itemKey) => key === itemKey || key.startsWith(`${itemKey}.`));
+
+  Object.entries(pageDraft).forEach(([key, value]) => {
+    if (key.startsWith('__') || !owned(key)) next[key] = value;
+  });
+
+  mapping.forEach((oldPosition, newPosition) => {
+    const oldKey = oldKeys[oldPosition];
+    const newKey = newKeys[newPosition];
+    if (oldKey === undefined || newKey === undefined) return;
+    Object.entries(pageDraft).forEach(([key, value]) => {
+      if (key === oldKey) next[newKey] = value;
+      else if (key.startsWith(`${oldKey}.`)) next[`${newKey}${key.slice(oldKey.length)}`] = value;
+    });
+  });
+
+  return next;
+}
+
+export function currentOrder(layout: LayoutState, ruleKey: string, itemCount: number): number[] {
+  const order = layout[ruleKey];
+  if (order && order.length) return [...order];
+  return Array.from({ length: itemCount }, (_, i) => i);
+}
+
 
 export const EDITOR_STYLE_ID = 'website-editor-style';
 
@@ -234,12 +381,19 @@ export async function renderTemplatePage(
   });
 
   const doc = new DOMParser().parseFromString(html, 'text/html');
+  // Structure first (duplicated / reordered cards), then the member's content.
+  applyLayout(doc, template.repeatRules ?? [], readLayout(draft));
   applyDraft(doc, draft);
 
   // Editor-only markup never ships.
   doc.querySelectorAll('[data-we-editable]').forEach((el) => el.removeAttribute('data-we-editable'));
   doc.querySelectorAll('[data-we-selected]').forEach((el) => el.removeAttribute('data-we-selected'));
+  doc.querySelectorAll(`[${ITEM_ATTR}]`).forEach((el) => {
+    el.removeAttribute(ITEM_ATTR);
+    el.removeAttribute(ITEM_POS_ATTR);
+  });
   doc.getElementById(EDITOR_STYLE_ID)?.remove();
+
   doc.querySelectorAll('meta[name="robots"]').forEach((el) => el.remove());
 
   if (page.stylesheet) {
