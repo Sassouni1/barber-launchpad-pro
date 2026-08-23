@@ -164,17 +164,23 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     doc.addEventListener(
       'click',
       (event) => {
-        const target = (event.target as HTMLElement)?.closest('[data-we-editable]') as HTMLElement | null;
+        const node = event.target as HTMLElement | null;
+        const target = node?.closest('[data-we-editable]') as HTMLElement | null;
         // Keep the preview static while editing.
         event.preventDefault();
-        if (!target) return;
-        const key = fieldsRef.current.find((f) => elementFromKey(doc, f.key) === target)?.key;
+        // Clicking anywhere inside a repeatable card selects that card.
+        const fallbackItem = !target ? (node?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null) : null;
+        const resolved =
+          target ?? (fallbackItem?.querySelector('[data-we-editable]') as HTMLElement | null) ?? null;
+        if (!resolved) return;
+        const key = fieldsRef.current.find((f) => elementFromKey(doc, f.key) === resolved)?.key;
         if (!key) return;
         setSelectedKey(key);
         setSelected(doc, key);
       },
       true,
     );
+
   };
 
   // Re-scan when the page tab changes.
@@ -380,6 +386,56 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* Card actions are always visible so duplication/order are discoverable. */}
+            <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">Card actions</p>
+              {activeItem ? (
+                <>
+                  <p className="text-xs font-medium text-foreground">
+                    {activeItem.rule.label.replace(/\b\w/g, (c) => c.toUpperCase())} card{' '}
+                    {activeItem.position + 1} of {activeItem.total}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="min-h-9"
+                      onClick={() => runItemOp('duplicate')}
+                      aria-label={`Duplicate ${activeItem.rule.label}`}
+                    >
+                      <Copy className="mr-2 h-4 w-4" /> Duplicate {activeItem.rule.label}
+                    </Button>
+                    {activeItem.position > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-9"
+                        onClick={() => runItemOp('earlier')}
+                        aria-label={`Move this ${activeItem.rule.label} earlier`}
+                      >
+                        <ArrowUp className="mr-2 h-4 w-4" /> Move earlier
+                      </Button>
+                    )}
+                    {activeItem.position < activeItem.total - 1 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-9"
+                        onClick={() => runItemOp('later')}
+                        aria-label={`Move this ${activeItem.rule.label} later`}
+                      >
+                        <ArrowDown className="mr-2 h-4 w-4" /> Move later
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Click a service or rate card to duplicate it or change its order.
+                </p>
+              )}
+            </div>
+
             {!ready ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -391,47 +447,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
               </p>
             ) : (
               <>
-                {activeItem && (
-                  <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
-                    <p className="text-xs font-medium text-foreground">
-                      {activeItem.rule.label.replace(/\b\w/g, (c) => c.toUpperCase())} card{' '}
-                      {activeItem.position + 1} of {activeItem.total}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="min-h-9"
-                        onClick={() => runItemOp('duplicate')}
-                        aria-label={`Duplicate this ${activeItem.rule.label}`}
-                      >
-                        <Copy className="mr-2 h-4 w-4" /> Duplicate {activeItem.rule.label}
-                      </Button>
-                      {activeItem.position > 0 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="min-h-9"
-                          onClick={() => runItemOp('earlier')}
-                          aria-label={`Move this ${activeItem.rule.label} earlier`}
-                        >
-                          <ArrowUp className="mr-2 h-4 w-4" /> Move earlier
-                        </Button>
-                      )}
-                      {activeItem.position < activeItem.total - 1 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="min-h-9"
-                          onClick={() => runItemOp('later')}
-                          aria-label={`Move this ${activeItem.rule.label} later`}
-                        >
-                          <ArrowDown className="mr-2 h-4 w-4" /> Move later
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
+
 
                 {selectedField.kind === 'image' ? (
                   <div className="space-y-3">
