@@ -66,7 +66,52 @@ async function attachCustomDomain(hostname: string): Promise<AttachOutcome> {
     };
   }
 
+  // The hostname lives in an active Cloudflare zone (it may already be serving an
+  // existing Pages site). Attach the shared worker with a Zone Worker Route so no
+  // DNS record has to be touched or deleted.
+  const pattern = `${hostname}/*`;
+  const routesRes = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${zone.id}/workers/routes`,
+    { headers },
+  );
+  const routesJson = await routesRes.json().catch(() => ({}));
+  const routes: Array<{ id?: string; pattern?: string; script?: string }> = Array.isArray(routesJson?.result)
+    ? routesJson.result
+    : [];
+  const match = routes.find((r) => r?.pattern === pattern);
+  if (match?.id) {
+    if (match.script === cf.worker) {
+      return { status: "active", workerDomainId: String(match.id), error: null };
+    }
+    return {
+      status: "failed",
+      workerDomainId: String(match.id),
+      error:
+        `The route ${pattern} is already assigned to the Cloudflare Worker "${match.script ?? "unknown"}". ` +
+        `It was left untouched to avoid breaking the existing site. Reassign it to "${cf.worker}" to continue.`,
+    };
+  }
 
+  const routeRes = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${zone.id}/workers/routes`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ pattern, script: cf.worker }),
+    },
+  );
+  const routeJson = await routeRes.json().catch(() => ({}));
+  if (routeRes.ok && routeJson?.success !== false) {
+    return {
+      status: "active",
+      workerDomainId: routeJson?.result?.id ? String(routeJson.result.id) : null,
+      error: null,
+    };
+  }
+  const routeError = String(routeJson?.errors?.[0]?.message ?? `Cloudflare error ${routeRes.status}`);
+
+  // Fallback: a truly unconfigured/new hostname can still use the Workers
+  // custom-domain binding. Never ask the member to delete DNS records.
   const existingRes = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${cf.accountId}/workers/domains?hostname=${encodeURIComponent(hostname)}`,
     { headers },
@@ -93,14 +138,16 @@ async function attachCustomDomain(hostname: string): Promise<AttachOutcome> {
   );
   const attachJson = await attachRes.json().catch(() => ({}));
   if (!attachRes.ok || attachJson?.success === false) {
-    return {
-      status: "failed",
-      workerDomainId: null,
-      error: String(attachJson?.errors?.[0]?.message ?? `Cloudflare error ${attachRes.status}`),
-    };
+    const raw = String(attachJson?.errors?.[0]?.message ?? `Cloudflare error ${attachRes.status}`);
+    const sanitized = /externally managed DNS/i.test(raw)
+      ? `Could not attach ${hostname} to the shared site worker via a zone route (${routeError}). ` +
+        `Existing DNS records were left in place.`
+      : raw;
+    return { status: "failed", workerDomainId: null, error: sanitized };
   }
   return { status: "active", workerDomainId: attachJson?.result?.id ? String(attachJson.result.id) : null, error: null };
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
