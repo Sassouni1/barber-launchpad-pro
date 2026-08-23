@@ -30,8 +30,10 @@ type AttachOutcome = {
 };
 
 /**
- * Reads the domain's registration, and once it is active attaches the apex to the
- * member sites Worker. Idempotent: an existing binding is reused.
+ * Attaches the configured hostname to the shared member-sites Worker.
+ * Works for any domain already managed in this Cloudflare account — registrar
+ * registration status is irrelevant. Idempotent: an existing binding is reused.
+ * Only ever called from a member-initiated publish.
  */
 async function attachCustomDomain(hostname: string): Promise<AttachOutcome> {
   const cf = cloudflareConfig();
@@ -43,32 +45,26 @@ async function attachCustomDomain(hostname: string): Promise<AttachOutcome> {
     "Content-Type": "application/json",
   };
 
-  const regRes = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${cf.accountId}/registrar/registrations/${encodeURIComponent(hostname)}`,
-    { headers },
-  );
-  const regJson = await regRes.json().catch(() => ({}));
-  const regStatus = String(regJson?.result?.status ?? "").toLowerCase();
-  if (!regRes.ok || regJson?.success === false) {
+  // Resolve the active zone for the hostname (apex or a subdomain of it).
+  const labels = hostname.split(".");
+  let zone: { id?: string; name?: string } | undefined;
+  for (let i = 0; i < labels.length - 1 && !zone?.id; i++) {
+    const candidate = labels.slice(i).join(".");
+    const zoneRes = await fetch(
+      `https://api.cloudflare.com/client/v4/zones?name=${encodeURIComponent(candidate)}&status=active`,
+      { headers },
+    );
+    const zoneJson = await zoneRes.json().catch(() => ({}));
+    zone = zoneJson?.result?.[0];
+  }
+  if (!zone?.id) {
     return {
       status: "pending",
       workerDomainId: null,
-      error: regJson?.errors?.[0]?.message ?? "Cloudflare is still processing this registration",
+      error: "This domain is not an active zone in the connected Cloudflare account yet",
     };
   }
-  if (regStatus !== "active") {
-    return { status: "pending", workerDomainId: null, error: null };
-  }
 
-  const zoneRes = await fetch(
-    `https://api.cloudflare.com/client/v4/zones?name=${encodeURIComponent(hostname)}&status=active`,
-    { headers },
-  );
-  const zoneJson = await zoneRes.json().catch(() => ({}));
-  const zone = zoneJson?.result?.[0];
-  if (!zone?.id) {
-    return { status: "pending", workerDomainId: null, error: null };
-  }
 
   const existingRes = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${cf.accountId}/workers/domains?hostname=${encodeURIComponent(hostname)}`,
