@@ -347,38 +347,61 @@ export const EDITOR_CSS = `
 [data-we-selected]{outline:3px solid #d4af37 !important;background-color:rgba(212,175,55,.16)}
 [data-we-item]{cursor:pointer;position:relative}
 [data-we-item-active]{outline:3px solid #d4af37 !important;outline-offset:6px;background-color:rgba(212,175,55,.06)}
-[${OVERLAY_ATTR}]{position:absolute;top:6px;right:6px;z-index:2147483000;display:flex;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;margin:0;border:1px solid rgba(212,175,55,.9);border-radius:8px;background:rgba(12,12,12,.92);color:#d4af37;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:0 2px 8px rgba(0,0,0,.35);line-height:0}
+[${OVERLAY_ATTR}]{position:absolute;top:6px;z-index:2147483000;display:flex;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;margin:0;border:1px solid rgba(212,175,55,.9);border-radius:8px;background:rgba(12,12,12,.92);color:#d4af37;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:0 2px 8px rgba(0,0,0,.35);line-height:0}
+[${OVERLAY_ATTR}="duplicate"]{right:6px}
+[${OVERLAY_ATTR}="delete"]{right:48px;border-color:rgba(220,80,70,.9);color:#ff6b60}
 [${OVERLAY_ATTR}] svg{width:18px;height:18px;display:block;pointer-events:none}
 [data-we-item]:hover > [${OVERLAY_ATTR}],
 [data-we-item]:focus-within > [${OVERLAY_ATTR}],
 [${ITEM_ACTIVE_ATTR}] > [${OVERLAY_ATTR}],
 [${OVERLAY_ATTR}]:focus{opacity:1;pointer-events:auto}
-[${OVERLAY_ATTR}]:hover{background:#d4af37;color:#0c0c0c}
+[${OVERLAY_ATTR}="duplicate"]:hover{background:#d4af37;color:#0c0c0c}
+[${OVERLAY_ATTR}="delete"]:hover{background:#c0392b;color:#fff;border-color:#c0392b}
 @media (hover:none){[data-we-item] > [${OVERLAY_ATTR}]{opacity:.85;pointer-events:auto}}
 `;
 
 const COPY_ICON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>';
 
+const TRASH_ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>';
+
 /**
- * Adds the editor-only duplicate overlay to each configured repeatable card.
- * Called after fields are scanned so overlays never become editable fields.
+ * Adds the editor-only duplicate/delete overlay to each configured repeatable
+ * card. Called after fields are scanned so overlays never become editable
+ * fields. Delete is only offered while more than one item remains in the group,
+ * so a card group can never be emptied from the overlay.
  */
 export function decorateItems(doc: Document, rules: RepeatRule[]) {
   const labels = new Map(rules.map((rule) => [rule.key, rule.label]));
+  const counts = new Map<string, number>();
+  doc.querySelectorAll(`[${ITEM_ATTR}]`).forEach((item) => {
+    const ruleKey = item.getAttribute(ITEM_ATTR) ?? '';
+    counts.set(ruleKey, (counts.get(ruleKey) ?? 0) + 1);
+  });
+
   doc.querySelectorAll(`[${ITEM_ATTR}]`).forEach((item) => {
     item.querySelectorAll(`[${OVERLAY_ATTR}]`).forEach((el) => el.remove());
-    const label = labels.get(item.getAttribute(ITEM_ATTR) ?? '');
+    const ruleKey = item.getAttribute(ITEM_ATTR) ?? '';
+    const label = labels.get(ruleKey);
     if (!label) return;
-    const button = doc.createElement('button');
-    button.setAttribute('type', 'button');
-    button.setAttribute(OVERLAY_ATTR, 'duplicate');
-    button.setAttribute('aria-label', `Duplicate ${label}`);
-    button.setAttribute('title', `Duplicate ${label}`);
-    button.innerHTML = COPY_ICON_SVG;
-    item.appendChild(button);
+
+    const makeButton = (action: 'duplicate' | 'delete', verb: string, icon: string) => {
+      const button = doc.createElement('button');
+      button.setAttribute('type', 'button');
+      button.setAttribute(OVERLAY_ATTR, action);
+      button.setAttribute('aria-label', `${verb} ${label}`);
+      button.setAttribute('title', `${verb} ${label}`);
+      button.innerHTML = icon;
+      item.appendChild(button);
+    };
+
+    makeButton('duplicate', 'Duplicate', COPY_ICON_SVG);
+    // Never allow the last remaining card in a group to be removed.
+    if ((counts.get(ruleKey) ?? 0) > 1) makeButton('delete', 'Delete', TRASH_ICON_SVG);
   });
 }
+
 
 /** Marks every scanned field so it is clickable inside the iframe. */
 export function decorateFields(doc: Document, fields: EditableField[]) {
