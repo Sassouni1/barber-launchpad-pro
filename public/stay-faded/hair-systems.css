@@ -1,0 +1,111 @@
+:root{--ink:#fbf7ff;--muted:#d0c6d8;--bg:#07030b;--panel:#12091a;--line:#3a2249;--violet:#bf43f3;--max:1180px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box}html{scroll-behavior:smooth;overflow-x:hidden}body{width:100%;max-width:100%;margin:0;overflow-x:hidden;background:radial-gradient(circle at 74% 17%,#2c0843 0,transparent 33rem),var(--bg);color:var(--ink);line-height:1.5}a{color:inherit;text-decoration:none}.hs-header{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:2rem;padding:1rem max(6vw,2rem);border-bottom:1px solid #3d1e4d;background:rgba(7,3,11,.9);backdrop-filter:blur(15px)}.hs-brand{display:flex;align-items:center;gap:.75rem}.hs-brand img{width:3.1rem;height:3.1rem;object-fit:contain}.hs-brand strong,.hs-brand small{display:block}.hs-brand strong{font-family:Georgia,serif;font-size:.92rem;letter-spacing:.09em}.hs-brand small{color:#bd78d5;font-size:.76rem}.hs-header nav{display:flex;align-items:center;gap:1.9rem;font-family:Georgia,serif;font-size:.76rem;font-weight:700;letter-spacing:.12em}.hs-header nav a{opacity:.9}.hs-header nav a:hover{color:#e196ff}.hs-nav-cta,.hs-mobile-cta{padding:.72rem 1.35rem;border:1px solid #c54dff;border-radius:999px;background:linear-gradient(135deg,#8a2bd1,#4b1579);box-shadow:0 0 25px #9b32d466;font-weight:800}.hs-mobile-cta{display:none;font-size:.72rem;white-space:nowrap}.hs-shell{width:min(var(--max),88vw);margin:auto}.hs-wide{width:min(1120px,calc(100% - 32px));margin:auto}.hs-narrow{width:min(760px,calc(100% - 32px));margin-left:auto;margin-right:auto}.hs-hero{padding:3.5rem 0 5rem;text-align:center}.hs-hero-copy{width:min(900px,100%);margin:auto}.hs-eyebrow{margin:0;color:#c756f7;font-size:.73rem;font-weight:800;letter-spacing:.25em}.hs-center{text-align:center}.hs-hero h1{max-width:920px;margin:1.5rem auto;font-family:Georgia,serif;font-size:clamp(2.65rem,6vw,5.25rem);line-height:1.04;letter-spacing:-.045em}.hs-hero h1 em{font-style:normal;background:linear-gradient(135deg,#e39aff,#9d39dd);-webkit-background-clip:text;background-clip:text;color:transparent}.hs-lede{max-width:680px;margin:0 auto;color:#f2eaf4;font-size:1.18rem;line-height:1.5}.hs-video{position:relative;width:100%;overflow:hidden;border:1px solid #452753;border-radius:1rem;background:#000;box-shadow:0 20px 60px #0008}.hs-video video{display:block;width:100%;height:100%;background:#000;object-fit:cover}.hs-hero-video{width:min(280px,100%);aspect-ratio:9/16;margin:2.5rem auto 0}.hs-video-play{position:absolute;inset:50% auto auto 50%;z-index:2;width:4.6rem;height:4.6rem;padding:0;transform:translate(-50%,-50%);border:1px solid #f7ddff99;border-radius:50%;background:linear-gradient(135deg,#ca4cff,#7922b6);color:#fff;font-size:1.55rem;line-height:1;cursor:pointer;box-shadow:0 0 32px #b338f288}.hs-video-play:hover{transform:translate(-50%,-50%) scale(1.06)}.hs-video-play[hidden]{display:none}.hs-button-row,.hs-centered-cta{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2.1rem}.hs-centered-cta{justify-content:center}.hs-left-cta{justify-content:flex-start}.hs-button{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;max-width:100%;padding:1rem 1.45rem;border-radius:999px;font-weight:800;font-size:.88rem;text-align:center}.hs-button-primary{background:linear-gradient(135deg,#ca4cff,#7922b6);box-shadow:0 0 25px #b338f266}.hs-button-secondary{border:1px solid #70417e;background:#100a14}.hs-mobile-label{display:none}.hs-section{padding:7rem 0}.hs-band{background:linear-gradient(180deg,rgba(17,7,26,.4),rgba(10,4,15,.75),rgba(17,7,26,.4));border-top:1px solid #24112d;border-bottom:1px solid #24112d}.hs-copy h2,.hs-section h2,.hs-final-cta h2{margin:1rem 0 1.2rem;font-family:Georgia,serif;font-size:clamp(2.8rem,5.5vw,4.7rem);line-height:1.02;letter-spacing:-.055em}.hs-copy h2 em,.hs-section h2 em,.hs-final-cta h2 em{font-style:italic;color:#e5a9ff}.hs-copy p{color:var(--muted);font-size:1.14rem;line-height:1.7}.hs-copy p:first-of-type{margin-top:0}.hs-copy strong{color:var(--ink)}.hs-video-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-top:3rem}.hs-video-card{min-width:0}.hs-results-grid .hs-video{aspect-ratio:9/16;border-radius:.9rem}.hs-results-grid .hs-video video{object-fit:cover}.hs-photo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-top:3rem}.hs-photo-grid figure{min-width:0;margin:0;overflow:hidden;border:1px solid #452753;border-radius:1rem;background:#000;box-shadow:0 18px 40px #0008}.hs-photo-grid img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}.hs-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:4.5rem}.hs-portrait{width:min(360px,100%);aspect-ratio:9/16;justify-self:center}.hs-split-reverse .hs-portrait{order:1}.hs-split-reverse .hs-copy{order:2}.hs-stylist{background:linear-gradient(135deg,#160a20,#08030c)}.hs-stylist-card{display:flex;align-items:center;justify-content:center;width:min(360px,100%);min-height:300px;margin:0 auto;border:1px solid #51305f;border-radius:1.2rem;background:linear-gradient(135deg,#1b0c24,#0c0710);box-shadow:0 24px 70px #0008}.hs-stylist-card img{width:min(70%,280px);max-height:220px;object-fit:contain}.hs-final-cta{padding:8rem 5vw;background:radial-gradient(circle at 50% 0,#471066 0,transparent 43rem),#100619;text-align:center}.hs-final-cta p:not(.hs-eyebrow){max-width:45rem;margin:0 auto 1.35rem;color:var(--muted);font-size:1.16rem;line-height:1.65}.hs-footer{display:flex;justify-content:space-between;align-items:center;gap:1.5rem;padding:1.6rem 5vw;border-top:1px solid var(--line);color:#b8a8be;font-size:.82rem}.hs-footer p{margin:0}.hs-footer .hs-brand small{color:#bd78d5}.hs-footer>a:last-child{color:#dd98f3}@media (max-width:850px){.hs-header{align-items:center}.hs-header nav{display:none}.hs-mobile-cta{display:inline-flex}.hs-hero{padding-top:3rem}.hs-video-grid,.hs-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hs-split{grid-template-columns:minmax(0,1fr);gap:2.5rem}.hs-split-reverse .hs-portrait,.hs-split-reverse .hs-copy{order:initial}.hs-left-cta{justify-content:center}}@media (max-width:520px){.hs-header{padding:.75rem 1rem}.hs-brand{min-width:0}.hs-brand img{width:2.6rem;height:2.6rem}.hs-brand strong{font-size:.7rem;letter-spacing:.06em}.hs-brand small{font-size:.62rem}.hs-mobile-cta{padding:.62rem .75rem;font-size:.62rem}.hs-shell{width:calc(100% - 32px)}.hs-hero h1{font-size:2.7rem}.hs-lede{font-size:1rem}.hs-button{width:100%;font-size:.82rem}.hs-mobile-label{display:inline}.hs-desktop-label{display:none}.hs-section{padding:5rem 0}.hs-copy h2,.hs-section h2,.hs-final-cta h2{font-size:3rem}.hs-video-grid,.hs-photo-grid{display:flex;width:100%;max-width:100%;margin-top:2rem;overflow-x:auto;gap:1rem;padding:0 0 .75rem;scroll-snap-type:x mandatory;scrollbar-width:none}.hs-video-grid::-webkit-scrollbar,.hs-photo-grid::-webkit-scrollbar{display:none}.hs-video-card,.hs-photo-grid figure{flex:0 0 min(82vw,360px);scroll-snap-align:start}.hs-photo-grid figure{min-width:0}.hs-footer{flex-direction:column;text-align:center}.hs-footer .hs-brand{justify-content:center}.hs-final-cta{padding:6rem 1rem}}
+.hs-modal-open{overflow:hidden}.hs-booking-modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:1rem}.hs-booking-modal[hidden]{display:none}.hs-booking-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(0,0,0,.78);cursor:pointer}.hs-booking-dialog{position:relative;z-index:1;width:min(560px,100%);max-height:min(90vh,760px);overflow:auto;padding:2rem;border:1px solid #70417e;border-radius:1.25rem;background:linear-gradient(145deg,#1b0c24,#0b0610);box-shadow:0 30px 90px #000c}.hs-booking-close{position:absolute;top:.65rem;right:.8rem;border:0;background:none;color:#fff;font-size:2rem;line-height:1;cursor:pointer}.hs-form-header{padding-right:2rem}.hs-form-header h2{margin:0 0 .5rem;font-family:Georgia,serif;font-size:clamp(2rem,5vw,3rem);line-height:1.05}.hs-form-header p{margin:0 0 1.4rem;color:var(--muted)}.hs-consultation-form label{display:grid;gap:.4rem;margin-top:1rem;color:#f0e8f4;font-size:.85rem;font-weight:700}.hs-consultation-form input,.hs-consultation-form select,.hs-consultation-form textarea{width:100%;border:1px solid #573367;border-radius:.55rem;background:#0b0610;color:var(--ink);padding:.75rem;font:inherit}.hs-consultation-form textarea{resize:vertical}.hs-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.hs-form-grid label{margin-top:0}.hs-form-submit{width:100%;margin-top:1.35rem;border:0;cursor:pointer}.hs-form-call,.hs-form-status{margin:.85rem 0 0;color:var(--muted);text-align:center;font-size:.86rem}.hs-form-call a{color:#e5a9ff;text-decoration:underline}.hs-form-status{min-height:1.3em;color:#e5a9ff}@media (max-width:520px){.hs-booking-dialog{padding:1.5rem 1rem}.hs-form-grid{grid-template-columns:1fr}.hs-form-grid label{margin-top:1rem}}
+.hs-wide,.hs-narrow{max-width:680px}@media (max-width:850px){.hs-wide,.hs-narrow,.hs-hero-copy{width:min(680px,calc(100% - 64px))}.hs-copy p{max-width:100%}}@media (max-width:520px){.hs-wide,.hs-narrow,.hs-hero-copy{width:calc(100% - 64px)}.hs-copy p{font-size:1.02rem}.hs-copy h2,.hs-section h2,.hs-final-cta h2{font-size:2.65rem}}
+.hs-wide,.hs-narrow{max-width:680px}@media (max-width:900px){.hs-header nav{display:none}.hs-mobile-cta{display:inline-flex}.hs-hero{padding-top:3rem}.hs-video-grid,.hs-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hs-split{grid-template-columns:minmax(0,1fr);gap:2.5rem}.hs-split-reverse .hs-portrait,.hs-split-reverse .hs-copy{order:initial}.hs-left-cta{justify-content:center}.hs-wide,.hs-narrow,.hs-hero-copy{width:min(640px,calc(100% - 96px))}}@media (max-width:520px){.hs-wide,.hs-narrow,.hs-hero-copy{width:calc(100% - 88px)}}
+.hs-story p{margin:0 0 1.35rem}.hs-story p:last-child{margin-bottom:0}@media (max-width:520px){.hs-story p{margin-bottom:1.15rem}}
+.hs-swim-section .hs-copy{order:1}.hs-swim-section .hs-portrait{order:2}@media (min-width:901px){.hs-swim-section .hs-copy{order:2}.hs-swim-section .hs-portrait{order:1}}
+.hs-hair-faq{background:#09030e}
+.hs-hair-faq h2{margin:1rem 0 2rem;font-family:'Roboto Slab',Rockwell,Georgia,serif;font-size:clamp(2.5rem,5vw,4.4rem);font-weight:800;line-height:1.04;letter-spacing:-.025em}
+.hs-faq-intro{margin:0 0 1.75rem;color:#d0c6d8;font-family:'Roboto Slab',Rockwell,Georgia,serif;font-size:1.08rem;line-height:1.7}
+.hs-hair-faq details{border-top:1px solid #48215f;padding:1.25rem 0}
+.hs-hair-faq details:last-of-type{border-bottom:1px solid #48215f}
+.hs-hair-faq summary{cursor:pointer;color:#fff;font-family:'Roboto Slab',Rockwell,Georgia,serif;font-size:1.2rem;font-weight:700;line-height:1.4;list-style-position:inside}
+.hs-hair-faq details p{margin:1rem 0 0;color:#d0c6d8;font-family:'Roboto Slab',Rockwell,Georgia,serif;font-size:1.05rem;line-height:1.7}
+.hs-hair-faq>.hs-narrow>.hs-button{margin-top:2rem}
+.hs-results-grid .hs-video-card{flex-basis:min(58vw,220px)}
+.hs-results-heading,.hs-compact-heading{font-size:35px!important}.hs-swim-heading{font-size:28px!important}
+@media (max-width:900px){.hs-swim-section .hs-portrait{width:min(62vw,260px)}}
+@media (max-width:900px){.hs-hero h1{font-size:35px!important}}
+@media (max-width:900px){.hs-section h2,.hs-final-cta h2{font-size:35px!important}}
+@media (max-width:520px){.hs-mobile-cta{padding:.68rem .85rem;font-size:.72rem}.hs-button{font-size:.88rem}}
+/* Slightly larger consultation CTAs for easier scanning and tapping. */
+.hs-button{padding:1.1rem 1.65rem;font-size:.95rem}
+@media (max-width:520px){.hs-button{padding:1.05rem 1rem;font-size:.92rem}}
+.hs-centered-cta{flex-direction:column;align-items:center;gap:.55rem}.hs-cta-note{max-width:34rem;margin:0;color:#bfaec8;font-size:.8rem;line-height:1.45;text-align:center}.hs-left-cta{align-items:flex-start}.hs-left-cta .hs-cta-note{text-align:left}
+@media (max-width:900px){.hs-left-cta{align-items:center}.hs-left-cta .hs-cta-note{text-align:center}}
+/* Keep the desktop layout and heading scale at the original size. */
+@media (min-width:901px){.hs-results-heading,.hs-compact-heading,.hs-swim-heading{font-size:43px!important}.hs-wide{max-width:1120px}.hs-narrow{max-width:760px}}
+@media (min-width:901px){.hs-hero h1{font-size:42px!important}}
+@media (min-width:901px){.hs-why-heading{font-size:42px!important}}
+@media (min-width:901px){.hs-waiting-heading{font-size:45px!important}}
+@media (min-width:901px){.hs-how-it-works-section .hs-copy{transform:translateX(1.5rem)}}
+ .hs-form-header h2{font-size:25px!important}
+ .hs-form-header h2,.hs-form-submit{color:#fff}
+@media (max-width:520px){.hs-booking-modal{padding:.75rem}.hs-booking-dialog{width:calc(100% - 1rem);max-height:84vh;padding:1.25rem .9rem}.hs-form-header p{margin-bottom:1rem}.hs-consultation-form label{margin-top:.75rem}.hs-form-submit{margin-top:1rem}}
+@media (max-width:520px){.hs-hero{padding-bottom:1.25rem}}
+@media (max-width:520px){.hs-story-section{padding-top:1.875rem}}
+@media (max-width:520px){.hs-section{padding-top:3.75rem}}
+@media (max-width:520px){.hs-story-section{padding-top:1.875rem}.hs-duration-section{padding-top:4.0625rem}}
+@media (max-width:520px){.hs-how-it-works-section{padding-top:2.5rem}}
+@media (max-width:520px){.hs-why-section{padding-bottom:2.5rem}.hs-real-transformations-section{padding-top:2.5rem}}
+.hs-stylist-card img{width:min(90%,320px);max-height:280px;object-fit:contain}
+.hs-mobile-home{display:none;font-family:Georgia,serif;font-size:.76rem;font-weight:700;letter-spacing:.12em;color:#f2eaf4}
+@media (max-width:900px){.hs-mobile-home{display:inline-flex}}
+.hs-success-kicker{margin:0 0 .5rem;color:#c756f7;font-size:.85rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.hs-success-title{margin:0 0 1.2rem;font-family:Georgia,serif;font-size:clamp(2.2rem,5vw,4rem);line-height:1.05;letter-spacing:-.04em}
+.hs-concern-options{margin:1rem 0 0;padding:0;border:0}.hs-concern-options legend{margin-bottom:.55rem;color:#f0e8f4;font-size:.85rem;font-weight:700}.hs-concern-options label{display:flex;align-items:center;gap:.65rem;margin-top:.55rem;color:#f0e8f4;font-size:.9rem;font-weight:400}.hs-concern-options input{width:1rem;height:1rem;accent-color:#bf43f3}
+@media (max-width:520px){.hs-results-heading span{display:block}}
+@media (max-width:520px){.hs-swim-section{padding-bottom:4.375rem}.hs-duration-section{padding-top:4.0625rem}}
+@media (max-width:520px){.hs-why-section{padding-bottom:3.75rem}}
+@media (max-width:520px){.hs-real-transformations-section{padding-top:3.75rem;padding-bottom:3.75rem}}
+@media (max-width:520px){.hs-how-it-works-section{padding-bottom:3.75rem}}
+@media (min-width:901px){.hs-hero{padding-bottom:0}.hs-story-section{padding-top:2.5rem}}
+/* Stay Faded duplicate overrides: the original Glam Rock hair-systems page remains untouched. */
+:root{--violet:#AA3AFF;--bg:#050208;--panel:#100713;--line:#3d1b58}
+body.hair-systems-page{background:#050208;color:#fbf7ff}
+.hs-header{background:rgba(5,2,8,.94);border-bottom-color:#3d1b58}
+.hs-header nav a:hover{color:#AA3AFF}
+.hs-nav-cta,.hs-mobile-cta{border-color:#AA3AFF;background:linear-gradient(135deg,#AA3AFF,#57108e);box-shadow:0 0 25px rgba(170,58,255,.35)}
+.hs-hero{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(90deg,rgba(5,2,8,.96) 0%,rgba(5,2,8,.78) 42%,rgba(5,2,8,.38) 100%),url("https://stayfadedbarbershop5280.com/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
+.hs-hero::before{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(5,2,8,.28),rgba(5,2,8,.68));content:""}
+.hs-hero-copy{position:relative;z-index:1}
+.hs-eyebrow{color:#AA3AFF}
+.hs-hero h1 em{background:linear-gradient(135deg,#f0c8ff,#AA3AFF);-webkit-background-clip:text;background-clip:text}
+.hs-button-primary{background:linear-gradient(135deg,#AA3AFF,#57108e);box-shadow:0 0 25px rgba(170,58,255,.35)}
+.hs-story-section{background:linear-gradient(90deg,rgba(5,2,8,.98) 0%,rgba(5,2,8,.9) 44%,rgba(5,2,8,.5) 100%),url("https://stayfadedbarbershop5280.com/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
+.hs-story-section .hs-copy{position:relative;z-index:1}
+.hs-stylist{background:linear-gradient(135deg,#180821,#050208)}
+.hs-stylist-card{overflow:hidden;min-height:420px;background:#09040d}
+.hs-stylist-card img{width:100%;height:100%;max-height:none;object-fit:cover}
+.hs-footer{background:#050208;border-top-color:#3d1b58}
+.hs-footer a{color:#d18cff}
+.hs-booking-dialog{border-color:#AA3AFF}
+.hs-concern-options input{accent-color:#AA3AFF}
+/* Logo-inspired hybrid: brush graffiti accent, condensed display type, readable body copy. */
+body.hair-systems-page{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
+.hs-brand strong,.hs-header nav,.hs-mobile-cta,.hs-eyebrow,.hs-button,.hs-cta-note,.hs-footer,.hs-success-kicker{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;letter-spacing:.12em}
+.hs-brand strong{font-size:1rem;line-height:1.05;letter-spacing:.08em}
+.hs-brand-graffiti{font-family:'Permanent Marker','Brush Script MT',cursive;font-size:1.08em;letter-spacing:.02em;color:#fff;text-shadow:1px 1px 0 #6d1fa8,-1px 0 #AA3AFF}
+.hs-brand-shop{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:.9em;letter-spacing:.16em;color:#d9b4ff}
+.hs-brand small{font-family:Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.02em}
+.hs-header nav{font-size:.9rem;letter-spacing:.16em}
+.hs-hero h1,.hs-copy h2,.hs-section h2,.hs-final-cta h2,.hs-form-header h2,.hs-success-title{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-weight:400;letter-spacing:.015em;text-transform:uppercase}
+.hs-hero h1{line-height:1.04}
+.hs-copy h2 em,.hs-section h2 em,.hs-final-cta h2 em{font-family:'Permanent Marker','Brush Script MT',cursive;font-style:normal;letter-spacing:.01em}
+.hs-copy p,.hs-lede,.hs-final-cta p:not(.hs-eyebrow){font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.hs-button{font-size:1rem;letter-spacing:.1em}
+.hs-eyebrow{font-size:.86rem;letter-spacing:.22em}
+/* Stay Faded brand typography: condensed, bold, and closer to the logo's barber-shop lettering. */
+body.hair-systems-page{font-family:'Roboto Slab',Rockwell,'Courier New',serif;letter-spacing:.005em}
+.hs-brand strong,.hs-brand small,.hs-header nav,.hs-mobile-cta,.hs-eyebrow,.hs-button,.hs-cta-note,.hs-footer,.hs-success-kicker{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;letter-spacing:.12em}
+.hs-brand strong{font-size:1.02rem;letter-spacing:.13em}
+.hs-brand small{font-size:.78rem;letter-spacing:.08em}
+.hs-header nav{font-size:.9rem;letter-spacing:.16em}
+.hs-hero h1,.hs-copy h2,.hs-section h2,.hs-final-cta h2,.hs-form-header h2,.hs-success-title{font-family:'Roboto Slab',Rockwell,Georgia,serif;font-weight:800;letter-spacing:-.025em}
+.hs-hero h1{line-height:1.08}
+.hs-copy p,.hs-lede,.hs-final-cta p:not(.hs-eyebrow){font-family:'Roboto Slab',Rockwell,Georgia,serif}
+.hs-button{font-size:1rem;letter-spacing:.1em}
+.hs-eyebrow{font-size:.86rem;letter-spacing:.22em}
+/* Final brand-font pass: keep the graffiti accent limited so the page stays easy to read. */
+body.hair-systems-page{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
+.hs-brand strong,.hs-header nav,.hs-mobile-cta,.hs-eyebrow,.hs-button,.hs-cta-note,.hs-footer,.hs-success-kicker{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;letter-spacing:.12em}
+.hs-brand strong{font-size:1rem;line-height:1.05;letter-spacing:.08em}
+.hs-brand-graffiti{font-family:'Permanent Marker','Brush Script MT',cursive;font-size:1.08em;letter-spacing:.02em;color:#fff;text-shadow:1px 1px 0 #6d1fa8,-1px 0 #AA3AFF}
+.hs-brand-shop{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:.9em;letter-spacing:.16em;color:#d9b4ff}
+.hs-brand small{font-family:Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.02em}
+.hs-header nav{font-size:.9rem;letter-spacing:.16em}
+.hs-hero h1,.hs-copy h2,.hs-section h2,.hs-final-cta h2,.hs-form-header h2,.hs-success-title{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-weight:400;letter-spacing:.015em;text-transform:uppercase}
+.hs-hero h1{line-height:1.04}
+.hs-copy h2 em,.hs-section h2 em,.hs-final-cta h2 em{font-family:'Permanent Marker','Brush Script MT',cursive;font-style:normal;letter-spacing:.01em}
+.hs-copy p,.hs-lede,.hs-final-cta p:not(.hs-eyebrow){font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.hs-button{font-size:1rem;letter-spacing:.1em}
+.hs-eyebrow{font-size:.86rem;letter-spacing:.22em}
