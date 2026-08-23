@@ -369,7 +369,7 @@ export function setSelected(doc: Document, key: string | null) {
     // Outline the whole repeatable card so its actions are obviously available.
     const item = el.closest(`[${ITEM_ATTR}]`);
     if (item) item.setAttribute(ITEM_ACTIVE_ATTR, 'true');
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
   }
 }
 
