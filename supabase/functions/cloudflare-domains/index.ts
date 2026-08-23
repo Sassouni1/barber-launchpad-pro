@@ -65,7 +65,7 @@ async function checkDomains(domains: string[], accountId: string, token: string)
     ? result
     : [];
 
-  const results: CheckResult[] = rows.map((row: Record<string, any>) => {
+  const results: CheckResult[] = rows.map((row: Record<string, unknown>) => {
     const pricing = row?.pricing ?? {};
     const registrable = row?.registrable === true;
     const premium = row?.tier === "premium";
