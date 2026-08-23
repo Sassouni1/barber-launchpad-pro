@@ -113,17 +113,45 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: authError }, 401);
 
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
-    const homeHtml = typeof body.homeHtml === "string" ? body.homeHtml : "";
-    const hairSystemHtml = typeof body.hairSystemHtml === "string" ? body.hairSystemHtml : "";
 
-    if (!homeHtml.trim() || !hairSystemHtml.trim()) {
-      return json({ error: "Both homeHtml and hairSystemHtml are required" }, 400);
+    // One shared contract: an array of configured pages rendered by the editor.
+    const rawPages = Array.isArray(body.pages) ? body.pages : [];
+    const pages = rawPages
+      .map((p) => p as Record<string, unknown>)
+      .filter((p) => typeof p?.path === "string" && typeof p?.html === "string")
+      .map((p) => ({
+        key: typeof p.key === "string" ? p.key : String(p.path),
+        path: String(p.path),
+        html: String(p.html),
+      }));
+
+    if (pages.length === 0) {
+      return json({ error: "At least one rendered page is required to publish" }, 400);
     }
-    if (homeHtml.length > MAX_HTML_BYTES || hairSystemHtml.length > MAX_HTML_BYTES) {
+    if (pages.length > 25) {
+      return json({ error: "Too many pages in one publish request" }, 400);
+    }
+    if (pages.some((p) => !p.html.trim())) {
+      return json({ error: "A rendered page was empty" }, 400);
+    }
+    if (pages.some((p) => p.html.length > MAX_HTML_BYTES)) {
       return json({ error: "Page document is too large to publish" }, 413);
     }
 
     const supabase = serviceClient();
+
+    // Template and target domain come from server-side configuration only —
+    // never from the request body.
+    const { data: entitlement } = await supabase
+      .from("website_editor_entitlements")
+      .select("template_key, custom_domain")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!entitlement) {
+      return json({ error: "Your account is not set up for website publishing" }, 403);
+    }
+
 
     const { data: existing, error: loadError } = await supabase
       .from("member_websites")
@@ -156,7 +184,9 @@ Deno.serve(async (req) => {
     }
 
     const previewUrl = `${previewBase()}/${slug}`;
-    const customDomain = (existing?.custom_domain as string | null) ?? null;
+    // The configured domain is adopted the first time the member publishes.
+    const customDomain = (entitlement.custom_domain as string | null) ??
+      (existing?.custom_domain as string | null) ?? null;
 
     let attachment: AttachOutcome = {
       status: (existing?.cloudflare_attachment_status as AttachOutcome["status"]) ?? "none",
@@ -171,13 +201,17 @@ Deno.serve(async (req) => {
     const deploymentStatus = customDomain && !domainActive ? "domain_pending" : "published";
     const liveUrl = domainActive ? `https://${customDomain}` : previewUrl;
 
+    const publishedPages: Record<string, string> = {};
+    for (const p of pages) {
+      publishedPages[p.path.startsWith("/") ? p.path : `/${p.path}`] = p.html;
+    }
+
     const payload = {
       user_id: user.id,
       site_slug: slug,
-      home_html: homeHtml,
-      hair_system_html: hairSystemHtml,
-      home_document: body.homeDocument ?? existing?.home_document ?? {},
-      hair_system_document: body.hairSystemDocument ?? existing?.hair_system_document ?? {},
+      template_key: entitlement.template_key,
+      custom_domain: customDomain,
+      published_pages: publishedPages,
       deployment_status: deploymentStatus,
       published_at: new Date().toISOString(),
       live_url: liveUrl,

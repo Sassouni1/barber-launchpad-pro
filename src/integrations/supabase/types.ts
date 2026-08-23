@@ -1740,7 +1740,9 @@ export type Database = {
           id: string
           live_url: string | null
           published_at: string | null
+          published_pages: Json
           site_slug: string
+          template_key: string | null
           updated_at: string
           user_id: string
         }
@@ -1760,7 +1762,9 @@ export type Database = {
           id?: string
           live_url?: string | null
           published_at?: string | null
+          published_pages?: Json
           site_slug: string
+          template_key?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1780,7 +1784,9 @@ export type Database = {
           id?: string
           live_url?: string | null
           published_at?: string | null
+          published_pages?: Json
           site_slug?: string
+          template_key?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -3343,18 +3349,21 @@ export type Database = {
       website_editor_entitlements: {
         Row: {
           created_at: string
+          custom_domain: string | null
           template_key: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          custom_domain?: string | null
           template_key: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          custom_domain?: string | null
           template_key?: string
           updated_at?: string
           user_id?: string
@@ -3369,6 +3378,36 @@ export type Database = {
           },
         ]
       }
+      website_templates: {
+        Row: {
+          asset_origin: string | null
+          created_at: string
+          display_name: string
+          field_rules: Json
+          pages: Json
+          template_key: string
+          updated_at: string
+        }
+        Insert: {
+          asset_origin?: string | null
+          created_at?: string
+          display_name: string
+          field_rules?: Json
+          pages?: Json
+          template_key: string
+          updated_at?: string
+        }
+        Update: {
+          asset_origin?: string | null
+          created_at?: string
+          display_name?: string
+          field_rules?: Json
+          pages?: Json
+          template_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       published_sites: {
@@ -3377,21 +3416,27 @@ export type Database = {
           hair_system_html: string | null
           home_html: string | null
           published_at: string | null
+          published_pages: Json | null
           site_slug: string | null
+          template_key: string | null
         }
         Insert: {
           custom_domain?: string | null
           hair_system_html?: string | null
           home_html?: string | null
           published_at?: string | null
+          published_pages?: Json | null
           site_slug?: string | null
+          template_key?: string | null
         }
         Update: {
           custom_domain?: string | null
           hair_system_html?: string | null
           home_html?: string | null
           published_at?: string | null
+          published_pages?: Json | null
           site_slug?: string | null
+          template_key?: string | null
         }
         Relationships: []
       }

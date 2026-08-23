@@ -51,7 +51,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
-import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditorEntitlement';
+import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
 import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
