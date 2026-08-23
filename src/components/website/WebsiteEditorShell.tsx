@@ -165,9 +165,19 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
       'click',
       (event) => {
         const node = event.target as HTMLElement | null;
-        const target = node?.closest('[data-we-editable]') as HTMLElement | null;
         // Keep the preview static while editing.
         event.preventDefault();
+
+        // Editor-only floating duplicate control on a repeatable card.
+        const overlay = node?.closest(`[${OVERLAY_ATTR}]`) as HTMLElement | null;
+        if (overlay) {
+          event.stopPropagation();
+          const item = overlay.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
+          if (item) runItemOpRef.current('duplicate', item);
+          return;
+        }
+
+        const target = node?.closest('[data-we-editable]') as HTMLElement | null;
         // Clicking anywhere inside a repeatable card selects that card.
         const fallbackItem = !target ? (node?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null) : null;
         const resolved =
@@ -182,6 +192,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     );
 
   };
+
 
   // Re-scan when the page tab changes.
   useEffect(() => {
