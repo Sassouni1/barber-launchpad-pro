@@ -5,6 +5,7 @@ import {
   renderTemplatePage,
   type EditorDraft,
   type FieldRule,
+  type RepeatRule,
   type TemplatePage,
   type WebsiteTemplateConfig,
 } from '@/lib/websiteEditor';
@@ -48,7 +49,7 @@ export function useWebsiteTemplate(templateKey: string | null | undefined) {
     queryFn: async (): Promise<WebsiteTemplateConfig | null> => {
       const { data, error } = await supabase
         .from('website_templates')
-        .select('template_key, display_name, asset_origin, pages, field_rules')
+        .select('template_key, display_name, asset_origin, pages, field_rules, repeat_rules')
         .eq('template_key', templateKey!)
         .maybeSingle();
       if (error) throw error;
@@ -59,6 +60,7 @@ export function useWebsiteTemplate(templateKey: string | null | undefined) {
         assetOrigin: data.asset_origin ?? null,
         pages: (data.pages as unknown as TemplatePage[]) ?? [],
         fieldRules: (data.field_rules as unknown as Record<string, FieldRule>) ?? {},
+        repeatRules: ((data as { repeat_rules?: unknown }).repeat_rules as RepeatRule[] | null) ?? [],
       };
     },
   });
