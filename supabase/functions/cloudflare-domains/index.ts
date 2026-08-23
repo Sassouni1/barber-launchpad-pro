@@ -91,11 +91,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { user, error: authError } = await requireUser(req);
-    if (!user) return json({ error: authError }, 401);
-
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const action = typeof body.action === "string" ? body.action : "";
+
+    // The worker deploy action may also be authorised by the server-only deploy secret.
+    const deploySecret = Deno.env.get("SITE_WORKER_DEPLOY_SECRET") ?? "";
+    const secretOk = action === "deploy-site-worker" && Boolean(deploySecret) &&
+      (req.headers.get("x-deploy-secret") ?? "") === deploySecret;
+
+    const { user, error: authError } = await requireUser(req);
+    if (!user && !secretOk) return json({ error: authError }, 401);
+
 
     const config = cloudflareConfig();
     if (!config) {
