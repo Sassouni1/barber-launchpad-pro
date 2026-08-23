@@ -377,12 +377,19 @@ export async function renderTemplatePage(
   });
 
   const doc = new DOMParser().parseFromString(html, 'text/html');
+  // Structure first (duplicated / reordered cards), then the member's content.
+  applyLayout(doc, template.repeatRules ?? [], readLayout(draft));
   applyDraft(doc, draft);
 
   // Editor-only markup never ships.
   doc.querySelectorAll('[data-we-editable]').forEach((el) => el.removeAttribute('data-we-editable'));
   doc.querySelectorAll('[data-we-selected]').forEach((el) => el.removeAttribute('data-we-selected'));
+  doc.querySelectorAll(`[${ITEM_ATTR}]`).forEach((el) => {
+    el.removeAttribute(ITEM_ATTR);
+    el.removeAttribute(ITEM_POS_ATTR);
+  });
   doc.getElementById(EDITOR_STYLE_ID)?.remove();
+
   doc.querySelectorAll('meta[name="robots"]').forEach((el) => el.remove());
 
   if (page.stylesheet) {
