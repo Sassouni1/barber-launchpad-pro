@@ -189,9 +189,23 @@ Deno.serve(async (req) => {
       workerDomainId: (existing?.cloudflare_worker_domain_id as string | null) ?? null,
       error: null,
     };
+    let workerSync: WorkerSyncResult | null = null;
     if (customDomain) {
-      attachment = await attachCustomDomain(customDomain);
+      // Never point a live domain at a stale Worker: sync the canonical Worker
+      // source first, and only attach the domain if that succeeded.
+      const cf = cloudflareConfig();
+      if (!cf) {
+        attachment = { status: "unavailable", workerDomainId: null, error: "Cloudflare credentials are not configured" };
+      } else {
+        workerSync = await deploySiteWorker(cf.accountId, cf.token);
+        if (!workerSync.ok) {
+          attachment = { status: "failed", workerDomainId: null, error: `Site host update failed: ${workerSync.error}` };
+        } else {
+          attachment = await attachCustomDomain(customDomain);
+        }
+      }
     }
+
 
     const domainActive = Boolean(customDomain) && attachment.status === "active";
     const deploymentStatus = customDomain && !domainActive ? "domain_pending" : "published";
