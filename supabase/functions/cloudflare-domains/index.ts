@@ -132,6 +132,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "register") {
+      if (!user) return json({ error: "Invalid or expired session" }, 401);
+
       const domain = typeof body.domain === "string" ? body.domain.trim().toLowerCase() : "";
       const confirmedDomain = typeof body.confirmedDomain === "string"
         ? body.confirmedDomain.trim().toLowerCase()
