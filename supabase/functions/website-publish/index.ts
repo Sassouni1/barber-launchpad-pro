@@ -247,7 +247,9 @@ Deno.serve(async (req) => {
       deploymentStatus,
       customDomainStatus: customDomain ? (domainActive ? "active" : "pending") : "none",
       customDomainError: attachment.error,
+      siteHostVersion: workerSync?.ok ? workerSync.version : null,
       publishedAt: saved.published_at,
+
     });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Unexpected error" }, 500);
