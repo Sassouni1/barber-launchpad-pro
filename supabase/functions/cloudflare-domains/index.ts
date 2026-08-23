@@ -213,15 +213,14 @@ Deno.serve(async (req) => {
     // Push the canonical member-sites Worker source in this repo to Cloudflare.
     // Authorised by an admin session, or by the server-only SITE_WORKER_DEPLOY_SECRET.
     if (action === "deploy-site-worker") {
-      const deploySecret = Deno.env.get("SITE_WORKER_DEPLOY_SECRET") ?? "";
-      const provided = req.headers.get("x-deploy-secret") ?? "";
-      let allowed = Boolean(deploySecret) && provided === deploySecret;
-      if (!allowed) {
+      let allowed = secretOk;
+      if (!allowed && user) {
         const svc = serviceClient();
         const { data: isAdmin } = await svc.rpc("has_role", { _user_id: user.id, _role: "admin" });
         allowed = isAdmin === true;
       }
       if (!allowed) return json({ error: "Admins only" }, 403);
+
 
       const result = await deploySiteWorker(config.accountId, config.token);
       if (!result.ok) return json({ error: result.error }, 502);
