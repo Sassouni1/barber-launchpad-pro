@@ -1723,6 +1723,83 @@ export type Database = {
         }
         Relationships: []
       }
+      member_onboarding_profiles: {
+        Row: {
+          booking_method: string | null
+          booking_platform: string | null
+          business_name: string | null
+          business_types: string[]
+          completed_at: string | null
+          created_at: string
+          custom_services: string[]
+          guidance_requested: boolean
+          hours_text: string | null
+          instagram_handle: string | null
+          instagram_status: string | null
+          logo_help_requested: boolean
+          logo_url: string | null
+          name_brainstorm_notes: string | null
+          name_brainstorm_result: string | null
+          name_help_requested: boolean
+          photo_url: string | null
+          services: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_method?: string | null
+          booking_platform?: string | null
+          business_name?: string | null
+          business_types?: string[]
+          completed_at?: string | null
+          created_at?: string
+          custom_services?: string[]
+          guidance_requested?: boolean
+          hours_text?: string | null
+          instagram_handle?: string | null
+          instagram_status?: string | null
+          logo_help_requested?: boolean
+          logo_url?: string | null
+          name_brainstorm_notes?: string | null
+          name_brainstorm_result?: string | null
+          name_help_requested?: boolean
+          photo_url?: string | null
+          services?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_method?: string | null
+          booking_platform?: string | null
+          business_name?: string | null
+          business_types?: string[]
+          completed_at?: string | null
+          created_at?: string
+          custom_services?: string[]
+          guidance_requested?: boolean
+          hours_text?: string | null
+          instagram_handle?: string | null
+          instagram_status?: string | null
+          logo_help_requested?: boolean
+          logo_url?: string | null
+          name_brainstorm_notes?: string | null
+          name_brainstorm_result?: string | null
+          name_help_requested?: boolean
+          photo_url?: string | null
+          services?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_onboarding_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_websites: {
         Row: {
           cloudflare_attachment_status: string
