@@ -1,5 +1,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireUser, serviceClient, slugify } from "../_shared/websiteAuth.ts";
+import { SITE_WORKER_SOURCE, SITE_WORKER_VERSION } from "./siteWorker.ts";
+
 
 const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z]{2,24})+$/;
 
