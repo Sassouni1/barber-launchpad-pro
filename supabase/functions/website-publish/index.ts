@@ -1,5 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireUser, serviceClient, slugify } from "../_shared/websiteAuth.ts";
+import { deploySiteWorker, type WorkerSyncResult } from "../_shared/siteWorker.ts";
 
 const MAX_HTML_BYTES = 1_500_000;
 
