@@ -401,6 +401,8 @@ export async function renderTemplatePage(
     el.removeAttribute(ITEM_ATTR);
     el.removeAttribute(ITEM_POS_ATTR);
   });
+  doc.querySelectorAll(`[${ITEM_ACTIVE_ATTR}]`).forEach((el) => el.removeAttribute(ITEM_ACTIVE_ATTR));
+
   doc.getElementById(EDITOR_STYLE_ID)?.remove();
 
   doc.querySelectorAll('meta[name="robots"]').forEach((el) => el.remove());
