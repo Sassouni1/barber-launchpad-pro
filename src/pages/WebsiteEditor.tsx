@@ -26,6 +26,8 @@ import {
   useSaveWebsiteDraft,
   type WebsitePageDocument,
 } from '@/hooks/useMemberWebsite';
+import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditorEntitlement';
+import StayFadedEditor from '@/pages/StayFadedEditor';
 
 function PageForm({
   value,
@@ -126,7 +128,48 @@ type DomainCheck = {
 const money = (currency: string, amount: number) =>
   `${currency} ${amount.toFixed(2)}`;
 
-export default function WebsiteEditor() {
+/**
+ * Route gate: only members holding an explicit website_editor_entitlement can
+ * reach an editor. Nikkole's 'stay-faded' entitlement loads her private editor.
+ * The generic template editor stays available for local development only.
+ */
+export default function WebsiteEditorRoute() {
+  const { data: template, isLoading } = useWebsiteEditorEntitlement();
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (template === 'stay-faded') return <StayFadedEditor />;
+  if (!template && !import.meta.env.DEV) {
+    return (
+      <DashboardLayout>
+        <div className="mx-auto max-w-lg p-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Website Editor unavailable</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                The Website Editor isn't available on your account yet.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return <GenericWebsiteEditor />;
+}
+
+function GenericWebsiteEditor() {
   const { user } = useAuth();
   const { data: website, isLoading } = useMemberWebsite();
   const publish = usePublishWebsite();
