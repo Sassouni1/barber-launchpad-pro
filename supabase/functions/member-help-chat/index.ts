@@ -864,7 +864,8 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, conversationId } = await req.json();
+    const body = await req.json();
+    const { messages, conversationId, mode, roles, notes } = body ?? {};
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
@@ -872,6 +873,103 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // --- BUSINESS NAME BRAINSTORM MODE ---
+    // Fully isolated naming path: no BASE_SYSTEM_PROMPT, no curriculum, no user or memory context.
+    if (mode === "business-name-brainstorm") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        return new Response(JSON.stringify({ error: "AI is not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Require an authenticated member (same as the rest of the function).
+      const authHeader = req.headers.get("authorization") || "";
+      const token = authHeader.replace("Bearer ", "");
+      let namingUserId: string | null = null;
+      if (token && token !== Deno.env.get("SUPABASE_ANON_KEY")) {
+        try {
+          const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) namingUserId = user.id;
+        } catch { /* fall through */ }
+      }
+      if (!namingUserId) {
+        return new Response(JSON.stringify({ error: "Authentication required" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const roleList: string[] = Array.isArray(roles)
+        ? roles.filter((r: unknown) => typeof r === "string" && r.trim()).map((r: string) => r.trim())
+        : [];
+      const lastUser = [...messages].reverse().find((m: any) => m?.role === "user");
+      const rawNotes = (typeof notes === "string" && notes.trim())
+        ? notes.trim()
+        : (typeof lastUser?.content === "string" ? lastUser.content.trim() : "");
+
+      const namingSystemPrompt = `You name real barber, stylist, and hair-replacement businesses. You are a brand namer, not a coach. Output names only.
+
+SELECTED BUSINESS ROLES: ${roleList.length ? roleList.join(", ") : "barber / hair professional"}
+ROLE LANGUAGE RULES:
+- Use language that fits the selected roles. A barber brand should not sound like a med spa; a stylist brand should not sound like a barbershop chain.
+- If more than one role is selected, the first 8 names must work for all of them.
+
+THE MEMBER'S NOTE (creative direction): ${rawNotes ? `"${rawNotes}"` : "(none given — use a confident, timeless barber-brand direction)"}
+
+HOW TO USE THE NOTE:
+- Treat the note — one word, a phrase, or a longer half-formed idea — as the creative direction, never as filler to repeat.
+- First infer what it implies: the intended feeling, the customer it attracts, the imagery it suggests, the type of business, and the service focus. Name from that inference.
+- If the note contains a strong phrase, you may preserve or play with that phrase. Otherwise capture its meaning in fresh language.
+- Never mechanically repeat the note in every name, and never ignore it.
+- Example of the standard: "sophisticated" means polished, understated, quietly confident, well-tailored real barber brands — not a thesaurus dump of luxury adjectives.
+
+HARD BANS (never use these words or their obvious variants): Apex, Elite, Modern, Vertex, Origin, Legacy, Summit, Noble, Prime, Sovereign, Collective, Lab, and default generic endings Studio, Lounge, Co., Barbershop. No word-matrix permutations (Adjective + Noun templates repeated). No corporate filler. No anatomical or technical hair-system jargon (follicle, graft, dermal, cuticle, etc.).
+REPETITION RULE: no main word may appear in more than two of the 18 names.
+
+OUTPUT FORMAT — obey exactly:
+- Exactly 18 lines. One name per line. No numbering, no headings, no bullets, no explanations, no blank lines, no closing sentence.
+- Lines 1-8: names for the whole business. These must contain NO restoration, replacement, or hair-system wording of any kind.
+- Lines 9-18: names that may signal a premium hair-replacement / restoration specialty. Natural cues allowed: restoration, replacement, hairline, crown, density, scalp, strand, renewal. They must still read as brand names, not service labels.
+- All 18 names must be distinct and pronounceable, and must sound like a real business someone would put on a sign.`;
+
+      const namingResponse = await callModel(LOVABLE_API_KEY, {
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: namingSystemPrompt },
+          { role: "user", content: rawNotes ? `Direction: ${rawNotes}\n\nGive me the 18 names now.` : "Give me the 18 names now." },
+        ],
+        temperature: 1,
+        stream: true,
+      });
+
+      if (!namingResponse.ok) {
+        const status = namingResponse.status;
+        const detail = await namingResponse.text().catch(() => "");
+        const message = status === 429
+          ? "Too many requests right now. Please try again in a moment."
+          : status === 402
+            ? "AI credits are exhausted. Please add credits to continue."
+            : detail || "Name generation failed.";
+        return new Response(JSON.stringify({ error: message }), {
+          status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(namingResponse.body, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
 
     // --- BARE GREETING SHORT-CIRCUIT ---
     // If the user just said "hey" / "hi" / "hello" etc. with no actual question,
