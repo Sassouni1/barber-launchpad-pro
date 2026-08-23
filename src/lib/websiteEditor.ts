@@ -25,6 +25,27 @@ export type FieldRule = {
   locked?: boolean;
 };
 
+/**
+ * Declares one explicitly repeatable card group. Templates opt in by adding
+ * rules to `website_templates.repeat_rules` — the editor never clones arbitrary
+ * DOM, only items matched by these configured selectors.
+ */
+export type RepeatRule = {
+  /** Stable id used as the draft layout key. */
+  key: string;
+  /** Singular noun shown in the editor controls, e.g. "service". */
+  label: string;
+  /** CSS selector for the wrapper that holds the repeated items. */
+  container: string;
+  /** CSS selector for one repeatable item inside the container. */
+  item: string;
+  /** Optional cap on how many items a member may create. */
+  max?: number;
+};
+
+/** ruleKey -> ordered list of original item indices (duplicates repeat an index). */
+export type LayoutState = Record<string, number[]>;
+
 export type WebsiteTemplateConfig = {
   templateKey: string;
   displayName: string;
@@ -32,7 +53,9 @@ export type WebsiteTemplateConfig = {
   assetOrigin: string | null;
   pages: TemplatePage[];
   fieldRules: Record<string, FieldRule>;
+  repeatRules: RepeatRule[];
 };
+
 
 export type EditableField = {
   key: string;
