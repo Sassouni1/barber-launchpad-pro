@@ -163,6 +163,8 @@ export function scanFields(doc: Document, rules: Record<string, FieldRule> = {})
 
   doc.body.querySelectorAll<HTMLElement>('*').forEach((el) => {
     if (SKIP_TAGS.has(el.tagName)) return;
+    // Editor-only overlay controls are never editable content.
+    if (el.closest('[data-we-overlay]')) return;
     const key = elementKey(el);
     const rule = rules[key];
     if (rule?.locked) return;
@@ -336,14 +338,47 @@ export function currentOrder(layout: LayoutState, ruleKey: string, itemCount: nu
 export const EDITOR_STYLE_ID = 'website-editor-style';
 
 export const ITEM_ACTIVE_ATTR = 'data-we-item-active';
+/** Editor-only floating duplicate control rendered on each repeatable card. */
+export const OVERLAY_ATTR = 'data-we-overlay';
 
 export const EDITOR_CSS = `
 [data-we-editable]{outline:1px dashed rgba(212,175,55,.55);outline-offset:2px;cursor:pointer;transition:outline-color .15s ease,background-color .15s ease}
 [data-we-editable]:hover{outline:2px solid rgba(212,175,55,.95);background-color:rgba(212,175,55,.10)}
 [data-we-selected]{outline:3px solid #d4af37 !important;background-color:rgba(212,175,55,.16)}
-[data-we-item]{cursor:pointer}
+[data-we-item]{cursor:pointer;position:relative}
 [data-we-item-active]{outline:3px solid #d4af37 !important;outline-offset:6px;background-color:rgba(212,175,55,.06)}
+[${OVERLAY_ATTR}]{position:absolute;top:6px;right:6px;z-index:2147483000;display:flex;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;margin:0;border:1px solid rgba(212,175,55,.9);border-radius:8px;background:rgba(12,12,12,.92);color:#d4af37;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .12s ease;box-shadow:0 2px 8px rgba(0,0,0,.35);line-height:0}
+[${OVERLAY_ATTR}] svg{width:18px;height:18px;display:block;pointer-events:none}
+[data-we-item]:hover > [${OVERLAY_ATTR}],
+[data-we-item]:focus-within > [${OVERLAY_ATTR}],
+[${ITEM_ACTIVE_ATTR}] > [${OVERLAY_ATTR}],
+[${OVERLAY_ATTR}]:focus{opacity:1;pointer-events:auto}
+[${OVERLAY_ATTR}]:hover{background:#d4af37;color:#0c0c0c}
+@media (hover:none){[data-we-item] > [${OVERLAY_ATTR}]{opacity:.85;pointer-events:auto}}
 `;
+
+const COPY_ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>';
+
+/**
+ * Adds the editor-only duplicate overlay to each configured repeatable card.
+ * Called after fields are scanned so overlays never become editable fields.
+ */
+export function decorateItems(doc: Document, rules: RepeatRule[]) {
+  const labels = new Map(rules.map((rule) => [rule.key, rule.label]));
+  doc.querySelectorAll(`[${ITEM_ATTR}]`).forEach((item) => {
+    item.querySelectorAll(`[${OVERLAY_ATTR}]`).forEach((el) => el.remove());
+    const label = labels.get(item.getAttribute(ITEM_ATTR) ?? '');
+    if (!label) return;
+    const button = doc.createElement('button');
+    button.setAttribute('type', 'button');
+    button.setAttribute(OVERLAY_ATTR, 'duplicate');
+    button.setAttribute('aria-label', `Duplicate ${label}`);
+    button.setAttribute('title', `Duplicate ${label}`);
+    button.innerHTML = COPY_ICON_SVG;
+    item.appendChild(button);
+  });
+}
 
 /** Marks every scanned field so it is clickable inside the iframe. */
 export function decorateFields(doc: Document, fields: EditableField[]) {
@@ -358,6 +393,7 @@ export function decorateFields(doc: Document, fields: EditableField[]) {
     if (el) el.setAttribute('data-we-editable', field.kind);
   });
 }
+
 
 export function setSelected(doc: Document, key: string | null) {
   doc.querySelectorAll('[data-we-selected]').forEach((el) => el.removeAttribute('data-we-selected'));
@@ -395,6 +431,7 @@ export async function renderTemplatePage(
   applyDraft(doc, draft);
 
   // Editor-only markup never ships.
+  doc.querySelectorAll(`[${OVERLAY_ATTR}]`).forEach((el) => el.remove());
   doc.querySelectorAll('[data-we-editable]').forEach((el) => el.removeAttribute('data-we-editable'));
   doc.querySelectorAll('[data-we-selected]').forEach((el) => el.removeAttribute('data-we-selected'));
   doc.querySelectorAll(`[${ITEM_ATTR}]`).forEach((el) => {

@@ -11,10 +11,12 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   ITEM_ATTR,
   ITEM_POS_ATTR,
+  OVERLAY_ATTR,
   applyDraft,
   applyLayout,
   currentOrder,
   decorateFields,
+  decorateItems,
   elementFromKey,
   itemKeys,
   readLayout,
@@ -22,6 +24,7 @@ import {
   scanFields,
   setSelected,
   writeLayout,
+
   type EditableField,
   type EditorDraft,
   type PageDraft,
@@ -73,6 +76,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const fieldsRef = useRef<EditableField[]>([]);
   const draftRef = useRef<EditorDraft>({});
   draftRef.current = draft;
+  // Kept fresh so the iframe click listener always runs the latest closure.
+  const runItemOpRef = useRef<(kind: 'duplicate' | 'earlier' | 'later', itemEl?: HTMLElement) => void>(() => {});
 
   const repeatRules = useMemo(() => template.repeatRules ?? [], [template.repeatRules]);
   const page = template.pages.find((p) => p.key === pageKey) ?? template.pages[0];
@@ -107,6 +112,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
       const scanned = scanFields(doc, template.fieldRules);
       decorateFields(doc, scanned);
       applyDraft(doc, nextPageDraft);
+      // Overlays are added after scanning so they never become editable fields.
+      decorateItems(doc, repeatRules);
       fieldsRef.current = scanned;
       setFields(scanned);
       return scanned;
@@ -165,9 +172,19 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
       'click',
       (event) => {
         const node = event.target as HTMLElement | null;
-        const target = node?.closest('[data-we-editable]') as HTMLElement | null;
         // Keep the preview static while editing.
         event.preventDefault();
+
+        // Editor-only floating duplicate control on a repeatable card.
+        const overlay = node?.closest(`[${OVERLAY_ATTR}]`) as HTMLElement | null;
+        if (overlay) {
+          event.stopPropagation();
+          const item = overlay.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
+          if (item) runItemOpRef.current('duplicate', item);
+          return;
+        }
+
+        const target = node?.closest('[data-we-editable]') as HTMLElement | null;
         // Clicking anywhere inside a repeatable card selects that card.
         const fallbackItem = !target ? (node?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null) : null;
         const resolved =
@@ -182,6 +199,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     );
 
   };
+
 
   // Re-scan when the page tab changes.
   useEffect(() => {
@@ -210,13 +228,22 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey, ready, repeatRules, pageKey, pageDraft]);
 
-  const runItemOp = (kind: 'duplicate' | 'earlier' | 'later') => {
+  const runItemOp = (kind: 'duplicate' | 'earlier' | 'later', itemEl?: HTMLElement) => {
     const doc = iframeRef.current?.contentDocument;
-    if (!doc || !activeItem) return;
-    const { rule, position } = activeItem;
+    if (!doc) return;
+    // Either the sidebar selection or the card the overlay button belongs to.
+    let context: { rule: RepeatRule; position: number } | null = activeItem;
+    if (itemEl) {
+      const rule = repeatRules.find((r) => r.key === itemEl.getAttribute(ITEM_ATTR));
+      if (!rule) return;
+      context = { rule, position: Number(itemEl.getAttribute(ITEM_POS_ATTR) ?? '0') };
+    }
+    if (!context) return;
+    const { rule, position } = context;
     const originals = originalsRef.current[pageKey]?.[rule.key] ?? [];
     const layout = readLayout(pageDraft);
     const order = currentOrder(layout, rule.key, originals.length);
+
 
     let nextOrder: number[];
     let mapping: number[];
@@ -267,6 +294,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         : `Moved this ${rule.label} ${kind === 'earlier' ? 'earlier' : 'later'}.`,
     );
   };
+
+  runItemOpRef.current = runItemOp;
 
   const currentValue = selectedField ? (pageDraft[selectedField.key] ?? selectedField.original) : '';
   const overLimit = !!selectedField?.limit && currentValue.length > selectedField.limit;
