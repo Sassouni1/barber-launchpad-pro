@@ -382,7 +382,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
-              <SubNavItem to="/website" icon={Globe} label="Website Editor" />
+              {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
             </ExpandableNavItem>
 
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
