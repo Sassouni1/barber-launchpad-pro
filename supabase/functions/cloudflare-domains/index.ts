@@ -204,52 +204,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Admin-only: push the canonical member-sites Worker source in this repo to Cloudflare.
+    // Push the canonical member-sites Worker source in this repo to Cloudflare.
+    // Authorised by an admin session, or by the server-only SITE_WORKER_DEPLOY_SECRET.
     if (action === "deploy-site-worker") {
-      const svc = serviceClient();
-      const { data: isAdmin } = await svc.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (isAdmin !== true) return json({ error: "Admins only" }, 403);
-
-      const workerName = Deno.env.get("CLOUDFLARE_SITE_WORKER_NAME") ?? "barber-launch-member-sites";
-      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-      const previewHost = (Deno.env.get("CLOUDFLARE_SITE_PREVIEW_BASE_URL") ?? "https://sites.thebarberlaunch.com")
-        .replace(/^https?:\/\//, "")
-        .replace(/\/+$/, "");
-
-      const metadata = {
-        main_module: "worker.js",
-        compatibility_date: "2025-06-01",
-        bindings: [
-          { type: "plain_text", name: "SUPABASE_URL", text: supabaseUrl },
-          { type: "secret_text", name: "SUPABASE_ANON_KEY", text: anonKey },
-          { type: "plain_text", name: "PREVIEW_HOST", text: previewHost },
-        ],
-      };
-
-      const form = new FormData();
-      form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-      form.append(
-        "worker.js",
-        new Blob([SITE_WORKER_SOURCE], { type: "application/javascript+module" }),
-        "worker.js",
-      );
-
-      const res = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/workers/scripts/${encodeURIComponent(workerName)}`,
-        { method: "PUT", headers: { Authorization: `Bearer ${config.token}` }, body: form },
-      );
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok || payload?.success === false) {
-        return json({ error: cfError(payload, `Cloudflare error ${res.status}`) }, 502);
+      const deploySecret = Deno.env.get("SITE_WORKER_DEPLOY_SECRET") ?? "";
+      const provided = req.headers.get("x-deploy-secret") ?? "";
+      let allowed = Boolean(deploySecret) && provided === deploySecret;
+      if (!allowed) {
+        const svc = serviceClient();
+        const { data: isAdmin } = await svc.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        allowed = isAdmin === true;
       }
+      if (!allowed) return json({ error: "Admins only" }, 403);
+
+      const result = await deploySiteWorker(config.accountId, config.token);
+      if (!result.ok) return json({ error: result.error }, 502);
       return json({
         success: true,
-        worker: workerName,
-        version: SITE_WORKER_VERSION,
-        modified_on: payload?.result?.modified_on ?? null,
+        worker: Deno.env.get("CLOUDFLARE_SITE_WORKER_NAME") ?? "barber-launch-member-sites",
+        version: result.version,
       });
     }
+
 
     return json({ error: "Unknown action" }, 400);
 
