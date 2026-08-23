@@ -18,7 +18,8 @@ function previewBase() {
 
 function cloudflareConfig() {
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  const token = Deno.env.get("CLOUDFLARE_REGISTRAR_API_TOKEN");
+  const token = Deno.env.get("CLOUDFLARE_SITE_PUBLISH_API_TOKEN") ??
+    Deno.env.get("CLOUDFLARE_REGISTRAR_API_TOKEN");
   const worker = Deno.env.get("CLOUDFLARE_SITE_WORKER_NAME") ?? "barber-launch-member-sites";
   if (!accountId || !token) return null;
   return { accountId, token, worker };
