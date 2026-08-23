@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDown, ArrowUp, Copy, Globe, ImageIcon, Info, Loader2, Redo2, Save, Undo2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, Globe, ImageIcon, Info, Loader2, Redo2, Save, Trash2, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -49,6 +49,9 @@ type Props = {
 
 type ActiveItem = { rule: RepeatRule; position: number; total: number };
 
+/** Card-level operations only — never section, wrapper or page level. */
+type ItemOp = 'duplicate' | 'earlier' | 'later' | 'delete';
+
 /**
  * The one member editor surface. Every template renders through this shell —
  * page tabs, iframe editing, limits, undo/redo, images, repeatable cards, Save
@@ -77,7 +80,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const draftRef = useRef<EditorDraft>({});
   draftRef.current = draft;
   // Kept fresh so the iframe click listener always runs the latest closure.
-  const runItemOpRef = useRef<(kind: 'duplicate' | 'earlier' | 'later', itemEl?: HTMLElement) => void>(() => {});
+  const runItemOpRef = useRef<(kind: ItemOp, itemEl?: HTMLElement) => void>(() => {});
 
   const repeatRules = useMemo(() => template.repeatRules ?? [], [template.repeatRules]);
   const page = template.pages.find((p) => p.key === pageKey) ?? template.pages[0];
@@ -180,7 +183,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         if (overlay) {
           event.stopPropagation();
           const item = overlay.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
-          if (item) runItemOpRef.current('duplicate', item);
+          const action = overlay.getAttribute(OVERLAY_ATTR) === 'delete' ? 'delete' : 'duplicate';
+          if (item) runItemOpRef.current(action, item);
           return;
         }
 
@@ -228,7 +232,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey, ready, repeatRules, pageKey, pageDraft]);
 
-  const runItemOp = (kind: 'duplicate' | 'earlier' | 'later', itemEl?: HTMLElement) => {
+  const runItemOp = (kind: ItemOp, itemEl?: HTMLElement) => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
     // Either the sidebar selection or the card the overlay button belongs to.
@@ -249,7 +253,22 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     let mapping: number[];
     let nextPosition: number;
 
-    if (kind === 'duplicate') {
+    if (kind === 'delete') {
+      if (order.length <= 1) {
+        toast.error(`You need to keep at least one ${rule.label} card here.`);
+        return;
+      }
+      const ok = window.confirm(
+        `Delete this ${rule.label} card (card ${position + 1} of ${order.length})? ` +
+          `Only this single ${rule.label} card and its own text/images are removed — ` +
+          `this cannot delete a whole section or page. This can be undone with Undo.`,
+      );
+      if (!ok) return;
+      nextOrder = [...order.slice(0, position), ...order.slice(position + 1)];
+      mapping = [];
+      for (let i = 0; i < order.length; i += 1) if (i !== position) mapping.push(i);
+      nextPosition = Math.min(position, nextOrder.length - 1);
+    } else if (kind === 'duplicate') {
       if (rule.max && order.length >= rule.max) {
         toast.error(`You can have up to ${rule.max} ${rule.label} cards here.`);
         return;
@@ -291,7 +310,9 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     toast.success(
       kind === 'duplicate'
         ? `Duplicated this ${rule.label} — edit the new card below.`
-        : `Moved this ${rule.label} ${kind === 'earlier' ? 'earlier' : 'later'}.`,
+        : kind === 'delete'
+          ? `Deleted this ${rule.label} card.`
+          : `Moved this ${rule.label} ${kind === 'earlier' ? 'earlier' : 'later'}.`,
     );
   };
 
@@ -456,11 +477,26 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                         <ArrowDown className="mr-2 h-4 w-4" /> Move later
                       </Button>
                     )}
+                    {activeItem.total > 1 ? (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="min-h-9"
+                        onClick={() => runItemOp('delete')}
+                        aria-label={`Delete this ${activeItem.rule.label}`}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete {activeItem.rule.label}
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        This is the last {activeItem.rule.label} card, so it can&apos;t be deleted.
+                      </p>
+                    )}
                   </div>
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Click a service or rate card to duplicate it or change its order.
+                  Click a service or rate card to duplicate, reorder, or delete that single card.
                 </p>
               )}
             </div>
