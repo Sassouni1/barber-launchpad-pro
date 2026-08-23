@@ -134,3 +134,49 @@ export default {
   },
 };
 `;
+
+export type WorkerSyncResult = { ok: boolean; error: string | null; version: string };
+
+/**
+ * Uploads the canonical Worker source above to Cloudflare. Idempotent — a repeat
+ * upload of identical source is a no-op deploy. Called before any domain is
+ * attached so a live custom domain can never be served by a stale Worker.
+ */
+export async function deploySiteWorker(accountId: string, token: string): Promise<WorkerSyncResult> {
+  const workerName = Deno.env.get("CLOUDFLARE_SITE_WORKER_NAME") ?? "barber-launch-member-sites";
+  const previewHost = (Deno.env.get("CLOUDFLARE_SITE_PREVIEW_BASE_URL") ?? "https://sites.thebarberlaunch.com")
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
+
+  const metadata = {
+    main_module: "worker.js",
+    compatibility_date: "2025-06-01",
+    bindings: [
+      { type: "plain_text", name: "SUPABASE_URL", text: Deno.env.get("SUPABASE_URL") ?? "" },
+      { type: "secret_text", name: "SUPABASE_ANON_KEY", text: Deno.env.get("SUPABASE_ANON_KEY") ?? "" },
+      { type: "plain_text", name: "PREVIEW_HOST", text: previewHost },
+    ],
+  };
+
+  const form = new FormData();
+  form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+  form.append(
+    "worker.js",
+    new Blob([SITE_WORKER_SOURCE], { type: "application/javascript+module" }),
+    "worker.js",
+  );
+
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}`,
+    { method: "PUT", headers: { Authorization: `Bearer ${token}` }, body: form },
+  );
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok || payload?.success === false) {
+    return {
+      ok: false,
+      version: SITE_WORKER_VERSION,
+      error: payload?.errors?.[0]?.message ?? `Cloudflare error ${res.status}`,
+    };
+  }
+  return { ok: true, error: null, version: SITE_WORKER_VERSION };
+}
