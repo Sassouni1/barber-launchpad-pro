@@ -234,19 +234,25 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
   /** For an image inside a repeatable card, derive a heading from that card's title text. */
   const imageCardHeading = useMemo(() => {
-    if (!selectedField || selectedField.kind !== 'image' || !activeItem) return null;
+    if (!selectedField || selectedField.kind !== 'image') return null;
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return null;
     const imgEl = elementFromKey(doc, selectedField.key);
-    const item = imgEl?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
+    const item = (imgEl as HTMLElement | null)?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
     if (!item) return null;
     const titleField = fields.find((f) => {
       if (f.kind !== 'text') return false;
       const el = elementFromKey(doc, f.key);
       return !!el && item.contains(el);
     });
-    const title = titleField ? (pageDraft[titleField.key] ?? titleField.original).trim() : '';
-    return title ? `${title} image` : null;
+    let title = titleField ? (pageDraft[titleField.key] ?? titleField.original).trim() : '';
+    if (!title) {
+      // Fallback: the card's own heading text, so card images never fall back to a section label.
+      const heading = item.querySelector('h1, h2, h3, h4, h5, h6, [class*="title"]');
+      title = (heading?.textContent ?? '').trim();
+    }
+    return title ? `${title.toUpperCase()} image` : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedField, activeItem, pageDraft, fields]);
 
