@@ -202,12 +202,132 @@ export function scanFields(doc: Document, rules: Record<string, FieldRule> = {})
 
 export function applyDraft(root: Document | HTMLElement, draft: PageDraft) {
   Object.entries(draft).forEach(([key, value]) => {
+    if (key.startsWith('__')) return; // reserved editor state, not a field
     const el = elementFromKey(root, key);
     if (!el) return;
     if (el.tagName === 'IMG') el.setAttribute('src', value);
     else el.textContent = value;
   });
 }
+
+/* ------------------------------------------------------------------ *
+ * Repeatable items (configured card groups only)
+ * ------------------------------------------------------------------ */
+
+/** Reserved page-draft key holding the serialized repeat layout. */
+export const LAYOUT_KEY = '__layout';
+
+export function readLayout(pageDraft: PageDraft): LayoutState {
+  try {
+    const raw = pageDraft[LAYOUT_KEY];
+    return raw ? (JSON.parse(raw) as LayoutState) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writeLayout(pageDraft: PageDraft, layout: LayoutState): PageDraft {
+  return { ...pageDraft, [LAYOUT_KEY]: JSON.stringify(layout) };
+}
+
+/** Pristine copies of each rule's items, captured before any rebuild. */
+export type RepeatOriginals = Record<string, Element[]>;
+
+export const ITEM_ATTR = 'data-we-item';
+export const ITEM_POS_ATTR = 'data-we-item-pos';
+
+function containerFor(root: Document | HTMLElement, rule: RepeatRule): Element | null {
+  const scope: ParentNode = 'body' in root ? (root.body as ParentNode) : root;
+  return scope.querySelector(rule.container);
+}
+
+function itemsIn(container: Element, rule: RepeatRule): Element[] {
+  return Array.from(container.querySelectorAll(rule.item)).filter((el) => el.parentElement === container);
+}
+
+/**
+ * Rebuilds every configured repeat container from its pristine items following
+ * the member's layout. Deterministic: the same layout always produces the same
+ * DOM, so structural field keys stay stable.
+ */
+export function applyLayout(
+  root: Document | HTMLElement,
+  rules: RepeatRule[],
+  layout: LayoutState,
+  originals: RepeatOriginals = {},
+): RepeatOriginals {
+  rules.forEach((rule) => {
+    const container = containerFor(root, rule);
+    if (!container) return;
+
+    if (!originals[rule.key]) {
+      originals[rule.key] = itemsIn(container, rule).map((el) => el.cloneNode(true) as Element);
+    }
+    const pristine = originals[rule.key];
+    if (!pristine.length) return;
+
+    const order = (layout[rule.key] ?? pristine.map((_, i) => i)).filter(
+      (index) => Number.isInteger(index) && index >= 0 && index < pristine.length,
+    );
+    const finalOrder = order.length ? order : pristine.map((_, i) => i);
+
+    const current = itemsIn(container, rule);
+    const anchor = current[0]?.nextSibling ?? null;
+    current.forEach((el) => el.remove());
+
+    finalOrder.forEach((sourceIndex, position) => {
+      const clone = pristine[sourceIndex].cloneNode(true) as Element;
+      clone.setAttribute(ITEM_ATTR, rule.key);
+      clone.setAttribute(ITEM_POS_ATTR, String(position));
+      container.insertBefore(clone, anchor);
+    });
+  });
+  return originals;
+}
+
+/** Element keys of a rule's items in their current rendered order. */
+export function itemKeys(root: Document | HTMLElement, rule: RepeatRule): string[] {
+  const container = containerFor(root, rule);
+  if (!container) return [];
+  return itemsIn(container, rule).map((el) => elementKey(el));
+}
+
+/**
+ * Moves the member's edits with their card. `mapping[newPosition] = oldPosition`
+ * (an old position may appear twice when a card is duplicated).
+ */
+export function remapItemDraft(
+  pageDraft: PageDraft,
+  oldKeys: string[],
+  newKeys: string[],
+  mapping: number[],
+): PageDraft {
+  const next: PageDraft = {};
+  const owned = (key: string) => oldKeys.some((itemKey) => key === itemKey || key.startsWith(`${itemKey}.`));
+
+  Object.entries(pageDraft).forEach(([key, value]) => {
+    if (key.startsWith('__') || !owned(key)) next[key] = value;
+  });
+
+  mapping.forEach((oldPosition, newPosition) => {
+    const oldKey = oldKeys[oldPosition];
+    const newKey = newKeys[newPosition];
+    if (oldKey === undefined || newKey === undefined) return;
+    Object.entries(pageDraft).forEach(([key, value]) => {
+      if (key === oldKey) next[newKey] = value;
+      else if (key.startsWith(`${oldKey}.`)) next[`${newKey}${key.slice(oldKey.length)}`] = value;
+    });
+  });
+
+  return next;
+}
+
+export function currentOrder(layout: LayoutState, ruleKey: string, itemCount: number): number[] {
+  const order = layout[ruleKey];
+  if (order && order.length) return [...order];
+  return Array.from({ length: itemCount }, (_, i) => i);
+}
+
 
 export const EDITOR_STYLE_ID = 'website-editor-style';
 
