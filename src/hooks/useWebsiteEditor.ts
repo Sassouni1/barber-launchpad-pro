@@ -113,9 +113,9 @@ async function persistDraft(userId: string, templateKey: string, draft: EditorDr
   if (readError) throw readError;
 
   const nextDrafts = {
-    ...((existing?.editor_drafts as Record<string, unknown>) ?? {}),
+    ...((existing?.editor_drafts as Record<string, EditorDraft>) ?? {}),
     [templateKey]: draft,
-  };
+  } as unknown as never;
 
   if (existing) {
     const { error } = await supabase
