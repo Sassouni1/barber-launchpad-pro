@@ -18,6 +18,7 @@ import {
   elementFromKey,
   itemKeys,
   readLayout,
+  remapItemDraft,
   scanFields,
   setSelected,
   writeLayout,
@@ -245,7 +246,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     );
     const newKeys = itemKeys(doc, rule);
 
-    const remapped = writeLayout(remapDraft(pageDraft, oldKeys, newKeys, mapping), nextLayout);
+    const remapped = writeLayout(remapItemDraft(pageDraft, oldKeys, newKeys, mapping), nextLayout);
     const nextDraft = { ...draft, [pageKey]: remapped };
     commit(nextDraft);
     const scanned = hydrate(doc, remapped);
