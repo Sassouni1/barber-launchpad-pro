@@ -335,10 +335,14 @@ export function currentOrder(layout: LayoutState, ruleKey: string, itemCount: nu
 
 export const EDITOR_STYLE_ID = 'website-editor-style';
 
+export const ITEM_ACTIVE_ATTR = 'data-we-item-active';
+
 export const EDITOR_CSS = `
 [data-we-editable]{outline:1px dashed rgba(212,175,55,.55);outline-offset:2px;cursor:pointer;transition:outline-color .15s ease,background-color .15s ease}
 [data-we-editable]:hover{outline:2px solid rgba(212,175,55,.95);background-color:rgba(212,175,55,.10)}
 [data-we-selected]{outline:3px solid #d4af37 !important;background-color:rgba(212,175,55,.16)}
+[data-we-item]{cursor:pointer}
+[data-we-item-active]{outline:3px solid #d4af37 !important;outline-offset:6px;background-color:rgba(212,175,55,.06)}
 `;
 
 /** Marks every scanned field so it is clickable inside the iframe. */
@@ -357,13 +361,18 @@ export function decorateFields(doc: Document, fields: EditableField[]) {
 
 export function setSelected(doc: Document, key: string | null) {
   doc.querySelectorAll('[data-we-selected]').forEach((el) => el.removeAttribute('data-we-selected'));
+  doc.querySelectorAll(`[${ITEM_ACTIVE_ATTR}]`).forEach((el) => el.removeAttribute(ITEM_ACTIVE_ATTR));
   if (!key) return;
   const el = elementFromKey(doc, key);
   if (el) {
     el.setAttribute('data-we-selected', 'true');
+    // Outline the whole repeatable card so its actions are obviously available.
+    const item = el.closest(`[${ITEM_ATTR}]`);
+    if (item) item.setAttribute(ITEM_ACTIVE_ATTR, 'true');
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
+
 
 /**
  * Produces the standalone HTML published for one page: the template source with
