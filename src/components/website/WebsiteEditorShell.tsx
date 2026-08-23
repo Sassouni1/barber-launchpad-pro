@@ -525,8 +525,13 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                     <p className="text-xs text-muted-foreground">
                       Target size: {selectedField.width ?? '—'} × {selectedField.height ?? '—'}px
                     </p>
-                    <Button className="w-full" onClick={() => setImageDialogOpen(true)}>
-                      <ImageIcon className="mr-2 h-4 w-4" /> Replace image
+                    <Button
+                      className="w-full"
+                      onClick={() => setImageDialogOpen(true)}
+                      aria-label="Change image"
+                      title="Change image"
+                    >
+                      <ImageIcon className="mr-2 h-4 w-4" /> Change image
                     </Button>
                   </div>
                 ) : (
