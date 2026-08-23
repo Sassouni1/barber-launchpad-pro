@@ -210,13 +210,22 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey, ready, repeatRules, pageKey, pageDraft]);
 
-  const runItemOp = (kind: 'duplicate' | 'earlier' | 'later') => {
+  const runItemOp = (kind: 'duplicate' | 'earlier' | 'later', itemEl?: HTMLElement) => {
     const doc = iframeRef.current?.contentDocument;
-    if (!doc || !activeItem) return;
-    const { rule, position } = activeItem;
+    if (!doc) return;
+    // Either the sidebar selection or the card the overlay button belongs to.
+    let context: { rule: RepeatRule; position: number } | null = activeItem;
+    if (itemEl) {
+      const rule = repeatRules.find((r) => r.key === itemEl.getAttribute(ITEM_ATTR));
+      if (!rule) return;
+      context = { rule, position: Number(itemEl.getAttribute(ITEM_POS_ATTR) ?? '0') };
+    }
+    if (!context) return;
+    const { rule, position } = context;
     const originals = originalsRef.current[pageKey]?.[rule.key] ?? [];
     const layout = readLayout(pageDraft);
     const order = currentOrder(layout, rule.key, originals.length);
+
 
     let nextOrder: number[];
     let mapping: number[];
