@@ -51,6 +51,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
+import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditorEntitlement';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
 import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
@@ -278,6 +279,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
   
   const { data: checklistLists = [] } = useChecklistLists();
+  const { data: websiteTemplate } = useWebsiteEditorEntitlement();
 
   const handleSignOut = async () => {
     try {
