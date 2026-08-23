@@ -215,6 +215,23 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
   const selectedField = useMemo(() => fields.find((f) => f.key === selectedKey) ?? null, [fields, selectedKey]);
 
+  /** Which configured repeatable card (if any) the selection lives inside. */
+  const activeItem: ActiveItem | null = useMemo(() => {
+    if (!selectedKey || !ready) return null;
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return null;
+    const el = elementFromKey(doc, selectedKey);
+    const item = (el as HTMLElement | null)?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
+    if (!item) return null;
+    const rule = repeatRules.find((r) => r.key === item.getAttribute(ITEM_ATTR));
+    if (!rule) return null;
+    const position = Number(item.getAttribute(ITEM_POS_ATTR) ?? '0');
+    const originals = originalsRef.current[pageKey]?.[rule.key] ?? [];
+    const total = currentOrder(readLayout(pageDraft), rule.key, originals.length).length;
+    return { rule, position, total };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKey, ready, repeatRules, pageKey, pageDraft]);
+
   /** For an image inside a repeatable card, derive a heading from that card's title text. */
   const imageCardHeading = useMemo(() => {
     if (!selectedField || selectedField.kind !== 'image' || !activeItem) return null;
@@ -232,24 +249,6 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     return title ? `${title} image` : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedField, activeItem, pageDraft, fields]);
-
-
-  /** Which configured repeatable card (if any) the selection lives inside. */
-  const activeItem: ActiveItem | null = useMemo(() => {
-    if (!selectedKey || !ready) return null;
-    const doc = iframeRef.current?.contentDocument;
-    if (!doc) return null;
-    const el = elementFromKey(doc, selectedKey);
-    const item = (el as HTMLElement | null)?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
-    if (!item) return null;
-    const rule = repeatRules.find((r) => r.key === item.getAttribute(ITEM_ATTR));
-    if (!rule) return null;
-    const position = Number(item.getAttribute(ITEM_POS_ATTR) ?? '0');
-    const originals = originalsRef.current[pageKey]?.[rule.key] ?? [];
-    const total = currentOrder(readLayout(pageDraft), rule.key, originals.length).length;
-    return { rule, position, total };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedKey, ready, repeatRules, pageKey, pageDraft]);
 
   const runItemOp = (kind: ItemOp, itemEl?: HTMLElement) => {
     const doc = iframeRef.current?.contentDocument;
