@@ -1,0 +1,246 @@
+:root{--ink:#fbf7ff;--muted:#d0c6d8;--bg:#07030b;--panel:#12091a;--line:#3a2249;--violet:#bf43f3;--max:1180px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box}html{scroll-behavior:smooth;overflow-x:hidden}body{width:100%;max-width:100%;margin:0;overflow-x:hidden;background:radial-gradient(circle at 74% 17%,#2c0843 0,transparent 33rem),var(--bg);color:var(--ink);line-height:1.5}a{color:inherit;text-decoration:none}.hs-header{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:2rem;padding:1rem max(6vw,2rem);border-bottom:1px solid #3d1e4d;background:rgba(7,3,11,.9);backdrop-filter:blur(15px)}.hs-brand{display:flex;align-items:center;gap:.75rem}.hs-brand img{width:3.1rem;height:3.1rem;object-fit:contain}.hs-brand strong,.hs-brand small{display:block}.hs-brand strong{font-family:Georgia,serif;font-size:.92rem;letter-spacing:.09em}.hs-brand small{color:#bd78d5;font-size:.76rem}.hs-header nav{display:flex;align-items:center;gap:1.9rem;font-family:Georgia,serif;font-size:.76rem;font-weight:700;letter-spacing:.12em}.hs-header nav a{opacity:.9}.hs-header nav a:hover{color:#e196ff}.hs-nav-cta,.hs-mobile-cta{padding:.72rem 1.35rem;border:1px solid #c54dff;border-radius:999px;background:linear-gradient(135deg,#8a2bd1,#4b1579);box-shadow:0 0 25px #9b32d466;font-weight:800}.hs-mobile-cta{display:none;font-size:.72rem;white-space:nowrap}.hs-shell{width:min(var(--max),88vw);margin:auto}.hs-wide{width:min(1120px,calc(100% - 32px));margin:auto}.hs-narrow{width:min(760px,calc(100% - 32px));margin-left:auto;margin-right:auto}.hs-hero{padding:3.5rem 0 5rem;text-align:center}.hs-hero-copy{width:min(900px,100%);margin:auto}.hs-eyebrow{margin:0;color:#c756f7;font-size:.73rem;font-weight:800;letter-spacing:.25em}.hs-center{text-align:center}.hs-hero h1{max-width:920px;margin:1.5rem auto;font-family:Georgia,serif;font-size:clamp(2.65rem,6vw,5.25rem);line-height:1.04;letter-spacing:-.045em}.hs-hero h1 em{font-style:normal;background:linear-gradient(135deg,#e39aff,#9d39dd);-webkit-background-clip:text;background-clip:text;color:transparent}.hs-lede{max-width:680px;margin:0 auto;color:#f2eaf4;font-size:1.18rem;line-height:1.5}.hs-video{position:relative;width:100%;overflow:hidden;border:1px solid #452753;border-radius:1rem;background:#000;box-shadow:0 20px 60px #0008}.hs-video video{display:block;width:100%;height:100%;background:#000;object-fit:cover}.hs-hero-video{width:min(280px,100%);aspect-ratio:9/16;margin:2.5rem auto 0}.hs-video-play{position:absolute;inset:50% auto auto 50%;z-index:2;width:4.6rem;height:4.6rem;padding:0;transform:translate(-50%,-50%);border:1px solid #f7ddff99;border-radius:50%;background:linear-gradient(135deg,#ca4cff,#7922b6);color:#fff;font-size:1.55rem;line-height:1;cursor:pointer;box-shadow:0 0 32px #b338f288}.hs-video-play:hover{transform:translate(-50%,-50%) scale(1.06)}.hs-video-play[hidden]{display:none}.hs-button-row,.hs-centered-cta{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2.1rem}.hs-centered-cta{justify-content:center}.hs-left-cta{justify-content:flex-start}.hs-button{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;max-width:100%;padding:1rem 1.45rem;border-radius:999px;font-weight:800;font-size:.88rem;text-align:center}.hs-button-primary{background:linear-gradient(135deg,#ca4cff,#7922b6);box-shadow:0 0 25px #b338f266}.hs-button-secondary{border:1px solid #70417e;background:#100a14}.hs-mobile-label{display:none}.hs-section{padding:7rem 0}.hs-band{background:linear-gradient(180deg,rgba(17,7,26,.4),rgba(10,4,15,.75),rgba(17,7,26,.4));border-top:1px solid #24112d;border-bottom:1px solid #24112d}.hs-copy h2,.hs-section h2,.hs-final-cta h2{margin:1rem 0 1.2rem;font-family:Georgia,serif;font-size:clamp(2.8rem,5.5vw,4.7rem);line-height:1.02;letter-spacing:-.055em}.hs-copy h2 em,.hs-section h2 em,.hs-final-cta h2 em{font-style:italic;color:#e5a9ff}.hs-copy p{color:var(--muted);font-size:1.14rem;line-height:1.7}.hs-copy p:first-of-type{margin-top:0}.hs-copy strong{color:var(--ink)}.hs-video-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-top:3rem}.hs-video-card{min-width:0}.hs-results-grid .hs-video{aspect-ratio:9/16;border-radius:.9rem}.hs-results-grid .hs-video video{object-fit:cover}.hs-photo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-top:3rem}.hs-photo-grid figure{min-width:0;margin:0;overflow:hidden;border:1px solid #452753;border-radius:1rem;background:#000;box-shadow:0 18px 40px #0008}.hs-photo-grid img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}.hs-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:4.5rem}.hs-portrait{width:min(360px,100%);aspect-ratio:9/16;justify-self:center}.hs-split-reverse .hs-portrait{order:1}.hs-split-reverse .hs-copy{order:2}.hs-stylist{background:linear-gradient(135deg,#160a20,#08030c)}.hs-stylist-card{display:flex;align-items:center;justify-content:center;width:min(360px,100%);min-height:300px;margin:0 auto;border:1px solid #51305f;border-radius:1.2rem;background:linear-gradient(135deg,#1b0c24,#0c0710);box-shadow:0 24px 70px #0008}.hs-stylist-card img{width:min(70%,280px);max-height:220px;object-fit:contain}.hs-final-cta{padding:8rem 5vw;background:radial-gradient(circle at 50% 0,#471066 0,transparent 43rem),#100619;text-align:center}.hs-final-cta p:not(.hs-eyebrow){max-width:45rem;margin:0 auto 1.35rem;color:var(--muted);font-size:1.16rem;line-height:1.65}.hs-footer{display:flex;justify-content:space-between;align-items:center;gap:1.5rem;padding:1.6rem 5vw;border-top:1px solid var(--line);color:#b8a8be;font-size:.82rem}.hs-footer p{margin:0}.hs-footer .hs-brand small{color:#bd78d5}.hs-footer>a:last-child{color:#dd98f3}@media (max-width:850px){.hs-header{align-items:center}.hs-header nav{display:none}.hs-mobile-cta{display:inline-flex}.hs-hero{padding-top:3rem}.hs-video-grid,.hs-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hs-split{grid-template-columns:minmax(0,1fr);gap:2.5rem}.hs-split-reverse .hs-portrait,.hs-split-reverse .hs-copy{order:initial}.hs-left-cta{justify-content:center}}@media (max-width:520px){.hs-header{padding:.75rem 1rem}.hs-brand{min-width:0}.hs-brand img{width:2.6rem;height:2.6rem}.hs-brand strong{font-size:.7rem;letter-spacing:.06em}.hs-brand small{font-size:.62rem}.hs-mobile-cta{padding:.62rem .75rem;font-size:.62rem}.hs-shell{width:calc(100% - 32px)}.hs-hero h1{font-size:2.7rem}.hs-lede{font-size:1rem}.hs-button{width:100%;font-size:.82rem}.hs-mobile-label{display:inline}.hs-desktop-label{display:none}.hs-section{padding:5rem 0}.hs-copy h2,.hs-section h2,.hs-final-cta h2{font-size:3rem}.hs-video-grid,.hs-photo-grid{display:flex;width:100%;max-width:100%;margin-top:2rem;overflow-x:auto;gap:1rem;padding:0 0 .75rem;scroll-snap-type:x mandatory;scrollbar-width:none}.hs-video-grid::-webkit-scrollbar,.hs-photo-grid::-webkit-scrollbar{display:none}.hs-video-card,.hs-photo-grid figure{flex:0 0 min(82vw,360px);scroll-snap-align:start}.hs-photo-grid figure{min-width:0}.hs-footer{flex-direction:column;text-align:center}.hs-footer .hs-brand{justify-content:center}.hs-final-cta{padding:6rem 1rem}}
+.hs-modal-open{overflow:hidden}.hs-booking-modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:1rem}.hs-booking-modal[hidden]{display:none}.hs-booking-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(0,0,0,.78);cursor:pointer}.hs-booking-dialog{position:relative;z-index:1;width:min(560px,100%);max-height:min(90vh,760px);overflow:auto;padding:2rem;border:1px solid #70417e;border-radius:1.25rem;background:linear-gradient(145deg,#1b0c24,#0b0610);box-shadow:0 30px 90px #000c}.hs-booking-close{position:absolute;top:.65rem;right:.8rem;border:0;background:none;color:#fff;font-size:2rem;line-height:1;cursor:pointer}.hs-form-header{padding-right:2rem}.hs-form-header h2{margin:0 0 .5rem;font-family:Georgia,serif;font-size:clamp(2rem,5vw,3rem);line-height:1.05}.hs-form-header p{margin:0 0 1.4rem;color:var(--muted)}.hs-consultation-form label{display:grid;gap:.4rem;margin-top:1rem;color:#f0e8f4;font-size:.85rem;font-weight:700}.hs-consultation-form input,.hs-consultation-form select,.hs-consultation-form textarea{width:100%;border:1px solid #573367;border-radius:.55rem;background:#0b0610;color:var(--ink);padding:.75rem;font:inherit}.hs-consultation-form textarea{resize:vertical}.hs-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.hs-form-grid label{margin-top:0}.hs-form-submit{width:100%;margin-top:1.35rem;border:0;cursor:pointer}.hs-form-call,.hs-form-status{margin:.85rem 0 0;color:var(--muted);text-align:center;font-size:.86rem}.hs-form-call a{color:#e5a9ff;text-decoration:underline}.hs-form-status{min-height:1.3em;color:#e5a9ff}@media (max-width:520px){.hs-booking-dialog{padding:1.5rem 1rem}.hs-form-grid{grid-template-columns:1fr}.hs-form-grid label{margin-top:1rem}}
+.hs-wide,.hs-narrow{max-width:680px}@media (max-width:850px){.hs-wide,.hs-narrow,.hs-hero-copy{width:min(680px,calc(100% - 64px))}.hs-copy p{max-width:100%}}@media (max-width:520px){.hs-wide,.hs-narrow,.hs-hero-copy{width:calc(100% - 64px)}.hs-copy p{font-size:1.02rem}.hs-copy h2,.hs-section h2,.hs-final-cta h2{font-size:2.65rem}}
+.hs-wide,.hs-narrow{max-width:680px}@media (max-width:900px){.hs-header nav{display:none}.hs-mobile-cta{display:inline-flex}.hs-hero{padding-top:3rem}.hs-video-grid,.hs-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hs-split{grid-template-columns:minmax(0,1fr);gap:2.5rem}.hs-split-reverse .hs-portrait,.hs-split-reverse .hs-copy{order:initial}.hs-left-cta{justify-content:center}.hs-wide,.hs-narrow,.hs-hero-copy{width:min(640px,calc(100% - 96px))}}@media (max-width:520px){.hs-wide,.hs-narrow,.hs-hero-copy{width:calc(100% - 88px)}}
+.hs-story p{margin:0 0 1.35rem}.hs-story p:last-child{margin-bottom:0}@media (max-width:520px){.hs-story p{margin-bottom:1.15rem}}
+.hs-swim-section .hs-copy{order:1}.hs-swim-section .hs-portrait{order:2}@media (min-width:901px){.hs-swim-section .hs-copy{order:2}.hs-swim-section .hs-portrait{order:1}}
+.hs-results-grid .hs-video-card{flex-basis:min(58vw,220px)}
+.hs-results-heading,.hs-compact-heading{font-size:35px!important}.hs-swim-heading{font-size:28px!important}
+@media (max-width:900px){.hs-swim-section .hs-portrait{width:min(62vw,260px)}}
+@media (max-width:900px){.hs-hero h1{font-size:35px!important}}
+@media (max-width:900px){.hs-section h2,.hs-final-cta h2{font-size:35px!important}}
+@media (max-width:520px){.hs-mobile-cta{padding:.68rem .85rem;font-size:.72rem}.hs-button{font-size:.88rem}}
+/* Slightly larger consultation CTAs for easier scanning and tapping. */
+.hs-button{padding:1.1rem 1.65rem;font-size:.95rem}
+@media (max-width:520px){.hs-button{padding:1.05rem 1rem;font-size:.92rem}}
+.hs-centered-cta{flex-direction:column;align-items:center;gap:.55rem}.hs-cta-note{max-width:34rem;margin:0;color:#bfaec8;font-size:.8rem;line-height:1.45;text-align:center}.hs-left-cta{align-items:flex-start}.hs-left-cta .hs-cta-note{text-align:left}
+@media (max-width:900px){.hs-left-cta{align-items:center}.hs-left-cta .hs-cta-note{text-align:center}}
+/* Keep the desktop layout and heading scale at the original size. */
+@media (min-width:901px){.hs-results-heading,.hs-compact-heading,.hs-swim-heading{font-size:43px!important}.hs-wide{max-width:1120px}.hs-narrow{max-width:760px}}
+@media (min-width:901px){.hs-hero h1{font-size:42px!important}}
+@media (min-width:901px){.hs-why-heading{font-size:42px!important}}
+@media (min-width:901px){.hs-waiting-heading{font-size:45px!important}}
+@media (min-width:901px){.hs-how-it-works-section .hs-copy{transform:translateX(1.5rem)}}
+ .hs-form-header h2{font-size:25px!important}
+ .hs-form-header h2,.hs-form-submit{color:#fff}
+@media (max-width:520px){.hs-booking-modal{padding:.75rem}.hs-booking-dialog{width:calc(100% - 1rem);max-height:84vh;padding:1.25rem .9rem}.hs-form-header p{margin-bottom:1rem}.hs-consultation-form label{margin-top:.75rem}.hs-form-submit{margin-top:1rem}}
+@media (max-width:520px){.hs-hero{padding-bottom:1.25rem}}
+@media (max-width:520px){.hs-story-section{padding-top:1.875rem}}
+@media (max-width:520px){.hs-section{padding-top:3.75rem}}
+@media (max-width:520px){.hs-story-section{padding-top:1.875rem}.hs-duration-section{padding-top:4.0625rem}}
+@media (max-width:520px){.hs-how-it-works-section{padding-top:2.5rem}}
+@media (max-width:520px){.hs-why-section{padding-bottom:2.5rem}.hs-real-transformations-section{padding-top:2.5rem}}
+.hs-stylist-card img{width:min(90%,320px);max-height:280px;object-fit:contain}
+.hs-mobile-home{display:none;font-family:Georgia,serif;font-size:.76rem;font-weight:700;letter-spacing:.12em;color:#f2eaf4}
+@media (max-width:900px){.hs-mobile-home{display:inline-flex}}
+.hs-success-kicker{margin:0 0 .5rem;color:#c756f7;font-size:.85rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.hs-success-title{margin:0 0 1.2rem;font-family:Georgia,serif;font-size:clamp(2.2rem,5vw,4rem);line-height:1.05;letter-spacing:-.04em}
+.hs-concern-options{margin:1rem 0 0;padding:0;border:0}.hs-concern-options legend{margin-bottom:.55rem;color:#f0e8f4;font-size:.85rem;font-weight:700}.hs-concern-options label{display:flex;align-items:center;gap:.65rem;margin-top:.55rem;color:#f0e8f4;font-size:.9rem;font-weight:400}.hs-concern-options input{width:1rem;height:1rem;accent-color:#bf43f3}
+@media (max-width:520px){.hs-results-heading span{display:block}}
+@media (max-width:520px){.hs-swim-section{padding-bottom:4.375rem}.hs-duration-section{padding-top:4.0625rem}}
+@media (max-width:520px){.hs-why-section{padding-bottom:3.75rem}}
+@media (max-width:520px){.hs-real-transformations-section{padding-top:3.75rem;padding-bottom:3.75rem}}
+@media (max-width:520px){.hs-how-it-works-section{padding-bottom:3.75rem}}
+@media (min-width:901px){.hs-hero{padding-bottom:0}.hs-story-section{padding-top:2.5rem}}
+/* Stay Faded duplicate overrides: the original Glam Rock hair-systems page remains untouched. */
+:root{--violet:#AA3AFF;--bg:#050208;--panel:#100713;--line:#3d1b58}
+body.hair-systems-page{background:#050208;color:#fbf7ff}
+.hs-header{background:rgba(5,2,8,.94);border-bottom-color:#3d1b58}
+.hs-header nav a:hover{color:#AA3AFF}
+.hs-nav-cta,.hs-mobile-cta{border-color:#AA3AFF;background:linear-gradient(135deg,#AA3AFF,#57108e);box-shadow:0 0 25px rgba(170,58,255,.35)}
+.hs-hero{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(90deg,rgba(5,2,8,.96) 0%,rgba(5,2,8,.78) 42%,rgba(5,2,8,.38) 100%),url("https://stayfadedbarbershop5280.com/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
+.hs-hero::before{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(5,2,8,.28),rgba(5,2,8,.68));content:""}
+.hs-hero-copy{position:relative;z-index:1}
+.hs-eyebrow{color:#AA3AFF}
+.hs-hero h1 em{background:linear-gradient(135deg,#f0c8ff,#AA3AFF);-webkit-background-clip:text;background-clip:text}
+.hs-button-primary{background:linear-gradient(135deg,#AA3AFF,#57108e);box-shadow:0 0 25px rgba(170,58,255,.35)}
+.hs-story-section{background:linear-gradient(90deg,rgba(5,2,8,.98) 0%,rgba(5,2,8,.9) 44%,rgba(5,2,8,.5) 100%),url("https://stayfadedbarbershop5280.com/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
+.hs-story-section .hs-copy{position:relative;z-index:1}
+.hs-stylist{background:linear-gradient(135deg,#180821,#050208)}
+.hs-stylist-card{overflow:hidden;min-height:420px;background:#09040d}
+.hs-stylist-card img{width:100%;height:100%;max-height:none;object-fit:cover}
+.hs-footer{background:#050208;border-top-color:#3d1b58}
+.hs-footer a{color:#d18cff}
+.hs-booking-dialog{border-color:#AA3AFF}
+.hs-concern-options input{accent-color:#AA3AFF}
+/* Logo-inspired hybrid: brush graffiti accent, condensed display type, readable body copy. */
+body.hair-systems-page{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
+.hs-brand strong,.hs-header nav,.hs-mobile-cta,.hs-eyebrow,.hs-button,.hs-cta-note,.hs-footer,.hs-success-kicker{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;letter-spacing:.12em}
+.hs-brand strong{font-size:1rem;line-height:1.05;letter-spacing:.08em}
+.hs-brand-graffiti{font-family:'Permanent Marker','Brush Script MT',cursive;font-size:1.08em;letter-spacing:.02em;color:#fff;text-shadow:1px 1px 0 #6d1fa8,-1px 0 #AA3AFF}
+.hs-brand-shop{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:.9em;letter-spacing:.16em;color:#d9b4ff}
+.hs-brand small{font-family:Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.02em}
+.hs-header nav{font-size:.9rem;letter-spacing:.16em}
+.hs-hero h1,.hs-copy h2,.hs-section h2,.hs-final-cta h2,.hs-form-header h2,.hs-success-title{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-weight:400;letter-spacing:.015em;text-transform:uppercase}
+.hs-hero h1{line-height:1.04}
+.hs-copy h2 em,.hs-section h2 em,.hs-final-cta h2 em{font-family:'Permanent Marker','Brush Script MT',cursive;font-style:normal;letter-spacing:.01em}
+.hs-copy p,.hs-lede,.hs-final-cta p:not(.hs-eyebrow){font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.hs-button{font-size:1rem;letter-spacing:.1em}
+.hs-eyebrow{font-size:.86rem;letter-spacing:.22em}
+/* Stay Faded brand typography: condensed, bold, and closer to the logo's barber-shop lettering. */
+body.hair-systems-page{font-family:'Roboto Slab',Rockwell,'Courier New',serif;letter-spacing:.005em}
+.hs-brand strong,.hs-brand small,.hs-header nav,.hs-mobile-cta,.hs-eyebrow,.hs-button,.hs-cta-note,.hs-footer,.hs-success-kicker{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;letter-spacing:.12em}
+.hs-brand strong{font-size:1.02rem;letter-spacing:.13em}
+.hs-brand small{font-size:.78rem;letter-spacing:.08em}
+.hs-header nav{font-size:.9rem;letter-spacing:.16em}
+.hs-hero h1,.hs-copy h2,.hs-section h2,.hs-final-cta h2,.hs-form-header h2,.hs-success-title{font-family:'Roboto Slab',Rockwell,Georgia,serif;font-weight:800;letter-spacing:-.025em}
+.hs-hero h1{line-height:1.08}
+.hs-copy p,.hs-lede,.hs-final-cta p:not(.hs-eyebrow){font-family:'Roboto Slab',Rockwell,Georgia,serif}
+.hs-button{font-size:1rem;letter-spacing:.1em}
+.hs-eyebrow{font-size:.86rem;letter-spacing:.22em}
+/* Final brand-font pass: keep the graffiti accent limited so the page stays easy to read. */
+body.hair-systems-page{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
+.hs-brand strong,.hs-header nav,.hs-mobile-cta,.hs-eyebrow,.hs-button,.hs-cta-note,.hs-footer,.hs-success-kicker{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;letter-spacing:.12em}
+.hs-brand strong{font-size:1rem;line-height:1.05;letter-spacing:.08em}
+.hs-brand-graffiti{font-family:'Permanent Marker','Brush Script MT',cursive;font-size:1.08em;letter-spacing:.02em;color:#fff;text-shadow:1px 1px 0 #6d1fa8,-1px 0 #AA3AFF}
+.hs-brand-shop{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:.9em;letter-spacing:.16em;color:#d9b4ff}
+.hs-brand small{font-family:Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.02em}
+.hs-header nav{font-size:.9rem;letter-spacing:.16em}
+.hs-hero h1,.hs-copy h2,.hs-section h2,.hs-final-cta h2,.hs-form-header h2,.hs-success-title{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-weight:400;letter-spacing:.015em;text-transform:uppercase}
+.hs-hero h1{line-height:1.04}
+.hs-copy h2 em,.hs-section h2 em,.hs-final-cta h2 em{font-family:'Permanent Marker','Brush Script MT',cursive;font-style:normal;letter-spacing:.01em}
+.hs-copy p,.hs-lede,.hs-final-cta p:not(.hs-eyebrow){font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.hs-button{font-size:1rem;letter-spacing:.1em}
+.hs-eyebrow{font-size:.86rem;letter-spacing:.22em}
+/* Stay Faded home page: same dark purple brand language, with the LeadConnector section structure. */
+body.stay-faded-home{margin:0;background:#050208;color:#fbf7ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0}
+.sf-home-header{position:absolute;left:0;right:0;background:rgba(5,2,8,.72);border-bottom-color:rgba(170,58,255,.25)}
+.sf-home-header .hs-brand strong,.sf-home-header .hs-brand small{font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.sf-home-header .hs-brand strong{font-size:.85rem;letter-spacing:.08em}
+.sf-home-header .hs-brand small{font-size:.7rem;letter-spacing:.02em}
+.sf-home-hero{position:relative;isolation:isolate;display:flex;align-items:center;min-height:760px;padding:9rem 7vw 6rem;overflow:hidden;background:linear-gradient(90deg,rgba(5,2,8,.68) 0%,rgba(5,2,8,.4) 43%,rgba(5,2,8,.12) 100%),url("https://stayfadedbarbershop5280.com/assets/stay-faded-hero-background.png") center/cover no-repeat}
+.sf-home-hero::after{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(5,2,8,.08),rgba(5,2,8,.35));content:""}
+.sf-home-hero-inner{width:min(760px,100%);position:relative;z-index:1}
+.sf-script{margin:0 0 1.2rem;color:#fff;font-family:'Permanent Marker','Brush Script MT',cursive;font-size:clamp(2.4rem,5vw,4.8rem);line-height:1.05;text-shadow:2px 2px 0 #6816a1;transform:rotate(-2deg);transform-origin:left center}
+.sf-home-hero h1,.sf-home-hero h2,.sf-services h2,.sf-rates h2,.sf-nikkole h2,.sf-contact h2{margin:0;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-weight:400;letter-spacing:.02em;text-transform:uppercase}
+.sf-home-hero h1{font-size:clamp(3.8rem,8vw,7rem);line-height:.95}
+.sf-home-hero h2{margin-top:.9rem;font-size:clamp(2.8rem,6vw,5.5rem);line-height:.95;color:#d9b4ff}
+.sf-hero-kicker{margin:1.5rem 0 0;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:1.6rem;letter-spacing:.12em}
+.sf-local-intro{max-width:650px;margin:1rem 0 0;color:#e9dff0;font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:1rem;line-height:1.6}
+.sf-hero-actions{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2rem}
+.sf-hero-actions .hs-button{border-radius:0;padding:1.15rem 1.6rem;font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:1rem;letter-spacing:0;text-transform:none}
+.sf-hero-secondary{background:linear-gradient(135deg,#4c1681,#250b42);box-shadow:0 0 25px rgba(170,58,255,.2)}
+.sf-section{padding:7rem 5vw;border-top:1px solid rgba(170,58,255,.18)}
+.sf-content{width:min(100%,1180px);margin:0 auto}
+.sf-content-narrow{width:min(760px,100%)}
+.sf-content-wide{width:min(1180px,100%)}
+.sf-kicker{margin:0 0 1rem;color:#b45bff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:1.2rem;letter-spacing:.17em;text-transform:uppercase}
+.sf-philosophy{background:linear-gradient(90deg,rgba(5,2,8,.97),rgba(5,2,8,.72)),url("https://stayfadedbarbershop5280.com/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
+.sf-philosophy h2,.sf-services h2,.sf-nikkole h2,.sf-contact h2{font-size:clamp(3rem,6vw,5.8rem);line-height:.96}
+.sf-philosophy h2 em{font-family:'Permanent Marker','Brush Script MT',cursive;font-style:normal;color:#d9b4ff;text-transform:none}
+.sf-philosophy p:not(.sf-kicker),.sf-nikkole p,.sf-contact p{max-width:760px;color:#ded5e4;font-size:1.08rem;line-height:1.8}
+.sf-philosophy .hs-button,.sf-rates>.sf-content>.hs-button{margin-top:1rem;border-radius:0}
+.sf-services{background:#09030e}
+.sf-service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.1rem;margin-top:2.5rem}
+.sf-service-card{display:flex;min-height:235px;flex-direction:column;padding:2rem;border:1px solid #48215f;background:linear-gradient(145deg,#190822,#0b0410);box-shadow:0 18px 50px #0008}
+.sf-service-image{display:block;width:calc(100% + 4rem);height:185px;margin:-2rem -2rem 1.5rem;object-fit:cover;filter:saturate(.82) contrast(1.05);border-bottom:1px solid #5a2677}
+.sf-service-card h3,.sf-rate-card h3{margin:0 0 1rem;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:2rem;font-weight:400;letter-spacing:.06em}
+.sf-service-card p,.sf-rate-card p{margin:0;color:#d6c7dc;line-height:1.65}
+.sf-service-actions{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.2rem}
+.sf-service-actions .hs-button{flex:1 1 0;min-width:0;border-radius:0;padding:.78rem .5rem;font-size:.72rem;line-height:1.15;text-align:center}
+.sf-rates{background:linear-gradient(180deg,#100418,#050208)}
+.sf-rate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:2rem 0}
+.sf-rate-card{display:flex;min-height:190px;flex-direction:column;gap:.65rem;padding:1.35rem;border:1px solid #48215f;background:rgba(18,6,27,.78);transition:transform .2s ease,border-color .2s ease}
+.sf-rate-card:hover{transform:translateY(-4px);border-color:#AA3AFF}
+.sf-rate-card h3{font-size:1.45rem;margin:0;color:#f0dfff}
+.sf-rate-card strong{margin-top:auto;color:#AA3AFF;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:1.25rem;letter-spacing:.08em}
+.sf-text-link{display:inline-flex;margin:1rem 0 0;color:#fff;font-weight:700;text-decoration:none;border-radius:0}
+.sf-google-reviews{position:relative;overflow:hidden;background:radial-gradient(circle at 88% 0,rgba(170,58,255,.16),transparent 38%),linear-gradient(145deg,#09030e,#12051a 58%,#07020a)}
+.sf-google-reviews::before{position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 0 56%,rgba(255,255,255,.018) 56% 57%,transparent 57% 100%);content:""}
+.sf-google-reviews>.sf-content{position:relative}
+.sf-google-reviews-header{display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;margin-bottom:2.5rem}
+.sf-google-reviews h2{max-width:760px;margin:0;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:clamp(3rem,6vw,5.8rem);font-weight:400;line-height:.96;letter-spacing:.02em;text-transform:uppercase}
+.sf-google-rating{display:grid;grid-template-columns:auto auto;align-items:center;gap:.18rem .65rem;min-width:230px;padding:1rem 1.15rem;border:1px solid rgba(255,255,255,.12);background:rgba(7,2,10,.74);color:#fff;text-decoration:none;box-shadow:0 18px 50px #0007;transition:transform .2s ease,border-color .2s ease}
+.sf-google-rating:hover{transform:translateY(-3px);border-color:#AA3AFF}
+.sf-google-wordmark{grid-column:1/-1;color:#f3f3f3;font-size:1.05rem;font-weight:600;letter-spacing:-.02em}
+.sf-google-wordmark span{color:#4285f4;font-size:1.2rem;font-weight:800}
+.sf-google-score{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:2.15rem;line-height:1}
+.sf-google-stars,.sf-review-stars{color:#fbbc04;letter-spacing:.1em}
+.sf-google-stars{font-size:.95rem}
+.sf-google-count{grid-column:1/-1;color:#cfc3d5;font-size:.78rem}
+.sf-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.sf-review-card{display:flex;min-height:230px;flex-direction:column;padding:1.6rem;border:1px solid #48215f;background:linear-gradient(145deg,rgba(28,9,39,.92),rgba(10,3,14,.94));box-shadow:0 18px 48px #0007}
+.sf-review-stars{font-size:.88rem}
+.sf-review-card blockquote{margin:1.2rem 0 1.8rem;color:#f6eff9;font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:clamp(1.15rem,2vw,1.5rem);font-weight:600;line-height:1.55}
+.sf-review-card footer{display:flex;align-items:center;gap:.8rem;margin-top:auto}
+.sf-review-avatar{display:grid;width:2.5rem;height:2.5rem;flex:0 0 2.5rem;place-items:center;border:1px solid #783aa0;border-radius:50%;background:#25102f;color:#fff;font-weight:800}
+.sf-review-card footer strong,.sf-review-card footer small{display:block}
+.sf-review-card footer strong{color:#fff;font-size:.9rem}
+.sf-review-card footer small{margin-top:.18rem;color:#a999b1;font-size:.73rem}
+.sf-google-reviews-action{display:flex;justify-content:center;margin-top:2rem}
+.sf-google-reviews-action .hs-button{border-radius:0}
+.sf-nikkole{background:linear-gradient(100deg,#08030c,#160620)}
+.sf-nikkole-grid{display:block}
+.sf-nikkole-top{display:grid;grid-template-columns:minmax(250px,380px) minmax(0,1fr);align-items:start;gap:4rem}
+.sf-nikkole-photo{position:sticky;top:7rem;margin:0;border:1px solid #5d2680;box-shadow:0 24px 70px #0009}
+.sf-nikkole-photo img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}
+.sf-nikkole p{margin:1.2rem 0;color:#e4d9e8;font-size:1rem;line-height:1.75}
+.sf-nikkole p strong em{font-weight:600}
+.sf-nikkole a{color:#d9a4ff;text-decoration:underline}
+.sf-faq{background:#09030e}
+.sf-faq h2{margin:0 0 2rem;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:clamp(3rem,6vw,5.8rem);font-weight:400;line-height:.96;letter-spacing:.02em;text-transform:uppercase}
+.sf-faq details{border-top:1px solid #48215f;padding:1.25rem 0}
+.sf-faq details:last-of-type{border-bottom:1px solid #48215f}
+.sf-faq summary{cursor:pointer;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:1.45rem;letter-spacing:.04em;list-style-position:inside}
+.sf-faq details p{margin:1rem 0 0;color:#ded5e4;font-size:1rem;line-height:1.75}
+.sf-faq .hs-button{margin-top:2rem;border-radius:0}
+.sf-nikkole-story{width:100%;max-width:980px;margin:2.25rem auto 0;padding-top:0;border-top:0}
+.sf-nikkole-story p{max-width:none}
+.sf-nikkole-story p,.sf-nikkole-story p strong,.sf-nikkole-story p em,.sf-nikkole-story p strong em{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:1.08rem;font-weight:400;font-style:normal;line-height:1.8;color:#ded5e4}
+.sf-nikkole-top .sf-kicker{font-size:1.5rem}
+.sf-nikkole-top .sf-content>p:not(.sf-kicker),.sf-nikkole-top .sf-content>p strong,.sf-nikkole-top .sf-content>p em,.sf-nikkole-top .sf-content>p strong em{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:1.08rem;font-weight:400;font-style:normal;line-height:1.8;color:#ded5e4}
+.sf-photo-gallery{overflow:hidden;background:linear-gradient(135deg,#09030e,#160620)}
+.sf-photo-gallery-header{max-width:760px;margin:0 auto 2.5rem;text-align:center}
+.sf-photo-gallery-header h2{margin:0;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:clamp(3rem,6vw,5.8rem);font-weight:400;line-height:.96;letter-spacing:.02em;text-transform:uppercase}
+.sf-photo-gallery-header p:not(.sf-kicker){margin:1.25rem auto 0;color:#ded5e4;font-size:1.08rem;line-height:1.8}
+.sf-photo-gallery-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:190px;gap:1rem}
+.sf-photo-gallery-card{grid-column:span 3;margin:0;overflow:hidden;border:1px solid #4a1d67;background:#09030e;box-shadow:0 20px 50px #0008}
+.sf-photo-gallery-feature{grid-column:span 6;grid-row:span 2}
+.sf-photo-gallery-button{display:block;width:100%;height:100%;padding:0;border:0;background:transparent;cursor:zoom-in}
+.sf-photo-gallery-button:focus-visible{outline:3px solid #d18cff;outline-offset:-4px}
+.sf-photo-gallery-card img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .35s ease,filter .35s ease}
+.sf-photo-location img{object-position:center 44%}
+.sf-photo-gallery-card:hover img{transform:scale(1.025);filter:contrast(1.04)}
+.sf-gallery-swipe-hint{display:none}
+.sf-lightbox-open{overflow:hidden}
+.sf-photo-lightbox{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:clamp(1rem,3vw,2.5rem)}
+.sf-photo-lightbox[hidden]{display:none}
+.sf-photo-lightbox-backdrop{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;background:rgba(2,0,4,.92);cursor:zoom-out}
+.sf-photo-lightbox-dialog{position:relative;z-index:1;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:1rem;width:min(1200px,96vw);height:min(900px,90vh);pointer-events:none}
+.sf-photo-lightbox-image{display:block;max-width:100%;max-height:88vh;justify-self:center;border:1px solid #5d2680;background:#050208;box-shadow:0 30px 90px #000;pointer-events:auto}
+.sf-photo-lightbox-close,.sf-photo-lightbox-nav{display:grid;place-items:center;border:1px solid #744393;background:rgba(18,5,27,.9);color:#fff;cursor:pointer;box-shadow:0 10px 30px #0008}
+.sf-photo-lightbox-close,.sf-photo-lightbox-nav{pointer-events:auto}
+.sf-photo-lightbox-close{position:absolute;top:0;right:0;z-index:2;width:3rem;height:3rem;border-radius:50%;font-size:2rem;line-height:1}
+.sf-photo-lightbox-nav{width:3.25rem;height:3.25rem;border-radius:50%;font-size:2rem;line-height:1}
+.sf-photo-lightbox-close:hover,.sf-photo-lightbox-nav:hover{border-color:#d18cff;background:#491368}
+.sf-contact{background:linear-gradient(90deg,rgba(5,2,8,.96),rgba(5,2,8,.58)),url("https://stayfadedbarbershop5280.com/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
+.sf-contact h2{margin:0 0 2rem;font-size:clamp(2.2rem,4vw,4rem);text-transform:none}
+.sf-contact h2 a{color:#d9b4ff}
+.sf-contact p{margin:1.5rem 0 .35rem}
+.sf-map-card{display:flex;align-items:center;gap:1rem;width:min(100%,620px);margin:1.5rem 0 2.25rem;padding:1rem 1.15rem;border:1px solid #70417e;border-radius:.75rem;background:linear-gradient(135deg,rgba(90,24,125,.7),rgba(16,7,22,.92));color:#fff;text-decoration:none;box-shadow:0 14px 32px #0006;transition:transform .2s ease,border-color .2s ease,background .2s ease}
+.sf-map-card:hover{transform:translateY(-2px);border-color:#c45aff;background:linear-gradient(135deg,rgba(111,31,153,.86),rgba(16,7,22,.94))}
+.sf-map-pin{display:grid;place-items:center;width:2.5rem;height:2.5rem;border:1px solid #d9a4ff;border-radius:50%;color:#e4bdff;font-size:1.45rem;line-height:1}
+.sf-map-card span:nth-child(2){display:grid;gap:.15rem;min-width:0}
+.sf-map-card strong{font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:1.15rem;font-weight:400;letter-spacing:.08em;text-transform:uppercase}
+.sf-map-card small{color:#ded5e4;font-size:.9rem;line-height:1.35}
+.sf-map-arrow{margin-left:auto;color:#e0b5ff;font-size:1.5rem}
+.sf-dedication{background:linear-gradient(100deg,#08030c,#160620)}
+.sf-salvador-letter{display:flex;justify-content:center;background:linear-gradient(180deg,#030105 0%,#0b0411 52%,#030105 100%);border-top:1px solid #2b123b;border-bottom:1px solid #2b123b}
+.sf-salvador-letter-inner{width:min(800px,100%);max-width:800px;margin-inline:auto;text-align:center}
+.sf-salvador-letter h2{margin:0 0 2rem;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:clamp(2.8rem,5vw,5rem);font-weight:400;line-height:.98;letter-spacing:.02em;text-transform:uppercase}
+.sf-salvador-letter-copy{display:grid;gap:1.25rem}
+.sf-salvador-letter-copy p{margin:0;color:#ded5e4;font-size:1.08rem;line-height:1.8}
+.sf-salvador-letter-copy p:first-child{color:#fff;font-size:1.08rem;font-weight:700}
+.sf-salvador-letter-signoff{margin-top:.75rem!important;color:#fff!important;font-weight:700}
+.sf-salvador-letter-hashtag{color:#d18cff!important;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:1.15rem!important;letter-spacing:.14em;text-transform:uppercase}
+.sf-dedication-grid{display:grid;grid-template-columns:minmax(250px,420px) minmax(0,1fr);align-items:center;gap:4rem}
+.sf-dedication-photo{margin:0;border:1px solid #5d2680;box-shadow:0 24px 70px #0009}
+.sf-dedication-photo img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}
+.sf-dedication h2{margin:0 0 1.5rem;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:clamp(2.8rem,5vw,5rem);font-weight:400;line-height:.98;letter-spacing:.02em;text-transform:uppercase}
+.sf-dedication p:not(.sf-kicker){max-width:760px;color:#ded5e4;font-size:1.08rem;line-height:1.8}
+.sf-home-footer{background:#050208;border-top-color:#4a1d67}
+.sf-home-footer p{font-family:Inter,ui-sans-serif,system-ui,sans-serif}.sf-footer-links{display:flex;flex-wrap:wrap;justify-content:center;gap:1rem}.sf-footer-links a{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:.78rem}.sf-menu-toggle{display:none}
+@media (max-width:900px){.sf-menu-toggle{display:inline-flex;align-items:center;justify-content:center;padding:.65rem .85rem;border:1px solid #c54dff;border-radius:999px;background:#160a20;color:#fff;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:.82rem;letter-spacing:.12em;cursor:pointer}.sf-home-header #sf-primary-nav{display:none;position:absolute;top:100%;left:0;right:0;z-index:20;align-items:stretch;gap:0;padding:.65rem 1.25rem 1rem;border-bottom:1px solid #4a1d67;background:rgba(7,3,11,.98);box-shadow:0 18px 35px #000b}.sf-home-header.sf-menu-open #sf-primary-nav{display:flex;flex-direction:column}.sf-home-header.sf-menu-open #sf-primary-nav a{padding:.72rem 0;border-bottom:1px solid #2e1839;font-size:.82rem}.sf-home-header.sf-menu-open #sf-primary-nav a:last-child{border-bottom:0}.sf-home-header.sf-menu-open #sf-primary-nav .hs-nav-cta{margin-top:.75rem;text-align:center}}
+@media (max-width:900px){.sf-home-header{position:relative}.sf-home-hero{min-height:700px;padding:6rem 2rem 4rem}.sf-service-grid,.sf-rate-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sf-google-reviews-header{align-items:stretch;flex-direction:column}.sf-google-rating{width:min(100%,300px)}.sf-photo-gallery-grid{display:flex;gap:1rem;overflow-x:auto;padding:0 0 .75rem;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-inline:contain}.sf-photo-gallery-grid::-webkit-scrollbar{display:none}.sf-photo-gallery-card,.sf-photo-gallery-feature{order:3;flex:0 0 min(72vw,440px);height:320px;scroll-snap-align:start}.sf-photo-owner{order:1}.sf-photo-location{order:2}.sf-photo-lightbox-dialog{grid-template-columns:1fr}.sf-photo-lightbox-nav{position:absolute;top:50%;z-index:2;transform:translateY(-50%)}.sf-photo-lightbox-prev{left:0}.sf-photo-lightbox-next{right:0}.sf-nikkole-top,.sf-dedication-grid{grid-template-columns:1fr;gap:2.5rem}.sf-nikkole-photo,.sf-dedication-photo{position:static;width:min(380px,100%);margin:0 auto}.sf-nikkole-top>.sf-content,.sf-dedication-grid>.sf-content{width:100%}.sf-nikkole-story{margin-top:3rem}}
+@media (max-width:560px){.sf-home-hero{padding:5rem 1.25rem 3rem;background-size:cover;background-position:0 0,calc(42% - 40px) center;background-color:#050208}.sf-script{font-size:2.4rem}.sf-home-hero h1{font-size:4rem}.sf-home-hero h2{font-size:3.3rem}.sf-hero-actions{flex-direction:column}.sf-hero-actions .hs-button{width:100%}.sf-section{padding:5rem 1.25rem}.sf-service-grid,.sf-rate-grid{grid-template-columns:1fr}.sf-google-reviews-header{margin-bottom:1.5rem}.sf-google-rating{width:100%;box-sizing:border-box}.sf-review-grid{display:flex;gap:.75rem;overflow-x:auto;margin-right:-1.25rem;padding:0 1.25rem .75rem 0;scroll-snap-type:x mandatory;scrollbar-width:none}.sf-review-grid::-webkit-scrollbar{display:none}.sf-review-card{min-height:245px;flex:0 0 82%;scroll-snap-align:start}.sf-google-reviews-action .hs-button{width:100%}.sf-photo-gallery-grid{gap:.75rem;scroll-padding-inline:0}.sf-photo-gallery-card,.sf-photo-gallery-feature{flex:0 0 46%;height:225px;box-shadow:0 14px 34px #0009}.sf-gallery-swipe-hint{display:flex;align-items:center;justify-content:flex-end;margin:.65rem 0 0;color:#c98cf0;font-family:'Bebas Neue','Arial Narrow',Impact,sans-serif;font-size:.95rem;letter-spacing:.12em;text-transform:uppercase}.sf-photo-lightbox{padding:.75rem}.sf-photo-lightbox-dialog{width:100%;height:92vh}.sf-photo-lightbox-image{max-height:88vh}.sf-photo-lightbox-close{top:.25rem;right:.25rem;width:2.75rem;height:2.75rem}.sf-photo-lightbox-nav{width:2.75rem;height:2.75rem}.sf-service-actions{flex-direction:column}.sf-service-actions .hs-button{width:100%}.sf-text-link{margin-left:0}.sf-home-footer{padding:1.5rem 1rem}}
+@media (max-width:900px){.sf-home-header.sf-menu-open #sf-primary-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));top:calc(100% + .65rem);left:auto;right:1rem;width:min(360px,calc(100vw - 2rem));padding:.75rem;border:1px solid #5d2b78;border-radius:1rem;background:linear-gradient(145deg,#1b0927,#09030e);box-shadow:0 20px 45px #000c}.sf-home-header.sf-menu-open #sf-primary-nav a{padding:.65rem .75rem;border:0;border-radius:.55rem;background:#140820;font-size:.78rem;line-height:1.1}.sf-home-header.sf-menu-open #sf-primary-nav a:hover{background:#2a1040;color:#fff}.sf-home-header.sf-menu-open #sf-primary-nav .hs-nav-cta{grid-column:1/-1;margin-top:.25rem;text-align:center}.sf-menu-toggle:focus{outline:none}.sf-menu-toggle:focus-visible{outline:2px solid #e3a0ff;outline-offset:3px}}
+@media (max-width:560px){.sf-home-header.sf-menu-open #sf-primary-nav{grid-template-columns:1fr;right:.75rem;width:calc(100vw - 1.5rem)}.sf-home-header.sf-menu-open #sf-primary-nav .hs-nav-cta{grid-column:auto}}
