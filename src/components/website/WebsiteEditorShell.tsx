@@ -164,17 +164,23 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     doc.addEventListener(
       'click',
       (event) => {
-        const target = (event.target as HTMLElement)?.closest('[data-we-editable]') as HTMLElement | null;
+        const node = event.target as HTMLElement | null;
+        const target = node?.closest('[data-we-editable]') as HTMLElement | null;
         // Keep the preview static while editing.
         event.preventDefault();
-        if (!target) return;
-        const key = fieldsRef.current.find((f) => elementFromKey(doc, f.key) === target)?.key;
+        // Clicking anywhere inside a repeatable card selects that card.
+        const fallbackItem = !target ? (node?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null) : null;
+        const resolved =
+          target ?? (fallbackItem?.querySelector('[data-we-editable]') as HTMLElement | null) ?? null;
+        if (!resolved) return;
+        const key = fieldsRef.current.find((f) => elementFromKey(doc, f.key) === resolved)?.key;
         if (!key) return;
         setSelectedKey(key);
         setSelected(doc, key);
       },
       true,
     );
+
   };
 
   // Re-scan when the page tab changes.
