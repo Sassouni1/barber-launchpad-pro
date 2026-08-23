@@ -232,6 +232,24 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey, ready, repeatRules, pageKey, pageDraft]);
 
+  /** For an image inside a repeatable card, derive a heading from that card's title text. */
+  const imageCardHeading = useMemo(() => {
+    if (!selectedField || selectedField.kind !== 'image' || !activeItem) return null;
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return null;
+    const imgEl = elementFromKey(doc, selectedField.key);
+    const item = imgEl?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
+    if (!item) return null;
+    const titleField = fields.find((f) => {
+      if (f.kind !== 'text') return false;
+      const el = elementFromKey(doc, f.key);
+      return !!el && item.contains(el);
+    });
+    const title = titleField ? (pageDraft[titleField.key] ?? titleField.original).trim() : '';
+    return title ? `${title} image` : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedField, activeItem, pageDraft, fields]);
+
   const runItemOp = (kind: ItemOp, itemEl?: HTMLElement) => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
@@ -516,7 +534,11 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
                 {selectedField.kind === 'image' ? (
                   <div className="space-y-3">
-                    <Badge variant="secondary">{selectedField.section}</Badge>
+                    {imageCardHeading ? (
+                      <p className="text-sm font-semibold text-foreground">{imageCardHeading}</p>
+                    ) : (
+                      <Badge variant="secondary">{selectedField.section}</Badge>
+                    )}
                     <img
                       src={pageDraft[selectedField.key] ?? selectedField.original}
                       alt={selectedField.label}
