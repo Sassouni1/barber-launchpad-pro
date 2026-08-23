@@ -3413,30 +3413,11 @@ export type Database = {
       published_sites: {
         Row: {
           custom_domain: string | null
-          hair_system_html: string | null
-          home_html: string | null
+          legacy_origin: string | null
           published_at: string | null
           published_pages: Json | null
           site_slug: string | null
           template_key: string | null
-        }
-        Insert: {
-          custom_domain?: string | null
-          hair_system_html?: string | null
-          home_html?: string | null
-          published_at?: string | null
-          published_pages?: Json | null
-          site_slug?: string | null
-          template_key?: string | null
-        }
-        Update: {
-          custom_domain?: string | null
-          hair_system_html?: string | null
-          home_html?: string | null
-          published_at?: string | null
-          published_pages?: Json | null
-          site_slug?: string | null
-          template_key?: string | null
         }
         Relationships: []
       }

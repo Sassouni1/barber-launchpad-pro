@@ -55,13 +55,13 @@ body.hair-systems-page{background:#050208;color:#fbf7ff}
 .hs-header{background:rgba(5,2,8,.94);border-bottom-color:#3d1b58}
 .hs-header nav a:hover{color:#AA3AFF}
 .hs-nav-cta,.hs-mobile-cta{border-color:#AA3AFF;background:linear-gradient(135deg,#AA3AFF,#57108e);box-shadow:0 0 25px rgba(170,58,255,.35)}
-.hs-hero{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(90deg,rgba(5,2,8,.96) 0%,rgba(5,2,8,.78) 42%,rgba(5,2,8,.38) 100%),url("https://stayfadedbarbershop5280.com/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
+.hs-hero{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(90deg,rgba(5,2,8,.96) 0%,rgba(5,2,8,.78) 42%,rgba(5,2,8,.38) 100%),url("https://stay-faded-barbershop.pages.dev/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
 .hs-hero::before{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(5,2,8,.28),rgba(5,2,8,.68));content:""}
 .hs-hero-copy{position:relative;z-index:1}
 .hs-eyebrow{color:#AA3AFF}
 .hs-hero h1 em{background:linear-gradient(135deg,#f0c8ff,#AA3AFF);-webkit-background-clip:text;background-clip:text}
 .hs-button-primary{background:linear-gradient(135deg,#AA3AFF,#57108e);box-shadow:0 0 25px rgba(170,58,255,.35)}
-.hs-story-section{background:linear-gradient(90deg,rgba(5,2,8,.98) 0%,rgba(5,2,8,.9) 44%,rgba(5,2,8,.5) 100%),url("https://stayfadedbarbershop5280.com/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
+.hs-story-section{background:linear-gradient(90deg,rgba(5,2,8,.98) 0%,rgba(5,2,8,.9) 44%,rgba(5,2,8,.5) 100%),url("https://stay-faded-barbershop.pages.dev/assets/stay-faded-barber-shop-hero-arvada-colorado.png") center/cover no-repeat}
 .hs-story-section .hs-copy{position:relative;z-index:1}
 .hs-stylist{background:linear-gradient(135deg,#180821,#050208)}
 .hs-stylist-card{overflow:hidden;min-height:420px;background:#09040d}

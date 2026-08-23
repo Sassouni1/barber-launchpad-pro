@@ -1,5 +1,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireUser, serviceClient, slugify } from "../_shared/websiteAuth.ts";
+import { SITE_WORKER_SOURCE, SITE_WORKER_VERSION } from "../_shared/siteWorker.ts";
+
 
 const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z]{2,24})+$/;
 
@@ -63,7 +65,7 @@ async function checkDomains(domains: string[], accountId: string, token: string)
     ? result
     : [];
 
-  const results: CheckResult[] = rows.map((row: Record<string, any>) => {
+  const results: CheckResult[] = rows.map((row: Record<string, unknown>) => {
     const pricing = row?.pricing ?? {};
     const registrable = row?.registrable === true;
     const premium = row?.tier === "premium";
@@ -89,11 +91,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { user, error: authError } = await requireUser(req);
-    if (!user) return json({ error: authError }, 401);
-
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const action = typeof body.action === "string" ? body.action : "";
+
+    // The worker deploy action may also be authorised by the server-only deploy secret.
+    const deploySecret = Deno.env.get("SITE_WORKER_DEPLOY_SECRET") ?? "";
+    const secretOk = action === "deploy-site-worker" && Boolean(deploySecret) &&
+      (req.headers.get("x-deploy-secret") ?? "") === deploySecret;
+
+    const { user, error: authError } = await requireUser(req);
+    if (!user && !secretOk) return json({ error: authError }, 401);
+
 
     const config = cloudflareConfig();
     if (!config) {
@@ -124,6 +132,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "register") {
+      if (!user) return json({ error: "Invalid or expired session" }, 401);
+
       const domain = typeof body.domain === "string" ? body.domain.trim().toLowerCase() : "";
       const confirmedDomain = typeof body.confirmedDomain === "string"
         ? body.confirmedDomain.trim().toLowerCase()
@@ -202,7 +212,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Push the canonical member-sites Worker source in this repo to Cloudflare.
+    // Authorised by an admin session, or by the server-only SITE_WORKER_DEPLOY_SECRET.
+    if (action === "deploy-site-worker") {
+      let allowed = secretOk;
+      if (!allowed && user) {
+        const svc = serviceClient();
+        const { data: isAdmin } = await svc.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        allowed = isAdmin === true;
+      }
+      if (!allowed) return json({ error: "Admins only" }, 403);
+
+
+      const result = await deploySiteWorker(config.accountId, config.token);
+      if (!result.ok) return json({ error: result.error }, 502);
+      return json({
+        success: true,
+        worker: Deno.env.get("CLOUDFLARE_SITE_WORKER_NAME") ?? "barber-launch-member-sites",
+        version: result.version,
+      });
+    }
+
+
     return json({ error: "Unknown action" }, 400);
+
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Unexpected error" }, 500);
   }
