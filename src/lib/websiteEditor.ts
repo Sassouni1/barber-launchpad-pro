@@ -429,6 +429,7 @@ export async function renderTemplatePage(
   applyDraft(doc, draft);
 
   // Editor-only markup never ships.
+  doc.querySelectorAll(`[${OVERLAY_ATTR}]`).forEach((el) => el.remove());
   doc.querySelectorAll('[data-we-editable]').forEach((el) => el.removeAttribute('data-we-editable'));
   doc.querySelectorAll('[data-we-selected]').forEach((el) => el.removeAttribute('data-we-selected'));
   doc.querySelectorAll(`[${ITEM_ATTR}]`).forEach((el) => {
