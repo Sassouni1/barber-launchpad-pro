@@ -5,17 +5,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Globe, ImageIcon, Info, Loader2, Redo2, Save, Undo2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, Globe, ImageIcon, Info, Loader2, Redo2, Save, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import {
+  ITEM_ATTR,
+  ITEM_POS_ATTR,
   applyDraft,
+  applyLayout,
+  currentOrder,
   decorateFields,
   elementFromKey,
+  itemKeys,
+  readLayout,
   scanFields,
   setSelected,
+  writeLayout,
   type EditableField,
   type EditorDraft,
+  type PageDraft,
+  type RepeatOriginals,
+  type RepeatRule,
   type WebsiteTemplateConfig,
 } from '@/lib/websiteEditor';
 import {
@@ -33,10 +43,12 @@ type Props = {
   entitlement: WebsiteEntitlement;
 };
 
+type ActiveItem = { rule: RepeatRule; position: number; total: number };
+
 /**
  * The one member editor surface. Every template renders through this shell —
- * page tabs, iframe editing, limits, undo/redo, images, Save and Save & Publish
- * are implemented once and shared by all client websites.
+ * page tabs, iframe editing, limits, undo/redo, images, repeatable cards, Save
+ * and Save & Publish are implemented once and shared by all client websites.
  */
 export function WebsiteEditorShell({ template, entitlement }: Props) {
   const { user } = useAuth();
@@ -55,6 +67,13 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const [historyIndex, setHistoryIndex] = useState(0);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
 
+  // Pristine copies of every configured repeatable item, per page.
+  const originalsRef = useRef<Record<string, RepeatOriginals>>({});
+  const fieldsRef = useRef<EditableField[]>([]);
+  const draftRef = useRef<EditorDraft>({});
+  draftRef.current = draft;
+
+  const repeatRules = useMemo(() => template.repeatRules ?? [], [template.repeatRules]);
   const page = template.pages.find((p) => p.key === pageKey) ?? template.pages[0];
 
   // Restore the cloud draft (localStorage is only an offline convenience).
@@ -79,6 +98,21 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     [historyIndex, template.templateKey],
   );
 
+  /** Rebuilds structure, re-scans fields and re-applies the member's content. */
+  const hydrate = useCallback(
+    (doc: Document, nextPageDraft: PageDraft): EditableField[] => {
+      const originals = originalsRef.current[pageKey] ?? {};
+      originalsRef.current[pageKey] = applyLayout(doc, repeatRules, readLayout(nextPageDraft), originals);
+      const scanned = scanFields(doc, template.fieldRules);
+      decorateFields(doc, scanned);
+      applyDraft(doc, nextPageDraft);
+      fieldsRef.current = scanned;
+      setFields(scanned);
+      return scanned;
+    },
+    [pageKey, repeatRules, template.fieldRules],
+  );
+
   const setValue = (key: string, value: string) => {
     commit({ ...draft, [pageKey]: { ...pageDraft, [key]: value } });
     const doc = iframeRef.current?.contentDocument;
@@ -93,13 +127,15 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     writeLocalDraft(template.templateKey, snapshot);
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
-    fields.forEach((field) => {
+    fieldsRef.current.forEach((field) => {
       const el = elementFromKey(doc, field.key);
       if (!el) return;
       if (field.kind === 'image') el.setAttribute('src', field.original);
       else el.textContent = field.original;
     });
-    applyDraft(doc, snapshot[pageKey] ?? {});
+    hydrate(doc, snapshot[pageKey] ?? {});
+    setSelectedKey(null);
+    setSelected(doc, null);
   };
 
   const undo = () => {
@@ -119,10 +155,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const handleIframeLoad = () => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
-    const scanned = scanFields(doc, template.fieldRules);
-    setFields(scanned);
-    decorateFields(doc, scanned);
-    applyDraft(doc, draft[pageKey] ?? {});
+    originalsRef.current[pageKey] = {};
+    hydrate(doc, draftRef.current[pageKey] ?? {});
     setSelectedKey(null);
     setReady(true);
 
@@ -133,7 +167,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         // Keep the preview static while editing.
         event.preventDefault();
         if (!target) return;
-        const key = scanned.find((f) => elementFromKey(doc, f.key) === target)?.key;
+        const key = fieldsRef.current.find((f) => elementFromKey(doc, f.key) === target)?.key;
         if (!key) return;
         setSelectedKey(key);
         setSelected(doc, key);
@@ -146,9 +180,87 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   useEffect(() => {
     setReady(false);
     setFields([]);
+    fieldsRef.current = [];
+    setSelectedKey(null);
   }, [pageKey]);
 
   const selectedField = useMemo(() => fields.find((f) => f.key === selectedKey) ?? null, [fields, selectedKey]);
+
+  /** Which configured repeatable card (if any) the selection lives inside. */
+  const activeItem: ActiveItem | null = useMemo(() => {
+    if (!selectedKey || !ready) return null;
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return null;
+    const el = elementFromKey(doc, selectedKey);
+    const item = (el as HTMLElement | null)?.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
+    if (!item) return null;
+    const rule = repeatRules.find((r) => r.key === item.getAttribute(ITEM_ATTR));
+    if (!rule) return null;
+    const position = Number(item.getAttribute(ITEM_POS_ATTR) ?? '0');
+    const originals = originalsRef.current[pageKey]?.[rule.key] ?? [];
+    const total = currentOrder(readLayout(pageDraft), rule.key, originals.length).length;
+    return { rule, position, total };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKey, ready, repeatRules, pageKey, pageDraft]);
+
+  const runItemOp = (kind: 'duplicate' | 'earlier' | 'later') => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc || !activeItem) return;
+    const { rule, position } = activeItem;
+    const originals = originalsRef.current[pageKey]?.[rule.key] ?? [];
+    const layout = readLayout(pageDraft);
+    const order = currentOrder(layout, rule.key, originals.length);
+
+    let nextOrder: number[];
+    let mapping: number[];
+    let nextPosition: number;
+
+    if (kind === 'duplicate') {
+      if (rule.max && order.length >= rule.max) {
+        toast.error(`You can have up to ${rule.max} ${rule.label} cards here.`);
+        return;
+      }
+      nextOrder = [...order.slice(0, position + 1), order[position], ...order.slice(position + 1)];
+      mapping = [];
+      for (let i = 0; i <= position; i += 1) mapping.push(i);
+      mapping.push(position);
+      for (let i = position + 1; i < order.length; i += 1) mapping.push(i);
+      nextPosition = position + 1;
+    } else {
+      const target = kind === 'earlier' ? position - 1 : position + 1;
+      if (target < 0 || target >= order.length) return;
+      nextOrder = [...order];
+      [nextOrder[position], nextOrder[target]] = [nextOrder[target], nextOrder[position]];
+      mapping = order.map((_, i) => (i === position ? target : i === target ? position : i));
+      nextPosition = target;
+    }
+
+    const oldKeys = itemKeys(doc, rule);
+    const nextLayout = { ...layout, [rule.key]: nextOrder };
+    originalsRef.current[pageKey] = applyLayout(
+      doc,
+      repeatRules,
+      nextLayout,
+      originalsRef.current[pageKey] ?? {},
+    );
+    const newKeys = itemKeys(doc, rule);
+
+    const remapped = writeLayout(remapDraft(pageDraft, oldKeys, newKeys, mapping), nextLayout);
+    const nextDraft = { ...draft, [pageKey]: remapped };
+    commit(nextDraft);
+    const scanned = hydrate(doc, remapped);
+
+    const prefix = newKeys[nextPosition];
+    const nextField = prefix ? scanned.find((f) => f.key.startsWith(`${prefix}.`) || f.key === prefix) : undefined;
+    setSelectedKey(nextField?.key ?? null);
+    setSelected(doc, nextField?.key ?? null);
+    toast.success(
+      kind === 'duplicate'
+        ? `Duplicated this ${rule.label} — edit the new card below.`
+        : `Moved this ${rule.label} ${kind === 'earlier' ? 'earlier' : 'later'}.`,
+    );
+  };
+
   const currentValue = selectedField ? (pageDraft[selectedField.key] ?? selectedField.original) : '';
   const overLimit = !!selectedField?.limit && currentValue.length > selectedField.limit;
   const nearLimit = !!selectedField?.limit && currentValue.length > selectedField.limit * 0.9;
@@ -276,41 +388,87 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                 Tap any highlighted text or image in the preview. {textFields} text fields and {imageFields} images
                 are editable on this page.
               </p>
-            ) : selectedField.kind === 'image' ? (
-              <div className="space-y-3">
-                <Badge variant="secondary">{selectedField.section}</Badge>
-                <img
-                  src={pageDraft[selectedField.key] ?? selectedField.original}
-                  alt={selectedField.label}
-                  className="w-full rounded-md border border-border"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Target size: {selectedField.width ?? '—'} × {selectedField.height ?? '—'}px
-                </p>
-                <Button className="w-full" onClick={() => setImageDialogOpen(true)}>
-                  <ImageIcon className="mr-2 h-4 w-4" /> Replace image
-                </Button>
-              </div>
             ) : (
-              <div className="space-y-2">
-                <Badge variant="secondary">{selectedField.section}</Badge>
-                <Label className="block text-xs text-muted-foreground">{selectedField.label}</Label>
-                <Textarea
-                  rows={currentValue.length > 160 ? 10 : 4}
-                  value={currentValue}
-                  maxLength={selectedField.limit}
-                  onChange={(e) => setValue(selectedField.key, e.target.value)}
-                />
-                <p
-                  className={`text-xs ${
-                    overLimit ? 'text-destructive' : nearLimit ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  {currentValue.length} / {selectedField.limit} characters
-                  {nearLimit && !overLimit ? ' — close to the limit for this layout' : ''}
-                  {overLimit ? ' — too long for this layout' : ''}
-                </p>
-              </div>
+              <>
+                {activeItem && (
+                  <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+                    <p className="text-xs font-medium text-foreground">
+                      {activeItem.rule.label.replace(/\b\w/g, (c) => c.toUpperCase())} card{' '}
+                      {activeItem.position + 1} of {activeItem.total}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="min-h-9"
+                        onClick={() => runItemOp('duplicate')}
+                        aria-label={`Duplicate this ${activeItem.rule.label}`}
+                      >
+                        <Copy className="mr-2 h-4 w-4" /> Duplicate {activeItem.rule.label}
+                      </Button>
+                      {activeItem.position > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="min-h-9"
+                          onClick={() => runItemOp('earlier')}
+                          aria-label={`Move this ${activeItem.rule.label} earlier`}
+                        >
+                          <ArrowUp className="mr-2 h-4 w-4" /> Move earlier
+                        </Button>
+                      )}
+                      {activeItem.position < activeItem.total - 1 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="min-h-9"
+                          onClick={() => runItemOp('later')}
+                          aria-label={`Move this ${activeItem.rule.label} later`}
+                        >
+                          <ArrowDown className="mr-2 h-4 w-4" /> Move later
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedField.kind === 'image' ? (
+                  <div className="space-y-3">
+                    <Badge variant="secondary">{selectedField.section}</Badge>
+                    <img
+                      src={pageDraft[selectedField.key] ?? selectedField.original}
+                      alt={selectedField.label}
+                      className="w-full rounded-md border border-border"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Target size: {selectedField.width ?? '—'} × {selectedField.height ?? '—'}px
+                    </p>
+                    <Button className="w-full" onClick={() => setImageDialogOpen(true)}>
+                      <ImageIcon className="mr-2 h-4 w-4" /> Replace image
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Badge variant="secondary">{selectedField.section}</Badge>
+                    <Label className="block text-xs text-muted-foreground">{selectedField.label}</Label>
+                    <Textarea
+                      rows={currentValue.length > 160 ? 10 : 4}
+                      value={currentValue}
+                      maxLength={selectedField.limit}
+                      onChange={(e) => setValue(selectedField.key, e.target.value)}
+                    />
+                    <p
+                      className={`text-xs ${
+                        overLimit ? 'text-destructive' : nearLimit ? 'text-primary' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {currentValue.length} / {selectedField.limit} characters
+                      {nearLimit && !overLimit ? ' — close to the limit for this layout' : ''}
+                      {overLimit ? ' — too long for this layout' : ''}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
