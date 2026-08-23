@@ -517,12 +517,9 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
                 {selectedField.kind === 'image' ? (
                   <div className="space-y-3">
-                    {imageCardHeading ? (
-                      <p className="text-sm font-semibold text-foreground">{imageCardHeading}</p>
-                    ) : (
-                      <Badge variant="secondary">{selectedField.section}</Badge>
-                    )}
+                    <p className="text-sm font-semibold text-foreground">Change image</p>
                     <img
+
                       src={pageDraft[selectedField.key] ?? selectedField.original}
                       alt={selectedField.label}
                       className="w-full rounded-md border border-border"
