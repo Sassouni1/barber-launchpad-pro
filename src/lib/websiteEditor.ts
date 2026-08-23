@@ -272,7 +272,10 @@ export function applyLayout(
     const finalOrder = order.length ? order : pristine.map((_, i) => i);
 
     const current = itemsIn(container, rule);
-    const anchor = current[0]?.nextSibling ?? null;
+    // A placeholder keeps the group's exact position among any sibling markup.
+    const anchor = container.ownerDocument.createComment('we-items');
+    if (current[0]) container.insertBefore(anchor, current[0]);
+    else container.appendChild(anchor);
     current.forEach((el) => el.remove());
 
     finalOrder.forEach((sourceIndex, position) => {
@@ -281,6 +284,7 @@ export function applyLayout(
       clone.setAttribute(ITEM_POS_ATTR, String(position));
       container.insertBefore(clone, anchor);
     });
+    anchor.remove();
   });
   return originals;
 }
