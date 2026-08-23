@@ -163,6 +163,8 @@ export function scanFields(doc: Document, rules: Record<string, FieldRule> = {})
 
   doc.body.querySelectorAll<HTMLElement>('*').forEach((el) => {
     if (SKIP_TAGS.has(el.tagName)) return;
+    // Editor-only overlay controls are never editable content.
+    if (el.closest('[data-we-overlay]')) return;
     const key = elementKey(el);
     const rule = rules[key];
     if (rule?.locked) return;
