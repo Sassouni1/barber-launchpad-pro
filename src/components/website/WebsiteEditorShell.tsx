@@ -11,10 +11,12 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   ITEM_ATTR,
   ITEM_POS_ATTR,
+  OVERLAY_ATTR,
   applyDraft,
   applyLayout,
   currentOrder,
   decorateFields,
+  decorateItems,
   elementFromKey,
   itemKeys,
   readLayout,
@@ -22,6 +24,7 @@ import {
   scanFields,
   setSelected,
   writeLayout,
+
   type EditableField,
   type EditorDraft,
   type PageDraft,
