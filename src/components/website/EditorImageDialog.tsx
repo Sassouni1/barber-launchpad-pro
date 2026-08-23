@@ -46,7 +46,7 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-export function StayFadedImageDialog({
+export function EditorImageDialog({
   open,
   onOpenChange,
   userId,
