@@ -1741,6 +1741,7 @@ export type Database = {
           name_brainstorm_notes: string | null
           name_brainstorm_result: string | null
           name_help_requested: boolean
+          other_business_type: string | null
           photo_url: string | null
           services: string[]
           updated_at: string
@@ -1763,6 +1764,7 @@ export type Database = {
           name_brainstorm_notes?: string | null
           name_brainstorm_result?: string | null
           name_help_requested?: boolean
+          other_business_type?: string | null
           photo_url?: string | null
           services?: string[]
           updated_at?: string
@@ -1785,6 +1787,7 @@ export type Database = {
           name_brainstorm_notes?: string | null
           name_brainstorm_result?: string | null
           name_help_requested?: boolean
+          other_business_type?: string | null
           photo_url?: string | null
           services?: string[]
           updated_at?: string
