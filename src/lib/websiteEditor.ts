@@ -270,10 +270,31 @@ export function scanFields(doc: Document, rules: Record<string, FieldRule> = {})
   const fields: EditableField[] = [];
   if (!doc.body) return fields;
 
+  // Continuous narrative copy is edited as one block, not paragraph by paragraph.
+  const groups = collectGroups(doc, rules);
+  const grouped = new Set<Element>();
+  groups.forEach((group) => group.paragraphs.forEach((p) => grouped.add(p)));
+
+  groups.forEach((group) => {
+    const text = groupText(group.paragraphs);
+    if (!text) return;
+    fields.push({
+      key: group.key,
+      kind: 'text',
+      label: `Story: ${text.slice(0, 46)}${text.length > 46 ? '…' : ''}`,
+      section: sectionLabel(group.container),
+      original: text,
+      // Long narrative blocks are intentionally unrestricted.
+      limit: group.rule.limit,
+    });
+  });
+
   doc.body.querySelectorAll<HTMLElement>('*').forEach((el) => {
     if (SKIP_TAGS.has(el.tagName)) return;
     // Editor-only overlay controls are never editable content.
     if (el.closest('[data-we-overlay]')) return;
+    // Text inside a grouped narrative block is edited through the block field.
+    if (el.tagName !== 'IMG' && Array.from(grouped).some((p) => p === el || p.contains(el))) return;
     const key = elementKey(el);
     const rule = rules[key];
     if (rule?.locked) return;
@@ -311,15 +332,35 @@ export function scanFields(doc: Document, rules: Record<string, FieldRule> = {})
   return fields;
 }
 
-export function applyDraft(root: Document | HTMLElement, draft: PageDraft) {
+/** Writes one field's value into the document (single element or story block). */
+export function applyFieldValue(
+  root: Document | HTMLElement,
+  key: string,
+  value: string,
+  rules: Record<string, FieldRule> = {},
+) {
+  const el = elementFromKey(root, key);
+  if (!el) return;
+  if (isGroupKey(key)) {
+    const group = collectGroups(root, rules).find((g) => g.container === el);
+    applyGroupValue(el, value, group?.rule.groupExclude);
+    return;
+  }
+  if (el.tagName === 'IMG') el.setAttribute('src', value);
+  else el.textContent = value;
+}
+
+export function applyDraft(
+  root: Document | HTMLElement,
+  draft: PageDraft,
+  rules: Record<string, FieldRule> = {},
+) {
   Object.entries(draft).forEach(([key, value]) => {
     if (key.startsWith('__')) return; // reserved editor state, not a field
-    const el = elementFromKey(root, key);
-    if (!el) return;
-    if (el.tagName === 'IMG') el.setAttribute('src', value);
-    else el.textContent = value;
+    applyFieldValue(root, key, value, rules);
   });
 }
+
 
 /* ------------------------------------------------------------------ *
  * Repeatable items (configured card groups only)
