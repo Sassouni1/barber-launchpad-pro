@@ -17,13 +17,24 @@ export type TemplatePage = {
   path: string;
 };
 
-/** Optional per-field overrides, keyed by structural field key. */
+/**
+ * Optional per-field overrides. Keys are either a structural field key or a
+ * CSS selector prefixed with `@` (matched at scan time).
+ */
 export type FieldRule = {
   limit?: number;
   width?: number;
   height?: number;
   locked?: boolean;
+  /**
+   * Treats every narrative paragraph inside the matched container as ONE
+   * editable block (blank lines separate paragraphs in the textarea).
+   */
+  group?: boolean;
+  /** Selector for paragraphs inside the container that stay standalone. */
+  groupExclude?: string;
 };
+
 
 /**
  * Declares one explicitly repeatable card group. Templates opt in by adding
@@ -98,16 +109,114 @@ export function elementKey(el: Element): string {
   return parts.join('.');
 }
 
+/**
+ * Grouped narrative blocks are stored under a prefixed key so they can be told
+ * apart from single-element fields.
+ */
+export const GROUP_PREFIX = 'group:';
+
+export const isGroupKey = (key: string) => key.startsWith(GROUP_PREFIX);
+
 export function elementFromKey(root: Document | HTMLElement, key: string): Element | null {
+  const path = isGroupKey(key) ? key.slice(GROUP_PREFIX.length) : key;
   let node: Element | null = 'body' in root ? root.body : root;
   if (!node) return null;
-  for (const part of key.split('.')) {
+  if (path === '') return node;
+  for (const part of path.split('.')) {
     const index = Number(part);
     if (!node || Number.isNaN(index)) return null;
     node = node.children[index] ?? null;
   }
   return node;
 }
+
+/** Paragraph nodes that make up one continuous narrative block. */
+export function narrativeParagraphs(container: Element, exclude?: string): Element[] {
+  return Array.from(container.querySelectorAll('p')).filter((p) => {
+    if (p.classList.contains('sf-kicker')) return false;
+    if (exclude && p.matches(exclude)) return false;
+    if (p.querySelector('img')) return false;
+    if (p.closest('[data-we-overlay]')) return false;
+    return (p.textContent ?? '').trim().length > 0;
+  });
+}
+
+type NarrativeGroup = { container: Element; key: string; paragraphs: Element[]; rule: FieldRule };
+
+/** Resolves every configured narrative group present in the document. */
+export function collectGroups(
+  root: Document | HTMLElement,
+  rules: Record<string, FieldRule> = {},
+): NarrativeGroup[] {
+  const scope: ParentNode = 'body' in root ? (root.body as ParentNode) : root;
+  const groups: NarrativeGroup[] = [];
+  const seen = new Set<Element>();
+
+  Object.entries(rules).forEach(([ruleKey, rule]) => {
+    if (!rule?.group) return;
+    const containers: Element[] = ruleKey.startsWith('@')
+      ? Array.from(scope.querySelectorAll(ruleKey.slice(1)))
+      : [elementFromKey(root, ruleKey)].filter((el): el is Element => !!el);
+
+    containers.forEach((container) => {
+      if (seen.has(container)) return;
+      const paragraphs = narrativeParagraphs(container, rule.groupExclude);
+      // A single paragraph is not a narrative block — leave it as a normal field.
+      if (paragraphs.length < 2) return;
+      seen.add(container);
+      groups.push({ container, key: `${GROUP_PREFIX}${elementKey(container)}`, paragraphs, rule });
+    });
+  });
+
+  return groups;
+}
+
+/** Reads a group's current text with blank lines between paragraphs. */
+function groupText(paragraphs: Element[]): string {
+  return paragraphs.map((p) => (p.textContent ?? '').replace(/\s+/g, ' ').trim()).join('\n\n');
+}
+
+/** Writes into the innermost styled wrapper so formatting is preserved. */
+function setParagraphText(p: Element, text: string) {
+  let target: Element = p;
+  while (
+    target.children.length === 1 &&
+    (target.textContent ?? '').trim() === (target.children[0].textContent ?? '').trim()
+  ) {
+    target = target.children[0];
+  }
+  target.textContent = text;
+}
+
+/**
+ * Applies an edited narrative block back onto its paragraphs, keeping the
+ * original markup/styling and adding or removing paragraphs as needed.
+ */
+export function applyGroupValue(container: Element, value: string, exclude?: string) {
+  const paragraphs = narrativeParagraphs(container, exclude);
+  if (!paragraphs.length) return;
+  const parts = value
+    .split(/\n\s*\n/)
+    .map((part) => part.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  if (!parts.length) return;
+
+  parts.forEach((text, index) => {
+    const existing = paragraphs[index];
+    if (existing) {
+      setParagraphText(existing, text);
+      return;
+    }
+    const last = paragraphs[paragraphs.length - 1];
+    const clone = last.cloneNode(true) as Element;
+    setParagraphText(clone, text);
+    last.parentElement?.insertBefore(clone, last.nextSibling);
+    paragraphs.push(clone);
+  });
+
+  paragraphs.slice(parts.length).forEach((p) => p.remove());
+}
+
 
 /** Longer prose is allowed to grow; short layout-sensitive copy is kept tight. */
 export function characterLimitFor(text: string): number {
@@ -161,10 +270,31 @@ export function scanFields(doc: Document, rules: Record<string, FieldRule> = {})
   const fields: EditableField[] = [];
   if (!doc.body) return fields;
 
+  // Continuous narrative copy is edited as one block, not paragraph by paragraph.
+  const groups = collectGroups(doc, rules);
+  const grouped = new Set<Element>();
+  groups.forEach((group) => group.paragraphs.forEach((p) => grouped.add(p)));
+
+  groups.forEach((group) => {
+    const text = groupText(group.paragraphs);
+    if (!text) return;
+    fields.push({
+      key: group.key,
+      kind: 'text',
+      label: `Story: ${text.slice(0, 46)}${text.length > 46 ? '…' : ''}`,
+      section: sectionLabel(group.container),
+      original: text,
+      // Long narrative blocks are intentionally unrestricted.
+      limit: group.rule.limit,
+    });
+  });
+
   doc.body.querySelectorAll<HTMLElement>('*').forEach((el) => {
     if (SKIP_TAGS.has(el.tagName)) return;
     // Editor-only overlay controls are never editable content.
     if (el.closest('[data-we-overlay]')) return;
+    // Text inside a grouped narrative block is edited through the block field.
+    if (el.tagName !== 'IMG' && Array.from(grouped).some((p) => p === el || p.contains(el))) return;
     const key = elementKey(el);
     const rule = rules[key];
     if (rule?.locked) return;
@@ -202,15 +332,35 @@ export function scanFields(doc: Document, rules: Record<string, FieldRule> = {})
   return fields;
 }
 
-export function applyDraft(root: Document | HTMLElement, draft: PageDraft) {
+/** Writes one field's value into the document (single element or story block). */
+export function applyFieldValue(
+  root: Document | HTMLElement,
+  key: string,
+  value: string,
+  rules: Record<string, FieldRule> = {},
+) {
+  const el = elementFromKey(root, key);
+  if (!el) return;
+  if (isGroupKey(key)) {
+    const group = collectGroups(root, rules).find((g) => g.container === el);
+    applyGroupValue(el, value, group?.rule.groupExclude);
+    return;
+  }
+  if (el.tagName === 'IMG') el.setAttribute('src', value);
+  else el.textContent = value;
+}
+
+export function applyDraft(
+  root: Document | HTMLElement,
+  draft: PageDraft,
+  rules: Record<string, FieldRule> = {},
+) {
   Object.entries(draft).forEach(([key, value]) => {
     if (key.startsWith('__')) return; // reserved editor state, not a field
-    const el = elementFromKey(root, key);
-    if (!el) return;
-    if (el.tagName === 'IMG') el.setAttribute('src', value);
-    else el.textContent = value;
+    applyFieldValue(root, key, value, rules);
   });
 }
+
 
 /* ------------------------------------------------------------------ *
  * Repeatable items (configured card groups only)
@@ -451,7 +601,7 @@ export async function renderTemplatePage(
   const doc = new DOMParser().parseFromString(html, 'text/html');
   // Structure first (duplicated / reordered cards), then the member's content.
   applyLayout(doc, template.repeatRules ?? [], readLayout(draft));
-  applyDraft(doc, draft);
+  applyDraft(doc, draft, template.fieldRules ?? {});
 
   // Editor-only markup never ships.
   doc.querySelectorAll(`[${OVERLAY_ATTR}]`).forEach((el) => el.remove());

@@ -13,6 +13,7 @@ import {
   ITEM_POS_ATTR,
   OVERLAY_ATTR,
   applyDraft,
+  applyFieldValue,
   applyLayout,
   currentOrder,
   decorateFields,
@@ -114,7 +115,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
       originalsRef.current[pageKey] = applyLayout(doc, repeatRules, readLayout(nextPageDraft), originals);
       const scanned = scanFields(doc, template.fieldRules);
       decorateFields(doc, scanned);
-      applyDraft(doc, nextPageDraft);
+      applyDraft(doc, nextPageDraft, template.fieldRules);
       // Overlays are added after scanning so they never become editable fields.
       decorateItems(doc, repeatRules);
       fieldsRef.current = scanned;
@@ -127,10 +128,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const setValue = (key: string, value: string) => {
     commit({ ...draft, [pageKey]: { ...pageDraft, [key]: value } });
     const doc = iframeRef.current?.contentDocument;
-    const el = doc ? elementFromKey(doc, key) : null;
-    if (!el) return;
-    if (el.tagName === 'IMG') el.setAttribute('src', value);
-    else el.textContent = value;
+    if (doc) applyFieldValue(doc, key, value, template.fieldRules);
   };
 
   const restore = (snapshot: EditorDraft) => {
@@ -139,10 +137,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
     fieldsRef.current.forEach((field) => {
-      const el = elementFromKey(doc, field.key);
-      if (!el) return;
-      if (field.kind === 'image') el.setAttribute('src', field.original);
-      else el.textContent = field.original;
+      applyFieldValue(doc, field.key, field.original, template.fieldRules);
     });
     hydrate(doc, snapshot[pageKey] ?? {});
     setSelectedKey(null);
