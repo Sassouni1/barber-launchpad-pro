@@ -601,7 +601,7 @@ export async function renderTemplatePage(
   const doc = new DOMParser().parseFromString(html, 'text/html');
   // Structure first (duplicated / reordered cards), then the member's content.
   applyLayout(doc, template.repeatRules ?? [], readLayout(draft));
-  applyDraft(doc, draft);
+  applyDraft(doc, draft, template.fieldRules ?? {});
 
   // Editor-only markup never ships.
   doc.querySelectorAll(`[${OVERLAY_ATTR}]`).forEach((el) => el.remove());
