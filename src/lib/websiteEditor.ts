@@ -109,16 +109,114 @@ export function elementKey(el: Element): string {
   return parts.join('.');
 }
 
+/**
+ * Grouped narrative blocks are stored under a prefixed key so they can be told
+ * apart from single-element fields.
+ */
+export const GROUP_PREFIX = 'group:';
+
+export const isGroupKey = (key: string) => key.startsWith(GROUP_PREFIX);
+
 export function elementFromKey(root: Document | HTMLElement, key: string): Element | null {
+  const path = isGroupKey(key) ? key.slice(GROUP_PREFIX.length) : key;
   let node: Element | null = 'body' in root ? root.body : root;
   if (!node) return null;
-  for (const part of key.split('.')) {
+  if (path === '') return node;
+  for (const part of path.split('.')) {
     const index = Number(part);
     if (!node || Number.isNaN(index)) return null;
     node = node.children[index] ?? null;
   }
   return node;
 }
+
+/** Paragraph nodes that make up one continuous narrative block. */
+export function narrativeParagraphs(container: Element, exclude?: string): Element[] {
+  return Array.from(container.querySelectorAll('p')).filter((p) => {
+    if (p.classList.contains('sf-kicker')) return false;
+    if (exclude && p.matches(exclude)) return false;
+    if (p.querySelector('img')) return false;
+    if (p.closest('[data-we-overlay]')) return false;
+    return (p.textContent ?? '').trim().length > 0;
+  });
+}
+
+type NarrativeGroup = { container: Element; key: string; paragraphs: Element[]; rule: FieldRule };
+
+/** Resolves every configured narrative group present in the document. */
+export function collectGroups(
+  root: Document | HTMLElement,
+  rules: Record<string, FieldRule> = {},
+): NarrativeGroup[] {
+  const scope: ParentNode = 'body' in root ? (root.body as ParentNode) : root;
+  const groups: NarrativeGroup[] = [];
+  const seen = new Set<Element>();
+
+  Object.entries(rules).forEach(([ruleKey, rule]) => {
+    if (!rule?.group) return;
+    const containers: Element[] = ruleKey.startsWith('@')
+      ? Array.from(scope.querySelectorAll(ruleKey.slice(1)))
+      : [elementFromKey(root, ruleKey)].filter((el): el is Element => !!el);
+
+    containers.forEach((container) => {
+      if (seen.has(container)) return;
+      const paragraphs = narrativeParagraphs(container, rule.groupExclude);
+      // A single paragraph is not a narrative block — leave it as a normal field.
+      if (paragraphs.length < 2) return;
+      seen.add(container);
+      groups.push({ container, key: `${GROUP_PREFIX}${elementKey(container)}`, paragraphs, rule });
+    });
+  });
+
+  return groups;
+}
+
+/** Reads a group's current text with blank lines between paragraphs. */
+function groupText(paragraphs: Element[]): string {
+  return paragraphs.map((p) => (p.textContent ?? '').replace(/\s+/g, ' ').trim()).join('\n\n');
+}
+
+/** Writes into the innermost styled wrapper so formatting is preserved. */
+function setParagraphText(p: Element, text: string) {
+  let target: Element = p;
+  while (
+    target.children.length === 1 &&
+    (target.textContent ?? '').trim() === (target.children[0].textContent ?? '').trim()
+  ) {
+    target = target.children[0];
+  }
+  target.textContent = text;
+}
+
+/**
+ * Applies an edited narrative block back onto its paragraphs, keeping the
+ * original markup/styling and adding or removing paragraphs as needed.
+ */
+export function applyGroupValue(container: Element, value: string, exclude?: string) {
+  const paragraphs = narrativeParagraphs(container, exclude);
+  if (!paragraphs.length) return;
+  const parts = value
+    .split(/\n\s*\n/)
+    .map((part) => part.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  if (!parts.length) return;
+
+  parts.forEach((text, index) => {
+    const existing = paragraphs[index];
+    if (existing) {
+      setParagraphText(existing, text);
+      return;
+    }
+    const last = paragraphs[paragraphs.length - 1];
+    const clone = last.cloneNode(true) as Element;
+    setParagraphText(clone, text);
+    last.parentElement?.insertBefore(clone, last.nextSibling);
+    paragraphs.push(clone);
+  });
+
+  paragraphs.slice(parts.length).forEach((p) => p.remove());
+}
+
 
 /** Longer prose is allowed to grow; short layout-sensitive copy is kept tight. */
 export function characterLimitFor(text: string): number {
