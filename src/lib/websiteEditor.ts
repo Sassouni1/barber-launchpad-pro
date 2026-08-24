@@ -17,13 +17,24 @@ export type TemplatePage = {
   path: string;
 };
 
-/** Optional per-field overrides, keyed by structural field key. */
+/**
+ * Optional per-field overrides. Keys are either a structural field key or a
+ * CSS selector prefixed with `@` (matched at scan time).
+ */
 export type FieldRule = {
   limit?: number;
   width?: number;
   height?: number;
   locked?: boolean;
+  /**
+   * Treats every narrative paragraph inside the matched container as ONE
+   * editable block (blank lines separate paragraphs in the textarea).
+   */
+  group?: boolean;
+  /** Selector for paragraphs inside the container that stay standalone. */
+  groupExclude?: string;
 };
+
 
 /**
  * Declares one explicitly repeatable card group. Templates opt in by adding
