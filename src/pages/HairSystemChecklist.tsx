@@ -593,6 +593,14 @@ export default function HairSystemChecklist() {
               <Copy className="w-4 h-4 mr-2" />
               Copy Message
             </Button>
+            <Button onClick={() => setVideoOpen(true)} className="w-full">
+              <Play className="w-4 h-4 mr-2" />
+              Watch the Video Yourself
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Opens right here inside your membership — you won't lose your place.
+            </p>
+
             <Link to="/checklist/b0a7264d-1184-4a24-a6ed-f3352d916e49?scrollBottom=true">
               <Button variant="outline" className="w-full">
                 <ArrowLeft className="w-4 h-4 mr-2" />
