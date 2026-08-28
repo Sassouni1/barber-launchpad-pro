@@ -611,7 +611,35 @@ export default function HairSystemChecklist() {
             </Link>
           </div>
         )}
+
+        <Dialog open={videoOpen} onOpenChange={setVideoOpen}>
+          <DialogContent className="max-w-4xl w-[95vw] p-0 overflow-hidden">
+            <DialogHeader className="p-4 pb-2">
+              <DialogTitle className="text-base flex items-center gap-2">
+                <Play className="w-4 h-4 text-primary" />
+                Client Aftercare Video
+              </DialogTitle>
+            </DialogHeader>
+            <div className="h-[70vh] w-full bg-background">
+              {videoOpen && (
+                <iframe
+                  src="https://www.menshairexpert.com/thank-you"
+                  title="Client Aftercare Video"
+                  className="w-full h-full border-0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
+            </div>
+            <div className="p-4 pt-2">
+              <Button variant="outline" className="w-full" onClick={() => setVideoOpen(false)}>
+                Close & Go Back to My Checklist
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+
     </DashboardLayout>
   );
 }
