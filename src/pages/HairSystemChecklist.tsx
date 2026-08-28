@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Download, ClipboardCheck, Loader2, Play, AlertTriangle, Copy, MessageSquare, ArrowLeft, Lock, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
@@ -31,6 +33,8 @@ export default function HairSystemChecklist() {
   const { user } = useAuth();
   const { listId } = useParams<{ listId?: string }>();
   const [downloading, setDownloading] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
+
   const [searchParams] = useSearchParams();
   const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -593,6 +597,14 @@ export default function HairSystemChecklist() {
               <Copy className="w-4 h-4 mr-2" />
               Copy Message
             </Button>
+            <Button onClick={() => setVideoOpen(true)} className="w-full">
+              <Play className="w-4 h-4 mr-2" />
+              Watch the Video Yourself
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Opens right here inside your membership — you won't lose your place.
+            </p>
+
             <Link to="/checklist/b0a7264d-1184-4a24-a6ed-f3352d916e49?scrollBottom=true">
               <Button variant="outline" className="w-full">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -601,7 +613,35 @@ export default function HairSystemChecklist() {
             </Link>
           </div>
         )}
+
+        <Dialog open={videoOpen} onOpenChange={setVideoOpen}>
+          <DialogContent className="max-w-4xl w-[95vw] p-0 overflow-hidden">
+            <DialogHeader className="p-4 pb-2">
+              <DialogTitle className="text-base flex items-center gap-2">
+                <Play className="w-4 h-4 text-primary" />
+                Client Aftercare Video
+              </DialogTitle>
+            </DialogHeader>
+            <div className="h-[70vh] w-full bg-background">
+              {videoOpen && (
+                <iframe
+                  src="https://www.menshairexpert.com/thank-you"
+                  title="Client Aftercare Video"
+                  className="w-full h-full border-0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
+            </div>
+            <div className="p-4 pt-2">
+              <Button variant="outline" className="w-full" onClick={() => setVideoOpen(false)}>
+                Close & Go Back to My Checklist
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+
     </DashboardLayout>
   );
 }
