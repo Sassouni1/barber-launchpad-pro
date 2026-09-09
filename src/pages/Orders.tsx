@@ -1,61 +1,16 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useUserOrders } from '@/hooks/useOrders';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Package, ExternalLink, Loader2, Scissors } from 'lucide-react';
+import { Receipt, Loader2, Scissors, Download, FolderDown } from 'lucide-react';
 import { format } from 'date-fns';
+import { useState } from 'react';
+import JSZip from 'jszip';
+import { toast } from 'sonner';
+import { buildReceiptPdf, receiptFileName, extractReceiptData, downloadReceipt } from '@/lib/orderReceipt';
+import type { Tables } from '@/integrations/supabase/types';
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
-  processing: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-  shipped: 'bg-green-500/10 text-green-500 border-green-500/30',
-  completed: 'bg-primary/10 text-primary border-primary/30',
-};
-
-function getDisplayStatus(order: { status: string; order_date: string }): string {
-  if (order.status === 'shipped') {
-    const shippedDate = new Date(order.order_date);
-    const daysSince = (Date.now() - shippedDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSince >= 7) return 'completed';
-  }
-  return order.status;
-}
-
-function getLineItemNames(details: Record<string, any> | null): string[] {
-  if (!details) return [];
-  const order = details.order || details;
-  const items = order.line_items;
-  if (!Array.isArray(items)) return [];
-  return items.map((item: any) =>
-    String(item.title || '')
-      .replace(/\s*@\s*\d+/g, '')
-      .replace(/\s*-\s*Hair System$/i, '')
-      .trim()
-  ).filter(Boolean);
-}
-
-
-function getOrderSummary(details: Record<string, any> | null): { label: string; value: string }[] {
-  if (!details) return [];
-  const items: { label: string; value: string }[] = [];
-
-  const laceSkin = details['Lace or Skin'];
-  const chooseColor = details['Choose Color'];
-  const curlPattern = details['Curl Pattern — only if needed'];
-
-  if (laceSkin) items.push({ label: 'Type', value: String(laceSkin) });
-  if (chooseColor) items.push({ label: 'Color', value: String(chooseColor) });
-  if (curlPattern && String(curlPattern).toLowerCase() !== 'none') {
-    items.push({ label: 'Curl', value: String(curlPattern) });
-  }
-
-  if (!items.length && details.product) {
-    items.push({ label: 'Product', value: String(details.product) });
-  }
-
-  return items;
-}
+type Order = Tables<'orders'>;
 
 function dedupeOrders<T extends { id: string; external_order_id: string | null; order_date: string; order_details: any }>(orders: T[]): T[] {
   if (!orders?.length) return orders;
@@ -75,7 +30,6 @@ function dedupeOrders<T extends { id: string; external_order_id: string | null; 
     if (dupIdx === -1) {
       kept.push(o);
     } else {
-      // Keep the one with an external_order_id; if both/neither, keep the one with line_items.
       const existing = kept[dupIdx];
       const existingHasExt = !!existing.external_order_id;
       const currentHasExt = !!o.external_order_id;
@@ -91,15 +45,67 @@ function dedupeOrders<T extends { id: string; external_order_id: string | null; 
 export default function Orders() {
   const { data: rawOrders, isLoading } = useUserOrders();
   const orders = rawOrders ? dedupeOrders(rawOrders) : rawOrders;
+  const [zipping, setZipping] = useState(false);
 
-
+  const handleDownloadAll = async () => {
+    if (!orders?.length) return;
+    setZipping(true);
+    try {
+      const zip = new JSZip();
+      const usedNames = new Set<string>();
+      for (const order of orders) {
+        let name = receiptFileName(order);
+        // Ensure unique filenames inside the zip
+        let counter = 2;
+        while (usedNames.has(name)) {
+          name = name.replace(/\.pdf$/, `-${counter}.pdf`);
+          counter++;
+        }
+        usedNames.add(name);
+        const doc = buildReceiptPdf(order);
+        zip.file(name, doc.output('arraybuffer'));
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `order-receipts-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${orders.length} receipt${orders.length === 1 ? '' : 's'}`);
+    } catch {
+      toast.error('Failed to download receipts');
+    } finally {
+      setZipping(false);
+    }
+  };
 
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Order History & Tracking</h1>
-          <p className="text-muted-foreground text-sm mt-1">View your past orders and track shipments</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-display font-bold">Order Receipts</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Download receipts for your records and taxes
+            </p>
+          </div>
+          {orders && orders.length > 0 && (
+            <Button
+              onClick={handleDownloadAll}
+              disabled={zipping}
+              className="gold-gradient text-primary-foreground font-semibold shadow-md hover:opacity-90 transition-opacity shrink-0"
+            >
+              {zipping ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FolderDown className="w-4 h-4 mr-2" />
+              )}
+              {zipping ? 'Preparing...' : 'Download All'}
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
@@ -109,18 +115,14 @@ export default function Orders() {
         ) : !orders?.length ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <Package className="w-12 h-12 text-muted-foreground mb-4" />
+              <Receipt className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No orders yet</p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => {
-              const details = order.order_details as Record<string, any> | null;
-              const summaryItems = getOrderSummary(details);
-              const lineItemNames = getLineItemNames(details);
-
-              const displayStatus = getDisplayStatus(order);
+            {orders.map((order: Order) => {
+              const receipt = extractReceiptData(order);
 
               return (
                 <Card key={order.id} className="border-border/50">
@@ -130,20 +132,19 @@ export default function Orders() {
                         <div className="flex items-center gap-3 flex-wrap">
                           <Scissors className="w-4 h-4 text-primary flex-shrink-0" />
                           <span className="font-medium">
-                            {lineItemNames.length > 0 ? lineItemNames.join(', ') : 'Hair System Order'}
+                            {receipt.items.length > 0
+                              ? receipt.items.map((i) => i.title).join(', ')
+                              : 'Hair System Order'}
                           </span>
-                          <Badge variant="outline" className={statusColors[displayStatus] || ''}>
-                            {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
-                          </Badge>
                         </div>
 
                         <p className="text-sm text-muted-foreground">
                           Ordered {format(new Date(order.order_date), 'MMMM d, yyyy')}
                         </p>
 
-                        {summaryItems.length > 0 && (
+                        {receipt.specs.length > 0 && (
                           <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
-                            {summaryItems.map((item, i) => (
+                            {receipt.specs.map((item, i) => (
                               <span key={i} className="text-sm">
                                 <span className="text-muted-foreground">{item.label}:</span>{' '}
                                 <span className="text-foreground font-medium">{item.value}</span>
@@ -152,24 +153,21 @@ export default function Orders() {
                           </div>
                         )}
 
-                        {order.tracking_number && (
-                          <p className="text-sm text-muted-foreground">
-                            Tracking: {order.tracking_number}
+                        {receipt.total !== null && (
+                          <p className="text-sm font-semibold text-foreground">
+                            Total: {receipt.currencySymbol}{receipt.total.toFixed(2)} {receipt.currencyCode}
                           </p>
                         )}
                       </div>
-                      {order.tracking_number && (
-                        <Button
-                          size="sm"
-                          className="gold-gradient text-primary-foreground font-semibold shadow-md hover:opacity-90 transition-opacity"
-                          onClick={() => {
-                            const url = order.tracking_url || `https://www.google.com/search?q=${encodeURIComponent(order.tracking_number!)}`;
-                            window.open(url, '_blank');
-                          }}
-                        >
-                          Track Package
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => downloadReceipt(order)}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Receipt
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
