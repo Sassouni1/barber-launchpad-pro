@@ -59,10 +59,13 @@ export function extractReceiptData(order: Order): ReceiptData {
   if (curl && String(curl).toLowerCase() !== "none") specs.push({ label: "Curl", value: String(curl) });
   if (!items.length && details.product) specs.push({ label: "Product", value: String(details.product) });
 
+  const rawName = (order.customer_name || inner?.customer?.name || "").trim();
+  const customerName = rawName.length >= 2 ? rawName : "Customer";
+
   return {
     receiptNumber: order.external_order_id || order.id.slice(0, 8).toUpperCase(),
     date: new Date(order.order_date),
-    customerName: order.customer_name || inner?.customer?.name || "Customer",
+    customerName,
     customerEmail: order.customer_email || inner?.customer?.email || "",
     items,
     total,
@@ -213,10 +216,11 @@ export function buildReceiptPdf(order: Order): jsPDF {
 export function receiptFileName(order: Order): string {
   const data = extractReceiptData(order);
   const dateStr = data.date.toISOString().slice(0, 10);
-  const safeName = (order.customer_name || "customer")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  const safeName =
+    (order.customer_name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "customer";
   return `receipt-${dateStr}-${safeName}-${data.receiptNumber}.pdf`;
 }
 
