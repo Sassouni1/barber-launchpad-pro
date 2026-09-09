@@ -1,6 +1,4 @@
 # Roadmap
 
-- [ ] Rework Orders page: remove order status display, add per-receipt download + "Download All" (zip) for tax purposes
-  - [ ] Verify orders table columns/data for receipt fields (amount, date, items)
-  - [ ] Build receipt generator (PDF) + zip download
-  - [ ] Verify in preview
+- [x] Rework Orders page: statuses removed, receipts-only view for tax purposes
+- [x] Per-order "Receipt" PDF download + "Download All" zip (verified in preview: page renders, PDF + zip download correctly)
