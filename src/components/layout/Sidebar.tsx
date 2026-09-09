@@ -390,7 +390,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
-              <SubNavItem to="/orders" icon={Package} label="Order History & Tracking" />
+              <SubNavItem to="/orders" icon={Package} label="Order Receipts" />
             </ExpandableNavItem>
 
             {/* Level 1 Cert Button */}
