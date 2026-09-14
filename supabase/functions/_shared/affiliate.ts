@@ -48,6 +48,18 @@ export function randomToken(bytes = 24) {
 export type ProgramSettings = {
   live_enabled: boolean;
   seller_account_confirmed: boolean;
+  /** The Stripe seller account the enrollment revenue must land in (verified out of band). */
+  expected_seller_account_id: string | null;
+  /** The account id actually returned by Stripe for the configured server-side key. */
+  verified_stripe_account_id: string | null;
+  verified_stripe_account_email: string | null;
+  verified_stripe_account_at: string | null;
+  /** Existing GHL/FastPayDirect payment link. Informational only — not covered by webhook attribution. */
+  external_payment_link_url: string | null;
+  external_payment_product_id: string | null;
+  external_payment_amount_cents: number | null;
+  /** Never flipped on automatically: the existing link is not a Stripe Checkout Session flow. */
+  external_flow_attribution_supported: boolean;
   enrollment_price_ids: string[];
   sales_call_url: string | null;
   attribution_window_days: number | null;
@@ -58,6 +70,14 @@ export type ProgramSettings = {
 export const DEFAULT_SETTINGS: ProgramSettings = {
   live_enabled: false,
   seller_account_confirmed: false,
+  expected_seller_account_id: null,
+  verified_stripe_account_id: null,
+  verified_stripe_account_email: null,
+  verified_stripe_account_at: null,
+  external_payment_link_url: null,
+  external_payment_product_id: null,
+  external_payment_amount_cents: null,
+  external_flow_attribution_supported: false,
   enrollment_price_ids: [],
   sales_call_url: null,
   attribution_window_days: null,
@@ -73,7 +93,15 @@ export async function loadSettings(db: SupabaseClient): Promise<ProgramSettings>
 /** Missing configuration, named explicitly so the team knows what to supply. */
 export function missingConfig(s: ProgramSettings): string[] {
   const missing: string[] = [];
-  if (!s.seller_account_confirmed) missing.push("Confirmed Barber Launch enrollment seller Stripe account");
+  if (!s.expected_seller_account_id) {
+    missing.push("Expected Barber Launch enrollment seller Stripe account id");
+  } else if (s.verified_stripe_account_id !== s.expected_seller_account_id) {
+    missing.push(
+      s.verified_stripe_account_id
+        ? `Stripe key belongs to ${s.verified_stripe_account_id}, not the expected seller ${s.expected_seller_account_id}`
+        : `Stripe key not yet checked against seller ${s.expected_seller_account_id}`,
+    );
+  }
   if (!s.enrollment_price_ids.length) missing.push("Approved enrollment Stripe price ID(s)");
   if (!s.sales_call_url) missing.push("Verified sales call booking URL");
   if (!Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET")) missing.push("AFFILIATE_STRIPE_WEBHOOK_SECRET");
