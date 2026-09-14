@@ -18,6 +18,7 @@ type Props = {
   onReplace: (photo: GalleryPhoto) => void;
   onRemove: (photo: GalleryPhoto) => void;
   onDescribe: (photo: GalleryPhoto, description: string) => void;
+  onDone: () => void;
   onReorder: (from: number, to: number) => void;
 };
 
@@ -37,10 +38,11 @@ export function GalleryManager({
   onRemove,
   onDescribe,
   onReorder,
+  onDone,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<number | null>(null);
-  const [arranging, setArranging] = useState(false);
+  const arranging = true;
   const [dragging, setDragging] = useState<number | null>(null);
   const [dragPoint, setDragPoint] = useState<{x: number; y: number; width: number} | null>(null);
   const [over, setOver] = useState<number | null>(null);
@@ -77,8 +79,8 @@ export function GalleryManager({
           }}
         />
 
-        <Button variant="outline" className="w-full" disabled={busy} onClick={() => setArranging(!arranging)}>
-          {arranging ? 'Done arranging' : 'Arrange photos'}
+        <Button variant="outline" className="w-full" disabled={busy} onClick={onDone}>
+          Done editing gallery
         </Button>
         {arranging && (
           <div className="space-y-3">

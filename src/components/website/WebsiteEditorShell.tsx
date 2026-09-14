@@ -74,6 +74,11 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const saveDraft = useSaveEditorDraft(template.templateKey);
   const publish = usePublishWebsite(template);
 
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const galleryPanelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (galleryOpen) galleryPanelRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, [galleryOpen]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [pageKey, setPageKey] = useState(template.pages[0]?.key ?? '');
   const [fields, setFields] = useState<EditableField[]>([]);
@@ -128,7 +133,20 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
       decorateFields(doc, scanned);
       applyDraft(doc, nextPageDraft, template.fieldRules);
       // Overlays are added after scanning so they never become editable fields.
-      decorateItems(doc, repeatRules);
+      decorateItems(doc, repeatRules.filter((rule) => !rule.gallery));
+      for (const rule of repeatRules.filter((rule) => rule.gallery)) {
+        const grid = doc.querySelector<HTMLElement>(rule.container);
+        if (!grid || grid.querySelector('[data-gallery-launch]')) continue;
+        grid.style.position = 'relative';
+        grid.style.marginTop = '64px';
+        const button = doc.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Edit photo gallery';
+        button.setAttribute('data-gallery-launch', 'true');
+        button.setAttribute(OVERLAY_ATTR, 'gallery');
+        button.style.cssText = 'position:absolute;top:-52px;left:0;z-index:20;min-height:44px;padding:10px 16px;border:1px solid #fbbf24;border-radius:8px;background:#fbbf24;color:#09090b;font:600 14px system-ui;cursor:pointer;';
+        grid.appendChild(button);
+      }
       fieldsRef.current = scanned;
       setFields(scanned);
       return scanned;
@@ -186,6 +204,13 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
         // Editor-only floating duplicate control on a repeatable card.
         const overlay = node?.closest(`[${OVERLAY_ATTR}]`) as HTMLElement | null;
+        if (node?.closest('[data-gallery-launch]') || node?.closest('.sf-photo-gallery-grid')) {
+          event.stopPropagation();
+          setGalleryOpen(true);
+          setMobileEditorOpen(false);
+          setSelectedKey(null);
+          return;
+        }
         if (overlay) {
           event.stopPropagation();
           const item = overlay.closest(`[${ITEM_ATTR}]`) as HTMLElement | null;
@@ -214,6 +239,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
   // Re-scan when the page tab changes.
   useEffect(() => {
+    setGalleryOpen(false);
     setReady(false);
     setFields([]);
     fieldsRef.current = [];
@@ -714,8 +740,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
             </CardContent>
           </Card>
 
-          {galleryRule && photos.length > 0 && (
-            <div className="space-y-3">
+          {galleryOpen && galleryRule && photos.length > 0 && (
+            <div ref={galleryPanelRef} className="scroll-mt-20 space-y-3">
             <GalleryManager
               title={`${galleryRule.label} gallery`.replace(/^\w/, (c) => c.toUpperCase())}
               photos={photos}
@@ -724,6 +750,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
               onAdd={handleGalleryAdd}
               onReplace={handleGalleryReplace}
               onReorder={handleGalleryReorder}
+              onDone={() => {setGalleryOpen(false); iframeRef.current?.scrollIntoView({block: 'start'});}}
               onRemove={handleGalleryRemove}
               onDescribe={handleGalleryDescribe}
             />
