@@ -114,11 +114,16 @@ export default function Affiliates() {
       return null;
     }
     setData(res as PortalData);
+    if ((res as PortalData)?.enrolled) void loadPayouts();
     return res as PortalData;
   };
 
   useEffect(() => {
     load().finally(() => setLoading(false));
+    // Returning from Stripe setup: re-check straight away.
+    if (new URLSearchParams(window.location.search).has('payouts')) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   const join = async () => {
