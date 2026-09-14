@@ -96,10 +96,7 @@ export function PayoutConnectionCard() {
           </CardTitle>
           {payouts?.account?.eligible && <Badge variant="outline">Payouts ready</Badge>}
         </div>
-        <CardDescription>
-          One connection covers everything you earn — referrals and content rewards. Automatic payments are not
-          switched on yet, so nothing is being sent out at the moment.
-        </CardDescription>
+        <CardDescription>One connection covers everything you earn — referrals and content rewards.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {checking && <div className="text-sm text-muted-foreground">Checking your payout setup…</div>}
