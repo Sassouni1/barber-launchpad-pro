@@ -100,7 +100,7 @@ export default function Affiliates() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Affiliate Program</h1>
             <p className="text-muted-foreground mt-2">
-              Earn 20% of the enrollment when someone you refer joins Barber Launch \u2014 $600 on a $3,000 enrollment.
+              Earn 20% of the enrollment when someone you refer joins Barber Launch — $600 on a $3,000 enrollment.
               Commission is only counted once the payment actually clears.
             </p>
           </div>
@@ -133,8 +133,8 @@ export default function Affiliates() {
         {!data.checkoutReady && (
           <Alert>
             <AlertDescription>
-              Online enrollment checkout isn\u2019t switched on yet. Your links still save every referral, and the team
-              closes the sale on the call \u2014 you stay credited.
+              Online enrollment checkout isn’t switched on yet. Your links still save every referral, and the team
+              closes the sale on the call — you stay credited.
             </AlertDescription>
           </Alert>
         )}
