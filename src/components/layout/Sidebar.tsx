@@ -388,12 +388,6 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
             </ExpandableNavItem>
 
-            <ExpandableNavItem icon={CreditCard} label="Bonus Earnings" collapsed={collapsed}>
-              <SubNavItem to="/affiliates" icon={Users} label="Affiliate Program" />
-              <SubNavItem to="/content-rewards" icon={Users} label="Content Rewards" />
-            </ExpandableNavItem>
-
-
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
