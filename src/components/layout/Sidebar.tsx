@@ -408,6 +408,11 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               )}
             </button>
 
+            <ExpandableNavItem icon={CreditCard} label="Bonus Earnings" collapsed={collapsed}>
+              <SubNavItem to="/affiliates" icon={Users} label="Affiliate Program" />
+              <SubNavItem to="/content-rewards" icon={Users} label="Content Rewards" />
+            </ExpandableNavItem>
+
             <div className="my-2 border-t border-sidebar-border" />
 
             <ExpandableNavItem icon={Phone} label="Get Support" collapsed={collapsed}>
