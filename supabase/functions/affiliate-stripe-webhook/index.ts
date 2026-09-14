@@ -11,8 +11,16 @@
 // Ledger writes go through database functions so each event's changes commit
 // atomically, and so concurrent refunds cannot over- or under-reduce a commission.
 import { adminClient, COMMISSION_RATE, json, loadSettings, normalizeEmail, sha256 } from "../_shared/affiliate.ts";
-import { computeEligibleAmount, withinAttributionWindow } from "../_shared/affiliateWebhookLogic.ts";
-import { readAffiliateWebhookSecret } from "../_shared/affiliateVault.ts";
+import {
+  computeEligibleAmount,
+  isAttributableReferral,
+  transferOutcome,
+  withinAttributionWindow,
+} from "../_shared/affiliateWebhookLogic.ts";
+import {
+  AFFILIATE_CONNECT_WEBHOOK_SECRET_NAME,
+  readAffiliateWebhookSecret,
+} from "../_shared/affiliateVault.ts";
 
 const encoder = new TextEncoder();
 
@@ -74,22 +82,32 @@ Deno.serve(async (req) => {
 
   // The signing secret lives in secure server-side storage; an env override is
   // still honoured so an existing deployment keeps working.
-  const secret = Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET") ??
+  const accountSecret = Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET") ??
     (await readAffiliateWebhookSecret().catch((e) => {
       console.error("affiliate webhook secret read failed", e instanceof Error ? e.message : "unknown");
       return null;
     }));
+  // Connected-account (Connect) deliveries carry their own signing secret.
+  const connectSecret = Deno.env.get("AFFILIATE_STRIPE_CONNECT_WEBHOOK_SECRET") ??
+    (await readAffiliateWebhookSecret(AFFILIATE_CONNECT_WEBHOOK_SECRET_NAME).catch(() => null));
+
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
-  if (!secret || !stripeSecret) {
+  if (!accountSecret || !stripeSecret) {
     console.error("affiliate webhook not configured");
     return json({ error: "Webhook not configured." }, 503);
   }
 
   const payload = await req.text();
   const sigHeader = req.headers.get("stripe-signature") ?? "";
-  if (!(await verifySignature(payload, sigHeader, secret))) {
-    return json({ error: "Invalid signature." }, 400);
+  const candidates = [accountSecret, connectSecret].filter((s): s is string => Boolean(s));
+  let verified = false;
+  for (const candidate of candidates) {
+    if (await verifySignature(payload, sigHeader, candidate)) {
+      verified = true;
+      break;
+    }
   }
+  if (!verified) return json({ error: "Invalid signature." }, 400);
 
   const event = JSON.parse(payload);
   const db = adminClient();
@@ -172,8 +190,9 @@ Deno.serve(async (req) => {
       case "transfer.updated":
       case "transfer.reversed":
       case "payout.paid":
-      case "payout.failed": {
-        await recordPayoutEvent(db, event, livemode);
+      case "payout.failed":
+      case "payout.canceled": {
+        await recordPayoutEvent(db, event, livemode, stripeSecret);
         break;
       }
 
@@ -255,7 +274,8 @@ async function accrue(
   if (referralId) {
     const { data, error } = await db.from("affiliate_referrals").select("*").eq("id", referralId).maybeSingle();
     if (error) throw new Error(error.message);
-    referral = data;
+    // A void referral never earns, however it was matched.
+    referral = isAttributableReferral(data) ? data : null;
   }
   if (!referral && email) {
     const { data, error } = await db
@@ -349,27 +369,43 @@ async function accrue(
 }
 
 /**
- * Signed transfer/payout reconciliation. We record every event once, and only
- * update a transfer row when the event genuinely identifies it. Bank payout
- * timing belongs to the recipient's own Stripe payout schedule.
+ * Signed transfer/payout reconciliation.
+ *
+ * Two different things are tracked here and never conflated:
+ *  - transfer.* on the platform: money moved into the affiliate's Stripe
+ *    account. That is 'sent'. It is NOT proof the money reached their bank.
+ *  - payout.* on the CONNECTED account (event.account set): the affiliate's own
+ *    Stripe payout to their bank. Only this can evidence bank arrival.
+ *
+ * Transfer state is always read back from Stripe, so a late transfer.created or
+ * transfer.updated can never overwrite a reversal.
  */
-async function recordPayoutEvent(db: ReturnType<typeof adminClient>, event: any, livemode: boolean) {
+async function recordPayoutEvent(
+  db: ReturnType<typeof adminClient>,
+  event: any,
+  livemode: boolean,
+  stripeSecret: string,
+) {
   const obj = event.data?.object ?? {};
   const isTransfer = String(event.type).startsWith("transfer.");
+  const connectedAccountId = event.account ?? null;
   const { error: insertError } = await db.from("affiliate_payout_events").insert({
     stripe_event_id: event.id,
     event_type: event.type,
-    stripe_account_id: event.account ?? null,
+    stripe_account_id: connectedAccountId,
     stripe_transfer_id: isTransfer ? obj.id ?? null : null,
     stripe_payout_id: isTransfer ? null : obj.id ?? null,
     livemode,
     details: {
       amount: obj.amount ?? null,
+      amount_reversed: obj.amount_reversed ?? null,
       currency: obj.currency ?? null,
       reversed: obj.reversed ?? null,
       status: obj.status ?? null,
       arrival_date: obj.arrival_date ?? null,
       failure_message: obj.failure_message ?? null,
+      // Bank arrival is only ever claimed for a payout on a connected account.
+      bank_receipt: !isTransfer && Boolean(connectedAccountId) && event.type === "payout.paid",
     },
   });
   // A repeat of the same event id is fine; anything else must fail the event.
@@ -379,25 +415,41 @@ async function recordPayoutEvent(db: ReturnType<typeof adminClient>, event: any,
 
   const { data: transfer, error: readError } = await db
     .from("affiliate_transfers")
-    .select("id, amount_cents")
+    .select("id, amount_cents, status")
     .eq("stripe_transfer_id", obj.id)
     .maybeSingle();
   if (readError) throw new Error(readError.message);
   if (!transfer) return;
 
-  if (event.type === "transfer.reversed") {
+  // Authoritative current state, not whichever event arrived last.
+  let current: any = null;
+  try {
+    current = await stripeGet(`/transfers/${obj.id}`, stripeSecret);
+  } catch (_err) {
+    current = null;
+  }
+  if (!current?.id) {
+    // Could not confirm with Stripe: park rather than guess.
     const { error } = await db
       .from("affiliate_transfers")
       .update({
-        status: "failed",
-        failure_code: "reversed",
-        failure_message: "Stripe reversed this transfer.",
+        needs_reconciliation: true,
+        reconciliation_note: `Could not read transfer ${obj.id} back from Stripe while handling ${event.type}.`,
       })
       .eq("id", transfer.id);
     if (error) throw new Error(error.message);
     return;
   }
 
-  const { error } = await db.from("affiliate_transfers").update({ status: "paid" }).eq("id", transfer.id);
+  const outcome = transferOutcome(current);
+  const patch: Record<string, unknown> = {
+    status: outcome.status,
+    failure_code: outcome.fullyReversed ? "reversed" : null,
+    failure_message: outcome.note,
+    needs_reconciliation: outcome.needsReconciliation,
+  };
+  if (outcome.needsReconciliation) patch.reconciliation_note = outcome.note;
+
+  const { error } = await db.from("affiliate_transfers").update(patch).eq("id", transfer.id);
   if (error) throw new Error(error.message);
 }

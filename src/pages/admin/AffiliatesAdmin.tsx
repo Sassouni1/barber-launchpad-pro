@@ -35,6 +35,8 @@ export default function AffiliatesAdmin() {
   const [settings, setSettings] = useState<any>({});
   const [payout, setPayout] = useState({ affiliateId: '', amount: '', method: '', reference: '', note: '' });
   const [reconcile, setReconcile] = useState({ paymentId: '', referralId: '', reason: '' });
+  const [checkoutLinks, setCheckoutLinks] = useState<Record<string, string>>({});
+  const [linkBusy, setLinkBusy] = useState<string | null>(null);
 
   const call = async (body: Record<string, unknown>) => {
     const { data: res, error } = await supabase.functions.invoke('affiliate-admin', { body });
@@ -83,6 +85,7 @@ export default function AffiliatesAdmin() {
         release_timing: settings.release_timing || null,
         release_delay_days: settings.release_delay_days ? Number(settings.release_delay_days) : null,
         minimum_transfer_cents: settings.minimum_transfer_cents ? Number(settings.minimum_transfer_cents) : 100,
+        scheduler_enabled: Boolean(settings.scheduler_enabled),
       },
     });
     setBusy(false);
@@ -160,20 +163,66 @@ export default function AffiliatesAdmin() {
           </TabsContent>
 
           <TabsContent value="leads" className="space-y-3 pt-4">
+            <Alert>
+              <AlertDescription className="text-sm">
+                Closed someone on a call? Create the tracked $3,000 checkout for their lead below and send them that
+                link. The referral stays credited to the affiliate even if they pay days later on a different device.
+              </AlertDescription>
+            </Alert>
             {(data?.referrals ?? []).length === 0 && <p className="text-sm text-muted-foreground">No leads yet.</p>}
             {(data?.referrals ?? []).map((r) => (
               <Card key={r.id}>
-                <CardContent className="p-4 text-sm flex flex-col md:flex-row md:items-center justify-between gap-2">
-                  <div>
-                    <div className="font-medium">{r.lead_name || 'Unnamed lead'}</div>
-                    <div className="text-muted-foreground">{r.lead_email}{r.lead_phone ? ` · ${r.lead_phone}` : ''}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{r.id}</div>
+                <CardContent className="p-4 text-sm space-y-3">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div>
+                      <div className="font-medium">{r.lead_name || 'Unnamed lead'}</div>
+                      <div className="text-muted-foreground">{r.lead_email}{r.lead_phone ? ` · ${r.lead_phone}` : ''}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{r.id}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{r.link_type}</Badge>
+                      <Badge variant="outline">{r.status}</Badge>
+                      <span className="text-muted-foreground">{affiliateName.get(r.affiliate_id) ?? '—'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{r.link_type}</Badge>
-                    <Badge variant="outline">{r.status}</Badge>
-                    <span className="text-muted-foreground">{affiliateName.get(r.affiliate_id) ?? '—'}</span>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={linkBusy === r.id}
+                      onClick={async () => {
+                        setLinkBusy(r.id);
+                        const res = await call({ action: 'create_referral_checkout', referralId: r.id });
+                        setLinkBusy(null);
+                        if (res?.url) {
+                          setCheckoutLinks((prev) => ({ ...prev, [r.id]: res.url }));
+                          toast({ title: 'Tracked checkout created' });
+                        }
+                      }}
+                    >
+                      {linkBusy === r.id ? 'Creating…' : 'Create tracked $3,000 checkout'}
+                    </Button>
+                    {checkoutLinks[r.id] && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(checkoutLinks[r.id]);
+                            toast({ title: 'Payment link copied' });
+                          } catch {
+                            toast({ title: 'Copy failed', description: 'Select the link and copy it manually.' });
+                          }
+                        }}
+                      >
+                        Copy payment link
+                      </Button>
+                    )}
                   </div>
+                  {checkoutLinks[r.id] && (
+                    <p className="text-xs break-all text-muted-foreground font-mono">{checkoutLinks[r.id]}</p>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -532,6 +581,18 @@ export default function AffiliatesAdmin() {
                     />
                     Turn on automatic payouts
                   </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(settings.scheduler_enabled)}
+                      onChange={(e) => setSettings({ ...settings, scheduler_enabled: e.target.checked })}
+                    />
+                    Let the hourly timer run payouts by itself
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    The hourly timer is installed and already calls the payout runner, but every run stops immediately
+                    and does nothing until this box is ticked and the release timing above is chosen.
+                  </p>
                 </div>
                 <Button onClick={saveSettings} disabled={busy}>
                   {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save setup
