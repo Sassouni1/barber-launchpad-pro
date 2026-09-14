@@ -61,6 +61,11 @@ export type ProgramSettings = {
   /** Never flipped on automatically: the existing link is not a Stripe Checkout Session flow. */
   external_flow_attribution_supported: boolean;
   enrollment_price_ids: string[];
+  /** Stripe webhook endpoint on the seller account that feeds commission events. */
+  webhook_endpoint_id: string | null;
+  webhook_url: string | null;
+  /** True once the signing secret has been written to secure server-side storage. */
+  webhook_secret_stored: boolean;
   sales_call_url: string | null;
   attribution_window_days: number | null;
   payout_timing: string | null;
@@ -89,6 +94,9 @@ export const DEFAULT_SETTINGS: ProgramSettings = {
   external_payment_amount_cents: null,
   external_flow_attribution_supported: false,
   enrollment_price_ids: [],
+  webhook_endpoint_id: null,
+  webhook_url: null,
+  webhook_secret_stored: false,
   sales_call_url: null,
   attribution_window_days: null,
   payout_timing: null,
@@ -121,7 +129,10 @@ export function missingConfig(s: ProgramSettings): string[] {
   }
   if (!s.enrollment_price_ids.length) missing.push("Approved enrollment Stripe price ID(s)");
   if (!s.sales_call_url) missing.push("Verified sales call booking URL");
-  if (!Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET")) missing.push("AFFILIATE_STRIPE_WEBHOOK_SECRET");
+  if (!s.webhook_endpoint_id) missing.push("Stripe webhook endpoint for affiliate payment events");
+  if (!s.webhook_secret_stored && !Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET")) {
+    missing.push("Stored affiliate webhook signing secret");
+  }
   if (!s.live_enabled) missing.push("Live mode enabled in affiliate setup");
   return missing;
 }

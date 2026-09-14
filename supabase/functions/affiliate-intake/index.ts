@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
           next: "setup_incomplete",
           saved: true,
           message:
-            "Online enrollment checkout isn't switched on yet, but your details are saved and credited to this referral. Book a call and the Barber Launch team will finish your enrollment.",
+            "Online enrollment payment isn't switched on yet. Your details are saved against this referral. Book a call and the Barber Launch team will finish your enrollment.",
           callUrl: settings.sales_call_url,
         },
         200,
