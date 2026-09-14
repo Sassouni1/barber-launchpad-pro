@@ -69,7 +69,7 @@ export default function Refer({ linkType }: { linkType: LinkType }) {
         });
         if (checkoutError || (session as any)?.error || !(session as any)?.url) {
           setNotice(
-            'Your details are saved and credited to this referral, but online checkout isn\u2019t available right now. The Barber Launch team will reach out to finish your enrollment.',
+            'Your details are saved against this referral, but the payment page couldn\u2019t be opened right now. The Barber Launch team will reach out to finish your enrollment.',
           );
           return;
         }
