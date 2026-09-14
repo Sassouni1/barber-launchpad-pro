@@ -87,8 +87,3 @@ export function withinAttributionWindow(
   const ageDays = (new Date(paidAtIso).getTime() - new Date(firstSeenAtIso).getTime()) / 86_400_000;
   return ageDays <= windowDays;
 }
-
-/** Test-mode events must never touch live balances, and vice versa. */
-export function modeMatches(eventLivemode: boolean, programLiveEnabled: boolean): boolean {
-  return Boolean(eventLivemode) === Boolean(programLiveEnabled);
-}
