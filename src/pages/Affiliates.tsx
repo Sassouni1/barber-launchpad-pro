@@ -358,6 +358,7 @@ export default function Affiliates() {
             ))}
           </CardContent>
         </Card>
+        )}
       </div>
     </DashboardLayout>
   );
