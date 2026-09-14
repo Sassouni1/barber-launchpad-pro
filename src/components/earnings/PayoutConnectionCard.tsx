@@ -28,6 +28,8 @@ export type PayoutData = {
     created_at: string;
   }>;
   autoPayoutsReady: boolean;
+  releaseTiming?: 'on_verified' | 'after_days' | null;
+  releaseDelayDays?: number | null;
 };
 
 const TRANSFER_LABEL: Record<string, string> = {
@@ -159,6 +161,20 @@ export function PayoutConnectionCard() {
             <AlertDescription>
               Automatic payments are not active yet — setup isn’t finished, so no money is being sent. Everything you
               earn is recorded here and will be sent once the Barber Launch team turns payouts on.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {payouts?.autoPayoutsReady && (
+          <Alert>
+            <AlertDescription>
+              Payments are automatic. Each amount is sent{' '}
+              {payouts.releaseTiming === 'after_days'
+                ? `${payouts.releaseDelayDays ?? 7} days after the customer's payment clears`
+                : 'once the customer payment is confirmed'}
+              , as long as it hasn’t been refunded or disputed and your account is ready. After it leaves here, Stripe
+              moves it to your bank on your own payout schedule, so the money usually lands a couple of business days
+              later.
             </AlertDescription>
           </Alert>
         )}

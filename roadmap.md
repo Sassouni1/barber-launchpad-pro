@@ -12,7 +12,8 @@
 - [x] Payout dispatcher: test/live + currency isolation, atomic per-affiliate balance reservation, worker-bound release, reconciliation of ambiguous sends, non-mutating dry run, auto-resuming holds
 - [x] Enrollment checkout configured live: Invasion Digital Media seller verified, $3,000 product/price created, signed webhook endpoint + vault-stored signing secret, checkout enabled (verified by loading a real live Checkout page, then expiring it; no charge)
 - [x] Removed the misleading "you stay credited" messaging on the affiliate page, referral page and intake response
-- [ ] Turn on the automatic payout scheduler (blocked: release timing choice + platform transfer check)
+- [x] Turn on the automatic payout scheduler: release timing = 7-day hold from verified payment time, auto payouts + hourly scheduler enabled, platform transfer check passed, 7-day hold verified by self-erasing SQL test, real scheduler invocation returned 0 enqueued / 0 sent
+- [x] Payout card now states the real rule: sent 7 days after the payment clears, bank arrival on the recipient's own Stripe schedule
 - [x] Webhook: reject void referrals on the direct client_reference_id match too (email path already does)
 - [x] Webhook: reconcile transfer state against Stripe before marking sent/paid; never treat transfer.created as bank receipt; preserve partial/full reversals
 - [x] Recurring payout dispatcher with master switch OFF; connected-account bank payout monitoring
