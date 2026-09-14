@@ -24,7 +24,6 @@ DECLARE
   n integer;
   net integer;
 
-  PROCEDURE_NOOP boolean;
 BEGIN
   -- helper: append a PASS/FAIL line
   -- (inline, since DO blocks cannot declare functions)
