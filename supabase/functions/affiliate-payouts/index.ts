@@ -137,6 +137,10 @@ Deno.serve(async (req) => {
       const origin = req.headers.get("origin") || String(body.returnOrigin ?? "");
       if (!origin) return json({ error: "Missing origin." }, 400, h);
 
+      // Return the member to the page they started from.
+      const requested = String(body.returnPath ?? "");
+      const returnPath = ["/affiliates", "/content-rewards"].includes(requested) ? requested : "/affiliates";
+
       let accountId = connect?.stripe_account_id ?? null;
 
       if (!accountId) {
@@ -186,8 +190,8 @@ Deno.serve(async (req) => {
       const link = await stripeCall("/account_links", {
         body: {
           account: accountId,
-          refresh_url: `${origin}/affiliates?payouts=refresh`,
-          return_url: `${origin}/affiliates?payouts=return`,
+          refresh_url: `${origin}${returnPath}?payouts=refresh`,
+          return_url: `${origin}${returnPath}?payouts=return`,
           type: "account_onboarding",
           "collection_options[fields]": "currently_due",
           "collection_options[future_requirements]": "omit",
