@@ -189,11 +189,35 @@ export function stripeKeyLivemode(): boolean | null {
   return null;
 }
 
+/** A separate, isolated test-mode key used only for QA verification runs. */
+export function testStripeSecret(): string | null {
+  const secret = Deno.env.get("AFFILIATE_STRIPE_TEST_SECRET_KEY") ?? "";
+  return /^(sk|rk)_test_/.test(secret) ? secret : null;
+}
+
+/**
+ * The key that matches the world a record belongs to. A test record is never
+ * touched with the live key, and a live record never with the test key.
+ */
+export function stripeSecretFor(livemode: boolean): string | null {
+  const live = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+  if (livemode) return /^(sk|rk)_live_/.test(live) ? live : (stripeKeyLivemode() === true ? live : null);
+  return testStripeSecret() ?? (stripeKeyLivemode() === false ? live : null);
+}
+
 export async function stripeCall(
   path: string,
-  opts: { method?: string; body?: Record<string, unknown>; idempotencyKey?: string } = {},
+  opts: {
+    method?: string;
+    body?: Record<string, unknown>;
+    idempotencyKey?: string;
+    /** Explicit key override; otherwise the default STRIPE_SECRET_KEY is used. */
+    secret?: string;
+    livemode?: boolean;
+  } = {},
 ): Promise<{ ok: boolean; status: number; data: any }> {
-  const secret = Deno.env.get("STRIPE_SECRET_KEY");
+  const secret = opts.secret ??
+    (typeof opts.livemode === "boolean" ? stripeSecretFor(opts.livemode) : Deno.env.get("STRIPE_SECRET_KEY"));
   if (!secret) return { ok: false, status: 500, data: { error: { message: "No Stripe key configured." } } };
   const headers: Record<string, string> = { Authorization: `Bearer ${secret}` };
   if (opts.body) headers["Content-Type"] = "application/x-www-form-urlencoded";

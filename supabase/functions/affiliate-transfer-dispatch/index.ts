@@ -29,6 +29,7 @@ import {
   requireUser,
   stripeCall,
   stripeKeyLivemode,
+  stripeSecretFor,
 } from "../_shared/affiliate.ts";
 import { isAmbiguousTransfer } from "../_shared/affiliateWebhookLogic.ts";
 
@@ -91,19 +92,25 @@ Deno.serve(async (req) => {
         h,
       );
     }
-    const requested = typeof body.livemode === "boolean" ? (body.livemode as boolean) : keyLivemode;
-    if (requested !== keyLivemode) {
+    let requested = typeof body.livemode === "boolean" ? (body.livemode as boolean) : keyLivemode;
+    // The recurring timer only ever runs the world the main key belongs to, so
+    // a QA test record can never be picked up by the live schedule.
+    if (source === "scheduler") requested = keyLivemode;
+
+    // A test record is only dispatchable with the separate, isolated test key.
+    const secret = stripeSecretFor(requested);
+    if (!secret) {
       return json(
         {
           error:
-            `Refusing to dispatch ${requested ? "live" : "test"} records with a ${keyLivemode ? "live" : "test"}-mode Stripe key.`,
+            `Refusing to dispatch ${requested ? "live" : "test"} records: no ${requested ? "live" : "test"}-mode Stripe key is available.`,
           dryRun,
         },
         409,
         h,
       );
     }
-    const livemode = keyLivemode;
+    const livemode = requested;
 
     const results: Array<Record<string, unknown>> = [];
 
@@ -259,7 +266,7 @@ Deno.serve(async (req) => {
       const ambiguous = isAmbiguousTransfer(tr as never);
       if (ambiguous) {
         const group = tr.transfer_group ?? tr.idempotency_key;
-        const found = await stripeCall(`/transfers?transfer_group=${encodeURIComponent(group)}&limit=5`);
+        const found = await stripeCall(`/transfers?transfer_group=${encodeURIComponent(group)}&limit=5`, { secret });
         if (!found.ok) {
           await hold("reconcile_unavailable", "Waiting: Stripe could not be checked for an earlier attempt.");
           continue;
@@ -294,7 +301,7 @@ Deno.serve(async (req) => {
         await hold("no_account", "Waiting: this affiliate has not connected a payout account yet.");
         continue;
       }
-      const acct = await stripeCall(`/accounts/${destination}`);
+      const acct = await stripeCall(`/accounts/${destination}`, { secret });
       if (!acct.ok) {
         await hold("account_unreadable", "Waiting: Stripe could not read the destination account.");
         continue;
@@ -314,7 +321,7 @@ Deno.serve(async (req) => {
       }
 
       // Funded-balance check on the platform account, in this exact currency.
-      const balance = await stripeCall("/balance");
+      const balance = await stripeCall("/balance", { secret });
       const available = (balance.data?.available ?? []).find(
         (b: any) => String(b.currency).toLowerCase() === String(tr.currency).toLowerCase(),
       );
@@ -326,6 +333,7 @@ Deno.serve(async (req) => {
       // Per-commission idempotency key plus a stable transfer group, so any
       // later ambiguity can be resolved against Stripe itself.
       const transfer = await stripeCall("/transfers", {
+        secret,
         idempotencyKey: tr.idempotency_key,
         body: {
           amount: tr.amount_cents,

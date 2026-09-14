@@ -10,7 +10,15 @@
 //
 // Ledger writes go through database functions so each event's changes commit
 // atomically, and so concurrent refunds cannot over- or under-reduce a commission.
-import { adminClient, COMMISSION_RATE, json, loadSettings, normalizeEmail, sha256 } from "../_shared/affiliate.ts";
+import {
+  adminClient,
+  COMMISSION_RATE,
+  json,
+  loadSettings,
+  normalizeEmail,
+  sha256,
+  stripeSecretFor,
+} from "../_shared/affiliate.ts";
 import {
   computeEligibleAmount,
   isAttributableReferral,
@@ -19,6 +27,7 @@ import {
 } from "../_shared/affiliateWebhookLogic.ts";
 import {
   AFFILIATE_CONNECT_WEBHOOK_SECRET_NAME,
+  AFFILIATE_TEST_WEBHOOK_SECRET_NAME,
   readAffiliateWebhookSecret,
 } from "../_shared/affiliateVault.ts";
 
@@ -91,15 +100,18 @@ Deno.serve(async (req) => {
   const connectSecret = Deno.env.get("AFFILIATE_STRIPE_CONNECT_WEBHOOK_SECRET") ??
     (await readAffiliateWebhookSecret(AFFILIATE_CONNECT_WEBHOOK_SECRET_NAME).catch(() => null));
 
-  const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
-  if (!accountSecret || !stripeSecret) {
+  // Isolated test-mode deliveries are signed with their own endpoint secret.
+  const testSecret = Deno.env.get("AFFILIATE_STRIPE_TEST_WEBHOOK_SECRET") ??
+    (await readAffiliateWebhookSecret(AFFILIATE_TEST_WEBHOOK_SECRET_NAME).catch(() => null));
+
+  if (!accountSecret) {
     console.error("affiliate webhook not configured");
     return json({ error: "Webhook not configured." }, 503);
   }
 
   const payload = await req.text();
   const sigHeader = req.headers.get("stripe-signature") ?? "";
-  const candidates = [accountSecret, connectSecret].filter((s): s is string => Boolean(s));
+  const candidates = [accountSecret, connectSecret, testSecret].filter((s): s is string => Boolean(s));
   let verified = false;
   for (const candidate of candidates) {
     if (await verifySignature(payload, sigHeader, candidate)) {
@@ -112,6 +124,14 @@ Deno.serve(async (req) => {
   const event = JSON.parse(payload);
   const db = adminClient();
   const livemode = Boolean(event.livemode);
+
+  // Every Stripe read for this event uses the key of the event's own mode.
+  const stripeSecret = stripeSecretFor(livemode);
+  if (!stripeSecret) {
+    console.error("no Stripe key available for mode", livemode);
+    return json({ error: "Webhook not configured for this mode." }, 503);
+  }
+
 
   // Durable claim. Database errors are propagated so Stripe retries.
   const { data: claim, error: claimError } = await db.rpc("affiliate_claim_webhook_event", {
