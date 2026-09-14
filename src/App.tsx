@@ -127,6 +127,12 @@ const MemberApp = () => (
         <Route path="/website-editor" element={<Navigate to="/website" replace />} />
         <Route path="/website" element={<ProtectedRoute><WebsiteEditor /></ProtectedRoute>} />
 
+        <Route path="/affiliates" element={<ProtectedRoute><Affiliates /></ProtectedRoute>} />
+        <Route path="/refer/:code/call" element={<Refer linkType="call" />} />
+        <Route path="/refer/:code/pay" element={<Refer linkType="pay" />} />
+        <Route path="/refer/:code/both" element={<Refer linkType="both" />} />
+        <Route path="/refer/:code/thank-you" element={<ReferThankYou />} />
+
         <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />
         <Route path="/checklist" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
         <Route path="/checklist/:listId" element={<ProtectedRoute><HairSystemChecklist /></ProtectedRoute>} />
@@ -155,6 +161,7 @@ const MemberApp = () => (
         <Route path="/admin/aion" element={<ProtectedRoute requireAdmin><AionConversations /></ProtectedRoute>} />
         <Route path="/admin/ads" element={<ProtectedRoute requireAdmin><AdsManager /></ProtectedRoute>} />
         <Route path="/admin/notifications" element={<ProtectedRoute requireAdmin><PushNotifications /></ProtectedRoute>} />
+        <Route path="/admin/affiliates" element={<ProtectedRoute requireAdmin><AffiliatesAdmin /></ProtectedRoute>} />
         <Route path="/admin/support" element={<ProtectedRoute requireAdmin><SupportInbox /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
