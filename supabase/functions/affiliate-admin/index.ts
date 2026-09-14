@@ -179,6 +179,21 @@ Deno.serve(async (req) => {
         );
       }
 
+      case "run_dispatch": {
+        const dryRun = body.dryRun !== false;
+        const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/affiliate-transfer-dispatch`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ dryRun }),
+        });
+        const out = await res.json().catch(() => ({}));
+        await audit("payout_dispatch_run", { details: { dryRun, ok: res.ok } });
+        return json(out, res.ok ? 200 : 400, h);
+      }
+
       case "retry_transfer":
       case "cancel_transfer": {
         const transferId = String(body.transferId ?? "");
