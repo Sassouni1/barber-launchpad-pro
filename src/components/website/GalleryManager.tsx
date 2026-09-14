@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowDown, ArrowUp, ImagePlus, Link2, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Link2, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import type { GalleryPhoto } from '@/lib/websiteEditor';
 
 export const GALLERY_MIME = ['image/png', 'image/jpeg', 'image/webp'];
@@ -47,6 +47,7 @@ export function GalleryManager({
   const fileRef = useRef<HTMLInputElement>(null);
   const [arranging, setArranging] = useState(false);
   const [dragging, setDragging] = useState<number | null>(null);
+  const [dragPoint, setDragPoint] = useState<{x: number; y: number; width: number} | null>(null);
   const [over, setOver] = useState<number | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const dropTarget = (x: number, y: number) => {
@@ -109,24 +110,34 @@ export function GalleryManager({
         {arranging && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">Drag a photo into place. With a keyboard, focus a photo and use the arrow keys.</p>
+            {dragging !== null && dragPoint && photos[dragging] && (
+              <div aria-hidden="true" className="pointer-events-none fixed z-[100] overflow-hidden rounded-md border-2 border-primary shadow-2xl ring-4 ring-primary/30"
+                style={{left: dragPoint.x, top: dragPoint.y, width: dragPoint.width, height: dragPoint.width, transform: 'translate(-50%, -65%) rotate(-4deg) scale(1.12)'}}>
+                <img src={photos[dragging].src} alt="" className="h-full w-full object-cover" />
+              </div>
+            )}
             <div ref={gridRef} className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-label="Arrange gallery photos">
               {photos.map((photo, index) => (
                 <button key={photo.imageKey} type="button" data-photo-index={index}
                   aria-label={`Arrange photo ${index + 1}: ${photo.alt}`}
                   disabled={busy}
-                  className={`relative aspect-square touch-none select-none overflow-hidden rounded-md border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${over === index ? 'border-primary' : 'border-border'} ${dragging === index ? 'opacity-40' : ''}`}
+                  className={`relative aspect-square touch-none select-none overflow-hidden rounded-md border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${over === index ? 'border-primary' : 'border-border'} ${dragging === index ? 'opacity-30 border-dashed' : 'cursor-grab active:cursor-grabbing'} ${over === index && dragging !== index ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-95' : ''} transition-transform`}
                   onPointerDown={(event) => {
                     if (event.button !== 0) return;
                     event.currentTarget.setPointerCapture(event.pointerId);
                     setDragging(index); setOver(index);
+                    setDragPoint({x: event.clientX, y: event.clientY, width: event.currentTarget.getBoundingClientRect().width});
                   }}
-                  onPointerMove={(event) => { if (dragging !== null) setOver(dropTarget(event.clientX, event.clientY)); }}
+                  onPointerMove={(event) => { if (dragging !== null) {
+                    setOver(dropTarget(event.clientX, event.clientY));
+                    setDragPoint((point) => point ? {...point, x: event.clientX, y: event.clientY} : null);
+                  } }}
                   onPointerUp={(event) => {
                     const target = dropTarget(event.clientX, event.clientY);
                     if (dragging !== null && target !== null && dragging !== target) onReorder(dragging, target);
-                    setDragging(null); setOver(null);
+                    setDragging(null); setOver(null); setDragPoint(null);
                   }}
-                  onPointerCancel={() => { setDragging(null); setOver(null); }}
+                  onPointerCancel={() => { setDragging(null); setOver(null); setDragPoint(null); }}
                   onKeyDown={(event) => {
                     const columns = gridRef.current ? getComputedStyle(gridRef.current).gridTemplateColumns.split(' ').length : 3;
                     const offset = {ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns}[event.key];
@@ -136,6 +147,7 @@ export function GalleryManager({
                     if (target >= 0 && target < photos.length) onReorder(index, target);
                   }}>
                   <img src={photo.src} alt="" draggable={false} className="pointer-events-none h-full w-full object-cover" />
+                  <span aria-hidden="true" className="pointer-events-none absolute bottom-0 inset-x-0 flex justify-center bg-black/70 py-1 text-white"><GripVertical className="h-4 w-4 rotate-90" /></span>
                   <span className="absolute left-1 top-1 rounded bg-black/80 px-1.5 py-0.5 text-xs text-white">{index + 1}</span>
                 </button>
               ))}
