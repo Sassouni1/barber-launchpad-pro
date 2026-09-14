@@ -129,7 +129,10 @@ export function missingConfig(s: ProgramSettings): string[] {
   }
   if (!s.enrollment_price_ids.length) missing.push("Approved enrollment Stripe price ID(s)");
   if (!s.sales_call_url) missing.push("Verified sales call booking URL");
-  if (!Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET")) missing.push("AFFILIATE_STRIPE_WEBHOOK_SECRET");
+  if (!s.webhook_endpoint_id) missing.push("Stripe webhook endpoint for affiliate payment events");
+  if (!s.webhook_secret_stored && !Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET")) {
+    missing.push("Stored affiliate webhook signing secret");
+  }
   if (!s.live_enabled) missing.push("Live mode enabled in affiliate setup");
   return missing;
 }

@@ -12,6 +12,7 @@
 // atomically, and so concurrent refunds cannot over- or under-reduce a commission.
 import { adminClient, COMMISSION_RATE, json, loadSettings, normalizeEmail, sha256 } from "../_shared/affiliate.ts";
 import { computeEligibleAmount, withinAttributionWindow } from "../_shared/affiliateWebhookLogic.ts";
+import { readAffiliateWebhookSecret } from "../_shared/affiliateVault.ts";
 
 const encoder = new TextEncoder();
 
