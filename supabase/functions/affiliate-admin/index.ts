@@ -45,15 +45,22 @@ Deno.serve(async (req) => {
             db.from("affiliate_commissions").select("*").order("created_at", { ascending: false }).limit(500),
             db.from("affiliate_payouts").select("*").order("paid_at", { ascending: false }).limit(200),
           ]);
+        const [{ data: transfers }, { data: payoutAccounts }] = await Promise.all([
+          db.from("affiliate_transfers").select("*").order("created_at", { ascending: false }).limit(300),
+          db.from("affiliate_payout_accounts").select("*").order("updated_at", { ascending: false }).limit(300),
+        ]);
         return json(
           {
             settings,
             missingConfig: missingConfig(settings),
+            missingPayoutConfig: missingPayoutConfig(settings),
             affiliates: affiliates ?? [],
             referrals: referrals ?? [],
             payments: payments ?? [],
             commissions: commissions ?? [],
             payouts: payouts ?? [],
+            transfers: transfers ?? [],
+            payoutAccounts: payoutAccounts ?? [],
           },
           200,
           h,
