@@ -1,58 +1,51 @@
-# GHL OAuth: read-only diagnosis (no changes made)
+# Barber Launch Affiliate Program
 
-## What the code actually sends
+Custom, self-hosted affiliate system inside the existing member app. No third-party affiliate platform, no GHL dependency. Commission is 20% of eligible collected enrollment revenue ($600 on $3,000), accrued only from signed Stripe webhook events.
 
-From `supabase/functions/ghl-oauth/index.ts` (`getAuthUrl`):
+## What I found first (affects the build)
 
-```text
-https://marketplace.gohighlevel.com/oauth/chooselocation
-  ?response_type=code
-  &redirect_uri=<GHL_REDIRECT_URI secret, fallback https://member.thebarberlaunch.com/integrations/crm/callback>
-  &client_id=<GHL_CLIENT_ID secret>
-  &scope=contacts.readonly contacts.write conversations/message.write locations.readonly
-  &state=<CSRF token>
-```
+- The only Stripe key configured (`STRIPE_SECRET_KEY`) is currently used as the **Connect platform** key for members' own client payment links and for managed-ad billing. That is not proof it is the Barber Launch **enrollment seller** account, and no $3,000 enrollment price is referenced anywhere in the code.
+- The only booking destination in the app is the **member** one-on-one calendar. There is no verified **prospect sales-call** URL.
+- "Link Pay" is not identifiable in this codebase, so no claim will be made that its payments are covered.
 
-Secrets confirmed present in the backend: `GHL_CLIENT_ID`, `GHL_CLIENT_SECRET`, `GHL_REDIRECT_URI`. Their **values are encrypted and cannot be read**, so the client ID actually sent at runtime is unverified. Everything below is conditioned on that.
+Because of this, public enrollment checkout ships **disabled**, showing an honest setup message, until the seller account, price ID, webhook secret and sales-call URL are confirmed in admin setup.
 
-## Answers
+## Member experience
 
-**1) Is the authorize URL and parameter set correct?**
-Yes. `/oauth/chooselocation` with `response_type=code`, `client_id`, `redirect_uri`, `scope`, `state` is the correct contract for a Private, Live, Sub-Account-targeted Marketplace app. No parameter is missing. `user_type` is not a supported authorize parameter; it is derived from the app's configured target user type.
+New authenticated page `/affiliates` (desktop sidebar + mobile menu), showing a server-generated affiliate code and three individually copyable links, each with its exact required text:
 
-**2) Could the client ID be wrong?**
-This is the single most likely cause and it fits the symptom exactly. The observed behavior — same-tab load of `chooselocation` that instantly bounces to `app.gohighlevel.com/agency_dashboard?tab=summary` with no chooser, no `code`, and no `error` — is GHL's silent rejection path. It fires when the authorize request cannot be resolved to an installable app for the signed-in user. The most common trigger is sending the bare app ID (`6941fcbf392d3e2dded5676c`) instead of the full OAuth client ID (`6941fcbf392d3e2dded5676c-mppdz93j`). The suffix is part of the client ID, not a display artifact. Because the secret is write-only, we cannot confirm which form is stored.
+1. Sales call funnel — "Use this if you want the person to speak with the Barber Launch team first. It still gets accounted to you. Don't worry."
+2. Direct payment — "If you're confident that this person will sign up right now without needing a call, use this link."
+3. Both — "If you're not really sure, use this link."
 
-Second candidate with the identical signature: a `redirect_uri` that differs from the registered one by even one character (trailing slash, `http` vs `https`, `www.`, different path case). GHL does not render an error page for a mismatch on this endpoint; it bounces.
+Below that: referrals saved, commissions verified, pending review, paid, and refund/dispute adjustments (shown as negatives). Every number comes from the ledger; nothing estimated.
 
-Third candidate: a requested scope that is not enabled on the app. Our four scopes must each be checked on the app's scope list, notably `conversations/message.write` (slash form, not dot).
+## Public referral pages
 
-**3) Does the Marketplace app need extra settings for `chooselocation` to emit a code?**
-Yes, three that are easy to miss:
-- **Distribution type Private** requires the app to be explicitly shared with the agency/company ID that is installing it. If the signed-in agency is not on that list, the app is invisible to the authorize endpoint and the request bounces to the agency dashboard.
-- **Target user type must be Sub-Account** and the redirect URI must be registered under the same client that issued the client ID. An app can hold more than one client credential set; only the one matching the redirect URI works.
-- **Already-installed state.** If "Vlix Booking" is already installed on the agency but not on any sub-account, or the install was done from the agency side only, `chooselocation` can short-circuit back to the dashboard. A clean uninstall/reinstall from the sub-account level is the usual reset.
+- `/refer/:code/call`, `/refer/:code/pay`, `/refer/:code/both` (the Both page offers a choice).
+- Each collects name, email and phone and **saves the lead server-side before** sending the prospect to booking or checkout, so a sale closed days later on a call still matches by verified identity.
+- Concise affiliate commission disclosure on each page.
+- First established referral wins; self-referral blocked; no silent reassignment. Returning leads are recognized without revealing stored details or handing out tokens.
 
-An install/authorization URL field is not required for a code to be emitted, but if one is set and points anywhere other than our canonical callback, it takes precedence and explains the redirect.
+## Admin
 
-**4) Exact read-only checklist for Chris (verify, do not change yet)**
+`/admin/affiliates`: affiliate list with identity, lead contact details, suspend/reactivate, reconciliation of verified Stripe payment records to referrals (real payment proof only, never amount-only matching), audited manual corrections, and recording an already-completed external payout receipt (no money is moved by the app). A setup panel surfaces the remaining decisions rather than choosing them silently: seller account confirmation, approved enrollment price IDs, sales-call URL, attribution window, payout timing, affiliate terms text, and a live-enabled flag.
 
-In the GHL Marketplace app "Vlix Booking":
+## Technical section
 
-| Field | Expected value |
-| --- | --- |
-| Client ID (full string, including suffix) | `6941fcbf392d3e2dded5676c-mppdz93j` |
-| Redirect URI (exact, no trailing slash) | `https://member.thebarberlaunch.com/integrations/crm/callback` |
-| Number of redirect URIs registered | Confirm the above is present and note any others |
-| App status | Live |
-| Distribution type | Private — record the exact agency/company IDs it is shared with |
-| Target user type | Sub-Account |
-| Scopes enabled | `contacts.readonly`, `contacts.write`, `conversations/message.write`, `locations.readonly` |
-| Install / authorization URL field | Record whether it is empty or set, and its exact value |
-| Client credentials sets | Note if more than one exists, and which one lists the redirect URI above |
-| Current installs | Whether the app shows as installed on the agency and/or on any sub-account |
+**Migration `affiliate_program`** (all additive, RLS on, explicit GRANTs):
+`affiliates`, `affiliate_referrals` (private lead PII + opaque token hash), `affiliate_payments` (immutable Stripe payment identity, livemode flag), `affiliate_commissions` (ledger incl. negative refund/dispute rows), `affiliate_payouts`, `affiliate_admin_audit`, `affiliate_webhook_events` (idempotency on event id), `affiliate_intake_rate_limits`, `affiliate_settings`. Affiliates read only their own sanitized rows via security-definer functions; admins via `has_role`; `anon` gets no table grants at all — public intake goes through an Edge Function only.
 
-Also record, from the browser during a failed attempt: the **full authorize URL** in the Safari address bar before it bounces (query string included, `client_id` and `redirect_uri` in particular). That single capture confirms or rules out causes 2 and 3 immediately, and it is the piece of evidence we currently lack.
+**Edge Functions:**
+- `affiliate-intake` (public, validated, rate-limited): resolve code, create/reuse referral, return a booking or checkout redirect; refuses to mint checkout while setup is incomplete.
+- `affiliate-checkout` (public, gated): hosted Stripe Checkout with the approved enrollment price, `client_reference_id` and server-side referral metadata.
+- `affiliate-stripe-webhook` (signed, dedicated `AFFILIATE_STRIPE_WEBHOOK_SECRET`): verifies signature, paid/captured state, approved price, currency, livemode and purchase timing; accrues 20% of net of shipping/tax/discount; handles async success, duplicates and reordering, partial/full refunds, disputes, and refunds after payout. Existing webhooks untouched.
+- `affiliate-portal` (authenticated affiliate) and `affiliate-admin` (admin) for reads, reconciliation, corrections and payout records.
 
-## Nothing was changed
-No code, database, secret, or deployment change was made in this pass.
+**Secrets requested by name at setup, never invented:** `AFFILIATE_STRIPE_WEBHOOK_SECRET`, plus the enrollment price ID(s), seller account confirmation and sales-call URL stored in `affiliate_settings`.
+
+**External affiliates:** a scoped affiliate-only account path that grants `/affiliates` without granting course access.
+
+**Testing:** node/JSDOM regression coverage for attribution precedence, self-referral rejection, webhook idempotency and refund math; no real charges, no money movement, test-mode events kept out of live balances.
+
+**Deployment:** backend migration and functions applied so you can inspect; the member frontend is not published.
