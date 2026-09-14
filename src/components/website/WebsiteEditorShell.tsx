@@ -10,25 +10,30 @@ import { ArrowDown, ArrowUp, Copy, Globe, ImageIcon, Info, Loader2, Redo2, Save,
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import {
+  ALT_SUFFIX,
   ITEM_ATTR,
   ITEM_POS_ATTR,
   OVERLAY_ATTR,
   applyDraft,
   applyFieldValue,
+  applyItemPlan,
   applyLayout,
+  copyPlan,
   currentOrder,
   decorateFields,
   decorateItems,
   elementFromKey,
-  itemKeys,
+  galleryPhotos,
   readLayout,
-  remapItemDraft,
+  removePlan,
   scanFields,
   setSelected,
-  writeLayout,
+  swapPlan,
 
   type EditableField,
   type EditorDraft,
+  type GalleryPhoto,
+  type ItemPlan,
   type PageDraft,
   type RepeatOriginals,
   type RepeatRule,
@@ -42,7 +47,9 @@ import {
   writeLocalDraft,
   type WebsiteEntitlement,
 } from '@/hooks/useWebsiteEditor';
+import { uploadWebsiteImage } from '@/hooks/useMemberWebsite';
 import { EditorImageDialog } from '@/components/website/EditorImageDialog';
+import { GALLERY_MAX_BYTES, GALLERY_MIME, GalleryManager } from '@/components/website/GalleryManager';
 
 type Props = {
   template: WebsiteTemplateConfig;
@@ -77,6 +84,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const [history, setHistory] = useState<EditorDraft[]>([{}]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
   // Pristine copies of every configured repeatable item, per page.
   const originalsRef = useRef<Record<string, RepeatOriginals>>({});
@@ -232,91 +240,228 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   }, [selectedKey, ready, repeatRules, pageKey, pageDraft]);
 
 
-  const runItemOp = (kind: ItemOp, itemEl?: HTMLElement) => {
+  const runItemOp = (
+    kind: ItemOp,
+    itemEl?: HTMLElement,
+    opts?: { skipConfirm?: boolean; message?: string },
+  ): boolean => {
     const doc = iframeRef.current?.contentDocument;
-    if (!doc) return;
+    if (!doc) return false;
     // Either the sidebar selection or the card the overlay button belongs to.
     let context: { rule: RepeatRule; position: number } | null = activeItem;
     if (itemEl) {
       const rule = repeatRules.find((r) => r.key === itemEl.getAttribute(ITEM_ATTR));
-      if (!rule) return;
+      if (!rule) return false;
       context = { rule, position: Number(itemEl.getAttribute(ITEM_POS_ATTR) ?? '0') };
     }
-    if (!context) return;
+    if (!context) return false;
     const { rule, position } = context;
     const originals = originalsRef.current[pageKey]?.[rule.key] ?? [];
     const layout = readLayout(pageDraft);
     const order = currentOrder(layout, rule.key, originals.length);
 
-
-    let nextOrder: number[];
-    let mapping: number[];
-    let nextPosition: number;
+    let plan: ItemPlan;
 
     if (kind === 'delete') {
       if (order.length <= 1) {
-        toast.error(`You need to keep at least one ${rule.label} card here.`);
-        return;
+        toast.error(`You need to keep at least one ${rule.label} here.`);
+        return false;
       }
-      const ok = window.confirm(
-        `Delete this ${rule.label} card (card ${position + 1} of ${order.length})? ` +
-          `Only this single ${rule.label} card and its own text/images are removed — ` +
-          `this cannot delete a whole section or page. This can be undone with Undo.`,
-      );
-      if (!ok) return;
-      nextOrder = [...order.slice(0, position), ...order.slice(position + 1)];
-      mapping = [];
-      for (let i = 0; i < order.length; i += 1) if (i !== position) mapping.push(i);
-      nextPosition = Math.min(position, nextOrder.length - 1);
+      if (!opts?.skipConfirm) {
+        const ok = window.confirm(
+          `Delete this ${rule.label} card (card ${position + 1} of ${order.length})? ` +
+            `Only this single ${rule.label} card and its own text/images are removed — ` +
+            `this cannot delete a whole section or page. This can be undone with Undo.`,
+        );
+        if (!ok) return false;
+      }
+      plan = removePlan(order, position);
     } else if (kind === 'duplicate') {
       if (rule.max && order.length >= rule.max) {
         toast.error(`You can have up to ${rule.max} ${rule.label} cards here.`);
-        return;
+        return false;
       }
-      nextOrder = [...order.slice(0, position + 1), order[position], ...order.slice(position + 1)];
-      mapping = [];
-      for (let i = 0; i <= position; i += 1) mapping.push(i);
-      mapping.push(position);
-      for (let i = position + 1; i < order.length; i += 1) mapping.push(i);
-      nextPosition = position + 1;
+      plan = copyPlan(order, position);
     } else {
       const target = kind === 'earlier' ? position - 1 : position + 1;
-      if (target < 0 || target >= order.length) return;
-      nextOrder = [...order];
-      [nextOrder[position], nextOrder[target]] = [nextOrder[target], nextOrder[position]];
-      mapping = order.map((_, i) => (i === position ? target : i === target ? position : i));
-      nextPosition = target;
+      if (target < 0 || target >= order.length) return false;
+      plan = swapPlan(order, position, target);
     }
 
-    const oldKeys = itemKeys(doc, rule);
-    const nextLayout = { ...layout, [rule.key]: nextOrder };
-    originalsRef.current[pageKey] = applyLayout(
-      doc,
-      repeatRules,
-      nextLayout,
-      originalsRef.current[pageKey] ?? {},
-    );
-    const newKeys = itemKeys(doc, rule);
+    const applied = applyItemPlan(doc, repeatRules, rule, pageDraft, plan, originalsRef.current[pageKey] ?? {});
+    originalsRef.current[pageKey] = applied.originals;
 
-    const remapped = writeLayout(remapItemDraft(pageDraft, oldKeys, newKeys, mapping), nextLayout);
-    const nextDraft = { ...draft, [pageKey]: remapped };
+    const nextDraft = { ...draft, [pageKey]: applied.pageDraft };
     commit(nextDraft);
-    const scanned = hydrate(doc, remapped);
+    const scanned = hydrate(doc, applied.pageDraft);
 
-    const prefix = newKeys[nextPosition];
+    const prefix = applied.newKeys[plan.nextPosition];
     const nextField = prefix ? scanned.find((f) => f.key.startsWith(`${prefix}.`) || f.key === prefix) : undefined;
     setSelectedKey(nextField?.key ?? null);
     setSelected(doc, nextField?.key ?? null);
     toast.success(
-      kind === 'duplicate'
-        ? `Duplicated this ${rule.label} — edit the new card below.`
-        : kind === 'delete'
-          ? `Deleted this ${rule.label} card.`
-          : `Moved this ${rule.label} ${kind === 'earlier' ? 'earlier' : 'later'}.`,
+      opts?.message ??
+        (kind === 'duplicate'
+          ? `Duplicated this ${rule.label} — edit the new card below.`
+          : kind === 'delete'
+            ? `Deleted this ${rule.label} card.`
+            : `Moved this ${rule.label} ${kind === 'earlier' ? 'earlier' : 'later'}.`),
     );
+    return true;
   };
 
   runItemOpRef.current = runItemOp;
+
+  /* ---------------------------------------------------------------- gallery */
+
+  const galleryRule = useMemo(() => repeatRules.find((r) => r.gallery) ?? null, [repeatRules]);
+
+  /** Photos of the configured gallery group on the page being edited. */
+  const photos: GalleryPhoto[] = useMemo(() => {
+    if (!galleryRule || !ready) return [];
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return [];
+    return galleryPhotos(doc, galleryRule, pageDraft);
+    // `fields` changes on every hydrate, which is exactly when the DOM changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [galleryRule, ready, pageDraft, fields]);
+
+  const galleryShareUrl = useMemo(() => {
+    if (!galleryRule?.shareAnchor) return null;
+    const base = entitlement.customDomain
+      ? /^https?:\/\//i.test(entitlement.customDomain)
+        ? entitlement.customDomain
+        : `https://${entitlement.customDomain}`
+      : liveUrl;
+    if (!base) return null;
+    return `${base.replace(/\/$/, '')}/#${galleryRule.shareAnchor}`;
+  }, [galleryRule, entitlement.customDomain, liveUrl]);
+
+  const itemElementFor = (photo: GalleryPhoto): HTMLElement | null => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return null;
+    return (elementFromKey(doc, photo.itemKey) as HTMLElement | null) ?? null;
+  };
+
+  const selectPhoto = (photo: GalleryPhoto) => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+    setSelectedKey(photo.imageKey);
+    setSelected(doc, photo.imageKey);
+  };
+
+  const handleGalleryReplace = (photo: GalleryPhoto) => {
+    selectPhoto(photo);
+    setImageDialogOpen(true);
+  };
+
+  const handleGalleryMove = (photo: GalleryPhoto, direction: 'earlier' | 'later') => {
+    const el = itemElementFor(photo);
+    if (el) runItemOp(direction, el, { message: `Moved this photo ${direction}.` });
+  };
+
+  const handleGalleryRemove = (photo: GalleryPhoto) => {
+    const el = itemElementFor(photo);
+    if (!el) return;
+    const snapshot = draftRef.current;
+    const removed = runItemOp('delete', el, { skipConfirm: true, message: 'Photo removed from your gallery.' });
+    if (!removed) return;
+    toast('Photo removed from your gallery.', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          commit(snapshot);
+          restore(snapshot);
+        },
+      },
+    });
+  };
+
+  const handleGalleryDescribe = (photo: GalleryPhoto, description: string) => {
+    setValue(`${photo.imageKey}${ALT_SUFFIX}`, description);
+  };
+
+  const handleGalleryShare = async () => {
+    if (!galleryShareUrl) return;
+    try {
+      await navigator.clipboard.writeText(galleryShareUrl);
+      toast.success('Gallery link copied — it shows your published photos only.');
+    } catch {
+      if (navigator.share) {
+        try {
+          await navigator.share({ url: galleryShareUrl });
+          return;
+        } catch {
+          /* dismissed */
+        }
+      }
+      toast.error(`Copy this link manually: ${galleryShareUrl}`);
+    }
+  };
+
+  const handleGalleryAdd = async (files: File[]) => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc || !galleryRule || !user) return;
+
+    const valid = files.filter((file) => {
+      if (!GALLERY_MIME.includes(file.type)) {
+        toast.error(`${file.name} isn't a PNG, JPEG or WebP photo.`);
+        return false;
+      }
+      if (file.size > GALLERY_MAX_BYTES) {
+        toast.error(`${file.name} is larger than 12 MB.`);
+        return false;
+      }
+      return true;
+    });
+    if (!valid.length) return;
+
+    let working: PageDraft = { ...(draftRef.current[pageKey] ?? {}) };
+    let originals = originalsRef.current[pageKey] ?? {};
+    const startCount = currentOrder(
+      readLayout(working),
+      galleryRule.key,
+      (originals[galleryRule.key] ?? []).length,
+    ).length;
+
+    if (galleryRule.max && startCount + valid.length > galleryRule.max) {
+      toast.error(`Your gallery holds up to ${galleryRule.max} photos.`);
+      return;
+    }
+
+    setUploadingPhotos(true);
+    let added = 0;
+    try {
+      for (const file of valid) {
+        const url = await uploadWebsiteImage(user.id, file);
+        const order = currentOrder(readLayout(working), galleryRule.key, (originals[galleryRule.key] ?? []).length);
+        // A new photo is a copy of the last card, so it inherits the template's
+        // own markup and styling, then takes the uploaded image.
+        const plan = copyPlan(order, order.length - 1);
+        const applied = applyItemPlan(doc, repeatRules, galleryRule, working, plan, originals);
+        working = applied.pageDraft;
+        originals = applied.originals;
+        const created = galleryPhotos(doc, galleryRule, working)[plan.nextPosition];
+        if (created) {
+          added += 1;
+          working = {
+            ...working,
+            [created.imageKey]: url,
+            [`${created.imageKey}${ALT_SUFFIX}`]: `Gallery photo ${plan.nextPosition + 1}`,
+          };
+        }
+      }
+      originalsRef.current[pageKey] = originals;
+      commit({ ...draftRef.current, [pageKey]: working });
+      hydrate(doc, working);
+      toast.success(`Added ${added} photo${added === 1 ? '' : 's'} — publish when you're happy with the order.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'That photo could not be uploaded.');
+    } finally {
+      setUploadingPhotos(false);
+    }
+  };
+
 
   const currentValue = selectedField ? (pageDraft[selectedField.key] ?? selectedField.original) : '';
   const overLimit = !!selectedField?.limit && currentValue.length > selectedField.limit;
@@ -500,7 +645,11 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
+    <div
+      className={`mx-auto max-w-6xl space-y-4 p-4 sm:p-6 ${
+        isMobile && mobileEditorOpen && selectedField ? 'pb-[50dvh]' : ''
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Website Editor</h1>
@@ -563,20 +712,39 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
       </Tabs>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            {page && (
-              <iframe
-                key={page.key}
-                ref={iframeRef}
-                title={`${template.displayName} preview`}
-                src={page.source}
-                onLoad={handleIframeLoad}
-                className="h-[70vh] w-full border-0 bg-black"
-              />
-            )}
-          </CardContent>
-        </Card>
+        <div className="min-w-0 space-y-4">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              {page && (
+                <iframe
+                  key={page.key}
+                  ref={iframeRef}
+                  title={`${template.displayName} preview`}
+                  src={page.source}
+                  onLoad={handleIframeLoad}
+                  className="h-[70vh] w-full border-0 bg-black"
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {galleryRule && photos.length > 0 && (
+            <GalleryManager
+              title={`${galleryRule.label} gallery`.replace(/^\w/, (c) => c.toUpperCase())}
+              photos={photos}
+              max={galleryRule.max}
+              busy={uploadingPhotos}
+              shareUrl={galleryShareUrl}
+              onAdd={handleGalleryAdd}
+              onReplace={handleGalleryReplace}
+              onMove={handleGalleryMove}
+              onRemove={handleGalleryRemove}
+              onDescribe={handleGalleryDescribe}
+              onShare={handleGalleryShare}
+            />
+          )}
+        </div>
+
 
         {isMobile ? (
           mobileEditorOpen && selectedField && (

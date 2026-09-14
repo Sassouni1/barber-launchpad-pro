@@ -52,6 +52,19 @@ export type RepeatRule = {
   item: string;
   /** Optional cap on how many items a member may create. */
   max?: number;
+  /**
+   * Marks a photo-gallery group: the editor offers an upload/arrange/remove
+   * manager for it instead of relying on card duplication alone.
+   */
+  gallery?: boolean;
+  /** Page anchor used when sharing a direct link to this group. */
+  shareAnchor?: string;
+  /**
+   * Classes stripped from rebuilt items. Used when the template's own CSS
+   * pins certain cards with `order:` rules that would override the member's
+   * chosen order.
+   */
+  dropClasses?: string[];
 };
 
 /** ruleKey -> ordered list of original item indices (duplicates repeat an index). */
@@ -117,8 +130,20 @@ export const GROUP_PREFIX = 'group:';
 
 export const isGroupKey = (key: string) => key.startsWith(GROUP_PREFIX);
 
+/**
+ * Suffix for the accessible description of an image field. Stored as its own
+ * draft entry so the photo and its description travel together when a card is
+ * duplicated, reordered or removed.
+ */
+export const ALT_SUFFIX = '#alt';
+
+export const isAltKey = (key: string) => key.endsWith(ALT_SUFFIX);
+
+export const baseKeyOf = (key: string) => (isAltKey(key) ? key.slice(0, -ALT_SUFFIX.length) : key);
+
 export function elementFromKey(root: Document | HTMLElement, key: string): Element | null {
-  const path = isGroupKey(key) ? key.slice(GROUP_PREFIX.length) : key;
+  const plain = baseKeyOf(key);
+  const path = isGroupKey(plain) ? plain.slice(GROUP_PREFIX.length) : plain;
   let node: Element | null = 'body' in root ? root.body : root;
   if (!node) return null;
   if (path === '') return node;
@@ -341,6 +366,15 @@ export function applyFieldValue(
 ) {
   const el = elementFromKey(root, key);
   if (!el) return;
+  if (isAltKey(key)) {
+    if (el.tagName !== 'IMG') return;
+    const text = value.trim();
+    el.setAttribute('alt', text);
+    // Keep the template's own lightbox trigger label in sync with the photo.
+    const trigger = el.closest('button');
+    if (trigger) trigger.setAttribute('aria-label', text ? `View ${text} larger` : 'View this photo larger');
+    return;
+  }
   if (isGroupKey(key)) {
     const group = collectGroups(root, rules).find((g) => g.container === el);
     applyGroupValue(el, value, group?.rule.groupExclude);
@@ -434,6 +468,9 @@ export function applyLayout(
       const clone = pristine[sourceIndex].cloneNode(true) as Element;
       clone.setAttribute(ITEM_ATTR, rule.key);
       clone.setAttribute(ITEM_POS_ATTR, String(position));
+      // Template classes that hard-pin display order would otherwise beat the
+      // member's own arrangement, so configured ones are dropped on rebuild.
+      rule.dropClasses?.forEach((className) => clone.classList.remove(className));
       container.insertBefore(clone, anchor);
     });
     anchor.remove();
@@ -482,6 +519,88 @@ export function currentOrder(layout: LayoutState, ruleKey: string, itemCount: nu
   const order = layout[ruleKey];
   if (order && order.length) return [...order];
   return Array.from({ length: itemCount }, (_, i) => i);
+}
+
+/**
+ * One structural change to a repeat group: the new order plus
+ * `mapping[newPosition] = oldPosition` so the member's edits follow their card.
+ */
+export type ItemPlan = { nextOrder: number[]; mapping: number[]; nextPosition: number };
+
+export function copyPlan(order: number[], position: number): ItemPlan {
+  const nextOrder = [...order.slice(0, position + 1), order[position], ...order.slice(position + 1)];
+  const mapping: number[] = [];
+  for (let i = 0; i <= position; i += 1) mapping.push(i);
+  mapping.push(position);
+  for (let i = position + 1; i < order.length; i += 1) mapping.push(i);
+  return { nextOrder, mapping, nextPosition: position + 1 };
+}
+
+export function removePlan(order: number[], position: number): ItemPlan {
+  const nextOrder = [...order.slice(0, position), ...order.slice(position + 1)];
+  const mapping: number[] = [];
+  for (let i = 0; i < order.length; i += 1) if (i !== position) mapping.push(i);
+  return { nextOrder, mapping, nextPosition: Math.max(0, Math.min(position, nextOrder.length - 1)) };
+}
+
+export function swapPlan(order: number[], position: number, target: number): ItemPlan {
+  const nextOrder = [...order];
+  [nextOrder[position], nextOrder[target]] = [nextOrder[target], nextOrder[position]];
+  const mapping = order.map((_, i) => (i === position ? target : i === target ? position : i));
+  return { nextOrder, mapping, nextPosition: target };
+}
+
+/**
+ * Applies one plan to the live document and returns the rewritten page draft.
+ * Shared by the card overlay controls and the photo gallery manager so both
+ * produce identical, deterministic drafts.
+ */
+export function applyItemPlan(
+  root: Document | HTMLElement,
+  rules: RepeatRule[],
+  rule: RepeatRule,
+  pageDraft: PageDraft,
+  plan: ItemPlan,
+  originals: RepeatOriginals = {},
+): { pageDraft: PageDraft; newKeys: string[]; originals: RepeatOriginals } {
+  const oldKeys = itemKeys(root, rule);
+  const nextLayout = { ...readLayout(pageDraft), [rule.key]: plan.nextOrder };
+  const nextOriginals = applyLayout(root, rules, nextLayout, originals);
+  const newKeys = itemKeys(root, rule);
+  const nextDraft = writeLayout(remapItemDraft(pageDraft, oldKeys, newKeys, plan.mapping), nextLayout);
+  return { pageDraft: nextDraft, newKeys, originals: nextOriginals };
+}
+
+/** One photo in a configured gallery group, as the member currently sees it. */
+export type GalleryPhoto = {
+  position: number;
+  itemKey: string;
+  imageKey: string;
+  src: string;
+  alt: string;
+};
+
+export function galleryPhotos(
+  root: Document | HTMLElement,
+  rule: RepeatRule,
+  pageDraft: PageDraft,
+): GalleryPhoto[] {
+  const container = containerFor(root, rule);
+  if (!container) return [];
+  const photos: GalleryPhoto[] = [];
+  itemsIn(container, rule).forEach((item, position) => {
+    const img = item.querySelector('img');
+    if (!img) return;
+    const imageKey = elementKey(img);
+    photos.push({
+      position,
+      itemKey: elementKey(item),
+      imageKey,
+      src: pageDraft[imageKey] ?? img.getAttribute('src') ?? '',
+      alt: pageDraft[`${imageKey}${ALT_SUFFIX}`] ?? img.getAttribute('alt') ?? '',
+    });
+  });
+  return photos;
 }
 
 
