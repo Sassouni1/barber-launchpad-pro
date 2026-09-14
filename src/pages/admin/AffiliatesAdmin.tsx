@@ -78,6 +78,10 @@ export default function AffiliatesAdmin() {
         attribution_window_days: settings.attribution_window_days ? Number(settings.attribution_window_days) : null,
         payout_timing: settings.payout_timing || null,
         terms_text: settings.terms_text || null,
+        auto_payouts_enabled: Boolean(settings.auto_payouts_enabled),
+        release_timing: settings.release_timing || null,
+        release_delay_days: settings.release_delay_days ? Number(settings.release_delay_days) : null,
+        minimum_transfer_cents: settings.minimum_transfer_cents ? Number(settings.minimum_transfer_cents) : 100,
       },
     });
     setBusy(false);
