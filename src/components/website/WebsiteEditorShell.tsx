@@ -136,8 +136,9 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
       decorateItems(doc, repeatRules.filter((rule) => !rule.gallery));
       for (const rule of repeatRules.filter((rule) => rule.gallery)) {
         const grid = doc.querySelector<HTMLElement>(rule.container);
-        if (!grid || grid.querySelector('[data-gallery-launch]')) continue;
-        grid.style.position = 'relative';
+        if (!grid || grid.parentElement?.querySelector('[data-gallery-launch]')) continue;
+        const gallerySection = grid.parentElement!;
+        gallerySection.style.position = 'relative';
         grid.style.marginTop = '64px';
         const button = doc.createElement('button');
         button.type = 'button';
@@ -145,7 +146,10 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         button.setAttribute('data-gallery-launch', 'true');
         button.setAttribute(OVERLAY_ATTR, 'gallery');
         button.style.cssText = 'position:absolute;top:-52px;left:0;z-index:20;min-height:44px;padding:10px 16px;border:1px solid #fbbf24;border-radius:8px;background:#fbbf24;color:#09090b;font:600 14px system-ui;cursor:pointer;';
-        grid.appendChild(button);
+        gallerySection.appendChild(button);
+        button.style.top = `${grid.offsetTop - 52}px`;
+        button.style.width = 'max-content';
+        button.style.minWidth = '180px';
       }
       fieldsRef.current = scanned;
       setFields(scanned);
