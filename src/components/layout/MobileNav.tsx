@@ -400,7 +400,31 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Digital Business Card</span>
                         </NavLink>
-                        <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">Bonus Earnings</div>
+                        {websiteEntitlement && (
+                          <NavRow to="/website" icon={Globe} label="Website Editor" onClick={closeMenu} />
+                        )}
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Bonus Earnings — top-level, sibling of Growth Tools */}
+                    <Collapsible open={bonusEarningsOpen} onOpenChange={setBonusEarningsOpen}>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          className={cn(
+                            'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
+                            ['/affiliates', '/content-rewards'].some(p => location.pathname.startsWith(p))
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <CreditCard className="w-5 h-5" />
+                            <span>Bonus Earnings</span>
+                          </div>
+                          <ChevronDown className={cn('w-4 h-4 transition-transform', bonusEarningsOpen && 'rotate-180')} />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pl-4 space-y-1 mt-1">
                         <NavLink to="/affiliates" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Affiliate Program</span>
@@ -409,11 +433,9 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Content Rewards</span>
                         </NavLink>
-                        {websiteEntitlement && (
-                          <NavRow to="/website" icon={Globe} label="Website Editor" onClick={closeMenu} />
-                        )}
                       </CollapsibleContent>
                     </Collapsible>
+
 
                     {/* Order Hair & Products */}
                     <Collapsible open={productsOpen} onOpenChange={setProductsOpen}>
