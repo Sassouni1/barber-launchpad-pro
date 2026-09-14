@@ -34,6 +34,10 @@ Deno.serve(async (req) => {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   try {
     let accountId = String(body.accountId ?? "");
+    if (body.delete && accountId) {
+      const del = await stripe(`/accounts/${accountId}`, undefined, "DELETE");
+      return Response.json({ deleted: del.data });
+    }
     if (!accountId) {
       const created = await stripe("/accounts", {
         type: "standard",
