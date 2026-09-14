@@ -124,6 +124,9 @@ Deno.serve(async (req) => {
           transfers,
           autoPayoutsReady: payoutSetup.length === 0,
           payoutSetupMissing: payoutSetup,
+          // Shown so the member sees the real release rule, never a guess.
+          releaseTiming: settings.release_timing,
+          releaseDelayDays: settings.release_delay_days,
           ...extra,
         },
         200,
