@@ -55,6 +55,7 @@ Deno.serve(async (req) => {
       .select("id, affiliate_id, amount_cents, currency, status, entry_type, livemode, created_at")
       .eq("entry_type", "earned")
       .eq("status", "verified")
+      .eq("livemode", true) // test-mode ledger entries never enter live balances
       .gt("amount_cents", 0)
       .order("created_at", { ascending: true })
       .limit(200);
@@ -92,6 +93,7 @@ Deno.serve(async (req) => {
       .from("affiliate_transfers")
       .select("*")
       .in("status", ["queued", "processing"])
+      .eq("livemode", true)
       .lte("next_attempt_at", nowIso)
       .lte("release_after", nowIso)
       .order("created_at", { ascending: true })
