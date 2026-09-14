@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     const { data: commissions } = await db
       .from("affiliate_commissions")
-      .select("id, entry_type, amount_cents, currency, status, note, created_at")
+      .select("id, entry_type, source, amount_cents, currency, status, note, created_at")
       .eq("affiliate_id", affiliate.id)
       .order("created_at", { ascending: false })
       .limit(100);

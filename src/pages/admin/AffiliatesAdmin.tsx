@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { ContentReviewPanel } from '@/components/earnings/ContentReviewPanel';
 
 const money = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
@@ -117,6 +118,7 @@ export default function AffiliatesAdmin() {
             <TabsTrigger value="leads">Leads</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
             <TabsTrigger value="payouts">Payouts</TabsTrigger>
+            <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="setup">Setup</TabsTrigger>
           </TabsList>
 
@@ -362,6 +364,10 @@ export default function AffiliatesAdmin() {
                 <span className="font-medium">{money(p.amount_cents)}</span>
               </CardContent></Card>
             ))}
+          </TabsContent>
+
+          <TabsContent value="content" className="pt-4">
+            <ContentReviewPanel />
           </TabsContent>
 
           <TabsContent value="setup" className="pt-4">

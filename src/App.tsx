@@ -56,7 +56,7 @@ import FacebookCallback from "./pages/FacebookCallback";
 import Ads from "./pages/Ads";
 import WebsiteEditor from "./pages/WebsiteEditor";
 import FindASpecialist from "./pages/FindASpecialist";
-import Affiliates from "./pages/Affiliates";
+import BonusEarnings from "./pages/BonusEarnings";
 import Refer, { ReferThankYou } from "./pages/Refer";
 import AffiliatesAdmin from "./pages/admin/AffiliatesAdmin";
 import Terms from "./pages/Terms";
@@ -127,7 +127,8 @@ const MemberApp = () => (
         <Route path="/website-editor" element={<Navigate to="/website" replace />} />
         <Route path="/website" element={<ProtectedRoute><WebsiteEditor /></ProtectedRoute>} />
 
-        <Route path="/affiliates" element={<ProtectedRoute><Affiliates /></ProtectedRoute>} />
+        <Route path="/bonus-earnings" element={<ProtectedRoute><BonusEarnings /></ProtectedRoute>} />
+        <Route path="/affiliates" element={<Navigate to="/bonus-earnings" replace />} />
         <Route path="/refer/:code/call" element={<Refer linkType="call" />} />
         <Route path="/refer/:code/pay" element={<Refer linkType="pay" />} />
         <Route path="/refer/:code/both" element={<Refer linkType="both" />} />

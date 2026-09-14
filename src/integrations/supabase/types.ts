@@ -664,6 +664,7 @@ export type Database = {
           payment_id: string | null
           rate: number | null
           referral_id: string | null
+          source: string
           source_event_id: string | null
           status: string
         }
@@ -681,6 +682,7 @@ export type Database = {
           payment_id?: string | null
           rate?: number | null
           referral_id?: string | null
+          source?: string
           source_event_id?: string | null
           status?: string
         }
@@ -698,6 +700,7 @@ export type Database = {
           payment_id?: string | null
           rate?: number | null
           referral_id?: string | null
+          source?: string
           source_event_id?: string | null
           status?: string
         }
@@ -1868,6 +1871,81 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_submissions: {
+        Row: {
+          affiliate_id: string | null
+          commission_id: string | null
+          consent_subject_permission: boolean
+          consent_use_content: boolean
+          created_at: string
+          file_paths: string[]
+          id: string
+          kind: string
+          note: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reward_cents: number | null
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          commission_id?: string | null
+          consent_subject_permission?: boolean
+          consent_use_content?: boolean
+          created_at?: string
+          file_paths?: string[]
+          id?: string
+          kind: string
+          note?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reward_cents?: number | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          commission_id?: string | null
+          consent_subject_permission?: boolean
+          consent_use_content?: boolean
+          created_at?: string
+          file_paths?: string[]
+          id?: string
+          kind?: string
+          note?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reward_cents?: number | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_submissions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_submissions_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: true
+            referencedRelation: "affiliate_commissions"
             referencedColumns: ["id"]
           },
         ]
