@@ -92,3 +92,18 @@ verify_jwt = false
 
 [functions.website-image-expand]
 verify_jwt = false
+
+[functions.affiliate-intake]
+verify_jwt = false
+
+[functions.affiliate-checkout]
+verify_jwt = false
+
+[functions.affiliate-stripe-webhook]
+verify_jwt = false
+
+[functions.affiliate-portal]
+verify_jwt = false
+
+[functions.affiliate-admin]
+verify_jwt = false
