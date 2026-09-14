@@ -119,7 +119,8 @@ export function GalleryManager({
               <div className="min-w-0 flex-1 space-y-2">
                 <p className="text-xs font-medium text-foreground">Photo {index + 1}</p>
                 <Input
-                  className="h-9 text-sm"
+                  className="h-9 text-base"
+                  disabled={busy}
                   value={photo.alt}
                   placeholder="Describe this photo"
                   aria-label={`Description for photo ${index + 1}`}

@@ -452,12 +452,16 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         }
       }
       originalsRef.current[pageKey] = originals;
-      commit({ ...draftRef.current, [pageKey]: working });
-      hydrate(doc, working);
       toast.success(`Added ${added} photo${added === 1 ? '' : 's'} — publish when you're happy with the order.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'That photo could not be uploaded.');
     } finally {
+      // Keep completed uploads consistent even if a later file fails.
+      originalsRef.current[pageKey] = originals;
+      if (added) {
+        commit({ ...draftRef.current, [pageKey]: working });
+      }
+      hydrate(doc, working);
       setUploadingPhotos(false);
     }
   };
@@ -493,7 +497,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
   const textFields = fields.filter((f) => f.kind === 'text').length;
   const imageFields = fields.filter((f) => f.kind === 'image').length;
-  const busy = saveDraft.isPending || publish.isPending;
+  const busy = saveDraft.isPending || publish.isPending || uploadingPhotos;
 
   const saveActions = (
             <div
@@ -701,7 +705,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         </CardContent>
       </Card>
 
-      <Tabs value={pageKey} onValueChange={setPageKey}>
+      <Tabs value={pageKey} onValueChange={(key) => { if (!uploadingPhotos) setPageKey(key); }}>
         <TabsList>
           {template.pages.map((p) => (
             <TabsTrigger key={p.key} value={p.key}>
@@ -729,11 +733,12 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
           </Card>
 
           {galleryRule && photos.length > 0 && (
+            <div className="space-y-3">
             <GalleryManager
               title={`${galleryRule.label} gallery`.replace(/^\w/, (c) => c.toUpperCase())}
               photos={photos}
               max={galleryRule.max}
-              busy={uploadingPhotos}
+              busy={busy}
               shareUrl={galleryShareUrl}
               onAdd={handleGalleryAdd}
               onReplace={handleGalleryReplace}
@@ -742,6 +747,8 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
               onDescribe={handleGalleryDescribe}
               onShare={handleGalleryShare}
             />
+            {saveActions}
+            </div>
           )}
         </div>
 
