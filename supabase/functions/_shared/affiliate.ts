@@ -65,6 +65,16 @@ export type ProgramSettings = {
   attribution_window_days: number | null;
   payout_timing: string | null;
   terms_text: string | null;
+  /** Automatic Stripe Connect transfers. Never flipped on implicitly. */
+  auto_payouts_enabled: boolean;
+  /** 'on_verified' | 'after_days' — an explicit choice, never assumed. */
+  release_timing: string | null;
+  release_delay_days: number | null;
+  minimum_transfer_cents: number;
+  /** Proven by asking Stripe whether the key's account is a Connect platform. */
+  platform_transfer_verified: boolean;
+  platform_transfer_checked_at: string | null;
+  platform_transfer_note: string | null;
 };
 
 export const DEFAULT_SETTINGS: ProgramSettings = {
@@ -83,6 +93,13 @@ export const DEFAULT_SETTINGS: ProgramSettings = {
   attribution_window_days: null,
   payout_timing: null,
   terms_text: null,
+  auto_payouts_enabled: false,
+  release_timing: null,
+  release_delay_days: null,
+  minimum_transfer_cents: 100,
+  platform_transfer_verified: false,
+  platform_transfer_checked_at: null,
+  platform_transfer_note: null,
 };
 
 export async function loadSettings(db: SupabaseClient): Promise<ProgramSettings> {
@@ -107,6 +124,105 @@ export function missingConfig(s: ProgramSettings): string[] {
   if (!Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET")) missing.push("AFFILIATE_STRIPE_WEBHOOK_SECRET");
   if (!s.live_enabled) missing.push("Live mode enabled in affiliate setup");
   return missing;
+}
+
+/**
+ * What is still missing before automatic commission transfers may run.
+ * Release timing is deliberately not defaulted — the team must pick it.
+ */
+export function missingPayoutConfig(s: ProgramSettings): string[] {
+  const missing: string[] = [];
+  if (!s.platform_transfer_verified) {
+    missing.push("Stripe Connect platform transfer path not verified yet");
+  }
+  if (!s.release_timing) missing.push("Automatic release timing choice");
+  if (s.release_timing === "after_days" && !s.release_delay_days) {
+    missing.push("Number of days to hold a commission before release");
+  }
+  if (!s.auto_payouts_enabled) missing.push("Automatic payouts switched on in setup");
+  return missing;
+}
+
+export function stripeForm(params: Record<string, unknown>): string {
+  const out: string[] = [];
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null) continue;
+    out.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
+  }
+  return out.join("&");
+}
+
+export async function stripeCall(
+  path: string,
+  opts: { method?: string; body?: Record<string, unknown>; idempotencyKey?: string } = {},
+): Promise<{ ok: boolean; status: number; data: any }> {
+  const secret = Deno.env.get("STRIPE_SECRET_KEY");
+  if (!secret) return { ok: false, status: 500, data: { error: { message: "No Stripe key configured." } } };
+  const headers: Record<string, string> = { Authorization: `Bearer ${secret}` };
+  if (opts.body) headers["Content-Type"] = "application/x-www-form-urlencoded";
+  if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
+  const res = await fetch(`https://api.stripe.com/v1${path}`, {
+    method: opts.method ?? (opts.body ? "POST" : "GET"),
+    headers,
+    body: opts.body ? stripeForm(opts.body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+export type AccountEligibility = {
+  stripeAccountId: string;
+  accountType: string | null;
+  country: string | null;
+  defaultCurrency: string | null;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  transfersCapability: string | null;
+  disabledReason: string | null;
+  currentlyDue: string[];
+  pendingVerification: string[];
+  bankLast4: string | null;
+  bankName: string | null;
+  eligible: boolean;
+  ineligibleReason: string | null;
+};
+
+/**
+ * Live Stripe check of whether a connected account can actually receive a
+ * transfer and pay it out to a bank. charges_enabled alone is never enough.
+ */
+export function evaluateAccount(account: any): AccountEligibility {
+  const req = account?.requirements ?? {};
+  const external = (account?.external_accounts?.data ?? []).find((e: any) => e?.object === "bank_account");
+  const transfers = account?.capabilities?.transfers ?? null;
+  const country = account?.country ?? null;
+  const currency = (account?.default_currency ?? "").toLowerCase() || null;
+
+  const reasons: string[] = [];
+  if (transfers !== "active") reasons.push("Stripe has not activated transfers on this account yet.");
+  if (!account?.payouts_enabled) reasons.push("Stripe has not enabled bank payouts on this account yet.");
+  if (req?.disabled_reason) reasons.push("Stripe has restricted this account.");
+  if (country !== "US") reasons.push("Only US accounts are supported for commission transfers right now.");
+  if (currency !== "usd") reasons.push("This account does not pay out in US dollars.");
+
+  return {
+    stripeAccountId: String(account?.id ?? ""),
+    accountType: account?.type ?? null,
+    country,
+    defaultCurrency: currency,
+    chargesEnabled: Boolean(account?.charges_enabled),
+    payoutsEnabled: Boolean(account?.payouts_enabled),
+    detailsSubmitted: Boolean(account?.details_submitted),
+    transfersCapability: transfers,
+    disabledReason: req?.disabled_reason ?? null,
+    currentlyDue: Array.isArray(req?.currently_due) ? req.currently_due : [],
+    pendingVerification: Array.isArray(req?.pending_verification) ? req.pending_verification : [],
+    bankLast4: external?.last4 ?? null,
+    bankName: external?.bank_name ?? null,
+    eligible: reasons.length === 0,
+    ineligibleReason: reasons[0] ?? null,
+  };
 }
 
 export async function rateLimit(db: SupabaseClient, key: string, max: number, windowSeconds: number) {

@@ -6,6 +6,7 @@ import {
   json,
   loadSettings,
   missingConfig,
+  missingPayoutConfig,
   requireUser,
 } from "../_shared/affiliate.ts";
 
@@ -44,15 +45,22 @@ Deno.serve(async (req) => {
             db.from("affiliate_commissions").select("*").order("created_at", { ascending: false }).limit(500),
             db.from("affiliate_payouts").select("*").order("paid_at", { ascending: false }).limit(200),
           ]);
+        const [{ data: transfers }, { data: payoutAccounts }] = await Promise.all([
+          db.from("affiliate_transfers").select("*").order("created_at", { ascending: false }).limit(300),
+          db.from("affiliate_payout_accounts").select("*").order("updated_at", { ascending: false }).limit(300),
+        ]);
         return json(
           {
             settings,
             missingConfig: missingConfig(settings),
+            missingPayoutConfig: missingPayoutConfig(settings),
             affiliates: affiliates ?? [],
             referrals: referrals ?? [],
             payments: payments ?? [],
             commissions: commissions ?? [],
             payouts: payouts ?? [],
+            transfers: transfers ?? [],
+            payoutAccounts: payoutAccounts ?? [],
           },
           200,
           h,
@@ -107,6 +115,107 @@ Deno.serve(async (req) => {
         );
       }
 
+      case "verify_platform_transfers": {
+        // Establishes the real funding/transfer path before any money is promised:
+        // is the key's account a Connect platform, and can it fund transfers?
+        const settings = await loadSettings(db);
+        const key = Deno.env.get("STRIPE_SECRET_KEY");
+        if (!key) return json({ error: "No server-side Stripe key is configured." }, 400, h);
+        const headers = { Authorization: `Bearer ${key}` };
+
+        const [accRes, listRes, balRes] = await Promise.all([
+          fetch("https://api.stripe.com/v1/account", { headers }),
+          fetch("https://api.stripe.com/v1/accounts?limit=1", { headers }),
+          fetch("https://api.stripe.com/v1/balance", { headers }),
+        ]);
+        const account = await accRes.json().catch(() => ({}));
+        const list = await listRes.json().catch(() => ({}));
+        const balance = await balRes.json().catch(() => ({}));
+
+        const platformId = String(account?.id ?? "");
+        const isPlatform = listRes.ok && Array.isArray(list?.data);
+        const connectedCount = Array.isArray(list?.data) ? list.data.length : 0;
+        const transfersActive = account?.capabilities?.transfers === "active";
+        const availableUsd = Number(
+          (balance?.available ?? []).find((b: any) => String(b.currency).toLowerCase() === "usd")?.amount ?? 0,
+        );
+        const sellerMatches =
+          !settings.expected_seller_account_id || platformId === settings.expected_seller_account_id;
+
+        const verified = isPlatform && connectedCount > 0 && transfersActive && sellerMatches;
+        const note = verified
+          ? `Key belongs to platform ${platformId}, which has connected accounts and active transfers.`
+          : !isPlatform
+          ? "This Stripe key is not a Connect platform key, so it cannot transfer to connected accounts."
+          : connectedCount === 0
+          ? "This Stripe key is a platform but has no connected accounts yet."
+          : !transfersActive
+          ? "Transfers are not active on this Stripe account."
+          : `Key belongs to ${platformId}, not the expected seller ${settings.expected_seller_account_id}.`;
+
+        const next = {
+          ...settings,
+          platform_transfer_verified: verified,
+          platform_transfer_checked_at: new Date().toISOString(),
+          platform_transfer_note: note,
+        };
+        await db
+          .from("affiliate_settings")
+          .upsert({ key: "program", value: next, updated_at: new Date().toISOString(), updated_by: user.id });
+        await audit("platform_transfer_checked", {
+          details: { platformId, connectedCount, transfersActive, availableUsd, verified },
+        });
+        return json(
+          {
+            verified,
+            note,
+            platformId,
+            availableUsdCents: availableUsd,
+            settings: next,
+            missingPayoutConfig: missingPayoutConfig(next as any),
+          },
+          200,
+          h,
+        );
+      }
+
+      case "run_dispatch": {
+        const dryRun = body.dryRun !== false;
+        const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/affiliate-transfer-dispatch`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ dryRun }),
+        });
+        const out = await res.json().catch(() => ({}));
+        await audit("payout_dispatch_run", { details: { dryRun, ok: res.ok } });
+        return json(out, res.ok ? 200 : 400, h);
+      }
+
+      case "retry_transfer":
+      case "cancel_transfer": {
+        const transferId = String(body.transferId ?? "");
+        const reason = String(body.reason ?? "").trim();
+        if (!transferId || !reason) return json({ error: "A transfer and a reason are required." }, 400, h);
+        const { data: row } = await db
+          .from("affiliate_transfers")
+          .select("id, status")
+          .eq("id", transferId)
+          .maybeSingle();
+        if (!row) return json({ error: "Transfer not found." }, 404, h);
+        if (["sent", "paid"].includes(String(row.status))) {
+          return json({ error: "This transfer already left the account and cannot be changed here." }, 400, h);
+        }
+        const next = action === "retry_transfer"
+          ? { status: "queued", attempts: 0, next_attempt_at: new Date().toISOString(), failure_message: null }
+          : { status: "canceled", failure_message: reason };
+        await db.from("affiliate_transfers").update(next).eq("id", transferId);
+        await audit(action, { details: { transferId, reason } });
+        return json({ ok: true }, 200, h);
+      }
+
       case "save_settings": {
         const incoming = { ...((body.settings ?? {}) as Record<string, unknown>) };
         // Verification facts are only ever written by the Stripe account check above.
@@ -114,6 +223,9 @@ Deno.serve(async (req) => {
         delete incoming.verified_stripe_account_id;
         delete incoming.verified_stripe_account_email;
         delete incoming.verified_stripe_account_at;
+        delete incoming.platform_transfer_verified;
+        delete incoming.platform_transfer_checked_at;
+        delete incoming.platform_transfer_note;
         const current = await loadSettings(db);
         const next = {
           ...current,

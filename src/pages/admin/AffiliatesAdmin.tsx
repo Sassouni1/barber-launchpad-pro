@@ -22,6 +22,9 @@ type Overview = {
   payments: any[];
   commissions: any[];
   payouts: any[];
+  missingPayoutConfig?: string[];
+  transfers?: any[];
+  payoutAccounts?: any[];
 };
 
 export default function AffiliatesAdmin() {
@@ -75,6 +78,10 @@ export default function AffiliatesAdmin() {
         attribution_window_days: settings.attribution_window_days ? Number(settings.attribution_window_days) : null,
         payout_timing: settings.payout_timing || null,
         terms_text: settings.terms_text || null,
+        auto_payouts_enabled: Boolean(settings.auto_payouts_enabled),
+        release_timing: settings.release_timing || null,
+        release_delay_days: settings.release_delay_days ? Number(settings.release_delay_days) : null,
+        minimum_transfer_cents: settings.minimum_transfer_cents ? Number(settings.minimum_transfer_cents) : 100,
       },
     });
     setBusy(false);
@@ -227,8 +234,90 @@ export default function AffiliatesAdmin() {
           <TabsContent value="payouts" className="space-y-3 pt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Record a completed payout</CardTitle>
-                <CardDescription>This records a payout you already sent outside the app. It does not move money.</CardDescription>
+                <CardTitle className="text-lg">Automatic commission payouts</CardTitle>
+                <CardDescription>
+                  Commission is sent straight to each affiliate's connected Stripe account. This is the normal way
+                  affiliates get paid.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(data?.missingPayoutConfig?.length ?? 0) > 0 ? (
+                  <Alert>
+                    <AlertDescription>
+                      <div className="font-medium mb-1">Automatic payouts are not running yet:</div>
+                      <ul className="list-disc pl-5 text-sm">
+                        {data!.missingPayoutConfig!.map((m) => <li key={m}>{m}</li>)}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert><AlertDescription>Automatic payouts are switched on.</AlertDescription></Alert>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      const res = await call({ action: 'run_dispatch', dryRun: true });
+                      if (res) { toast({ title: 'Dry run finished', description: `${res.processed?.length ?? 0} queued item(s) checked. No money moved.` }); load(); }
+                    }}
+                  >
+                    Dry run (moves no money)
+                  </Button>
+                  <Button
+                    disabled={(data?.missingPayoutConfig?.length ?? 1) > 0}
+                    onClick={async () => {
+                      const res = await call({ action: 'run_dispatch', dryRun: false });
+                      if (res) { toast({ title: 'Payout run finished' }); load(); }
+                    }}
+                  >
+                    Send due payouts now
+                  </Button>
+                </div>
+                {(data?.transfers ?? []).length === 0 && (
+                  <p className="text-sm text-muted-foreground">No commission transfers queued yet.</p>
+                )}
+                {(data?.transfers ?? []).map((tr) => (
+                  <div key={tr.id} className="rounded-md border border-border p-3 text-sm space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{money(tr.amount_cents)}</span>
+                      <div className="flex items-center gap-2">
+                        {!tr.livemode && <Badge variant="outline">test</Badge>}
+                        <Badge variant="outline">{tr.status}</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground break-all">
+                      {affiliateName.get(tr.affiliate_id) ?? tr.affiliate_id}
+                      {tr.destination_account_id ? ` · ${tr.destination_account_id}` : ''}
+                      {tr.stripe_transfer_id ? ` · ${tr.stripe_transfer_id}` : ''}
+                    </div>
+                    {tr.failure_message && <div className="text-xs text-destructive">{tr.failure_message}</div>}
+                    {!['sent', 'paid'].includes(tr.status) && (
+                      <div className="flex gap-2 pt-1">
+                        <Button size="sm" variant="outline" onClick={async () => {
+                          const reason = window.prompt('Reason for retrying this transfer?')?.trim();
+                          if (!reason) return;
+                          const res = await call({ action: 'retry_transfer', transferId: tr.id, reason });
+                          if (res) { toast({ title: 'Queued for retry' }); load(); }
+                        }}>Retry</Button>
+                        <Button size="sm" variant="outline" onClick={async () => {
+                          const reason = window.prompt('Reason for canceling this transfer?')?.trim();
+                          if (!reason) return;
+                          const res = await call({ action: 'cancel_transfer', transferId: tr.id, reason });
+                          if (res) { toast({ title: 'Transfer canceled' }); load(); }
+                        }}>Cancel</Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Record a payment sent outside Stripe</CardTitle>
+                <CardDescription>
+                  Exception only. This records a payment you already sent by hand — it does not move money.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid md:grid-cols-2 gap-3">
@@ -379,6 +468,65 @@ export default function AffiliatesAdmin() {
                   <input type="checkbox" checked={Boolean(settings.live_enabled)} onChange={(e) => setSettings({ ...settings, live_enabled: e.target.checked })} />
                   Enable live enrollment checkout
                 </label>
+
+                <div className="space-y-3 rounded-md border border-border p-3">
+                  <div>
+                    <Label>Automatic affiliate payouts</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Commission is transferred to each affiliate's connected Stripe account. Nothing sends until the
+                      transfer path is verified, a release timing is chosen, and the switch below is on.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        const res = await call({ action: 'verify_platform_transfers' });
+                        if (res) { toast({ title: res.verified ? 'Transfer path verified' : 'Not verified', description: res.note }); load(); }
+                      }}
+                    >
+                      Check the transfer path
+                    </Button>
+                    {data?.settings?.platform_transfer_checked_at && (
+                      <Badge variant={data.settings.platform_transfer_verified ? 'outline' : 'destructive'}>
+                        {data.settings.platform_transfer_verified ? 'verified' : 'not verified'}
+                      </Badge>
+                    )}
+                  </div>
+                  {data?.settings?.platform_transfer_note && (
+                    <p className="text-xs text-muted-foreground">{data.settings.platform_transfer_note}</p>
+                  )}
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label>Release timing</Label>
+                      <select
+                        className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        value={settings.release_timing ?? ''}
+                        onChange={(e) => setSettings({ ...settings, release_timing: e.target.value || null })}
+                      >
+                        <option value="">Not chosen yet</option>
+                        <option value="on_verified">As soon as the payment clears</option>
+                        <option value="after_days">Hold for a number of days first</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Days to hold (only for "hold")</Label>
+                      <Input
+                        value={settings.release_delay_days ?? ''}
+                        onChange={(e) => setSettings({ ...settings, release_delay_days: e.target.value })}
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(settings.auto_payouts_enabled)}
+                      onChange={(e) => setSettings({ ...settings, auto_payouts_enabled: e.target.checked })}
+                    />
+                    Turn on automatic payouts
+                  </label>
+                </div>
                 <Button onClick={saveSettings} disabled={busy}>
                   {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save setup
                 </Button>

@@ -94,6 +94,15 @@ Deno.serve(async (req) => {
         await adjustDispute(db, dispute, event.id, livemode);
         break;
       }
+      // Payout-side reconciliation. Recorded once each; duplicates are ignored.
+      case "transfer.created":
+      case "transfer.updated":
+      case "transfer.reversed":
+      case "payout.paid":
+      case "payout.failed": {
+        await recordPayoutEvent(db, event, livemode);
+        break;
+      }
       default:
         break;
     }
@@ -283,4 +292,53 @@ async function adjustDispute(db: ReturnType<typeof adminClient>, dispute: any, e
     source_event_id: eventId,
     note: "Chargeback adjustment",
   });
+}
+
+/**
+ * Signed transfer/payout reconciliation. We record every event once, and only
+ * update a transfer row when the event genuinely identifies it. Bank payout
+ * timing belongs to the recipient's own Stripe payout schedule.
+ */
+async function recordPayoutEvent(db: ReturnType<typeof adminClient>, event: any, livemode: boolean) {
+  const obj = event.data?.object ?? {};
+  const isTransfer = String(event.type).startsWith("transfer.");
+  await db.from("affiliate_payout_events").insert({
+    stripe_event_id: event.id,
+    event_type: event.type,
+    stripe_account_id: event.account ?? null,
+    stripe_transfer_id: isTransfer ? obj.id ?? null : null,
+    stripe_payout_id: isTransfer ? null : obj.id ?? null,
+    livemode,
+    details: {
+      amount: obj.amount ?? null,
+      currency: obj.currency ?? null,
+      reversed: obj.reversed ?? null,
+      status: obj.status ?? null,
+      arrival_date: obj.arrival_date ?? null,
+      failure_message: obj.failure_message ?? null,
+    },
+  });
+
+  if (!isTransfer || !obj.id) return;
+
+  const { data: transfer } = await db
+    .from("affiliate_transfers")
+    .select("id, amount_cents")
+    .eq("stripe_transfer_id", obj.id)
+    .maybeSingle();
+  if (!transfer) return;
+
+  if (event.type === "transfer.reversed") {
+    await db
+      .from("affiliate_transfers")
+      .update({
+        status: "failed",
+        failure_code: "reversed",
+        failure_message: "Stripe reversed this transfer.",
+      })
+      .eq("id", transfer.id);
+    return;
+  }
+
+  await db.from("affiliate_transfers").update({ status: "paid" }).eq("id", transfer.id);
 }
