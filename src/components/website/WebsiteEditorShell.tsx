@@ -150,6 +150,9 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         button.style.top = `${grid.offsetTop - 52}px`;
         button.style.width = 'max-content';
         button.style.minWidth = '180px';
+        button.style.opacity = '1';
+        button.style.pointerEvents = 'auto';
+        button.style.lineHeight = 'normal';
       }
       fieldsRef.current = scanned;
       setFields(scanned);
