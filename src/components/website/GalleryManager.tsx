@@ -44,6 +44,7 @@ export function GalleryManager({
   const [dragging, setDragging] = useState<number | null>(null);
   const [dragPoint, setDragPoint] = useState<{x: number; y: number; width: number} | null>(null);
   const [over, setOver] = useState<number | null>(null);
+  const movedRef = useRef(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const dropTarget = (x: number, y: number) => {
     const target = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-photo-index]');
@@ -94,10 +95,11 @@ export function GalleryManager({
                   aria-label={`Arrange photo ${index + 1}: ${photo.alt}`}
                   disabled={busy}
                   aria-pressed={selected === index}
-                  onClick={() => setSelected(index)}
+                  onClick={() => { if (!movedRef.current) setSelected(index); }}
                   className={`relative aspect-square touch-none select-none overflow-hidden rounded-md border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${over === index || selected === index ? 'border-primary' : 'border-border'} ${dragging === index ? 'opacity-30 border-dashed' : 'cursor-grab active:cursor-grabbing'} ${over === index && dragging !== index ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-95' : ''} transition-transform`}
                   onPointerDown={(event) => {
                     if (event.button !== 0) return;
+                    movedRef.current = false;
                     event.currentTarget.setPointerCapture(event.pointerId);
                     setDragging(index); setOver(index);
                     setDragPoint({x: event.clientX, y: event.clientY, width: event.currentTarget.getBoundingClientRect().width});
@@ -108,7 +110,7 @@ export function GalleryManager({
                   } }}
                   onPointerUp={(event) => {
                     const target = dropTarget(event.clientX, event.clientY);
-                    if (dragging !== null && target !== null && dragging !== target) { onReorder(dragging, target); setSelected(target); }
+                    if (dragging !== null && target !== null && dragging !== target) { movedRef.current = true; onReorder(dragging, target); setSelected(target); }
                     setDragging(null); setOver(null); setDragPoint(null);
                   }}
                   onPointerCancel={() => { setDragging(null); setOver(null); setDragPoint(null); }}
