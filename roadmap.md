@@ -8,3 +8,4 @@
 - [x] Move Bonus Earnings out of Growth Tools into its own top-level expandable menu item (Sidebar + MobileNav) with Affiliate Program and Content Rewards as its only children
 - [x] Referral page: truthful call-requested status, single-use checkout intent, allowlisted redirect domains, rate-limited idempotent checkout
 - [x] Fixed stylesheet font import that broke the build/styling on the referral page
+- [ ] Move Bonus Earnings menu block above Get Support (after Level 1 Cert) in Sidebar and MobileNav
