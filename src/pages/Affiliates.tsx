@@ -198,6 +198,93 @@ export default function Affiliates() {
           </Alert>
         )}
 
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Banknote className="w-4 h-4 text-primary" /> Getting paid
+              </CardTitle>
+              {payouts?.account?.eligible && <Badge variant="outline">Payouts ready</Badge>}
+            </div>
+            <CardDescription>
+              Commission is sent to your Stripe account automatically. Your bank deposit then follows your own Stripe
+              payout schedule.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!payouts && <div className="text-sm text-muted-foreground">Checking your payout setup…</div>}
+
+            {payouts?.account?.eligible && (
+              <div className="rounded-md border border-border bg-secondary/30 px-3 py-3 text-sm">
+                <div className="font-medium">Use my connected bank</div>
+                <div className="text-muted-foreground mt-1">
+                  {payouts.account.bank
+                    ? `${payouts.account.bank.name ?? 'Bank account'} ending ${payouts.account.bank.last4}`
+                    : 'Your Stripe account is set up to pay out to your bank.'}
+                </div>
+                <div className="text-muted-foreground mt-1">Nothing else to do — you’re already set up.</div>
+              </div>
+            )}
+
+            {payouts && payouts.account?.connected && !payouts.account.eligible && (
+              <div className="space-y-3">
+                <Alert>
+                  <AlertDescription>
+                    {payouts.account.pendingVerification
+                      ? 'Stripe is still reviewing your details. We’ll start sending commission as soon as it clears — Stripe doesn’t give a guaranteed time.'
+                      : payouts.account.reason ?? 'Your Stripe account can’t receive payouts yet.'}
+                  </AlertDescription>
+                </Alert>
+                {payouts.account.needsInfo && (
+                  <Button onClick={startPayoutSetup} disabled={payoutBusy}>
+                    {payoutBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Finish payout setup with Stripe
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {payouts && !payouts.account?.connected && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Add the bank account you want your commission sent to. Stripe collects your bank and ID details on
+                  its own secure page — we never see them.
+                </p>
+                <Button onClick={startPayoutSetup} disabled={payoutBusy}>
+                  {payoutBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Set up my payouts
+                </Button>
+              </div>
+            )}
+
+            {payouts && !payouts.autoPayoutsReady && (
+              <Alert>
+                <AlertDescription>
+                  Automatic commission payments aren’t switched on yet. Everything you earn is still recorded here and
+                  will be sent once the Barber Launch team turns payouts on.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {(payouts?.transfers ?? []).length > 0 && (
+              <div className="pt-1">
+                {payouts!.transfers.map((tr) => (
+                  <div key={tr.id} className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0">
+                    <div className="min-w-0">
+                      <div>{TRANSFER_LABEL[tr.status] ?? tr.status}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(tr.sent_at ?? tr.created_at).toLocaleDateString()}
+                        {tr.failure_message ? ` — ${tr.failure_message}` : ''}
+                      </div>
+                    </div>
+                    <span className="font-medium shrink-0">{money(tr.amount_cents)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
             { label: 'Referrals saved', value: String(t.referrals) },
