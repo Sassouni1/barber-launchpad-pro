@@ -112,7 +112,7 @@ export function GalleryManager({
                   } }}
                   onPointerUp={(event) => {
                     const target = dropTarget(event.clientX, event.clientY);
-                    if (dragging !== null && target !== null && dragging !== target) { movedRef.current = true; onReorder(dragging, target); setSelected(target); }
+                    if (dragging !== null && target !== null && dragging !== target) { movedRef.current = true; onReorder(dragging, target); setSelected(null); }
                     setDragging(null); setOver(null); setDragPoint(null);
                   }}
                   onPointerCancel={() => { setDragging(null); setOver(null); setDragPoint(null); }}
@@ -137,13 +137,17 @@ export function GalleryManager({
               </button>
             </div>
             {selected !== null && photos[selected] && (
-              <div className="space-y-2 rounded-md border border-border p-3">
-                <p className="text-sm font-medium">Photo {selected + 1}</p>
+              <div role="region" aria-label="Selected photo actions" className="fixed inset-x-0 bottom-0 z-40 space-y-3 rounded-t-xl border border-border bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:right-4 sm:bottom-4 sm:w-96 sm:rounded-xl">
+                <div className="flex items-center gap-3">
+                  <img src={photos[selected].src} alt="" className="h-12 w-12 rounded object-cover" />
+                  <p className="flex-1 text-sm font-medium">Photo {selected + 1}</p>
+                  <Button variant="ghost" disabled={busy} onClick={() => setSelected(null)}>Done</Button>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="px-2 text-xs" disabled={busy} onClick={() => onReplace(photos[selected])}>Change photo</Button>
+                  <Button variant="outline" className="px-2 text-xs" disabled={busy} onClick={() => {onReplace(photos[selected]); setSelected(null);}}>Change photo</Button>
                   <Button variant="destructive" className="px-2 text-xs" disabled={busy || photos.length <= 1} onClick={() => {onRemove(photos[selected]); setSelected(null);}}>Delete photo</Button>
                 </div>
-                <Input className="text-base" aria-label="Photo description" placeholder="Photo description" value={photos[selected].alt} disabled={busy} onChange={(event) => onDescribe(photos[selected], event.target.value)} />
+                <details><summary className="cursor-pointer text-xs text-muted-foreground">Edit photo description</summary><Input className="mt-2 text-base" aria-label="Photo description" placeholder="Photo description" value={photos[selected].alt} disabled={busy} onChange={(event) => onDescribe(photos[selected], event.target.value)} /></details>
               </div>
             )}
           </div>
