@@ -187,6 +187,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/admin/products', icon: Package, label: 'Products' },
     { to: '/admin/directory', icon: MapPin, label: 'Specialist Directory' },
     { to: '/admin/access-log', icon: Shield, label: 'Access Log' },
+    { to: '/admin/affiliates', icon: Users, label: 'Affiliates' },
   ];
 
   const currentViewLabel = isAdminView ? 'Admin' : 'Member';
@@ -397,6 +398,10 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <NavLink to="/business-card" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Digital Business Card</span>
+                        </NavLink>
+                        <NavLink to="/affiliates" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <CreditCard className="w-4 h-4" />
+                          <span className="font-medium">Affiliate Program</span>
                         </NavLink>
                         {websiteEntitlement && (
                           <NavRow to="/website" icon={Globe} label="Website Editor" onClick={closeMenu} />
