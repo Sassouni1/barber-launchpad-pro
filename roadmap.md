@@ -19,3 +19,4 @@
 - [x] Recurring payout dispatcher with master switch OFF; connected-account bank payout monitoring
 - [x] Dispatcher: move enqueue/claim/writes after the dry-run return; regression test with release_timing set
 - [x] Dispatcher: force a Stripe lookup before resend whenever reconciliation/reservation state persists
+- [x] Isolated Stripe test-mode end-to-end affiliate verification (checkout -> signed event -> $600 commission -> 7-day hold -> Connect transfer -> connected-account bank payout -> refund adjustment)
