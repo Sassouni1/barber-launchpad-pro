@@ -77,6 +77,58 @@ export function refundReduction(args: {
   return Math.max(0, target - args.alreadyReducedCents);
 }
 
+/**
+ * A void referral never earns, no matter how it was matched. Matching by the
+ * checkout's referral id must be exactly as strict as matching by email.
+ */
+export function isAttributableReferral(referral: { status?: string | null } | null | undefined): boolean {
+  if (!referral) return false;
+  return String(referral.status ?? "") !== "void";
+}
+
+export type TransferOutcome = {
+  /** 'sent' = money is in the affiliate's Stripe account. Never means their bank. */
+  status: "sent" | "failed";
+  reversedCents: number;
+  fullyReversed: boolean;
+  partiallyReversed: boolean;
+  /** Partial reversals need a human: the ledger cannot infer the intended split. */
+  needsReconciliation: boolean;
+  note: string | null;
+};
+
+/**
+ * Decides a transfer row's state from the AUTHORITATIVE Stripe transfer object,
+ * not from which event happened to arrive last. A delayed transfer.created or
+ * transfer.updated can therefore never overwrite a reversal.
+ *
+ * Reaching a connected account is not the same as reaching a bank: bank arrival
+ * is only ever proven by a payout event on that connected account.
+ */
+export function transferOutcome(transfer: {
+  amount?: number | null;
+  amount_reversed?: number | null;
+  reversed?: boolean | null;
+} | null | undefined): TransferOutcome {
+  const amount = Math.max(0, Number(transfer?.amount ?? 0));
+  const reversed = Math.max(0, Number(transfer?.amount_reversed ?? 0));
+  const fully = Boolean(transfer?.reversed) || (amount > 0 && reversed >= amount);
+  const partially = !fully && reversed > 0;
+
+  return {
+    status: fully ? "failed" : "sent",
+    reversedCents: reversed,
+    fullyReversed: fully,
+    partiallyReversed: partially,
+    needsReconciliation: partially,
+    note: fully
+      ? "Stripe reversed this transfer in full."
+      : partially
+      ? `Stripe reversed ${reversed} of ${amount} on this transfer; the balance needs review.`
+      : null,
+  };
+}
+
 /** Attribution is judged against when the money was actually paid, not when we process the event. */
 export function withinAttributionWindow(
   firstSeenAtIso: string,
@@ -86,4 +138,30 @@ export function withinAttributionWindow(
   if (!windowDays) return true;
   const ageDays = (new Date(paidAtIso).getTime() - new Date(firstSeenAtIso).getTime()) / 86_400_000;
   return ageDays <= windowDays;
+}
+
+/**
+ * A transfer row must be reconciled against Stripe before any resend when ANY
+ * persisted trace of an earlier reservation, attempt or parked outcome exists.
+ * An unknown Stripe success whose database finalisation failed leaves exactly
+ * these traces, so this is what stops a double send.
+ */
+export function isAmbiguousTransfer(row: {
+  attempts?: number | null;
+  stripe_transfer_id?: string | null;
+  stripe_destination_payment_id?: string | null;
+  sent_at?: string | null;
+  needs_reconciliation?: boolean | null;
+  reconciliation_note?: string | null;
+  failure_code?: string | null;
+  blocked_kind?: string | null;
+}): boolean {
+  return Number(row.attempts ?? 0) > 0 ||
+    Boolean(row.stripe_transfer_id) ||
+    Boolean(row.stripe_destination_payment_id) ||
+    Boolean(row.sent_at) ||
+    Boolean(row.needs_reconciliation) ||
+    Boolean(row.reconciliation_note) ||
+    Boolean(row.failure_code) ||
+    Boolean(row.blocked_kind);
 }

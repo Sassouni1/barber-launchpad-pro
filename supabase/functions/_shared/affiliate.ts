@@ -80,6 +80,16 @@ export type ProgramSettings = {
   platform_transfer_verified: boolean;
   platform_transfer_checked_at: string | null;
   platform_transfer_note: string | null;
+  /** Connect webhook endpoint: bank payout events on the affiliates' own accounts. */
+  connect_webhook_endpoint_id: string | null;
+  connect_webhook_secret_stored: boolean;
+  /**
+   * Master switch for the recurring dispatcher. The timer exists and runs, but
+   * while this is false every scheduled run is a no-op. Never flipped on implicitly.
+   */
+  scheduler_enabled: boolean;
+  scheduler_cadence: string | null;
+  scheduler_last_run_at: string | null;
 };
 
 export const DEFAULT_SETTINGS: ProgramSettings = {
@@ -108,6 +118,11 @@ export const DEFAULT_SETTINGS: ProgramSettings = {
   platform_transfer_verified: false,
   platform_transfer_checked_at: null,
   platform_transfer_note: null,
+  connect_webhook_endpoint_id: null,
+  connect_webhook_secret_stored: false,
+  scheduler_enabled: false,
+  scheduler_cadence: null,
+  scheduler_last_run_at: null,
 };
 
 export async function loadSettings(db: SupabaseClient): Promise<ProgramSettings> {

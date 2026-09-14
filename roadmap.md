@@ -13,3 +13,8 @@
 - [x] Enrollment checkout configured live: Invasion Digital Media seller verified, $3,000 product/price created, signed webhook endpoint + vault-stored signing secret, checkout enabled (verified by loading a real live Checkout page, then expiring it; no charge)
 - [x] Removed the misleading "you stay credited" messaging on the affiliate page, referral page and intake response
 - [ ] Turn on the automatic payout scheduler (blocked: release timing choice + platform transfer check)
+- [ ] Webhook: reject void referrals on the direct client_reference_id match too (email path already does)
+- [ ] Webhook: reconcile transfer state against Stripe before marking sent/paid; never treat transfer.created as bank receipt; preserve partial/full reversals
+- [ ] Recurring payout dispatcher with master switch OFF; connected-account bank payout monitoring
+- [ ] Dispatcher: move enqueue/claim/writes after the dry-run return; regression test with release_timing set
+- [ ] Dispatcher: force a Stripe lookup before resend whenever reconciliation/reservation state persists

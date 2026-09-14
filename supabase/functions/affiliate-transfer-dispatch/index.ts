@@ -30,6 +30,7 @@ import {
   stripeCall,
   stripeKeyLivemode,
 } from "../_shared/affiliate.ts";
+import { isAmbiguousTransfer } from "../_shared/affiliateWebhookLogic.ts";
 
 const MAX_ATTEMPTS = 6;
 const LOCK_STALE_SECONDS = 300;
@@ -60,8 +61,24 @@ Deno.serve(async (req) => {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     // Real money only moves when explicitly asked for, and only when setup is complete.
     const dryRun = body.dryRun !== false;
+    const source = String(body.source ?? "manual");
 
     const settings = await loadSettings(db);
+
+    // The recurring timer exists and calls this function, but every scheduled run
+    // is a deliberate no-op until the master switch is turned on. Nothing is read
+    // for dispatch, nothing is queued, nothing is written.
+    if (source === "scheduler" && settings.scheduler_enabled !== true) {
+      return json(
+        {
+          source,
+          skipped: "scheduler_disabled",
+          message: "The automatic payout schedule is switched off, so this run did nothing.",
+        },
+        200,
+        h,
+      );
+    }
     const missing = missingPayoutConfig(settings);
     const workerId = crypto.randomUUID();
 
@@ -88,7 +105,48 @@ Deno.serve(async (req) => {
     }
     const livemode = keyLivemode;
 
-    // ---------- phase 1: enqueue ----------
+    const results: Array<Record<string, unknown>> = [];
+
+    // ---------- dry run: READ ONLY ----------
+    // Nothing above this point writes. Enqueue, claim and every other write
+    // happen only after this branch returns, so a dry run can never create,
+    // change or reserve a row.
+    if (dryRun) {
+      const { data: preview, error: previewError } = await db
+        .from("affiliate_transfers")
+        .select("id, affiliate_id, amount_cents, currency, status, attempts, release_after, next_attempt_at, needs_reconciliation")
+        .eq("livemode", livemode)
+        .in("status", ["queued", "blocked", "processing"])
+        .order("created_at", { ascending: true })
+        .limit(50);
+      if (previewError) throw new Error(`dry run read failed: ${previewError.message}`);
+
+      // How many verified earnings have no transfer row yet — counted, not created.
+      const { count: pendingEnqueue, error: countError } = await db
+        .from("affiliate_commissions")
+        .select("id", { count: "exact", head: true })
+        .eq("entry_type", "earned")
+        .eq("status", "verified")
+        .eq("livemode", livemode)
+        .gt("amount_cents", 0);
+      if (countError) throw new Error(`dry run count failed: ${countError.message}`);
+
+      return json(
+        {
+          dryRun: true,
+          livemode,
+          missingPayoutConfig: missing,
+          wouldDispatch: missing.length === 0,
+          enqueued: 0,
+          verifiedEarnedCommissions: Number(pendingEnqueue ?? 0),
+          queue: preview ?? [],
+        },
+        200,
+        h,
+      );
+    }
+
+    // ---------- phase 1: enqueue (writes start here) ----------
     // The hold clock starts at the verified payment time, handled in SQL.
     let enqueued = 0;
     if (settings.release_timing) {
@@ -102,31 +160,6 @@ Deno.serve(async (req) => {
       enqueued = Number(inserted ?? 0);
     }
 
-    const results: Array<Record<string, unknown>> = [];
-
-    // ---------- dry run: read only, nothing is written or claimed ----------
-    if (dryRun) {
-      const { data: preview, error: previewError } = await db
-        .from("affiliate_transfers")
-        .select("id, affiliate_id, amount_cents, currency, status, attempts, release_after, next_attempt_at, needs_reconciliation")
-        .eq("livemode", livemode)
-        .in("status", ["queued", "blocked", "processing"])
-        .order("created_at", { ascending: true })
-        .limit(50);
-      if (previewError) throw new Error(`dry run read failed: ${previewError.message}`);
-      return json(
-        {
-          dryRun: true,
-          livemode,
-          missingPayoutConfig: missing,
-          wouldDispatch: missing.length === 0,
-          enqueued,
-          queue: preview ?? [],
-        },
-        200,
-        h,
-      );
-    }
 
     // Setup incomplete is a hold on the whole run — no row is touched, so no
     // real retry is consumed and everything resumes by itself once ready.
@@ -220,7 +253,10 @@ Deno.serve(async (req) => {
 
       // Idempotency keys expire, so an ambiguous or repeated job is reconciled
       // against Stripe's own record before anything else is sent.
-      const ambiguous = Number(tr.attempts ?? 0) > 0 || Boolean(tr.stripe_transfer_id);
+      // Any persisted sign that this row was previously reserved, attempted or
+      // parked forces a Stripe lookup first: an unknown Stripe success whose
+      // database finalisation failed must never be sent a second time.
+      const ambiguous = isAmbiguousTransfer(tr as never);
       if (ambiguous) {
         const group = tr.transfer_group ?? tr.idempotency_key;
         const found = await stripeCall(`/transfers?transfer_group=${encodeURIComponent(group)}&limit=5`);

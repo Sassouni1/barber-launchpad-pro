@@ -2,12 +2,15 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import {
   adminClient,
+  CANONICAL_ORIGIN,
   isAdmin,
   json,
   loadSettings,
   missingConfig,
   missingPayoutConfig,
+  randomToken,
   requireUser,
+  sha256,
 } from "../_shared/affiliate.ts";
 
 Deno.serve(async (req) => {
@@ -216,6 +219,108 @@ Deno.serve(async (req) => {
         return json({ ok: true }, 200, h);
       }
 
+      case "create_referral_checkout": {
+        // Call-closed sale: the team generates the approved tracked $3,000 checkout
+        // for an EXISTING referral. Attribution is carried by the referral id on the
+        // session itself, so it survives a different browser, device or day.
+        // Nothing here attributes unrelated Stripe payments.
+        const referralId = String(body.referralId ?? "").trim();
+        if (!referralId) return json({ error: "A referral is required." }, 400, h);
+
+        const settings = await loadSettings(db);
+        const missing = missingConfig(settings);
+        if (missing.length > 0) {
+          return json({ error: "Enrollment checkout is not configured yet.", missing }, 503, h);
+        }
+        const key = Deno.env.get("STRIPE_SECRET_KEY");
+        if (!key) return json({ error: "No server-side Stripe key is configured." }, 400, h);
+
+        const { data: referral, error: referralError } = await db
+          .from("affiliate_referrals")
+          .select("id, affiliate_id, lead_email, lead_email_normalized, lead_name, status")
+          .eq("id", referralId)
+          .maybeSingle();
+        if (referralError) throw new Error(referralError.message);
+        if (!referral) return json({ error: "Referral not found." }, 404, h);
+        if (referral.status === "void") return json({ error: "This referral is void." }, 400, h);
+
+        const { data: affiliate, error: affiliateError } = await db
+          .from("affiliates")
+          .select("id, code, status")
+          .eq("id", referral.affiliate_id)
+          .maybeSingle();
+        if (affiliateError) throw new Error(affiliateError.message);
+        if (!affiliate || affiliate.status !== "active") {
+          return json({ error: "This referral's affiliate is not active." }, 400, h);
+        }
+
+        const email = String(body.email ?? referral.lead_email_normalized ?? referral.lead_email ?? "").trim();
+        const token = randomToken(24);
+        const { data: intent, error: intentError } = await db
+          .from("affiliate_checkout_intents")
+          .insert({
+            referral_id: referral.id,
+            affiliate_id: affiliate.id,
+            token_hash: await sha256(token),
+            submitted_email_normalized: email || null,
+            submitted_name: referral.lead_name ?? null,
+            // A team-generated link is valid long enough to be sent and paid.
+            expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+          .select("id")
+          .maybeSingle();
+        if (intentError) throw new Error(intentError.message);
+        if (!intent) return json({ error: "Could not prepare the checkout." }, 500, h);
+
+        const form = new URLSearchParams({
+          mode: "payment",
+          "line_items[0][price]": settings.enrollment_price_ids[0],
+          "line_items[0][quantity]": "1",
+          success_url: `${CANONICAL_ORIGIN}/refer/${affiliate.code}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${CANONICAL_ORIGIN}/refer/${affiliate.code}/both`,
+          client_reference_id: referral.id as string,
+          "metadata[affiliate_id]": affiliate.id as string,
+          "metadata[affiliate_code]": affiliate.code as string,
+          "metadata[referral_id]": referral.id as string,
+          "metadata[checkout_intent_id]": intent.id as string,
+          "metadata[created_by]": "admin_call_close",
+          "payment_intent_data[metadata][affiliate_id]": affiliate.id as string,
+          "payment_intent_data[metadata][referral_id]": referral.id as string,
+        });
+        if (email) form.set("customer_email", email);
+
+        const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Idempotency-Key": `aff_admin_co_${intent.id}`,
+          },
+          body: form,
+        });
+        const session = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return json({ error: session?.error?.message ?? "Stripe rejected the checkout." }, 502, h);
+        }
+
+        const { error: saveError } = await db
+          .from("affiliate_checkout_intents")
+          .update({
+            stripe_session_id: session.id ?? null,
+            stripe_session_url: session.url ?? null,
+            consumed_at: new Date().toISOString(),
+          })
+          .eq("id", intent.id as string);
+        if (saveError) throw new Error(saveError.message);
+
+        await audit("referral_checkout_created", {
+          referral_id: referral.id,
+          affiliate_id: affiliate.id,
+          details: { sessionId: session.id ?? null, priceId: settings.enrollment_price_ids[0] },
+        });
+        return json({ url: session.url, sessionId: session.id, expiresAt: session.expires_at ?? null }, 200, h);
+      }
+
       case "save_settings": {
         const incoming = { ...((body.settings ?? {}) as Record<string, unknown>) };
         // Verification facts are only ever written by the Stripe account check above.
@@ -226,6 +331,11 @@ Deno.serve(async (req) => {
         delete incoming.platform_transfer_verified;
         delete incoming.platform_transfer_checked_at;
         delete incoming.platform_transfer_note;
+        // Webhook facts are written only by the setup checks, never by the form.
+        delete incoming.webhook_endpoint_id;
+        delete incoming.webhook_secret_stored;
+        delete incoming.connect_webhook_endpoint_id;
+        delete incoming.connect_webhook_secret_stored;
         const current = await loadSettings(db);
         const next = {
           ...current,

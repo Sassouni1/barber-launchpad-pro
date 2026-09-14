@@ -3,6 +3,8 @@
 import postgres from "npm:postgres@3.4.4";
 
 export const AFFILIATE_WEBHOOK_SECRET_NAME = "AFFILIATE_STRIPE_WEBHOOK_SECRET";
+/** Connected-account (Connect) deliveries are signed with their own secret. */
+export const AFFILIATE_CONNECT_WEBHOOK_SECRET_NAME = "AFFILIATE_STRIPE_CONNECT_WEBHOOK_SECRET";
 
 export class VaultUnavailableError extends Error {
   constructor(message: string) {
@@ -17,12 +19,14 @@ function connect() {
   return postgres(dbUrl, { prepare: false, max: 1, idle_timeout: 5 });
 }
 
-export async function readAffiliateWebhookSecret(): Promise<string | null> {
+export async function readAffiliateWebhookSecret(
+  name: string = AFFILIATE_WEBHOOK_SECRET_NAME,
+): Promise<string | null> {
   const sql = connect();
   try {
     const rows = await sql`
       select decrypted_secret from vault.decrypted_secrets
-      where name = ${AFFILIATE_WEBHOOK_SECRET_NAME}
+      where name = ${name}
       limit 1
     `;
     const value = rows[0]?.decrypted_secret as string | undefined;
@@ -36,16 +40,19 @@ export async function readAffiliateWebhookSecret(): Promise<string | null> {
   }
 }
 
-export async function writeAffiliateWebhookSecret(secret: string): Promise<void> {
+export async function writeAffiliateWebhookSecret(
+  secret: string,
+  name: string = AFFILIATE_WEBHOOK_SECRET_NAME,
+): Promise<void> {
   const sql = connect();
   try {
     const existing = await sql`
-      select id from vault.secrets where name = ${AFFILIATE_WEBHOOK_SECRET_NAME} limit 1
+      select id from vault.secrets where name = ${name} limit 1
     `;
     if (existing.length > 0) {
       await sql`select vault.update_secret(${existing[0].id}::uuid, ${secret})`;
     } else {
-      await sql`select vault.create_secret(${secret}, ${AFFILIATE_WEBHOOK_SECRET_NAME}, 'Stripe signing secret for the Barber Launch affiliate enrollment webhook')`;
+      await sql`select vault.create_secret(${secret}, ${name}, 'Stripe signing secret for the Barber Launch affiliate webhook')`;
     }
   } catch (error) {
     throw new VaultUnavailableError(
