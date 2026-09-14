@@ -65,6 +65,16 @@ export type ProgramSettings = {
   attribution_window_days: number | null;
   payout_timing: string | null;
   terms_text: string | null;
+  /** Automatic Stripe Connect transfers. Never flipped on implicitly. */
+  auto_payouts_enabled: boolean;
+  /** 'on_verified' | 'after_days' — an explicit choice, never assumed. */
+  release_timing: string | null;
+  release_delay_days: number | null;
+  minimum_transfer_cents: number;
+  /** Proven by asking Stripe whether the key's account is a Connect platform. */
+  platform_transfer_verified: boolean;
+  platform_transfer_checked_at: string | null;
+  platform_transfer_note: string | null;
 };
 
 export const DEFAULT_SETTINGS: ProgramSettings = {
