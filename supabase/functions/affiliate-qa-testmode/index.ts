@@ -1,4 +1,4 @@
-// TEMPORARY QA-ONLY function: isolated Stripe TEST-MODE verification of the
+// TEMPORARY QA-ONLY function (test mode): isolated Stripe TEST-MODE verification of the
 // affiliate flow. It never touches the live key, never moves real money and is
 // deleted once the verification run is reported.
 //
