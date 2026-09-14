@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { GripVertical, ImagePlus, Loader2 } from 'lucide-react';
 import type { GalleryPhoto } from '@/lib/websiteEditor';
 
 export const GALLERY_MIME = ['image/png', 'image/jpeg', 'image/webp'];
@@ -16,7 +16,6 @@ type Props = {
   busy: boolean;
   onAdd: (files: File[]) => void;
   onReplace: (photo: GalleryPhoto) => void;
-  onMove: (photo: GalleryPhoto, direction: 'earlier' | 'later') => void;
   onRemove: (photo: GalleryPhoto) => void;
   onDescribe: (photo: GalleryPhoto, description: string) => void;
   onReorder: (from: number, to: number) => void;
@@ -35,12 +34,12 @@ export function GalleryManager({
   busy,
   onAdd,
   onReplace,
-  onMove,
   onRemove,
   onDescribe,
   onReorder,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [arranging, setArranging] = useState(false);
   const [dragging, setDragging] = useState<number | null>(null);
   const [dragPoint, setDragPoint] = useState<{x: number; y: number; width: number} | null>(null);
@@ -77,26 +76,12 @@ export function GalleryManager({
           }}
         />
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            className="min-h-9"
-            onClick={() => fileRef.current?.click()}
-            disabled={busy || atMax}
-            aria-label="Add photos to the gallery"
-          >
-            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />}
-            Add photos
-          </Button>
-
-        </div>
-
         <Button variant="outline" className="w-full" disabled={busy} onClick={() => setArranging(!arranging)}>
           {arranging ? 'Done arranging' : 'Arrange photos'}
         </Button>
         {arranging && (
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Drag a photo into place. With a keyboard, focus a photo and use the arrow keys.</p>
+            <p className="text-xs text-muted-foreground">Drag to arrange. Tap a photo to change or delete it.</p>
             {dragging !== null && dragPoint && photos[dragging] && (
               <div aria-hidden="true" className="pointer-events-none fixed z-[100] overflow-hidden rounded-md border-2 border-primary shadow-2xl ring-4 ring-primary/30"
                 style={{left: dragPoint.x, top: dragPoint.y, width: dragPoint.width, height: dragPoint.width, transform: 'translate(-50%, -65%) rotate(-4deg) scale(1.12)'}}>
@@ -108,7 +93,9 @@ export function GalleryManager({
                 <button key={photo.imageKey} type="button" data-photo-index={index}
                   aria-label={`Arrange photo ${index + 1}: ${photo.alt}`}
                   disabled={busy}
-                  className={`relative aspect-square touch-none select-none overflow-hidden rounded-md border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${over === index ? 'border-primary' : 'border-border'} ${dragging === index ? 'opacity-30 border-dashed' : 'cursor-grab active:cursor-grabbing'} ${over === index && dragging !== index ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-95' : ''} transition-transform`}
+                  aria-pressed={selected === index}
+                  onClick={() => setSelected(index)}
+                  className={`relative aspect-square touch-none select-none overflow-hidden rounded-md border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${over === index || selected === index ? 'border-primary' : 'border-border'} ${dragging === index ? 'opacity-30 border-dashed' : 'cursor-grab active:cursor-grabbing'} ${over === index && dragging !== index ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-95' : ''} transition-transform`}
                   onPointerDown={(event) => {
                     if (event.button !== 0) return;
                     event.currentTarget.setPointerCapture(event.pointerId);
@@ -121,7 +108,7 @@ export function GalleryManager({
                   } }}
                   onPointerUp={(event) => {
                     const target = dropTarget(event.clientX, event.clientY);
-                    if (dragging !== null && target !== null && dragging !== target) onReorder(dragging, target);
+                    if (dragging !== null && target !== null && dragging !== target) { onReorder(dragging, target); setSelected(target); }
                     setDragging(null); setOver(null); setDragPoint(null);
                   }}
                   onPointerCancel={() => { setDragging(null); setOver(null); setDragPoint(null); }}
@@ -138,7 +125,23 @@ export function GalleryManager({
                   <span className="absolute left-1 top-1 rounded bg-black/80 px-1.5 py-0.5 text-xs text-white">{index + 1}</span>
                 </button>
               ))}
+              <button type="button" aria-label="Add photos to the gallery" disabled={busy || atMax}
+                onClick={() => fileRef.current?.click()}
+                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-primary/60 text-primary disabled:opacity-40">
+                {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
+                <span className="text-xs">Add photos</span>
+              </button>
             </div>
+            {selected !== null && photos[selected] && (
+              <div className="space-y-2 rounded-md border border-border p-3">
+                <p className="text-sm font-medium">Photo {selected + 1}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="px-2 text-xs" disabled={busy} onClick={() => onReplace(photos[selected])}>Change photo</Button>
+                  <Button variant="destructive" className="px-2 text-xs" disabled={busy || photos.length <= 1} onClick={() => {onRemove(photos[selected]); setSelected(null);}}>Delete photo</Button>
+                </div>
+                <Input className="text-base" aria-label="Photo description" placeholder="Photo description" value={photos[selected].alt} disabled={busy} onChange={(event) => onDescribe(photos[selected], event.target.value)} />
+              </div>
+            )}
           </div>
         )}
 
@@ -149,74 +152,7 @@ export function GalleryManager({
         )}
 
 
-        {!arranging && <ul className="space-y-2">
-          {photos.map((photo, index) => (
-            <li
-              key={photo.imageKey}
-              className="flex flex-wrap items-start gap-2 rounded-md border border-border bg-muted/30 p-2"
-            >
-              <img
-                src={photo.src}
-                alt={photo.alt || `Gallery photo ${index + 1}`}
-                className="h-16 w-16 shrink-0 rounded object-cover"
-                loading="lazy"
-              />
-              <div className="min-w-0 flex-1 space-y-2">
-                <p className="text-xs font-medium text-foreground">Photo {index + 1}</p>
-                <Input
-                  className="h-9 text-base"
-                  disabled={busy}
-                  value={photo.alt}
-                  placeholder="Describe this photo"
-                  aria-label={`Description for photo ${index + 1}`}
-                  onChange={(event) => onDescribe(photo, event.target.value)}
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="min-h-9"
-                    disabled={busy}
-                    onClick={() => onReplace(photo)}
-                    aria-label={`Replace photo ${index + 1}`}
-                  >
-                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Replace
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="min-h-9 px-2"
-                    disabled={busy || index === 0}
-                    onClick={() => onMove(photo, 'earlier')}
-                    aria-label={`Move photo ${index + 1} earlier`}
-                  >
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="min-h-9 px-2"
-                    disabled={busy || index === photos.length - 1}
-                    onClick={() => onMove(photo, 'later')}
-                    aria-label={`Move photo ${index + 1} later`}
-                  >
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="min-h-9 px-2"
-                    disabled={busy || photos.length <= 1}
-                    onClick={() => onRemove(photo)}
-                    aria-label={`Remove photo ${index + 1}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>}
+
       </CardContent>
     </Card>
   );

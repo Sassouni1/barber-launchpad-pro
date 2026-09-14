@@ -360,11 +360,6 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     setSelectedKey(null);
   };
 
-  const handleGalleryMove = (photo: GalleryPhoto, direction: 'earlier' | 'later') => {
-    const el = itemElementFor(photo);
-    if (el) runItemOp(direction, el, { message: `Moved this photo ${direction}.` });
-  };
-
   const handleGalleryRemove = (photo: GalleryPhoto) => {
     const el = itemElementFor(photo);
     if (!el) return;
@@ -728,7 +723,6 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
               busy={busy}
               onAdd={handleGalleryAdd}
               onReplace={handleGalleryReplace}
-              onMove={handleGalleryMove}
               onReorder={handleGalleryReorder}
               onRemove={handleGalleryRemove}
               onDescribe={handleGalleryDescribe}
