@@ -343,12 +343,10 @@ export default function Affiliates() {
           </CardContent>
         </Card>
 
+        {(data.payouts ?? []).length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Payouts</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Payments sent outside Stripe</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {(data.payouts ?? []).length === 0 && (
-              <p className="text-sm text-muted-foreground">No payouts recorded yet.</p>
-            )}
             {(data.payouts ?? []).map((p) => (
               <div key={p.id} className="flex items-center justify-between border-b border-border py-2 text-sm last:border-0">
                 <div>
