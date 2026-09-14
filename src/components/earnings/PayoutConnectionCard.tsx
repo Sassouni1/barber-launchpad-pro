@@ -28,6 +28,8 @@ export type PayoutData = {
     created_at: string;
   }>;
   autoPayoutsReady: boolean;
+  releaseTiming?: 'on_verified' | 'after_days' | null;
+  releaseDelayDays?: number | null;
 };
 
 const TRANSFER_LABEL: Record<string, string> = {
