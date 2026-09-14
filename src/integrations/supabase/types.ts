@@ -649,6 +649,69 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_checkout_intents: {
+        Row: {
+          affiliate_id: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip_hash: string | null
+          referral_id: string
+          stripe_session_id: string | null
+          stripe_session_url: string | null
+          submitted_email_normalized: string
+          submitted_name: string | null
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_hash?: string | null
+          referral_id: string
+          stripe_session_id?: string | null
+          stripe_session_url?: string | null
+          submitted_email_normalized: string
+          submitted_name?: string | null
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string | null
+          referral_id?: string
+          stripe_session_id?: string | null
+          stripe_session_url?: string | null
+          submitted_email_normalized?: string
+          submitted_name?: string | null
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_checkout_intents_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_checkout_intents_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_commissions: {
         Row: {
           affiliate_id: string
@@ -1029,6 +1092,8 @@ export type Database = {
       affiliate_referrals: {
         Row: {
           affiliate_id: string
+          booking_confirmed_at: string | null
+          booking_source: string | null
           created_at: string
           first_seen_at: string
           id: string
@@ -1048,6 +1113,8 @@ export type Database = {
         }
         Insert: {
           affiliate_id: string
+          booking_confirmed_at?: string | null
+          booking_source?: string | null
           created_at?: string
           first_seen_at?: string
           id?: string
@@ -1067,6 +1134,8 @@ export type Database = {
         }
         Update: {
           affiliate_id?: string
+          booking_confirmed_at?: string | null
+          booking_source?: string | null
           created_at?: string
           first_seen_at?: string
           id?: string
