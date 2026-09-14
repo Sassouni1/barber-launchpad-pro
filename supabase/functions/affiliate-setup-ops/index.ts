@@ -71,6 +71,15 @@ Deno.serve(async (req) => {
       return json({ status: res.status, body: parsed });
     }
 
+    // Stores the service key in secure storage so the recurring timer can call
+    // the payout runner without the key ever appearing in SQL, code or logs.
+    if (action === "store_scheduler_key") {
+      const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      if (!key) return json({ error: "Service key unavailable." }, 500);
+      await writeAffiliateWebhookSecret(key, "AFFILIATE_SCHEDULER_KEY");
+      return json({ ok: true, stored: true });
+    }
+
     if (action === "list_webhooks") {
       const res = await stripeCall("/webhook_endpoints?limit=25");
       return json({
