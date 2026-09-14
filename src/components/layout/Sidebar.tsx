@@ -385,15 +385,14 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
-              {!collapsed && (
-                <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                  Bonus Earnings
-                </div>
-              )}
-              <SubNavItem to="/affiliates" icon={Users} label="Affiliate Program" />
-              <SubNavItem to="/content-rewards" icon={Users} label="Content Rewards" />
               {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
             </ExpandableNavItem>
+
+            <ExpandableNavItem icon={CreditCard} label="Bonus Earnings" collapsed={collapsed}>
+              <SubNavItem to="/affiliates" icon={Users} label="Affiliate Program" />
+              <SubNavItem to="/content-rewards" icon={Users} label="Content Rewards" />
+            </ExpandableNavItem>
+
 
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />

@@ -225,6 +225,29 @@ export function evaluateAccount(account: any): AccountEligibility {
   };
 }
 
+export const CANONICAL_ORIGIN = "https://member.thebarberlaunch.com";
+
+const PREVIEW_ORIGIN_PATTERNS: RegExp[] = [
+  /^https:\/\/barber-launchpad-pro\.lovable\.app$/,
+  /^https:\/\/preview--barber-launchpad-pro\.lovable\.app$/,
+  /^https:\/\/id-preview--[0-9a-f-]{36}\.lovable\.app$/,
+  /^https:\/\/[0-9a-f-]{36}\.lovableproject\.com$/,
+  /^http:\/\/localhost:\d{2,5}$/,
+];
+
+/**
+ * Never trust the caller's Origin for redirect URLs. Only the canonical member
+ * domain and known preview hosts are allowed; anything else falls back to the
+ * canonical domain.
+ */
+export function safeOrigin(req: Request): string {
+  const origin = (req.headers.get("origin") ?? "").trim().replace(/\/+$/, "");
+  if (!origin) return CANONICAL_ORIGIN;
+  if (origin === CANONICAL_ORIGIN) return origin;
+  if (PREVIEW_ORIGIN_PATTERNS.some((re) => re.test(origin))) return origin;
+  return CANONICAL_ORIGIN;
+}
+
 export async function rateLimit(db: SupabaseClient, key: string, max: number, windowSeconds: number) {
   const now = Date.now();
   const { data } = await db

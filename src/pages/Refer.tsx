@@ -65,7 +65,7 @@ export default function Refer({ linkType }: { linkType: LinkType }) {
       }
       if (payload.next === 'checkout') {
         const { data: session, error: checkoutError } = await supabase.functions.invoke('affiliate-checkout', {
-          body: { referralRef: payload.referralRef },
+          body: { checkoutIntent: payload.checkoutIntent },
         });
         if (checkoutError || (session as any)?.error || !(session as any)?.url) {
           setNotice(
