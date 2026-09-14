@@ -1,5 +1,10 @@
 // Public affiliate referral intake. Saves the lead BEFORE the prospect leaves
 // for a sales call or checkout, so a later call sale can still be attributed.
+//
+// Privacy note: this endpoint is anonymous. It never returns anything saved
+// about an existing lead (name, phone, affiliate, status) and never returns a
+// reusable reference to a referral record. Enrollment hand-off uses a
+// short-lived, single-use checkout intent bound to THIS submission only.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import {
   adminClient,
@@ -13,6 +18,8 @@ import {
   rateLimit,
   sha256,
 } from "../_shared/affiliate.ts";
+
+const CHECKOUT_INTENT_TTL_SECONDS = 900; // 15 minutes
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -30,11 +37,12 @@ Deno.serve(async (req) => {
     const settings = await loadSettings(db);
     const missing = missingConfig(settings);
 
-    const { data: affiliate } = await db
+    const { data: affiliate, error: affiliateError } = await db
       .from("affiliates")
-      .select("id, code, display_name, status")
+      .select("id, code, display_name, status, contact_email")
       .eq("code", code)
       .maybeSingle();
+    if (affiliateError) throw affiliateError;
 
     if (!affiliate || affiliate.status !== "active") {
       return json({ error: "This referral link is no longer active." }, 404, h);
@@ -82,34 +90,37 @@ Deno.serve(async (req) => {
     }
 
     // Self-referral guard: an affiliate cannot refer their own account email.
-    const { data: ownerAffiliate } = await db
-      .from("affiliates")
-      .select("id, contact_email")
-      .eq("id", affiliate.id)
-      .maybeSingle();
-    if (ownerAffiliate?.contact_email && normalizeEmail(ownerAffiliate.contact_email) === email) {
+    if (affiliate.contact_email && normalizeEmail(affiliate.contact_email) === email) {
       return json({ error: "You can't refer yourself with your own link." }, 400, h);
     }
 
-    // First established referral wins — never silently reassign.
-    const { data: existing } = await db
+    // First established referral wins — never silently reassign. Void referrals
+    // are matched too, so a voided lead can never be recreated as a fresh one.
+    const { data: existing, error: existingError } = await db
       .from("affiliate_referrals")
       .select("id, affiliate_id, status")
       .eq("lead_email_normalized", email)
-      .neq("status", "void")
+      .order("created_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
+    if (existingError) throw existingError;
+
+    if (existing?.status === "void") {
+      return json({ error: "This referral link is no longer active." }, 403, h);
+    }
 
     let referralId: string;
-    let token: string | null = null;
 
     if (existing) {
       referralId = existing.id as string;
-      await db
+      // Only touch activity fields. Saved identity stays as first submitted and
+      // is never echoed back to whoever is on the page now.
+      const { error: touchError } = await db
         .from("affiliate_referrals")
         .update({ last_seen_at: new Date().toISOString(), intent })
         .eq("id", referralId);
+      if (touchError) throw touchError;
     } else {
-      token = randomToken(24);
       const { data: inserted, error } = await db
         .from("affiliate_referrals")
         .insert({
@@ -120,7 +131,7 @@ Deno.serve(async (req) => {
           lead_email_normalized: email,
           lead_phone: phone || null,
           lead_phone_normalized: phoneNorm,
-          token_hash: await sha256(token),
+          token_hash: await sha256(randomToken(24)),
           intent,
           ip_hash: ipHash,
           user_agent: (req.headers.get("user-agent") ?? "").slice(0, 300),
@@ -131,10 +142,6 @@ Deno.serve(async (req) => {
       referralId = inserted.id as string;
     }
 
-    if (referralVoid) {
-      return json({ error: "This referral link is no longer active." }, 403, h);
-    }
-
     if (intent === "call") {
       if (!settings.sales_call_url) {
         return json(
@@ -143,7 +150,14 @@ Deno.serve(async (req) => {
           h,
         );
       }
-      await db.from("affiliate_referrals").update({ status: "booked" }).eq("id", referralId).eq("status", "lead");
+      // Truthful status: opening the calendar is a requested call, NOT a booking.
+      // 'booked' is only ever set from a verified booking event.
+      const { error: statusError } = await db
+        .from("affiliate_referrals")
+        .update({ status: "call_requested" })
+        .eq("id", referralId)
+        .eq("status", "lead");
+      if (statusError) throw statusError;
       return json({ next: "call", url: settings.sales_call_url, saved: true }, 200, h);
     }
 
@@ -162,7 +176,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    return json({ next: "checkout", saved: true, referralRef: referralId }, 200, h);
+    // Short-lived, single-use checkout intent bound to this submission. The
+    // referral id is never handed to the browser.
+    const intentToken = randomToken(32);
+    const { error: intentError } = await db.from("affiliate_checkout_intents").insert({
+      referral_id: referralId,
+      affiliate_id: existing ? (existing.affiliate_id as string) : (affiliate.id as string),
+      token_hash: await sha256(intentToken),
+      submitted_email_normalized: email,
+      submitted_name: name,
+      ip_hash: ipHash,
+      expires_at: new Date(Date.now() + CHECKOUT_INTENT_TTL_SECONDS * 1000).toISOString(),
+    });
+    if (intentError) throw intentError;
+
+    return json({ next: "checkout", saved: true, checkoutIntent: intentToken }, 200, h);
   } catch (error) {
     console.error("affiliate-intake failed", error instanceof Error ? error.message : "unknown");
     return json({ error: "Something went wrong. Please try again." }, 500, { ...corsHeaders });
