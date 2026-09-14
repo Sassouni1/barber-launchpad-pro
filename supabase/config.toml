@@ -113,3 +113,6 @@ verify_jwt = false
 
 [functions.affiliate-transfer-dispatch]
 verify_jwt = false
+
+[functions.content-rewards]
+verify_jwt = false
