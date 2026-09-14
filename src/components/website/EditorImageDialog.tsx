@@ -203,7 +203,7 @@ export function EditorImageDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="flex max-h-[90dvh] w-[calc(100%-2rem)] flex-col overflow-hidden p-4 sm:max-w-lg sm:p-6">
         <DialogHeader>
           <DialogTitle>Replace image</DialogTitle>
           <DialogDescription>
@@ -211,7 +211,7 @@ export function EditorImageDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-h-0 space-y-4 overflow-y-auto">
           <input
             ref={fileRef}
             type="file"
@@ -231,8 +231,8 @@ export function EditorImageDialog({
             <div className="space-y-3">
               <canvas
                 ref={canvasRef}
-                className="w-full rounded-lg border border-border"
-                style={{ aspectRatio: `${width} / ${height}` }}
+                className="mx-auto block max-w-full rounded-lg border border-border"
+                style={{ aspectRatio: `${width} / ${height}`, width: `min(100%, ${26 * width / height}dvh)` }}
               />
               <div className="space-y-2">
                 <Label>Zoom</Label>
@@ -250,11 +250,11 @@ export function EditorImageDialog({
               </div>
             </div>
           ) : (
-            <img src={currentSrc} alt="Current" className="w-full rounded-lg border border-border" />
+            <img src={currentSrc} alt="Current" className="mx-auto h-[26dvh] max-h-56 w-full rounded-lg border border-border bg-black/20 object-contain" />
           )}
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
+        <DialogFooter className="shrink-0 flex-col gap-2 sm:flex-row">
           <Button variant="outline" onClick={handleExpand} disabled={!!busy}>
             {busy === 'expand' ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
