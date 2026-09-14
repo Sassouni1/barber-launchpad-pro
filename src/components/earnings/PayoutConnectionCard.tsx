@@ -48,11 +48,20 @@ const money = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 
  */
 export function PayoutConnectionCard() {
   const [payouts, setPayouts] = useState<PayoutData | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
+    setChecking(true);
+    setFailed(false);
     const { data: res, error } = await supabase.functions.invoke('affiliate-payouts', { body: { action: 'status' } });
-    if (!error) setPayouts(res as PayoutData);
+    if (error || !res) {
+      setFailed(true);
+    } else {
+      setPayouts(res as PayoutData);
+    }
+    setChecking(false);
   };
 
   useEffect(() => {
@@ -65,7 +74,7 @@ export function PayoutConnectionCard() {
   const startSetup = async () => {
     setBusy(true);
     const { data: res, error } = await supabase.functions.invoke('affiliate-payouts', {
-      body: { action: 'start_onboarding' },
+      body: { action: 'start_onboarding', returnPath: window.location.pathname },
     });
     setBusy(false);
     const url = (res as { url?: string } | null)?.url;
@@ -86,12 +95,21 @@ export function PayoutConnectionCard() {
           {payouts?.account?.eligible && <Badge variant="outline">Payouts ready</Badge>}
         </div>
         <CardDescription>
-          One connection covers everything you earn here. Money is sent to your Stripe account automatically, then
-          reaches your bank on your own Stripe payout schedule.
+          One connection covers everything you earn — referrals and content rewards. Automatic payments are not
+          switched on yet, so nothing is being sent out at the moment.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {!payouts && <div className="text-sm text-muted-foreground">Checking your payout setup…</div>}
+        {checking && <div className="text-sm text-muted-foreground">Checking your payout setup…</div>}
+
+        {!checking && failed && (
+          <div className="space-y-3">
+            <Alert variant="destructive">
+              <AlertDescription>We couldn’t check your payout setup just now.</AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={() => void load()}>Try again</Button>
+          </div>
+        )}
 
         {payouts?.account?.eligible && (
           <div className="rounded-md border border-border bg-secondary/30 px-3 py-3 text-sm">
@@ -139,8 +157,8 @@ export function PayoutConnectionCard() {
         {payouts && !payouts.autoPayoutsReady && (
           <Alert>
             <AlertDescription>
-              Automatic payments aren’t switched on yet. Everything you earn is still recorded here and will be sent
-              once the Barber Launch team turns payouts on.
+              Automatic payments are not active yet — setup isn’t finished, so no money is being sent. Everything you
+              earn is recorded here and will be sent once the Barber Launch team turns payouts on.
             </AlertDescription>
           </Alert>
         )}

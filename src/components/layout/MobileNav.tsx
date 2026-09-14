@@ -399,9 +399,14 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Digital Business Card</span>
                         </NavLink>
-                        <NavLink to="/bonus-earnings" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                        <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">Bonus Earnings</div>
+                        <NavLink to="/affiliates" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <CreditCard className="w-4 h-4" />
-                          <span className="font-medium">Bonus Earnings</span>
+                          <span className="font-medium">Affiliate Program</span>
+                        </NavLink>
+                        <NavLink to="/content-rewards" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <CreditCard className="w-4 h-4" />
+                          <span className="font-medium">Content Rewards</span>
                         </NavLink>
                         {websiteEntitlement && (
                           <NavRow to="/website" icon={Globe} label="Website Editor" onClick={closeMenu} />

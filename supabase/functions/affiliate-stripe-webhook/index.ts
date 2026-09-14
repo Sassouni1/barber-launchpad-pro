@@ -1,7 +1,17 @@
 // Signed Stripe webhook dedicated to affiliate commissions.
-// Commission is only ever accrued from a verified, signed, paid event with an
+//
+// Commission is only ever accrued from a verified, signed, paid event carrying an
 // approved enrollment price. Never from a success URL or a client-supplied amount.
+//
+// Delivery handling: every event is CLAIMED first, then marked completed or failed.
+// A delivery that fails is retried by Stripe and picked up again — it is never
+// silently swallowed as a "duplicate". Only an event already recorded as completed
+// is a duplicate.
+//
+// Ledger writes go through database functions so each event's changes commit
+// atomically, and so concurrent refunds cannot over- or under-reduce a commission.
 import { adminClient, COMMISSION_RATE, json, loadSettings, normalizeEmail, sha256 } from "../_shared/affiliate.ts";
+import { computeEligibleAmount, withinAttributionWindow } from "../_shared/affiliateWebhookLogic.ts";
 
 const encoder = new TextEncoder();
 
@@ -33,11 +43,29 @@ async function verifySignature(payload: string, header: string, secret: string) 
   return diff === 0;
 }
 
+/** Throws on failure: a Stripe read we cannot complete must fail the event so it is retried. */
 async function stripeGet(path: string, secret: string) {
   const res = await fetch(`https://api.stripe.com/v1${path}`, {
     headers: { Authorization: `Bearer ${secret}` },
   });
-  return res.ok ? await res.json() : null;
+  if (!res.ok) throw new Error(`Stripe GET ${path} failed with ${res.status}`);
+  return await res.json();
+}
+
+async function allLineItems(sessionId: string, secret: string) {
+  const items: Array<Record<string, unknown>> = [];
+  let startingAfter: string | null = null;
+  // Paginate: a cart is not assumed to fit in one page.
+  for (let page = 0; page < 20; page++) {
+    const query = `limit=100${startingAfter ? `&starting_after=${startingAfter}` : ""}`;
+    const res = await stripeGet(`/checkout/sessions/${sessionId}/line_items?${query}`, secret);
+    const data = (res?.data ?? []) as Array<Record<string, unknown>>;
+    items.push(...data);
+    if (!res?.has_more || data.length === 0) break;
+    startingAfter = String((data[data.length - 1] as { id?: string }).id ?? "");
+    if (!startingAfter) break;
+  }
+  return items;
 }
 
 Deno.serve(async (req) => {
@@ -58,43 +86,81 @@ Deno.serve(async (req) => {
 
   const event = JSON.parse(payload);
   const db = adminClient();
-  const settings = await loadSettings(db);
-
-  // Idempotency: duplicate or reordered deliveries are recorded once.
-  const { error: dupError } = await db.from("affiliate_webhook_events").insert({
-    event_id: event.id,
-    event_type: event.type,
-    livemode: Boolean(event.livemode),
-    payload_digest: await sha256(payload),
-  });
-  if (dupError) {
-    return json({ received: true, duplicate: true });
-  }
-
-  // Test-mode events never enter live balances.
   const livemode = Boolean(event.livemode);
 
+  // Durable claim. Database errors are propagated so Stripe retries.
+  const { data: claim, error: claimError } = await db.rpc("affiliate_claim_webhook_event", {
+    _event_id: event.id,
+    _event_type: event.type,
+    _livemode: livemode,
+    _digest: await sha256(payload),
+  });
+  if (claimError) {
+    console.error("affiliate webhook claim failed", claimError.message);
+    return json({ error: "Could not claim event." }, 500);
+  }
+  if (claim === "duplicate") return json({ received: true, duplicate: true });
+  if (claim === "in_progress") return json({ received: false, retry: true }, 409);
+
   try {
+    const settings = await loadSettings(db);
+
     switch (event.type) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded": {
         const session = event.data.object;
-        if (session.payment_status !== "paid") break;
-        await accrue(db, settings, stripeSecret, session, livemode, event.id);
+        if (session.payment_status === "paid") {
+          await accrue(db, settings, stripeSecret, session, livemode, event.id);
+        }
         break;
       }
-      case "charge.refunded":
+
+      case "charge.refunded": {
+        await handleRefundFromCharge(db, stripeSecret, event.data.object, event.id, livemode);
+        break;
+      }
+      case "refund.created":
+      case "refund.updated":
       case "charge.refund.updated": {
-        const charge = event.data.object;
-        await adjustRefund(db, charge, event.id, livemode);
+        // The object here is a REFUND, not a charge. Only a succeeded refund counts,
+        // and the authoritative refunded total comes from the charge itself.
+        const refund = event.data.object;
+        if (refund?.status !== "succeeded") break;
+        const chargeId = typeof refund.charge === "string" ? refund.charge : refund.charge?.id;
+        if (!chargeId) break;
+        const charge = await stripeGet(`/charges/${chargeId}`, stripeSecret);
+        await handleRefundFromCharge(db, stripeSecret, charge, event.id, livemode);
         break;
       }
-      case "charge.dispute.created": {
+
+      case "charge.dispute.created":
+      case "charge.dispute.funds_withdrawn": {
+        const intentId = await intentFromDispute(event.data.object, stripeSecret);
+        const { error } = await db.rpc("affiliate_apply_dispute", {
+          _payment_intent_id: intentId,
+          _event_id: event.id,
+          _livemode: livemode,
+        });
+        if (error) throw new Error(error.message);
+        break;
+      }
+      case "charge.dispute.closed":
+      case "charge.dispute.funds_reinstated": {
         const dispute = event.data.object;
-        await adjustDispute(db, dispute, event.id, livemode);
+        const intentId = await intentFromDispute(dispute, stripeSecret);
+        const won = event.type === "charge.dispute.funds_reinstated" ||
+          ["won", "warning_closed"].includes(String(dispute?.status ?? ""));
+        const { error } = await db.rpc("affiliate_resolve_dispute", {
+          _payment_intent_id: intentId,
+          _event_id: event.id,
+          _livemode: livemode,
+          _won: won,
+        });
+        if (error) throw new Error(error.message);
         break;
       }
-      // Payout-side reconciliation. Recorded once each; duplicates are ignored.
+
+      // Payout-side reconciliation.
       case "transfer.created":
       case "transfer.updated":
       case "transfer.reversed":
@@ -103,16 +169,69 @@ Deno.serve(async (req) => {
         await recordPayoutEvent(db, event, livemode);
         break;
       }
+
       default:
         break;
     }
   } catch (error) {
-    console.error("affiliate webhook processing failed", error instanceof Error ? error.message : "unknown");
+    const message = error instanceof Error ? error.message : "unknown";
+    console.error("affiliate webhook processing failed", message);
+    await db.rpc("affiliate_complete_webhook_event", {
+      _event_id: event.id,
+      _status: "failed",
+      _error: message.slice(0, 500),
+    });
+    // 500 so Stripe redelivers; the claim allows the retry through.
     return json({ error: "Processing failed." }, 500);
+  }
+
+  const { error: completeError } = await db.rpc("affiliate_complete_webhook_event", {
+    _event_id: event.id,
+    _status: "completed",
+    _error: null,
+  });
+  if (completeError) {
+    console.error("affiliate webhook completion failed", completeError.message);
+    return json({ error: "Could not finalise event." }, 500);
   }
 
   return json({ received: true });
 });
+
+async function intentFromDispute(dispute: any, stripeSecret: string): Promise<string | null> {
+  if (typeof dispute?.payment_intent === "string") return dispute.payment_intent;
+  if (dispute?.payment_intent?.id) return String(dispute.payment_intent.id);
+  const chargeId = typeof dispute?.charge === "string" ? dispute.charge : dispute?.charge?.id;
+  if (!chargeId) return null;
+  const charge = await stripeGet(`/charges/${chargeId}`, stripeSecret);
+  return typeof charge?.payment_intent === "string" ? charge.payment_intent : charge?.payment_intent?.id ?? null;
+}
+
+async function handleRefundFromCharge(
+  db: ReturnType<typeof adminClient>,
+  stripeSecret: string,
+  charge: any,
+  eventId: string,
+  livemode: boolean,
+) {
+  const intentId = typeof charge?.payment_intent === "string"
+    ? charge.payment_intent
+    : charge?.payment_intent?.id ?? null;
+  if (!intentId) return;
+
+  // Always read the authoritative refunded total from the charge object Stripe holds now.
+  const fresh = charge?.id ? await stripeGet(`/charges/${charge.id}`, stripeSecret) : charge;
+  const refundedTotal = Number(fresh?.amount_refunded ?? charge?.amount_refunded ?? 0);
+  if (!Number.isFinite(refundedTotal) || refundedTotal <= 0) return;
+
+  const { error } = await db.rpc("affiliate_apply_refund", {
+    _payment_intent_id: intentId,
+    _refunded_total_cents: Math.round(refundedTotal),
+    _event_id: eventId,
+    _livemode: livemode,
+  });
+  if (error) throw new Error(error.message);
+}
 
 async function accrue(
   db: ReturnType<typeof adminClient>,
@@ -127,171 +246,99 @@ async function accrue(
 
   let referral: any = null;
   if (referralId) {
-    const { data } = await db.from("affiliate_referrals").select("*").eq("id", referralId).maybeSingle();
+    const { data, error } = await db.from("affiliate_referrals").select("*").eq("id", referralId).maybeSingle();
+    if (error) throw new Error(error.message);
     referral = data;
   }
   if (!referral && email) {
-    const { data } = await db
+    const { data, error } = await db
       .from("affiliate_referrals")
       .select("*")
       .eq("lead_email_normalized", email)
       .neq("status", "void")
       .maybeSingle();
+    if (error) throw new Error(error.message);
     referral = data;
   }
 
-  // Verify the purchased price is an approved enrollment price.
-  const lineItems = await stripeGet(`/checkout/sessions/${session.id}/line_items?limit=10`, stripeSecret);
-  const priceIds: string[] = (lineItems?.data ?? []).map((li: any) => li?.price?.id).filter(Boolean);
-  const approved = priceIds.filter((p) => settings.enrollment_price_ids.includes(p));
+  // Commission basis: approved enrollment line items only, after discounts,
+  // excluding tax and shipping. Paginated.
+  const lineItems = await allLineItems(session.id, stripeSecret);
+  const breakdown = computeEligibleAmount(lineItems as never, settings.enrollment_price_ids ?? []);
 
   const currency = String(session.currency ?? "usd").toLowerCase();
-  // Exclude shipping and tax; discounts are already reflected in the subtotal.
-  const totalDetails = session.total_details ?? {};
-  const eligible = Math.max(
-    0,
-    Number(session.amount_total ?? 0) -
-      Number(totalDetails.amount_tax ?? 0) -
-      Number(totalDetails.amount_shipping ?? 0),
-  );
+  const paymentIntentId = typeof session.payment_intent === "string"
+    ? session.payment_intent
+    : session.payment_intent?.id ?? null;
 
-  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : null;
+  // Authoritative payment time: when the money was actually captured.
+  let paidAtSeconds = Number(session.created ?? 0);
+  if (paymentIntentId) {
+    const intent = await stripeGet(`/payment_intents/${paymentIntentId}`, stripeSecret);
+    const chargeId = typeof intent?.latest_charge === "string" ? intent.latest_charge : intent?.latest_charge?.id;
+    if (chargeId) {
+      const charge = await stripeGet(`/charges/${chargeId}`, stripeSecret);
+      if (charge?.created) paidAtSeconds = Number(charge.created);
+      if (charge?.status && charge.status !== "succeeded") return; // not captured: nothing to accrue
+    } else if (intent?.created) {
+      paidAtSeconds = Number(intent.created);
+    }
+  }
+  const paidAtIso = new Date((paidAtSeconds || Math.floor(Date.now() / 1000)) * 1000).toISOString();
 
-  const { data: payment } = await db
-    .from("affiliate_payments")
-    .upsert(
-      {
-        referral_id: referral?.id ?? null,
-        affiliate_id: referral?.affiliate_id ?? null,
-        stripe_object_type: "checkout.session",
-        stripe_object_id: session.id,
-        stripe_payment_intent_id: paymentIntentId,
-        stripe_customer_id: typeof session.customer === "string" ? session.customer : null,
-        customer_email_normalized: email,
-        price_id: approved[0] ?? priceIds[0] ?? null,
-        currency,
-        gross_amount_cents: Number(session.amount_total ?? 0),
-        eligible_amount_cents: eligible,
-        livemode,
-        paid_at: new Date((session.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
-        matched_by: referralId ? "client_reference_id" : referral ? "customer_email" : null,
-      },
-      { onConflict: "stripe_object_type,stripe_object_id" },
-    )
-    .select("id")
-    .single();
-
-  // No approved enrollment price, no affiliate, or non-USD: record the payment for
-  // admin reconciliation but accrue nothing.
-  if (!referral || approved.length === 0 || currency !== "usd" || eligible <= 0) return;
-
-  const { data: affiliate } = await db
-    .from("affiliates")
-    .select("id, status, commission_rate")
-    .eq("id", referral.affiliate_id)
-    .maybeSingle();
-  if (!affiliate || affiliate.status !== "active") return;
-
-  // Attribution window, when the team has set one.
-  if (settings.attribution_window_days) {
-    const ageDays = (Date.now() - new Date(referral.first_seen_at).getTime()) / 86_400_000;
-    if (ageDays > settings.attribution_window_days) return;
+  let affiliate: { id: string; status: string; commission_rate: number | null } | null = null;
+  if (referral?.affiliate_id) {
+    const { data, error } = await db
+      .from("affiliates")
+      .select("id, status, commission_rate")
+      .eq("id", referral.affiliate_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    affiliate = data as typeof affiliate;
   }
 
-  const rate = Number(affiliate.commission_rate ?? COMMISSION_RATE);
-  await db.from("affiliate_commissions").insert({
-    affiliate_id: affiliate.id,
-    referral_id: referral.id,
-    payment_id: payment?.id ?? null,
-    entry_type: "earned",
-    amount_cents: Math.round(eligible * rate),
-    currency,
-    basis_amount_cents: eligible,
-    rate,
-    status: "verified",
-    livemode,
-    source_event_id: eventId,
+  const rejectMixed = Boolean((settings as Record<string, unknown>).reject_mixed_carts);
+  const inWindow = referral
+    ? withinAttributionWindow(referral.first_seen_at, paidAtIso, settings.attribution_window_days)
+    : false;
+
+  const accrueNow = Boolean(
+    referral &&
+      affiliate &&
+      affiliate.status === "active" &&
+      breakdown.approvedPriceIds.length > 0 &&
+      breakdown.eligibleCents > 0 &&
+      currency === "usd" &&
+      inWindow &&
+      !(rejectMixed && breakdown.mixedCart),
+  );
+
+  const rate = Number(affiliate?.commission_rate ?? COMMISSION_RATE);
+
+  // One atomic call: the payment record, the earned commission, any refund or
+  // chargeback that arrived first, and the referral status.
+  const { error } = await db.rpc("affiliate_record_enrollment_payment", {
+    _payload: {
+      referral_id: referral?.id ?? null,
+      affiliate_id: referral?.affiliate_id ?? null,
+      stripe_object_type: "checkout.session",
+      stripe_object_id: session.id,
+      stripe_payment_intent_id: paymentIntentId,
+      stripe_customer_id: typeof session.customer === "string" ? session.customer : null,
+      customer_email_normalized: email,
+      price_id: breakdown.approvedPriceIds[0] ?? breakdown.otherPriceIds[0] ?? null,
+      currency,
+      gross_amount_cents: Number(session.amount_total ?? 0),
+      eligible_amount_cents: breakdown.eligibleCents,
+      livemode,
+      paid_at: paidAtIso,
+      matched_by: referralId ? "client_reference_id" : referral ? "customer_email" : null,
+      rate,
+      accrue: accrueNow,
+      source_event_id: eventId,
+    },
   });
-
-  await db.from("affiliate_referrals").update({ status: "converted" }).eq("id", referral.id);
-}
-
-async function adjustRefund(db: ReturnType<typeof adminClient>, charge: any, eventId: string, livemode: boolean) {
-  const intentId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
-  if (!intentId) return;
-  const { data: payment } = await db
-    .from("affiliate_payments")
-    .select("id, affiliate_id, referral_id, eligible_amount_cents, gross_amount_cents, refunded_amount_cents, currency")
-    .eq("stripe_payment_intent_id", intentId)
-    .maybeSingle();
-  if (!payment?.affiliate_id) return;
-
-  const refundedTotal = Number(charge.amount_refunded ?? 0);
-  const newlyRefunded = refundedTotal - Number(payment.refunded_amount_cents ?? 0);
-  if (newlyRefunded <= 0) return;
-
-  const { data: earned } = await db
-    .from("affiliate_commissions")
-    .select("rate")
-    .eq("payment_id", payment.id)
-    .eq("entry_type", "earned")
-    .maybeSingle();
-  const rate = Number(earned?.rate ?? COMMISSION_RATE);
-
-  // Refunds reduce the eligible base proportionally; a refund after payout stays
-  // on the ledger as a negative adjustment.
-  const share = Math.min(1, newlyRefunded / Math.max(1, Number(payment.gross_amount_cents ?? 0)));
-  const reduction = Math.round(Number(payment.eligible_amount_cents ?? 0) * share * rate);
-
-  await db.from("affiliate_payments").update({ refunded_amount_cents: refundedTotal }).eq("id", payment.id);
-  if (reduction <= 0) return;
-
-  await db.from("affiliate_commissions").insert({
-    affiliate_id: payment.affiliate_id,
-    referral_id: payment.referral_id,
-    payment_id: payment.id,
-    entry_type: "refund",
-    amount_cents: -reduction,
-    currency: payment.currency,
-    rate,
-    status: "verified",
-    livemode,
-    source_event_id: eventId,
-    note: "Refund adjustment",
-  });
-}
-
-async function adjustDispute(db: ReturnType<typeof adminClient>, dispute: any, eventId: string, livemode: boolean) {
-  const intentId = typeof dispute.payment_intent === "string" ? dispute.payment_intent : null;
-  if (!intentId) return;
-  const { data: payment } = await db
-    .from("affiliate_payments")
-    .select("id, affiliate_id, referral_id, currency")
-    .eq("stripe_payment_intent_id", intentId)
-    .maybeSingle();
-  if (!payment?.affiliate_id) return;
-
-  const { data: entries } = await db
-    .from("affiliate_commissions")
-    .select("amount_cents")
-    .eq("payment_id", payment.id)
-    .neq("entry_type", "payout");
-  const net = (entries ?? []).reduce((sum, e) => sum + Number(e.amount_cents ?? 0), 0);
-  if (net <= 0) return;
-
-  await db.from("affiliate_payments").update({ disputed: true }).eq("id", payment.id);
-  await db.from("affiliate_commissions").insert({
-    affiliate_id: payment.affiliate_id,
-    referral_id: payment.referral_id,
-    payment_id: payment.id,
-    entry_type: "dispute",
-    amount_cents: -net,
-    currency: payment.currency,
-    status: "verified",
-    livemode,
-    source_event_id: eventId,
-    note: "Chargeback adjustment",
-  });
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -302,7 +349,7 @@ async function adjustDispute(db: ReturnType<typeof adminClient>, dispute: any, e
 async function recordPayoutEvent(db: ReturnType<typeof adminClient>, event: any, livemode: boolean) {
   const obj = event.data?.object ?? {};
   const isTransfer = String(event.type).startsWith("transfer.");
-  await db.from("affiliate_payout_events").insert({
+  const { error: insertError } = await db.from("affiliate_payout_events").insert({
     stripe_event_id: event.id,
     event_type: event.type,
     stripe_account_id: event.account ?? null,
@@ -318,18 +365,21 @@ async function recordPayoutEvent(db: ReturnType<typeof adminClient>, event: any,
       failure_message: obj.failure_message ?? null,
     },
   });
+  // A repeat of the same event id is fine; anything else must fail the event.
+  if (insertError && insertError.code !== "23505") throw new Error(insertError.message);
 
   if (!isTransfer || !obj.id) return;
 
-  const { data: transfer } = await db
+  const { data: transfer, error: readError } = await db
     .from("affiliate_transfers")
     .select("id, amount_cents")
     .eq("stripe_transfer_id", obj.id)
     .maybeSingle();
+  if (readError) throw new Error(readError.message);
   if (!transfer) return;
 
   if (event.type === "transfer.reversed") {
-    await db
+    const { error } = await db
       .from("affiliate_transfers")
       .update({
         status: "failed",
@@ -337,8 +387,10 @@ async function recordPayoutEvent(db: ReturnType<typeof adminClient>, event: any,
         failure_message: "Stripe reversed this transfer.",
       })
       .eq("id", transfer.id);
+    if (error) throw new Error(error.message);
     return;
   }
 
-  await db.from("affiliate_transfers").update({ status: "paid" }).eq("id", transfer.id);
+  const { error } = await db.from("affiliate_transfers").update({ status: "paid" }).eq("id", transfer.id);
+  if (error) throw new Error(error.message);
 }

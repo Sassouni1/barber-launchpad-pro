@@ -999,6 +999,33 @@ export type Database = {
           },
         ]
       }
+      affiliate_pending_adjustments: {
+        Row: {
+          created_at: string
+          disputed: boolean
+          livemode: boolean
+          payment_intent_id: string
+          refunded_amount_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          disputed?: boolean
+          livemode?: boolean
+          payment_intent_id: string
+          refunded_amount_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          disputed?: boolean
+          livemode?: boolean
+          payment_intent_id?: string
+          refunded_amount_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       affiliate_referrals: {
         Row: {
           affiliate_id: string
@@ -1186,25 +1213,40 @@ export type Database = {
       }
       affiliate_webhook_events: {
         Row: {
+          attempts: number
+          claimed_at: string
+          completed_at: string | null
           event_id: string
           event_type: string
+          last_error: string | null
           livemode: boolean
           payload_digest: string | null
           processed_at: string
+          status: string
         }
         Insert: {
+          attempts?: number
+          claimed_at?: string
+          completed_at?: string | null
           event_id: string
           event_type: string
+          last_error?: string | null
           livemode: boolean
           payload_digest?: string | null
           processed_at?: string
+          status?: string
         }
         Update: {
+          attempts?: number
+          claimed_at?: string
+          completed_at?: string | null
           event_id?: string
           event_type?: string
+          last_error?: string | null
           livemode?: boolean
           payload_digest?: string | null
           processed_at?: string
+          status?: string
         }
         Relationships: []
       }
@@ -4247,6 +4289,50 @@ export type Database = {
       }
     }
     Functions: {
+      affiliate_apply_dispute: {
+        Args: {
+          _event_id: string
+          _livemode: boolean
+          _payment_intent_id: string
+        }
+        Returns: Json
+      }
+      affiliate_apply_refund: {
+        Args: {
+          _event_id: string
+          _livemode: boolean
+          _payment_intent_id: string
+          _refunded_total_cents: number
+        }
+        Returns: Json
+      }
+      affiliate_claim_webhook_event: {
+        Args: {
+          _digest: string
+          _event_id: string
+          _event_type: string
+          _livemode: boolean
+          _stale_seconds?: number
+        }
+        Returns: string
+      }
+      affiliate_complete_webhook_event: {
+        Args: { _error?: string; _event_id: string; _status: string }
+        Returns: undefined
+      }
+      affiliate_record_enrollment_payment: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      affiliate_resolve_dispute: {
+        Args: {
+          _event_id: string
+          _livemode: boolean
+          _payment_intent_id: string
+          _won: boolean
+        }
+        Returns: Json
+      }
       affiliate_totals: {
         Args: { _affiliate_id: string }
         Returns: {

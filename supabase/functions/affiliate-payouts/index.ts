@@ -45,7 +45,9 @@ Deno.serve(async (req) => {
       .select("id, user_id, status")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!affiliate) return json({ error: "You are not enrolled in the affiliate program yet." }, 400, h);
+    // Payout readiness is a member fact, not an affiliate fact. Content Rewards
+    // members can read and set up payouts without enrolling as an affiliate, and
+    // nobody is enrolled as a side effect of looking at this page.
 
     const settings = await loadSettings(db);
     const payoutSetup = missingPayoutConfig(settings);
@@ -64,7 +66,7 @@ Deno.serve(async (req) => {
           const ev = evaluateAccount(res.data);
           // Ownership is established by our own member→account mapping; we never
           // touch an account that is not mapped to this signed-in member.
-          await db.from("affiliate_payout_accounts").upsert(
+          if (affiliate) await db.from("affiliate_payout_accounts").upsert(
             {
               affiliate_id: affiliate.id,
               user_id: user.id,
@@ -105,17 +107,21 @@ Deno.serve(async (req) => {
       }
       if (!account) account = { connected: false, eligible: false };
 
-      const { data: transfers } = await db
-        .from("affiliate_transfers")
-        .select("id, amount_cents, currency, status, payout_status, sent_at, payout_arrival_at, failure_message, created_at")
-        .eq("affiliate_id", affiliate.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      let transfers: unknown[] = [];
+      if (affiliate) {
+        const { data } = await db
+          .from("affiliate_transfers")
+          .select("id, amount_cents, currency, status, payout_status, sent_at, payout_arrival_at, failure_message, created_at")
+          .eq("affiliate_id", affiliate.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        transfers = data ?? [];
+      }
 
       return json(
         {
           account,
-          transfers: transfers ?? [],
+          transfers,
           autoPayoutsReady: payoutSetup.length === 0,
           payoutSetupMissing: payoutSetup,
           ...extra,
@@ -130,6 +136,10 @@ Deno.serve(async (req) => {
     if (action === "start_onboarding") {
       const origin = req.headers.get("origin") || String(body.returnOrigin ?? "");
       if (!origin) return json({ error: "Missing origin." }, 400, h);
+
+      // Return the member to the page they started from.
+      const requested = String(body.returnPath ?? "");
+      const returnPath = ["/affiliates", "/content-rewards"].includes(requested) ? requested : "/affiliates";
 
       let accountId = connect?.stripe_account_id ?? null;
 
@@ -180,8 +190,8 @@ Deno.serve(async (req) => {
       const link = await stripeCall("/account_links", {
         body: {
           account: accountId,
-          refresh_url: `${origin}/affiliates?payouts=refresh`,
-          return_url: `${origin}/affiliates?payouts=return`,
+          refresh_url: `${origin}${returnPath}?payouts=refresh`,
+          return_url: `${origin}${returnPath}?payouts=return`,
           type: "account_onboarding",
           "collection_options[fields]": "currently_due",
           "collection_options[future_requirements]": "omit",
