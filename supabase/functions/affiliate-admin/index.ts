@@ -108,7 +108,12 @@ Deno.serve(async (req) => {
       }
 
       case "save_settings": {
-        const incoming = (body.settings ?? {}) as Record<string, unknown>;
+        const incoming = { ...((body.settings ?? {}) as Record<string, unknown>) };
+        // Verification facts are only ever written by the Stripe account check above.
+        delete incoming.seller_account_confirmed;
+        delete incoming.verified_stripe_account_id;
+        delete incoming.verified_stripe_account_email;
+        delete incoming.verified_stripe_account_at;
         const current = await loadSettings(db);
         const next = {
           ...current,
