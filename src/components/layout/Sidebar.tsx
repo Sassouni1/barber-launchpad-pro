@@ -385,7 +385,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
-              <SubNavItem to="/affiliates" icon={Users} label="Affiliate Program" />
+              <SubNavItem to="/bonus-earnings" icon={Users} label="Bonus Earnings" />
               {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
             </ExpandableNavItem>
 
