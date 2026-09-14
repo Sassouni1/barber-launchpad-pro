@@ -554,7 +554,11 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                 )}
               </>
             )}
-            <div role="group" aria-label="Save website changes" className="space-y-2 border-t border-border pt-4">
+            <div
+              role="group"
+              aria-label="Save website changes"
+              className="space-y-2 border-t border-border pt-4"
+            >
               <Button className="w-full" variant="outline" onClick={handleSave} disabled={busy}>
                 {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save draft
