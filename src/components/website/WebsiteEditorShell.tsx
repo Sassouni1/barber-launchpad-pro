@@ -350,6 +350,24 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const imageFields = fields.filter((f) => f.kind === 'image').length;
   const busy = saveDraft.isPending || publish.isPending;
 
+  const saveActions = (
+            <div
+              role="group"
+              aria-label="Save website changes"
+              className={isMobile ? "grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-2 border-t border-border bg-background px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0" : "space-y-2 border-t border-border pt-4"}
+            >
+              <Button className={isMobile ? "min-w-0 w-full h-11 px-2 text-xs" : "w-full"} variant="outline" onClick={handleSave} disabled={busy}>
+                {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className={isMobile ? "hidden" : "mr-2 h-4 w-4"} />}
+                Save draft
+              </Button>
+              <Button className={isMobile ? "min-w-0 w-full h-11 px-2 text-xs" : "w-full"} onClick={handlePublish} disabled={busy}>
+                {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className={isMobile ? "hidden" : "mr-2 h-4 w-4"} />}
+                Save &amp; publish
+              </Button>
+              {!isMobile && <p className="col-span-2 text-xs text-muted-foreground">Drafts stay private. Publishing updates your live website.</p>}
+            </div>
+  );
+
   const editorContent = (
           <CardContent className="space-y-3">
             {(!isMobile || activeItem) && (
@@ -477,21 +495,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                 )}
               </>
             )}
-            <div
-              role="group"
-              aria-label="Save website changes"
-              className={isMobile ? "grid grid-cols-2 gap-2 border-t border-border pt-2" : "space-y-2 border-t border-border pt-4"}
-            >
-              <Button className="w-full" variant="outline" onClick={handleSave} disabled={busy}>
-                {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save draft
-              </Button>
-              <Button className="w-full" onClick={handlePublish} disabled={busy}>
-                {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
-                Save &amp; publish
-              </Button>
-              <p className="col-span-2 text-xs text-muted-foreground">Drafts stay private. Publishing updates your live website.</p>
-            </div>
+            {!isMobile && saveActions}
           </CardContent>
   );
 
@@ -581,9 +585,10 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                 <h2 className="text-sm font-semibold">Edit selected item</h2>
                 <Button variant="ghost" size="sm" onClick={() => setMobileEditorOpen(false)}>Done</Button>
               </div>
-              <div className="overflow-y-auto overscroll-contain pt-3 pb-[env(safe-area-inset-bottom)]">
+              <div className="min-h-0 overflow-y-auto overscroll-contain pt-3">
                 {editorContent}
               </div>
+              {saveActions}
             </aside>
           )
         ) : (
