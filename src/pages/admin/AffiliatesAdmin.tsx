@@ -22,6 +22,9 @@ type Overview = {
   payments: any[];
   commissions: any[];
   payouts: any[];
+  missingPayoutConfig?: string[];
+  transfers?: any[];
+  payoutAccounts?: any[];
 };
 
 export default function AffiliatesAdmin() {
