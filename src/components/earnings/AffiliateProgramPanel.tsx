@@ -110,14 +110,13 @@ export function AffiliateProgramPanel({
         </Alert>
       )}
 
-      {!data.checkoutReady && (
-        <Alert>
-          <AlertDescription>
-            Online enrollment checkout isn’t switched on yet. Your links still save every referral, and the team
-            closes the sale on the call — you stay credited.
-          </AlertDescription>
-        </Alert>
-      )}
+      <Alert>
+        <AlertDescription>
+          {data.checkoutReady
+            ? 'Commission is counted automatically when someone pays through one of your links below and the payment clears. A sale closed another way is reviewed by the team before it counts.'
+            : 'Online enrollment payment isn’t switched on yet. Your links still save every referral with the person’s details, but commission is only counted once a payment is confirmed — nothing is credited automatically before that.'}
+        </AlertDescription>
+      </Alert>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
