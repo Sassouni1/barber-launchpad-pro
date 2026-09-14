@@ -1,13 +1,23 @@
 // Automatic affiliate commission payouts over Stripe Connect.
 //
 // Two phases, both safe to run repeatedly:
-//   1. enqueue  — one transfer row per verified commission (unique per commission)
-//   2. dispatch — claim due rows, send the Stripe transfer with a per-commission
-//                 idempotency key, retry with backoff, block on ineligible accounts
+//   1. enqueue  — one transfer row per verified commission (unique per commission),
+//                 held from the authoritative payment time
+//   2. dispatch — atomically reserve the payable balance per affiliate + currency
+//                 + mode, then send the Stripe transfer
 //
-// Nothing is sent unless setup is complete AND the platform transfer path has
-// been verified. Dry run is the default so this can be exercised without money
-// moving.
+// Hard rules enforced here:
+//   * test and live records are fully isolated and a record is never dispatched
+//     with a key from the other world
+//   * currency is part of every balance calculation
+//   * balance reservation happens inside one SQL transaction with an advisory
+//     lock, so two workers cannot overpay a partially refunded balance
+//   * only the worker holding a row may write to it
+//   * every database error is checked; an ambiguous Stripe outcome parks the row
+//     for reconciliation instead of risking a second send
+//   * configuration / balance / account-not-ready are holds that resume by
+//     themselves — they never burn real retry attempts
+//   * a dry run writes nothing at all
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import {
   adminClient,
@@ -18,13 +28,19 @@ import {
   missingPayoutConfig,
   requireUser,
   stripeCall,
+  stripeKeyLivemode,
 } from "../_shared/affiliate.ts";
 
 const MAX_ATTEMPTS = 6;
-const LOCK_STALE_MS = 5 * 60 * 1000;
+const LOCK_STALE_SECONDS = 300;
+const HOLD_MINUTES = 30;
 
 function backoffMinutes(attempt: number) {
   return Math.min(6 * 60, Math.round(5 * Math.pow(3, Math.max(0, attempt - 1))));
+}
+
+function minutesFromNow(minutes: number) {
+  return new Date(Date.now() + minutes * 60_000).toISOString();
 }
 
 Deno.serve(async (req) => {
@@ -49,178 +65,230 @@ Deno.serve(async (req) => {
     const missing = missingPayoutConfig(settings);
     const workerId = crypto.randomUUID();
 
-    // ---------- phase 1: enqueue ----------
-    const { data: commissions } = await db
-      .from("affiliate_commissions")
-      .select("id, affiliate_id, amount_cents, currency, status, entry_type, livemode, created_at")
-      .eq("entry_type", "earned")
-      .eq("status", "verified")
-      .eq("livemode", true) // test-mode ledger entries never enter live balances
-      .gt("amount_cents", 0)
-      .order("created_at", { ascending: true })
-      .limit(200);
-
-    const enqueued: string[] = [];
-    for (const c of commissions ?? []) {
-      const { data: existing } = await db
-        .from("affiliate_transfers")
-        .select("id")
-        .eq("commission_id", c.id)
-        .maybeSingle();
-      if (existing) continue;
-
-      const delayDays = settings.release_timing === "after_days" ? Number(settings.release_delay_days ?? 0) : 0;
-      const releaseAfter = new Date(new Date(c.created_at).getTime() + delayDays * 86_400_000).toISOString();
-
-      const { error } = await db.from("affiliate_transfers").insert({
-        affiliate_id: c.affiliate_id,
-        commission_id: c.id,
-        amount_cents: c.amount_cents,
-        currency: c.currency,
-        idempotency_key: `aff_tr_${c.id}`,
-        release_after: releaseAfter,
-        next_attempt_at: releaseAfter,
-        livemode: c.livemode,
-      });
-      if (!error) enqueued.push(c.id);
+    // ---------- test / live isolation ----------
+    const keyLivemode = stripeKeyLivemode();
+    if (keyLivemode === null) {
+      return json(
+        { error: "The Stripe key is missing or unrecognisable, so nothing can be dispatched.", dryRun },
+        503,
+        h,
+      );
     }
+    const requested = typeof body.livemode === "boolean" ? (body.livemode as boolean) : keyLivemode;
+    if (requested !== keyLivemode) {
+      return json(
+        {
+          error:
+            `Refusing to dispatch ${requested ? "live" : "test"} records with a ${keyLivemode ? "live" : "test"}-mode Stripe key.`,
+          dryRun,
+        },
+        409,
+        h,
+      );
+    }
+    const livemode = keyLivemode;
 
-    // ---------- phase 2: dispatch ----------
-    const nowIso = new Date().toISOString();
-    const staleIso = new Date(Date.now() - LOCK_STALE_MS).toISOString();
-
-    const { data: due } = await db
-      .from("affiliate_transfers")
-      .select("*")
-      .in("status", ["queued", "processing"])
-      .eq("livemode", true)
-      .lte("next_attempt_at", nowIso)
-      .lte("release_after", nowIso)
-      .order("created_at", { ascending: true })
-      .limit(25);
+    // ---------- phase 1: enqueue ----------
+    // The hold clock starts at the verified payment time, handled in SQL.
+    let enqueued = 0;
+    if (settings.release_timing) {
+      const { data: inserted, error: enqueueError } = await db.rpc("affiliate_transfer_enqueue", {
+        _livemode: livemode,
+        _release_timing: settings.release_timing,
+        _delay_days: Number(settings.release_delay_days ?? 0),
+        _limit: 200,
+      });
+      if (enqueueError) throw new Error(`enqueue failed: ${enqueueError.message}`);
+      enqueued = Number(inserted ?? 0);
+    }
 
     const results: Array<Record<string, unknown>> = [];
 
-    for (const tr of due ?? []) {
-      // Concurrent-worker protection: only one worker may hold a row at a time.
-      if (tr.locked_at && tr.locked_at > staleIso) {
-        results.push({ id: tr.id, skipped: "locked by another worker" });
-        continue;
-      }
-      const { data: claimed } = await db
+    // ---------- dry run: read only, nothing is written or claimed ----------
+    if (dryRun) {
+      const { data: preview, error: previewError } = await db
         .from("affiliate_transfers")
-        .update({ status: "processing", locked_at: nowIso, locked_by: workerId })
-        .eq("id", tr.id)
-        .in("status", ["queued", "processing"])
-        .or(`locked_at.is.null,locked_at.lte.${staleIso}`)
-        .select("id")
-        .maybeSingle();
-      if (!claimed) {
-        results.push({ id: tr.id, skipped: "claimed by another worker" });
-        continue;
-      }
+        .select("id, affiliate_id, amount_cents, currency, status, attempts, release_after, next_attempt_at, needs_reconciliation")
+        .eq("livemode", livemode)
+        .in("status", ["queued", "blocked", "processing"])
+        .order("created_at", { ascending: true })
+        .limit(50);
+      if (previewError) throw new Error(`dry run read failed: ${previewError.message}`);
+      return json(
+        {
+          dryRun: true,
+          livemode,
+          missingPayoutConfig: missing,
+          wouldDispatch: missing.length === 0,
+          enqueued,
+          queue: preview ?? [],
+        },
+        200,
+        h,
+      );
+    }
 
+    // Setup incomplete is a hold on the whole run — no row is touched, so no
+    // real retry is consumed and everything resumes by itself once ready.
+    if (missing.length > 0) {
+      return json(
+        { dryRun: false, livemode, missingPayoutConfig: missing, enqueued, dispatched: false, processed: [] },
+        200,
+        h,
+      );
+    }
+
+    // ---------- phase 2: dispatch ----------
+    const { data: claimedRows, error: claimError } = await db.rpc("affiliate_transfer_claim", {
+      _worker: workerId,
+      _livemode: livemode,
+      _stale_seconds: LOCK_STALE_SECONDS,
+      _limit: 25,
+    });
+    if (claimError) throw new Error(`claim failed: ${claimError.message}`);
+
+    for (const tr of (claimedRows ?? []) as any[]) {
       const release = async (patch: Record<string, unknown>) => {
-        await db
-          .from("affiliate_transfers")
-          .update({ locked_at: null, locked_by: null, ...patch })
-          .eq("id", tr.id);
+        const { data: ok, error } = await db.rpc("affiliate_transfer_release", {
+          _id: tr.id,
+          _worker: workerId,
+          _patch: patch,
+        });
+        if (error) throw new Error(`release failed: ${error.message}`);
+        return ok === true;
       };
 
-      const defer = async (reason: string, blocked = false) => {
+      // Configuration, balance and account-readiness problems: resume later,
+      // never consume a retry, never fail the job.
+      const hold = async (kind: string, reason: string) => {
+        const wrote = await release({
+          status: "blocked",
+          blocked_kind: kind,
+          failure_message: reason,
+          next_attempt_at: minutesFromNow(HOLD_MINUTES),
+        });
+        results.push({ id: tr.id, held: reason, kind, wrote });
+      };
+
+      // A genuine Stripe/processing failure: backoff, then give up after MAX.
+      const retry = async (reason: string) => {
         const attempts = Number(tr.attempts ?? 0) + 1;
         const giveUp = attempts >= MAX_ATTEMPTS;
-        await release({
-          status: blocked ? "blocked" : giveUp ? "failed" : "queued",
+        const wrote = await release({
+          status: giveUp ? "failed" : "queued",
           attempts,
+          blocked_kind: null,
           failure_message: reason,
-          next_attempt_at: new Date(Date.now() + backoffMinutes(attempts) * 60_000).toISOString(),
+          next_attempt_at: minutesFromNow(backoffMinutes(attempts)),
         });
-        results.push({ id: tr.id, deferred: reason, blocked });
+        results.push({ id: tr.id, retryScheduled: !giveUp, reason, wrote });
       };
 
-      if (missing.length > 0) {
-        await defer(`Automatic payouts are not configured yet: ${missing.join("; ")}`);
-        continue;
-      }
+      const park = async (note: string, transferId?: string | null) => {
+        // Lock-independent: an ambiguous outcome must be recorded even if this
+        // worker has lost the row.
+        const { error } = await db
+          .from("affiliate_transfers")
+          .update({
+            needs_reconciliation: true,
+            reconciliation_note: note,
+            stripe_transfer_id: transferId ?? tr.stripe_transfer_id ?? null,
+            locked_at: null,
+            locked_by: null,
+          })
+          .eq("id", tr.id);
+        if (error) console.error("could not park transfer for reconciliation", tr.id, error.message);
+        results.push({ id: tr.id, needsReconciliation: note });
+      };
 
       // Affiliate must still be in good standing.
-      const { data: affiliate } = await db
+      const { data: affiliate, error: affiliateError } = await db
         .from("affiliates")
         .select("id, status")
         .eq("id", tr.affiliate_id)
         .maybeSingle();
+      if (affiliateError) throw new Error(`affiliate read failed: ${affiliateError.message}`);
       if (!affiliate || affiliate.status !== "active") {
-        await defer("Affiliate account is not active.", true);
+        await hold("affiliate_inactive", "Waiting: this affiliate account is not active.");
         continue;
       }
 
-      // Net-balance check: refunds and disputes must not be paid out.
-      const { data: ledger } = await db
-        .from("affiliate_commissions")
-        .select("amount_cents")
-        .eq("affiliate_id", tr.affiliate_id)
-        .eq("status", "verified")
-        .neq("entry_type", "payout");
-      const netOwed = (ledger ?? []).reduce((s, e) => s + Number(e.amount_cents ?? 0), 0);
-      const { data: alreadySent } = await db
-        .from("affiliate_transfers")
-        .select("amount_cents")
-        .eq("affiliate_id", tr.affiliate_id)
-        .in("status", ["sent", "paid"]);
-      const sentTotal = (alreadySent ?? []).reduce((s, e) => s + Number(e.amount_cents ?? 0), 0);
-      if (netOwed - sentTotal < Number(tr.amount_cents)) {
-        await defer("Balance owed is lower than this commission (refund or dispute adjustment).");
+      if (Number(tr.amount_cents) < Number(settings.minimum_transfer_cents ?? 0)) {
+        await hold("below_minimum", "Waiting: below the minimum transfer amount.");
         continue;
       }
-      if (Number(tr.amount_cents) < Number(settings.minimum_transfer_cents ?? 0)) {
-        await defer("Below the minimum transfer amount.");
-        continue;
+
+      // Idempotency keys expire, so an ambiguous or repeated job is reconciled
+      // against Stripe's own record before anything else is sent.
+      const ambiguous = Number(tr.attempts ?? 0) > 0 || Boolean(tr.stripe_transfer_id);
+      if (ambiguous) {
+        const group = tr.transfer_group ?? tr.idempotency_key;
+        const found = await stripeCall(`/transfers?transfer_group=${encodeURIComponent(group)}&limit=5`);
+        if (!found.ok) {
+          await hold("reconcile_unavailable", "Waiting: Stripe could not be checked for an earlier attempt.");
+          continue;
+        }
+        const existing = (found.data?.data ?? []).find((t: any) => t?.livemode === livemode);
+        if (existing) {
+          const wrote = await release({
+            status: "sent",
+            blocked_kind: null,
+            stripe_transfer_id: existing.id,
+            stripe_destination_payment_id: existing.destination_payment ?? null,
+            destination_account_id: existing.destination ?? tr.destination_account_id ?? null,
+            sent_at: new Date(Number(existing.created ?? Date.now() / 1000) * 1000).toISOString(),
+            failure_message: null,
+            needs_reconciliation: false,
+          });
+          if (!wrote) await park("Stripe already sent this transfer but the record could not be updated.", existing.id);
+          else results.push({ id: tr.id, reconciled: existing.id });
+          continue;
+        }
       }
 
       // Destination account must be live-checked, not trusted from our cache.
-      const { data: payoutAccount } = await db
+      const { data: payoutAccount, error: payoutAccountError } = await db
         .from("affiliate_payout_accounts")
         .select("stripe_account_id")
         .eq("affiliate_id", tr.affiliate_id)
         .maybeSingle();
+      if (payoutAccountError) throw new Error(`payout account read failed: ${payoutAccountError.message}`);
       const destination = payoutAccount?.stripe_account_id ?? tr.destination_account_id;
       if (!destination) {
-        await defer("This affiliate has no connected payout account yet.", true);
+        await hold("no_account", "Waiting: this affiliate has not connected a payout account yet.");
         continue;
       }
       const acct = await stripeCall(`/accounts/${destination}`);
       if (!acct.ok) {
-        await defer("Stripe could not read the destination account.");
+        await hold("account_unreadable", "Waiting: Stripe could not read the destination account.");
+        continue;
+      }
+      if (typeof acct.data?.livemode === "boolean" && acct.data.livemode !== livemode) {
+        await hold("mode_mismatch", "Waiting: the destination account belongs to the other Stripe mode.");
         continue;
       }
       const ev = evaluateAccount(acct.data);
       if (!ev.eligible) {
-        await defer(ev.ineligibleReason ?? "Destination account cannot receive transfers.", true);
+        await hold("account_not_ready", ev.ineligibleReason ?? "Waiting: this account cannot receive transfers yet.");
         continue;
       }
       if (ev.defaultCurrency !== String(tr.currency).toLowerCase()) {
-        await defer("Destination account currency does not match the commission.", true);
+        await hold("currency_mismatch", "Waiting: the destination account pays out in a different currency.");
         continue;
       }
 
-      // Funded-balance check on the platform account.
+      // Funded-balance check on the platform account, in this exact currency.
       const balance = await stripeCall("/balance");
       const available = (balance.data?.available ?? []).find(
         (b: any) => String(b.currency).toLowerCase() === String(tr.currency).toLowerCase(),
       );
       if (!balance.ok || Number(available?.amount ?? 0) < Number(tr.amount_cents)) {
-        await defer("Waiting for enough available balance in the Barber Launch Stripe account.");
+        await hold("funding", "Waiting for enough available balance in the Barber Launch Stripe account.");
         continue;
       }
 
-      if (dryRun) {
-        await release({ status: "queued", destination_account_id: destination, failure_message: null });
-        results.push({ id: tr.id, dryRun: true, wouldSend: tr.amount_cents, destination });
-        continue;
-      }
-
-      // Per-commission idempotency key: a retry can never double-pay.
+      // Per-commission idempotency key plus a stable transfer group, so any
+      // later ambiguity can be resolved against Stripe itself.
       const transfer = await stripeCall("/transfers", {
         idempotencyKey: tr.idempotency_key,
         body: {
@@ -228,27 +296,49 @@ Deno.serve(async (req) => {
           currency: tr.currency,
           destination,
           description: "Barber Launch affiliate commission",
+          transfer_group: tr.transfer_group ?? tr.idempotency_key,
           "metadata[commission_id]": tr.commission_id,
           "metadata[affiliate_id]": tr.affiliate_id,
+          "metadata[transfer_row_id]": tr.id,
         },
       });
       if (!transfer.ok) {
-        await defer(transfer.data?.error?.message ?? "Stripe rejected the transfer.");
+        // 5xx / network-shaped answers are ambiguous: the transfer may exist.
+        if (transfer.status >= 500 || transfer.status === 0) {
+          await park("Stripe did not confirm the result of this transfer; check Stripe before sending again.");
+        } else {
+          await retry(transfer.data?.error?.message ?? "Stripe rejected the transfer.");
+        }
+        continue;
+      }
+      if (typeof transfer.data?.livemode === "boolean" && transfer.data.livemode !== livemode) {
+        await park("Stripe returned a transfer in the wrong mode; this must be reviewed before any further send.");
         continue;
       }
 
-      await release({
+      const wrote = await release({
         status: "sent",
+        blocked_kind: null,
         destination_account_id: destination,
         stripe_transfer_id: transfer.data.id,
         stripe_destination_payment_id: transfer.data.destination_payment ?? null,
         sent_at: new Date().toISOString(),
         failure_message: null,
+        needs_reconciliation: false,
       });
+      if (!wrote) {
+        // Money left Stripe but our record could not be written: never resend.
+        await park("The transfer was sent but the record could not be updated.", transfer.data.id);
+        continue;
+      }
       results.push({ id: tr.id, sent: transfer.data.id });
     }
 
-    return json({ dryRun, missingPayoutConfig: missing, enqueued: enqueued.length, processed: results }, 200, h);
+    return json(
+      { dryRun: false, livemode, missingPayoutConfig: missing, enqueued, dispatched: true, processed: results },
+      200,
+      h,
+    );
   } catch (error) {
     console.error("affiliate-transfer-dispatch failed", error instanceof Error ? error.message : "unknown");
     return json({ error: "Something went wrong." }, 500, { ...corsHeaders });

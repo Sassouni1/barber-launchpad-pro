@@ -152,6 +152,17 @@ export function stripeForm(params: Record<string, unknown>): string {
   return out.join("&");
 }
 
+/**
+ * Which Stripe world the configured server key belongs to. A test-mode record
+ * must never be dispatched with a live key, and vice versa.
+ */
+export function stripeKeyLivemode(): boolean | null {
+  const secret = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+  if (/^(sk|rk)_live_/.test(secret)) return true;
+  if (/^(sk|rk)_test_/.test(secret)) return false;
+  return null;
+}
+
 export async function stripeCall(
   path: string,
   opts: { method?: string; body?: Record<string, unknown>; idempotencyKey?: string } = {},

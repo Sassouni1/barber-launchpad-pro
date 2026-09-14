@@ -1189,78 +1189,93 @@ export type Database = {
           affiliate_id: string
           amount_cents: number
           attempts: number
+          blocked_kind: string | null
           commission_id: string
           created_at: string
           currency: string
           destination_account_id: string | null
           failure_code: string | null
           failure_message: string | null
+          hold_basis_at: string | null
           id: string
           idempotency_key: string
           livemode: boolean
           locked_at: string | null
           locked_by: string | null
+          needs_reconciliation: boolean
           next_attempt_at: string
           payout_arrival_at: string | null
           payout_status: string | null
+          reconciliation_note: string | null
           release_after: string
           sent_at: string | null
           status: string
           stripe_destination_payment_id: string | null
           stripe_payout_id: string | null
           stripe_transfer_id: string | null
+          transfer_group: string | null
           updated_at: string
         }
         Insert: {
           affiliate_id: string
           amount_cents: number
           attempts?: number
+          blocked_kind?: string | null
           commission_id: string
           created_at?: string
           currency?: string
           destination_account_id?: string | null
           failure_code?: string | null
           failure_message?: string | null
+          hold_basis_at?: string | null
           id?: string
           idempotency_key: string
           livemode?: boolean
           locked_at?: string | null
           locked_by?: string | null
+          needs_reconciliation?: boolean
           next_attempt_at?: string
           payout_arrival_at?: string | null
           payout_status?: string | null
+          reconciliation_note?: string | null
           release_after?: string
           sent_at?: string | null
           status?: string
           stripe_destination_payment_id?: string | null
           stripe_payout_id?: string | null
           stripe_transfer_id?: string | null
+          transfer_group?: string | null
           updated_at?: string
         }
         Update: {
           affiliate_id?: string
           amount_cents?: number
           attempts?: number
+          blocked_kind?: string | null
           commission_id?: string
           created_at?: string
           currency?: string
           destination_account_id?: string | null
           failure_code?: string | null
           failure_message?: string | null
+          hold_basis_at?: string | null
           id?: string
           idempotency_key?: string
           livemode?: boolean
           locked_at?: string | null
           locked_by?: string | null
+          needs_reconciliation?: boolean
           next_attempt_at?: string
           payout_arrival_at?: string | null
           payout_status?: string | null
+          reconciliation_note?: string | null
           release_after?: string
           sent_at?: string | null
           status?: string
           stripe_destination_payment_id?: string | null
           stripe_payout_id?: string | null
           stripe_transfer_id?: string | null
+          transfer_group?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4411,6 +4426,64 @@ export type Database = {
           referrals: number
           verified_cents: number
         }[]
+      }
+      affiliate_transfer_claim: {
+        Args: {
+          _limit?: number
+          _livemode: boolean
+          _stale_seconds?: number
+          _worker: string
+        }
+        Returns: {
+          affiliate_id: string
+          amount_cents: number
+          attempts: number
+          blocked_kind: string | null
+          commission_id: string
+          created_at: string
+          currency: string
+          destination_account_id: string | null
+          failure_code: string | null
+          failure_message: string | null
+          hold_basis_at: string | null
+          id: string
+          idempotency_key: string
+          livemode: boolean
+          locked_at: string | null
+          locked_by: string | null
+          needs_reconciliation: boolean
+          next_attempt_at: string
+          payout_arrival_at: string | null
+          payout_status: string | null
+          reconciliation_note: string | null
+          release_after: string
+          sent_at: string | null
+          status: string
+          stripe_destination_payment_id: string | null
+          stripe_payout_id: string | null
+          stripe_transfer_id: string | null
+          transfer_group: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "affiliate_transfers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      affiliate_transfer_enqueue: {
+        Args: {
+          _delay_days: number
+          _limit?: number
+          _livemode: boolean
+          _release_timing: string
+        }
+        Returns: number
+      }
+      affiliate_transfer_release: {
+        Args: { _id: string; _patch: Json; _worker: string }
+        Returns: boolean
       }
       cleanup_old_marketing_images: { Args: never; Returns: undefined }
       complete_current_user_password_reset: { Args: never; Returns: boolean }
