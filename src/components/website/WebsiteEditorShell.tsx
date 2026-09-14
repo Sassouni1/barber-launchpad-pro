@@ -355,6 +355,22 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     setImageDialogOpen(true);
   };
 
+  const handleGalleryReorder = (from: number, to: number) => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc || !galleryRule || uploadingPhotos || from === to) return;
+    const originals = originalsRef.current[pageKey] ?? {};
+    const order = currentOrder(readLayout(pageDraft), galleryRule.key, (originals[galleryRule.key] ?? []).length);
+    if (from < 0 || to < 0 || from >= order.length || to >= order.length) return;
+    const mapping = order.map((_, i) => i);
+    mapping.splice(to, 0, mapping.splice(from, 1)[0]);
+    const applied = applyItemPlan(doc, repeatRules, galleryRule, pageDraft,
+      {nextOrder: mapping.map((i) => order[i]), mapping, nextPosition: to}, originals);
+    originalsRef.current[pageKey] = applied.originals;
+    commit({...draftRef.current, [pageKey]: applied.pageDraft});
+    hydrate(doc, applied.pageDraft);
+    setSelectedKey(null);
+  };
+
   const handleGalleryMove = (photo: GalleryPhoto, direction: 'earlier' | 'later') => {
     const el = itemElementFor(photo);
     if (el) runItemOp(direction, el, { message: `Moved this photo ${direction}.` });
@@ -743,6 +759,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
               onAdd={handleGalleryAdd}
               onReplace={handleGalleryReplace}
               onMove={handleGalleryMove}
+              onReorder={handleGalleryReorder}
               onRemove={handleGalleryRemove}
               onDescribe={handleGalleryDescribe}
               onShare={handleGalleryShare}

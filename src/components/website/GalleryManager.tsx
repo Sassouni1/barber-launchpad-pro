@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ type Props = {
   onRemove: (photo: GalleryPhoto) => void;
   onDescribe: (photo: GalleryPhoto, description: string) => void;
   onShare: () => void;
+  onReorder: (from: number, to: number) => void;
 };
 
 /**
@@ -41,8 +42,17 @@ export function GalleryManager({
   onRemove,
   onDescribe,
   onShare,
+  onReorder,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [arranging, setArranging] = useState(false);
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const dropTarget = (x: number, y: number) => {
+    const target = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-photo-index]');
+    return target && gridRef.current?.contains(target) ? Number(target.dataset.photoIndex) : null;
+  };
   const atMax = !!max && photos.length >= max;
 
   return (
@@ -93,6 +103,46 @@ export function GalleryManager({
           </Button>
         </div>
 
+        <Button variant="outline" className="w-full" disabled={busy} onClick={() => setArranging(!arranging)}>
+          {arranging ? 'Done arranging' : 'Arrange photos'}
+        </Button>
+        {arranging && (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Drag a photo into place. With a keyboard, focus a photo and use the arrow keys.</p>
+            <div ref={gridRef} className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-label="Arrange gallery photos">
+              {photos.map((photo, index) => (
+                <button key={photo.imageKey} type="button" data-photo-index={index}
+                  aria-label={`Arrange photo ${index + 1}: ${photo.alt}`}
+                  disabled={busy}
+                  className={`relative aspect-square touch-none select-none overflow-hidden rounded-md border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${over === index ? 'border-primary' : 'border-border'} ${dragging === index ? 'opacity-40' : ''}`}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) return;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    setDragging(index); setOver(index);
+                  }}
+                  onPointerMove={(event) => { if (dragging !== null) setOver(dropTarget(event.clientX, event.clientY)); }}
+                  onPointerUp={(event) => {
+                    const target = dropTarget(event.clientX, event.clientY);
+                    if (dragging !== null && target !== null && dragging !== target) onReorder(dragging, target);
+                    setDragging(null); setOver(null);
+                  }}
+                  onPointerCancel={() => { setDragging(null); setOver(null); }}
+                  onKeyDown={(event) => {
+                    const columns = gridRef.current ? getComputedStyle(gridRef.current).gridTemplateColumns.split(' ').length : 3;
+                    const offset = {ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns}[event.key];
+                    if (!offset) return;
+                    event.preventDefault();
+                    const target = index + offset;
+                    if (target >= 0 && target < photos.length) onReorder(index, target);
+                  }}>
+                  <img src={photo.src} alt="" draggable={false} className="pointer-events-none h-full w-full object-cover" />
+                  <span className="absolute left-1 top-1 rounded bg-black/80 px-1.5 py-0.5 text-xs text-white">{index + 1}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {atMax && (
           <p className="text-xs text-destructive">
             You have reached the {max}-photo limit. Remove a photo before adding another.
@@ -104,7 +154,7 @@ export function GalleryManager({
           </p>
         )}
 
-        <ul className="space-y-2">
+        {!arranging && <ul className="space-y-2">
           {photos.map((photo, index) => (
             <li
               key={photo.imageKey}
@@ -171,7 +221,7 @@ export function GalleryManager({
               </div>
             </li>
           ))}
-        </ul>
+        </ul>}
       </CardContent>
     </Card>
   );
