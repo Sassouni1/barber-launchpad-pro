@@ -645,7 +645,11 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
+    <div
+      className={`mx-auto max-w-6xl space-y-4 p-4 sm:p-6 ${
+        isMobile && mobileEditorOpen && selectedField ? 'pb-[50dvh]' : ''
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Website Editor</h1>
