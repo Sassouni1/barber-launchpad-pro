@@ -422,17 +422,6 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                 className="h-[70vh] w-full border-0 bg-black"
               />
             )}
-            <div role="group" aria-label="Save website changes" className="space-y-2 border-t border-border pt-4">
-              <Button className="w-full" variant="outline" onClick={handleSave} disabled={busy}>
-                {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save draft
-              </Button>
-              <Button className="w-full" onClick={handlePublish} disabled={busy}>
-                {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
-                Save &amp; publish
-              </Button>
-              <p className="text-xs text-muted-foreground">Drafts stay private. Publishing updates your live website.</p>
-            </div>
           </CardContent>
         </Card>
 
@@ -565,6 +554,17 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                 )}
               </>
             )}
+            <div role="group" aria-label="Save website changes" className="space-y-2 border-t border-border pt-4">
+              <Button className="w-full" variant="outline" onClick={handleSave} disabled={busy}>
+                {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save draft
+              </Button>
+              <Button className="w-full" onClick={handlePublish} disabled={busy}>
+                {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
+                Save &amp; publish
+              </Button>
+              <p className="text-xs text-muted-foreground">Drafts stay private. Publishing updates your live website.</p>
+            </div>
           </CardContent>
         </Card>
       </div>
