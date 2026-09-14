@@ -85,6 +85,27 @@ export default function Affiliates() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [payouts, setPayouts] = useState<PayoutData | null>(null);
+  const [payoutBusy, setPayoutBusy] = useState(false);
+
+  const loadPayouts = async () => {
+    const { data: res, error } = await supabase.functions.invoke('affiliate-payouts', { body: { action: 'status' } });
+    if (!error) setPayouts(res as PayoutData);
+  };
+
+  const startPayoutSetup = async () => {
+    setPayoutBusy(true);
+    const { data: res, error } = await supabase.functions.invoke('affiliate-payouts', {
+      body: { action: 'start_onboarding' },
+    });
+    setPayoutBusy(false);
+    const url = (res as { url?: string } | null)?.url;
+    if (error || !url) {
+      toast({ title: 'Could not open payout setup', description: 'Please try again in a moment.', variant: 'destructive' });
+      return;
+    }
+    window.location.href = url;
+  };
 
   const load = async (action: 'summary' | 'enroll' = 'summary') => {
     const { data: res, error } = await supabase.functions.invoke('affiliate-portal', { body: { action } });
