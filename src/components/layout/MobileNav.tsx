@@ -121,6 +121,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const [checklistsOpen, setChecklistsOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [marketingOpen, setMarketingOpen] = useState(false);
+  const [bonusEarningsOpen, setBonusEarningsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const { data: checklistLists = [] } = useChecklistLists();
 
