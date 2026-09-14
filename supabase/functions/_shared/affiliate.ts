@@ -93,6 +93,13 @@ export const DEFAULT_SETTINGS: ProgramSettings = {
   attribution_window_days: null,
   payout_timing: null,
   terms_text: null,
+  auto_payouts_enabled: false,
+  release_timing: null,
+  release_delay_days: null,
+  minimum_transfer_cents: 100,
+  platform_transfer_verified: false,
+  platform_transfer_checked_at: null,
+  platform_transfer_note: null,
 };
 
 export async function loadSettings(db: SupabaseClient): Promise<ProgramSettings> {
