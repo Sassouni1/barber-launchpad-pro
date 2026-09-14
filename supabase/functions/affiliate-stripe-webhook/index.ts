@@ -72,7 +72,13 @@ async function allLineItems(sessionId: string, secret: string) {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const secret = Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET");
+  // The signing secret lives in secure server-side storage; an env override is
+  // still honoured so an existing deployment keeps working.
+  const secret = Deno.env.get("AFFILIATE_STRIPE_WEBHOOK_SECRET") ??
+    (await readAffiliateWebhookSecret().catch((e) => {
+      console.error("affiliate webhook secret read failed", e instanceof Error ? e.message : "unknown");
+      return null;
+    }));
   const stripeSecret = Deno.env.get("STRIPE_SECRET_KEY");
   if (!secret || !stripeSecret) {
     console.error("affiliate webhook not configured");
