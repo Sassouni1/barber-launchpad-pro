@@ -28,6 +28,7 @@ import {
 import {
   AFFILIATE_CONNECT_WEBHOOK_SECRET_NAME,
   AFFILIATE_TEST_WEBHOOK_SECRET_NAME,
+  AFFILIATE_TEST_CONNECT_WEBHOOK_SECRET_NAME,
   readAffiliateWebhookSecret,
 } from "../_shared/affiliateVault.ts";
 
@@ -111,7 +112,10 @@ Deno.serve(async (req) => {
 
   const payload = await req.text();
   const sigHeader = req.headers.get("stripe-signature") ?? "";
-  const candidates = [accountSecret, connectSecret, testSecret].filter((s): s is string => Boolean(s));
+  const testConnectSecret = await readAffiliateWebhookSecret(AFFILIATE_TEST_CONNECT_WEBHOOK_SECRET_NAME).catch(
+    () => null,
+  );
+  const candidates = [accountSecret, connectSecret, testSecret, testConnectSecret].filter((s): s is string => Boolean(s));
   let verified = false;
   for (const candidate of candidates) {
     if (await verifySignature(payload, sigHeader, candidate)) {

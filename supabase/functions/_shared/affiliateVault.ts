@@ -7,6 +7,7 @@ export const AFFILIATE_WEBHOOK_SECRET_NAME = "AFFILIATE_STRIPE_WEBHOOK_SECRET";
 export const AFFILIATE_CONNECT_WEBHOOK_SECRET_NAME = "AFFILIATE_STRIPE_CONNECT_WEBHOOK_SECRET";
 /** Isolated test-mode endpoint, used only for QA verification. */
 export const AFFILIATE_TEST_WEBHOOK_SECRET_NAME = "AFFILIATE_STRIPE_TEST_WEBHOOK_SECRET";
+export const AFFILIATE_TEST_CONNECT_WEBHOOK_SECRET_NAME = "AFFILIATE_STRIPE_TEST_CONNECT_WEBHOOK_SECRET";
 
 export class VaultUnavailableError extends Error {
   constructor(message: string) {

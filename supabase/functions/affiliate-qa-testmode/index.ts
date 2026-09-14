@@ -4,7 +4,7 @@
 //
 // Guarded by a single-purpose bearer token held in server-side secrets.
 import { adminClient, evaluateAccount, json, stripeCall, testStripeSecret } from "../_shared/affiliate.ts";
-import { AFFILIATE_TEST_WEBHOOK_SECRET_NAME, writeAffiliateWebhookSecret } from "../_shared/affiliateVault.ts";
+import { AFFILIATE_TEST_CONNECT_WEBHOOK_SECRET_NAME, AFFILIATE_TEST_WEBHOOK_SECRET_NAME, writeAffiliateWebhookSecret } from "../_shared/affiliateVault.ts";
 
 const WEBHOOK_URL = "https://ynooatjtgstgwfssnira.supabase.co/functions/v1/affiliate-stripe-webhook";
 const EVENTS = [
@@ -310,6 +310,22 @@ Deno.serve(async (req) => {
           body: payload,
         });
         return json({ status: res.status, body: await res.json().catch(() => null) });
+      }
+
+      case "setup_connect_webhook": {
+        const endpoint = await call("/webhook_endpoints", {
+          body: {
+            url: WEBHOOK_URL,
+            connect: "true",
+            description: "QA test-mode connected-account events",
+            "enabled_events[0]": "payout.paid",
+            "enabled_events[1]": "payout.failed",
+            "enabled_events[2]": "account.updated",
+          },
+        });
+        if (!endpoint.ok) return json({ error: endpoint.data }, 502);
+        await writeAffiliateWebhookSecret(String(endpoint.data.secret), AFFILIATE_TEST_CONNECT_WEBHOOK_SECRET_NAME);
+        return json({ endpointId: endpoint.data.id, livemode: endpoint.data.livemode, connect: endpoint.data.connect });
       }
 
       case "balance": {
