@@ -464,6 +464,65 @@ export default function AffiliatesAdmin() {
                   <input type="checkbox" checked={Boolean(settings.live_enabled)} onChange={(e) => setSettings({ ...settings, live_enabled: e.target.checked })} />
                   Enable live enrollment checkout
                 </label>
+
+                <div className="space-y-3 rounded-md border border-border p-3">
+                  <div>
+                    <Label>Automatic affiliate payouts</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Commission is transferred to each affiliate's connected Stripe account. Nothing sends until the
+                      transfer path is verified, a release timing is chosen, and the switch below is on.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        const res = await call({ action: 'verify_platform_transfers' });
+                        if (res) { toast({ title: res.verified ? 'Transfer path verified' : 'Not verified', description: res.note }); load(); }
+                      }}
+                    >
+                      Check the transfer path
+                    </Button>
+                    {data?.settings?.platform_transfer_checked_at && (
+                      <Badge variant={data.settings.platform_transfer_verified ? 'outline' : 'destructive'}>
+                        {data.settings.platform_transfer_verified ? 'verified' : 'not verified'}
+                      </Badge>
+                    )}
+                  </div>
+                  {data?.settings?.platform_transfer_note && (
+                    <p className="text-xs text-muted-foreground">{data.settings.platform_transfer_note}</p>
+                  )}
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label>Release timing</Label>
+                      <select
+                        className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        value={settings.release_timing ?? ''}
+                        onChange={(e) => setSettings({ ...settings, release_timing: e.target.value || null })}
+                      >
+                        <option value="">Not chosen yet</option>
+                        <option value="on_verified">As soon as the payment clears</option>
+                        <option value="after_days">Hold for a number of days first</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Days to hold (only for "hold")</Label>
+                      <Input
+                        value={settings.release_delay_days ?? ''}
+                        onChange={(e) => setSettings({ ...settings, release_delay_days: e.target.value })}
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(settings.auto_payouts_enabled)}
+                      onChange={(e) => setSettings({ ...settings, auto_payouts_enabled: e.target.checked })}
+                    />
+                    Turn on automatic payouts
+                  </label>
+                </div>
                 <Button onClick={saveSettings} disabled={busy}>
                   {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save setup
                 </Button>
