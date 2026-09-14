@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { ArrowDown, ArrowUp, Copy, Globe, ImageIcon, Info, Loader2, Redo2, Save, Trash2, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -60,6 +62,8 @@ type ItemOp = 'duplicate' | 'earlier' | 'later' | 'delete';
  */
 export function WebsiteEditorShell({ template, entitlement }: Props) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const { data: cloudDraft, isLoading } = useEditorDraft(template.templateKey);
   const saveDraft = useSaveEditorDraft(template.templateKey);
   const publish = usePublishWebsite(template);
@@ -191,6 +195,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         if (!resolved) return;
         const key = fieldsRef.current.find((f) => elementFromKey(doc, f.key) === resolved)?.key;
         if (!key) return;
+        setMobileEditorOpen(true);
         setSelectedKey(key);
         setSelected(doc, key);
       },
@@ -346,6 +351,151 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   const imageFields = fields.filter((f) => f.kind === 'image').length;
   const busy = saveDraft.isPending || publish.isPending;
 
+  const editorContent = (
+          <CardContent className="space-y-3">
+            {(!isMobile || activeItem) && (
+            <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">Card actions</p>
+              {activeItem ? (
+                <>
+                  <p className="text-xs font-medium text-foreground">
+                    {activeItem.rule.label.replace(/\b\w/g, (c) => c.toUpperCase())} card{' '}
+                    {activeItem.position + 1} of {activeItem.total}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="min-h-9"
+                      onClick={() => runItemOp('duplicate')}
+                      aria-label={`Duplicate ${activeItem.rule.label}`}
+                    >
+                      <Copy className="mr-2 h-4 w-4" /> Duplicate {activeItem.rule.label}
+                    </Button>
+                    {activeItem.position > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-9"
+                        onClick={() => runItemOp('earlier')}
+                        aria-label={`Move this ${activeItem.rule.label} earlier`}
+                      >
+                        <ArrowUp className="mr-2 h-4 w-4" /> Move earlier
+                      </Button>
+                    )}
+                    {activeItem.position < activeItem.total - 1 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-9"
+                        onClick={() => runItemOp('later')}
+                        aria-label={`Move this ${activeItem.rule.label} later`}
+                      >
+                        <ArrowDown className="mr-2 h-4 w-4" /> Move later
+                      </Button>
+                    )}
+                    {activeItem.total > 1 ? (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="min-h-9"
+                        onClick={() => runItemOp('delete')}
+                        aria-label={`Delete this ${activeItem.rule.label}`}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete {activeItem.rule.label}
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        This is the last {activeItem.rule.label} card, so it can&apos;t be deleted.
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Click a service or rate card to duplicate, reorder, or delete that single card.
+                </p>
+              )}
+            </div>
+
+            )}
+
+            {!ready ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : !selectedField ? (
+              <p className="text-sm text-muted-foreground">
+                Tap any highlighted text or image in the preview. {textFields} text fields and {imageFields} images
+                are editable on this page.
+              </p>
+            ) : (
+              <>
+
+
+                {selectedField.kind === 'image' ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-foreground">Change image</p>
+                    <img
+
+                      src={pageDraft[selectedField.key] ?? selectedField.original}
+                      alt={selectedField.label}
+                      className="w-full rounded-md border border-border"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Target size: {selectedField.width ?? '—'} × {selectedField.height ?? '—'}px
+                    </p>
+                    <Button
+                      className="w-full"
+                      onClick={() => setImageDialogOpen(true)}
+                      aria-label="Change image"
+                      title="Change image"
+                    >
+                      <ImageIcon className="mr-2 h-4 w-4" /> Change image
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Badge variant="secondary">{selectedField.section}</Badge>
+                    <Label className="block text-xs text-muted-foreground">{selectedField.label}</Label>
+                    <Textarea
+                      className="text-base"
+                      rows={currentValue.length > 160 ? 10 : 4}
+                      value={currentValue}
+                      maxLength={selectedField.limit}
+                      onChange={(e) => setValue(selectedField.key, e.target.value)}
+                    />
+                    <p
+                      className={`text-xs ${
+                        overLimit ? 'text-destructive' : nearLimit ? 'text-primary' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {currentValue.length} / {selectedField.limit} characters
+                      {nearLimit && !overLimit ? ' — close to the limit for this layout' : ''}
+                      {overLimit ? ' — too long for this layout' : ''}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+            <div
+              role="group"
+              aria-label="Save website changes"
+              className="space-y-2 border-t border-border pt-4"
+            >
+              <Button className="w-full" variant="outline" onClick={handleSave} disabled={busy}>
+                {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save draft
+              </Button>
+              <Button className="w-full" onClick={handlePublish} disabled={busy}>
+                {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
+                Save &amp; publish
+              </Button>
+              <p className="text-xs text-muted-foreground">Drafts stay private. Publishing updates your live website.</p>
+            </div>
+          </CardContent>
+  );
+
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -425,152 +575,23 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
           </CardContent>
         </Card>
 
-        <Card className="lg:sticky lg:top-4 lg:self-start">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {selectedField ? 'Edit selected item' : 'Nothing selected'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Card actions are always visible so duplication/order are discoverable. */}
-            <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">Card actions</p>
-              {activeItem ? (
-                <>
-                  <p className="text-xs font-medium text-foreground">
-                    {activeItem.rule.label.replace(/\b\w/g, (c) => c.toUpperCase())} card{' '}
-                    {activeItem.position + 1} of {activeItem.total}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="min-h-9"
-                      onClick={() => runItemOp('duplicate')}
-                      aria-label={`Duplicate ${activeItem.rule.label}`}
-                    >
-                      <Copy className="mr-2 h-4 w-4" /> Duplicate {activeItem.rule.label}
-                    </Button>
-                    {activeItem.position > 0 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="min-h-9"
-                        onClick={() => runItemOp('earlier')}
-                        aria-label={`Move this ${activeItem.rule.label} earlier`}
-                      >
-                        <ArrowUp className="mr-2 h-4 w-4" /> Move earlier
-                      </Button>
-                    )}
-                    {activeItem.position < activeItem.total - 1 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="min-h-9"
-                        onClick={() => runItemOp('later')}
-                        aria-label={`Move this ${activeItem.rule.label} later`}
-                      >
-                        <ArrowDown className="mr-2 h-4 w-4" /> Move later
-                      </Button>
-                    )}
-                    {activeItem.total > 1 ? (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="min-h-9"
-                        onClick={() => runItemOp('delete')}
-                        aria-label={`Delete this ${activeItem.rule.label}`}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete {activeItem.rule.label}
-                      </Button>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        This is the last {activeItem.rule.label} card, so it can&apos;t be deleted.
-                      </p>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Click a service or rate card to duplicate, reorder, or delete that single card.
-                </p>
-              )}
-            </div>
-
-            {!ready ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        {isMobile ? (
+          <Sheet open={mobileEditorOpen && !!selectedField} onOpenChange={setMobileEditorOpen}>
+            <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-2xl px-0 pb-[max(1rem,env(safe-area-inset-bottom))]" onOpenAutoFocus={(event) => event.preventDefault()}>
+              <div className="px-6 pb-4 pr-12">
+                <SheetTitle>Edit selected item</SheetTitle>
+                <SheetDescription>Make your changes, then save or publish below.</SheetDescription>
               </div>
-            ) : !selectedField ? (
-              <p className="text-sm text-muted-foreground">
-                Tap any highlighted text or image in the preview. {textFields} text fields and {imageFields} images
-                are editable on this page.
-              </p>
-            ) : (
-              <>
-
-
-                {selectedField.kind === 'image' ? (
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-foreground">Change image</p>
-                    <img
-
-                      src={pageDraft[selectedField.key] ?? selectedField.original}
-                      alt={selectedField.label}
-                      className="w-full rounded-md border border-border"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Target size: {selectedField.width ?? '—'} × {selectedField.height ?? '—'}px
-                    </p>
-                    <Button
-                      className="w-full"
-                      onClick={() => setImageDialogOpen(true)}
-                      aria-label="Change image"
-                      title="Change image"
-                    >
-                      <ImageIcon className="mr-2 h-4 w-4" /> Change image
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Badge variant="secondary">{selectedField.section}</Badge>
-                    <Label className="block text-xs text-muted-foreground">{selectedField.label}</Label>
-                    <Textarea
-                      rows={currentValue.length > 160 ? 10 : 4}
-                      value={currentValue}
-                      maxLength={selectedField.limit}
-                      onChange={(e) => setValue(selectedField.key, e.target.value)}
-                    />
-                    <p
-                      className={`text-xs ${
-                        overLimit ? 'text-destructive' : nearLimit ? 'text-primary' : 'text-muted-foreground'
-                      }`}
-                    >
-                      {currentValue.length} / {selectedField.limit} characters
-                      {nearLimit && !overLimit ? ' — close to the limit for this layout' : ''}
-                      {overLimit ? ' — too long for this layout' : ''}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-            <div
-              role="group"
-              aria-label="Save website changes"
-              className="space-y-2 border-t border-border pt-4"
-            >
-              <Button className="w-full" variant="outline" onClick={handleSave} disabled={busy}>
-                {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save draft
-              </Button>
-              <Button className="w-full" onClick={handlePublish} disabled={busy}>
-                {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
-                Save &amp; publish
-              </Button>
-              <p className="text-xs text-muted-foreground">Drafts stay private. Publishing updates your live website.</p>
-            </div>
-          </CardContent>
-        </Card>
+              {editorContent}
+              <SheetClose asChild><Button variant="ghost" className="mx-6">Done editing</Button></SheetClose>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Card className="lg:sticky lg:top-4 lg:self-start">
+            <CardHeader className="pb-3"><CardTitle className="text-base">{selectedField ? 'Edit selected item' : 'Nothing selected'}</CardTitle></CardHeader>
+            {editorContent}
+          </Card>
+        )}
       </div>
 
       {selectedField?.kind === 'image' && user && (
