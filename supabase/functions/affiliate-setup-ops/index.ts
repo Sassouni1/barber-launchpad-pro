@@ -174,6 +174,12 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "expire_session") {
+      const id = String(body.sessionId ?? "");
+      const res = await stripeCall(`/checkout/sessions/${id}/expire`, { method: "POST" });
+      return json({ ok: res.ok, status: res.data?.status ?? null });
+    }
+
     if (action === "save_settings") {
       const patch = (body.patch ?? {}) as Record<string, unknown>;
       const settings = await loadSettings(db);
