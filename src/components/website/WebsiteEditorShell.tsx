@@ -326,17 +326,6 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [galleryRule, ready, pageDraft, fields]);
 
-  const galleryShareUrl = useMemo(() => {
-    if (!galleryRule?.shareAnchor) return null;
-    const base = entitlement.customDomain
-      ? /^https?:\/\//i.test(entitlement.customDomain)
-        ? entitlement.customDomain
-        : `https://${entitlement.customDomain}`
-      : liveUrl;
-    if (!base) return null;
-    return `${base.replace(/\/$/, '')}/#${galleryRule.shareAnchor}`;
-  }, [galleryRule, entitlement.customDomain, liveUrl]);
-
   const itemElementFor = (photo: GalleryPhoto): HTMLElement | null => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return null;
@@ -395,24 +384,6 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
   const handleGalleryDescribe = (photo: GalleryPhoto, description: string) => {
     setValue(`${photo.imageKey}${ALT_SUFFIX}`, description);
-  };
-
-  const handleGalleryShare = async () => {
-    if (!galleryShareUrl) return;
-    try {
-      await navigator.clipboard.writeText(galleryShareUrl);
-      toast.success('Gallery link copied — it shows your published photos only.');
-    } catch {
-      if (navigator.share) {
-        try {
-          await navigator.share({ url: galleryShareUrl });
-          return;
-        } catch {
-          /* dismissed */
-        }
-      }
-      toast.error(`Copy this link manually: ${galleryShareUrl}`);
-    }
   };
 
   const handleGalleryAdd = async (files: File[]) => {
@@ -755,14 +726,12 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
               photos={photos}
               max={galleryRule.max}
               busy={busy}
-              shareUrl={galleryShareUrl}
               onAdd={handleGalleryAdd}
               onReplace={handleGalleryReplace}
               onMove={handleGalleryMove}
               onReorder={handleGalleryReorder}
               onRemove={handleGalleryRemove}
               onDescribe={handleGalleryDescribe}
-              onShare={handleGalleryShare}
             />
             {saveActions}
             </div>

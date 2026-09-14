@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Link2, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import type { GalleryPhoto } from '@/lib/websiteEditor';
 
 export const GALLERY_MIME = ['image/png', 'image/jpeg', 'image/webp'];
@@ -14,13 +14,11 @@ type Props = {
   max?: number;
   /** True while photos are uploading — controls stay visible but disabled. */
   busy: boolean;
-  shareUrl: string | null;
   onAdd: (files: File[]) => void;
   onReplace: (photo: GalleryPhoto) => void;
   onMove: (photo: GalleryPhoto, direction: 'earlier' | 'later') => void;
   onRemove: (photo: GalleryPhoto) => void;
   onDescribe: (photo: GalleryPhoto, description: string) => void;
-  onShare: () => void;
   onReorder: (from: number, to: number) => void;
 };
 
@@ -35,13 +33,11 @@ export function GalleryManager({
   photos,
   max,
   busy,
-  shareUrl,
   onAdd,
   onReplace,
   onMove,
   onRemove,
   onDescribe,
-  onShare,
   onReorder,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -92,16 +88,7 @@ export function GalleryManager({
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />}
             Add photos
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="min-h-9"
-            onClick={onShare}
-            disabled={!shareUrl}
-            aria-label="Copy the link to your published photo gallery"
-          >
-            <Link2 className="mr-2 h-4 w-4" /> Copy gallery link
-          </Button>
+
         </div>
 
         <Button variant="outline" className="w-full" disabled={busy} onClick={() => setArranging(!arranging)}>
@@ -160,11 +147,7 @@ export function GalleryManager({
             You have reached the {max}-photo limit. Remove a photo before adding another.
           </p>
         )}
-        {!shareUrl && (
-          <p className="text-xs text-muted-foreground">
-            The gallery link becomes available once your website has been published.
-          </p>
-        )}
+
 
         {!arranging && <ul className="space-y-2">
           {photos.map((photo, index) => (
