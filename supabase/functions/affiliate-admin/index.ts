@@ -6,6 +6,7 @@ import {
   json,
   loadSettings,
   missingConfig,
+  missingPayoutConfig,
   requireUser,
 } from "../_shared/affiliate.ts";
 
