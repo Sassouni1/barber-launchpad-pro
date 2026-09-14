@@ -131,6 +131,10 @@ Deno.serve(async (req) => {
       referralId = inserted.id as string;
     }
 
+    if (referralVoid) {
+      return json({ error: "This referral link is no longer active." }, 403, h);
+    }
+
     if (intent === "call") {
       if (!settings.sales_call_url) {
         return json(
