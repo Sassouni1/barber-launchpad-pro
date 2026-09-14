@@ -69,7 +69,7 @@ export default function AffiliatesAdmin() {
       action: 'save_settings',
       settings: {
         live_enabled: Boolean(settings.live_enabled),
-        seller_account_confirmed: Boolean(settings.seller_account_confirmed),
+        expected_seller_account_id: settings.expected_seller_account_id || null,
         enrollment_price_ids: priceIds,
         sales_call_url: settings.sales_call_url || null,
         attribution_window_days: settings.attribution_window_days ? Number(settings.attribution_window_days) : null,
@@ -285,14 +285,47 @@ export default function AffiliatesAdmin() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(settings.seller_account_confirmed)}
-                    onChange={(e) => setSettings({ ...settings, seller_account_confirmed: e.target.checked })}
+                <div className="space-y-2 rounded-md border border-border p-3">
+                  <Label>Enrollment seller Stripe account</Label>
+                  <Input
+                    value={settings.expected_seller_account_id ?? ''}
+                    onChange={(e) => setSettings({ ...settings, expected_seller_account_id: e.target.value })}
+                    placeholder="acct_…"
                   />
-                  The Stripe account already connected to this app is the Barber Launch enrollment seller account
-                </label>
+                  <p className="text-xs text-muted-foreground">
+                    The check asks Stripe which account the server-side key belongs to and compares it with this id.
+                    It never creates a charge. It cannot be ticked by hand.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        const res = await call({ action: 'verify_seller_account', expectedAccountId: settings.expected_seller_account_id });
+                        setBusy(false);
+                        if (res) {
+                          toast({
+                            title: res.matches ? 'Seller account matches' : 'Seller account does NOT match',
+                            description: `Stripe key belongs to ${res.accountId}${res.accountEmail ? ` (${res.accountEmail})` : ''}`,
+                            variant: res.matches ? undefined : 'destructive',
+                          });
+                          load();
+                        }
+                      }}
+                    >
+                      Check the Stripe key's account
+                    </Button>
+                    {data?.settings?.verified_stripe_account_id && (
+                      <Badge variant={data.settings.seller_account_confirmed ? 'outline' : 'destructive'}>
+                        key = {data.settings.verified_stripe_account_id}
+                        {data.settings.seller_account_confirmed ? ' · matches' : ' · mismatch'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
                 <div className="space-y-1">
                   <Label>Approved enrollment price IDs (comma separated)</Label>
                   <Input
@@ -300,7 +333,30 @@ export default function AffiliatesAdmin() {
                     onChange={(e) => setSettings({ ...settings, enrollment_price_ids_text: e.target.value })}
                     placeholder="price_…"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Chris's offer is $3,000 with 20% = $600. The existing live product is $2,997, where 20% is $599.40.
+                    If you want an exact $600 commission, create a separate $3,000 enrollment price and put it here —
+                    the existing $2,997 link is left untouched.
+                  </p>
                 </div>
+
+                {data?.settings?.external_payment_link_url && (
+                  <Alert>
+                    <AlertDescription className="text-sm space-y-1">
+                      <div className="font-medium">Existing payment link is not auto-tracked</div>
+                      <div className="break-all text-muted-foreground">{data.settings.external_payment_link_url}</div>
+                      <div className="text-muted-foreground">
+                        Product {data.settings.external_payment_product_id} ·{' '}
+                        {data.settings.external_payment_amount_cents ? money(data.settings.external_payment_amount_cents) : '—'}
+                      </div>
+                      <div>
+                        That link runs through the outside payment page, not a Stripe Checkout Session, so commission is
+                        not accrued from it automatically. Sales made through it must be matched under Payments, using a
+                        real verified payment record.
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="space-y-1">
                   <Label>Sales call booking URL</Label>
                   <Input value={settings.sales_call_url ?? ''} onChange={(e) => setSettings({ ...settings, sales_call_url: e.target.value })} />

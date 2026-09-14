@@ -59,8 +59,61 @@ Deno.serve(async (req) => {
         );
       }
 
+      case "verify_seller_account": {
+        // Asks Stripe which account the configured server-side key belongs to and
+        // compares it with the expected Barber Launch enrollment seller. No charges.
+        const settings = await loadSettings(db);
+        const expected = String(body.expectedAccountId ?? settings.expected_seller_account_id ?? "").trim();
+        if (!expected) return json({ error: "Set the expected seller account id first." }, 400, h);
+
+        const key = Deno.env.get("STRIPE_SECRET_KEY");
+        if (!key) return json({ error: "No server-side Stripe key is configured." }, 400, h);
+
+        const res = await fetch("https://api.stripe.com/v1/account", {
+          headers: { Authorization: `Bearer ${key}` },
+        });
+        const account = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return json({ error: account?.error?.message ?? "Stripe rejected the account lookup." }, 400, h);
+        }
+
+        const actualId = String(account.id ?? "");
+        const actualEmail = account.email ?? null;
+        const matches = actualId === expected;
+        const next = {
+          ...settings,
+          expected_seller_account_id: expected,
+          verified_stripe_account_id: actualId,
+          verified_stripe_account_email: actualEmail,
+          verified_stripe_account_at: new Date().toISOString(),
+          seller_account_confirmed: matches,
+        };
+        await db
+          .from("affiliate_settings")
+          .upsert({ key: "program", value: next, updated_at: new Date().toISOString(), updated_by: user.id });
+        await audit("seller_account_checked", {
+          details: { expected, actual: actualId, matches, livemode: account.charges_enabled ?? null },
+        });
+        return json(
+          {
+            matches,
+            accountId: actualId,
+            accountEmail: actualEmail,
+            settings: next,
+            missingConfig: missingConfig(next as any),
+          },
+          200,
+          h,
+        );
+      }
+
       case "save_settings": {
-        const incoming = (body.settings ?? {}) as Record<string, unknown>;
+        const incoming = { ...((body.settings ?? {}) as Record<string, unknown>) };
+        // Verification facts are only ever written by the Stripe account check above.
+        delete incoming.seller_account_confirmed;
+        delete incoming.verified_stripe_account_id;
+        delete incoming.verified_stripe_account_email;
+        delete incoming.verified_stripe_account_at;
         const current = await loadSettings(db);
         const next = {
           ...current,
