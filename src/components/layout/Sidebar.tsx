@@ -312,6 +312,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin/aion', icon: Bot, label: 'Aion Conversations' },
     { to: '/admin/ads', icon: Megaphone, label: 'Ads Manager' },
     { to: '/admin/notifications', icon: Bell, label: 'Push Notifications' },
+    { to: '/admin/affiliates', icon: Users, label: 'Affiliates' },
   ];
 
   const links = isAdminView ? adminLinks : memberLinks;
@@ -384,6 +385,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
+              <SubNavItem to="/affiliates" icon={Users} label="Affiliate Program" />
               {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
             </ExpandableNavItem>
 
