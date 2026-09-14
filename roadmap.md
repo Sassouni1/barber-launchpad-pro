@@ -10,4 +10,6 @@
 - [x] Fixed stylesheet font import that broke the build/styling on the referral page
 - [x] Move Bonus Earnings menu block above Get Support (after Level 1 Cert) in Sidebar and MobileNav
 - [x] Payout dispatcher: test/live + currency isolation, atomic per-affiliate balance reservation, worker-bound release, reconciliation of ambiguous sends, non-mutating dry run, auto-resuming holds
-- [ ] Turn on the automatic payout scheduler (blocked: release timing choice + live setup checks)
+- [x] Enrollment checkout configured live: Invasion Digital Media seller verified, $3,000 product/price created, signed webhook endpoint + vault-stored signing secret, checkout enabled (verified by loading a real live Checkout page, then expiring it; no charge)
+- [x] Removed the misleading "you stay credited" messaging on the affiliate page, referral page and intake response
+- [ ] Turn on the automatic payout scheduler (blocked: release timing choice + platform transfer check)
