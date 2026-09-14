@@ -227,8 +227,90 @@ export default function AffiliatesAdmin() {
           <TabsContent value="payouts" className="space-y-3 pt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Record a completed payout</CardTitle>
-                <CardDescription>This records a payout you already sent outside the app. It does not move money.</CardDescription>
+                <CardTitle className="text-lg">Automatic commission payouts</CardTitle>
+                <CardDescription>
+                  Commission is sent straight to each affiliate's connected Stripe account. This is the normal way
+                  affiliates get paid.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(data?.missingPayoutConfig?.length ?? 0) > 0 ? (
+                  <Alert>
+                    <AlertDescription>
+                      <div className="font-medium mb-1">Automatic payouts are not running yet:</div>
+                      <ul className="list-disc pl-5 text-sm">
+                        {data!.missingPayoutConfig!.map((m) => <li key={m}>{m}</li>)}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert><AlertDescription>Automatic payouts are switched on.</AlertDescription></Alert>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      const res = await call({ action: 'run_dispatch', dryRun: true });
+                      if (res) { toast({ title: 'Dry run finished', description: `${res.processed?.length ?? 0} queued item(s) checked. No money moved.` }); load(); }
+                    }}
+                  >
+                    Dry run (moves no money)
+                  </Button>
+                  <Button
+                    disabled={(data?.missingPayoutConfig?.length ?? 1) > 0}
+                    onClick={async () => {
+                      const res = await call({ action: 'run_dispatch', dryRun: false });
+                      if (res) { toast({ title: 'Payout run finished' }); load(); }
+                    }}
+                  >
+                    Send due payouts now
+                  </Button>
+                </div>
+                {(data?.transfers ?? []).length === 0 && (
+                  <p className="text-sm text-muted-foreground">No commission transfers queued yet.</p>
+                )}
+                {(data?.transfers ?? []).map((tr) => (
+                  <div key={tr.id} className="rounded-md border border-border p-3 text-sm space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{money(tr.amount_cents)}</span>
+                      <div className="flex items-center gap-2">
+                        {!tr.livemode && <Badge variant="outline">test</Badge>}
+                        <Badge variant="outline">{tr.status}</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground break-all">
+                      {affiliateName.get(tr.affiliate_id) ?? tr.affiliate_id}
+                      {tr.destination_account_id ? ` · ${tr.destination_account_id}` : ''}
+                      {tr.stripe_transfer_id ? ` · ${tr.stripe_transfer_id}` : ''}
+                    </div>
+                    {tr.failure_message && <div className="text-xs text-destructive">{tr.failure_message}</div>}
+                    {!['sent', 'paid'].includes(tr.status) && (
+                      <div className="flex gap-2 pt-1">
+                        <Button size="sm" variant="outline" onClick={async () => {
+                          const reason = window.prompt('Reason for retrying this transfer?')?.trim();
+                          if (!reason) return;
+                          const res = await call({ action: 'retry_transfer', transferId: tr.id, reason });
+                          if (res) { toast({ title: 'Queued for retry' }); load(); }
+                        }}>Retry</Button>
+                        <Button size="sm" variant="outline" onClick={async () => {
+                          const reason = window.prompt('Reason for canceling this transfer?')?.trim();
+                          if (!reason) return;
+                          const res = await call({ action: 'cancel_transfer', transferId: tr.id, reason });
+                          if (res) { toast({ title: 'Transfer canceled' }); load(); }
+                        }}>Cancel</Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Record a payment sent outside Stripe</CardTitle>
+                <CardDescription>
+                  Exception only. This records a payment you already sent by hand — it does not move money.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid md:grid-cols-2 gap-3">
