@@ -163,6 +163,20 @@ export function PayoutConnectionCard() {
           </Alert>
         )}
 
+        {payouts?.autoPayoutsReady && (
+          <Alert>
+            <AlertDescription>
+              Payments are automatic. Each amount is sent{' '}
+              {payouts.releaseTiming === 'after_days'
+                ? `${payouts.releaseDelayDays ?? 7} days after the customer's payment clears`
+                : 'once the customer payment is confirmed'}
+              , as long as it hasn’t been refunded or disputed and your account is ready. After it leaves here, Stripe
+              moves it to your bank on your own payout schedule, so the money usually lands a couple of business days
+              later.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {(payouts?.transfers ?? []).length > 0 && (
           <div className="pt-1">
             {payouts!.transfers.map((tr) => (
