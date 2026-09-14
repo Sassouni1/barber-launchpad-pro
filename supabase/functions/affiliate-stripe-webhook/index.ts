@@ -94,6 +94,15 @@ Deno.serve(async (req) => {
         await adjustDispute(db, dispute, event.id, livemode);
         break;
       }
+      // Payout-side reconciliation. Recorded once each; duplicates are ignored.
+      case "transfer.created":
+      case "transfer.updated":
+      case "transfer.reversed":
+      case "payout.paid":
+      case "payout.failed": {
+        await recordPayoutEvent(db, event, livemode);
+        break;
+      }
       default:
         break;
     }
