@@ -121,6 +121,7 @@ const MemberApp = () => (
         <Route path="/aion" element={<ProtectedRoute><AionPage /></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
         <Route path="/ads" element={<ProtectedRoute><Ads /></ProtectedRoute>} />
+        <Route path="/website-editor" element={<Navigate to="/website" replace />} />
         <Route path="/website" element={<ProtectedRoute><WebsiteEditor /></ProtectedRoute>} />
 
         <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />

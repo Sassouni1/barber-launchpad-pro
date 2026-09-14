@@ -13,6 +13,7 @@ import {
   FileEdit,
   Phone,
   Megaphone,
+  Globe,
   Eye,
   Shield,
   Factory,
@@ -29,6 +30,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
 import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
+import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import {
   Dialog,
@@ -103,6 +105,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const isNewAccount = useIsNewAccount();
   const { data: supportUnreadCount = 0 } = useSupportUnreadCount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
+  const { data: websiteEntitlement } = useWebsiteEditorEntitlement();
   const restrictNav = isNewAccount && !allQuizzesPassed;
 
   
@@ -395,6 +398,9 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Digital Business Card</span>
                         </NavLink>
+                        {websiteEntitlement && (
+                          <NavRow to="/website" icon={Globe} label="Website Editor" onClick={closeMenu} />
+                        )}
                       </CollapsibleContent>
                     </Collapsible>
 

@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/useAuth';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -12,6 +13,7 @@ import { useWebsiteEditorEntitlement, useWebsiteTemplate } from '@/hooks/useWebs
  * by every client website through `WebsiteEditorShell`.
  */
 export default function WebsiteEditor() {
+  const { user } = useAuth();
   const { data: entitlement, isLoading: loadingEntitlement } = useWebsiteEditorEntitlement();
   const { data: template, isLoading: loadingTemplate } = useWebsiteTemplate(entitlement?.templateKey);
 
@@ -46,7 +48,7 @@ export default function WebsiteEditor() {
 
   return (
     <DashboardLayout>
-      <WebsiteEditorShell template={template} entitlement={entitlement} />
+      <WebsiteEditorShell key={`${user?.id}:${template.templateKey}`} template={template} entitlement={entitlement} />
     </DashboardLayout>
   );
 }

@@ -66,20 +66,22 @@ export function useWebsiteTemplate(templateKey: string | null | undefined) {
   });
 }
 
-const localKey = (templateKey: string) => `website-editor-draft:${templateKey}`;
+const localKey = (userId: string, templateKey: string) => `website-editor-draft:${userId}:${templateKey}`;
 
-export function readLocalDraft(templateKey: string): EditorDraft | null {
+export function readLocalDraft(userId: string | undefined, templateKey: string): EditorDraft | null {
   try {
-    const raw = localStorage.getItem(localKey(templateKey));
+    if (!userId) return null;
+    const raw = localStorage.getItem(localKey(userId, templateKey));
     return raw ? (JSON.parse(raw) as EditorDraft) : null;
   } catch {
     return null;
   }
 }
 
-export function writeLocalDraft(templateKey: string, draft: EditorDraft) {
+export function writeLocalDraft(userId: string | undefined, templateKey: string, draft: EditorDraft) {
   try {
-    localStorage.setItem(localKey(templateKey), JSON.stringify(draft));
+    if (!userId) return;
+    localStorage.setItem(localKey(userId, templateKey), JSON.stringify(draft));
   } catch {
     // Offline convenience only — ignore quota/private-mode failures.
   }
@@ -147,7 +149,7 @@ export function useSaveEditorDraft(templateKey: string | null | undefined) {
   return useMutation({
     mutationFn: async (draft: EditorDraft) => {
       if (!user || !templateKey) throw new Error('No website template is assigned to your account.');
-      writeLocalDraft(templateKey, draft);
+      writeLocalDraft(user.id, templateKey, draft);
       await persistDraft(user.id, templateKey, draft);
     },
     onSuccess: () => {
@@ -178,7 +180,7 @@ export function usePublishWebsite(template: WebsiteTemplateConfig | null | undef
     mutationFn: async (draft: EditorDraft): Promise<PublishResult> => {
       if (!user || !template) throw new Error('No website template is assigned to your account.');
 
-      writeLocalDraft(template.templateKey, draft);
+      writeLocalDraft(user.id, template.templateKey, draft);
       await persistDraft(user.id, template.templateKey, draft);
 
       const pages = await Promise.all(

@@ -90,22 +90,22 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
   useEffect(() => {
     if (isLoading) return;
     const initial =
-      (cloudDraft && Object.keys(cloudDraft).length ? cloudDraft : readLocalDraft(template.templateKey)) ?? {};
+      (cloudDraft && Object.keys(cloudDraft).length ? cloudDraft : readLocalDraft(user?.id, template.templateKey)) ?? {};
     setDraft(initial);
     setHistory([initial]);
     setHistoryIndex(0);
-  }, [cloudDraft, isLoading, template.templateKey]);
+  }, [cloudDraft, isLoading, template.templateKey, user?.id]);
 
   const pageDraft = draft[pageKey] ?? {};
 
   const commit = useCallback(
     (next: EditorDraft) => {
       setDraft(next);
-      writeLocalDraft(template.templateKey, next);
+      writeLocalDraft(user?.id, template.templateKey, next);
       setHistory((prev) => [...prev.slice(0, historyIndex + 1), next].slice(-60));
       setHistoryIndex((i) => Math.min(i + 1, 59));
     },
-    [historyIndex, template.templateKey],
+    [historyIndex, template.templateKey, user?.id],
   );
 
   /** Rebuilds structure, re-scans fields and re-applies the member's content. */
@@ -133,7 +133,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
 
   const restore = (snapshot: EditorDraft) => {
     setDraft(snapshot);
-    writeLocalDraft(template.templateKey, snapshot);
+    writeLocalDraft(user?.id, template.templateKey, snapshot);
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
     fieldsRef.current.forEach((field) => {
