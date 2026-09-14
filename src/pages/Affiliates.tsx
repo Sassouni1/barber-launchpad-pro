@@ -4,9 +4,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Check, Copy, Loader2, Users } from 'lucide-react';
+import { Banknote, Check, Copy, Loader2, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+
+type PayoutAccount = {
+  connected: boolean;
+  eligible: boolean;
+  reason?: string | null;
+  payoutsEnabled?: boolean;
+  bank?: { last4: string; name: string | null } | null;
+  needsInfo?: boolean;
+  pendingVerification?: boolean;
+};
+
+type PayoutData = {
+  account: PayoutAccount;
+  transfers: Array<{
+    id: string;
+    amount_cents: number;
+    status: string;
+    failure_message: string | null;
+    sent_at: string | null;
+    created_at: string;
+  }>;
+  autoPayoutsReady: boolean;
+};
+
+const TRANSFER_LABEL: Record<string, string> = {
+  queued: 'Waiting to send',
+  processing: 'Sending',
+  sent: 'Sent to your Stripe balance',
+  paid: 'Sent to your Stripe balance',
+  blocked: 'On hold',
+  failed: 'Did not go through',
+  canceled: 'Canceled',
+};
 
 type Totals = {
   referrals: number;
