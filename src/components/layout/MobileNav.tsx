@@ -401,7 +401,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         </NavLink>
                         <NavLink to="/bonus-earnings" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <CreditCard className="w-4 h-4" />
-                          <span className="font-medium">Affiliate Program</span>
+                          <span className="font-medium">Bonus Earnings</span>
                         </NavLink>
                         {websiteEntitlement && (
                           <NavRow to="/website" icon={Globe} label="Website Editor" onClick={closeMenu} />
