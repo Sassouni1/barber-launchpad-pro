@@ -581,6 +581,18 @@ export default function AffiliatesAdmin() {
                     />
                     Turn on automatic payouts
                   </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(settings.scheduler_enabled)}
+                      onChange={(e) => setSettings({ ...settings, scheduler_enabled: e.target.checked })}
+                    />
+                    Let the hourly timer run payouts by itself
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    The hourly timer is installed and already calls the payout runner, but every run stops immediately
+                    and does nothing until this box is ticked and the release timing above is chosen.
+                  </p>
                 </div>
                 <Button onClick={saveSettings} disabled={busy}>
                   {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save setup
