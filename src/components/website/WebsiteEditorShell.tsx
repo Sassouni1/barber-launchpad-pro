@@ -5,7 +5,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { ArrowDown, ArrowUp, Copy, Globe, ImageIcon, Info, Loader2, Redo2, Save, Trash2, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -460,7 +459,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                     <Label className="block text-xs text-muted-foreground">{selectedField.label}</Label>
                     <Textarea
                       className="text-base"
-                      rows={currentValue.length > 160 ? 10 : 4}
+                      rows={isMobile ? 2 : currentValue.length > 160 ? 10 : 4}
                       value={currentValue}
                       maxLength={selectedField.limit}
                       onChange={(e) => setValue(selectedField.key, e.target.value)}
@@ -481,7 +480,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
             <div
               role="group"
               aria-label="Save website changes"
-              className="space-y-2 border-t border-border pt-4"
+              className={isMobile ? "grid grid-cols-2 gap-2 border-t border-border pt-2" : "space-y-2 border-t border-border pt-4"}
             >
               <Button className="w-full" variant="outline" onClick={handleSave} disabled={busy}>
                 {saveDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -491,7 +490,7 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
                 {publish.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
                 Save &amp; publish
               </Button>
-              <p className="text-xs text-muted-foreground">Drafts stay private. Publishing updates your live website.</p>
+              <p className="col-span-2 text-xs text-muted-foreground">Drafts stay private. Publishing updates your live website.</p>
             </div>
           </CardContent>
   );
@@ -576,16 +575,17 @@ export function WebsiteEditorShell({ template, entitlement }: Props) {
         </Card>
 
         {isMobile ? (
-          <Sheet open={mobileEditorOpen && !!selectedField} onOpenChange={setMobileEditorOpen}>
-            <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-2xl px-0 pb-[max(1rem,env(safe-area-inset-bottom))]" onOpenAutoFocus={(event) => event.preventDefault()}>
-              <div className="px-6 pb-4 pr-12">
-                <SheetTitle>Edit selected item</SheetTitle>
-                <SheetDescription>Make your changes, then save or publish below.</SheetDescription>
+          mobileEditorOpen && selectedField && (
+            <aside aria-label="Edit selected item" className="fixed inset-x-0 bottom-0 z-40 flex max-h-[45dvh] flex-col rounded-t-xl border border-border bg-background shadow-xl">
+              <div className="flex shrink-0 items-center justify-between border-b px-4 py-2">
+                <h2 className="text-sm font-semibold">Edit selected item</h2>
+                <Button variant="ghost" size="sm" onClick={() => setMobileEditorOpen(false)}>Done</Button>
               </div>
-              {editorContent}
-              <SheetClose asChild><Button variant="ghost" className="mx-6">Done editing</Button></SheetClose>
-            </SheetContent>
-          </Sheet>
+              <div className="overflow-y-auto overscroll-contain pt-3 pb-[env(safe-area-inset-bottom)]">
+                {editorContent}
+              </div>
+            </aside>
+          )
         ) : (
           <Card className="lg:sticky lg:top-4 lg:self-start">
             <CardHeader className="pb-3"><CardTitle className="text-base">{selectedField ? 'Edit selected item' : 'Nothing selected'}</CardTitle></CardHeader>
