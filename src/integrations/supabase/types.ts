@@ -830,6 +830,125 @@ export type Database = {
           },
         ]
       }
+      affiliate_payout_accounts: {
+        Row: {
+          account_type: string | null
+          affiliate_id: string
+          charges_enabled: boolean
+          checked_at: string | null
+          country: string | null
+          created_at: string
+          currently_due: Json
+          default_currency: string | null
+          details_submitted: boolean
+          disabled_reason: string | null
+          eligible: boolean
+          external_account_bank_name: string | null
+          external_account_last4: string | null
+          id: string
+          ineligible_reason: string | null
+          payouts_enabled: boolean
+          pending_verification: Json
+          source: string
+          stripe_account_id: string
+          transfers_capability: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_type?: string | null
+          affiliate_id: string
+          charges_enabled?: boolean
+          checked_at?: string | null
+          country?: string | null
+          created_at?: string
+          currently_due?: Json
+          default_currency?: string | null
+          details_submitted?: boolean
+          disabled_reason?: string | null
+          eligible?: boolean
+          external_account_bank_name?: string | null
+          external_account_last4?: string | null
+          id?: string
+          ineligible_reason?: string | null
+          payouts_enabled?: boolean
+          pending_verification?: Json
+          source?: string
+          stripe_account_id: string
+          transfers_capability?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_type?: string | null
+          affiliate_id?: string
+          charges_enabled?: boolean
+          checked_at?: string | null
+          country?: string | null
+          created_at?: string
+          currently_due?: Json
+          default_currency?: string | null
+          details_submitted?: boolean
+          disabled_reason?: string | null
+          eligible?: boolean
+          external_account_bank_name?: string | null
+          external_account_last4?: string | null
+          id?: string
+          ineligible_reason?: string | null
+          payouts_enabled?: boolean
+          pending_verification?: Json
+          source?: string
+          stripe_account_id?: string
+          transfers_capability?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_payout_accounts_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: true
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_payout_events: {
+        Row: {
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          livemode: boolean
+          stripe_account_id: string | null
+          stripe_event_id: string
+          stripe_payout_id: string | null
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          livemode?: boolean
+          stripe_account_id?: string | null
+          stripe_event_id: string
+          stripe_payout_id?: string | null
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          livemode?: boolean
+          stripe_account_id?: string | null
+          stripe_event_id?: string
+          stripe_payout_id?: string | null
+          stripe_transfer_id?: string | null
+        }
+        Relationships: []
+      }
       affiliate_payouts: {
         Row: {
           affiliate_id: string
@@ -965,6 +1084,102 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      affiliate_transfers: {
+        Row: {
+          affiliate_id: string
+          amount_cents: number
+          attempts: number
+          commission_id: string
+          created_at: string
+          currency: string
+          destination_account_id: string | null
+          failure_code: string | null
+          failure_message: string | null
+          id: string
+          idempotency_key: string
+          livemode: boolean
+          locked_at: string | null
+          locked_by: string | null
+          next_attempt_at: string
+          payout_arrival_at: string | null
+          payout_status: string | null
+          release_after: string
+          sent_at: string | null
+          status: string
+          stripe_destination_payment_id: string | null
+          stripe_payout_id: string | null
+          stripe_transfer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id: string
+          amount_cents: number
+          attempts?: number
+          commission_id: string
+          created_at?: string
+          currency?: string
+          destination_account_id?: string | null
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          idempotency_key: string
+          livemode?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          next_attempt_at?: string
+          payout_arrival_at?: string | null
+          payout_status?: string | null
+          release_after?: string
+          sent_at?: string | null
+          status?: string
+          stripe_destination_payment_id?: string | null
+          stripe_payout_id?: string | null
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string
+          amount_cents?: number
+          attempts?: number
+          commission_id?: string
+          created_at?: string
+          currency?: string
+          destination_account_id?: string | null
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          idempotency_key?: string
+          livemode?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          next_attempt_at?: string
+          payout_arrival_at?: string | null
+          payout_status?: string | null
+          release_after?: string
+          sent_at?: string | null
+          status?: string
+          stripe_destination_payment_id?: string | null
+          stripe_payout_id?: string | null
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_transfers_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_transfers_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: true
+            referencedRelation: "affiliate_commissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       affiliate_webhook_events: {
         Row: {
