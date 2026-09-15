@@ -574,6 +574,24 @@ serve(async (req) => {
 
     console.log('Certification saved:', certData);
 
+    // Alert Chris exactly once, the first time the certification record exists.
+    // There is no approval gate — the member unlocked it by meeting every
+    // existing requirement.
+    if (!existingCertification) {
+      try {
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify-certification-submission`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({ event: 'certification_unlocked', userId, courseId }),
+        });
+      } catch (notifyError) {
+        console.error('certification unlocked notification failed', notifyError);
+      }
+    }
+
     let fulfillmentRequest = null;
     if (normalizedShippingAddress) {
       const { data: latestPhoto } = await supabase
