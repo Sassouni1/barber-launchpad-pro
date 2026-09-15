@@ -107,14 +107,12 @@ export function PayoutConnectionCard() {
               <div className="font-semibold">Payouts ready</div>
               <div className="mt-0.5 text-muted-foreground">
                 {payouts.account.bank
-                  ? `${payouts.account.bank.name ?? 'Bank account'} ending ${payouts.account.bank.last4}`
+                  ? `${payouts.account.bank.name ?? 'Bank account'} ••••${payouts.account.bank.last4}`
                   : 'Your connected bank is ready to receive payouts.'}
               </div>
               {payouts.autoPayoutsReady && (
-                <div className="mt-2 text-muted-foreground">
-                  Your commission is sent automatically {payouts.releaseTiming === 'after_days'
-                    ? `${payouts.releaseDelayDays ?? 7} days after a referred payment clears.`
-                    : 'once a referred payment is confirmed.'}
+                <div className="mt-1 text-muted-foreground">
+                  Automatic payouts{payouts.releaseTiming === 'after_days' ? ` after ${payouts.releaseDelayDays ?? 7} days.` : '.'}
                 </div>
               )}
             </div>
