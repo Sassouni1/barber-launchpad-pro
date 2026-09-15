@@ -47,7 +47,7 @@ const money = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 
  * Shared payout connection for every kind of bonus earning — referrals and
  * content rewards both pay out through this one Stripe connection.
  */
-export function PayoutConnectionCard({ compact = false }: { compact?: boolean }) {
+export function PayoutConnectionCard({ compact = false, onboardingCtaOnly = false }: { compact?: boolean; onboardingCtaOnly?: boolean }) {
   const [payouts, setPayouts] = useState<PayoutData | null>(null);
   const [checking, setChecking] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -103,6 +103,16 @@ export function PayoutConnectionCard({ compact = false }: { compact?: boolean })
     }
     window.location.href = url;
   };
+
+  if (!checking && !failed && onboardingCtaOnly) {
+    if (payouts?.account?.eligible) return null;
+    return (
+      <Button onClick={startSetup} disabled={busy} size="lg">
+        {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {payouts?.account?.connected ? 'Finish payout setup with Stripe' : 'Set up payouts with Stripe'}
+      </Button>
+    );
+  }
 
   return (
     <Card>

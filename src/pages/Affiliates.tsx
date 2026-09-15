@@ -31,14 +31,20 @@ export default function Affiliates() {
     setJoining(false);
   };
 
+  const enrolled = data?.enrolled === true;
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
           <div className="text-xs uppercase tracking-wide text-muted-foreground">Bonus Earnings</div>
-          <h1 className="text-2xl md:text-3xl font-bold">How the affiliate program works</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            {enrolled ? 'How the affiliate program works' : 'Earn $600 per Barber Launch enrollment'}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Share Barber Launch. When someone enrolls through your link, you earn $600.
+            {enrolled
+              ? 'Share Barber Launch. When someone enrolls through your link, you earn $600.'
+              : 'Share your link. When someone enrolls, you earn 20%.'}
           </p>
         </div>
 
@@ -46,8 +52,9 @@ export default function Affiliates() {
           <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
         ) : (
           <>
+            {!enrolled && <PayoutConnectionCard onboardingCtaOnly />}
             <AffiliateProgramPanel data={data} onEnroll={join} joining={joining} />
-            <PayoutConnectionCard compact />
+            {enrolled && <PayoutConnectionCard compact />}
           </>
         )}
       </div>
