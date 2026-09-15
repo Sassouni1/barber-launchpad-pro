@@ -80,14 +80,7 @@ export function AffiliateProgramPanel({
   }
 
   if (!data.enrolled) {
-    return (
-      <div className="space-y-4">
-        <Button onClick={onEnroll} disabled={joining} size="lg">
-          {joining ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Users className="w-4 h-4 mr-2" />}
-          Get my referral links
-        </Button>
-      </div>
-    );
+    return null;
   }
 
   const t = data.totals!;

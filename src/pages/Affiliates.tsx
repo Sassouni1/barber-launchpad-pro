@@ -52,7 +52,7 @@ export default function Affiliates() {
           <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
         ) : (
           <>
-            {!enrolled && <PayoutConnectionCard onboardingCtaOnly />}
+            {!enrolled && <PayoutConnectionCard onboardingCtaOnly onPayoutsReady={join} joining={joining} />}
             <AffiliateProgramPanel data={data} onEnroll={join} joining={joining} />
             {enrolled && <PayoutConnectionCard compact />}
           </>
