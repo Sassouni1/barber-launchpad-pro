@@ -379,6 +379,13 @@ function DetailsStep({
       });
 
       toast.success(existing ? "Listing updated!" : "You're on the directory! 🎉");
+      if (!existing) {
+        void supabase.functions
+          .invoke("notify-certification-submission", {
+            body: { event: "directory_listing_created" },
+          })
+          .catch((err) => console.error("directory listing notification error:", err));
+      }
       await onSaved(result.id);
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
