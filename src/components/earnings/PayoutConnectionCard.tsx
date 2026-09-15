@@ -47,7 +47,7 @@ const money = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 
  * Shared payout connection for every kind of bonus earning — referrals and
  * content rewards both pay out through this one Stripe connection.
  */
-export function PayoutConnectionCard() {
+export function PayoutConnectionCard({ compact = false }: { compact?: boolean }) {
   const [payouts, setPayouts] = useState<PayoutData | null>(null);
   const [checking, setChecking] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -71,6 +71,24 @@ export function PayoutConnectionCard() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  if (!checking && !failed && compact && payouts?.account?.eligible) {
+    const bank = payouts.account.bank
+      ? `${payouts.account.bank.name ?? 'Bank account'} ••••${payouts.account.bank.last4}`
+      : 'Connected bank';
+    const timing = payouts.releaseTiming === 'after_days'
+      ? `Paid automatically after ${payouts.releaseDelayDays ?? 7} days`
+      : 'Automatic payouts';
+    return (
+      <div className="flex flex-col gap-1 border-t border-border pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
+        <span className="font-medium text-foreground"><span className="mr-2 text-primary">●</span>Payouts ready</span>
+        <span className="hidden sm:inline text-border">|</span>
+        <span>{bank}</span>
+        <span className="hidden sm:inline text-border">|</span>
+        <span>{timing}</span>
+      </div>
+    );
+  }
 
   const startSetup = async () => {
     setBusy(true);

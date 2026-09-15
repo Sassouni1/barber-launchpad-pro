@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Check, Copy, Loader2, Users } from 'lucide-react';
+import { Check, Copy, Link2, Loader2, Megaphone, Smartphone, Users, UserRoundPlus, WalletCards, Image as ImageIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export type Totals = {
@@ -50,6 +50,18 @@ const LINK_CARDS = [
     title: 'Both',
     text: 'If you\u2019re not really sure, use this link.',
   },
+];
+
+const LESSON_STEPS = [
+  { number: '1', title: 'Share your link', text: 'Send a barber to Barber Launch.', icon: Link2 },
+  { number: '2', title: 'They enroll', text: 'Your link keeps you credited.', icon: UserRoundPlus },
+  { number: '3', title: 'You earn $600', text: '20% of each $3,000 enrollment.', icon: WalletCards },
+];
+
+const MATERIALS = [
+  { title: 'Social posts', icon: Megaphone },
+  { title: 'Story templates', icon: Smartphone },
+  { title: 'Before & after', icon: ImageIcon },
 ];
 
 export function AffiliateProgramPanel({
@@ -100,20 +112,26 @@ export function AffiliateProgramPanel({
 
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground text-sm">
-        Your code: <span className="font-mono text-foreground">{data.affiliate?.code}</span>
-      </p>
-
       {suspended && (
         <Alert variant="destructive">
           <AlertDescription>Your affiliate account is paused. Contact the Barber Launch team.</AlertDescription>
         </Alert>
       )}
 
-      <div className="rounded-lg border border-border bg-secondary/20 px-4 py-3 text-sm text-muted-foreground">
-        {data.checkoutReady
-          ? 'Share a link. When your referral enrolls and their payment clears, you earn $600.'
-          : 'Your referral links save every introduction. Commission is added after an enrollment payment clears.'}
+      <div className="grid gap-3 md:grid-cols-3">
+        {LESSON_STEPS.map((step) => {
+          const Icon = step.icon;
+          return (
+            <Card key={step.number} className="relative text-center">
+              <CardContent className="p-5">
+                <div className="mx-auto mb-3 flex h-8 w-8 items-center justify-center rounded-full border border-primary text-sm font-semibold text-primary">{step.number}</div>
+                <Icon className="mx-auto mb-3 h-6 w-6 text-primary" />
+                <div className="font-semibold">{step.title}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{step.text}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {(t.referrals > 0 || t.verifiedCents !== 0 || t.paidCents !== 0) && (
@@ -134,6 +152,7 @@ export function AffiliateProgramPanel({
       )}
 
       <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Choose the right link</h2>
         {LINK_CARDS.map((card) => (
           <Card key={card.key}>
             <CardHeader className="pb-3">
@@ -151,6 +170,25 @@ export function AffiliateProgramPanel({
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="border-t border-border pt-6">
+        <h2 className="text-xl font-semibold">Marketing materials</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Ready-to-share posts, stories, and before-and-after assets.</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {MATERIALS.map((material) => {
+            const Icon = material.icon;
+            return (
+              <Card key={material.title}>
+                <CardContent className="p-5 text-center">
+                  <Icon className="mx-auto mb-3 h-6 w-6 text-primary" />
+                  <div className="font-medium">{material.title}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">Coming soon</div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       <Card>
