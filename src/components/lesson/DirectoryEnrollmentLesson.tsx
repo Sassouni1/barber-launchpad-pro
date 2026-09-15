@@ -222,6 +222,9 @@ function ProofStep({
         isHero: true,
       });
       toast.success("Verified! Photo uploaded.");
+      void supabase.functions
+        .invoke("notify-certification-submission", { body: { event: "directory_proof_photo" } })
+        .catch((err) => console.error("proof photo notification error:", err));
       onUploaded();
     } catch (e: any) {
       toast.error(e.message || "Upload failed");
