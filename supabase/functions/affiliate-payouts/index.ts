@@ -136,14 +136,12 @@ Deno.serve(async (req) => {
 
     if (action === "status") return await respond();
 
-    if (action === "start_onboarding") {
-      const origin = req.headers.get("origin") || String(body.returnOrigin ?? "");
-      if (!origin) return json({ error: "Missing origin." }, 400, h);
-
-      // Return the member to the page they started from.
-      const requested = String(body.returnPath ?? "");
-      const returnPath = ["/affiliates", "/content-rewards"].includes(requested) ? requested : "/affiliates";
-
+    if (action === "create_onboarding_session") {
+      const publishableKey = Deno.env.get("STRIPE_PUBLISHABLE_KEY") ?? "";
+      if (!/^(pk|pk_test|pk_live)_/.test(publishableKey)) {
+        console.error("affiliate-payouts embedded onboarding missing STRIPE_PUBLISHABLE_KEY");
+        return json({ error: "Payout setup is temporarily unavailable." }, 500, h);
+      }
       let accountId = connect?.stripe_account_id ?? null;
 
       if (!accountId) {
@@ -189,21 +187,19 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Resume/return handling: Stripe asks only for what is still currently due.
-      const link = await stripeCall("/account_links", {
+      // Stripe's embedded onboarding uses an Account Session. This is not an
+      // iframe of an Account Link; the short-lived client secret is returned
+      // only to the signed-in member who owns this connected-account mapping.
+      const session = await stripeCall("/account_sessions", {
         body: {
           account: accountId,
-          refresh_url: `${origin}${returnPath}?payouts=refresh`,
-          return_url: `${origin}${returnPath}?payouts=return`,
-          type: "account_onboarding",
-          "collection_options[fields]": "currently_due",
-          "collection_options[future_requirements]": "omit",
+          "components[account_onboarding][enabled]": true,
         },
       });
-      if (!link.ok) {
-        return json({ error: link.data?.error?.message ?? "Stripe could not open setup." }, 400, h);
+      if (!session.ok || !session.data?.client_secret) {
+        return json({ error: session.data?.error?.message ?? "Stripe could not start setup." }, 400, h);
       }
-      return json({ url: link.data.url }, 200, h);
+      return json({ clientSecret: session.data.client_secret, publishableKey }, 200, h);
     }
 
     return json({ error: "Unsupported action." }, 400, h);

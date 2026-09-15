@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { loadConnectAndInitialize, type StripeConnectInstance } from '@stripe/connect-js';
+import { ConnectAccountOnboarding, ConnectComponentsProvider } from '@stripe/react-connect-js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -43,6 +45,43 @@ const TRANSFER_LABEL: Record<string, string> = {
 
 const money = (cents: number) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
+function EmbeddedOnboarding({
+  publishableKey,
+  clientSecret,
+  onExit,
+}: {
+  publishableKey: string;
+  clientSecret: string;
+  onExit: () => void;
+}) {
+  const [connectInstance] = useState<StripeConnectInstance>(() =>
+    loadConnectAndInitialize({
+      publishableKey,
+      fetchClientSecret: async () => clientSecret,
+      appearance: {
+        variables: {
+          colorPrimary: '#f5bd19',
+          borderRadius: '10px',
+        },
+      },
+    }),
+  );
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <ConnectComponentsProvider connectInstance={connectInstance}>
+          <ConnectAccountOnboarding
+            onExit={onExit}
+            collectionOptions={{ fields: 'currently_due', futureRequirements: 'omit' }}
+            onLoadError={() => toast({ title: 'Stripe setup could not load', description: 'Please try again in a moment.', variant: 'destructive' })}
+          />
+        </ConnectComponentsProvider>
+      </CardContent>
+    </Card>
+  );
+}
+
 /**
  * Shared payout connection for every kind of bonus earning — referrals and
  * content rewards both pay out through this one Stripe connection.
@@ -52,6 +91,7 @@ export function PayoutConnectionCard({ compact = false, onboardingCtaOnly = fals
   const [checking, setChecking] = useState(true);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [embeddedSession, setEmbeddedSession] = useState<{ publishableKey: string; clientSecret: string } | null>(null);
 
   const load = async () => {
     setChecking(true);
@@ -93,15 +133,20 @@ export function PayoutConnectionCard({ compact = false, onboardingCtaOnly = fals
   const startSetup = async () => {
     setBusy(true);
     const { data: res, error } = await supabase.functions.invoke('affiliate-payouts', {
-      body: { action: 'start_onboarding', returnPath: window.location.pathname },
+      body: { action: 'create_onboarding_session' },
     });
     setBusy(false);
-    const url = (res as { url?: string } | null)?.url;
-    if (error || !url) {
-      toast({ title: 'Could not open payout setup', description: 'Please try again in a moment.', variant: 'destructive' });
+    const session = res as { publishableKey?: string; clientSecret?: string; error?: string } | null;
+    if (error || !session?.publishableKey || !session.clientSecret) {
+      toast({ title: 'Could not start payout setup', description: session?.error ?? 'Please try again in a moment.', variant: 'destructive' });
       return;
     }
-    window.location.href = url;
+    setEmbeddedSession({ publishableKey: session.publishableKey, clientSecret: session.clientSecret });
+  };
+
+  const finishEmbeddedSetup = () => {
+    setEmbeddedSession(null);
+    void load();
   };
 
   if (!checking && !failed && onboardingCtaOnly) {
@@ -112,6 +157,9 @@ export function PayoutConnectionCard({ compact = false, onboardingCtaOnly = fals
           Get my referral links
         </Button>
       ) : null;
+    }
+    if (embeddedSession) {
+      return <EmbeddedOnboarding {...embeddedSession} onExit={finishEmbeddedSetup} />;
     }
     return (
       <Button onClick={startSetup} disabled={busy} size="lg">
@@ -154,7 +202,9 @@ export function PayoutConnectionCard({ compact = false, onboardingCtaOnly = fals
           </div>
         )}
 
-        {payouts && payouts.account?.connected && !payouts.account.eligible && (
+        {embeddedSession ? (
+          <EmbeddedOnboarding {...embeddedSession} onExit={finishEmbeddedSetup} />
+        ) : payouts && payouts.account?.connected && !payouts.account.eligible && (
           <div className="space-y-3">
             <Alert>
               <AlertDescription>
