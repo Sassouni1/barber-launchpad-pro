@@ -95,6 +95,13 @@ export const DirectoryEnrollmentStep = ({ open, onClose }: Props) => {
       });
 
       toast.success("Listing submitted! We'll review it shortly.");
+      if (!existing) {
+        void supabase.functions
+          .invoke("notify-certification-submission", {
+            body: { event: "directory_listing_created" },
+          })
+          .catch((err) => console.error("directory listing notification error:", err));
+      }
       onClose();
     } catch (err: any) {
       toast.error(err.message || "Failed to submit listing");
