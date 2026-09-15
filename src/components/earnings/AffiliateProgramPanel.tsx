@@ -53,7 +53,7 @@ const LINK_CARDS = [
 ];
 
 const LESSON_STEPS = [
-  { number: '1', title: 'Share your link', text: 'Send a barber to Barber Launch.', icon: Link2 },
+  { number: '1', title: 'Share your link', text: 'Share this link with somebody who wants to join.', icon: Link2 },
   { number: '2', title: 'They enroll', text: 'Your link keeps you credited.', icon: UserRoundPlus },
   { number: '3', title: 'You earn $600', text: '20% of each $3,000 enrollment.', icon: WalletCards },
 ];
@@ -134,23 +134,6 @@ export function AffiliateProgramPanel({
         })}
       </div>
 
-      {(t.referrals > 0 || t.verifiedCents !== 0 || t.paidCents !== 0) && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: 'Referrals', value: String(t.referrals) },
-            { label: 'Earned', value: money(t.verifiedCents) },
-            { label: 'Paid', value: money(t.paidCents) },
-          ].map((s) => (
-            <Card key={s.label}>
-              <CardContent className="p-4">
-                <div className="text-xs text-muted-foreground">{s.label}</div>
-                <div className="mt-1 text-lg font-semibold">{s.value}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Choose the right link</h2>
         {LINK_CARDS.map((card) => (
@@ -188,6 +171,30 @@ export function AffiliateProgramPanel({
               </Card>
             );
           })}
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-6">
+        <h2 className="text-xl font-semibold">Your earnings</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Track what you have earned and what has been paid out.</p>
+        <div className="mt-4 grid gap-2 text-sm md:grid-cols-3">
+          <div className="rounded-md bg-secondary/40 px-3 py-2"><span className="font-medium text-foreground">Pending:</span> waiting for the payment to clear.</div>
+          <div className="rounded-md bg-secondary/40 px-3 py-2"><span className="font-medium text-foreground">Earned:</span> cleared and ready for payout.</div>
+          <div className="rounded-md bg-secondary/40 px-3 py-2"><span className="font-medium text-foreground">Paid:</span> sent to your connected Stripe account.</div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          {[
+            { label: 'Pending', value: money(t.pendingCents) },
+            { label: 'Earned', value: money(t.verifiedCents) },
+            { label: 'Paid', value: money(t.paidCents) },
+          ].map((earning) => (
+            <Card key={earning.label}>
+              <CardContent className="p-4">
+                <div className="text-xs text-muted-foreground">{earning.label}</div>
+                <div className="mt-1 text-lg font-semibold">{earning.value}</div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
 
