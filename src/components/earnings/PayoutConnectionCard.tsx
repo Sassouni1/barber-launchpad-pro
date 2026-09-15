@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Banknote, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -89,16 +88,7 @@ export function PayoutConnectionCard() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Banknote className="w-4 h-4 text-primary" /> Getting paid
-          </CardTitle>
-          {payouts?.account?.eligible && <Badge variant="outline">Payouts ready</Badge>}
-        </div>
-        <CardDescription>One connection covers everything you earn — referrals and content rewards.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="p-4 space-y-3">
         {checking && <div className="text-sm text-muted-foreground">Checking your payout setup…</div>}
 
         {!checking && failed && (
@@ -111,14 +101,23 @@ export function PayoutConnectionCard() {
         )}
 
         {payouts?.account?.eligible && (
-          <div className="rounded-md border border-border bg-secondary/30 px-3 py-3 text-sm">
-            <div className="font-medium">Use my connected bank</div>
-            <div className="text-muted-foreground mt-1">
-              {payouts.account.bank
-                ? `${payouts.account.bank.name ?? 'Bank account'} ending ${payouts.account.bank.last4}`
-                : 'Your Stripe account is set up to pay out to your bank.'}
+          <div className="flex items-start gap-3 text-sm">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0">
+              <div className="font-semibold">Payouts ready</div>
+              <div className="mt-0.5 text-muted-foreground">
+                {payouts.account.bank
+                  ? `${payouts.account.bank.name ?? 'Bank account'} ending ${payouts.account.bank.last4}`
+                  : 'Your connected bank is ready to receive payouts.'}
+              </div>
+              {payouts.autoPayoutsReady && (
+                <div className="mt-2 text-muted-foreground">
+                  Your commission is sent automatically {payouts.releaseTiming === 'after_days'
+                    ? `${payouts.releaseDelayDays ?? 7} days after a referred payment clears.`
+                    : 'once a referred payment is confirmed.'}
+                </div>
+              )}
             </div>
-            <div className="text-muted-foreground mt-1">Nothing else to do — you’re already set up.</div>
           </div>
         )}
 
@@ -162,7 +161,7 @@ export function PayoutConnectionCard() {
           </Alert>
         )}
 
-        {payouts?.autoPayoutsReady && (
+        {payouts?.autoPayoutsReady && !payouts.account?.eligible && (
           <Alert>
             <AlertDescription>
               Payments are automatic. Each amount is sent{' '}

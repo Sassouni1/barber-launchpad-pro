@@ -110,30 +110,28 @@ export function AffiliateProgramPanel({
         </Alert>
       )}
 
-      <Alert>
-        <AlertDescription>
-          {data.checkoutReady
-            ? 'Commission is counted automatically when someone pays through one of your links below and the payment clears. A sale closed another way is reviewed by the team before it counts.'
-            : 'Online enrollment payment isn’t switched on yet. Your links still save every referral with the person’s details, but commission is only counted once a payment is confirmed — nothing is credited automatically before that.'}
-        </AlertDescription>
-      </Alert>
-
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          { label: 'Referrals saved', value: String(t.referrals) },
-          { label: 'Verified', value: money(t.verifiedCents) },
-          { label: 'Pending review', value: money(t.pendingCents) },
-          { label: 'Paid out', value: money(t.paidCents) },
-          { label: 'Adjustments', value: money(t.adjustmentCents) },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">{s.label}</div>
-              <div className="text-lg font-semibold mt-1">{s.value}</div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="rounded-lg border border-border bg-secondary/20 px-4 py-3 text-sm text-muted-foreground">
+        {data.checkoutReady
+          ? 'Share a link. When your referral enrolls and their payment clears, you earn $600.'
+          : 'Your referral links save every introduction. Commission is added after an enrollment payment clears.'}
       </div>
+
+      {(t.referrals > 0 || t.verifiedCents !== 0 || t.paidCents !== 0) && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Referrals', value: String(t.referrals) },
+            { label: 'Earned', value: money(t.verifiedCents) },
+            { label: 'Paid', value: money(t.paidCents) },
+          ].map((s) => (
+            <Card key={s.label}>
+              <CardContent className="p-4">
+                <div className="text-xs text-muted-foreground">{s.label}</div>
+                <div className="mt-1 text-lg font-semibold">{s.value}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-4">
         {LINK_CARDS.map((card) => (
