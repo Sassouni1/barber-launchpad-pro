@@ -142,74 +142,187 @@ async function resolveChrisContactId(accessToken: string, locationId: string): P
   return contactId;
 }
 
+type EventName =
+  | "template_submission"
+  | "installation_submission"
+  | "certification_unlocked"
+  | "directory_listing_created"
+  | "directory_proof_photo"
+  | "resolved";
+
+/** Identify the acting member from their own JWT, never from the request body. */
+async function callerUserId(req: Request, supabase: SupabaseClient): Promise<string | null> {
+  const auth = req.headers.get("Authorization") ?? "";
+  const token = auth.replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  if (token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) return "service_role";
+  const { data } = await supabase.auth.getUser(token);
+  return data.user?.id ?? null;
+}
+
+async function sendSms(supabase: SupabaseClient, message: string) {
+  const { accessToken, locationId } = await getAccessToken(supabase);
+  const contactId = await resolveChrisContactId(accessToken, locationId);
+  const smsRes = await fetch(`${GHL_BASE}/conversations/messages`, {
+    method: "POST",
+    headers: GHL_HEADERS(accessToken),
+    body: JSON.stringify({ type: "SMS", contactId, message, phone: CHRIS_PHONE }),
+  });
+  if (!smsRes.ok) throw new Error(`GHL SMS failed: ${smsRes.status} ${await smsRes.text()}`);
+}
+
+async function memberLabel(supabase: SupabaseClient, userId: string) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name,email")
+    .eq("id", userId)
+    .maybeSingle();
+  return `${profile?.full_name || "Unknown"} <${profile?.email || "unknown"}>`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
-    const { submissionId, eventType } = body as { submissionId: string; eventType?: "submitted" | "resolved" };
-    if (!submissionId) throw new Error("submissionId is required");
-    const kind = eventType === "resolved" ? "resolved" : "submitted";
+    const { submissionId, eventType, event, userId: bodyUserId, courseId } = body as {
+      submissionId?: string;
+      eventType?: "submitted" | "resolved";
+      event?: EventName;
+      userId?: string;
+      courseId?: string;
+    };
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data: submission, error: submissionError } = await supabase
-      .from("certification_photos")
-      .select("id,user_id,course_id,file_name,uploaded_at,approved")
-      .eq("id", submissionId)
-      .single();
-    if (submissionError || !submission) throw submissionError || new Error("Submission not found");
-
-    const [{ data: profile }, { data: course }, { data: fulfillment }] = await Promise.all([
-      supabase.from("profiles").select("full_name,email").eq("id", submission.user_id).maybeSingle(),
-      supabase.from("courses").select("title").eq("id", submission.course_id).maybeSingle(),
-      supabase.from("certification_fulfillment_requests")
-        .select("id,status,address_line1,city,state,postal_code")
-        .eq("user_id", submission.user_id)
-        .eq("course_id", submission.course_id)
-        .maybeSingle(),
-    ]);
-
-    const studentLabel = `${profile?.full_name || "Unknown"} <${profile?.email || "unknown"}>`;
-    const courseLabel = course?.title || submission.course_id;
-    const adminUrl = `${APP_URL}/admin/templates`;
-
-    const message = kind === "resolved"
-      ? [
-          `CERTIFICATION_RESOLVED ${submissionId}`,
-          "Barber Launch certification marked resolved/fulfilled",
-          `Student: ${studentLabel}`,
-          `Course: ${courseLabel}`,
-          `Admin URL: ${adminUrl}`,
-        ].join("\n")
-      : [
-          `CERTIFICATION_SUBMISSION ${submissionId}`,
-          "Barber Launch certification submission needs review",
-          `Student: ${studentLabel}`,
-          `Course: ${courseLabel}`,
-          `Admin URL: ${adminUrl}`,
-          `Address: ${fulfillment?.address_line1 ? "complete" : "missing"}`,
-        ].join("\n");
-
-
-    const { accessToken, locationId } = await getAccessToken(supabase);
-    const contactId = await resolveChrisContactId(accessToken, locationId);
-
-    const smsRes = await fetch(`${GHL_BASE}/conversations/messages`, {
-      method: "POST",
-      headers: GHL_HEADERS(accessToken),
-      body: JSON.stringify({ type: "SMS", contactId, message, phone: CHRIS_PHONE }),
+    const caller = await callerUserId(req, supabase);
+    if (!caller) return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+    const isService = caller === "service_role";
 
-    if (!smsRes.ok) throw new Error(`GHL SMS failed: ${smsRes.status} ${await smsRes.text()}`);
+    // ---- Photo-submission events (template / installation / resolved) ----
+    if (!event || event === "resolved" || submissionId) {
+      if (!submissionId) throw new Error("submissionId is required");
+      const kind = eventType === "resolved" || event === "resolved" ? "resolved" : "submitted";
 
-    return new Response(
-      JSON.stringify({ success: true, submissionId, sentTo: CHRIS_PHONE }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      const { data: submission, error: submissionError } = await supabase
+        .from("certification_photos")
+        .select("id,user_id,course_id,file_name,uploaded_at,approved,photo_type")
+        .eq("id", submissionId)
+        .single();
+      if (submissionError || !submission) throw submissionError || new Error("Submission not found");
+
+      const [{ data: course }, { data: fulfillment }] = await Promise.all([
+        supabase.from("courses").select("title").eq("id", submission.course_id).maybeSingle(),
+        supabase.from("certification_fulfillment_requests")
+          .select("id,status,address_line1")
+          .eq("user_id", submission.user_id)
+          .eq("course_id", submission.course_id)
+          .maybeSingle(),
+      ]);
+
+      const studentLabel = await memberLabel(supabase, submission.user_id as string);
+      const courseLabel = course?.title || submission.course_id;
+      const adminUrl = `${APP_URL}/admin/templates`;
+      const isInstall = (submission as Record<string, unknown>).photo_type === "installation";
+
+      const message = kind === "resolved"
+        ? [
+            `CERTIFICATION_RESOLVED ${submissionId}`,
+            "Barber Launch certification marked resolved/fulfilled",
+            `Student: ${studentLabel}`,
+            `Course: ${courseLabel}`,
+            `Admin URL: ${adminUrl}`,
+          ].join("\n")
+        : isInstall
+          ? [
+              `HAIR_SYSTEM_INSTALL_SUBMISSION ${submissionId}`,
+              "User sent Hair System Install Submission",
+              `Student: ${studentLabel}`,
+              `Course: ${courseLabel}`,
+              `Admin URL: ${adminUrl}`,
+              `Address: ${fulfillment?.address_line1 ? "complete" : "missing"}`,
+            ].join("\n")
+          : [
+              `TEMPLATE_SUBMISSION ${submissionId}`,
+              "User sent template submission (training requirement — no review needed)",
+              `Student: ${studentLabel}`,
+              `Course: ${courseLabel}`,
+              `Admin URL: ${adminUrl}`,
+            ].join("\n");
+
+      await sendSms(supabase, message);
+      return new Response(
+        JSON.stringify({ success: true, submissionId, sentTo: CHRIS_PHONE }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ---- Member-scoped events ----
+    const subjectId = isService ? (bodyUserId ?? "") : caller;
+    if (!subjectId) throw new Error("userId is required");
+    const studentLabel = await memberLabel(supabase, subjectId);
+
+    if (event === "certification_unlocked") {
+      const { data: course } = courseId
+        ? await supabase.from("courses").select("title").eq("id", courseId).maybeSingle()
+        : { data: null };
+      await sendSms(supabase, [
+        "CERTIFICATION_UNLOCKED",
+        "User Just unlocked certification",
+        `Student: ${studentLabel}`,
+        `Course: ${course?.title || courseId || "n/a"}`,
+        `Admin URL: ${APP_URL}/admin/members`,
+      ].join("\n"));
+      return new Response(JSON.stringify({ success: true, sentTo: CHRIS_PHONE }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (event === "directory_listing_created") {
+      // Only a genuinely new listing notifies; guards against replayed calls.
+      const { data: listing } = await supabase
+        .from("specialist_directory")
+        .select("id,business_name,city,state,created_at")
+        .eq("user_id", subjectId)
+        .maybeSingle();
+      if (!listing) throw new Error("Listing not found");
+      const ageMs = Date.now() - new Date(listing.created_at as string).getTime();
+      if (ageMs > 10 * 60 * 1000) {
+        return new Response(JSON.stringify({ success: true, skipped: "not_new" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      await sendSms(supabase, [
+        "DIRECTORY_REQUEST",
+        "User requested to be in database",
+        `Student: ${studentLabel}`,
+        `Business: ${listing.business_name} — ${listing.city}, ${listing.state}`,
+        `Admin URL: ${APP_URL}/admin/directory`,
+      ].join("\n"));
+      return new Response(JSON.stringify({ success: true, sentTo: CHRIS_PHONE }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (event === "directory_proof_photo") {
+      await sendSms(supabase, [
+        "DIRECTORY_PROOF_PHOTO",
+        "User submitted photo holding their certificate",
+        `Student: ${studentLabel}`,
+        `Admin URL: ${APP_URL}/admin/directory`,
+      ].join("\n"));
+      return new Response(JSON.stringify({ success: true, sentTo: CHRIS_PHONE }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error("Unsupported event");
   } catch (error) {
     console.error("notify-certification-submission error:", error);
     return new Response(
