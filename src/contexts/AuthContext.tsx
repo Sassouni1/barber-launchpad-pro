@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { getDirectoryListingReminderKey } from '@/lib/directoryListingReminder';
 
 interface AgreementSetting {
   enabled: boolean;
@@ -171,6 +172,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (user) {
+      sessionStorage.removeItem(getDirectoryListingReminderKey(user.id));
+    }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };

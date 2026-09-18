@@ -1,6 +1,7 @@
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
 import { LanguageToggle } from '@/lib/i18n/LocaleProvider';
+import { DirectoryListingReminder } from '@/components/certification/DirectoryListingReminder';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, isAdminView = false }: DashboardLayoutProps) {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-background relative">
+      {!isAdminView && <DirectoryListingReminder />}
       {/* Cyber grid background - hidden on mobile for performance */}
       <div className="fixed inset-0 cyber-grid-fade pointer-events-none hidden md:block" />
       
