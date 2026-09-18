@@ -1228,7 +1228,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   : needsDatabaseListing
                   ? "Get added into the Hair System Database. Click here to do so."
                   : directoryUploadWaiting && isHair
-                    ? "Your certificate is being mailed. Check back in about two weeks."
+                    ? "Download or print your certificate, then upload a photo holding it to join the Hair System Database."
                     : isHair
                       ? "Master installation, maintenance, styling, and certification."
                       : "Build your client pipeline and business systems.";
@@ -1640,7 +1640,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 {needsDirectoryListing
                                   ? "Get added into the Hair System Database. Click here to do so."
                                   : directoryUploadWaiting
-                                    ? "Your certificate is being mailed. Check back in about two weeks."
+                                    ? "Download or print your certificate, then upload a photo holding it to join the Hair System Database."
                                     : hairSystemCertification
                                       ? "Certified — review your certificate"
                                       : "Enter name and generate certificate"}
@@ -1724,7 +1724,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 : needsDatabaseListing
                 ? "Get added into the Hair System Database. Click here to do so."
                 : directoryUploadWaiting && isHair
-                  ? "Your certificate is being mailed. Check back in about two weeks."
+                  ? "Download or print your certificate, then upload a photo holding it to join the Hair System Database."
                   : isHair
                     ? "Master installation, maintenance, styling, and certification."
                     : "Build your client pipeline and business systems.";
@@ -2177,7 +2177,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                 {needsDirectoryListing
                                   ? "Get added into the Hair System Database. Click here to do so."
                                   : directoryUploadWaiting
-                                    ? "Your certificate is being mailed. Check back in about two weeks."
+                                    ? "Download or print your certificate, then upload a photo holding it to join the Hair System Database."
                                     : hairSystemCertification
                                       ? "Certified — review your certificate"
                                       : "Enter name and generate certificate"}

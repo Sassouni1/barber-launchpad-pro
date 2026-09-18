@@ -4,7 +4,6 @@
  * certificate, keep the requirements that applied to them at the time.
  */
 export const CERTIFICATION_QUIZ_CUTOFF_ISO = '2026-06-01T00:00:00.000Z';
-export const CERTIFICATION_MAILING_WAIT_DAYS = 14;
 
 // These are the quizzes that were added or changed after the original
 // certification cohort. Keeping the IDs here avoids accidentally
@@ -37,13 +36,10 @@ export function requiresNewCertificationQuizzes(
 }
 
 /**
- * The database-upload step becomes actionable after the physical certificate
- * has had time to arrive. Old records without a usable issue date are treated
- * as eligible so they are not accidentally hidden behind an endless wait.
+ * Members can download and print their certificate immediately, so a database
+ * proof upload never waits for a mailed copy to arrive.
  */
 export function isDirectoryUploadAvailable(issuedAt: string | null | undefined): boolean {
-  if (!issuedAt) return true;
-  const issuedAtMs = Date.parse(issuedAt);
-  if (!Number.isFinite(issuedAtMs)) return true;
-  return Date.now() >= issuedAtMs + CERTIFICATION_MAILING_WAIT_DAYS * 24 * 60 * 60 * 1000;
+  void issuedAt;
+  return true;
 }

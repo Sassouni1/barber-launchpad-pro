@@ -30,8 +30,8 @@ export interface CertificateBusinessLocation {
 
 export interface CertificationSubmissionPayload {
   certificateName: string;
-  shippingAddress: CertificateShippingAddress;
-  businessLocation: CertificateBusinessLocation;
+  shippingAddress?: CertificateShippingAddress;
+  businessLocation?: CertificateBusinessLocation;
 }
 
 interface CertificationModalProps {
@@ -97,14 +97,16 @@ export function CertificationModal({
   const [businessLocation, setBusinessLocation] = useState<CertificateBusinessLocation>(
     defaultBusinessLocation || emptyBusiness()
   );
+  const [requestMailing, setRequestMailing] = useState(Boolean(defaultShippingAddress?.addressLine1));
+  const [addDirectoryListing, setAddDirectoryListing] = useState(Boolean(defaultBusinessLocation?.businessName));
   const [shipToBusiness, setShipToBusiness] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const markDownloaded = useMarkCertificateDownloaded();
   // In edit mode, collapse the address sections by default so users can just
   // fix a typo in the name and hit save without touching anything else.
-  const [showShipping, setShowShipping] = useState(openAddressSections || !isEditing);
-  const [showBusiness, setShowBusiness] = useState(openAddressSections || !isEditing);
+  const [showShipping, setShowShipping] = useState(openAddressSections || Boolean(defaultShippingAddress?.addressLine1));
+  const [showBusiness, setShowBusiness] = useState(openAddressSections || Boolean(defaultBusinessLocation?.businessName));
 
   useEffect(() => {
     if (isOpen) {
@@ -117,8 +119,10 @@ export function CertificationModal({
       if (defaultBusinessLocation) {
         setBusinessLocation(defaultBusinessLocation);
       }
-      setShowShipping(openAddressSections || !isEditing);
-      setShowBusiness(openAddressSections || !isEditing);
+      setRequestMailing(Boolean(defaultShippingAddress?.addressLine1));
+      setAddDirectoryListing(Boolean(defaultBusinessLocation?.businessName));
+      setShowShipping(openAddressSections || Boolean(defaultShippingAddress?.addressLine1));
+      setShowBusiness(openAddressSections || Boolean(defaultBusinessLocation?.businessName));
     }
   }, [isOpen, defaultName, defaultShippingAddress, defaultBusinessLocation, isEditing, openAddressSections]);
 
@@ -129,6 +133,8 @@ export function CertificationModal({
       setName(defaultName || '');
       setShippingAddress(defaultShippingAddress || emptyAddress(defaultName || ''));
       setBusinessLocation(defaultBusinessLocation || emptyBusiness());
+      setRequestMailing(Boolean(defaultShippingAddress?.addressLine1));
+      setAddDirectoryListing(Boolean(defaultBusinessLocation?.businessName));
       setShipToBusiness(false);
       setIsDownloaded(false);
       return;
@@ -210,7 +216,9 @@ export function CertificationModal({
       effectiveShipping.countryCode
   );
 
-  const isAddressComplete = isBusinessComplete && isShippingComplete;
+  const isAddressComplete =
+    (!requestMailing || isShippingComplete) &&
+    (!addDirectoryListing || isBusinessComplete);
 
   const handleSubmit = async () => {
     if (!name.trim() || !isAddressComplete) return;
@@ -218,8 +226,8 @@ export function CertificationModal({
     try {
       await onSubmit({
         certificateName: name.trim(),
-        shippingAddress: effectiveShipping,
-        businessLocation: normalizedBusiness,
+        shippingAddress: requestMailing ? effectiveShipping : undefined,
+        businessLocation: addDirectoryListing ? normalizedBusiness : undefined,
       });
     } finally {
       setIsSubmitting(false);
@@ -286,7 +294,7 @@ export function CertificationModal({
               <p className="text-sm text-muted-foreground text-center">
                 {isEditing
                   ? 'Fix a typo in your name, or click Edit on any section below to update it. Saving will regenerate your certificate.'
-                  : 'Congratulations! Enter your certificate name, where to mail your printed certificate, and where clients can find you in our specialist directory.'}
+                  : 'Congratulations! Enter the name for your certificate. You can download and print it immediately, then optionally request a mailed copy or add your business to the directory.'}
               </p>
 
               <div className="space-y-2">
@@ -302,12 +310,12 @@ export function CertificationModal({
                 </p>
               </div>
 
-              {/* 1. SHIPPING ADDRESS — asked for first because it's what the name is for. */}
+              {/* 1. MAILING REQUEST — optional; members can always print their download. */}
               <div className="space-y-3 border-t border-border/40 pt-4">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2 min-w-0">
                     <MapPin className="w-4 h-4 text-primary shrink-0" />
-                    <p className="text-sm font-semibold">Where should we ship your certificate?</p>
+                    <p className="text-sm font-semibold">Request a mailed printed copy (optional)</p>
                   </div>
                   {isEditing && (
                     <Button
@@ -321,7 +329,19 @@ export function CertificationModal({
                     </Button>
                   )}
                 </div>
-                {isEditing && !showShipping ? (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={requestMailing}
+                    onChange={(e) => {
+                      setRequestMailing(e.target.checked);
+                      setShowShipping(e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  Request a printed certificate by mail
+                </label>
+                {requestMailing && isEditing && !showShipping ? (
                   <div className="text-sm text-foreground/80 leading-snug">
                     {shippingAddress.addressLine1 ? (
                       <>
@@ -337,10 +357,10 @@ export function CertificationModal({
                       <span className="text-muted-foreground">No shipping address on file. Click Edit to add.</span>
                     )}
                   </div>
-                ) : (
+                ) : requestMailing ? (
                   <>
                     <p className="text-xs text-muted-foreground -mt-1">
-                      We'll mail your printed certificate here.
+                      Add the address where you would like us to mail a printed copy.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <Input
@@ -396,15 +416,15 @@ export function CertificationModal({
                       />
                     </div>
                   </>
-                )}
+                ) : null}
               </div>
 
-              {/* 2. DIRECTORY LISTING — optional street address, city/state/ZIP required. */}
+              {/* 2. DIRECTORY LISTING — always optional. */}
               <div className="space-y-3 border-t border-border/40 pt-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <Building2 className="w-4 h-4 text-primary shrink-0" />
-                    <p className="text-sm font-semibold">Get listed in our specialist directory</p>
+                    <p className="text-sm font-semibold">Get listed in our specialist directory (optional)</p>
                   </div>
                   {isEditing && (
                     <Button
@@ -418,13 +438,25 @@ export function CertificationModal({
                     </Button>
                   )}
                 </div>
-                {isEditing && !showBusiness ? (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={addDirectoryListing}
+                    onChange={(e) => {
+                      setAddDirectoryListing(e.target.checked);
+                      setShowBusiness(e.target.checked);
+                    }}
+                    className="rounded"
+                  />
+                  Add my business to the directory
+                </label>
+                {addDirectoryListing && isEditing && !showBusiness ? (
                   <p className="text-sm text-foreground/80 truncate">
                     {businessLocation.businessName
                       ? `${businessLocation.businessName} — ${businessLocation.city}, ${businessLocation.state}`
                       : 'Not listed in the directory yet. Click Edit to add.'}
                   </p>
-                ) : (
+                ) : addDirectoryListing ? (
                   <>
                     <p className="text-xs text-muted-foreground -mt-1">
                       Where should we tell people that you work? We show certified barbers on find.menshairexpert.com so clients can book with you. A street address helps clients get directions — if you don't have an exact address, just enter your city, state, and ZIP.
@@ -492,7 +524,7 @@ export function CertificationModal({
                       />
                     </div>
                   </>
-                )}
+                ) : null}
               </div>
 
 
@@ -516,7 +548,11 @@ export function CertificationModal({
               </Button>
               {!isAddressComplete && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Please fill in your shipping address and your directory listing (city / state / ZIP at a minimum).
+                  {requestMailing && !isShippingComplete && addDirectoryListing && !isBusinessComplete
+                    ? 'Complete the requested mailing and directory details, or uncheck either optional request.'
+                    : requestMailing && !isShippingComplete
+                      ? 'Complete the mailing details, or uncheck the optional mailed-copy request.'
+                      : 'Complete the directory details, or uncheck the optional directory request.'}
                 </p>
               )}
 
