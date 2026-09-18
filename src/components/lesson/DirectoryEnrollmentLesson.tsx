@@ -140,6 +140,12 @@ export function DirectoryEnrollmentLesson() {
 
 function Header({ step }: { step: Step }) {
   const stepNum = step === "proof" ? 1 : step === "details" ? 2 : 3;
+  const stepLabel =
+    step === "proof"
+      ? "Verify your certification photo"
+      : step === "details"
+        ? "Create your public profile"
+        : "Add optional gallery photos";
   return (
     <div className="glass-card rounded-xl p-6 space-y-4">
       <div className="flex items-center gap-3">
@@ -161,6 +167,18 @@ function Header({ step }: { step: Step }) {
               find.menshairexpert.com
             </a>
           </p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <span>Step {stepNum} of 3</span>
+          <span>{stepLabel}</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full gold-gradient transition-all"
+            style={{ width: `${(stepNum / 3) * 100}%` }}
+          />
         </div>
       </div>
     </div>
@@ -250,6 +268,9 @@ function ProofStep({
           <p className="text-xs text-muted-foreground mt-3">
             We'll use this photo as your default profile picture on the directory — you can swap it
             out or add more photos in the next steps.
+          </p>
+          <p className="text-sm font-medium text-foreground mt-3">
+            Next, you’ll enter your name, business name, city, booking link, and contact details for your public profile.
           </p>
         </div>
       </div>
@@ -396,6 +417,12 @@ function DetailsStep({
 
   return (
     <form onSubmit={onSubmit} className="glass-card rounded-xl p-6 space-y-4">
+      <div>
+        <h3 className="font-semibold">Create your public profile</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          This is what clients will see when they find you in the directory.
+        </p>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>First name</Label>
