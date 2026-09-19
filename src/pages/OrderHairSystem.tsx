@@ -484,7 +484,7 @@ export default function OrderHairSystem() {
                   Use these while choosing specs.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <div className="grid grid-cols-2 items-start gap-3 lg:grid-cols-1">
                 {[
                   [hairColors, "Hair color guide"],
                   [hairCurls, "Curl pattern guide"],
@@ -496,7 +496,7 @@ export default function OrderHairSystem() {
                     <img
                       src={src as string}
                       alt={label as string}
-                      className="aspect-square w-full object-cover"
+                      className="h-auto w-full object-contain"
                     />
                     <p className="p-3 text-xs font-medium">{label as string}</p>
                   </div>
