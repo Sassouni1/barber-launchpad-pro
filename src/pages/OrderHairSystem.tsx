@@ -228,7 +228,7 @@ function HairColorPicker({
           <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             {series.label}
           </h3>
-          <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
             {series.colors.map((color) => {
               const image =
                 hairColorSwatchImages[
@@ -241,7 +241,7 @@ function HairColorPicker({
                   aria-label={`Hair color #${color}`}
                   aria-pressed={value === `#${color}`}
                   onClick={() => onChange(`#${color}`)}
-                  className={`relative block w-full overflow-hidden rounded-xl border-2 bg-white p-2 shadow-sm transition ${
+                  className={`relative aspect-square overflow-hidden rounded-xl border-2 bg-white p-1 shadow-sm transition ${
                     value === `#${color}`
                       ? "border-primary ring-2 ring-primary/30"
                       : "border-transparent hover:border-primary/50"
@@ -250,7 +250,7 @@ function HairColorPicker({
                   <img
                     src={image}
                     alt={`Hair color #${color}`}
-                    className="h-56 w-full object-contain sm:h-64"
+                    className="h-full w-full object-contain"
                   />
                   {value === `#${color}` && (
                     <span className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
