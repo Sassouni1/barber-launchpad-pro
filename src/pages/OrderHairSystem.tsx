@@ -270,8 +270,8 @@ export default function OrderHairSystem() {
                   />
                 </div>
                 <Field
-                  label="Total quantity"
-                  id="total-quantity"
+                  label="Total orders"
+                  id="total-orders"
                   value={form.quantity}
                   onChange={setTotalQuantity}
                   type="text"
