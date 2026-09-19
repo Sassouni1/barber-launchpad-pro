@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
+  ChevronDown,
   ClipboardCheck,
   MapPin,
   PackageCheck,
@@ -106,41 +107,60 @@ function CurlPicker({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const [showChoices, setShowChoices] = useState(false);
+
   return (
     <div className="space-y-2">
-      <Label>Curl pattern</Label>
-      <p className="text-sm text-muted-foreground">
-        Choose the exact pattern from the guide.
-      </p>
       <button
         type="button"
         aria-pressed={value === "Standard"}
-        onClick={() => onChange("Standard")}
+        onClick={() => {
+          onChange("Standard");
+          setShowChoices(false);
+        }}
         className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
       >
-        Standard
+        Standard Curl Pattern
       </button>
-      <div className="grid grid-cols-4 gap-2 sm:gap-3">
-        {curlGuideChoices.map(({ value: option, column, row }) => (
-          <button
-            key={option}
-            type="button"
-            aria-label={option}
-            aria-pressed={value === option}
-            onClick={() => onChange(option)}
-            className={`overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
-          >
-            <span
-              aria-hidden="true"
-              className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
-              style={{
-                backgroundImage: `url(${hairCurls})`,
-                backgroundPosition: `${column * 50}% ${row * (100 / 3)}%`,
+      <button
+        type="button"
+        aria-expanded={showChoices}
+        onClick={() => setShowChoices((current) => !current)}
+        className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-left text-sm font-medium transition-colors hover:border-primary/40"
+      >
+        <span>
+          {value === "Standard" ? "Curl pattern" : `Curl pattern: ${value}`}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 transition-transform ${showChoices ? "rotate-180" : ""}`}
+        />
+      </button>
+      {showChoices && (
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          {curlGuideChoices.map(({ value: option, column, row }) => (
+            <button
+              key={option}
+              type="button"
+              aria-label={option}
+              aria-pressed={value === option}
+              onClick={() => {
+                onChange(option);
+                setShowChoices(false);
               }}
-            />
-          </button>
-        ))}
-      </div>
+              className={`overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
+            >
+              <span
+                aria-hidden="true"
+                className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${hairCurls})`,
+                  backgroundPosition: `${column * 50}% ${row * (100 / 3)}%`,
+                }}
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
