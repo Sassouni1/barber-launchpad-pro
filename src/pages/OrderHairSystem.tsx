@@ -34,7 +34,7 @@ import waveUnit from "@/assets/wave-unit.png";
 
 type Step = "specs" | "delivery" | "review" | "success";
 const choices = {
-  density: ["100% (regular)", "90%", "110%", "80%", "Custom density"],
+  density: ["100% (Regular - Standard)", "90%", "110%", "80%", "Custom density"],
   curl: [
     "0.4 CM",
     "0.6 CM",
@@ -59,7 +59,7 @@ const emptySystem = () => ({
   color: "",
   length: "Standard",
   lengthOther: "",
-  density: "100% (regular)",
+  density: "100% (Regular - Standard)",
   curl: "",
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
