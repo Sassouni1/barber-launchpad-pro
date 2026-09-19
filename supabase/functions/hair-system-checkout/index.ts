@@ -13,7 +13,6 @@ const priceIds = {
   custom14: "price_1UHRgpAlgWpO5KsvK4EfnLHS",
   custom16: "price_1UHRgpAlgWpO5KsvZLotPy89",
   rush: "price_1UHRgqAlgWpO5KsvIUgnAjq0",
-  customAddOn: "price_1UHRgrAlgWpO5KsvdvUTBGno",
 } as const;
 
 function lineItems(systems: Record<string, unknown>[], shippingSpeed: string) {
@@ -31,7 +30,6 @@ function lineItems(systems: Record<string, unknown>[], shippingSpeed: string) {
     const curl = text(system.curl);
     if (curl === "Wave unit") add(priceIds.wave);
     else if (curl && curl !== "Standard") add(priceIds.curly);
-    if (system.customAddOn === true) add(priceIds.customAddOn);
   }
   if (shippingSpeed.startsWith("Rush")) add(priceIds.rush);
   return [...quantities.entries()].map(([price, quantity], index) => [`line_items[${index}][price]`, price, `line_items[${index}][quantity]`, String(quantity)]).flat();
@@ -71,16 +69,16 @@ Deno.serve(async (req) => {
     if (required.some((field) => !text(body[field]))) throw new Error("Please complete every required order field.");
     if (!/^\d{5}(-\d{4})?$/.test(text(body.zip, 10))) throw new Error("Please provide a valid ZIP code.");
     const systems = Array.isArray(body.systems) && body.systems.length ? body.systems.slice(0, 12) : [body];
-    if (systems.some((system) => !["clientName", "color", "length"].every((field) => text(system[field])))) throw new Error("Please complete each system's client, color, and length.");
+    if (systems.some((system) => !["color", "length"].every((field) => text(system[field])))) throw new Error("Please complete each system's color and length.");
 
     const baseDetails = {
       source: "barber-launch-native-order-form", order_type: "hair_system", submitted_at: new Date().toISOString(),
-      full_name: text(body.barberName, 100), phone: text(body.barberPhone, 40),
+      full_name: text(body.barberName, 100), email: user.email.toLowerCase(), phone: text(body.barberPhone, 40),
       shipping: { method: text(body.shippingSpeed, 100), address_1: text(body.address1, 150), address_2: text(body.address2, 150), city: text(body.city, 100), state: text(body.state, 2).toUpperCase(), zip: text(body.zip, 10) }, notes: text(body.notes, 2000),
     };
     const { data: orders, error: insertError } = await admin.from("orders").insert(systems.map((system, index) => ({
       user_id: user.id, customer_email: user.email.toLowerCase(), customer_name: text(body.barberName, 100), status: "pending_payment",
-      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom density" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100), custom_add_on: system.customAddOn === true },
+      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom density" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100) },
     }))).select("id");
     if (insertError || !orders?.length) throw insertError || new Error("Unable to prepare the order.");
 

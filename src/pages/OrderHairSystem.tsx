@@ -61,13 +61,13 @@ const emptySystem = () => ({
   lengthOther: "",
   density: "100% (Regular - Standard)",
   densityOther: "",
-  customAddOn: false,
   curl: "Standard",
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
 const emptyForm = {
   barberName: "",
   barberPhone: "",
+  barberEmail: "",
   quantity: "1",
   shippingSpeed: "Standard",
   address1: "",
@@ -273,6 +273,32 @@ export default function OrderHairSystem() {
       ),
     );
   useEffect(() => {
+    if (!user) return;
+    const metadata = (user.user_metadata || {}) as Record<string, unknown>;
+    const stringValue = (...values: unknown[]) =>
+      values.find((value): value is string => typeof value === "string" && value.trim().length > 0)?.trim() || "";
+    const firstAndLastName = [metadata.first_name || metadata.given_name, metadata.last_name || metadata.family_name]
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      .join(" ");
+    const fallbackName = stringValue(metadata.full_name, metadata.name, metadata.fullName, firstAndLastName);
+    const fallbackPhone = stringValue(metadata.phone, metadata.phone_number, metadata.mobile);
+    const fillFromAccount = (account?: { full_name: string | null; email: string | null; phone: string | null } | null) => {
+      setForm((current) => ({
+        ...current,
+        barberName: current.barberName || account?.full_name || fallbackName,
+        barberPhone: current.barberPhone || account?.phone || fallbackPhone,
+        barberEmail: current.barberEmail || account?.email || user.email || "",
+      }));
+    };
+    fillFromAccount();
+    supabase
+      .from("profiles")
+      .select("full_name, email, phone")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => fillFromAccount(data));
+  }, [user?.id]);
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("session_id");
     if (params.get("checkout") === "cancelled") {
@@ -323,7 +349,6 @@ export default function OrderHairSystem() {
         form.barberName,
         form.barberPhone,
         ...systems.flatMap((system) => [
-          system.clientName,
           system.color,
           system.length === "Other" ? system.lengthOther : system.length,
           system.density === "Custom density"
@@ -333,7 +358,7 @@ export default function OrderHairSystem() {
       ].every((value) => value.trim())
     )
       return toast.error(
-        "Add your name, phone number, client name, color, and length first.",
+        "Add your name, phone number, color, and length first.",
       );
     setStep("delivery");
   };
@@ -457,6 +482,14 @@ export default function OrderHairSystem() {
                     placeholder="(555) 555-5555"
                     type="tel"
                   />
+                  <Field
+                    label="Your email"
+                    id="barber-email"
+                    value={form.barberEmail}
+                    onChange={change("barberEmail")}
+                    placeholder="you@example.com"
+                    type="email"
+                  />
                 </div>
                 <Field
                   label="Total orders"
@@ -478,13 +511,11 @@ export default function OrderHairSystem() {
                       Order {index + 1}
                     </h3>
                     <Field
-                      label="Client name"
+                      label="Client name (optional)"
                       id={`client-name-${index}`}
                       value={system.clientName}
-                      onChange={(value) =>
-                        updateSystem(index, "clientName", value)
-                      }
-                      placeholder="Name used to identify this order"
+                      onChange={(value) => updateSystem(index, "clientName", value)}
+                      placeholder="Internal reference for past orders"
                     />
                     <Field
                       label="Hair color"
@@ -538,18 +569,6 @@ export default function OrderHairSystem() {
                         placeholder="e.g. 95%"
                       />
                     )}
-                    <button
-                      type="button"
-                      aria-pressed={system.customAddOn}
-                      onClick={() => updateSystem(index, "customAddOn", !system.customAddOn)}
-                      className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
-                        system.customAddOn
-                          ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                          : "border-border bg-background hover:border-primary/40"
-                      }`}
-                    >
-                      Custom add on · $50
-                    </button>
                     <CurlPicker
                       value={system.curl}
                       onChange={(value) => updateSystem(index, "curl", value)}
@@ -627,7 +646,7 @@ export default function OrderHairSystem() {
                 label="Shipping speed"
                 value={form.shippingSpeed}
                 onChange={change("shippingSpeed")}
-                options={["Standard", "Rush — confirm availability first"]}
+                options={["Standard", "Rush Ship (3 Days) · $50"]}
               />
               <Field
                 label="Street address"
@@ -722,7 +741,7 @@ export default function OrderHairSystem() {
                       <dt className="font-semibold text-primary">
                         Order {index + 1}
                       </dt>
-                      <dd className="mt-1 font-medium">{system.clientName}</dd>
+                      {system.clientName && <dd className="mt-1 font-medium">{system.clientName}</dd>}
                       <dd className="text-muted-foreground">
                         {system.color} ·{" "}
                         {system.length === "Other"
