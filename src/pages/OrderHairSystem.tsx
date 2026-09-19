@@ -112,7 +112,7 @@ function CurlPicker({
       <p className="text-sm text-muted-foreground">
         Choose the exact pattern from the guide.
       </p>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="grid grid-cols-4 gap-2 sm:gap-3">
         {curlGuideChoices.map(({ value: option, column, row }) => (
           <button
             key={option}
