@@ -60,6 +60,7 @@ const emptySystem = () => ({
   length: "Standard",
   lengthOther: "",
   density: "100% (Regular - Standard)",
+  densityOther: "",
   curl: "",
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
@@ -285,6 +286,9 @@ export default function OrderHairSystem() {
           system.clientName,
           system.color,
           system.length === "Other" ? system.lengthOther : system.length,
+          system.density === "Custom density"
+            ? system.densityOther
+            : system.density,
         ]),
       ].every((value) => value.trim())
     )
@@ -474,6 +478,17 @@ export default function OrderHairSystem() {
                       }
                       options={choices.density}
                     />
+                    {system.density === "Custom density" && (
+                      <Field
+                        label="Custom density"
+                        id={`density-other-${index}`}
+                        value={system.densityOther}
+                        onChange={(value) =>
+                          updateSystem(index, "densityOther", value)
+                        }
+                        placeholder="e.g. 95%"
+                      />
+                    )}
                     <CurlPicker
                       value={system.curl}
                       onChange={(value) => updateSystem(index, "curl", value)}
@@ -644,7 +659,9 @@ export default function OrderHairSystem() {
                           : system.length}
                       </dd>
                       <dd className="text-muted-foreground">
-                        {system.density} · {system.curl}
+                        {system.density === "Custom density"
+                          ? system.densityOther
+                          : system.density} · {system.curl}
                       </dd>
                     </div>
                   ))}
