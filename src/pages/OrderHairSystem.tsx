@@ -29,15 +29,18 @@ const choices = {
   density: ["80%", "90%", "100% (regular)", "110%", "Custom density"],
   curl: ["Straight", "Body wave", "Loose curl", "Medium curl", "Custom curl"],
 };
-const emptyForm = {
-  barberName: "",
-  barberPhone: "",
+const emptySystem = () => ({
   clientName: "",
   color: "",
   length: "Standard",
   lengthOther: "",
   density: "100% (regular)",
   curl: "Straight",
+});
+type SystemDetails = ReturnType<typeof emptySystem>;
+const emptyForm = {
+  barberName: "",
+  barberPhone: "",
   quantity: "1",
   shippingSpeed: "Standard",
   address1: "",
@@ -118,22 +121,26 @@ export default function OrderHairSystem() {
   const { user } = useAuth();
   const [step, setStep] = useState<Step>("specs");
   const [form, setForm] = useState<Form>(emptyForm);
+  const [systems, setSystems] = useState<SystemDetails[]>([emptySystem()]);
   const [sending, setSending] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const change = (key: keyof Form) => (value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
   const progress = step === "specs" ? 1 : step === "delivery" ? 2 : 3;
-  const selectedLength =
-    form.length === "Other" ? form.lengthOther : form.length;
+  const updateSystem = (index: number, key: keyof SystemDetails, value: string) =>
+    setSystems((current) => current.map((system, itemIndex) => itemIndex === index ? { ...system, [key]: value } : system));
+  const setTotalQuantity = (value: string) => {
+    const quantity = Math.max(1, Math.min(12, Number.parseInt(value.replace(/[^0-9]/g, ""), 10) || 1));
+    setForm((current) => ({ ...current, quantity: String(quantity) }));
+    setSystems((current) => Array.from({ length: quantity }, (_, index) => current[index] || emptySystem()));
+  };
 
   const goDelivery = () => {
     if (
       ![
         form.barberName,
         form.barberPhone,
-        form.clientName,
-        form.color,
-        selectedLength,
+        ...systems.flatMap((system) => [system.clientName, system.color, system.length === "Other" ? system.lengthOther : system.length]),
       ].every((value) => value.trim())
     )
       return toast.error(
@@ -155,10 +162,10 @@ export default function OrderHairSystem() {
     try {
       const { data, error } = await supabase.functions.invoke(
         "submit-hair-system-order",
-        { body: { ...form, length: selectedLength } },
+        { body: { ...form, systems } },
       );
       if (error) throw error;
-      setOrderId(data?.order_id || null);
+      setOrderId(data?.order_ids?.[0] || data?.order_id || null);
       setStep("success");
     } catch (error: any) {
       toast.error(
@@ -261,61 +268,26 @@ export default function OrderHairSystem() {
                     placeholder="(555) 555-5555"
                     type="tel"
                   />
-                  <div className="sm:col-span-2">
-                    <Field
-                      label="Client name"
-                      id="client-name"
-                      value={form.clientName}
-                      onChange={change("clientName")}
-                      placeholder="Name used to identify this order"
-                    />
-                  </div>
                 </div>
                 <Field
-                  label="Hair color"
-                  id="color"
-                  value={form.color}
-                  onChange={change("color")}
-                  placeholder="Example: #1B, ash brown, or color match"
-                />
-          <Picker
-            label="Hair length"
-            value={form.length}
-            onChange={change("length")}
-            options={["Standard", "Other"]}
-          />
-          {form.length === "Other" && (
-            <Field
-              label="Other hair length"
-              id="length-other"
-              value={form.lengthOther}
-              onChange={change("lengthOther")}
-              placeholder="Write the requested length"
-            />
-          )}
-                <Picker
-                  label="Density"
-                  value={form.density}
-                  onChange={change("density")}
-                  options={choices.density}
-                />
-                <Picker
-                  label="Curl pattern"
-                  value={form.curl}
-                  onChange={change("curl")}
-                  options={choices.curl}
-                />
-                <Field
-                  label="Quantity"
-                  id="quantity"
+                  label="Total quantity"
+                  id="total-quantity"
                   value={form.quantity}
-                  onChange={(value) =>
-                    change("quantity")(
-                      value.replace(/[^0-9]/g, "").slice(0, 2) || "1",
-                    )
-                  }
+                  onChange={setTotalQuantity}
                   type="text"
                 />
+                <p className="-mt-3 text-xs text-muted-foreground">Each system is entered and sent as its own order.</p>
+                {systems.map((system, index) => (
+                  <div key={index} className="space-y-5 rounded-xl border border-border bg-background/30 p-4 sm:p-5">
+                    <h3 className="font-semibold text-primary">Order {index + 1}</h3>
+                    <Field label="Client name" id={`client-name-${index}`} value={system.clientName} onChange={(value) => updateSystem(index, "clientName", value)} placeholder="Name used to identify this order" />
+                    <Field label="Hair color" id={`color-${index}`} value={system.color} onChange={(value) => updateSystem(index, "color", value)} placeholder="Example: #1B, ash brown, or color match" />
+                    <Picker label="Hair length" value={system.length} onChange={(value) => updateSystem(index, "length", value)} options={["Standard", "Other"]} />
+                    {system.length === "Other" && <Field label="Other hair length" id={`length-other-${index}`} value={system.lengthOther} onChange={(value) => updateSystem(index, "lengthOther", value)} placeholder="Write the requested length" />}
+                    <Picker label="Density" value={system.density} onChange={(value) => updateSystem(index, "density", value)} options={choices.density} />
+                    <Picker label="Curl pattern" value={system.curl} onChange={(value) => updateSystem(index, "curl", value)} options={choices.curl} />
+                  </div>
+                ))}
               </div>
               <div className="mt-8 flex justify-end">
                 <Button className="gold-gradient" onClick={goDelivery}>
@@ -453,28 +425,9 @@ export default function OrderHairSystem() {
             </div>
             <div className="grid gap-5 md:grid-cols-2">
               <div className="glass-card rounded-xl p-5">
-                <h3 className="font-semibold">System</h3>
-                <dl className="mt-4 space-y-3 text-sm">
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Client</dt>
-                    <dd className="font-medium">{form.clientName}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Color / length</dt>
-                    <dd className="text-right font-medium">
-                  {form.color} · {selectedLength}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Density / curl</dt>
-                    <dd className="text-right font-medium">
-                      {form.density} · {form.curl}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Quantity</dt>
-                    <dd className="text-right font-medium">{form.quantity}</dd>
-                  </div>
+                <h3 className="font-semibold">{systems.length} system{systems.length === 1 ? "" : "s"}</h3>
+                <dl className="mt-4 space-y-4 text-sm">
+                  {systems.map((system, index) => <div key={index} className="border-b border-border pb-3 last:border-0 last:pb-0"><dt className="font-semibold text-primary">Order {index + 1}</dt><dd className="mt-1 font-medium">{system.clientName}</dd><dd className="text-muted-foreground">{system.color} · {system.length === "Other" ? system.lengthOther : system.length}</dd><dd className="text-muted-foreground">{system.density} · {system.curl}</dd></div>)}
                 </dl>
                 <Button
                   variant="ghost"
