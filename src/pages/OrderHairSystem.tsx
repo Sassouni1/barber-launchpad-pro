@@ -208,6 +208,28 @@ function CurlPicker({
         <div className="grid grid-cols-4 gap-2 sm:gap-3">
           <button
             type="button"
+            aria-label="Standard — 3.0 CM"
+            aria-pressed={value === "Standard"}
+            onClick={() => {
+              onChange("Standard");
+              setShowChoices(false);
+            }}
+            className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Standard" ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
+          >
+            <span
+              aria-hidden="true"
+              className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
+              style={{
+                backgroundImage: `url(${hairCurls})`,
+                backgroundPosition: "0% 100%",
+              }}
+            />
+            <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
+              Standard
+            </span>
+          </button>
+          <button
+            type="button"
             aria-label="Wave unit"
             aria-pressed={value === "Wave unit"}
             onClick={() => {
