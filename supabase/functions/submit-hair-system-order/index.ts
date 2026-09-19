@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     if (authError || !user?.email) throw new Error("You must be signed in to submit an order.");
 
     const body = await req.json();
-    const required = ["barberName", "barberPhone", "clientName", "systemType", "baseSize", "color", "length", "address1", "city", "state", "zip"];
+    const required = ["barberName", "barberPhone", "clientName", "color", "length", "address1", "city", "state", "zip"];
     if (required.some((field) => !text(body[field]))) throw new Error("Please complete every required order field.");
     if (!/^\d{5}(-\d{4})?$/.test(text(body.zip, 10))) throw new Error("Please provide a valid ZIP code.");
 
@@ -30,11 +30,11 @@ Deno.serve(async (req) => {
       order_type: "hair_system",
       submitted_at: new Date().toISOString(),
       full_name: text(body.barberName, 100), phone: text(body.barberPhone, 40),
-      "Client Name": text(body.clientName, 100), "Lace or Skin": text(body.systemType, 100), "Base Size": text(body.baseSize, 50),
+      "Client Name": text(body.clientName, 100),
       "Choose Color": text(body.color, 100), "Hair Length": text(body.length, 50),
       "Choose Density if Needed (75%-110%) - 100% is regular": text(body.density, 100),
       "Curl Pattern — only if needed": text(body.curl, 100), Parting: text(body.parting, 100), quantity,
-      line_items: [{ title: `${text(body.systemType, 100)} Hair System`, quantity }],
+      line_items: [{ title: "Hair System", quantity }],
       shipping: { method: text(body.shippingSpeed, 100), address_1: text(body.address1, 150), address_2: text(body.address2, 150), city: text(body.city, 100), state: text(body.state, 2).toUpperCase(), zip: text(body.zip, 10) },
       notes: text(body.notes, 2000),
     };
