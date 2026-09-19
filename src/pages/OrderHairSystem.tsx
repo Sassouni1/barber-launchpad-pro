@@ -35,27 +35,24 @@ import waveUnit from "@/assets/wave-unit.png";
 type Step = "specs" | "delivery" | "review" | "success";
 const choices = {
   density: ["100% (Regular - Standard)", "80%", "90%", "110%", "Custom density"],
-  curl: [
-    "0.4 CM",
-    "0.6 CM",
-    "1.0 CM",
-    "1.2 CM",
-    "1.5 CM",
-    "1.8 CM",
-    "2.0 CM",
-    "2.5 CM",
-    "2.8 CM",
-    "Extra straight",
-  ],
 };
-const curlGuideChoices = choices.curl.map((value, index) => {
-  const imageIndex = value === "Extra straight" ? 10 : index;
-  return {
-    value,
-    column: imageIndex % 3,
-    row: Math.floor(imageIndex / 3),
-  };
-});
+const curlGuideChoices = [
+  { value: "Extra straight", imageIndex: 10 },
+  { value: "Standard", imageIndex: 9 },
+  { value: "2.8 CM", imageIndex: 8 },
+  { value: "2.5 CM", imageIndex: 7 },
+  { value: "2.0 CM", imageIndex: 6 },
+  { value: "1.8 CM", imageIndex: 5 },
+  { value: "1.5 CM", imageIndex: 4 },
+  { value: "1.2 CM", imageIndex: 3 },
+  { value: "1.0 CM", imageIndex: 2 },
+  { value: "0.6 CM", imageIndex: 1 },
+  { value: "0.4 CM", imageIndex: 0 },
+].map(({ value, imageIndex }) => ({
+  value,
+  column: imageIndex % 3,
+  row: Math.floor(imageIndex / 3),
+}));
 const emptySystem = () => ({
   clientName: "",
   color: "",
@@ -206,28 +203,33 @@ function CurlPicker({
       </button>
       {showChoices && (
         <div className="grid grid-cols-4 gap-2 sm:gap-3">
-          <button
-            type="button"
-            aria-label="Standard — 3.0 CM"
-            aria-pressed={value === "Standard"}
-            onClick={() => {
-              onChange("Standard");
-              setShowChoices(false);
-            }}
-            className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Standard" ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
-          >
-            <span
-              aria-hidden="true"
-              className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
-              style={{
-                backgroundImage: `url(${hairCurls})`,
-                backgroundPosition: "0% 100%",
+          {curlGuideChoices.map(({ value: option, column, row }) => (
+            <button
+              key={option}
+              type="button"
+              aria-label={option === "Standard" ? "Standard — 3.0 CM" : option}
+              aria-pressed={value === option}
+              onClick={() => {
+                onChange(option);
+                setShowChoices(false);
               }}
-            />
-            <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
-              Standard
-            </span>
-          </button>
+              className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
+            >
+              <span
+                aria-hidden="true"
+                className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${hairCurls})`,
+                  backgroundPosition: `${column * 50}% ${row * (100 / 3)}%`,
+                }}
+              />
+              {(option === "Extra straight" || option === "Standard") && (
+                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
+                  {option === "Standard" ? "Standard" : "Extra straight"}
+                </span>
+              )}
+            </button>
+          ))}
           <button
             type="button"
             aria-label="Wave unit"
@@ -247,33 +249,6 @@ function CurlPicker({
               Wave unit
             </span>
           </button>
-          {curlGuideChoices.map(({ value: option, column, row }) => (
-            <button
-              key={option}
-              type="button"
-              aria-label={option}
-              aria-pressed={value === option}
-              onClick={() => {
-                onChange(option);
-                setShowChoices(false);
-              }}
-              className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
-            >
-              <span
-                aria-hidden="true"
-                className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
-                style={{
-                  backgroundImage: `url(${hairCurls})`,
-                  backgroundPosition: `${column * 50}% ${row * (100 / 3)}%`,
-                }}
-              />
-              {option === "Extra straight" && (
-                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
-                  Extra straight
-                </span>
-              )}
-            </button>
-          ))}
         </div>
       )}
     </div>
