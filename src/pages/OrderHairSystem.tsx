@@ -22,12 +22,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import hairColors from "@/assets/hair-colors.jpg";
-import hairCurls from "@/assets/hair-curls.jpg";
+import hairCurls from "@/assets/hair-curl-patterns.png";
 
 type Step = "specs" | "delivery" | "review" | "success";
 const choices = {
   density: ["80%", "90%", "100% (regular)", "110%", "Custom density"],
-  curl: ["0.4 CM", "0.6 CM", "1.0 CM", "1.2 CM", "1.5 CM", "1.8 CM", "2.0 CM", "2.5 CM", "2.8 CM"],
+  curl: ["0.4 CM", "0.6 CM", "1.0 CM", "1.2 CM", "1.5 CM", "1.8 CM", "2.0 CM", "2.5 CM", "2.8 CM", "3.0 CM", "Straight"],
 };
 const emptySystem = () => ({
   clientName: "",
