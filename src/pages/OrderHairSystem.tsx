@@ -757,7 +757,7 @@ export default function OrderHairSystem() {
           <DialogHeader className="pr-8">
             <DialogTitle>{referenceGuide?.label}</DialogTitle>
           </DialogHeader>
-          <div className="max-h-[80vh] overflow-auto rounded-lg bg-white">
+          <div className="max-h-[68vh] overflow-auto rounded-lg bg-white">
             {referenceGuide && (
               <img
                 src={referenceGuide.src}
@@ -766,6 +766,13 @@ export default function OrderHairSystem() {
               />
             )}
           </div>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setReferenceGuide(null)}
+          >
+            Close guide
+          </Button>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
