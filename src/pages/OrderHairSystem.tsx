@@ -568,7 +568,7 @@ export default function OrderHairSystem() {
                       onChange={(value) => updateSystem(index, "length", value)}
                       options={["Standard", "Other"]}
                       displayOption={(value) =>
-                        value === "Standard" ? "Standard · $200" : value
+                        value === "Standard" ? 'Standard Men’s · 5" · $200' : value
                       }
                     />
                     {system.length === "Other" && (
