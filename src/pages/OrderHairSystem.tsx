@@ -253,8 +253,8 @@ function HairColorPicker({
                     className="h-full w-full object-contain"
                   />
                   {value === `#${color}` && (
-                    <span className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-                      <Check className="h-5 w-5" aria-hidden="true" />
+                    <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm ring-1 ring-white">
+                      <Check className="h-3 w-3" aria-hidden="true" />
                     </span>
                   )}
                 </button>
