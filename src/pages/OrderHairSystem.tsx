@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -49,6 +49,11 @@ const choices = {
     "Straight",
   ],
 };
+const systemProducts = [
+  { value: "standard", label: "Standard system", detail: "$200" },
+  { value: "custom_14", label: 'Custom unit · 14" hair', detail: "$262.50" },
+  { value: "custom_16", label: 'Custom unit · 16" hair', detail: "$315" },
+];
 const curlGuideChoices = choices.curl.map((value, index) => ({
   value,
   column: index % 3,
@@ -61,6 +66,8 @@ const emptySystem = () => ({
   lengthOther: "",
   density: "100% (Regular - Standard)",
   densityOther: "",
+  product: "standard",
+  customAddOn: false,
   curl: "",
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
@@ -249,13 +256,37 @@ export default function OrderHairSystem() {
   const updateSystem = (
     index: number,
     key: keyof SystemDetails,
-    value: string,
+    value: SystemDetails[keyof SystemDetails],
   ) =>
     setSystems((current) =>
       current.map((system, itemIndex) =>
         itemIndex === index ? { ...system, [key]: value } : system,
       ),
     );
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    if (params.get("checkout") === "cancelled") {
+      toast.message("Checkout cancelled. Your order was not submitted.");
+      window.history.replaceState({}, "", "/order-hair-system");
+      return;
+    }
+    if (params.get("checkout") !== "success" || !sessionId) return;
+    setSending(true);
+    supabase.functions
+      .invoke("hair-system-checkout", { body: { action: "verify", sessionId } })
+      .then(({ data, error }) => {
+        if (error) throw error;
+        if (!data?.paid) throw new Error("Stripe has not confirmed payment yet.");
+        setOrderId(data.order_ids?.[0] || null);
+        setStep("success");
+        window.history.replaceState({}, "", "/order-hair-system");
+      })
+      .catch((error: Error) =>
+        toast.error(error.message || "We could not verify your Stripe payment yet."),
+      )
+      .finally(() => setSending(false));
+  }, []);
   const setTotalQuantity = (value: string) => {
     const digits = value.replace(/[^0-9]/g, "").slice(0, 2);
     if (!digits) {
@@ -310,12 +341,12 @@ export default function OrderHairSystem() {
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke(
-        "submit-hair-system-order",
+        "hair-system-checkout",
         { body: { ...form, systems } },
       );
       if (error) throw error;
-      setOrderId(data?.order_ids?.[0] || data?.order_id || null);
-      setStep("success");
+      if (!data?.url) throw new Error("Unable to start secure checkout.");
+      window.location.assign(data.url);
     } catch (error: any) {
       toast.error(
         error.message || "Unable to send the order. Please try again.",
@@ -453,6 +484,26 @@ export default function OrderHairSystem() {
                       onChange={(value) => updateSystem(index, "color", value)}
                       placeholder="e.g. #1B, #2, or #350"
                     />
+                    <div className="space-y-2">
+                      <Label>System product</Label>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        {systemProducts.map((product) => (
+                          <button
+                            key={product.value}
+                            type="button"
+                            onClick={() => updateSystem(index, "product", product.value)}
+                            className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                              system.product === product.value
+                                ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                                : "border-border bg-background hover:border-primary/40"
+                            }`}
+                          >
+                            <span className="block">{product.label}</span>
+                            <span className="mt-1 block text-xs text-muted-foreground">{product.detail}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <Picker
                       label="Hair length"
                       value={system.length}
@@ -489,6 +540,18 @@ export default function OrderHairSystem() {
                         placeholder="e.g. 95%"
                       />
                     )}
+                    <button
+                      type="button"
+                      aria-pressed={system.customAddOn}
+                      onClick={() => updateSystem(index, "customAddOn", !system.customAddOn)}
+                      className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                        system.customAddOn
+                          ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                          : "border-border bg-background hover:border-primary/40"
+                      }`}
+                    >
+                      Custom add on · $50
+                    </button>
                     <CurlPicker
                       value={system.curl}
                       onChange={(value) => updateSystem(index, "curl", value)}
@@ -630,9 +693,9 @@ export default function OrderHairSystem() {
                   <ClipboardCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">Review before sending</h2>
+                  <h2 className="text-xl font-bold">Review before checkout</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    This goes into the Barber Launch queue as a pending request.
+                    You'll securely pay for the selected system and add-ons next.
                   </p>
                 </div>
               </div>
@@ -724,7 +787,7 @@ export default function OrderHairSystem() {
                 onClick={submit}
                 disabled={sending}
               >
-                {sending ? "Sending order…" : "Send order request"}
+                {sending ? "Opening secure checkout…" : "Continue to secure payment"}
                 <PackageCheck className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -737,10 +800,10 @@ export default function OrderHairSystem() {
               <CheckCircle2 className="h-9 w-9" />
             </div>
             <h2 className="mt-5 text-2xl font-bold">
-              Your order request is in
+              Your paid order is in
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-              We saved the complete system and delivery details in the Barber
+              We saved your paid system and delivery details in the Barber
               Launch order queue for review.
             </p>
             {orderId && (
