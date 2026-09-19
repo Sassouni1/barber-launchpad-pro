@@ -90,6 +90,7 @@ function Field({
   placeholder,
   type = "text",
   optional = false,
+  onBlur,
 }: {
   label: string;
   id: string;
@@ -98,6 +99,7 @@ function Field({
   placeholder?: string;
   type?: string;
   optional?: boolean;
+  onBlur?: () => void;
 }) {
   return (
     <div>
@@ -111,6 +113,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         type={type}
+        onBlur={onBlur}
         className="mt-2"
       />
     </div>
@@ -130,9 +133,19 @@ export default function OrderHairSystem() {
   const updateSystem = (index: number, key: keyof SystemDetails, value: string) =>
     setSystems((current) => current.map((system, itemIndex) => itemIndex === index ? { ...system, [key]: value } : system));
   const setTotalQuantity = (value: string) => {
-    const quantity = Math.max(1, Math.min(12, Number.parseInt(value.replace(/[^0-9]/g, ""), 10) || 1));
+    const digits = value.replace(/[^0-9]/g, "").slice(0, 2);
+    if (!digits) {
+      setForm((current) => ({ ...current, quantity: "" }));
+      return;
+    }
+    const quantity = Math.max(1, Math.min(12, Number.parseInt(digits, 10)));
     setForm((current) => ({ ...current, quantity: String(quantity) }));
     setSystems((current) => Array.from({ length: quantity }, (_, index) => current[index] || emptySystem()));
+  };
+  const normalizeTotalOrders = () => {
+    if (form.quantity) return;
+    setForm((current) => ({ ...current, quantity: "1" }));
+    setSystems((current) => current.slice(0, 1));
   };
 
   const goDelivery = () => {
@@ -274,6 +287,7 @@ export default function OrderHairSystem() {
                   id="total-orders"
                   value={form.quantity}
                   onChange={setTotalQuantity}
+                  onBlur={normalizeTotalOrders}
                   type="text"
                 />
                 <p className="-mt-3 text-xs text-muted-foreground">Each system is entered and sent as its own order.</p>
