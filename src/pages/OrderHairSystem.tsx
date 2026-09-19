@@ -45,15 +45,17 @@ const choices = {
     "2.0 CM",
     "2.5 CM",
     "2.8 CM",
-    "3.0 CM",
-    "Straight",
+    "Extra straight",
   ],
 };
-const curlGuideChoices = choices.curl.map((value, index) => ({
-  value,
-  column: index % 3,
-  row: Math.floor(index / 3),
-}));
+const curlGuideChoices = choices.curl.map((value, index) => {
+  const imageIndex = value === "Extra straight" ? 10 : index;
+  return {
+    value,
+    column: imageIndex % 3,
+    row: Math.floor(imageIndex / 3),
+  };
+});
 const emptySystem = () => ({
   clientName: "",
   color: "",
@@ -135,9 +137,20 @@ function CurlPicker({
           onChange("Standard");
           setShowChoices(false);
         }}
-        className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border-2 bg-white p-2 text-left text-black shadow-sm transition ${value === "Standard" ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
       >
-        <span>Standard</span>
+        <span
+          aria-hidden="true"
+          className="h-16 w-16 shrink-0 rounded-lg bg-[length:300%_400%] bg-no-repeat"
+          style={{
+            backgroundImage: `url(${hairCurls})`,
+            backgroundPosition: "0% 100%",
+          }}
+        />
+        <span className="flex-1">
+          <span className="block text-sm font-semibold">Standard</span>
+          <span className="block text-xs text-black/65">3.0 CM</span>
+        </span>
         {value === "Standard" && (
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Check className="h-3 w-3" aria-hidden="true" />
@@ -193,7 +206,7 @@ function CurlPicker({
                 onChange(option);
                 setShowChoices(false);
               }}
-              className={`overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
+              className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
             >
               <span
                 aria-hidden="true"
@@ -203,6 +216,11 @@ function CurlPicker({
                   backgroundPosition: `${column * 50}% ${row * (100 / 3)}%`,
                 }}
               />
+              {option === "Extra straight" && (
+                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
+                  Extra straight
+                </span>
+              )}
             </button>
           ))}
         </div>
