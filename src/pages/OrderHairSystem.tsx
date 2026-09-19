@@ -54,7 +54,7 @@ const emptySystem = () => ({
   length: "Standard",
   lengthOther: "",
   density: "100% (regular)",
-  curl: "Standard",
+  curl: "",
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
 const emptyForm = {
@@ -127,12 +127,13 @@ function CurlPicker({
       <button
         type="button"
         aria-expanded={showChoices}
-        onClick={() => setShowChoices((current) => !current)}
+        onClick={() => {
+          if (value === "Standard") onChange("");
+          setShowChoices((current) => !current);
+        }}
         className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-left text-sm font-medium transition-colors hover:border-primary/40"
       >
-        <span>
-          {value === "Standard" ? "Curl pattern" : `Curl pattern: ${value}`}
-        </span>
+        <span>{value ? `Curl pattern: ${value}` : "Curl pattern"}</span>
         <ChevronDown
           className={`h-4 w-4 transition-transform ${showChoices ? "rotate-180" : ""}`}
         />
