@@ -62,6 +62,17 @@ Deno.serve(async (req) => {
         const { error } = await admin.from("orders").update({ status: "pending" }).in("id", orderIds);
         if (error) throw error;
       }
+      if (session.metadata?.save_card === "true" && typeof session.customer === "string" && typeof session.payment_intent === "string") {
+        const intentResponse = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(session.payment_intent)}`, { headers: { Authorization: `Bearer ${secret}` } });
+        const intent = await intentResponse.json();
+        if (intentResponse.ok && typeof intent.payment_method === "string") {
+          const customerForm = new URLSearchParams({ "invoice_settings[default_payment_method]": intent.payment_method });
+          const customerResponse = await fetch(`https://api.stripe.com/v1/customers/${encodeURIComponent(session.customer)}`, { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded" }, body: customerForm });
+          if (!customerResponse.ok) throw new Error("Unable to save this payment method.");
+          const { error } = await admin.from("member_billing_profiles").upsert({ customer_id: user.id, stripe_customer_id: session.customer, default_payment_method_id: intent.payment_method }, { onConflict: "customer_id" });
+          if (error) throw error;
+        }
+      }
       return new Response(JSON.stringify({ paid: true, order_ids: orderIds }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -83,14 +94,48 @@ Deno.serve(async (req) => {
     }))).select("id");
     if (insertError || !orders?.length) throw insertError || new Error("Unable to prepare the order.");
 
+    let { data: billing, error: billingError } = await admin
+      .from("member_billing_profiles")
+      .select("stripe_customer_id")
+      .eq("customer_id", user.id)
+      .maybeSingle();
+    if (billingError) throw billingError;
+    if (!billing) {
+      const { data, error } = await admin
+        .from("member_billing_profiles")
+        .insert({ customer_id: user.id })
+        .select("stripe_customer_id")
+        .single();
+      if (error) throw error;
+      billing = data;
+    }
+    let stripeCustomerId = billing.stripe_customer_id as string | null;
+    if (!stripeCustomerId) {
+      const customerForm = new URLSearchParams({
+        email: user.email.toLowerCase(),
+        name: buyerName,
+        "metadata[barber_launch_member_id]": user.id,
+      });
+      const customerResponse = await fetch("https://api.stripe.com/v1/customers", { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded" }, body: customerForm });
+      const customer = await customerResponse.json();
+      if (!customerResponse.ok || !customer.id) throw new Error("Unable to prepare your secure payment profile.");
+      stripeCustomerId = customer.id;
+      const { error } = await admin.from("member_billing_profiles")
+        .update({ stripe_customer_id: stripeCustomerId })
+        .eq("customer_id", user.id);
+      if (error) throw error;
+    }
+
     const origin = new URL(req.headers.get("origin") || "https://member.thebarberlaunch.com").origin;
-    const form = new URLSearchParams({ mode: "payment", customer_email: user.email.toLowerCase(), success_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${origin}/order-hair-system?checkout=cancelled`, "metadata[user_id]": user.id, "metadata[order_ids]": orders.map((order) => order.id).join(","), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][order_ids]": orders.map((order) => order.id).join(",") });
+    const saveCard = body.saveCardForFutureOrders === true;
+    const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer: stripeCustomerId, return_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, "metadata[user_id]": user.id, "metadata[order_ids]": orders.map((order) => order.id).join(","), "metadata[save_card]": String(saveCard), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][order_ids]": orders.map((order) => order.id).join(","), "payment_intent_data[metadata][save_card]": String(saveCard) });
+    if (saveCard) form.append("payment_intent_data[setup_future_usage]", "off_session");
     const pairs = lineItems(systems, text(body.shippingSpeed));
     for (let index = 0; index < pairs.length; index += 2) form.append(pairs[index], pairs[index + 1]);
     const checkoutResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `hair_checkout_${orders.map((order) => order.id).join("_")}` }, body: form });
     const session = await checkoutResponse.json();
-    if (!checkoutResponse.ok || !session.url) throw new Error("Unable to start secure checkout.");
-    return new Response(JSON.stringify({ url: session.url }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!checkoutResponse.ok || !session.client_secret) throw new Error("Unable to start secure payment.");
+    return new Response(JSON.stringify({ clientSecret: session.client_secret }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unable to start checkout." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import {
   ArrowLeft,
   ArrowRight,
@@ -32,7 +34,14 @@ import hairColors from "@/assets/hair-colors.jpg";
 import hairCurls from "@/assets/hair-curl-patterns.png";
 import waveUnit from "@/assets/wave-unit.png";
 
-type Step = "specs" | "delivery" | "review" | "success";
+type Step = "specs" | "delivery" | "review" | "payment" | "success";
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+let stripePromise: Promise<Stripe | null> | null = null;
+const getStripe = () => {
+  if (!STRIPE_PUBLISHABLE_KEY) return null;
+  if (!stripePromise) stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
+  return stripePromise;
+};
 const choices = {
   density: ["100% Standard", "Custom"],
   customDensity: ["80%", "90%", "110%"],
@@ -283,6 +292,8 @@ export default function OrderHairSystem() {
   const [systems, setSystems] = useState<SystemDetails[]>([emptySystem()]);
   const [sending, setSending] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
+  const [saveCardForFutureOrders, setSaveCardForFutureOrders] = useState(false);
   const [referenceGuide, setReferenceGuide] = useState<{
     src: string;
     label: string;
@@ -441,14 +452,18 @@ export default function OrderHairSystem() {
   };
   const submit = async () => {
     if (!user) return;
+    if (!getStripe()) {
+      toast.error("Card payments are not configured yet. Please contact Barber Launch support.");
+      return;
+    }
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke(
         "hair-system-checkout",
-        { body: { ...form, systems } },
+        { body: { ...form, systems, saveCardForFutureOrders } },
       );
       if (error) throw error;
-      if (!data?.url) throw new Error("Unable to start secure checkout.");
+      if (!data?.clientSecret) throw new Error("Unable to start secure payment.");
       await supabase
         .from("profiles")
         .update({
@@ -457,7 +472,8 @@ export default function OrderHairSystem() {
           phone: form.barberPhone.trim(),
         })
         .eq("id", user.id);
-      window.location.assign(data.url);
+      setPaymentClientSecret(data.clientSecret);
+      setStep("payment");
     } catch (error: any) {
       toast.error(
         error.message || "Unable to send the order. Please try again.",
@@ -466,6 +482,14 @@ export default function OrderHairSystem() {
       setSending(false);
     }
   };
+  const paymentOptions = paymentClientSecret
+    ? {
+        clientSecret: paymentClientSecret,
+        onComplete: () => {
+          // Stripe redirects to the verified success URL after payment.
+        },
+      }
+    : null;
 
   return (
     <DashboardLayout>
@@ -886,10 +910,18 @@ export default function OrderHairSystem() {
                 </Button>
               </div>
             </div>
-            <p className="rounded-xl border border-primary/25 bg-primary/5 p-4 text-sm text-muted-foreground">
-              Sending this request does not charge a card. The team reviews the
-              specifications and confirms the next step.
-            </p>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-background/40 p-4 text-sm">
+              <input
+                type="checkbox"
+                checked={saveCardForFutureOrders}
+                onChange={(event) => setSaveCardForFutureOrders(event.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <span>
+                <span className="block font-medium text-foreground">Save this card for future Barber Launch system orders</span>
+                <span className="mt-1 block text-muted-foreground">Optional. You can use or change your saved card on your next order.</span>
+              </span>
+            </label>
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
               <Button variant="outline" onClick={() => setStep("delivery")}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
@@ -899,8 +931,45 @@ export default function OrderHairSystem() {
                 onClick={submit}
                 disabled={sending}
               >
-                {sending ? "Opening secure checkout…" : "Continue to secure payment"}
+                {sending ? "Preparing secure payment…" : "Continue to secure payment"}
                 <PackageCheck className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {step === "payment" && (
+          <section className="mx-auto max-w-3xl space-y-5">
+            <div className="glass-card rounded-xl p-5 sm:p-7">
+              <div className="flex gap-3">
+                <div className="h-fit rounded-xl bg-primary/15 p-3 text-primary">
+                  <PackageCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Secure payment</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Pay securely without leaving your Barber Launch membership.
+                    {saveCardForFutureOrders ? " This card will be saved for future system orders." : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-5 overflow-hidden rounded-xl bg-white p-2">
+                {paymentOptions && getStripe() && (
+                  <EmbeddedCheckoutProvider stripe={getStripe()!} options={paymentOptions}>
+                    <EmbeddedCheckout className="min-h-[540px]" />
+                  </EmbeddedCheckoutProvider>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 -ml-2 text-primary"
+                onClick={() => {
+                  setPaymentClientSecret(null);
+                  setStep("review");
+                }}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to review
               </Button>
             </div>
           </section>
