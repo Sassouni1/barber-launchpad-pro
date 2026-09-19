@@ -18,13 +18,14 @@ const choices = {
   curl: ["Straight", "Body wave", "Loose curl", "Medium curl", "Custom curl"],
 };
 const hairColorOptions = [
-  ["#1", "#111111"], ["#1A", "#1b1516"], ["#1B", "#2a1d1b"], ["#1B10", "#362827"], ["#1B20", "#41302c"], ["#1B30", "#4b3c38"],
-  ["#2", "#2d211d"], ["#210", "#3b2b27"], ["#220", "#46352e"], ["#230", "#55433a"], ["#240", "#625044"], ["#250", "#706056"],
-  ["#3", "#4b3529"], ["#310", "#594035"], ["#320", "#664c3f"], ["#330", "#755949"], ["#340", "#806753"], ["#350", "#8c7765"],
-  ["#4", "#60493d"], ["#410", "#705547"], ["#420", "#7d6250"], ["#430", "#8c705d"], ["#440", "#997f6a"], ["#450", "#a68e78"],
-  ["#5", "#76573e"], ["#520", "#88674b"], ["#540", "#9a795b"], ["#6", "#9a7855"], ["#620", "#a98b69"], ["#640", "#b6a07f"],
-  ["#7", "#b18a60"], ["#720", "#bea075"], ["#740", "#cbb590"], ["#17", "#b8a27f"], ["#1720", "#c1b292"], ["#1740", "#cbbda5"],
-  ["#18", "#625d46"], ["#22", "#e5c485"], ["#60", "#dedede"],
+  "#1", "#1A", "#1B", "#1B10", "#1B20", "#1B30",
+  "#1B40", "#1B50", "#1B65", "#1B80", "#2", "#210",
+  "#220", "#230", "#240", "#250", "#3", "#310",
+  "#320", "#330", "#340", "#350", "#365", "#380",
+  "#4", "#410", "#420", "#430", "#440", "#450",
+  "#4ASH", "#5", "#520", "#540", "#565", "#580",
+  "#6", "#620", "#640", "#7", "#720", "#740",
+  "#7ASH", "#17", "#1720", "#1740", "#18", "#22", "#60",
 ] as const;
 const emptyForm = {
   barberName: "", barberPhone: "", clientName: "", color: "", length: "", density: "100% (regular)", curl: "Straight", quantity: "1", shippingSpeed: "Standard", address1: "", address2: "", city: "", state: "", zip: "", notes: "",
@@ -40,7 +41,7 @@ function Field({ label, id, value, onChange, placeholder, type = "text", optiona
 }
 
 function HairColorPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return <div className="space-y-3"><div className="flex items-center justify-between gap-3"><Label>Hair color</Label><span className="text-xs text-muted-foreground">{value ? `Selected: ${value}` : "Select a shade"}</span></div><div className="gap-2" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>{hairColorOptions.map(([code, shade]) => <button key={code} type="button" onClick={() => onChange(code)} aria-label={`Select hair color ${code}`} className={`flex min-w-0 flex-col items-center justify-center rounded-lg border text-[10px] font-bold transition-all ${value === code ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-card" : "border-border hover:border-primary/60"}`} style={{ aspectRatio: "1 / 1", backgroundColor: shade, color: ["#1", "#1A", "#1B", "#1B10", "#1B20", "#2", "#210", "#220", "#230"].includes(code) ? "#ffffff" : "#16120f" }}>{code}</button>)}</div><p className="text-xs text-muted-foreground">Choose the numbered shade that best matches the hair color guide.</p></div>;
+  return <div className="space-y-3"><div className="flex items-center justify-between gap-3"><Label>Hair color</Label><span className="text-xs text-muted-foreground">{value ? `Selected: ${value}` : "Select a shade"}</span></div><div className="gap-2" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>{hairColorOptions.map((code, index) => <button key={code} type="button" onClick={() => onChange(code)} aria-label={`Select hair color ${code}`} className={`min-w-0 rounded-lg border bg-white transition-all ${value === code ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-card" : "border-border hover:border-primary/60"}`} style={{ aspectRatio: "1.17 / 1", backgroundImage: `url(${hairColors})`, backgroundPosition: `${(index % 6) * 20}% ${Math.floor(index / 6) * (100 / 7)}%`, backgroundRepeat: "no-repeat", backgroundSize: "600% 800%" }} />)}</div><p className="text-xs text-muted-foreground">Choose the exact numbered shade shown in the hair color guide.</p></div>;
 }
 
 export default function OrderHairSystem() {
