@@ -95,16 +95,18 @@ function Picker({
   onChange,
   options,
   displayOption,
+  invalid = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: string[];
   displayOption?: (option: string) => string;
+  invalid?: boolean;
 }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label className={invalid ? "text-destructive" : undefined}>{label}</Label>
       <div className="grid gap-2 sm:grid-cols-2">
         {options.map((option) => (
           <button
@@ -112,7 +114,7 @@ function Picker({
             type="button"
             aria-pressed={value === option}
             onClick={() => onChange(option)}
-            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === option ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
+            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === option ? "border-primary bg-primary/10 ring-1 ring-primary/30" : invalid ? "border-destructive bg-destructive/5" : "border-border bg-background hover:border-primary/40"}`}
           >
             <span>{displayOption?.(option) ?? option}</span>
             {value === option && (
@@ -256,6 +258,7 @@ function Field({
   type = "text",
   optional = false,
   onBlur,
+  invalid = false,
 }: {
   label: string;
   id: string;
@@ -265,10 +268,11 @@ function Field({
   type?: string;
   optional?: boolean;
   onBlur?: () => void;
+  invalid?: boolean;
 }) {
   return (
     <div>
-      <Label htmlFor={id}>
+      <Label htmlFor={id} className={invalid ? "text-destructive" : undefined}>
         {label}
         {optional && <span className="text-muted-foreground"> (optional)</span>}
       </Label>
@@ -279,7 +283,8 @@ function Field({
         placeholder={placeholder}
         type={type}
         onBlur={onBlur}
-        className="mt-2"
+        aria-invalid={invalid}
+        className={`mt-2 ${invalid ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : ""}`}
       />
     </div>
   );
@@ -294,6 +299,7 @@ export default function OrderHairSystem() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [saveCardForFutureOrders, setSaveCardForFutureOrders] = useState(false);
+  const [attemptedStep, setAttemptedStep] = useState<"specs" | "delivery" | null>(null);
   const [referenceGuide, setReferenceGuide] = useState<{
     src: string;
     label: string;
@@ -421,33 +427,30 @@ export default function OrderHairSystem() {
     setForm((current) => ({ ...current, quantity: "1" }));
     setSystems((current) => current.slice(0, 1));
   };
+  const missingSystemDetails = (system: SystemDetails) =>
+    !system.color.trim() ||
+    (system.length === "Other" && !system.lengthOther.trim()) ||
+    (system.density === "Custom" && !system.densityOther.trim());
+  const missingDeliveryDetails =
+    ![form.address1, form.city, form.state].every((value) => value.trim()) ||
+    !/^\d{5}(-\d{4})?$/.test(form.zip.trim());
 
   const goDelivery = () => {
-    if (
-      ![
-        form.barberFirstName,
-        form.barberLastName,
-        form.barberPhone,
-        ...systems.flatMap((system) => [
-          system.color,
-          system.length === "Other" ? system.lengthOther : system.length,
-          system.density === "Custom"
-            ? system.densityOther
-            : system.density,
-        ]),
-      ].every((value) => value.trim())
-    )
+    if (!form.barberFirstName.trim() || !form.barberLastName.trim() || !form.barberPhone.trim() || systems.some(missingSystemDetails)) {
+      setAttemptedStep("specs");
       return toast.error(
         "Add your first name, last name, phone number, color, and length first.",
       );
+    }
+    setAttemptedStep(null);
     setStep("delivery");
   };
   const goReview = () => {
-    if (
-      ![form.address1, form.city, form.state].every((value) => value.trim()) ||
-      !/^\d{5}(-\d{4})?$/.test(form.zip.trim())
-    )
+    if (missingDeliveryDetails) {
+      setAttemptedStep("delivery");
       return toast.error("Add a complete shipping address and valid ZIP code.");
+    }
+    setAttemptedStep(null);
     setStep("review");
   };
   const submit = async () => {
@@ -574,6 +577,7 @@ export default function OrderHairSystem() {
                     value={form.barberFirstName}
                     onChange={change("barberFirstName")}
                     placeholder="First name"
+                    invalid={attemptedStep === "specs" && !form.barberFirstName.trim()}
                   />
                   <Field
                     label="Your last name"
@@ -581,6 +585,7 @@ export default function OrderHairSystem() {
                     value={form.barberLastName}
                     onChange={change("barberLastName")}
                     placeholder="Last name"
+                    invalid={attemptedStep === "specs" && !form.barberLastName.trim()}
                   />
                   <Field
                     label="Your phone"
@@ -589,6 +594,7 @@ export default function OrderHairSystem() {
                     onChange={change("barberPhone")}
                     placeholder="(555) 555-5555"
                     type="tel"
+                    invalid={attemptedStep === "specs" && !form.barberPhone.trim()}
                   />
                   <Field
                     label="Your email"
@@ -631,6 +637,7 @@ export default function OrderHairSystem() {
                       value={system.color}
                       onChange={(value) => updateSystem(index, "color", value)}
                       placeholder="e.g. #1B, #2, or #350"
+                      invalid={attemptedStep === "specs" && !system.color.trim()}
                     />
                     <Picker
                       label="Hair length"
@@ -649,6 +656,7 @@ export default function OrderHairSystem() {
                           updateSystem(index, "lengthOther", value)
                         }
                         options={['14" hair', '16" hair']}
+                        invalid={attemptedStep === "specs" && !system.lengthOther.trim()}
                       />
                     )}
                     {system.length === "Other" && system.lengthOther === '14" hair' && (
@@ -677,6 +685,7 @@ export default function OrderHairSystem() {
                           updateSystem(index, "densityOther", value)
                         }
                         options={choices.customDensity}
+                        invalid={attemptedStep === "specs" && !system.densityOther.trim()}
                       />
                     )}
                     <CurlPicker
@@ -763,6 +772,7 @@ export default function OrderHairSystem() {
                 value={form.address1}
                 onChange={change("address1")}
                 placeholder="123 Main Street"
+                invalid={attemptedStep === "delivery" && !form.address1.trim()}
               />
               <Field
                 label="Apartment, suite, etc."
@@ -777,6 +787,7 @@ export default function OrderHairSystem() {
                   id="city"
                   value={form.city}
                   onChange={change("city")}
+                  invalid={attemptedStep === "delivery" && !form.city.trim()}
                 />
                 <Field
                   label="State"
@@ -786,6 +797,7 @@ export default function OrderHairSystem() {
                     change("state")(value.toUpperCase().slice(0, 2))
                   }
                   placeholder="CA"
+                  invalid={attemptedStep === "delivery" && !form.state.trim()}
                 />
                 <Field
                   label="ZIP code"
@@ -793,6 +805,7 @@ export default function OrderHairSystem() {
                   value={form.zip}
                   onChange={change("zip")}
                   placeholder="90210"
+                  invalid={attemptedStep === "delivery" && !/^\d{5}(-\d{4})?$/.test(form.zip.trim())}
                 />
               </div>
               <div>
