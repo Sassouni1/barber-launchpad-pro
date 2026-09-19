@@ -34,7 +34,8 @@ import waveUnit from "@/assets/wave-unit.png";
 
 type Step = "specs" | "delivery" | "review" | "success";
 const choices = {
-  density: ["100% (Regular - Standard)", "80%", "90%", "110%", "Custom density"],
+  density: ["Standard", "Custom"],
+  customDensity: ["80%", "90%", "110%"],
 };
 const curlGuideChoices = [
   { value: "Standard", imageIndex: 9 },
@@ -58,7 +59,7 @@ const emptySystem = () => ({
   color: "",
   length: "Standard",
   lengthOther: "",
-  density: "100% (Regular - Standard)",
+  density: "Standard",
   densityOther: "",
   curl: "Standard",
 });
@@ -379,7 +380,7 @@ export default function OrderHairSystem() {
         ...systems.flatMap((system) => [
           system.color,
           system.length === "Other" ? system.lengthOther : system.length,
-          system.density === "Custom density"
+          system.density === "Custom"
             ? system.densityOther
             : system.density,
         ]),
@@ -593,15 +594,14 @@ export default function OrderHairSystem() {
                       }
                       options={choices.density}
                     />
-                    {system.density === "Custom density" && (
-                      <Field
-                        label="Custom density"
-                        id={`density-other-${index}`}
+                    {system.density === "Custom" && (
+                      <Picker
+                        label="Choose custom density"
                         value={system.densityOther}
                         onChange={(value) =>
                           updateSystem(index, "densityOther", value)
                         }
-                        placeholder="e.g. 95%"
+                        options={choices.customDensity}
                       />
                     )}
                     <CurlPicker
@@ -783,7 +783,7 @@ export default function OrderHairSystem() {
                           : system.length}
                       </dd>
                       <dd className="text-muted-foreground">
-                        {system.density === "Custom density"
+                        {system.density === "Custom"
                           ? system.densityOther
                           : system.density} · {system.curl}
                       </dd>

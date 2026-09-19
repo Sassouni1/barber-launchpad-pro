@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     };
     const { data: orders, error: insertError } = await admin.from("orders").insert(systems.map((system, index) => ({
       user_id: user.id, customer_email: user.email.toLowerCase(), customer_name: buyerName, status: "pending_payment",
-      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom density" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100) },
+      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100) },
     }))).select("id");
     if (insertError || !orders?.length) throw insertError || new Error("Unable to prepare the order.");
 
