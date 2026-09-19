@@ -130,45 +130,39 @@ function CurlPicker({
   return (
     <div className="space-y-2">
       <Label>Curl pattern</Label>
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Standard preselected</p>
-        <button
-          type="button"
-          aria-label="Standard — 3.0 CM"
-          aria-pressed={value === "Standard"}
-          onClick={() => {
-            onChange("Standard");
-            setShowChoices(false);
-          }}
-          className={`relative block w-[calc((100%-1.5rem)/4)] overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Standard" ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
-        >
-          <span
-            aria-hidden="true"
-            className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
-            style={{
-              backgroundImage: `url(${hairCurls})`,
-              backgroundPosition: "0% 100%",
-            }}
-          />
-          {value === "Standard" && (
+      {value === "Standard" && (
+        <div className="space-y-1.5">
+          <p className="text-2xl font-bold tracking-tight text-primary">Straight hair — standard</p>
+          <button
+            type="button"
+            aria-label="Standard — 3.0 CM"
+            aria-pressed
+            onClick={() => setShowChoices(false)}
+            className="relative block w-[calc((100%-1.5rem)/4)] overflow-hidden rounded-xl border-2 border-primary bg-white text-left shadow-sm ring-2 ring-primary/30"
+          >
+            <span
+              aria-hidden="true"
+              className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
+              style={{
+                backgroundImage: `url(${hairCurls})`,
+                backgroundPosition: "0% 100%",
+              }}
+            />
             <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Check className="h-3 w-3" aria-hidden="true" />
             </span>
-          )}
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
       <button
         type="button"
         aria-expanded={showChoices}
-        onClick={() => {
-          if (value === "Standard") onChange("");
-          setShowChoices((current) => !current);
-        }}
+        onClick={() => setShowChoices((current) => !current)}
         className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value && value !== "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
       >
         <span>
           {value && value !== "Standard"
-            ? `Curl pattern: ${value}`
+            ? `Selected: ${value} · Tap to change`
             : "Choose another curl pattern"}
         </span>
         <ChevronDown
