@@ -152,7 +152,7 @@ function CurlPicker({
               />
               {(value === "Extra straight" || value === "Standard") && (
                 <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
-                  {value === "Standard" ? "Standard" : "Extra straight · 4.0 CM"}
+                  {value === "Standard" ? "Standard · 3.0 CM" : "Extra straight · 4.0 CM"}
                 </span>
               )}
             </>
@@ -185,7 +185,7 @@ function CurlPicker({
                 onChange(option);
                 setShowChoices(false);
               }}
-              className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
+              className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-[3px] border-primary ring-2 ring-primary/40" : "border-transparent hover:border-primary/50"}`}
             >
               <span
                 aria-hidden="true"
@@ -197,7 +197,12 @@ function CurlPicker({
               />
               {(option === "Extra straight" || option === "Standard") && (
                 <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
-                  {option === "Standard" ? "Standard" : "Extra straight · 4.0 CM"}
+                  {option === "Standard" ? "Standard · 3.0 CM" : "Extra straight · 4.0 CM"}
+                </span>
+              )}
+              {value === option && (
+                <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                  <Check className="h-3 w-3" aria-hidden="true" />
                 </span>
               )}
             </button>
@@ -210,7 +215,7 @@ function CurlPicker({
               onChange("Wave unit");
               setShowChoices(false);
             }}
-            className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Wave unit" ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
+            className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Wave unit" ? "border-[3px] border-primary ring-2 ring-primary/40" : "border-transparent hover:border-primary/50"}`}
           >
             <img
               src={waveUnit}
@@ -220,6 +225,11 @@ function CurlPicker({
             <span className="block px-1 pb-2 pt-1 text-center text-xs font-normal text-black">
               Wave unit
             </span>
+            {value === "Wave unit" && (
+              <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                <Check className="h-3 w-3" aria-hidden="true" />
+              </span>
+            )}
           </button>
         </div>
       )}
