@@ -11,6 +11,7 @@ import {
   Clock,
   Settings,
   Loader2,
+  ArrowLeft,
   ArrowRight,
   ChevronDown,
   Star,
@@ -1855,12 +1856,21 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
           )}
         >
           <div className="glass-card rounded-xl p-4 mb-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="-ml-2 h-7 gap-1.5 px-2 text-muted-foreground hover:text-primary"
+                  onClick={() => navigate(`/courses/${courseType}?choose=1`)}
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Back to all training
+                </Button>
                 <h1 className="font-display text-xl font-bold gold-text">
                   {pageTitle}
                 </h1>
-                <p className="text-muted-foreground text-sm mt-1">
+                <p className="text-muted-foreground text-sm">
                   Select a module to continue
                 </p>
               </div>
