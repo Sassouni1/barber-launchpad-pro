@@ -621,9 +621,9 @@ export default function OrderHairSystem() {
                   </div>
                 ))}
               </div>
-              <div className="mt-8 flex justify-end">
-                <Button className="gold-gradient" onClick={goDelivery}>
-                  Continue to delivery <ArrowRight className="ml-2 h-4 w-4" />
+              <div className="mt-8 flex">
+                <Button className="gold-gradient h-14 w-full text-base sm:ml-auto sm:w-auto" onClick={goDelivery}>
+                  Continue to delivery <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
             </div>
