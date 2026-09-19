@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import hairColors from "@/assets/hair-colors.jpg";
 import hairCurls from "@/assets/hair-curl-patterns.png";
+import waveUnit from "@/assets/wave-unit.png";
 
 type Step = "specs" | "delivery" | "review" | "success";
 const choices = {
@@ -138,6 +139,25 @@ function CurlPicker({
       </button>
       {showChoices && (
         <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          <button
+            type="button"
+            aria-label="Wave unit"
+            aria-pressed={value === "Wave unit"}
+            onClick={() => {
+              onChange("Wave unit");
+              setShowChoices(false);
+            }}
+            className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Wave unit" ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
+          >
+            <img
+              src={waveUnit}
+              alt=""
+              className="block aspect-[0.81] w-full object-cover"
+            />
+            <span className="absolute inset-x-0 bottom-0 bg-black/75 px-1 py-1 text-center text-xs font-semibold text-white">
+              Wave unit
+            </span>
+          </button>
           {curlGuideChoices.map(({ value: option, column, row }) => (
             <button
               key={option}
