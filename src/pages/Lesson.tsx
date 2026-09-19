@@ -1080,14 +1080,15 @@ export default function Lesson() {
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              size="icon"
+              className="gap-2"
               onClick={() =>
                 navigate(
                   `/courses/${courseType || (module as any).courseCategory || "hair-system"}`,
                 )
               }
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
+              Back to all training
             </Button>
             <div>
               <p
