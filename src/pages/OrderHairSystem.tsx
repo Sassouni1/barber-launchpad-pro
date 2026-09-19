@@ -637,7 +637,6 @@ export default function OrderHairSystem() {
               <div className="grid grid-cols-2 items-start gap-3 lg:grid-cols-1">
                 {[
                   [hairColors, "Hair color guide"],
-                  [hairCurls, "Curl pattern guide"],
                 ].map(([src, label]) => (
                   <button
                     type="button"
