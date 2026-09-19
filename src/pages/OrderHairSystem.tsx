@@ -151,7 +151,7 @@ function CurlPicker({
                 }}
               />
               {(value === "Extra straight" || value === "Standard") && (
-                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
+                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-normal text-black">
                   {value === "Standard" ? "Standard · 3.0 CM" : "Extra straight · 4.0 CM"}
                 </span>
               )}
@@ -195,7 +195,7 @@ function CurlPicker({
                 }}
               />
               {(option === "Extra straight" || option === "Standard") && (
-                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
+                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-normal text-black">
                   {option === "Standard" ? "Standard · 3.0 CM" : "Extra straight · 4.0 CM"}
                 </span>
               )}
