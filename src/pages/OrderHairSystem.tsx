@@ -152,7 +152,11 @@ function CurlPicker({
         }}
         className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value && value !== "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
       >
-        <span>{value ? `Curl pattern: ${value}` : "Curl pattern"}</span>
+        <span>
+          {value && value !== "Standard"
+            ? `Curl pattern: ${value}`
+            : "Choose another curl pattern"}
+        </span>
         <ChevronDown
           className={`h-4 w-4 transition-transform ${showChoices ? "rotate-180" : ""}`}
         />
