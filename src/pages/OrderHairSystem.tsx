@@ -20,6 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import hairColors from "@/assets/hair-colors.jpg";
@@ -232,6 +238,10 @@ export default function OrderHairSystem() {
   const [systems, setSystems] = useState<SystemDetails[]>([emptySystem()]);
   const [sending, setSending] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [referenceGuide, setReferenceGuide] = useState<{
+    src: string;
+    label: string;
+  } | null>(null);
   const change = (key: keyof Form) => (value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
   const progress = step === "specs" ? 1 : step === "delivery" ? 2 : 3;
@@ -489,8 +499,15 @@ export default function OrderHairSystem() {
                   [hairColors, "Hair color guide"],
                   [hairCurls, "Curl pattern guide"],
                 ].map(([src, label]) => (
-                  <div
-                    className="overflow-hidden rounded-xl border border-border bg-card"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReferenceGuide({
+                        src: src as string,
+                        label: label as string,
+                      })
+                    }
+                    className="overflow-hidden rounded-xl border border-border bg-card text-left transition hover:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     key={label as string}
                   >
                     <img
@@ -499,7 +516,7 @@ export default function OrderHairSystem() {
                       className="h-auto w-full object-contain"
                     />
                     <p className="p-3 text-xs font-medium">{label as string}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </aside>
@@ -732,6 +749,25 @@ export default function OrderHairSystem() {
           </section>
         )}
       </main>
+      <Dialog
+        open={Boolean(referenceGuide)}
+        onOpenChange={(open) => !open && setReferenceGuide(null)}
+      >
+        <DialogContent className="max-w-4xl p-3 sm:p-5">
+          <DialogHeader className="pr-8">
+            <DialogTitle>{referenceGuide?.label}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[80vh] overflow-auto rounded-lg bg-white">
+            {referenceGuide && (
+              <img
+                src={referenceGuide.src}
+                alt={referenceGuide.label}
+                className="h-auto w-full"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
