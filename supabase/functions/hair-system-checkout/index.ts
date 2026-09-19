@@ -20,8 +20,14 @@ function lineItems(systems: Record<string, unknown>[], shippingSpeed: string) {
   const quantities = new Map<string, number>();
   const add = (price: string) => quantities.set(price, (quantities.get(price) || 0) + 1);
   for (const system of systems) {
-    const product = text(system.product);
-    add(product === "custom_14" ? priceIds.custom14 : product === "custom_16" ? priceIds.custom16 : priceIds.standard);
+    const customLength = text(system.lengthOther);
+    add(
+      system.length === "Other" && customLength === '14" hair'
+        ? priceIds.custom14
+        : system.length === "Other" && customLength === '16" hair'
+          ? priceIds.custom16
+          : priceIds.standard,
+    );
     const curl = text(system.curl);
     if (curl === "Wave unit") add(priceIds.wave);
     else if (curl && curl !== "Standard") add(priceIds.curly);
@@ -74,7 +80,7 @@ Deno.serve(async (req) => {
     };
     const { data: orders, error: insertError } = await admin.from("orders").insert(systems.map((system, index) => ({
       user_id: user.id, customer_email: user.email.toLowerCase(), customer_name: text(body.barberName, 100), status: "pending_payment",
-      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom density" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100), product: text(system.product, 30), custom_add_on: system.customAddOn === true },
+      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom density" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100), custom_add_on: system.customAddOn === true },
     }))).select("id");
     if (insertError || !orders?.length) throw insertError || new Error("Unable to prepare the order.");
 

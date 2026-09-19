@@ -49,11 +49,6 @@ const choices = {
     "Straight",
   ],
 };
-const systemProducts = [
-  { value: "standard", label: "Standard system", detail: "$200" },
-  { value: "custom_14", label: 'Custom unit · 14" hair', detail: "$262.50" },
-  { value: "custom_16", label: 'Custom unit · 16" hair', detail: "$315" },
-];
 const curlGuideChoices = choices.curl.map((value, index) => ({
   value,
   column: index % 3,
@@ -66,7 +61,6 @@ const emptySystem = () => ({
   lengthOther: "",
   density: "100% (Regular - Standard)",
   densityOther: "",
-  product: "standard",
   customAddOn: false,
   curl: "",
 });
@@ -484,26 +478,6 @@ export default function OrderHairSystem() {
                       onChange={(value) => updateSystem(index, "color", value)}
                       placeholder="e.g. #1B, #2, or #350"
                     />
-                    <div className="space-y-2">
-                      <Label>System product</Label>
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        {systemProducts.map((product) => (
-                          <button
-                            key={product.value}
-                            type="button"
-                            onClick={() => updateSystem(index, "product", product.value)}
-                            className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
-                              system.product === product.value
-                                ? "border-primary bg-primary/10 ring-1 ring-primary/30"
-                                : "border-border bg-background hover:border-primary/40"
-                            }`}
-                          >
-                            <span className="block">{product.label}</span>
-                            <span className="mt-1 block text-xs text-muted-foreground">{product.detail}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                     <Picker
                       label="Hair length"
                       value={system.length}
@@ -511,15 +485,24 @@ export default function OrderHairSystem() {
                       options={["Standard", "Other"]}
                     />
                     {system.length === "Other" && (
-                      <Field
-                        label="Other hair length"
-                        id={`length-other-${index}`}
+                      <Picker
+                        label="Custom hair length"
                         value={system.lengthOther}
                         onChange={(value) =>
                           updateSystem(index, "lengthOther", value)
                         }
-                        placeholder="Write the requested length"
+                        options={['14" hair', '16" hair']}
                       />
+                    )}
+                    {system.length === "Other" && system.lengthOther === '14" hair' && (
+                      <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+                        Custom 14-inch unit added to this order · $262.50
+                      </p>
+                    )}
+                    {system.length === "Other" && system.lengthOther === '16" hair' && (
+                      <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+                        Custom 16-inch unit added to this order · $315
+                      </p>
                     )}
                     <Picker
                       label="Density"
@@ -556,6 +539,16 @@ export default function OrderHairSystem() {
                       value={system.curl}
                       onChange={(value) => updateSystem(index, "curl", value)}
                     />
+                    {system.curl === "Wave unit" && (
+                      <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+                        Wave Unit added to this order · $50
+                      </p>
+                    )}
+                    {system.curl && system.curl !== "Standard" && system.curl !== "Wave unit" && (
+                      <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+                        Curly added to this order · $30
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
