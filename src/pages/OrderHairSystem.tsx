@@ -131,7 +131,7 @@ function CurlPicker({
           if (value === "Standard") onChange("");
           setShowChoices((current) => !current);
         }}
-        className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-left text-sm font-medium transition-colors hover:border-primary/40"
+        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value && value !== "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
       >
         <span>{value ? `Curl pattern: ${value}` : "Curl pattern"}</span>
         <ChevronDown
