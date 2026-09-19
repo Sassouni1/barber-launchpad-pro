@@ -184,7 +184,7 @@ function CurlPicker({
               onClick={() => {
                 onChange(option);
               }}
-              className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-[3px] border-primary ring-2 ring-primary/40" : "border-transparent hover:border-primary/50"}`}
+              className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-4 border-primary ring-2 ring-primary/40" : "border-transparent hover:border-primary/50"}`}
             >
               <span
                 aria-hidden="true"
@@ -213,7 +213,7 @@ function CurlPicker({
             onClick={() => {
               onChange("Wave unit");
             }}
-            className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Wave unit" ? "border-[3px] border-primary ring-2 ring-primary/40" : "border-transparent hover:border-primary/50"}`}
+            className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Wave unit" ? "border-4 border-primary ring-2 ring-primary/40" : "border-transparent hover:border-primary/50"}`}
           >
             <img
               src={waveUnit}
