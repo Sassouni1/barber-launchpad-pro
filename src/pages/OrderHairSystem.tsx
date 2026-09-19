@@ -37,8 +37,8 @@ const choices = {
   density: ["100% (Regular - Standard)", "80%", "90%", "110%", "Custom density"],
 };
 const curlGuideChoices = [
-  { value: "Extra straight", imageIndex: 10 },
   { value: "Standard", imageIndex: 9 },
+  { value: "Extra straight", imageIndex: 10 },
   { value: "2.8 CM", imageIndex: 8 },
   { value: "2.5 CM", imageIndex: 7 },
   { value: "2.0 CM", imageIndex: 6 },
@@ -122,37 +122,13 @@ function CurlPicker({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [showChoices, setShowChoices] = useState(false);
+  const [showChoices, setShowChoices] = useState(true);
   const selectedCurl = curlGuideChoices.find((choice) => choice.value === value);
 
   return (
     <div className="space-y-2">
       <Label>Curl pattern</Label>
-      {value === "Standard" && (
-        <div className="space-y-1.5">
-          <p className="text-2xl font-bold tracking-tight text-primary">Straight hair — standard</p>
-          <button
-            type="button"
-            aria-label="Standard — 3.0 CM"
-            aria-pressed
-            onClick={() => setShowChoices(false)}
-            className="relative block w-[calc((100%-1.5rem)/4)] overflow-hidden rounded-xl border-2 border-primary bg-white text-left shadow-sm ring-2 ring-primary/30"
-          >
-            <span
-              aria-hidden="true"
-              className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
-              style={{
-                backgroundImage: `url(${hairCurls})`,
-                backgroundPosition: "0% 100%",
-              }}
-            />
-            <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <Check className="h-3 w-3" aria-hidden="true" />
-            </span>
-          </button>
-        </div>
-      )}
-      {value && value !== "Standard" && (
+      {!showChoices && value && (
         <button
           type="button"
           aria-label={`Selected curl: ${value}`}
@@ -174,9 +150,9 @@ function CurlPicker({
                   backgroundPosition: `${selectedCurl.column * 50}% ${selectedCurl.row * (100 / 3)}%`,
                 }}
               />
-              {value === "Extra straight" && (
+              {(value === "Extra straight" || value === "Standard") && (
                 <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
-                  Extra straight
+                  {value === "Standard" ? "Standard" : "Extra straight · 4.0 CM"}
                 </span>
               )}
             </>
@@ -186,21 +162,17 @@ function CurlPicker({
           </span>
         </button>
       )}
-      <button
-        type="button"
-        aria-expanded={showChoices}
-        onClick={() => setShowChoices((current) => !current)}
-        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value && value !== "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
-      >
-        <span>
-          {value && value !== "Standard"
-            ? "Change curl pattern"
-            : "Choose another curl pattern"}
-        </span>
-        <ChevronDown
-          className={`h-4 w-4 transition-transform ${showChoices ? "rotate-180" : ""}`}
-        />
-      </button>
+      {!showChoices && (
+        <button
+          type="button"
+          aria-expanded={false}
+          onClick={() => setShowChoices(true)}
+          className="flex w-full items-center justify-between rounded-lg border border-primary bg-primary/10 px-3 py-2.5 text-left text-sm font-medium transition-colors"
+        >
+          <span>Change curl pattern</span>
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      )}
       {showChoices && (
         <div className="grid grid-cols-4 gap-2 sm:gap-3">
           {curlGuideChoices.map(({ value: option, column, row }) => (
@@ -225,7 +197,7 @@ function CurlPicker({
               />
               {(option === "Extra straight" || option === "Standard") && (
                 <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
-                  {option === "Standard" ? "Standard" : "Extra straight"}
+                  {option === "Standard" ? "Standard" : "Extra straight · 4.0 CM"}
                 </span>
               )}
             </button>
