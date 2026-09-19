@@ -152,9 +152,9 @@ function CurlPicker({
             <img
               src={waveUnit}
               alt=""
-              className="block aspect-[0.81] w-full object-cover"
+              className="block aspect-square w-full object-contain p-1"
             />
-            <span className="absolute inset-x-0 bottom-0 bg-black/75 px-1 py-1 text-center text-xs font-semibold text-white">
+            <span className="block px-1 pb-2 pt-1 text-center text-xs font-normal text-black">
               Wave unit
             </span>
           </button>
