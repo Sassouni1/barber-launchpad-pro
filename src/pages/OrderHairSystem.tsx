@@ -111,6 +111,7 @@ function CurlPicker({
 
   return (
     <div className="space-y-2">
+      <Label>Curl pattern</Label>
       <button
         type="button"
         aria-pressed={value === "Standard"}
@@ -120,7 +121,7 @@ function CurlPicker({
         }}
         className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
       >
-        Standard Curl Pattern
+        Standard
       </button>
       <button
         type="button"
