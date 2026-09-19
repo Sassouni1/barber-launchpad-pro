@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
       "Client Name": text(body.clientName, 100),
       "Choose Color": text(body.color, 100), "Hair Length": text(body.length, 50),
       "Choose Density if Needed (75%-110%) - 100% is regular": text(body.density, 100),
-      "Curl Pattern — only if needed": text(body.curl, 100), Parting: text(body.parting, 100), quantity,
+      "Curl Pattern — only if needed": text(body.curl, 100), quantity,
       line_items: [{ title: "Hair System", quantity }],
       shipping: { method: text(body.shippingSpeed, 100), address_1: text(body.address1, 150), address_2: text(body.address2, 150), city: text(body.city, 100), state: text(body.state, 2).toUpperCase(), zip: text(body.zip, 10) },
       notes: text(body.notes, 2000),
