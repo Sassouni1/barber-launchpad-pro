@@ -183,7 +183,6 @@ function CurlPicker({
               aria-pressed={value === option}
               onClick={() => {
                 onChange(option);
-                setShowChoices(false);
               }}
               className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === option ? "border-[3px] border-primary ring-2 ring-primary/40" : "border-transparent hover:border-primary/50"}`}
             >
@@ -213,7 +212,6 @@ function CurlPicker({
             aria-pressed={value === "Wave unit"}
             onClick={() => {
               onChange("Wave unit");
-              setShowChoices(false);
             }}
             className={`relative overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Wave unit" ? "border-[3px] border-primary ring-2 ring-primary/40" : "border-transparent hover:border-primary/50"}`}
           >
