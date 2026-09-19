@@ -126,6 +126,7 @@ function CurlPicker({
   onChange: (value: string) => void;
 }) {
   const [showChoices, setShowChoices] = useState(false);
+  const selectedCurl = curlGuideChoices.find((choice) => choice.value === value);
 
   return (
     <div className="space-y-2">
@@ -154,6 +155,40 @@ function CurlPicker({
           </button>
         </div>
       )}
+      {value && value !== "Standard" && (
+        <button
+          type="button"
+          aria-label={`Selected curl: ${value}`}
+          onClick={() => setShowChoices(true)}
+          className="relative block w-[calc((100%-1.5rem)/4)] overflow-hidden rounded-xl border-2 border-primary bg-white text-left shadow-sm ring-2 ring-primary/30"
+        >
+          {value === "Wave unit" ? (
+            <>
+              <img src={waveUnit} alt="" className="block aspect-square w-full object-contain p-1" />
+              <span className="block px-1 pb-2 pt-1 text-center text-xs font-medium text-black">Wave unit</span>
+            </>
+          ) : selectedCurl ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${hairCurls})`,
+                  backgroundPosition: `${selectedCurl.column * 50}% ${selectedCurl.row * (100 / 3)}%`,
+                }}
+              />
+              {value === "Extra straight" && (
+                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-medium text-black">
+                  Extra straight
+                </span>
+              )}
+            </>
+          ) : null}
+          <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Check className="h-3 w-3" aria-hidden="true" />
+          </span>
+        </button>
+      )}
       <button
         type="button"
         aria-expanded={showChoices}
@@ -162,7 +197,7 @@ function CurlPicker({
       >
         <span>
           {value && value !== "Standard"
-            ? `Selected: ${value} · Tap to change`
+            ? "Change curl pattern"
             : "Choose another curl pattern"}
         </span>
         <ChevronDown
