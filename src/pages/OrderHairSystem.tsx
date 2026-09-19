@@ -62,7 +62,7 @@ const emptySystem = () => ({
   density: "100% (Regular - Standard)",
   densityOther: "",
   customAddOn: false,
-  curl: "",
+  curl: "Standard",
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
 const emptyForm = {
@@ -98,10 +98,16 @@ function Picker({
           <button
             key={option}
             type="button"
+            aria-pressed={value === option}
             onClick={() => onChange(option)}
-            className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === option ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
+            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === option ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
           >
-            {option}
+            <span>{option}</span>
+            {value === option && (
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <Check className="h-3 w-3" aria-hidden="true" />
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -128,9 +134,14 @@ function CurlPicker({
           onChange("Standard");
           setShowChoices(false);
         }}
-        className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
+        className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
       >
-        Standard
+        <span>Standard</span>
+        {value === "Standard" && (
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Check className="h-3 w-3" aria-hidden="true" />
+          </span>
+        )}
       </button>
       <button
         type="button"
