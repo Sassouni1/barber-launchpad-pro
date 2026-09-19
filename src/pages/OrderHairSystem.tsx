@@ -130,33 +130,33 @@ function CurlPicker({
   return (
     <div className="space-y-2">
       <Label>Curl pattern</Label>
-      <button
-        type="button"
-        aria-pressed={value === "Standard"}
-        onClick={() => {
-          onChange("Standard");
-          setShowChoices(false);
-        }}
-        className={`flex w-full items-center justify-between gap-3 rounded-xl border-2 bg-white p-2 text-left text-black shadow-sm transition ${value === "Standard" ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
-      >
-        <span
-          aria-hidden="true"
-          className="h-16 w-16 shrink-0 rounded-lg bg-[length:300%_400%] bg-no-repeat"
-          style={{
-            backgroundImage: `url(${hairCurls})`,
-            backgroundPosition: "0% 100%",
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground">Standard preselected</p>
+        <button
+          type="button"
+          aria-label="Standard — 3.0 CM"
+          aria-pressed={value === "Standard"}
+          onClick={() => {
+            onChange("Standard");
+            setShowChoices(false);
           }}
-        />
-        <span className="flex-1">
-          <span className="block text-sm font-semibold">Standard</span>
-          <span className="block text-xs text-black/65">3.0 CM</span>
-        </span>
-        {value === "Standard" && (
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Check className="h-3 w-3" aria-hidden="true" />
-          </span>
-        )}
-      </button>
+          className={`relative block w-[calc((100%-1.5rem)/4)] overflow-hidden rounded-xl border-2 bg-white text-left shadow-sm transition ${value === "Standard" ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-primary/50"}`}
+        >
+          <span
+            aria-hidden="true"
+            className="block aspect-[0.81] bg-[length:300%_400%] bg-no-repeat"
+            style={{
+              backgroundImage: `url(${hairCurls})`,
+              backgroundPosition: "0% 100%",
+            }}
+          />
+          {value === "Standard" && (
+            <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Check className="h-3 w-3" aria-hidden="true" />
+            </span>
+          )}
+        </button>
+      </div>
       <button
         type="button"
         aria-expanded={showChoices}
