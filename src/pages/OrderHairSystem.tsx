@@ -325,13 +325,46 @@ export default function OrderHairSystem() {
         barberEmail: current.barberEmail || account?.email || user.email || "",
       }));
     };
+    const fillFromPastOrder = (orderDetails: unknown) => {
+      if (!orderDetails || typeof orderDetails !== "object" || Array.isArray(orderDetails)) return;
+      const details = orderDetails as Record<string, unknown>;
+      const shipping = details.shipping;
+      const shippingDetails = shipping && typeof shipping === "object" && !Array.isArray(shipping)
+        ? shipping as Record<string, unknown>
+        : {};
+      const savedName = stringValue(details.full_name);
+      const [savedFirstName = "", ...savedLastName] = savedName.split(/\s+/).filter(Boolean);
+      setForm((current) => ({
+        ...current,
+        barberFirstName: current.barberFirstName || savedFirstName,
+        barberLastName: current.barberLastName || savedLastName.join(" "),
+        barberPhone: current.barberPhone || stringValue(details.phone),
+        barberEmail: current.barberEmail || stringValue(details.email),
+        address1: current.address1 || stringValue(shippingDetails.address_1),
+        address2: current.address2 || stringValue(shippingDetails.address_2),
+        city: current.city || stringValue(shippingDetails.city),
+        state: current.state || stringValue(shippingDetails.state),
+        zip: current.zip || stringValue(shippingDetails.zip),
+      }));
+    };
     fillFromAccount();
-    supabase
-      .from("profiles")
-      .select("full_name, email, phone")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => fillFromAccount(data));
+    Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, email, phone")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("orders")
+        .select("order_details")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]).then(([profileResult, orderResult]) => {
+      fillFromAccount(profileResult.data);
+      fillFromPastOrder(orderResult.data?.order_details);
+    });
   }, [user?.id]);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -416,6 +449,14 @@ export default function OrderHairSystem() {
       );
       if (error) throw error;
       if (!data?.url) throw new Error("Unable to start secure checkout.");
+      await supabase
+        .from("profiles")
+        .update({
+          full_name: `${form.barberFirstName.trim()} ${form.barberLastName.trim()}`.trim(),
+          email: form.barberEmail.trim(),
+          phone: form.barberPhone.trim(),
+        })
+        .eq("id", user.id);
       window.location.assign(data.url);
     } catch (error: any) {
       toast.error(
