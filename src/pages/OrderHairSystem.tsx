@@ -27,7 +27,7 @@ import hairCurls from "@/assets/hair-curls.jpg";
 type Step = "specs" | "delivery" | "review" | "success";
 const choices = {
   density: ["80%", "90%", "100% (regular)", "110%", "Custom density"],
-  curl: ["Straight", "Body wave", "Loose curl", "Medium curl", "Custom curl"],
+  curl: ["0.4 CM", "0.6 CM", "1.0 CM", "1.2 CM", "1.5 CM", "1.8 CM", "2.0 CM", "2.5 CM", "2.8 CM"],
 };
 const emptySystem = () => ({
   clientName: "",
@@ -35,7 +35,7 @@ const emptySystem = () => ({
   length: "Standard",
   lengthOther: "",
   density: "100% (regular)",
-  curl: "Straight",
+  curl: "0.6 CM",
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
 const emptyForm = {
