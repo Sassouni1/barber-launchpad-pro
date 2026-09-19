@@ -34,7 +34,7 @@ import waveUnit from "@/assets/wave-unit.png";
 
 type Step = "specs" | "delivery" | "review" | "success";
 const choices = {
-  density: ["80%", "90%", "100% (regular)", "110%", "Custom density"],
+  density: ["100% (regular)", "90%", "110%", "80%", "Custom density"],
   curl: [
     "0.4 CM",
     "0.6 CM",
