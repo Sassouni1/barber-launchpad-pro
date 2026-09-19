@@ -85,11 +85,13 @@ function Picker({
   value,
   onChange,
   options,
+  displayOption,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: string[];
+  displayOption?: (option: string) => string;
 }) {
   return (
     <div className="space-y-2">
@@ -103,7 +105,7 @@ function Picker({
             onClick={() => onChange(option)}
             className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === option ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
           >
-            <span>{option}</span>
+            <span>{displayOption?.(option) ?? option}</span>
             {value === option && (
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Check className="h-3 w-3" aria-hidden="true" />
@@ -565,6 +567,9 @@ export default function OrderHairSystem() {
                       value={system.length}
                       onChange={(value) => updateSystem(index, "length", value)}
                       options={["Standard", "Other"]}
+                      displayOption={(value) =>
+                        value === "Standard" ? "Standard · $200" : value
+                      }
                     />
                     {system.length === "Other" && (
                       <Picker
