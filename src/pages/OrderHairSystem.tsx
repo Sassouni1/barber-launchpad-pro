@@ -52,7 +52,7 @@ const emptySystem = () => ({
   length: "Standard",
   lengthOther: "",
   density: "100% (regular)",
-  curl: "0.6 CM",
+  curl: "Standard",
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
 const emptyForm = {
@@ -112,6 +112,14 @@ function CurlPicker({
       <p className="text-sm text-muted-foreground">
         Choose the exact pattern from the guide.
       </p>
+      <button
+        type="button"
+        aria-pressed={value === "Standard"}
+        onClick={() => onChange("Standard")}
+        className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === "Standard" ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "border-border bg-background hover:border-primary/40"}`}
+      >
+        Standard
+      </button>
       <div className="grid grid-cols-4 gap-2 sm:gap-3">
         {curlGuideChoices.map(({ value: option, column, row }) => (
           <button
