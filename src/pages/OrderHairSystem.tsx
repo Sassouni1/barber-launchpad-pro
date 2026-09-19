@@ -65,7 +65,8 @@ const emptySystem = () => ({
 });
 type SystemDetails = ReturnType<typeof emptySystem>;
 const emptyForm = {
-  barberName: "",
+  barberFirstName: "",
+  barberLastName: "",
   barberPhone: "",
   barberEmail: "",
   quantity: "1",
@@ -281,11 +282,13 @@ export default function OrderHairSystem() {
       .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
       .join(" ");
     const fallbackName = stringValue(metadata.full_name, metadata.name, metadata.fullName, firstAndLastName);
+    const [fallbackFirstName = "", ...fallbackLastName] = fallbackName.split(/\s+/).filter(Boolean);
     const fallbackPhone = stringValue(metadata.phone, metadata.phone_number, metadata.mobile);
     const fillFromAccount = (account?: { full_name: string | null; email: string | null; phone: string | null } | null) => {
       setForm((current) => ({
         ...current,
-        barberName: current.barberName || account?.full_name || fallbackName,
+        barberFirstName: current.barberFirstName || (account?.full_name || fallbackName).split(/\s+/).filter(Boolean)[0] || fallbackFirstName,
+        barberLastName: current.barberLastName || (account?.full_name || fallbackName).split(/\s+/).filter(Boolean).slice(1).join(" ") || fallbackLastName.join(" "),
         barberPhone: current.barberPhone || account?.phone || fallbackPhone,
         barberEmail: current.barberEmail || account?.email || user.email || "",
       }));
@@ -346,7 +349,8 @@ export default function OrderHairSystem() {
   const goDelivery = () => {
     if (
       ![
-        form.barberName,
+        form.barberFirstName,
+        form.barberLastName,
         form.barberPhone,
         ...systems.flatMap((system) => [
           system.color,
@@ -358,7 +362,7 @@ export default function OrderHairSystem() {
       ].every((value) => value.trim())
     )
       return toast.error(
-        "Add your name, phone number, color, and length first.",
+        "Add your first name, last name, phone number, color, and length first.",
       );
     setStep("delivery");
   };
@@ -468,11 +472,18 @@ export default function OrderHairSystem() {
               <div className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field
-                    label="Your name"
-                    id="barber-name"
-                    value={form.barberName}
-                    onChange={change("barberName")}
-                    placeholder="Your full name"
+                    label="Your first name"
+                    id="barber-first-name"
+                    value={form.barberFirstName}
+                    onChange={change("barberFirstName")}
+                    placeholder="First name"
+                  />
+                  <Field
+                    label="Your last name"
+                    id="barber-last-name"
+                    value={form.barberLastName}
+                    onChange={change("barberLastName")}
+                    placeholder="Last name"
                   />
                   <Field
                     label="Your phone"
