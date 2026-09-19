@@ -310,7 +310,12 @@ export default function OrderHairSystem() {
       .join(" ");
     const fallbackName = stringValue(metadata.full_name, metadata.name, metadata.fullName, firstAndLastName);
     const [fallbackFirstName = "", ...fallbackLastName] = fallbackName.split(/\s+/).filter(Boolean);
-    const fallbackPhone = stringValue(metadata.phone, metadata.phone_number, metadata.mobile);
+    const fallbackPhone = stringValue(
+      metadata.phone,
+      metadata.phone_number,
+      metadata.mobile,
+      user.phone,
+    );
     const fillFromAccount = (account?: { full_name: string | null; email: string | null; phone: string | null } | null) => {
       setForm((current) => ({
         ...current,
