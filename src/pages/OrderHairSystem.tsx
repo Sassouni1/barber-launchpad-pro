@@ -18,14 +18,14 @@ const choices = {
   curl: ["Straight", "Body wave", "Loose curl", "Medium curl", "Custom curl"],
 };
 const hairColorOptions = [
-  "#1", "#1A", "#1B", "#1B10", "#1B20", "#1B30",
-  "#1B40", "#1B50", "#1B65", "#1B80", "#2", "#210",
-  "#220", "#230", "#240", "#250", "#3", "#310",
-  "#320", "#330", "#340", "#350", "#365", "#380",
-  "#4", "#410", "#420", "#430", "#440", "#450",
-  "#4ASH", "#5", "#520", "#540", "#565", "#580",
-  "#6", "#620", "#640", "#7", "#720", "#740",
-  "#7ASH", "#17", "#1720", "#1740", "#18", "#22", "#60",
+  ["#1", "#1f1e25"], ["#1A", "#262027"], ["#1B", "#2d2b2b"], ["#1B10", "#2e2a2c"], ["#1B20", "#322e2f"], ["#1B30", "#433f40"],
+  ["#1B40", "#484443"], ["#1B50", "#595356"], ["#1B65", "#717170"], ["#1B80", "#b4a9a6"], ["#2", "#383230"], ["#210", "#362f2e"],
+  ["#220", "#3d3634"], ["#230", "#4a4544"], ["#240", "#473f3c"], ["#250", "#5e5552"], ["#3", "#3e3431"], ["#310", "#3a2f2d"],
+  ["#320", "#433734"], ["#330", "#544a48"], ["#340", "#524944"], ["#350", "#6f6764"], ["#365", "#85807c"], ["#380", "#aba7a4"],
+  ["#4", "#40352f"], ["#410", "#4e413c"], ["#420", "#4c3f38"], ["#430", "#594c46"], ["#440", "#554842"], ["#450", "#635954"],
+  ["#4ASH", "#453c38"], ["#5", "#473b34"], ["#520", "#3f3830"], ["#540", "#504943"], ["#565", "#9c988f"], ["#580", "#baafab"],
+  ["#6", "#584434"], ["#620", "#51493f"], ["#640", "#595249"], ["#7", "#574437"], ["#720", "#564b41"], ["#740", "#766c64"],
+  ["#7ASH", "#6e5948"], ["#17", "#726151"], ["#1720", "#695b4c"], ["#1740", "#7c6e60"], ["#18", "#504534"], ["#22", "#c5a686"], ["#60", "#c7c1bd"],
 ] as const;
 const emptyForm = {
   barberName: "", barberPhone: "", clientName: "", color: "", length: "", density: "100% (regular)", curl: "Straight", quantity: "1", shippingSpeed: "Standard", address1: "", address2: "", city: "", state: "", zip: "", notes: "",
@@ -41,7 +41,7 @@ function Field({ label, id, value, onChange, placeholder, type = "text", optiona
 }
 
 function HairColorPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return <div className="space-y-3"><div className="flex items-center justify-between gap-3"><Label>Hair color</Label><span className="text-xs text-muted-foreground">{value ? `Selected: ${value}` : "Select a shade"}</span></div><div className="gap-2" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>{hairColorOptions.map((code, index) => <button key={code} type="button" onClick={() => onChange(code)} aria-label={`Select hair color ${code}`} className={`min-w-0 rounded-lg border bg-white transition-all ${value === code ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-card" : "border-border hover:border-primary/60"}`} style={{ aspectRatio: "1.17 / 1", backgroundImage: `url(${hairColors})`, backgroundPosition: `${(index % 6) * 20}% ${Math.floor(index / 6) * (100 / 7)}%`, backgroundRepeat: "no-repeat", backgroundSize: "600% 800%" }} />)}</div><p className="text-xs text-muted-foreground">Choose the exact numbered shade shown in the hair color guide.</p></div>;
+  return <div className="space-y-3"><div className="flex items-center justify-between gap-3"><Label>Hair color</Label><span className="text-xs text-muted-foreground">{value ? `Selected: ${value}` : "Select a shade"}</span></div><div className="gap-2" style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))" }}>{hairColorOptions.map(([code, shade]) => <button key={code} type="button" onClick={() => onChange(code)} aria-label={`Select hair color ${code}`} className={`flex min-w-0 flex-col items-center justify-center rounded-lg border text-[10px] font-bold transition-all ${value === code ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-card" : "border-border hover:border-primary/60"}`} style={{ aspectRatio: "1 / 1", backgroundColor: shade, color: ["#1", "#1A", "#1B", "#1B10", "#1B20", "#2", "#210", "#220", "#3", "#310", "#320", "#4", "#410", "#420", "#5", "#6", "#18"].includes(code) ? "#fff" : "#17130f" }}>{code}</button>)}</div><p className="text-xs text-muted-foreground">Choose the numbered shade that best matches the hair color guide.</p></div>;
 }
 
 export default function OrderHairSystem() {
