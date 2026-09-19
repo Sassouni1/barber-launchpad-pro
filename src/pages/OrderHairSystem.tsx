@@ -228,7 +228,7 @@ function HairColorPicker({
           <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             {series.label}
           </h3>
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 sm:gap-3">
+          <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 sm:gap-3">
             {series.colors.map((color) => {
               const image =
                 hairColorSwatchImages[
