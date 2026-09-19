@@ -32,6 +32,11 @@ import hairColors from "@/assets/hair-colors.jpg";
 import hairCurls from "@/assets/hair-curl-patterns.png";
 import waveUnit from "@/assets/wave-unit.png";
 
+const hairColorSwatchImages = import.meta.glob<string>(
+  "../assets/hair-color-swatches/*.png",
+  { eager: true, import: "default" },
+);
+
 type Step = "specs" | "delivery" | "review" | "success";
 const choices = {
   density: ["100% (regular)", "90%", "110%", "80%", "Custom density"],
@@ -54,6 +59,16 @@ const curlGuideChoices = choices.curl.map((value, index) => ({
   column: index % 3,
   row: Math.floor(index / 3),
 }));
+const hairColorSeries = [
+  { label: "1 Series", colors: ["1", "1A", "1B", "1B10", "1B20", "1B30", "1B40", "1B50", "1B65", "1B80"] },
+  { label: "2 Series", colors: ["2", "210", "220", "230", "240", "250"] },
+  { label: "3 Series", colors: ["3", "310", "320", "330", "340", "350", "365", "380"] },
+  { label: "4 Series", colors: ["4", "410", "420", "430", "440", "450", "4ASH"] },
+  { label: "5 Series", colors: ["5", "520", "540", "565", "580"] },
+  { label: "6 Series", colors: ["6", "620", "640", "60"] },
+  { label: "7 Series", colors: ["7", "720", "740", "7ASH"] },
+  { label: "Special shades", colors: ["17", "1720", "1740", "18", "22"] },
+];
 const emptySystem = () => ({
   clientName: "",
   color: "",
@@ -189,6 +204,65 @@ function CurlPicker({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function HairColorPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <Label>Hair color</Label>
+        <p className="text-sm text-muted-foreground">
+          Choose the exact shade for this system.
+        </p>
+      </div>
+      {hairColorSeries.map((series) => (
+        <section key={series.label} className="space-y-2">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {series.label}
+          </h3>
+          <div className="space-y-2">
+            {series.colors.map((color) => {
+              const image =
+                hairColorSwatchImages[
+                  `../assets/hair-color-swatches/color-${color}.png`
+                ];
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  aria-label={`Hair color #${color}`}
+                  aria-pressed={value === `#${color}`}
+                  onClick={() => onChange(`#${color}`)}
+                  className={`relative block w-full overflow-hidden rounded-xl border-2 bg-white p-2 shadow-sm transition ${
+                    value === `#${color}`
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "border-transparent hover:border-primary/50"
+                  }`}
+                >
+                  <img
+                    src={image}
+                    alt={`Hair color #${color}`}
+                    className="h-56 w-full object-contain sm:h-64"
+                  />
+                  {value === `#${color}` && (
+                    <span className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+                      <Check className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -442,12 +516,9 @@ export default function OrderHairSystem() {
                       }
                       placeholder="Name used to identify this order"
                     />
-                    <Field
-                      label="Hair color"
-                      id={`color-${index}`}
+                    <HairColorPicker
                       value={system.color}
                       onChange={(value) => updateSystem(index, "color", value)}
-                      placeholder="Example: #1B, ash brown, or color match"
                     />
                     <Picker
                       label="Hair length"
