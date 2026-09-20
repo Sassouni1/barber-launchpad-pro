@@ -306,8 +306,8 @@ async function runChannel(
 
 /**
  * After a verified successful Stripe payment: one supplier production sheet
- * per ordered system (Cloudflare Email Service), plus one transactional
- * confirmation SMS to the buyer (shared Vlix Twilio A2P messaging service).
+ * per ordered system, plus one transactional confirmation SMS to the buyer —
+ * both delivered through the connected Barber Launch GoHighLevel location.
  * The buyer's receipt remains Stripe's own native receipt — no email is sent
  * to the customer from here.
  */
@@ -321,6 +321,11 @@ export async function dispatchPaidOrderNotifications(
   const supplierEmail =
     (Deno.env.get("HAIR_SYSTEM_SUPPLIER_EMAIL") ?? "").trim().toLowerCase() || DEFAULT_SUPPLIER_EMAIL;
 
+  // One GHL token resolution for the whole dispatch.
+  const accessResult = await getGhlAccess(db);
+  const access = "error" in accessResult ? null : accessResult;
+  const accessError = "error" in accessResult ? accessResult.error : null;
+
   const outcomes: ChannelOutcome[] = [];
   for (const order of orders) {
     outcomes.push(
@@ -329,6 +334,7 @@ export async function dispatchPaidOrderNotifications(
           to: supplierEmail,
           subject: SUPPLIER_SUBJECT,
           html: buildSupplierEmailHtml(order, input.buyer),
+          ...(access ? { access } : {}),
         });
         return res.ok
           ? { status: "sent", messageId: res.messageId, recipient: `${supplierEmail} (from: ${res.sender})` }
