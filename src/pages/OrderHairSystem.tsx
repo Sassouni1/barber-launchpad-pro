@@ -745,7 +745,7 @@ export default function OrderHairSystem() {
                         ) : (
                           <>
                             <span className="block">Custom length</span>
-                            <span className="mt-2 block text-sm font-normal text-muted-foreground">Choose 14&quot; or 16&quot;</span>
+                            <span className="mt-2 block text-sm font-normal text-muted-foreground">For shoulder length or longer</span>
                           </>
                         )
                       }
