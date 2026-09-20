@@ -110,15 +110,13 @@ function curlLabel(raw: unknown): string {
 }
 
 /**
- * Every field of the CURRENT order form, per system, built from the
- * submitted order payload (order_details) — never from a legacy field list.
- * The checkout function stores each system already resolved to its final
- * customer-facing value (custom length/density substituted), so we surface
- * each one verbatim.
+ * Production specification rows built from the submitted order payload
+ * (order_details). The internal client name is deliberately excluded from the
+ * supplier sheet — all other current form fields appear verbatim, resolved to
+ * their final customer-facing values (custom length/density substituted).
  */
 function systemRows(details: Record<string, any> | null) {
   const rows: [string, string][] = [
-    ["Client name", details?.["Client Name"]],
     ["Hair color", details?.["Choose Color"]],
     ["Base (lace or skin)", details?.["Lace or Skin"]],
     ["Hair length", details?.["Hair Length"]],
