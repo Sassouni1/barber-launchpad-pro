@@ -15,7 +15,8 @@
 // retried later.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getGhlAccess, resolveContactId, sendGhlEmail } from "./ghlMessaging.ts";
+import { sendCloudflareEmail } from "./cloudflareEmail.ts";
+import { normalizePhone, sendTwilioSms } from "./twilioSms.ts";
 
 export const SUPPLIER_FROM = "send@barberlaunch.co";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
@@ -23,7 +24,7 @@ export const DEFAULT_SUPPLIER_EMAIL = "sales30@newtimeshair.com";
 export const SUPPLIER_SUBJECT = "NEW Hair System Purchase (Order Details) (IMPORTANT)";
 export const SUPPLIER_STANDING_INSTRUCTION = "Please always choose NCON and HS1.";
 
-export type Channel = "supplier_email";
+export type Channel = "supplier_email" | "customer_sms";
 
 export type OrderRow = {
   id: string;
