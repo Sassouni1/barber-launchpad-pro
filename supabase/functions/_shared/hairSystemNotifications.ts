@@ -155,8 +155,8 @@ function purchaseDate(value: Date) {
 export function buildCustomerReceiptHtml(orders: OrderRow[], buyer: SessionBuyer, receipt: PaidReceipt) {
   const primary = orders[0];
   const details = primary?.order_details ?? {};
-  const firstName = String(details.full_name ?? primary?.customer_name ?? buyer.name ?? "")
-    .trim().split(/\s+/)[0] || "there";
+  const fullName = String(details.full_name ?? primary?.customer_name ?? buyer.name ?? "").trim();
+  const firstName = fullName.split(/\s+/)[0] || "there";
   const ship = shippingBlock(details);
   const shipLines = ship.lines.length ? ship.lines : buyer.address;
   const items = receipt.lineItems.map((item) => `<tr>
@@ -183,7 +183,8 @@ export function buildCustomerReceiptHtml(orders: OrderRow[], buyer: SessionBuyer
   <div style="background:#fff;padding:28px 24px">
     <div style="color:#247a46;font-size:13px;font-weight:700;text-transform:uppercase">Payment confirmed</div>
     <h1 style="font-size:25px;margin:7px 0 12px">Your hair system order receipt</h1>
-    <p style="margin:0 0 22px">Hi ${esc(firstName)}, your payment was successful.</p>
+    <p style="margin:0 0 7px">Hi ${esc(firstName)}, your payment was successful.</p>
+    <p style="margin:0 0 22px">Customer name: ${esc(fullName)}</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">
       <tr><td style="padding:4px 12px 4px 0;color:#666">Order reference</td><td style="padding:4px 0;text-align:right;font-weight:700">${esc(receipt.orderReference)}</td></tr>
       <tr><td style="padding:4px 12px 4px 0;color:#666">Purchase date</td><td style="padding:4px 0;text-align:right">${esc(purchaseDate(receipt.purchasedAt))}</td></tr>
