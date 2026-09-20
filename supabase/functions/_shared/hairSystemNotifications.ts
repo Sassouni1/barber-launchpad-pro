@@ -3,7 +3,9 @@
 // Stripe is the ONLY source of truth: this module is driven exclusively by a
 // signature-verified successful Stripe Checkout event plus the hair-system
 // order metadata captured at checkout. It never reads or writes GoHighLevel
-// contacts, custom fields, email or SMS.
+// contacts, custom fields, workflow merge parameters or legacy contact data to
+// build the message. GoHighLevel is used ONLY as the delivery transport for the
+// rendered email.
 //
 // The customer receives Stripe's own native successful-payment receipt at the
 // email supplied to Checkout — no duplicate receipt or SMS is sent from here.
@@ -13,6 +15,7 @@
 // retried later.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getGhlAccess, resolveContactId, sendGhlEmail } from "./ghlMessaging.ts";
 
 export const SUPPLIER_FROM = "send@barberlaunch.co";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
@@ -298,13 +301,13 @@ export async function dispatchPaidOrderNotifications(
   for (const order of orders) {
     outcomes.push(
       await runChannel(db, order.id, "supplier_email", input.eventId, async () => {
-        const res = await sendSupplierEmail({
+        const res = await sendSupplierEmail(db, {
           to: supplierEmail,
           subject: SUPPLIER_SUBJECT,
           html: buildSupplierEmailHtml(order, input.buyer),
         });
         return res.ok
-          ? { status: "sent", messageId: res.messageId, recipient: supplierEmail }
+          ? { status: "sent", messageId: res.messageId, recipient: `${supplierEmail} (from: ${res.sender})` }
           : { status: "failed", reason: res.reason, recipient: supplierEmail };
       }),
     );

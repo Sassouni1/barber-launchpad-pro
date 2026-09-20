@@ -169,7 +169,7 @@ function messageId(payload: any): string | null {
 
 export async function sendGhlEmail(
   access: GhlAccess,
-  input: { contactId: string; emailFrom: string; emailTo: string; subject: string; html: string },
+  input: { contactId: string; emailFrom?: string; emailTo: string; subject: string; html: string },
 ): Promise<SendResult> {
   try {
     const res = await fetch(`${GHL_BASE}/conversations/messages`, {
@@ -178,7 +178,7 @@ export async function sendGhlEmail(
       body: JSON.stringify({
         type: "Email",
         contactId: input.contactId,
-        emailFrom: input.emailFrom,
+        ...(input.emailFrom ? { emailFrom: input.emailFrom } : {}),
         emailTo: input.emailTo,
         subject: input.subject,
         html: input.html,
