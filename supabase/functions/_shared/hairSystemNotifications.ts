@@ -309,5 +309,28 @@ export async function dispatchPaidOrderNotifications(
       }),
     );
   }
+
+  // One confirmation SMS per purchase, claimed against the first order so a
+  // Stripe retry (or a multi-system order) can never text the buyer twice.
+  const primary = orders[0];
+  outcomes.push(
+    await runChannel(db, primary.id, "customer_sms", input.eventId, async () => {
+      const details = primary.order_details ?? {};
+      const phone = normalizePhone(details.phone ?? input.buyer.phone);
+      if (!phone) return { status: "skipped", reason: "no_valid_buyer_phone" };
+
+      const allowed = await smsAllowed(db, phone, details);
+      if (!allowed.ok) return { status: "skipped", reason: allowed.reason, recipient: phone };
+
+      const res = await sendTwilioSms({
+        to: phone,
+        body: buildCustomerSmsBody(primary, input.buyer, orders.length),
+      });
+      return res.ok
+        ? { status: "sent", messageId: res.messageId, recipient: phone }
+        : { status: "failed", reason: res.reason, recipient: phone };
+    }),
+  );
+
   return outcomes;
 }
