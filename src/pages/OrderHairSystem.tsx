@@ -352,7 +352,7 @@ export default function OrderHairSystem() {
   const [sending, setSending] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
-  const [saveCardForFutureOrders, setSaveCardForFutureOrders] = useState(false);
+  const [saveCardForFutureOrders, setSaveCardForFutureOrders] = useState(true);
   const [attemptedStep, setAttemptedStep] = useState<"specs" | "delivery" | null>(null);
   const [referenceGuide, setReferenceGuide] = useState<{
     src: string;
