@@ -3,14 +3,16 @@
 // Stripe is the sole source of truth. This is the ONLY trigger for the
 // supplier production email. The buyer's receipt is Stripe's own native
 // successful-payment receipt — nothing is sent to the customer from here, and
-// GoHighLevel is not involved in this flow at all.
+// GoHighLevel is used only as the delivery transport for the supplier email —
+// never as a data source, and never for any customer message.
 //
 // Required secrets:
 //   HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET  signing secret of this Stripe endpoint
 //   STRIPE_SECRET_KEY                  existing Invasion Digital Media live key
-//   RESEND_API_KEY                     transactional sender for send@barberlaunch.co
+//   GHL OAuth connection               delivery transport for the supplier email
 // Optional:
 //   HAIR_SYSTEM_SUPPLIER_EMAIL         overrides the default supplier recipient
+//   HAIR_SYSTEM_SUPPLIER_FROM          overrides the preferred sender address
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
