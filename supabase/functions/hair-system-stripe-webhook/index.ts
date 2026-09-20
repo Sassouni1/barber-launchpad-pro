@@ -1,19 +1,22 @@
 // Dedicated signed Stripe webhook for hair system order checkouts.
 //
-// This is the ONLY trigger for customer receipts, customer SMS and supplier
-// production emails. The browser return URL never sends messages; it only
-// performs the same idempotent order-status update it always did.
+// Stripe is the sole source of truth. This is the ONLY trigger for the
+// supplier production email. The buyer's receipt is Stripe's own native
+// successful-payment receipt — nothing is sent to the customer from here, and
+// GoHighLevel is not involved in this flow at all.
 //
 // Required secrets:
 //   HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET  signing secret of this Stripe endpoint
-//   HAIR_SYSTEM_SUPPLIER_EMAIL         supplier recipient address
 //   STRIPE_SECRET_KEY                  existing Invasion Digital Media live key
+//   RESEND_API_KEY                     transactional sender for send@barberlaunch.co
+// Optional:
+//   HAIR_SYSTEM_SUPPLIER_EMAIL         overrides the default supplier recipient
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  buyerFromSession,
   dispatchPaidOrderNotifications,
   type OrderRow,
-  type PriceLine,
 } from "../_shared/hairSystemNotifications.ts";
 
 const encoder = new TextEncoder();
@@ -65,28 +68,6 @@ async function stripeGet(path: string, secret: string) {
   const body = await res.json();
   if (!res.ok) throw new Error(body?.error?.message ?? `stripe_http_${res.status}`);
   return body;
-}
-
-async function lineItemsFor(sessionId: string, secret: string): Promise<PriceLine[]> {
-  const lines: PriceLine[] = [];
-  let startingAfter = "";
-  for (let page = 0; page < 5; page++) {
-    const query = new URLSearchParams({ limit: "100" });
-    if (startingAfter) query.set("starting_after", startingAfter);
-    const res = await stripeGet(`/checkout/sessions/${sessionId}/line_items?${query}`, secret);
-    const data = (res?.data ?? []) as Array<Record<string, any>>;
-    for (const item of data) {
-      lines.push({
-        description: String(item.description ?? "Item"),
-        quantity: Number(item.quantity ?? 1),
-        amountCents: Number(item.amount_total ?? 0),
-      });
-    }
-    if (!res?.has_more || data.length === 0) break;
-    startingAfter = String(data[data.length - 1]?.id ?? "");
-    if (!startingAfter) break;
-  }
-  return lines;
 }
 
 Deno.serve(async (req) => {
@@ -178,7 +159,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3) Load the orders and the real amounts Stripe charged.
+    // 3) Load the order specs captured at checkout. No amounts are read or
+    //    forwarded — the supplier sheet must never contain prices.
     const { data: orders, error: ordersError } = await db
       .from("orders")
       .select("id, customer_email, customer_name, order_details")
@@ -189,13 +171,15 @@ Deno.serve(async (req) => {
       .map((id) => (orders ?? []).find((o: any) => o.id === id))
       .filter(Boolean) as OrderRow[];
 
-    const lines = await lineItemsFor(String(session.id), stripeSecret);
-    const totalCents = Number(session.amount_total ?? lines.reduce((sum, l) => sum + l.amountCents, 0));
+    // Authoritative buyer identity/address straight off the paid session.
+    const fullSession = await stripeGet(
+      `/checkout/sessions/${encodeURIComponent(String(session.id))}`,
+      stripeSecret,
+    ).catch(() => session);
 
     const outcomes = await dispatchPaidOrderNotifications(db, {
       orders: ordered,
-      lines,
-      totalCents,
+      buyer: buyerFromSession(fullSession),
       eventId: String(event.id),
     });
     console.log("hair-system notifications", JSON.stringify(outcomes));
