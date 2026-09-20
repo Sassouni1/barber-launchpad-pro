@@ -242,7 +242,7 @@ function CurlPicker({
         </button>
       )}
       {showChoices && (
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {curlGuideChoices.map(({ value: option, column, row }) => (
             <button
               key={option}
