@@ -164,57 +164,65 @@ export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
 </div></body></html>`;
 }
 
-// ── Email provider (non-GHL) ─────────────────────────────────
+// ── Email delivery (GoHighLevel = transport only) ────────────
+//
+// GHL is used strictly as the mail transport for the rendered supplier email.
+// No GHL custom fields, workflow merge parameters or legacy contact data are
+// read to build the message — the content comes only from the paid Stripe
+// session and the submitted order payload.
 
 export type SendResult =
-  | { ok: true; messageId: string | null }
+  | { ok: true; messageId: string | null; sender: string }
   | { ok: false; reason: string; configured: boolean };
 
 /**
- * Sends through the project's configured transactional provider.
- * If no provider secret exists, we report that honestly and send nothing —
- * there is deliberately no GoHighLevel fallback.
+ * Delivers the rendered supplier email through the connected GHL location.
+ *
+ * Sender selection: `send@barberlaunch.co` is attempted first (or the
+ * HAIR_SYSTEM_SUPPLIER_FROM override). If GHL rejects that address because it
+ * is not a verified sender on the location, we retry letting GHL apply the
+ * account's own verified default sender, and report which one was used.
  */
-export async function sendSupplierEmail(input: {
-  to: string;
-  subject: string;
-  html: string;
-}): Promise<SendResult> {
-  const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (!resendKey) {
-    return {
-      ok: false,
-      configured: false,
-      reason: "email_provider_not_configured:RESEND_API_KEY",
-    };
+export async function sendSupplierEmail(
+  db: SupabaseClient,
+  input: { to: string; subject: string; html: string },
+): Promise<SendResult> {
+  const access = await getGhlAccess(db);
+  if ("error" in access) {
+    return { ok: false, configured: false, reason: `email_provider_not_configured:${access.error}` };
   }
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: `${SUPPLIER_FROM_NAME} <${SUPPLIER_FROM}>`,
-        to: [input.to],
-        subject: input.subject,
-        html: input.html,
-      }),
-    });
-    if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 300);
-      return { ok: false, configured: true, reason: `email_http_${res.status}:${detail}` };
-    }
-    const body = await res.json().catch(() => ({} as Record<string, unknown>));
-    return { ok: true, messageId: (body as any)?.id ?? null };
-  } catch (e) {
-    return {
-      ok: false,
-      configured: true,
-      reason: e instanceof Error ? e.message.slice(0, 200) : "email_send_error",
-    };
+
+  // Transport needs a conversation target; the supplier's own address is used.
+  const contactId = await resolveContactId(access, { email: input.to, name: "New Times Hair Supplier" });
+  if (!contactId) {
+    return { ok: false, configured: true, reason: "ghl_supplier_contact_unavailable" };
   }
+
+  const preferredFrom =
+    (Deno.env.get("HAIR_SYSTEM_SUPPLIER_FROM") ?? "").trim().toLowerCase() || SUPPLIER_FROM;
+
+  const attempt = async (from?: string) =>
+    await sendGhlEmail(access, {
+      contactId,
+      ...(from ? { emailFrom: from } : {}),
+      emailTo: input.to,
+      subject: input.subject,
+      html: input.html,
+    } as Parameters<typeof sendGhlEmail>[1]);
+
+  const first = await attempt(preferredFrom);
+  if (first.ok) return { ok: true, messageId: first.messageId, sender: preferredFrom };
+
+  // Unverified/rejected sender → fall back to the location's default sender.
+  const fallback = await attempt(undefined);
+  if (fallback.ok) {
+    return { ok: true, messageId: fallback.messageId, sender: "ghl_location_default_sender" };
+  }
+  return {
+    ok: false,
+    configured: true,
+    reason: `${first.reason} | default_sender:${fallback.reason}`.slice(0, 400),
+  };
 }
 
 // ── Delivery dispatch ────────────────────────────────────────
