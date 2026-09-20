@@ -2,21 +2,27 @@
 //
 // Stripe is the ONLY source of truth: this module is driven exclusively by a
 // signature-verified successful Stripe Checkout event plus the hair-system
-// order metadata captured at checkout. It never reads or writes GoHighLevel
-// contacts, custom fields, workflow merge parameters or legacy contact data to
-// build the message. Delivery transports are Cloudflare Email Service (supplier
-// email) and the shared Vlix Twilio A2P messaging service (buyer SMS).
+// order metadata captured at checkout. GoHighLevel is used ONLY as the
+// delivery transport (supplier email + buyer SMS) — no GHL workflow, merge
+// field, purchase trigger or legacy contact custom field ever contributes to
+// message content.
 //
 // The customer receives Stripe's own native successful-payment receipt at the
-// email supplied to Checkout — no duplicate receipt or SMS is sent from here.
+// email supplied to Checkout — no duplicate receipt is sent from here.
 //
 // Every send is claimed atomically per (order, channel) so a Stripe retry can
 // never send the supplier the same order twice, while a FAILED send can be
 // retried later.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendCloudflareEmail } from "./cloudflareEmail.ts";
-import { normalizePhone, sendTwilioSms } from "./twilioSms.ts";
+import {
+  getGhlAccess,
+  normalizePhone,
+  resolveContactId,
+  sendGhlEmail,
+  sendGhlSms,
+  type GhlAccess,
+} from "./ghlMessaging.ts";
 
 export const SUPPLIER_FROM = "send@barberlaunch.co";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
