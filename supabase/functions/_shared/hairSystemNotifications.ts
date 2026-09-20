@@ -355,10 +355,21 @@ export async function dispatchPaidOrderNotifications(
       const allowed = await smsAllowed(db, phone, details);
       if (!allowed.ok) return { status: "skipped", reason: allowed.reason, recipient: phone };
 
-      const res = await sendTwilioSms({
-        to: phone,
-        body: buildCustomerSmsBody(primary, input.buyer, orders.length),
+      if (!access) {
+        return { status: "failed", reason: `ghl_not_available:${accessError}`, recipient: phone };
+      }
+      const contactId = await resolveContactId(access, {
+        email: String(input.buyer.email || primary.customer_email || ""),
+        phone,
+        name: String(details.full_name ?? primary.customer_name ?? input.buyer.name ?? ""),
       });
+      if (!contactId) return { status: "failed", reason: "ghl_buyer_contact_unresolved", recipient: phone };
+
+      const res = await sendGhlSms(access, {
+        contactId,
+        phone,
+        body: buildCustomerSmsBody(primary, input.buyer, orders.length),
+      } as any);
       return res.ok
         ? { status: "sent", messageId: res.messageId, recipient: phone }
         : { status: "failed", reason: res.reason, recipient: phone };
