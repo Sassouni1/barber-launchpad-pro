@@ -4,8 +4,8 @@
 // signature-verified successful Stripe Checkout event plus the hair-system
 // order metadata captured at checkout. It never reads or writes GoHighLevel
 // contacts, custom fields, workflow merge parameters or legacy contact data to
-// build the message. GoHighLevel is used ONLY as the delivery transport for the
-// rendered email.
+// build the message. Delivery transports are Cloudflare Email Service (supplier
+// email) and the shared Vlix Twilio A2P messaging service (buyer SMS).
 //
 // The customer receives Stripe's own native successful-payment receipt at the
 // email supplied to Checkout — no duplicate receipt or SMS is sent from here.
