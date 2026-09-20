@@ -368,8 +368,8 @@ export async function dispatchPaidOrderNotifications(
       const res = await sendGhlSms(access, {
         contactId,
         phone,
-        body: buildCustomerSmsBody(primary, input.buyer, orders.length),
-      } as any);
+        message: buildCustomerSmsBody(primary, input.buyer, orders.length),
+      });
       return res.ok
         ? { status: "sent", messageId: res.messageId, recipient: phone }
         : { status: "failed", reason: res.reason, recipient: phone };
