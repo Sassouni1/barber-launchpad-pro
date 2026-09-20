@@ -1,9 +1,8 @@
 // Dedicated signed Stripe webhook for hair system order checkouts.
 //
 // Stripe is the sole source of truth. This is the ONLY trigger for the
-// supplier production email and the buyer confirmation SMS. The buyer's
-// receipt is Stripe's own native successful-payment receipt — no email is sent
-// to the customer from here. GoHighLevel is the delivery transport only; it
+// supplier production email, branded buyer receipt, and buyer confirmation SMS.
+// GoHighLevel is the delivery transport only; it
 // never contributes message content (no workflows, merge fields or custom
 // fields).
 //
@@ -177,16 +176,39 @@ Deno.serve(async (req) => {
 
     // Authoritative buyer identity/address straight off the paid session.
     const fullSession = await stripeGet(
-      `/checkout/sessions/${encodeURIComponent(String(session.id))}`,
+      `/checkout/sessions/${encodeURIComponent(String(session.id))}?expand[]=line_items.data.price.product&expand[]=payment_intent.payment_method`,
       stripeSecret,
     ).catch(() => session);
+
+    const lineItems = Array.isArray(fullSession?.line_items?.data)
+      ? fullSession.line_items.data.map((item: any) => ({
+          name: String(item.description ?? item.price?.product?.name ?? "Hair system order"),
+          quantity: Number(item.quantity ?? 1),
+          amount: Number(item.amount_total ?? 0),
+        }))
+      : [];
+    const paymentMethod = fullSession?.payment_intent?.payment_method;
+    const card = paymentMethod && typeof paymentMethod === "object" ? paymentMethod.card : null;
 
     const outcomes = await dispatchPaidOrderNotifications(db, {
       orders: ordered,
       buyer: buyerFromSession(fullSession),
       eventId: String(event.id),
+      receipt: {
+        orderReference: String(fullSession.id ?? session.id ?? ordered[0]?.id ?? ""),
+        purchasedAt: new Date(Number(fullSession.created ?? session.created ?? Date.now() / 1000) * 1000),
+        currency: String(fullSession.currency ?? "usd"),
+        amountPaid: Number(fullSession.amount_total ?? 0),
+        lineItems,
+        cardBrand: String(card?.brand ?? ""),
+        cardLast4: String(card?.last4 ?? ""),
+      },
     });
     console.log("hair-system notifications", JSON.stringify(outcomes));
+
+    if (outcomes.some((outcome) => outcome.result === "failed" || outcome.result === "claim_failed")) {
+      throw new Error("one_or_more_notifications_failed");
+    }
 
     await db
       .from("hair_system_webhook_events")

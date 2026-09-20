@@ -107,17 +107,18 @@ Deno.serve(async (req) => {
       throw new Error("Please choose a shipping preference.");
     }
     if (!/^\d{5}(-\d{4})?$/.test(text(body.zip, 10))) throw new Error("Please provide a valid ZIP code.");
-    const systems = Array.isArray(body.systems) && body.systems.length ? body.systems.slice(0, 12) : [body];
+    const systems: Record<string, unknown>[] = Array.isArray(body.systems) && body.systems.length ? body.systems.slice(0, 12) : [body];
     if (systems.some((system) => !["color", "base", "length"].every((field) => text(system[field])))) throw new Error("Please complete each system's color, base, and length.");
 
+    const customerEmail = user.email.toLowerCase();
     const buyerName = `${text(body.barberFirstName, 50)} ${text(body.barberLastName, 50)}`.trim();
     const baseDetails = {
       source: "barber-launch-native-order-form", order_type: "hair_system", submitted_at: new Date().toISOString(),
-      full_name: buyerName, email: user.email.toLowerCase(), phone: text(body.barberPhone, 40),
+      full_name: buyerName, email: customerEmail, phone: text(body.barberPhone, 40),
       shipping: { method: shippingSpeed, address_1: text(body.address1, 150), address_2: text(body.address2, 150), city: text(body.city, 100), state: text(body.state, 2).toUpperCase(), zip: text(body.zip, 10) }, notes: text(body.notes, 2000),
     };
     const { data: orders, error: insertError } = await admin.from("orders").insert(systems.map((system, index) => ({
-      user_id: user.id, customer_email: user.email.toLowerCase(), customer_name: buyerName, status: "pending_payment",
+      user_id: user.id, customer_email: customerEmail, customer_name: buyerName, status: "pending_payment",
       order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Lace or Skin": text(system.base, 50), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100) },
     }))).select("id");
     if (insertError || !orders?.length) throw insertError || new Error("Unable to prepare the order.");
@@ -140,7 +141,7 @@ Deno.serve(async (req) => {
     let stripeCustomerId = billing.stripe_customer_id as string | null;
     if (!stripeCustomerId) {
       const customerForm = new URLSearchParams({
-        email: user.email.toLowerCase(),
+        email: customerEmail,
         name: buyerName,
         "metadata[barber_launch_member_id]": user.id,
       });
@@ -153,12 +154,13 @@ Deno.serve(async (req) => {
         .eq("customer_id", user.id);
       if (error) throw error;
     }
+    if (!stripeCustomerId) throw new Error("Unable to prepare your secure payment profile.");
 
     const origin = new URL(req.headers.get("origin") || "https://member.thebarberlaunch.com").origin;
     const saveCard = body.saveCardForFutureOrders === true;
-    // receipt_email makes Stripe send its own native successful-payment receipt
-    // to the buyer — the only customer confirmation for this flow.
-    const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer: stripeCustomerId, return_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, "metadata[user_id]": user.id, "metadata[order_ids]": orders.map((order) => order.id).join(","), "metadata[save_card]": String(saveCard), "payment_intent_data[receipt_email]": user.email.toLowerCase(), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][order_ids]": orders.map((order) => order.id).join(","), "payment_intent_data[metadata][save_card]": String(saveCard) });
+    // Customer receipts are sent only by the signature-verified webhook after
+    // payment. Omitting receipt_email prevents an extra Stripe-native receipt.
+    const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer: stripeCustomerId, return_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, "metadata[user_id]": user.id, "metadata[order_ids]": orders.map((order) => order.id).join(","), "metadata[save_card]": String(saveCard), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][order_ids]": orders.map((order) => order.id).join(","), "payment_intent_data[metadata][save_card]": String(saveCard) });
     if (saveCard) form.append("payment_intent_data[setup_future_usage]", "off_session");
     const pairs = lineItems(systems, shippingSpeed);
     for (let index = 0; index < pairs.length; index += 2) form.append(pairs[index], pairs[index + 1]);
