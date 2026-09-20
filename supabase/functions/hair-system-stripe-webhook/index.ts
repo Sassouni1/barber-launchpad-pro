@@ -1,19 +1,22 @@
 // Dedicated signed Stripe webhook for hair system order checkouts.
 //
-// This is the ONLY trigger for customer receipts, customer SMS and supplier
-// production emails. The browser return URL never sends messages; it only
-// performs the same idempotent order-status update it always did.
+// Stripe is the sole source of truth. This is the ONLY trigger for the
+// supplier production email. The buyer's receipt is Stripe's own native
+// successful-payment receipt — nothing is sent to the customer from here, and
+// GoHighLevel is not involved in this flow at all.
 //
 // Required secrets:
 //   HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET  signing secret of this Stripe endpoint
-//   HAIR_SYSTEM_SUPPLIER_EMAIL         supplier recipient address
 //   STRIPE_SECRET_KEY                  existing Invasion Digital Media live key
+//   RESEND_API_KEY                     transactional sender for send@barberlaunch.co
+// Optional:
+//   HAIR_SYSTEM_SUPPLIER_EMAIL         overrides the default supplier recipient
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  buyerFromSession,
   dispatchPaidOrderNotifications,
   type OrderRow,
-  type PriceLine,
 } from "../_shared/hairSystemNotifications.ts";
 
 const encoder = new TextEncoder();
