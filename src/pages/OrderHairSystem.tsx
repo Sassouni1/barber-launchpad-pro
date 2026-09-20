@@ -32,6 +32,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import hairColors from "@/assets/hair-colors.jpg";
 import hairCurls from "@/assets/hair-curl-patterns.png";
+import hairBaseLace from "@/assets/hair-base-lace.png";
+import hairBaseSkin from "@/assets/hair-base-skin.png";
 import waveUnit from "@/assets/wave-unit.png";
 
 type Step = "specs" | "delivery" | "review" | "payment" | "success";
@@ -125,6 +127,57 @@ function Picker({
             )}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function BasePicker({
+  value,
+  onChange,
+  invalid = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  invalid?: boolean;
+}) {
+  const options = [
+    { value: "Lace", image: hairBaseLace },
+    { value: "Skin", image: hairBaseSkin },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <Label className={invalid ? "text-destructive" : undefined}>Base</Label>
+      <div className="grid grid-cols-2 gap-3">
+        {options.map((option) => {
+          const selected = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onChange(option.value)}
+              className={`relative overflow-hidden rounded-xl border-2 bg-white text-left transition-all ${selected ? "border-primary ring-2 ring-primary/30" : invalid ? "border-destructive ring-1 ring-destructive/20" : "border-border hover:border-primary/50"}`}
+            >
+              <div className="aspect-[4/3] overflow-hidden">
+                <img
+                  src={option.image}
+                  alt={`${option.value} hair-system base`}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <span className="block border-t border-black/10 px-3 py-2.5 text-center text-sm font-medium text-black">
+                {option.value}
+              </span>
+              {selected && (
+                <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -640,11 +693,9 @@ export default function OrderHairSystem() {
                       placeholder="e.g. #1B, #2, or #350"
                       invalid={attemptedStep === "specs" && !system.color.trim()}
                     />
-                    <Picker
-                      label="Base"
+                    <BasePicker
                       value={system.base}
                       onChange={(value) => updateSystem(index, "base", value)}
-                      options={["Lace", "Skin"]}
                       invalid={attemptedStep === "specs" && !system.base.trim()}
                     />
                     <Picker
