@@ -4,8 +4,8 @@
 // signature-verified successful Stripe Checkout event plus the hair-system
 // order metadata captured at checkout. It never reads or writes GoHighLevel
 // contacts, custom fields, workflow merge parameters or legacy contact data to
-// build the message. GoHighLevel is used ONLY as the delivery transport for the
-// rendered email.
+// build the message. Delivery transports are Cloudflare Email Service (supplier
+// email) and the shared Vlix Twilio A2P messaging service (buyer SMS).
 //
 // The customer receives Stripe's own native successful-payment receipt at the
 // email supplied to Checkout — no duplicate receipt or SMS is sent from here.
@@ -15,7 +15,8 @@
 // retried later.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getGhlAccess, resolveContactId, sendGhlEmail } from "./ghlMessaging.ts";
+import { sendCloudflareEmail } from "./cloudflareEmail.ts";
+import { normalizePhone, sendTwilioSms } from "./twilioSms.ts";
 
 export const SUPPLIER_FROM = "send@barberlaunch.co";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
@@ -23,7 +24,7 @@ export const DEFAULT_SUPPLIER_EMAIL = "sales30@newtimeshair.com";
 export const SUPPLIER_SUBJECT = "NEW Hair System Purchase (Order Details) (IMPORTANT)";
 export const SUPPLIER_STANDING_INSTRUCTION = "Please always choose NCON and HS1.";
 
-export type Channel = "supplier_email";
+export type Channel = "supplier_email" | "customer_sms";
 
 export type OrderRow = {
   id: string;
@@ -167,65 +168,59 @@ export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
 </div></body></html>`;
 }
 
-// ── Email delivery (GoHighLevel = transport only) ────────────
+// ── Supplier email delivery (Cloudflare Email Service) ───────
 //
-// GHL is used strictly as the mail transport for the rendered supplier email.
-// No GHL custom fields, workflow merge parameters or legacy contact data are
-// read to build the message — the content comes only from the paid Stripe
-// session and the submitted order payload.
+// Transport is Cloudflare Email Service's REST API, called directly from this
+// backend (no Worker binding). Content comes only from the paid Stripe session
+// and the submitted order payload — never from GoHighLevel.
 
 export type SendResult =
   | { ok: true; messageId: string | null; sender: string }
   | { ok: false; reason: string; configured: boolean };
 
-/**
- * Delivers the rendered supplier email through the connected GHL location.
- *
- * Sender selection: `send@barberlaunch.co` is attempted first (or the
- * HAIR_SYSTEM_SUPPLIER_FROM override). If GHL rejects that address because it
- * is not a verified sender on the location, we retry letting GHL apply the
- * account's own verified default sender, and report which one was used.
- */
 export async function sendSupplierEmail(
-  db: SupabaseClient,
+  _db: SupabaseClient,
   input: { to: string; subject: string; html: string },
 ): Promise<SendResult> {
-  const access = await getGhlAccess(db);
-  if ("error" in access) {
-    return { ok: false, configured: false, reason: `email_provider_not_configured:${access.error}` };
-  }
-
-  // Transport needs a conversation target; the supplier's own address is used.
-  const contactId = await resolveContactId(access, { email: input.to, name: "New Times Hair Supplier" });
-  if (!contactId) {
-    return { ok: false, configured: true, reason: "ghl_supplier_contact_unavailable" };
-  }
-
-  const preferredFrom =
+  const from =
     (Deno.env.get("HAIR_SYSTEM_SUPPLIER_FROM") ?? "").trim().toLowerCase() || SUPPLIER_FROM;
 
-  const attempt = async (from?: string) =>
-    await sendGhlEmail(access, {
-      contactId,
-      ...(from ? { emailFrom: from } : {}),
-      emailTo: input.to,
-      subject: input.subject,
-      html: input.html,
-    } as Parameters<typeof sendGhlEmail>[1]);
+  return await sendCloudflareEmail({
+    to: input.to,
+    from,
+    fromName: SUPPLIER_FROM_NAME,
+    subject: input.subject,
+    html: input.html,
+  });
+}
 
-  const first = await attempt(preferredFrom);
-  if (first.ok) return { ok: true, messageId: first.messageId, sender: preferredFrom };
+// ── Customer SMS (shared Vlix Booking Twilio A2P service) ────
 
-  // Unverified/rejected sender → fall back to the location's default sender.
-  const fallback = await attempt(undefined);
-  if (fallback.ok) {
-    return { ok: true, messageId: fallback.messageId, sender: "ghl_location_default_sender" };
+/** Short, transactional, no prices or card data. */
+export function buildCustomerSmsBody(order: OrderRow, buyer: SessionBuyer, systemCount: number) {
+  const details = order.order_details ?? {};
+  const name = String(details.full_name ?? order.customer_name ?? buyer.name ?? "").split(" ")[0];
+  const what = systemCount > 1 ? `${systemCount} hair systems are` : "hair system is";
+  return `${name ? `${name}, ` : ""}thanks for your order with Barber Launch. Your ${what} confirmed and going into production. We'll be in touch with shipping updates. Reply STOP to opt out.`;
+}
+
+/** Same consent contract as Vlix Booking: valid number, not opted out, consent not withdrawn. */
+async function smsAllowed(
+  db: SupabaseClient,
+  phone: string,
+  details: Record<string, any> | null,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (details?.sms_consent === false || details?.sms_opt_in === false) {
+    return { ok: false, reason: "customer_declined_sms" };
   }
-  return {
-    ok: false,
-    configured: true,
-    reason: `${first.reason} | default_sender:${fallback.reason}`.slice(0, 400),
-  };
+  const { data, error } = await db
+    .from("sms_opt_outs")
+    .select("phone")
+    .eq("phone", phone)
+    .maybeSingle();
+  if (error) return { ok: false, reason: `opt_out_check_failed:${error.message}`.slice(0, 300) };
+  if (data) return { ok: false, reason: "customer_opted_out" };
+  return { ok: true };
 }
 
 // ── Delivery dispatch ────────────────────────────────────────
@@ -283,9 +278,11 @@ async function runChannel(
 }
 
 /**
- * Sends one supplier production sheet per ordered system after a verified
- * successful Stripe payment. No customer messaging happens here — Stripe's
- * native receipt covers the buyer.
+ * After a verified successful Stripe payment: one supplier production sheet
+ * per ordered system (Cloudflare Email Service), plus one transactional
+ * confirmation SMS to the buyer (shared Vlix Twilio A2P messaging service).
+ * The buyer's receipt remains Stripe's own native receipt — no email is sent
+ * to the customer from here.
  */
 export async function dispatchPaidOrderNotifications(
   db: SupabaseClient,
@@ -312,5 +309,28 @@ export async function dispatchPaidOrderNotifications(
       }),
     );
   }
+
+  // One confirmation SMS per purchase, claimed against the first order so a
+  // Stripe retry (or a multi-system order) can never text the buyer twice.
+  const primary = orders[0];
+  outcomes.push(
+    await runChannel(db, primary.id, "customer_sms", input.eventId, async () => {
+      const details = primary.order_details ?? {};
+      const phone = normalizePhone(details.phone ?? input.buyer.phone);
+      if (!phone) return { status: "skipped", reason: "no_valid_buyer_phone" };
+
+      const allowed = await smsAllowed(db, phone, details);
+      if (!allowed.ok) return { status: "skipped", reason: allowed.reason, recipient: phone };
+
+      const res = await sendTwilioSms({
+        to: phone,
+        body: buildCustomerSmsBody(primary, input.buyer, orders.length),
+      });
+      return res.ok
+        ? { status: "sent", messageId: res.messageId, recipient: phone }
+        : { status: "failed", reason: res.reason, recipient: phone };
+    }),
+  );
+
   return outcomes;
 }

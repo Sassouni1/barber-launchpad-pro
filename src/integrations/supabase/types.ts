@@ -3596,6 +3596,27 @@ export type Database = {
           },
         ]
       }
+      sms_opt_outs: {
+        Row: {
+          created_at: string
+          id: string
+          phone: string
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone: string
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
       sms_reminders: {
         Row: {
           created_at: string
