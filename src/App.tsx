@@ -67,6 +67,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { LocaleProvider } from "./lib/i18n/LocaleProvider";
 import { AccessLogger } from "./components/AccessLogger";
 import { NotificationPrompt } from "./components/notifications/NotificationPrompt";
+import { AionFloatingAssistant } from "./components/aion/AionFloatingAssistant";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,7 @@ const MemberApp = () => (
     <BrowserRouter>
       <AccessLogger />
       <NotificationPrompt />
+      <AionFloatingAssistant />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
