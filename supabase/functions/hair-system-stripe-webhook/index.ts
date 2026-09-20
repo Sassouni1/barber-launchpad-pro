@@ -3,13 +3,15 @@
 // Stripe is the sole source of truth. This is the ONLY trigger for the
 // supplier production email and the buyer confirmation SMS. The buyer's
 // receipt is Stripe's own native successful-payment receipt — no email is sent
-// to the customer from here. GoHighLevel is not used in this flow at all.
+// to the customer from here. GoHighLevel is the delivery transport only; it
+// never contributes message content (no workflows, merge fields or custom
+// fields).
 //
 // Required secrets:
 //   HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET  signing secret of this Stripe endpoint
 //   STRIPE_SECRET_KEY                  existing Invasion Digital Media live key
-//   CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID    supplier email transport
-//   TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_MESSAGING_SERVICE_SID  SMS
+//   Existing GHL connection (ghl_oauth_tokens + GHL_ENCRYPTION_KEY +
+//   GHL_CLIENT_ID / GHL_CLIENT_SECRET) for email and SMS delivery
 // Optional:
 //   HAIR_SYSTEM_SUPPLIER_EMAIL         overrides the default supplier recipient
 //   HAIR_SYSTEM_SUPPLIER_FROM          overrides the preferred sender address

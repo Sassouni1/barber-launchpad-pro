@@ -2,21 +2,27 @@
 //
 // Stripe is the ONLY source of truth: this module is driven exclusively by a
 // signature-verified successful Stripe Checkout event plus the hair-system
-// order metadata captured at checkout. It never reads or writes GoHighLevel
-// contacts, custom fields, workflow merge parameters or legacy contact data to
-// build the message. Delivery transports are Cloudflare Email Service (supplier
-// email) and the shared Vlix Twilio A2P messaging service (buyer SMS).
+// order metadata captured at checkout. GoHighLevel is used ONLY as the
+// delivery transport (supplier email + buyer SMS) — no GHL workflow, merge
+// field, purchase trigger or legacy contact custom field ever contributes to
+// message content.
 //
 // The customer receives Stripe's own native successful-payment receipt at the
-// email supplied to Checkout — no duplicate receipt or SMS is sent from here.
+// email supplied to Checkout — no duplicate receipt is sent from here.
 //
 // Every send is claimed atomically per (order, channel) so a Stripe retry can
 // never send the supplier the same order twice, while a FAILED send can be
 // retried later.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendCloudflareEmail } from "./cloudflareEmail.ts";
-import { normalizePhone, sendTwilioSms } from "./twilioSms.ts";
+import {
+  getGhlAccess,
+  normalizePhone,
+  resolveContactId,
+  sendGhlEmail,
+  sendGhlSms,
+  type GhlAccess,
+} from "./ghlMessaging.ts";
 
 export const SUPPLIER_FROM = "send@barberlaunch.co";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
@@ -168,33 +174,54 @@ export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
 </div></body></html>`;
 }
 
-// ── Supplier email delivery (Cloudflare Email Service) ───────
+// ── Supplier email delivery (GoHighLevel transport) ──────────
 //
-// Transport is Cloudflare Email Service's REST API, called directly from this
-// backend (no Worker binding). Content comes only from the paid Stripe session
-// and the submitted order payload — never from GoHighLevel.
+// Transport is the existing connected Barber Launch GHL location (same OAuth
+// path as the other live functions). The rendered HTML is handed to GHL fully
+// built — GHL contributes nothing to the content. The From address must be
+// send@barberlaunch.co; if GHL refuses that sender the send FAILS and the
+// exact provider rejection is recorded. No silent fallback sender.
 
 export type SendResult =
   | { ok: true; messageId: string | null; sender: string }
   | { ok: false; reason: string; configured: boolean };
 
 export async function sendSupplierEmail(
-  _db: SupabaseClient,
-  input: { to: string; subject: string; html: string },
+  db: SupabaseClient,
+  input: { to: string; subject: string; html: string; access?: GhlAccess },
 ): Promise<SendResult> {
   const from =
     (Deno.env.get("HAIR_SYSTEM_SUPPLIER_FROM") ?? "").trim().toLowerCase() || SUPPLIER_FROM;
 
-  return await sendCloudflareEmail({
-    to: input.to,
-    from,
-    fromName: SUPPLIER_FROM_NAME,
+  const access = input.access ?? (await getGhlAccess(db));
+  if ("error" in access) {
+    return { ok: false, configured: false, reason: `ghl_not_available:${access.error}` };
+  }
+
+  const contactId = await resolveContactId(access, { email: input.to, name: "New Times Hair" });
+  if (!contactId) {
+    return { ok: false, configured: true, reason: "ghl_supplier_contact_unresolved" };
+  }
+
+  const res = await sendGhlEmail(access, {
+    contactId,
+    emailFrom: from,
+    emailTo: input.to,
     subject: input.subject,
     html: input.html,
   });
+  if (!res.ok) {
+    const senderIssue = /from|sender|domain|verif|unauthor/i.test(res.reason);
+    return {
+      ok: false,
+      configured: true,
+      reason: `${senderIssue ? `ghl_sender_not_verified(${from}):` : "ghl_email_failed:"}${res.reason}`.slice(0, 400),
+    };
+  }
+  return { ok: true, messageId: res.messageId, sender: from };
 }
 
-// ── Customer SMS (shared Vlix Booking Twilio A2P service) ────
+// ── Customer SMS (approved Barber Launch GHL SMS route) ──────
 
 /** Short, transactional, no prices or card data. */
 export function buildCustomerSmsBody(order: OrderRow, buyer: SessionBuyer, systemCount: number) {
@@ -279,8 +306,8 @@ async function runChannel(
 
 /**
  * After a verified successful Stripe payment: one supplier production sheet
- * per ordered system (Cloudflare Email Service), plus one transactional
- * confirmation SMS to the buyer (shared Vlix Twilio A2P messaging service).
+ * per ordered system, plus one transactional confirmation SMS to the buyer —
+ * both delivered through the connected Barber Launch GoHighLevel location.
  * The buyer's receipt remains Stripe's own native receipt — no email is sent
  * to the customer from here.
  */
@@ -294,6 +321,11 @@ export async function dispatchPaidOrderNotifications(
   const supplierEmail =
     (Deno.env.get("HAIR_SYSTEM_SUPPLIER_EMAIL") ?? "").trim().toLowerCase() || DEFAULT_SUPPLIER_EMAIL;
 
+  // One GHL token resolution for the whole dispatch.
+  const accessResult = await getGhlAccess(db);
+  const access = "error" in accessResult ? null : accessResult;
+  const accessError = "error" in accessResult ? accessResult.error : null;
+
   const outcomes: ChannelOutcome[] = [];
   for (const order of orders) {
     outcomes.push(
@@ -302,6 +334,7 @@ export async function dispatchPaidOrderNotifications(
           to: supplierEmail,
           subject: SUPPLIER_SUBJECT,
           html: buildSupplierEmailHtml(order, input.buyer),
+          ...(access ? { access } : {}),
         });
         return res.ok
           ? { status: "sent", messageId: res.messageId, recipient: `${supplierEmail} (from: ${res.sender})` }
@@ -322,9 +355,20 @@ export async function dispatchPaidOrderNotifications(
       const allowed = await smsAllowed(db, phone, details);
       if (!allowed.ok) return { status: "skipped", reason: allowed.reason, recipient: phone };
 
-      const res = await sendTwilioSms({
-        to: phone,
-        body: buildCustomerSmsBody(primary, input.buyer, orders.length),
+      if (!access) {
+        return { status: "failed", reason: `ghl_not_available:${accessError}`, recipient: phone };
+      }
+      const contactId = await resolveContactId(access, {
+        email: String(input.buyer.email || primary.customer_email || ""),
+        phone,
+        name: String(details.full_name ?? primary.customer_name ?? input.buyer.name ?? ""),
+      });
+      if (!contactId) return { status: "failed", reason: "ghl_buyer_contact_unresolved", recipient: phone };
+
+      const res = await sendGhlSms(access, {
+        contactId,
+        phone,
+        message: buildCustomerSmsBody(primary, input.buyer, orders.length),
       });
       return res.ok
         ? { status: "sent", messageId: res.messageId, recipient: phone }
