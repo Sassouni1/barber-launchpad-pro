@@ -38,7 +38,7 @@ function lineItems(systems: Record<string, unknown>[], shippingSpeed: string) {
     `line_items[${index}][quantity]`, String(quantity),
   ]).flat();
 
-  if (!shippingSpeed.startsWith("Rush")) {
+  if (shippingSpeed === "Shipping · $10") {
     const index = quantities.size;
     pairs.push(
       `line_items[${index}][price_data][currency]`, "usd",
@@ -94,6 +94,10 @@ Deno.serve(async (req) => {
 
     const required = ["barberFirstName", "barberLastName", "barberPhone", "address1", "city", "state", "zip"];
     if (required.some((field) => !text(body[field]))) throw new Error("Please complete every required order field.");
+    const shippingSpeed = text(body.shippingSpeed, 100);
+    if (!["Shipping · $10", "Rush Ship (3 Days) · $50"].includes(shippingSpeed)) {
+      throw new Error("Please choose a shipping preference.");
+    }
     if (!/^\d{5}(-\d{4})?$/.test(text(body.zip, 10))) throw new Error("Please provide a valid ZIP code.");
     const systems = Array.isArray(body.systems) && body.systems.length ? body.systems.slice(0, 12) : [body];
     if (systems.some((system) => !["color", "base", "length"].every((field) => text(system[field])))) throw new Error("Please complete each system's color, base, and length.");
@@ -102,7 +106,7 @@ Deno.serve(async (req) => {
     const baseDetails = {
       source: "barber-launch-native-order-form", order_type: "hair_system", submitted_at: new Date().toISOString(),
       full_name: buyerName, email: user.email.toLowerCase(), phone: text(body.barberPhone, 40),
-      shipping: { method: text(body.shippingSpeed, 100), address_1: text(body.address1, 150), address_2: text(body.address2, 150), city: text(body.city, 100), state: text(body.state, 2).toUpperCase(), zip: text(body.zip, 10) }, notes: text(body.notes, 2000),
+      shipping: { method: shippingSpeed, address_1: text(body.address1, 150), address_2: text(body.address2, 150), city: text(body.city, 100), state: text(body.state, 2).toUpperCase(), zip: text(body.zip, 10) }, notes: text(body.notes, 2000),
     };
     const { data: orders, error: insertError } = await admin.from("orders").insert(systems.map((system, index) => ({
       user_id: user.id, customer_email: user.email.toLowerCase(), customer_name: buyerName, status: "pending_payment",
@@ -146,7 +150,7 @@ Deno.serve(async (req) => {
     const saveCard = body.saveCardForFutureOrders === true;
     const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer: stripeCustomerId, return_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, "metadata[user_id]": user.id, "metadata[order_ids]": orders.map((order) => order.id).join(","), "metadata[save_card]": String(saveCard), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][order_ids]": orders.map((order) => order.id).join(","), "payment_intent_data[metadata][save_card]": String(saveCard) });
     if (saveCard) form.append("payment_intent_data[setup_future_usage]", "off_session");
-    const pairs = lineItems(systems, text(body.shippingSpeed));
+    const pairs = lineItems(systems, shippingSpeed);
     for (let index = 0; index < pairs.length; index += 2) form.append(pairs[index], pairs[index + 1]);
     const checkoutResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `hair_checkout_${orders.map((order) => order.id).join("_")}` }, body: form });
     const session = await checkoutResponse.json();

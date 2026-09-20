@@ -82,7 +82,7 @@ const emptyForm = {
   barberPhone: "",
   barberEmail: "",
   quantity: "1",
-  shippingSpeed: "Shipping · $10",
+  shippingSpeed: "",
   address1: "",
   address2: "",
   city: "",
@@ -505,6 +505,7 @@ export default function OrderHairSystem() {
     (system.length === "Other" && !system.lengthOther.trim()) ||
     (system.density === "Custom" && !system.densityOther.trim());
   const missingDeliveryDetails =
+    !form.shippingSpeed ||
     ![form.address1, form.city, form.state].every((value) => value.trim()) ||
     !/^\d{5}(-\d{4})?$/.test(form.zip.trim());
 
@@ -521,7 +522,7 @@ export default function OrderHairSystem() {
   const goReview = () => {
     if (missingDeliveryDetails) {
       setAttemptedStep("delivery");
-      return toast.error("Add a complete shipping address and valid ZIP code.");
+      return toast.error("Choose a shipping preference and add a complete shipping address and valid ZIP code.");
     }
     setAttemptedStep(null);
     setStep("review");
@@ -568,9 +569,13 @@ export default function OrderHairSystem() {
     : null;
   const priceLines = [
     ...systems.flatMap((system, index) => systemPriceLines(system, index + 1)),
-    form.shippingSpeed.startsWith("Rush")
-      ? { label: "Rush shipping (3 days)", amount: 50 }
-      : { label: "Shipping", amount: 10 },
+    ...(form.shippingSpeed
+      ? [
+          form.shippingSpeed.startsWith("Rush")
+            ? { label: "Rush shipping (3 days)", amount: 50 }
+            : { label: "Shipping", amount: 10 },
+        ]
+      : []),
   ];
   const orderTotal = priceLines.reduce((total, line) => total + line.amount, 0);
   const extraItemCount = Math.max(0, priceLines.length - systems.length);
@@ -869,6 +874,7 @@ export default function OrderHairSystem() {
                 onChange={change("shippingSpeed")}
                 options={["Shipping · $10", "Rush Ship (3 Days) · $50"]}
                 variant="cards"
+                invalid={attemptedStep === "delivery" && !form.shippingSpeed}
               />
               <Field
                 label="Street address"
