@@ -3,12 +3,9 @@
 // Stripe is the ONLY source of truth: this module is driven exclusively by a
 // signature-verified successful Stripe Checkout event plus the hair-system
 // order metadata captured at checkout. GoHighLevel is used ONLY as the
-// delivery transport (supplier email + buyer SMS) — no GHL workflow, merge
+// delivery transport (supplier email, customer receipt + buyer SMS) — no GHL workflow, merge
 // field, purchase trigger or legacy contact custom field ever contributes to
 // message content.
-//
-// The customer receives Stripe's own native successful-payment receipt at the
-// email supplied to Checkout — no duplicate receipt is sent from here.
 //
 // Every send is claimed atomically per (order, channel) so a Stripe retry can
 // never send the supplier the same order twice, while a FAILED send can be
@@ -29,8 +26,9 @@ export const SUPPLIER_FROM_NAME = "Barber Launch";
 export const DEFAULT_SUPPLIER_EMAIL = "sales30@newtimeshair.com";
 export const SUPPLIER_SUBJECT = "NEW Hair System Purchase (Order Details) (IMPORTANT)";
 export const SUPPLIER_STANDING_INSTRUCTION = "Please always choose NCON and HS1.";
+export const CUSTOMER_RECEIPT_SUBJECT = "Your Barber Launch Hair System Order Receipt";
 
-export type Channel = "supplier_email" | "customer_sms";
+export type Channel = "supplier_email" | "customer_receipt" | "customer_sms";
 
 export type OrderRow = {
   id: string;
@@ -45,6 +43,16 @@ export type SessionBuyer = {
   email: string;
   phone: string;
   address: string[];
+};
+
+export type PaidReceipt = {
+  orderReference: string;
+  purchasedAt: Date;
+  currency: string;
+  amountPaid: number;
+  lineItems: Array<{ name: string; quantity: number; amount: number }>;
+  cardBrand: string;
+  cardLast4: string;
 };
 
 const esc = (v: unknown) =>
@@ -125,6 +133,75 @@ function systemRows(details: Record<string, any> | null) {
   const curl = curlLabel(details?.["Curl Pattern"]);
   if (curl) rows.push(["Curl pattern", curl]);
   return rows;
+}
+
+function money(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase() || "USD",
+  }).format(amount / 100);
+}
+
+function purchaseDate(value: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(value);
+}
+
+/** Branded customer receipt. Prices come only from the paid Stripe Session. */
+export function buildCustomerReceiptHtml(orders: OrderRow[], buyer: SessionBuyer, receipt: PaidReceipt) {
+  const primary = orders[0];
+  const details = primary?.order_details ?? {};
+  const firstName = String(details.full_name ?? primary?.customer_name ?? buyer.name ?? "")
+    .trim().split(/\s+/)[0] || "there";
+  const ship = shippingBlock(details);
+  const shipLines = ship.lines.length ? ship.lines : buyer.address;
+  const items = receipt.lineItems.map((item) => `<tr>
+    <td style="padding:10px 0;border-bottom:1px solid #e5e5e5">${esc(item.name)}${item.quantity > 1 ? ` &times; ${item.quantity}` : ""}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #e5e5e5;text-align:right;font-weight:700">${esc(money(item.amount, receipt.currency))}</td>
+  </tr>`).join("");
+  const systems = orders.map((order, index) => {
+    const rows = systemRows(order.order_details)
+      .map(([label, value]) => `<tr><td style="padding:3px 12px 3px 0;color:#666">${esc(label)}</td><td style="padding:3px 0;font-weight:700">${esc(value)}</td></tr>`)
+      .join("");
+    return `<div style="padding:14px 0;${index ? "border-top:1px solid #e5e5e5" : ""}">
+      <h3 style="font-size:15px;margin:0 0 7px">Hair system ${index + 1}</h3>
+      <table style="border-collapse:collapse;font-size:14px">${rows}<tr><td style="padding:3px 12px 3px 0;color:#666">Quantity</td><td style="padding:3px 0;font-weight:700">1</td></tr></table>
+    </div>`;
+  }).join("");
+  const notes = String(details.notes ?? "").trim();
+  const card = receipt.cardBrand && receipt.cardLast4
+    ? `${receipt.cardBrand.replace(/^./, (c) => c.toUpperCase())} ending in ${receipt.cardLast4}`
+    : "";
+
+  return `<!doctype html><html><body style="margin:0;background:#f4f4f2;font-family:Helvetica,Arial,sans-serif;color:#171717">
+<div style="max-width:640px;margin:0 auto;padding:24px 12px">
+  <div style="background:#111;color:#d6ae52;padding:22px 24px;font-size:22px;font-weight:700">Barber Launch</div>
+  <div style="background:#fff;padding:28px 24px">
+    <div style="color:#247a46;font-size:13px;font-weight:700;text-transform:uppercase">Payment confirmed</div>
+    <h1 style="font-size:25px;margin:7px 0 12px">Your hair system order receipt</h1>
+    <p style="margin:0 0 22px">Hi ${esc(firstName)}, your payment was successful.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">
+      <tr><td style="padding:4px 12px 4px 0;color:#666">Order reference</td><td style="padding:4px 0;text-align:right;font-weight:700">${esc(receipt.orderReference)}</td></tr>
+      <tr><td style="padding:4px 12px 4px 0;color:#666">Purchase date</td><td style="padding:4px 0;text-align:right">${esc(purchaseDate(receipt.purchasedAt))}</td></tr>
+    </table>
+    <h2 style="font-size:17px;margin:22px 0 6px">Order summary</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:14px">${items}
+      <tr><td style="padding:14px 0;font-size:16px;font-weight:700">Total paid</td><td style="padding:14px 0;text-align:right;font-size:17px;font-weight:700">${esc(money(receipt.amountPaid, receipt.currency))}</td></tr>
+    </table>
+    ${card ? `<p style="margin:0 0 24px;color:#666;font-size:13px">Paid with ${esc(card)}</p>` : ""}
+    <h2 style="font-size:17px;margin:22px 0 6px">Production selections</h2>
+    ${systems}
+    <h2 style="font-size:17px;margin:22px 0 6px">Shipping</h2>
+    ${ship.method ? `<p style="margin:0 0 7px"><strong>Shipping preference:</strong> ${esc(String(details.shipping?.method ?? ship.method))}</p>` : ""}
+    <p style="margin:0;line-height:1.5">${shipLines.map(esc).join("<br>")}</p>
+    ${notes ? `<h2 style="font-size:17px;margin:22px 0 6px">Order notes</h2><p style="margin:0;white-space:pre-wrap">${esc(notes)}</p>` : ""}
+    <p style="margin:28px 0 0;border-top:1px solid #e5e5e5;padding-top:20px">Thank you for your order with Barber Launch.</p>
+  </div>
+</div></body></html>`;
 }
 
 /**
@@ -219,6 +296,28 @@ export async function sendSupplierEmail(
   return { ok: true, messageId: res.messageId, sender: from };
 }
 
+export async function sendCustomerReceiptEmail(
+  db: SupabaseClient,
+  input: { to: string; name: string; subject: string; html: string; access?: GhlAccess },
+): Promise<SendResult> {
+  const access = input.access ?? (await getGhlAccess(db));
+  if ("error" in access) return { ok: false, configured: false, reason: `ghl_not_available:${access.error}` };
+  const contactId = await resolveContactId(access, { email: input.to, name: input.name });
+  if (!contactId) return { ok: false, configured: true, reason: "ghl_customer_contact_unresolved" };
+  const res = await sendGhlEmail(access, {
+    contactId,
+    emailFrom: SUPPLIER_FROM,
+    emailTo: input.to,
+    subject: input.subject,
+    html: input.html,
+  });
+  if (!res.ok) {
+    const senderIssue = /from|sender|domain|verif|unauthor/i.test(res.reason);
+    return { ok: false, configured: true, reason: `${senderIssue ? `ghl_sender_not_verified(${SUPPLIER_FROM}):` : "ghl_email_failed:"}${res.reason}`.slice(0, 400) };
+  }
+  return { ok: true, messageId: res.messageId, sender: SUPPLIER_FROM };
+}
+
 // ── Customer SMS (approved Barber Launch GHL SMS route) ──────
 
 /** Short, transactional, no prices or card data. */
@@ -304,14 +403,12 @@ async function runChannel(
 
 /**
  * After a verified successful Stripe payment: one supplier production sheet
- * per ordered system, plus one transactional confirmation SMS to the buyer —
- * both delivered through the connected Barber Launch GoHighLevel location.
- * The buyer's receipt remains Stripe's own native receipt — no email is sent
- * to the customer from here.
+ * per ordered system, one branded customer receipt, and one transactional SMS
+ * to the buyer through the connected Barber Launch GoHighLevel location.
  */
 export async function dispatchPaidOrderNotifications(
   db: SupabaseClient,
-  input: { orders: OrderRow[]; buyer: SessionBuyer; eventId: string },
+  input: { orders: OrderRow[]; buyer: SessionBuyer; eventId: string; receipt: PaidReceipt },
 ): Promise<ChannelOutcome[]> {
   const orders = input.orders;
   if (!orders.length) return [];
@@ -341,9 +438,30 @@ export async function dispatchPaidOrderNotifications(
     );
   }
 
+  // One receipt per purchase, claimed against the first order so multi-system
+  // purchases and Stripe retries cannot generate duplicate customer emails.
+  const primary = orders[0];
+  const customerEmail = String(input.buyer.email || primary.customer_email || "").trim().toLowerCase();
+  outcomes.push(
+    await runChannel(db, primary.id, "customer_receipt", input.eventId, async () => {
+      if (!customerEmail) return { status: "skipped", reason: "no_buyer_email" };
+      if (!access) return { status: "failed", reason: `ghl_not_available:${accessError}`, recipient: customerEmail };
+      const details = primary.order_details ?? {};
+      const res = await sendCustomerReceiptEmail(db, {
+        to: customerEmail,
+        name: String(details.full_name ?? primary.customer_name ?? input.buyer.name ?? ""),
+        subject: CUSTOMER_RECEIPT_SUBJECT,
+        html: buildCustomerReceiptHtml(orders, input.buyer, input.receipt),
+        access,
+      });
+      return res.ok
+        ? { status: "sent", messageId: res.messageId, recipient: `${customerEmail} (from: ${res.sender})` }
+        : { status: "failed", reason: res.reason, recipient: customerEmail };
+    }),
+  );
+
   // One confirmation SMS per purchase, claimed against the first order so a
   // Stripe retry (or a multi-system order) can never text the buyer twice.
-  const primary = orders[0];
   outcomes.push(
     await runChannel(db, primary.id, "customer_sms", input.eventId, async () => {
       const details = primary.order_details ?? {};

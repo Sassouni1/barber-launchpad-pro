@@ -156,9 +156,9 @@ Deno.serve(async (req) => {
 
     const origin = new URL(req.headers.get("origin") || "https://member.thebarberlaunch.com").origin;
     const saveCard = body.saveCardForFutureOrders === true;
-    // receipt_email makes Stripe send its own native successful-payment receipt
-    // to the buyer — the only customer confirmation for this flow.
-    const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer: stripeCustomerId, return_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, "metadata[user_id]": user.id, "metadata[order_ids]": orders.map((order) => order.id).join(","), "metadata[save_card]": String(saveCard), "payment_intent_data[receipt_email]": user.email.toLowerCase(), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][order_ids]": orders.map((order) => order.id).join(","), "payment_intent_data[metadata][save_card]": String(saveCard) });
+    // Customer receipts are sent only by the signature-verified webhook after
+    // payment. Omitting receipt_email prevents an extra Stripe-native receipt.
+    const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer: stripeCustomerId, return_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, "metadata[user_id]": user.id, "metadata[order_ids]": orders.map((order) => order.id).join(","), "metadata[save_card]": String(saveCard), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][order_ids]": orders.map((order) => order.id).join(","), "payment_intent_data[metadata][save_card]": String(saveCard) });
     if (saveCard) form.append("payment_intent_data[setup_future_usage]", "off_session");
     const pairs = lineItems(systems, shippingSpeed);
     for (let index = 0; index < pairs.length; index += 2) form.append(pairs[index], pairs[index + 1]);
