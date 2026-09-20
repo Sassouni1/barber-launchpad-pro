@@ -180,26 +180,28 @@ export function AionFloatingAssistant() {
             )}
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => navigate('/aion')}
-            className="flex h-9 flex-shrink-0 items-center justify-center gap-1.5 border-t border-border/70 bg-card text-xs font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            className="h-9 flex-shrink-0 rounded-none border-t border-border/70 bg-card text-xs text-muted-foreground hover:bg-card hover:text-primary"
           >
             Open full Aion <ExternalLink className="size-3.5" aria-hidden="true" />
-          </button>
+          </Button>
         </section>
       )}
 
       {panelState === 'minimized' && (
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => void openAssistant()}
-          className="pointer-events-auto mb-3 flex h-11 items-center gap-2 rounded-full border border-primary/30 bg-card px-3 text-sm font-semibold text-foreground shadow-xl transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="pointer-events-auto mb-3 h-11 rounded-full border-primary/30 bg-card px-3 text-foreground shadow-xl hover:border-primary/60 hover:bg-card"
           aria-label="Restore Aion assistant"
         >
           <Bot className="size-4 text-primary" aria-hidden="true" />
           Aion minimized
-        </button>
+        </Button>
       )}
 
       <Tooltip>

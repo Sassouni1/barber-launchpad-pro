@@ -371,7 +371,10 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => downloadImage((m.metadata as ImageMeta).imageUrl!, (m.metadata as ImageMeta).imageId)}
+                          onClick={() => {
+                            const imageUrl = (m.metadata as ImageMeta).imageUrl;
+                            if (imageUrl) void downloadImage(imageUrl, (m.metadata as ImageMeta).imageId);
+                          }}
                         >
                           <Download className="w-3.5 h-3.5 mr-1.5" /> Download
                         </Button>
