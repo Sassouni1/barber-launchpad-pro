@@ -76,7 +76,14 @@ function shippingBlock(details: Record<string, any> | null) {
     [s.city, s.state].filter(Boolean).join(", "),
     s.zip,
   ].filter((v) => String(v || "").trim().length > 0);
-  return { method: String(s.method || "").trim(), lines: lines.map(String) };
+  // The stored method label carries the customer-facing price ("Rush Ship
+  // (3 Days) · $50"); the supplier must never see any amount.
+  const method = String(s.method || "")
+    .replace(/[·|-]?\s*\$\s*[\d,]+(\.\d{2})?/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[·\-\s]+$/, "")
+    .trim();
+  return { method, lines: lines.map(String) };
 }
 
 function systemRows(details: Record<string, any> | null) {
