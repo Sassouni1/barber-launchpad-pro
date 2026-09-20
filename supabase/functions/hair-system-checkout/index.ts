@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
     if (authError || !user?.email) throw new Error("You must be signed in to checkout.");
 
     const body = await req.json();
-    const secret = Deno.env.get("HAIR_SYSTEM_STRIPE_SECRET_KEY");
+    // Invasion Digital Media live account (acct_1LMNKMI6LFtj88Bq).
+    const secret = Deno.env.get("STRIPE_SECRET_KEY");
     if (!secret) throw new Error("Hair system payments are not configured.");
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
