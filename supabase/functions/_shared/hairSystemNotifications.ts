@@ -86,15 +86,37 @@ function shippingBlock(details: Record<string, any> | null) {
   return { method, lines: lines.map(String) };
 }
 
+/**
+ * Exact customer-facing curl label, matching the order form's picker:
+ * "Standard" is shown as "Standard · 3.0 CM", "Extra straight" as
+ * "Extra straight · 4.0 CM"; numbered patterns ("2.8 CM" …) and
+ * "Wave unit" already carry their customer-facing value.
+ */
+function curlLabel(raw: unknown): string {
+  const v = String(raw ?? "").trim();
+  if (v === "Standard") return "Standard · 3.0 CM";
+  if (v === "Extra straight") return "Extra straight · 4.0 CM";
+  return v;
+}
+
+/**
+ * Every field of the CURRENT order form, per system, built from the
+ * submitted order payload (order_details) — never from a legacy field list.
+ * The checkout function stores each system already resolved to its final
+ * customer-facing value (custom length/density substituted), so we surface
+ * each one verbatim.
+ */
 function systemRows(details: Record<string, any> | null) {
-  return [
+  const rows: [string, string][] = [
     ["Client name", details?.["Client Name"]],
-    ["Color", details?.["Choose Color"]],
+    ["Hair color", details?.["Choose Color"]],
     ["Base (lace or skin)", details?.["Lace or Skin"]],
     ["Hair length", details?.["Hair Length"]],
     ["Density", details?.["Choose Density"]],
-    ["Curl pattern", details?.["Curl Pattern"]],
   ].filter(([, v]) => String(v ?? "").trim().length > 0) as [string, string][];
+  const curl = curlLabel(details?.["Curl Pattern"]);
+  if (curl) rows.push(["Curl pattern", curl]);
+  return rows;
 }
 
 /**
@@ -129,13 +151,13 @@ export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
     <tr><td style="padding:3px 14px 3px 0;color:#777">Quantity</td><td style="padding:3px 0"><strong>1</strong></td></tr>
   </table>
 
-  <h2 style="font-size:14px;margin:20px 0 6px">Buyer &amp; ship to</h2>
+  <h2 style="font-size:14px;margin:20px 0 6px">Buyer &amp; shipping</h2>
   <table style="border-collapse:collapse;font-size:14px">
-    <tr><td style="padding:3px 14px 3px 0;color:#777">Name</td><td style="padding:3px 0"><strong>${esc(recipient)}</strong></td></tr>
+    <tr><td style="padding:3px 14px 3px 0;color:#777">Buyer name</td><td style="padding:3px 0"><strong>${esc(recipient)}</strong></td></tr>
     <tr><td style="padding:3px 14px 3px 0;color:#777">Email</td><td style="padding:3px 0">${esc(email)}</td></tr>
-    <tr><td style="padding:3px 14px 3px 0;color:#777">Phone</td><td style="padding:3px 0">${esc(phone)}</td></tr>
-    ${ship.method ? `<tr><td style="padding:3px 14px 3px 0;color:#777">Method</td><td style="padding:3px 0">${esc(ship.method)}</td></tr>` : ""}
-    <tr><td style="padding:3px 14px 3px 0;color:#777;vertical-align:top">Address</td><td style="padding:3px 0">${shipLines.map(esc).join("<br>")}</td></tr>
+    ${phone ? `<tr><td style="padding:3px 14px 3px 0;color:#777">Phone</td><td style="padding:3px 0">${esc(phone)}</td></tr>` : ""}
+    ${ship.method ? `<tr><td style="padding:3px 14px 3px 0;color:#777">Shipping preference</td><td style="padding:3px 0">${esc(ship.method)}</td></tr>` : ""}
+    <tr><td style="padding:3px 14px 3px 0;color:#777;vertical-align:top">Shipping address</td><td style="padding:3px 0">${shipLines.map(esc).join("<br>")}</td></tr>
   </table>
 
   ${notes ? `<h2 style="font-size:14px;margin:20px 0 6px">Order notes</h2><p style="font-size:14px;white-space:pre-wrap;margin:0">${esc(notes)}</p>` : ""}
