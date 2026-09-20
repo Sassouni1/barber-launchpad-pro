@@ -168,65 +168,59 @@ export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
 </div></body></html>`;
 }
 
-// ── Email delivery (GoHighLevel = transport only) ────────────
+// ── Supplier email delivery (Cloudflare Email Service) ───────
 //
-// GHL is used strictly as the mail transport for the rendered supplier email.
-// No GHL custom fields, workflow merge parameters or legacy contact data are
-// read to build the message — the content comes only from the paid Stripe
-// session and the submitted order payload.
+// Transport is Cloudflare Email Service's REST API, called directly from this
+// backend (no Worker binding). Content comes only from the paid Stripe session
+// and the submitted order payload — never from GoHighLevel.
 
 export type SendResult =
   | { ok: true; messageId: string | null; sender: string }
   | { ok: false; reason: string; configured: boolean };
 
-/**
- * Delivers the rendered supplier email through the connected GHL location.
- *
- * Sender selection: `send@barberlaunch.co` is attempted first (or the
- * HAIR_SYSTEM_SUPPLIER_FROM override). If GHL rejects that address because it
- * is not a verified sender on the location, we retry letting GHL apply the
- * account's own verified default sender, and report which one was used.
- */
 export async function sendSupplierEmail(
-  db: SupabaseClient,
+  _db: SupabaseClient,
   input: { to: string; subject: string; html: string },
 ): Promise<SendResult> {
-  const access = await getGhlAccess(db);
-  if ("error" in access) {
-    return { ok: false, configured: false, reason: `email_provider_not_configured:${access.error}` };
-  }
-
-  // Transport needs a conversation target; the supplier's own address is used.
-  const contactId = await resolveContactId(access, { email: input.to, name: "New Times Hair Supplier" });
-  if (!contactId) {
-    return { ok: false, configured: true, reason: "ghl_supplier_contact_unavailable" };
-  }
-
-  const preferredFrom =
+  const from =
     (Deno.env.get("HAIR_SYSTEM_SUPPLIER_FROM") ?? "").trim().toLowerCase() || SUPPLIER_FROM;
 
-  const attempt = async (from?: string) =>
-    await sendGhlEmail(access, {
-      contactId,
-      ...(from ? { emailFrom: from } : {}),
-      emailTo: input.to,
-      subject: input.subject,
-      html: input.html,
-    } as Parameters<typeof sendGhlEmail>[1]);
+  return await sendCloudflareEmail({
+    to: input.to,
+    from,
+    fromName: SUPPLIER_FROM_NAME,
+    subject: input.subject,
+    html: input.html,
+  });
+}
 
-  const first = await attempt(preferredFrom);
-  if (first.ok) return { ok: true, messageId: first.messageId, sender: preferredFrom };
+// ── Customer SMS (shared Vlix Booking Twilio A2P service) ────
 
-  // Unverified/rejected sender → fall back to the location's default sender.
-  const fallback = await attempt(undefined);
-  if (fallback.ok) {
-    return { ok: true, messageId: fallback.messageId, sender: "ghl_location_default_sender" };
+/** Short, transactional, no prices or card data. */
+export function buildCustomerSmsBody(order: OrderRow, buyer: SessionBuyer, systemCount: number) {
+  const details = order.order_details ?? {};
+  const name = String(details.full_name ?? order.customer_name ?? buyer.name ?? "").split(" ")[0];
+  const what = systemCount > 1 ? `${systemCount} hair systems are` : "hair system is";
+  return `${name ? `${name}, ` : ""}thanks for your order with Barber Launch. Your ${what} confirmed and going into production. We'll be in touch with shipping updates. Reply STOP to opt out.`;
+}
+
+/** Same consent contract as Vlix Booking: valid number, not opted out, consent not withdrawn. */
+async function smsAllowed(
+  db: SupabaseClient,
+  phone: string,
+  details: Record<string, any> | null,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (details?.sms_consent === false || details?.sms_opt_in === false) {
+    return { ok: false, reason: "customer_declined_sms" };
   }
-  return {
-    ok: false,
-    configured: true,
-    reason: `${first.reason} | default_sender:${fallback.reason}`.slice(0, 400),
-  };
+  const { data, error } = await db
+    .from("sms_opt_outs")
+    .select("phone")
+    .eq("phone", phone)
+    .maybeSingle();
+  if (error) return { ok: false, reason: `opt_out_check_failed:${error.message}`.slice(0, 300) };
+  if (data) return { ok: false, reason: "customer_opted_out" };
+  return { ok: true };
 }
 
 // ── Delivery dispatch ────────────────────────────────────────
