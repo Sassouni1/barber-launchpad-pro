@@ -36,5 +36,15 @@ Deno.serve(async (req) => {
   } catch (e) {
     out.locationError = e instanceof Error ? e.message : String(e);
   }
+  try {
+    const r2 = await fetch(
+      `${GHL_BASE}/contacts/search/duplicate?locationId=${access.locationId}&email=${encodeURIComponent("sales30@newtimeshair.com")}`,
+      { headers: ghlHeaders(access.accessToken) },
+    );
+    out.contactsStatus = r2.status;
+    out.contactsBody = (await r2.text()).slice(0, 200);
+  } catch (e) {
+    out.contactsError = e instanceof Error ? e.message : String(e);
+  }
   return new Response(JSON.stringify(out), { headers: { "Content-Type": "application/json" } });
 });
