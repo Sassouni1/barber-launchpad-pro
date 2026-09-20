@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     if (required.some((field) => !text(body[field]))) throw new Error("Please complete every required order field.");
     if (!/^\d{5}(-\d{4})?$/.test(text(body.zip, 10))) throw new Error("Please provide a valid ZIP code.");
     const systems = Array.isArray(body.systems) && body.systems.length ? body.systems.slice(0, 12) : [body];
-    if (systems.some((system) => !["color", "length"].every((field) => text(system[field])))) throw new Error("Please complete each system's color and length.");
+    if (systems.some((system) => !["color", "base", "length"].every((field) => text(system[field])))) throw new Error("Please complete each system's color, base, and length.");
 
     const buyerName = `${text(body.barberFirstName, 50)} ${text(body.barberLastName, 50)}`.trim();
     const baseDetails = {
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     };
     const { data: orders, error: insertError } = await admin.from("orders").insert(systems.map((system, index) => ({
       user_id: user.id, customer_email: user.email.toLowerCase(), customer_name: buyerName, status: "pending_payment",
-      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100) },
+      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Lace or Skin": text(system.base, 50), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100) },
     }))).select("id");
     if (insertError || !orders?.length) throw insertError || new Error("Unable to prepare the order.");
 

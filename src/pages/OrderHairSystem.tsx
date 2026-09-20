@@ -66,6 +66,7 @@ const curlGuideChoices = [
 const emptySystem = () => ({
   clientName: "",
   color: "",
+  base: "",
   length: "Standard",
   lengthOther: "",
   density: "100% Standard",
@@ -428,7 +429,7 @@ export default function OrderHairSystem() {
     setSystems((current) => current.slice(0, 1));
   };
   const missingSystemDetails = (system: SystemDetails) =>
-    !system.color.trim() ||
+    !system.color.trim() || !system.base.trim() ||
     (system.length === "Other" && !system.lengthOther.trim()) ||
     (system.density === "Custom" && !system.densityOther.trim());
   const missingDeliveryDetails =
@@ -439,7 +440,7 @@ export default function OrderHairSystem() {
     if (!form.barberFirstName.trim() || !form.barberLastName.trim() || !form.barberPhone.trim() || systems.some(missingSystemDetails)) {
       setAttemptedStep("specs");
       return toast.error(
-        "Add your first name, last name, phone number, color, and length first.",
+        "Add your first name, last name, phone number, color, base, and length first.",
       );
     }
     setAttemptedStep(null);
@@ -638,6 +639,13 @@ export default function OrderHairSystem() {
                       onChange={(value) => updateSystem(index, "color", value)}
                       placeholder="e.g. #1B, #2, or #350"
                       invalid={attemptedStep === "specs" && !system.color.trim()}
+                    />
+                    <Picker
+                      label="Base"
+                      value={system.base}
+                      onChange={(value) => updateSystem(index, "base", value)}
+                      options={["Lace", "Skin"]}
+                      invalid={attemptedStep === "specs" && !system.base.trim()}
                     />
                     <Picker
                       label="Hair length"
@@ -865,7 +873,7 @@ export default function OrderHairSystem() {
                       </dt>
                       {system.clientName && <dd className="mt-1 font-medium">{system.clientName}</dd>}
                       <dd className="text-muted-foreground">
-                        {system.color} ·{" "}
+                        {system.color} · {system.base} ·{" "}
                         {system.length === "Other"
                           ? system.lengthOther
                           : system.length}
