@@ -184,7 +184,11 @@ export function buildCustomerReceiptHtml(orders: OrderRow[], buyer: SessionBuyer
     <div style="color:#247a46;font-size:13px;font-weight:700;text-transform:uppercase">Payment confirmed</div>
     <h1 style="font-size:25px;margin:7px 0 12px">Your hair system order receipt</h1>
     <p style="margin:0 0 7px">Hi ${esc(firstName)}, your payment was successful.</p>
-    <p style="margin:0 0 22px">Customer name: ${esc(fullName)}</p>
+    <p style="margin:0 0 22px">Customer name: ${esc(fullName)}${
+      String(details["Client Name"] ?? "").trim()
+        ? `<br>Client name: ${esc(String(details["Client Name"]).trim())}`
+        : ""
+    }</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">
       <tr><td style="padding:4px 12px 4px 0;color:#666">Order reference</td><td style="padding:4px 0;text-align:right;font-weight:700">${esc(receipt.orderReference)}</td></tr>
       <tr><td style="padding:4px 12px 4px 0;color:#666">Purchase date</td><td style="padding:4px 0;text-align:right">${esc(purchaseDate(receipt.purchasedAt))}</td></tr>
