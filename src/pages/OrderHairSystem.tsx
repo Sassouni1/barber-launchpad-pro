@@ -114,13 +114,15 @@ function Picker({
   onChange,
   options,
   displayOption,
+  variant = "default",
   invalid = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: string[];
-  displayOption?: (option: string) => string;
+  displayOption?: (option: string) => React.ReactNode;
+  variant?: "default" | "cards";
   invalid?: boolean;
 }) {
   return (
@@ -133,11 +135,11 @@ function Picker({
             type="button"
             aria-pressed={value === option}
             onClick={() => onChange(option)}
-            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${value === option ? "border-primary bg-primary/10 ring-1 ring-primary/30" : invalid ? "border-destructive bg-destructive/5" : "border-border bg-background hover:border-primary/40"}`}
+            className={`${variant === "cards" ? "relative flex min-h-[96px] flex-col items-start justify-center rounded-xl border-2 px-4 py-3 text-left transition-colors" : "flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors"} ${value === option ? "border-primary bg-primary/10 ring-1 ring-primary/30" : invalid ? "border-destructive bg-destructive/5" : "border-border bg-input hover:border-primary/40"}`}
           >
-            <span>{displayOption?.(option) ?? option}</span>
+            <span className={variant === "cards" ? "text-base font-semibold" : undefined}>{displayOption?.(option) ?? option}</span>
             {value === option && (
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <span className={`${variant === "cards" ? "absolute right-3 top-3" : ""} flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground`}>
                 <Check className="h-3 w-3" aria-hidden="true" />
               </span>
             )}
@@ -165,7 +167,7 @@ function BasePicker({
   return (
     <div className="space-y-2">
       <Label className={invalid ? "text-destructive" : undefined}>Base</Label>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:max-w-sm">
         {options.map((option) => {
           const selected = value === option.value;
           return (
@@ -258,7 +260,7 @@ function CurlPicker({
         </button>
       )}
       {showChoices && (
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-5">
           {curlGuideChoices.map(({ value: option, column, row }) => (
             <button
               key={option}
@@ -733,8 +735,19 @@ export default function OrderHairSystem() {
                       value={system.length}
                       onChange={(value) => updateSystem(index, "length", value)}
                       options={["Standard", "Other"]}
+                      variant="cards"
                       displayOption={(value) =>
-                        value === "Standard" ? 'Standard Men’s System: 5" · $200' : value
+                        value === "Standard" ? (
+                          <>
+                            <span className="block">Standard Men’s System</span>
+                            <span className="mt-2 block text-sm font-normal text-muted-foreground">5&quot; · $200</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="block">Custom length</span>
+                            <span className="mt-2 block text-sm font-normal text-muted-foreground">Choose 14&quot; or 16&quot;</span>
+                          </>
+                        )
                       }
                     />
                     {system.length === "Other" && (
