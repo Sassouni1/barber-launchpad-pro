@@ -75,7 +75,15 @@ Deno.serve(async (req) => {
       if (session.payment_status !== "paid") return new Response(JSON.stringify({ paid: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const orderIds = text(session.metadata?.order_ids, 500).split(",").filter(Boolean);
       if (orderIds.length) {
-        const { error } = await admin.from("orders").update({ status: "pending" }).in("id", orderIds);
+        // Idempotent: only lifts orders out of pending_payment, so a repeat
+        // return-URL visit (or the webhook arriving first) changes nothing.
+        // Customer/supplier notifications are NEVER sent from this path — the
+        // signed hair-system-stripe-webhook owns all messaging.
+        const { error } = await admin
+          .from("orders")
+          .update({ status: "pending" })
+          .in("id", orderIds)
+          .eq("status", "pending_payment");
         if (error) throw error;
       }
       if (session.metadata?.save_card === "true" && typeof session.customer === "string" && typeof session.payment_intent === "string") {

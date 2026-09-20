@@ -2366,6 +2366,36 @@ export type Database = {
         }
         Relationships: []
       }
+      hair_system_webhook_events: {
+        Row: {
+          created_at: string
+          event_id: string
+          event_type: string
+          livemode: boolean
+          payload_digest: string | null
+          processed_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          event_type: string
+          livemode?: boolean
+          payload_digest?: string | null
+          processed_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          event_type?: string
+          livemode?: boolean
+          payload_digest?: string | null
+          processed_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       homework_files: {
         Row: {
           created_at: string
@@ -2941,6 +2971,59 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_notifications: {
+        Row: {
+          attempts: number
+          channel: string
+          created_at: string
+          event_id: string | null
+          id: string
+          order_id: string
+          provider: string
+          provider_message_id: string | null
+          reason: string | null
+          recipient_hint: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          channel: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          order_id: string
+          provider?: string
+          provider_message_id?: string | null
+          reason?: string | null
+          recipient_hint?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          order_id?: string
+          provider?: string
+          provider_message_id?: string | null
+          reason?: string | null
+          recipient_hint?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -4517,6 +4600,10 @@ export type Database = {
         Args: { _id: string; _patch: Json; _worker: string }
         Returns: boolean
       }
+      claim_order_notification: {
+        Args: { _channel: string; _event_id: string; _order_id: string }
+        Returns: string
+      }
       cleanup_old_marketing_images: { Args: never; Returns: undefined }
       complete_current_user_password_reset: { Args: never; Returns: boolean }
       current_user_requires_password_reset: { Args: never; Returns: boolean }
@@ -4527,6 +4614,15 @@ export type Database = {
       edit_support_message: {
         Args: { p_body: string; p_message_id: string }
         Returns: undefined
+      }
+      hair_system_claim_webhook_event: {
+        Args: {
+          _digest: string
+          _event_id: string
+          _event_type: string
+          _livemode: boolean
+        }
+        Returns: string
       }
       has_role: {
         Args: {

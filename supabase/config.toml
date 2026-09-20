@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.content-rewards]
 verify_jwt = false
+
+[functions.hair-system-stripe-webhook]
+verify_jwt = false
