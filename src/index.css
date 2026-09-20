@@ -50,6 +50,13 @@
     --border: 220 15% 24%;
     --input: 220 15% 12%;
     --ring: 45 100% 50%;
+
+    /* Order-form text fields: lighter charcoal surface + clear neutral gray
+       resting border so older users can spot inputs on dark cards. Gold stays
+       reserved for focus/selection. */
+    --field-surface: 220 13% 19%;
+    --field-border: 220 10% 42%;
+    --field-placeholder: 45 12% 74%;
     
     --radius: 0.75rem;
     
@@ -98,6 +105,9 @@
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 38 70% 42%;
+    --field-surface: 220 14% 96%;
+    --field-border: 220 13% 68%;
+    --field-placeholder: 220 10% 42%;
     --gold: 38 70% 42%;
     --gold-light: 38 70% 55%;
     --gold-dark: 35 75% 32%;
@@ -126,6 +136,9 @@
     --border: 220 15% 24%;
     --input: 220 15% 12%;
     --ring: 45 100% 50%;
+    --field-surface: 220 13% 19%;
+    --field-border: 220 10% 42%;
+    --field-placeholder: 45 12% 74%;
     --sidebar-background: 220 20% 5%;
     --sidebar-foreground: 45 100% 90%;
     --sidebar-primary: 45 100% 50%;
@@ -494,4 +507,19 @@
   font-family: 'CertificateNamePreview', 'Pinyon Script', 'Snell Roundhand', 'Apple Chancery', 'Segoe Script', 'Lucida Handwriting', serif !important;
   font-weight: 400 !important;
   letter-spacing: 0;
+}
+
+/* Order a hair system — resting state of text-entry fields only.
+   Lighter charcoal surface and a clearly visible neutral gray border so the
+   unfocused inputs stand out on the dark cards. Gold remains untouched for
+   keyboard focus rings and selected choice cards. Placed unlayered so it
+   outranks the shadcn `bg-background`/`border-input` utilities. */
+.order-field {
+  background-color: hsl(var(--field-surface));
+  border-color: hsl(var(--field-border));
+}
+
+.order-field::placeholder {
+  color: hsl(var(--field-placeholder));
+  opacity: 1;
 }

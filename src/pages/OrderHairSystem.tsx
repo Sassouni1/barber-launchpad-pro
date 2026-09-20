@@ -354,7 +354,7 @@ function Field({
         type={type}
         onBlur={onBlur}
         aria-invalid={invalid}
-        className={`mt-2 ${invalid ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : ""}`}
+        className={`mt-2 ${invalid ? "border-destructive bg-destructive/5 focus-visible:ring-destructive" : "order-field"}`}
       />
     </div>
   );
@@ -908,7 +908,7 @@ export default function OrderHairSystem() {
                   onChange={(event) => change("notes")(event.target.value)}
                   placeholder="Anything we should know about this match, cut, or delivery?"
                   rows={4}
-                  className="mt-2"
+                  className="mt-2 order-field"
                 />
               </div>
             </div>
