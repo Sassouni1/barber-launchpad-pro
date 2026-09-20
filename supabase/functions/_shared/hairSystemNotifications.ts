@@ -278,9 +278,11 @@ async function runChannel(
 }
 
 /**
- * Sends one supplier production sheet per ordered system after a verified
- * successful Stripe payment. No customer messaging happens here — Stripe's
- * native receipt covers the buyer.
+ * After a verified successful Stripe payment: one supplier production sheet
+ * per ordered system (Cloudflare Email Service), plus one transactional
+ * confirmation SMS to the buyer (shared Vlix Twilio A2P messaging service).
+ * The buyer's receipt remains Stripe's own native receipt — no email is sent
+ * to the customer from here.
  */
 export async function dispatchPaidOrderNotifications(
   db: SupabaseClient,
