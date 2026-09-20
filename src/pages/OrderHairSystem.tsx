@@ -237,7 +237,7 @@ function CurlPicker({
                 }}
               />
               {(value === "Extra straight" || value === "Standard") && (
-                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-normal text-black">
+                <span className="absolute inset-x-0 bottom-0 flex min-h-9 items-center justify-center bg-white px-1 py-1 text-center text-[11px] leading-3 font-normal text-black">
                   {value === "Standard" ? "Standard · 3.0 CM" : "Extra straight · 4.0 CM"}
                 </span>
               )}
@@ -281,7 +281,7 @@ function CurlPicker({
                 }}
               />
               {(option === "Extra straight" || option === "Standard") && (
-                <span className="absolute inset-x-0 bottom-0 bg-white/95 px-1 py-1 text-center text-xs font-normal text-black">
+                <span className="absolute inset-x-0 bottom-0 flex min-h-9 items-center justify-center bg-white px-1 py-1 text-center text-[11px] leading-3 font-normal text-black">
                   {option === "Standard" ? "Standard · 3.0 CM" : "Extra straight · 4.0 CM"}
                 </span>
               )}
@@ -778,6 +778,7 @@ export default function OrderHairSystem() {
                         updateSystem(index, "density", value)
                       }
                       options={choices.density}
+                      variant="cards"
                     />
                     {system.density === "Custom" && (
                       <Picker
