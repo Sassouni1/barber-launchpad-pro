@@ -369,6 +369,7 @@ export default function OrderHairSystem() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [saveCardForFutureOrders, setSaveCardForFutureOrders] = useState(true);
+  const [totalExpanded, setTotalExpanded] = useState(false);
   const [attemptedStep, setAttemptedStep] = useState<"specs" | "delivery" | null>(null);
   const [referenceGuide, setReferenceGuide] = useState<{
     src: string;
@@ -570,10 +571,16 @@ export default function OrderHairSystem() {
       : []),
   ];
   const orderTotal = priceLines.reduce((total, line) => total + line.amount, 0);
+  const extraItemCount = Math.max(0, priceLines.length - systems.length);
+  const itemSummary = `${systems.length} system${systems.length === 1 ? "" : "s"}${
+    extraItemCount > 0
+      ? ` · ${extraItemCount} add-on${extraItemCount === 1 ? "" : "s"}`
+      : " · Standard shipping"
+  }`;
 
   return (
     <DashboardLayout>
-      <main className="mx-auto max-w-5xl space-y-6 pb-10">
+      <main className={`mx-auto max-w-5xl space-y-6 ${step === "success" ? "pb-10" : "pb-32 sm:pb-36"}`}>
         <section className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/15 via-card to-card p-6 sm:p-8">
           <div className="flex flex-col justify-between gap-5 sm:flex-row">
             <div className="max-w-2xl">
@@ -1123,6 +1130,50 @@ export default function OrderHairSystem() {
           </section>
         )}
       </main>
+      {step !== "success" && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:left-20 md:px-6">
+          <section
+            aria-label="Current order total"
+            className="pointer-events-auto mx-auto max-w-3xl overflow-hidden rounded-lg border border-primary/40 bg-card shadow-2xl shadow-background/80"
+          >
+            {totalExpanded && (
+              <div id="current-total-breakdown" className="max-h-[35vh] overflow-y-auto border-b border-border px-4 py-3 sm:px-5">
+                <h2 className="text-sm font-semibold">Included in your total</h2>
+                <div className="mt-2 space-y-2 text-sm">
+                  {priceLines.map((line, index) => (
+                    <div key={`${line.label}-summary-${index}`} className="flex items-start justify-between gap-4">
+                      <span className="text-muted-foreground">{line.label}</span>
+                      <span className="shrink-0 font-medium">{money(line.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex min-h-[74px] items-center gap-3 px-4 py-3 sm:px-5">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-muted-foreground">Current total</p>
+                <div className="mt-0.5 flex min-w-0 items-baseline gap-2">
+                  <span className="shrink-0 text-xl font-bold text-primary sm:text-2xl">{money(orderTotal)}</span>
+                  <span className="truncate text-xs text-muted-foreground">USD · {itemSummary}</span>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 px-2.5 sm:px-3"
+                aria-expanded={totalExpanded}
+                aria-controls="current-total-breakdown"
+                onClick={() => setTotalExpanded((current) => !current)}
+              >
+                <span className="hidden sm:inline">{totalExpanded ? "Hide breakdown" : "View breakdown"}</span>
+                <span className="sm:hidden">{totalExpanded ? "Hide" : "Details"}</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${totalExpanded ? "rotate-180" : ""}`} />
+              </Button>
+            </div>
+          </section>
+        </div>
+      )}
       <Dialog
         open={Boolean(referenceGuide)}
         onOpenChange={(open) => !open && setReferenceGuide(null)}
