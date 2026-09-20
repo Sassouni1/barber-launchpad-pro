@@ -92,6 +92,22 @@ const emptyForm = {
 };
 type Form = typeof emptyForm;
 
+type PriceLine = { label: string; amount: number };
+const money = (amount: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+const systemPriceLines = (system: SystemDetails, orderNumber: number): PriceLine[] => {
+  const length = system.length === "Other" ? system.lengthOther : "Standard Men’s System";
+  const systemPrice = system.length === "Other" && system.lengthOther === '14" hair'
+    ? 262.5
+    : system.length === "Other" && system.lengthOther === '16" hair'
+      ? 315
+      : 200;
+  const lines = [{ label: `Order ${orderNumber}: ${length}`, amount: systemPrice }];
+  if (system.curl === "Wave unit") lines.push({ label: `Order ${orderNumber}: Wave unit add-on`, amount: 50 });
+  else if (system.curl !== "Standard") lines.push({ label: `Order ${orderNumber}: ${system.curl} curl add-on`, amount: 30 });
+  return lines;
+};
+
 function Picker({
   label,
   value,
@@ -547,6 +563,13 @@ export default function OrderHairSystem() {
         },
       }
     : null;
+  const priceLines = [
+    ...systems.flatMap((system, index) => systemPriceLines(system, index + 1)),
+    ...(form.shippingSpeed.startsWith("Rush")
+      ? [{ label: "Rush shipping (3 days)", amount: 50 }]
+      : []),
+  ];
+  const orderTotal = priceLines.reduce((total, line) => total + line.amount, 0);
 
   return (
     <DashboardLayout>
@@ -982,6 +1005,24 @@ export default function OrderHairSystem() {
                 </Button>
               </div>
             </div>
+            <div className="glass-card rounded-xl p-5">
+              <div className="flex items-baseline justify-between gap-4">
+                <h3 className="font-semibold">Price before payment</h3>
+                <span className="text-xl font-bold text-primary">{money(orderTotal)}</span>
+              </div>
+              <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+                {priceLines.map((line, index) => (
+                  <div key={`${line.label}-${index}`} className="flex items-start justify-between gap-4">
+                    <span className="text-muted-foreground">{line.label}</span>
+                    <span className="shrink-0 font-medium">{money(line.amount)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-4 font-semibold">
+                <span>Total due today</span>
+                <span className="text-lg text-primary">{money(orderTotal)}</span>
+              </div>
+            </div>
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-background/40 p-4 text-sm">
               <input
                 type="checkbox"
@@ -1003,7 +1044,7 @@ export default function OrderHairSystem() {
                 onClick={submit}
                 disabled={sending}
               >
-                {sending ? "Preparing secure payment…" : "Continue to secure payment"}
+                {sending ? "Opening card payment…" : "Enter card details & pay"}
                 <PackageCheck className="ml-2 h-4 w-4" />
               </Button>
             </div>
