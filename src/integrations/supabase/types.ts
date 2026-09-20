@@ -2558,6 +2558,38 @@ export type Database = {
         }
         Relationships: []
       }
+      member_billing_profiles: {
+        Row: {
+          created_at: string
+          customer_id: string
+          default_payment_method_id: string | null
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          default_payment_method_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          default_payment_method_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_billing_profiles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_onboarding_profiles: {
         Row: {
           booking_method: string | null
