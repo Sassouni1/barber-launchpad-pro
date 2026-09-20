@@ -42,7 +42,7 @@ function readState(): AssistantState {
 export function AionFloatingAssistant() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading: authLoading, isManufacturer } = useAuth();
+  const { user, loading: authLoading, isAdmin, isManufacturer } = useAuth();
   const { conversations, isLoading: conversationsLoading, createConversation, updateTitle } = useAionConversations();
   const [panelState, setPanelState] = useState<AssistantState>(readState);
   const [activeId, setActiveId] = useState<string | null>(() => (
@@ -55,7 +55,7 @@ export function AionFloatingAssistant() {
     location.pathname === path || location.pathname.startsWith(`${path}/`)
   ));
   const shouldRender = Boolean(
-    !authLoading && user && !isManufacturer && isMemberPath && location.pathname !== '/aion'
+    !authLoading && user && !isAdmin && !isManufacturer && isMemberPath && location.pathname !== '/aion'
   );
 
   const setPersistentState = useCallback((next: AssistantState) => {
@@ -131,17 +131,17 @@ export function AionFloatingAssistant() {
           className="pointer-events-auto mb-3 flex h-[min(68vh,480px)] w-full flex-col overflow-hidden rounded-lg border border-primary/30 bg-background shadow-2xl sm:h-[560px] sm:w-[380px]"
           aria-label="Chat with Aion"
         >
-          <header className="flex h-14 flex-shrink-0 items-center gap-3 border-b border-border/70 bg-card px-3">
-            <div className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-primary/40 bg-primary/10">
+          <header className="flex h-14 flex-shrink-0 items-center gap-1.5 border-b border-border/70 bg-card px-2 min-[360px]:gap-3 min-[360px]:px-3">
+            <div className="flex size-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/40 bg-primary/10 min-[360px]:size-9">
               <img src="/icons/barber-launch-maskable.png" alt="" className="size-full object-cover" />
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="truncate font-display text-base font-semibold text-foreground">Aion</h2>
-              <p className="text-xs text-muted-foreground">Barber Launch assistant</p>
+              <p className="hidden truncate text-xs text-muted-foreground min-[360px]:block">Barber Launch assistant</p>
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-9" onClick={() => void startConversation()} disabled={isStarting} aria-label="Start a new Aion chat">
+                <Button variant="ghost" size="icon" className="size-8 min-[360px]:size-9" onClick={() => void startConversation()} disabled={isStarting} aria-label="Start a new Aion chat">
                   {isStarting ? <Loader2 className="animate-spin" /> : <MessageSquarePlus />}
                 </Button>
               </TooltipTrigger>
@@ -149,7 +149,7 @@ export function AionFloatingAssistant() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-9" onClick={() => setPersistentState('minimized')} aria-label="Minimize Aion">
+                <Button variant="ghost" size="icon" className="size-8 min-[360px]:size-9" onClick={() => setPersistentState('minimized')} aria-label="Minimize Aion">
                   <Minus />
                 </Button>
               </TooltipTrigger>
@@ -157,7 +157,7 @@ export function AionFloatingAssistant() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-9" onClick={() => setPersistentState('closed')} aria-label="Close Aion">
+                <Button variant="ghost" size="icon" className="size-8 min-[360px]:size-9" onClick={() => setPersistentState('closed')} aria-label="Close Aion">
                   <X />
                 </Button>
               </TooltipTrigger>
