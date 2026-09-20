@@ -86,15 +86,37 @@ function shippingBlock(details: Record<string, any> | null) {
   return { method, lines: lines.map(String) };
 }
 
+/**
+ * Exact customer-facing curl label, matching the order form's picker:
+ * "Standard" is shown as "Standard · 3.0 CM", "Extra straight" as
+ * "Extra straight · 4.0 CM"; numbered patterns ("2.8 CM" …) and
+ * "Wave unit" already carry their customer-facing value.
+ */
+function curlLabel(raw: unknown): string {
+  const v = String(raw ?? "").trim();
+  if (v === "Standard") return "Standard · 3.0 CM";
+  if (v === "Extra straight") return "Extra straight · 4.0 CM";
+  return v;
+}
+
+/**
+ * Every field of the CURRENT order form, per system, built from the
+ * submitted order payload (order_details) — never from a legacy field list.
+ * The checkout function stores each system already resolved to its final
+ * customer-facing value (custom length/density substituted), so we surface
+ * each one verbatim.
+ */
 function systemRows(details: Record<string, any> | null) {
-  return [
+  const rows: [string, string][] = [
     ["Client name", details?.["Client Name"]],
-    ["Color", details?.["Choose Color"]],
+    ["Hair color", details?.["Choose Color"]],
     ["Base (lace or skin)", details?.["Lace or Skin"]],
     ["Hair length", details?.["Hair Length"]],
     ["Density", details?.["Choose Density"]],
-    ["Curl pattern", details?.["Curl Pattern"]],
   ].filter(([, v]) => String(v ?? "").trim().length > 0) as [string, string][];
+  const curl = curlLabel(details?.["Curl Pattern"]);
+  if (curl) rows.push(["Curl pattern", curl]);
+  return rows;
 }
 
 /**
