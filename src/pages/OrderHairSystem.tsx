@@ -68,7 +68,7 @@ const curlGuideChoices = [
 const emptySystem = () => ({
   clientName: "",
   color: "",
-  base: "",
+  base: "Lace",
   length: "Standard",
   lengthOther: "",
   density: "100% Standard",
@@ -82,7 +82,7 @@ const emptyForm = {
   barberPhone: "",
   barberEmail: "",
   quantity: "1",
-  shippingSpeed: "Standard",
+  shippingSpeed: "Shipping · $10",
   address1: "",
   address2: "",
   city: "",
@@ -568,9 +568,9 @@ export default function OrderHairSystem() {
     : null;
   const priceLines = [
     ...systems.flatMap((system, index) => systemPriceLines(system, index + 1)),
-    ...(form.shippingSpeed.startsWith("Rush")
-      ? [{ label: "Rush shipping (3 days)", amount: 50 }]
-      : []),
+    form.shippingSpeed.startsWith("Rush")
+      ? { label: "Rush shipping (3 days)", amount: 50 }
+      : { label: "Shipping", amount: 10 },
   ];
   const orderTotal = priceLines.reduce((total, line) => total + line.amount, 0);
   const extraItemCount = Math.max(0, priceLines.length - systems.length);
@@ -611,7 +611,7 @@ export default function OrderHairSystem() {
             <div className="grid grid-cols-3 gap-2">
               {[
                 [1, "System details"],
-                [2, "Delivery"],
+                [2, "Shipping"],
                 [3, "Review & send"],
               ].map(([number, label]) => (
                 <div className="flex items-center gap-2" key={String(number)}>
@@ -864,10 +864,11 @@ export default function OrderHairSystem() {
             </div>
             <div className="space-y-5">
               <Picker
-                label="Shipping speed"
+                label="Shipping preference"
                 value={form.shippingSpeed}
                 onChange={change("shippingSpeed")}
-                options={["Standard", "Rush Ship (3 Days) · $50"]}
+                options={["Shipping · $10", "Rush Ship (3 Days) · $50"]}
+                variant="cards"
               />
               <Field
                 label="Street address"

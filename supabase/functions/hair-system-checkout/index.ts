@@ -33,7 +33,21 @@ function lineItems(systems: Record<string, unknown>[], shippingSpeed: string) {
     else if (curl && curl !== "Standard") add(priceIds.curly);
   }
   if (shippingSpeed.startsWith("Rush")) add(priceIds.rush);
-  return [...quantities.entries()].map(([price, quantity], index) => [`line_items[${index}][price]`, price, `line_items[${index}][quantity]`, String(quantity)]).flat();
+  const pairs = [...quantities.entries()].map(([price, quantity], index) => [
+    `line_items[${index}][price]`, price,
+    `line_items[${index}][quantity]`, String(quantity),
+  ]).flat();
+
+  if (!shippingSpeed.startsWith("Rush")) {
+    const index = quantities.size;
+    pairs.push(
+      `line_items[${index}][price_data][currency]`, "usd",
+      `line_items[${index}][price_data][unit_amount]`, "1000",
+      `line_items[${index}][price_data][product_data][name]`, "Shipping",
+      `line_items[${index}][quantity]`, "1",
+    );
+  }
+  return pairs;
 }
 
 Deno.serve(async (req) => {
