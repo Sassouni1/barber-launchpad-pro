@@ -181,7 +181,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3) Load the orders and the real amounts Stripe charged.
+    // 3) Load the order specs captured at checkout. No amounts are read or
+    //    forwarded — the supplier sheet must never contain prices.
     const { data: orders, error: ordersError } = await db
       .from("orders")
       .select("id, customer_email, customer_name, order_details")
@@ -192,13 +193,15 @@ Deno.serve(async (req) => {
       .map((id) => (orders ?? []).find((o: any) => o.id === id))
       .filter(Boolean) as OrderRow[];
 
-    const lines = await lineItemsFor(String(session.id), stripeSecret);
-    const totalCents = Number(session.amount_total ?? lines.reduce((sum, l) => sum + l.amountCents, 0));
+    // Authoritative buyer identity/address straight off the paid session.
+    const fullSession = await stripeGet(
+      `/checkout/sessions/${encodeURIComponent(String(session.id))}`,
+      stripeSecret,
+    ).catch(() => session);
 
     const outcomes = await dispatchPaidOrderNotifications(db, {
       orders: ordered,
-      lines,
-      totalCents,
+      buyer: buyerFromSession(fullSession),
       eventId: String(event.id),
     });
     console.log("hair-system notifications", JSON.stringify(outcomes));
