@@ -6,13 +6,14 @@ const corsHeaders = {
 };
 
 const text = (value: unknown, limit = 500) => String(value || "").trim().slice(0, limit);
+// Live Invasion Digital Media catalog (acct_1LMNKMI6LFtj88Bq).
 const priceIds = {
-  standard: "price_1UHRgOAlgWpO5KsvxJMjlA80",
-  curly: "price_1UHRgoAlgWpO5Ksvi1uDkJAZ",
-  wave: "price_1UHRgoAlgWpO5KsvvP6NAqgL",
-  custom14: "price_1UHRgpAlgWpO5KsvK4EfnLHS",
-  custom16: "price_1UHRgpAlgWpO5KsvZLotPy89",
-  rush: "price_1UHRgqAlgWpO5KsvIUgnAjq0",
+  standard: "price_1UHZUmI6LFtj88BqFeN5RXMM", // Standard Men's System (5 inch) $200
+  curly: "price_1UHZW8I6LFtj88BqptT2JZbo", // Curly Pattern Add-On $30
+  wave: "price_1UHZWdI6LFtj88BqoJ0qhYgd", // Wave Unit Add-On $50
+  custom14: "price_1UHZVDI6LFtj88BqUbLWo2UX", // Custom 14-inch System $262.50
+  custom16: "price_1UHZVfI6LFtj88Bq2nei9tKN", // Custom 16-inch System $315
+  rush: "price_1UHZWyI6LFtj88Bq3p9kFEK1", // Rush Shipping $50
 } as const;
 
 function lineItems(systems: Record<string, unknown>[], shippingSpeed: string) {
