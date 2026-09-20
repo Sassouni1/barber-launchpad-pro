@@ -21,4 +21,5 @@
 - [x] Dispatcher: force a Stripe lookup before resend whenever reconciliation/reservation state persists
 - [x] Isolated Stripe test-mode end-to-end affiliate verification (checkout -> signed event -> $600 commission -> 7-day hold -> Connect transfer -> connected-account bank payout -> refund adjustment)
 - [x] Certification SMS alerts to Chris: template submission, install submission, certification unlocked, directory listing request, certificate-holding photo
-- [ ] Add, publish, and visually verify the persistent mobile-safe “Current total” bar throughout the hair-system order flow
+- [x] Add and locally verify the persistent mobile-safe “Current total” bar throughout the hair-system order flow
+- [ ] Publish and visually verify the “Current total” bar on the live member site
