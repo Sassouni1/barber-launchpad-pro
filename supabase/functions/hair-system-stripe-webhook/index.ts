@@ -70,28 +70,6 @@ async function stripeGet(path: string, secret: string) {
   return body;
 }
 
-async function lineItemsFor(sessionId: string, secret: string): Promise<PriceLine[]> {
-  const lines: PriceLine[] = [];
-  let startingAfter = "";
-  for (let page = 0; page < 5; page++) {
-    const query = new URLSearchParams({ limit: "100" });
-    if (startingAfter) query.set("starting_after", startingAfter);
-    const res = await stripeGet(`/checkout/sessions/${sessionId}/line_items?${query}`, secret);
-    const data = (res?.data ?? []) as Array<Record<string, any>>;
-    for (const item of data) {
-      lines.push({
-        description: String(item.description ?? "Item"),
-        quantity: Number(item.quantity ?? 1),
-        amountCents: Number(item.amount_total ?? 0),
-      });
-    }
-    if (!res?.has_more || data.length === 0) break;
-    startingAfter = String(data[data.length - 1]?.id ?? "");
-    if (!startingAfter) break;
-  }
-  return lines;
-}
-
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
