@@ -29,3 +29,4 @@
   URL: https://ynooatjtgstgwfssnira.supabase.co/functions/v1/hair-system-stripe-webhook
 - Blocked on secrets: `HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET`, `HAIR_SYSTEM_SUPPLIER_EMAIL`.
 - Delivery audit: `public.order_notifications` (per order/channel), `public.hair_system_webhook_events` (per Stripe event).
+- [x] Implement, visually verify, deploy, and publish the approved persistent floating Aion assistant.

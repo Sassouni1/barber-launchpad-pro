@@ -1,12 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, User, Loader2, Download, Wand2 } from 'lucide-react';
+import { Bot, Download, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import ReactMarkdown from 'react-markdown';
 import { toast } from '@/hooks/use-toast';
 import { saveAionMessage } from '@/hooks/useAionChat';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation';
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from '@/components/ai-elements/message';
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from '@/components/ai-elements/prompt-input';
+import { Shimmer } from '@/components/ai-elements/shimmer';
 
 type ImageMeta = {
   imageUrl?: string;
@@ -62,11 +76,13 @@ async function downloadImage(url: string, id?: string) {
 
 async function streamChat({
   messages,
+  conversationId,
   onDelta,
   onDone,
   onError,
 }: {
   messages: Msg[];
+  conversationId: string | null;
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (msg: string) => void;
@@ -81,7 +97,7 @@ async function streamChat({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ messages, conversationId: (window as any).__aionConversationId }),
+    body: JSON.stringify({ messages, conversationId }),
   });
 
   if (!resp.ok) {
@@ -154,11 +170,6 @@ interface AionChatProps {
 }
 
 export function AionChat({ conversationId, initialMessages, initialMessage, onInitialSent, onFirstUserMessage }: AionChatProps) {
-  // Expose conversationId for the streamChat function
-  useEffect(() => {
-    (window as any).__aionConversationId = conversationId;
-    return () => { (window as any).__aionConversationId = null; };
-  }, [conversationId]);
   const GREETINGS = [
     "Hi there 👋 How can I help?",
     "Hello! What can I help you with today?",
@@ -179,7 +190,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const initialSentRef = useRef(false);
   const queryClient = useQueryClient();
   const userMsgCountRef = useRef(initialMessages ? initialMessages.filter(m => m.role === 'user').length : 0);
@@ -196,14 +207,12 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
   }, [conversationId]);
 
   useEffect(() => {
-    const el = bottomRef.current;
-    if (!el) return;
-    // Find the Radix ScrollArea viewport ancestor and scroll only it (not the page).
-    const viewport = el.closest('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-    if (viewport) {
-      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-    }
-  }, [messages]);
+    inputRef.current?.focus();
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (!loading) inputRef.current?.focus();
+  }, [loading]);
 
   useEffect(() => {
     if (initialMessage && !initialSentRef.current) {
@@ -308,6 +317,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
     try {
       await streamChat({
         messages: allMessages,
+        conversationId,
         onDelta: upsert,
         onDone: async () => {
           setLoading(false);
@@ -330,26 +340,23 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
     }
   }, [conversationId, messages, loading, onFirstUserMessage, queryClient]);
 
-  const send = () => sendMessage(input);
-
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 pr-3">
-        <div className="space-y-4 py-2">
+    <div className="flex h-full min-h-0 flex-col">
+      <Conversation className="min-h-0">
+        <ConversationContent className="gap-4 px-1 py-2 sm:px-2">
           {messages.map((m, i) => (
-            <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {m.role === 'assistant' && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-primary" />
-                </div>
-              )}
-              <div
-                className={`rounded-xl px-4 py-2.5 max-w-[80%] text-sm ${
-                  m.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-foreground'
-                }`}
-              >
+            <Message key={`${m.role}-${i}`} from={m.role}>
+              <div className={`flex items-start gap-2.5 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {m.role === 'assistant' && (
+                  <div className="mt-0.5 flex size-7 flex-shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+                    <Bot className="size-3.5 text-primary" aria-hidden="true" />
+                  </div>
+                )}
+                <MessageContent
+                  className={m.role === 'user'
+                    ? 'max-w-[82%] bg-primary px-3.5 py-2.5 text-primary-foreground'
+                    : 'max-w-[calc(100%-2.5rem)] px-0 py-0 text-foreground'}
+                >
                 {m.role === 'assistant' ? (
                   m.messageType === 'image' && (m.metadata as ImageMeta)?.imageUrl ? (
                     <div className="space-y-2">
@@ -364,7 +371,10 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => downloadImage((m.metadata as ImageMeta).imageUrl!, (m.metadata as ImageMeta).imageId)}
+                          onClick={() => {
+                            const imageUrl = (m.metadata as ImageMeta).imageUrl;
+                            if (imageUrl) void downloadImage(imageUrl, (m.metadata as ImageMeta).imageId);
+                          }}
                         >
                           <Download className="w-3.5 h-3.5 mr-1.5" /> Download
                         </Button>
@@ -378,50 +388,49 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
                       </div>
                     </div>
                   ) : (
-                    <div className="prose prose-sm prose-invert max-w-none [&>p]:my-4 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>ul]:my-3 [&>ol]:my-3 [&>h1]:mt-5 [&>h2]:mt-5 [&>h3]:mt-4 [&>h1]:mb-2 [&>h2]:mb-2 [&>h3]:mb-2 [&_li]:my-1.5">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
-                    </div>
+                    <MessageResponse className="prose-sm prose-invert [&>p]:my-3 [&_li]:my-1">{m.content}</MessageResponse>
                   )
                 ) : (
                   m.content
                 )}
+                </MessageContent>
               </div>
-              {m.role === 'user' && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                  <User className="w-4 h-4 text-secondary-foreground" />
-                </div>
-              )}
-            </div>
+            </Message>
           ))}
           {loading && messages[messages.length - 1]?.role === 'user' && (
-            <div className="flex gap-3 justify-start">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                <Bot className="w-4 h-4 text-primary" />
+            <Message from="assistant">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+                  <Bot className="size-3.5 text-primary" aria-hidden="true" />
+                </div>
+                <Shimmer className="text-sm">Aion is thinking…</Shimmer>
               </div>
-              <div className="rounded-xl px-4 py-2.5 bg-muted/50">
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              </div>
-            </div>
+            </Message>
           )}
-          <div ref={bottomRef} />
-        </div>
-      </ScrollArea>
+        </ConversationContent>
+        <ConversationScrollButton className="bottom-2 size-8" />
+      </Conversation>
 
-      <form
-        onSubmit={(e) => { e.preventDefault(); send(); }}
-        className="flex gap-2 pt-3 border-t border-border/50"
+      <PromptInput
+        onSubmit={({ text }) => sendMessage(text)}
+        className="mt-3 flex-shrink-0 border-t border-border/50 pt-3"
       >
-        <Input
+        <PromptInputTextarea
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask Aion anything..."
           disabled={loading}
-          className="flex-1"
+          className="min-h-12 max-h-28 py-3"
         />
-        <Button type="submit" size="icon" disabled={loading || !input.trim()} className="gold-gradient">
-          <Send className="w-4 h-4" />
-        </Button>
-      </form>
+        <PromptInputFooter className="justify-end pb-2 pt-0">
+          <PromptInputSubmit
+            status={loading ? 'submitted' : 'ready'}
+            disabled={loading || !input.trim()}
+            className="gold-gradient text-primary-foreground"
+          />
+        </PromptInputFooter>
+      </PromptInput>
     </div>
   );
 }
