@@ -151,13 +151,13 @@ export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
     <tr><td style="padding:3px 14px 3px 0;color:#777">Quantity</td><td style="padding:3px 0"><strong>1</strong></td></tr>
   </table>
 
-  <h2 style="font-size:14px;margin:20px 0 6px">Buyer &amp; ship to</h2>
+  <h2 style="font-size:14px;margin:20px 0 6px">Buyer &amp; shipping</h2>
   <table style="border-collapse:collapse;font-size:14px">
-    <tr><td style="padding:3px 14px 3px 0;color:#777">Name</td><td style="padding:3px 0"><strong>${esc(recipient)}</strong></td></tr>
+    <tr><td style="padding:3px 14px 3px 0;color:#777">Buyer name</td><td style="padding:3px 0"><strong>${esc(recipient)}</strong></td></tr>
     <tr><td style="padding:3px 14px 3px 0;color:#777">Email</td><td style="padding:3px 0">${esc(email)}</td></tr>
-    <tr><td style="padding:3px 14px 3px 0;color:#777">Phone</td><td style="padding:3px 0">${esc(phone)}</td></tr>
-    ${ship.method ? `<tr><td style="padding:3px 14px 3px 0;color:#777">Method</td><td style="padding:3px 0">${esc(ship.method)}</td></tr>` : ""}
-    <tr><td style="padding:3px 14px 3px 0;color:#777;vertical-align:top">Address</td><td style="padding:3px 0">${shipLines.map(esc).join("<br>")}</td></tr>
+    ${phone ? `<tr><td style="padding:3px 14px 3px 0;color:#777">Phone</td><td style="padding:3px 0">${esc(phone)}</td></tr>` : ""}
+    ${ship.method ? `<tr><td style="padding:3px 14px 3px 0;color:#777">Shipping preference</td><td style="padding:3px 0">${esc(ship.method)}</td></tr>` : ""}
+    <tr><td style="padding:3px 14px 3px 0;color:#777;vertical-align:top">Shipping address</td><td style="padding:3px 0">${shipLines.map(esc).join("<br>")}</td></tr>
   </table>
 
   ${notes ? `<h2 style="font-size:14px;margin:20px 0 6px">Order notes</h2><p style="font-size:14px;white-space:pre-wrap;margin:0">${esc(notes)}</p>` : ""}
