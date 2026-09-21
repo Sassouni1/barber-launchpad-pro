@@ -307,7 +307,6 @@ function ProofStep({
             ref={inputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -325,12 +324,12 @@ function ProofStep({
               </>
             ) : (
               <>
-                <Camera className="w-4 h-4 mr-2" /> Upload picture holding certification
+                <ImagePlus className="w-4 h-4 mr-2" /> Choose or take a certification photo
               </>
             )}
           </Button>
           <p className="text-xs text-muted-foreground text-center">
-            Hold your printed or digital certificate visibly in the photo.
+            Choose an existing photo or take a new one. Hold your printed or digital certificate visibly in the photo.
           </p>
         </>
       )}
