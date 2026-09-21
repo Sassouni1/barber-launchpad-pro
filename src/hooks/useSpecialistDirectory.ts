@@ -98,6 +98,7 @@ export function useApproveListing() {
         .update({
           approved,
           approved_at: approved ? new Date().toISOString() : null,
+          visible: approved,
         })
         .eq("id", id);
       if (error) throw error;
