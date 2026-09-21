@@ -55,7 +55,7 @@ export function AionFloatingAssistant() {
     location.pathname === path || location.pathname.startsWith(`${path}/`)
   ));
   const shouldRender = Boolean(
-    !authLoading && user && !isAdmin && !isManufacturer && isMemberPath && location.pathname !== '/aion'
+    !authLoading && user && !isManufacturer && isMemberPath && location.pathname !== '/aion'
   );
 
   const setPersistentState = useCallback((next: AssistantState) => {
