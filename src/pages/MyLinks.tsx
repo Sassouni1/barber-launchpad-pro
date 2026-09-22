@@ -91,6 +91,7 @@ interface StripeBalance {
   instantAvailable: number;
   instantSupported: boolean;
   payoutsEnabled: boolean;
+  payoutSchedule: 'daily' | 'manual' | 'weekly' | 'monthly' | null;
   instantEligible: boolean;
 }
 
@@ -750,7 +751,7 @@ export default function MyLinks() {
                     <>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="p-3 rounded-lg border border-primary/40 bg-card/40">
-                          <div className="text-xs text-muted-foreground">Available now</div>
+                          <div className="text-xs text-muted-foreground">Available to transfer</div>
                           <div className="text-xl md:text-2xl font-bold mt-1 text-primary">
                             {formatMoneyExact(balance.available, balance.currency)}
                           </div>
@@ -763,9 +764,32 @@ export default function MyLinks() {
                         </div>
                       </div>
 
-                      <p className="text-sm text-muted-foreground">
-                        Automatic payouts: Daily.
-                      </p>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>
+                          Payout schedule:{' '}
+                          <span className="font-medium text-foreground capitalize">
+                            {balance.payoutSchedule ?? 'Unavailable'}
+                          </span>
+                          .
+                        </p>
+                        {balance.payoutSchedule === 'daily' && (
+                          <p>Available funds automatically go to your bank each day.</p>
+                        )}
+                        {balance.payoutSchedule === 'manual' && (
+                          <p>
+                            Funds stay in Stripe until you initiate a payout or change your
+                            schedule in Stripe.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <p className="font-medium text-foreground">Why is this lower than my sales?</p>
+                        <p>
+                          Stripe processing fees, refunds or disputes, and payments that are still
+                          pending can make this amount lower.
+                        </p>
+                      </div>
 
                       {balance.instantEligible ? (
                         <div className="space-y-2">
