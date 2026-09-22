@@ -124,7 +124,7 @@ const MemberApp = () => (
         
         <Route path="/schedule-call" element={<ProtectedRoute><ScheduleCall /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-        <Route path="/custom-hair-system" element={<ProtectedRoute><CustomHairSystemRequest /></ProtectedRoute>} />
+        {/* Custom Hair Systems hidden for now — feature preserved for a later release */}
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
         <Route path="/social-media-post" element={<ProtectedRoute><SocialMediaPost /></ProtectedRoute>} />
         <Route path="/aion" element={<ProtectedRoute><AionPage /></ProtectedRoute>} />
