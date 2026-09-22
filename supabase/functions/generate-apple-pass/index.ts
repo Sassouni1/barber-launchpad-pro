@@ -5,6 +5,7 @@ const corsHeaders = {
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import forge from "npm:node-forge@1.3.1";
 import JSZip from "npm:jszip@3.10.1";
+import { CARD_BASE_URL, normalizeWebsiteUrl, normalizeInstagramUrl, normalizeInstagramHandle } from "../_shared/cardLinks.ts";
 
 // Apple WWDR G4 intermediate certificate (PEM)
 const APPLE_WWDR_PEM = `-----BEGIN CERTIFICATE-----
@@ -153,27 +154,27 @@ Deno.serve(async (req) => {
           ...(card.email ? [{ key: "email", label: "EMAIL", value: card.email }] : []),
         ],
         auxiliaryFields: [
-          ...(card.website_url ? [{ key: "website", label: "WEBSITE", value: card.website_url.replace(/^https?:\/\//, '') }] : []),
-          ...(card.instagram_handle ? [{ key: "ig", label: "INSTAGRAM", value: card.instagram_handle }] : []),
+          ...(normalizeWebsiteUrl(card.website_url) ? [{ key: "website", label: "WEBSITE", value: (normalizeWebsiteUrl(card.website_url) || '').replace(/^https?:\/\//, '').replace(/\/$/, '') }] : []),
+          ...(normalizeInstagramHandle(card.instagram_handle) ? [{ key: "ig", label: "INSTAGRAM", value: `@${normalizeInstagramHandle(card.instagram_handle)}` }] : []),
         ],
         backFields: [
-          { key: "card", label: "My Digital Card", value: `https://barber-launchpad-pro.lovable.app/card/${card.short_code}`, attributedValue: `<a href="https://barber-launchpad-pro.lovable.app/card/${card.short_code}">View & Share My Card</a>` },
+          { key: "card", label: "My Digital Card", value: `${CARD_BASE_URL}/card/${card.short_code}`, attributedValue: `<a href="${CARD_BASE_URL}/card/${card.short_code}">View & Share My Card</a>` },
           ...(card.booking_url
             ? [{ key: "booking", label: "Book Free Consultation", value: card.booking_url, attributedValue: `<a href="${card.booking_url}">Book Now</a>` }]
             : []),
           ...(card.gallery_url
             ? [{ key: "gallery", label: "See Transformations", value: card.gallery_url, attributedValue: `<a href="${card.gallery_url}">View Gallery</a>` }]
             : []),
-          ...(card.instagram_handle
-            ? [{ key: "instagram", label: "Instagram", value: `https://instagram.com/${(card.instagram_handle || '').replace(/^@/, '')}`, attributedValue: `<a href="https://instagram.com/${(card.instagram_handle || '').replace(/^@/, '')}">Follow on Instagram</a>` }]
+          ...(normalizeInstagramUrl(card.instagram_handle)
+            ? [{ key: "instagram", label: "Instagram", value: `${normalizeInstagramUrl(card.instagram_handle)}`, attributedValue: `<a href="${normalizeInstagramUrl(card.instagram_handle)}">Follow on Instagram</a>` }]
             : []),
-          ...(card.website_url
-            ? [{ key: "websiteback", label: "Website", value: card.website_url, attributedValue: `<a href="${card.website_url}">Visit Website</a>` }]
+          ...(normalizeWebsiteUrl(card.website_url)
+            ? [{ key: "websiteback", label: "Website", value: `${normalizeWebsiteUrl(card.website_url)}`, attributedValue: `<a href="${normalizeWebsiteUrl(card.website_url)}">Visit Website</a>` }]
             : []),
         ],
       },
       barcode: {
-        message: `https://barber-launchpad-pro.lovable.app/card/${card.short_code}`,
+        message: `${CARD_BASE_URL}/card/${card.short_code}`,
         format: "PKBarcodeFormatQR",
         messageEncoding: "iso-8859-1",
         altText: "Scan to View Card",
