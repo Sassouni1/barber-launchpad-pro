@@ -367,6 +367,7 @@ export default function MyLinks() {
 
       if (data?.account?.charges_enabled) {
         loadEarnings();
+        loadBalance();
         loadSubscriptions();
         loadCustomers();
       }
