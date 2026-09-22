@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 
 const REQUEST_TYPES = [
@@ -34,7 +34,7 @@ const FIELD_CLASS =
   'bg-secondary/40 border-border/60 placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-primary/30';
 
 export default function CustomHairSystemRequest() {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [submitting, setSubmitting] = useState(false);
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
