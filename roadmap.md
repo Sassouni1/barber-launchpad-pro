@@ -33,5 +33,5 @@
 - [x] Fix stale public card/QR base URL (barber-launchpad-pro.lovable.app -> member.thebarberlaunch.com) in BusinessCardSetup.tsx and QRCodes.tsx
 - [x] Hide Custom Hair Systems: removed Sidebar/MobileNav menu entries and the /custom-hair-system route (page + edge function preserved for later release)
 - [x] Publish safe production version and verify https://member.thebarberlaunch.com/card/yoKiq1Sw (Valerie Prieto, The Glam Rock Salon)
-- [ ] My Links balance follow-up: show each connected member's real Stripe payout schedule and explain available-to-transfer balance (leave unpublished)
-- [ ] Replace the My Links opening with the approved earnings and processing explanation; visually verify it exactly (leave unpublished)
+- [x] My Links balance follow-up: show each connected member's real Stripe payout schedule and explain available-to-transfer balance (left unpublished)
+- [x] Replace the My Links opening with the approved earnings and processing explanation; visually verify it exactly (left unpublished)
