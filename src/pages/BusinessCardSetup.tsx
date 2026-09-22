@@ -11,7 +11,7 @@ import { useCardScans } from '@/hooks/useCardScans';
 import { toast } from 'sonner';
 import { Loader2, Save, Upload, CreditCard, QrCode, ExternalLink, Copy, Eye, TrendingUp } from 'lucide-react';
 
-const BASE_URL = 'https://barber-launchpad-pro.lovable.app';
+const BASE_URL = 'https://member.thebarberlaunch.com';
 
 export default function BusinessCardSetup() {
   const { data: card, isLoading } = useBusinessCard();
