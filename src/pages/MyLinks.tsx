@@ -720,6 +720,120 @@ export default function MyLinks() {
               </Card>
             )}
 
+            {ready && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-primary" /> Stripe Balance
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={loadBalance}
+                      disabled={balanceLoading}
+                    >
+                      {balanceLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!balance ? (
+                    <p className="text-sm text-muted-foreground">
+                      {balanceLoading ? 'Checking your Stripe balance…' : 'No balance data yet.'}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-lg border border-primary/40 bg-card/40">
+                          <div className="text-xs text-muted-foreground">Available now</div>
+                          <div className="text-xl md:text-2xl font-bold mt-1 text-primary">
+                            {formatMoneyExact(balance.available, balance.currency)}
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-lg border border-border bg-card/40">
+                          <div className="text-xs text-muted-foreground">Pending</div>
+                          <div className="text-xl md:text-2xl font-bold mt-1">
+                            {formatMoneyExact(balance.pending, balance.currency)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-muted-foreground">
+                        Automatic payouts: Daily.
+                      </p>
+
+                      {balance.instantEligible ? (
+                        <div className="space-y-2">
+                          <Button
+                            className="gold-gradient text-black font-semibold"
+                            onClick={() => {
+                              setInstantAmount(
+                                (balance.instantAvailable / 100).toFixed(2),
+                              );
+                              setInstantOpen(true);
+                            }}
+                          >
+                            <Zap className="w-4 h-4 mr-2" /> Instant Transfer
+                          </Button>
+                          <p className="text-xs text-muted-foreground">
+                            Up to {formatMoneyExact(balance.instantAvailable, balance.currency)}{' '}
+                            can be sent instantly.
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Instant transfers aren't available on your account right now. Stripe and
+                          your bank or debit card decide whether instant transfers can be used.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <Dialog open={instantOpen} onOpenChange={(o) => !o && setInstantOpen(false)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Instant Transfer</DialogTitle>
+                  <DialogDescription>
+                    {balance
+                      ? `Send up to ${formatMoneyExact(balance.instantAvailable, balance.currency)} to your bank or debit card right away. Stripe may charge a fee for instant transfers.`
+                      : ''}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="instant-amount">Amount (USD)</Label>
+                  <Input
+                    id="instant-amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={instantAmount}
+                    onChange={(e) => setInstantAmount(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setInstantOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={onInstantTransfer} disabled={busy === 'instant'}>
+                    {busy === 'instant' && (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    )}
+                    Send transfer
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+
+
             <Tabs defaultValue="links" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="links">Links</TabsTrigger>
