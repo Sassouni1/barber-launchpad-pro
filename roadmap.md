@@ -30,3 +30,6 @@
 - Blocked on secrets: `HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET`, `HAIR_SYSTEM_SUPPLIER_EMAIL`.
 - Delivery audit: `public.order_notifications` (per order/channel), `public.hair_system_webhook_events` (per Stripe event).
 - [x] Implement, visually verify, deploy, and publish the approved persistent floating Aion assistant.
+- [x] Fix stale public card/QR base URL (barber-launchpad-pro.lovable.app -> member.thebarberlaunch.com) in BusinessCardSetup.tsx and QRCodes.tsx
+- [x] Hide Custom Hair Systems: removed Sidebar/MobileNav menu entries and the /custom-hair-system route (page + edge function preserved for later release)
+- [x] Publish safe production version and verify https://member.thebarberlaunch.com/card/yoKiq1Sw (Valerie Prieto, The Glam Rock Salon)
