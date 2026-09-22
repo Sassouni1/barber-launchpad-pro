@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2/cors";
+import { CARD_BASE_URL, normalizeWebsiteUrl, normalizeInstagramUrl } from "../_shared/cardLinks.ts";
 
 // RSA-sign a JWT using the service account private key
 async function createSignedJWT(
@@ -149,19 +150,19 @@ Deno.serve(async (req) => {
                 },
               ]
             : []),
-          ...(card.instagram_handle
+          ...(normalizeInstagramUrl(card.instagram_handle)
             ? [
                 {
-                  uri: `https://instagram.com/${card.instagram_handle.replace(/^@/, "")}`,
+                  uri: `${normalizeInstagramUrl(card.instagram_handle)}`,
                   description: card.instagram_handle,
                   id: "instagram",
                 },
               ]
             : []),
-          ...(card.website_url
+          ...(normalizeWebsiteUrl(card.website_url)
             ? [
                 {
-                  uri: card.website_url,
+                  uri: `${normalizeWebsiteUrl(card.website_url)}`,
                   description: "Visit Website",
                   id: "website",
                 },
@@ -191,7 +192,7 @@ Deno.serve(async (req) => {
 
     const jwtPayload = {
       typ: "savetowallet",
-      origins: ["https://barber-launchpad-pro.lovable.app"],
+      origins: [CARD_BASE_URL],
       payload: {
         genericClasses: [genericClass],
         genericObjects: [genericObject],

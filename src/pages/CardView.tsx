@@ -6,6 +6,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { normalizeWebsiteUrl, normalizeInstagramUrl, normalizeInstagramHandle } from '@/lib/cardLinks';
 
 function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -114,9 +115,11 @@ export default function CardView() {
     }
   };
 
-  const instagramUrl = card?.instagram_handle
-    ? `https://instagram.com/${card.instagram_handle.replace(/^@/, '')}`
-    : null;
+  const instagramUrl = normalizeInstagramUrl(card?.instagram_handle);
+  const instagramLabel = normalizeInstagramHandle(card?.instagram_handle);
+  const websiteUrl = normalizeWebsiteUrl(card?.website_url);
+  const bookingUrl = normalizeWebsiteUrl(card?.booking_url);
+  const galleryUrl = normalizeWebsiteUrl(card?.gallery_url);
 
   const rewardsJoinUrl = card ? `/rewards/join/${card.user_id}` : '#';
 
@@ -186,9 +189,9 @@ export default function CardView() {
 
             {/* Action buttons */}
             <div className="space-y-3">
-              {card.booking_url && (
+              {bookingUrl && (
                 <a
-                  href={card.booking_url}
+                  href={bookingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl gold-gradient text-primary-foreground font-semibold text-sm transition-all active:scale-[0.98] hover:shadow-lg hover:shadow-primary/30"
@@ -197,9 +200,9 @@ export default function CardView() {
                   Book Your Free Consultation
                 </a>
               )}
-              {card.gallery_url && (
+              {galleryUrl && (
                 <a
-                  href={card.gallery_url}
+                  href={galleryUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"
@@ -216,12 +219,12 @@ export default function CardView() {
                   className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"
                 >
                   <Instagram className="w-5 h-5 shrink-0 text-pink-400" />
-                  {card.instagram_handle}
+                  {`@${instagramLabel}`}
                 </a>
               )}
-              {card.website_url && (
+              {websiteUrl && (
                 <a
-                  href={card.website_url}
+                  href={websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"

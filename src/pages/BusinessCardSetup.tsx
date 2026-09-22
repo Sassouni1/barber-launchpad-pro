@@ -10,6 +10,7 @@ import { useBusinessCard, useSaveBusinessCard, useUploadCardAsset } from '@/hook
 import { useCardScans } from '@/hooks/useCardScans';
 import { toast } from 'sonner';
 import { Loader2, Save, Upload, CreditCard, QrCode, ExternalLink, Copy, Eye, TrendingUp } from 'lucide-react';
+import { normalizeWebsiteUrl, normalizeInstagramHandle } from '@/lib/cardLinks';
 
 const BASE_URL = 'https://member.thebarberlaunch.com';
 
@@ -64,10 +65,10 @@ export default function BusinessCardSetup() {
         title,
         first_name: firstName.trim(),
         last_name: lastName.trim(),
-        booking_url: bookingUrl.trim(),
-        gallery_url: galleryUrl.trim(),
-        instagram_handle: instagramHandle.trim(),
-        website_url: websiteUrl.trim(),
+        booking_url: normalizeWebsiteUrl(bookingUrl) || '',
+        gallery_url: normalizeWebsiteUrl(galleryUrl) || '',
+        instagram_handle: normalizeInstagramHandle(instagramHandle) || '',
+        website_url: normalizeWebsiteUrl(websiteUrl) || '',
         phone: phone.trim(),
         email: email.trim(),
         logo_url: logoUrl,
