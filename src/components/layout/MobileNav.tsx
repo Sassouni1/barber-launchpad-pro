@@ -438,6 +438,10 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <Package className="w-4 h-4" />
                           <span className="font-medium">Order Receipts</span>
                         </NavLink>
+                        <NavLink to="/custom-hair-system" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <Sparkles className="w-4 h-4" />
+                          <span className="font-medium">Custom Hair Systems</span>
+                        </NavLink>
                       </CollapsibleContent>
                     </Collapsible>
 
