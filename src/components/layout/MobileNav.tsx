@@ -22,7 +22,6 @@ import {
   ClipboardCheck,
   MapPin,
   MessageSquare,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
