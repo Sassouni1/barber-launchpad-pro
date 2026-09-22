@@ -84,6 +84,16 @@ interface Earnings {
   }>;
 }
 
+interface StripeBalance {
+  currency: string;
+  available: number;
+  pending: number;
+  instantAvailable: number;
+  instantSupported: boolean;
+  payoutsEnabled: boolean;
+  instantEligible: boolean;
+}
+
 type RecentPayment = Earnings['recent'][number];
 
 interface SubscriptionRow {
