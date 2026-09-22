@@ -621,11 +621,17 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "No connected Stripe account." }, 400);
       }
       const accountId = existingAccount.stripe_account_id;
-      const balance = await stripeFetch("/balance", {
-        method: "GET",
-        secret: stripeSecret,
-        stripeAccount: accountId,
-      });
+      const [balance, stripeAccount] = await Promise.all([
+        stripeFetch("/balance", {
+          method: "GET",
+          secret: stripeSecret,
+          stripeAccount: accountId,
+        }),
+        stripeFetch(`/accounts/${accountId}`, {
+          method: "GET",
+          secret: stripeSecret,
+        }),
+      ]);
 
       const currency =
         balance?.available?.[0]?.currency ??
@@ -645,6 +651,7 @@ Deno.serve(async (req) => {
         instantAvailable,
         instantSupported: Array.isArray(balance?.instant_available),
         payoutsEnabled: !!existingAccount.payouts_enabled,
+        payoutSchedule: stripeAccount?.settings?.payouts?.schedule?.interval ?? null,
         instantEligible:
           !!existingAccount.payouts_enabled && instantAvailable > 0,
       });
