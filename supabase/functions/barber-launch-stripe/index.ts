@@ -75,6 +75,7 @@ async function stripeFetch(
     body?: Record<string, unknown>;
     stripeAccount?: string;
     secret: string;
+    idempotencyKey?: string;
   },
 ) {
   const headers: Record<string, string> = {
@@ -82,6 +83,7 @@ async function stripeFetch(
     "Content-Type": "application/x-www-form-urlencoded",
   };
   if (opts.stripeAccount) headers["Stripe-Account"] = opts.stripeAccount;
+  if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
   const res = await fetch(`${STRIPE_API}${path}`, {
     method: opts.method ?? "POST",
     headers,
