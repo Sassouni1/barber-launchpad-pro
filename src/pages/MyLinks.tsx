@@ -164,6 +164,48 @@ export default function MyLinks() {
   const [customers, setCustomers] = useState<CustomerRow[] | null>(null);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [balance, setBalance] = useState<StripeBalance | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [instantOpen, setInstantOpen] = useState(false);
+  const [instantAmount, setInstantAmount] = useState('');
+
+  const loadBalance = async () => {
+    setBalanceLoading(true);
+    try {
+      const data = await invoke('getBalance');
+      setBalance(data as StripeBalance);
+    } catch (_) {
+      /* silent — balance is optional */
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
+  const onInstantTransfer = async () => {
+    if (!balance) return;
+    const amount = Math.round(Number(instantAmount) * 100);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > balance.instantAvailable) {
+      toast.error('Enter an amount up to your instant-available balance');
+      return;
+    }
+    setBusy('instant');
+    try {
+      await invoke('createInstantPayout', { amountCents: amount });
+      toast.success('Instant transfer sent to your bank or debit card');
+      setInstantOpen(false);
+      setInstantAmount('');
+      await loadBalance();
+      await loadEarnings();
+    } catch (e: any) {
+      if (e?.message !== 'BACKEND_UNAVAILABLE') {
+        toast.error(e?.message || 'Could not start the instant transfer');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+
 
   const onRefund = async () => {
     if (!refundTarget) return;
