@@ -22,6 +22,7 @@ import {
   ClipboardCheck,
   MapPin,
   MessageSquare,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -412,7 +413,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <button
                           className={cn(
                             'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
-                            ['/products', '/order-hair-system', '/orders'].includes(location.pathname)
+                            ['/products', '/order-hair-system', '/orders', '/custom-hair-system'].includes(location.pathname)
                               ? 'bg-primary/10 text-primary'
                               : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                           )}
@@ -436,6 +437,10 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <NavLink to="/orders" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <Package className="w-4 h-4" />
                           <span className="font-medium">Order Receipts</span>
+                        </NavLink>
+                        <NavLink to="/custom-hair-system" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                          <Sparkles className="w-4 h-4" />
+                          <span className="font-medium">Custom Hair Systems</span>
                         </NavLink>
                       </CollapsibleContent>
                     </Collapsible>

@@ -2112,6 +2112,63 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_hair_system_requests: {
+        Row: {
+          admin_notes: string | null
+          base_details: string | null
+          color: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          curl_or_wave: string | null
+          description: string
+          hair_length: string | null
+          id: string
+          needed_by: string | null
+          request_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          base_details?: string | null
+          color?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          curl_or_wave?: string | null
+          description: string
+          hair_length?: string | null
+          id?: string
+          needed_by?: string | null
+          request_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          base_details?: string | null
+          color?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          curl_or_wave?: string | null
+          description?: string
+          hair_length?: string | null
+          id?: string
+          needed_by?: string | null
+          request_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dashboard_feedback: {
         Row: {
           created_at: string

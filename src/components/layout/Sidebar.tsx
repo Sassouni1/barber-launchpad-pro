@@ -32,6 +32,7 @@ import {
   MapPin,
   Shield,
   Globe,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -392,6 +393,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/order-hair-system" icon={Scissors} label="Order Hair System" />
               <SubNavItem to="/products" icon={Package} label="Browse Products" />
               <SubNavItem to="/orders" icon={Package} label="Order Receipts" />
+              <SubNavItem to="/custom-hair-system" icon={Sparkles} label="Custom Hair Systems" />
             </ExpandableNavItem>
 
             {/* Level 1 Cert Button */}
