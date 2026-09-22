@@ -75,6 +75,7 @@ async function stripeFetch(
     body?: Record<string, unknown>;
     stripeAccount?: string;
     secret: string;
+    idempotencyKey?: string;
   },
 ) {
   const headers: Record<string, string> = {
@@ -82,6 +83,7 @@ async function stripeFetch(
     "Content-Type": "application/x-www-form-urlencoded",
   };
   if (opts.stripeAccount) headers["Stripe-Account"] = opts.stripeAccount;
+  if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
   const res = await fetch(`${STRIPE_API}${path}`, {
     method: opts.method ?? "POST",
     headers,
@@ -611,6 +613,116 @@ Deno.serve(async (req) => {
         .order("amount_cents", { ascending: true });
 
       return jsonResponse({ links: links ?? [] });
+    }
+
+    // Member's own connected-account balance, including instant-available funds.
+    if (action === "getBalance") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse({ error: "No connected Stripe account." }, 400);
+      }
+      const accountId = existingAccount.stripe_account_id;
+      const balance = await stripeFetch("/balance", {
+        method: "GET",
+        secret: stripeSecret,
+        stripeAccount: accountId,
+      });
+
+      const currency =
+        balance?.available?.[0]?.currency ??
+        balance?.pending?.[0]?.currency ??
+        "usd";
+      const sumIn = (list: any[] | undefined) =>
+        (list ?? [])
+          .filter((b: any) => b.currency === currency)
+          .reduce((t: number, b: any) => t + (b.amount ?? 0), 0);
+
+      const instantAvailable = sumIn(balance?.instant_available);
+
+      return jsonResponse({
+        currency,
+        available: sumIn(balance?.available),
+        pending: sumIn(balance?.pending),
+        instantAvailable,
+        instantSupported: Array.isArray(balance?.instant_available),
+        payoutsEnabled: !!existingAccount.payouts_enabled,
+        instantEligible:
+          !!existingAccount.payouts_enabled && instantAvailable > 0,
+      });
+    }
+
+    // Instant payout on the member's own connected account only.
+    if (action === "createInstantPayout") {
+      if (!existingAccount?.stripe_account_id) {
+        return jsonResponse({ error: "No connected Stripe account." }, 400);
+      }
+      if (!existingAccount.payouts_enabled) {
+        return jsonResponse(
+          { error: "Your Stripe account is not approved for payouts yet." },
+          400,
+        );
+      }
+      const accountId = existingAccount.stripe_account_id;
+
+      const amountCents = Math.round(Number(body?.amountCents));
+      if (!Number.isFinite(amountCents) || amountCents <= 0) {
+        return jsonResponse({ error: "Enter an amount greater than zero." }, 400);
+      }
+
+      const balance = await stripeFetch("/balance", {
+        method: "GET",
+        secret: stripeSecret,
+        stripeAccount: accountId,
+      });
+      const currency =
+        balance?.instant_available?.[0]?.currency ??
+        balance?.available?.[0]?.currency ??
+        "usd";
+      const instantAvailable = (balance?.instant_available ?? [])
+        .filter((b: any) => b.currency === currency)
+        .reduce((t: number, b: any) => t + (b.amount ?? 0), 0);
+
+      if (instantAvailable <= 0) {
+        return jsonResponse(
+          {
+            error:
+              "Instant transfers aren't available on your account right now. Stripe and your bank or debit card decide eligibility.",
+          },
+          400,
+        );
+      }
+      if (amountCents > instantAvailable) {
+        return jsonResponse(
+          { error: "That's more than your instant-available balance." },
+          400,
+        );
+      }
+
+      const idempotencyKey = `bl-instant-${userId}-${amountCents}-${currency}-${
+        Math.floor(Date.now() / 1000)
+      }`;
+
+      const payout = await stripeFetch("/payouts", {
+        method: "POST",
+        secret: stripeSecret,
+        stripeAccount: accountId,
+        idempotencyKey,
+        body: {
+          amount: amountCents,
+          currency,
+          method: "instant",
+        },
+      });
+
+      return jsonResponse({
+        payout: {
+          id: payout.id,
+          amount: payout.amount,
+          currency: payout.currency,
+          status: payout.status,
+          arrivalDate: payout.arrival_date ?? null,
+          method: payout.method ?? "instant",
+        },
+      });
     }
 
     if (action === "getEarnings") {
