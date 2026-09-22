@@ -485,7 +485,7 @@ export default function MyLinks() {
             <CreditCard className="w-7 h-7 text-primary" /> My Links
           </h1>
           <p className="text-muted-foreground text-sm md:text-base">
-            Accept deposits and installs directly through your own Stripe account. Share these links with clients to get paid.
+            See what you’ve earned, what’s still processing, and what’s ready to transfer to your bank. Your available balance can be lower than sales because of Stripe fees, refunds, disputes, or payments still processing.
           </p>
         </div>
 
