@@ -14,7 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-const BASE_URL = 'https://barber-launchpad-pro.lovable.app';
+const BASE_URL = 'https://member.thebarberlaunch.com';
 
 function getRedirectUrl(shortCode: string) {
   return `${BASE_URL}/r/${shortCode}`;
