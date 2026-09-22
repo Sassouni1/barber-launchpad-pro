@@ -39,6 +39,7 @@ import SettingUpYourYelp from "./pages/lessons/SettingUpYourYelp";
 import Agreement from "./pages/Agreement";
 import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
+import CustomHairSystemRequest from "./pages/CustomHairSystemRequest";
 import ManufacturerOrders from "./pages/ManufacturerOrders";
 import Marketing from "./pages/Marketing";
 import SocialMediaPost from "./pages/SocialMediaPost";
