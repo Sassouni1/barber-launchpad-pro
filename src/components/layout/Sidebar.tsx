@@ -32,6 +32,7 @@ import {
   MapPin,
   Shield,
   Globe,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
