@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { syncPaidBuyerToGhl, type CrmSyncResult } from "../_shared/ghlCrmSync.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,7 +98,39 @@ Deno.serve(async (req) => {
           if (error) throw error;
         }
       }
-      return new Response(JSON.stringify({ paid: true, order_ids: orderIds }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Stripe has confirmed payment: sync the buyer into the connected
+      // GoHighLevel Marketplace location once. A GHL failure never changes the
+      // payment or the order status above — it is logged and reported.
+      let crmSync: CrmSyncResult = { status: "skipped", reason: "no_orders" };
+      if (orderIds.length) {
+        try {
+          const { data: orderRow } = await admin
+            .from("orders")
+            .select("customer_name, order_details")
+            .eq("id", orderIds[0])
+            .maybeSingle();
+          const details = (orderRow?.order_details ?? {}) as Record<string, any>;
+          crmSync = await syncPaidBuyerToGhl(admin, {
+            orderId: orderIds[0],
+            eventId: `checkout_session:${sessionId}`,
+            buyer: {
+              name: text(session.customer_details?.name || orderRow?.customer_name || details.full_name, 120),
+              email: text(session.customer_details?.email || user.email, 200).toLowerCase(),
+              phone: text(session.customer_details?.phone || details.phone, 40),
+            },
+            systemCount: orderIds.length,
+            amountPaid: typeof session.amount_total === "number" ? session.amount_total : null,
+            currency: text(session.currency, 10) || "usd",
+          });
+        } catch (syncError) {
+          crmSync = {
+            status: "failed",
+            reason: syncError instanceof Error ? syncError.message.slice(0, 300) : "crm_sync_error",
+          };
+        }
+        if (crmSync.status === "failed") console.error("hair system crm sync failed", crmSync.reason);
+      }
+      return new Response(JSON.stringify({ paid: true, order_ids: orderIds, crm_sync: crmSync.status }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const required = ["barberFirstName", "barberLastName", "barberPhone", "address1", "city", "state", "zip"];
