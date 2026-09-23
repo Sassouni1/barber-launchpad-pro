@@ -225,7 +225,7 @@ export async function syncPaidBuyerToGhl(
       return { status: "failed", reason: sent.error, contactId: contact.id };
     }
 
-    await finish("sent", null ?? undefined, sent.messageId);
+    await finish("sent", undefined, sent.messageId);
     return { status: "synced", contactId: contact.id, messageId: sent.messageId };
   } catch (e) {
     const reason = e instanceof Error ? e.message.slice(0, 300) : "crm_sync_error";
