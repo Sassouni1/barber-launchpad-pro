@@ -137,7 +137,8 @@ Deno.serve(async (req) => {
     if (action === "status") return await respond();
 
     if (action === "create_onboarding_session") {
-      const publishableKey = Deno.env.get("STRIPE_PUBLISHABLE_KEY") ?? "";
+      // Publishable (public) key for the Invasion Digital Media platform account acct_1LMNKMI6LFtj88Bq.
+      const publishableKey = Deno.env.get("STRIPE_PUBLISHABLE_KEY") || "pk_live_51LMNKMI6LFtj88Bq3eLzn0c1cSaYtybcVEQX3ldSED8xGGwgI6OYdyNP0XzFWuAiZv3LzXItuaHkASIiwas1y9hH00nxz40Ogh";
       if (!/^(pk|pk_test|pk_live)_/.test(publishableKey)) {
         console.error("affiliate-payouts embedded onboarding missing STRIPE_PUBLISHABLE_KEY");
         return json({ error: "Payout setup is temporarily unavailable." }, 500, h);
