@@ -173,6 +173,7 @@ Deno.serve(async (req) => {
 
         const created = await stripeCall("/accounts", { body: prefill });
         if (!created.ok) {
+          console.error("affiliate-payouts account create failed", created.data?.error?.code ?? "", created.data?.error?.message ?? "");
           return json({ error: created.data?.error?.message ?? "Stripe could not start setup." }, 400, h);
         }
         accountId = String(created.data.id);
@@ -198,6 +199,7 @@ Deno.serve(async (req) => {
         },
       });
       if (!session.ok || !session.data?.client_secret) {
+        console.error("affiliate-payouts account_session failed", session.data?.error?.code ?? "", session.data?.error?.message ?? "");
         return json({ error: session.data?.error?.message ?? "Stripe could not start setup." }, 400, h);
       }
       return json({ clientSecret: session.data.client_secret, publishableKey }, 200, h);

@@ -135,8 +135,15 @@ export function PayoutConnectionCard({ compact = false, onboardingCtaOnly = fals
     const { data: res, error } = await supabase.functions.invoke('affiliate-payouts', {
       body: { action: 'create_onboarding_session' },
     });
+    let session = res as { publishableKey?: string; clientSecret?: string; error?: string } | null;
+    if (error && !session) {
+      try {
+        session = await (error as { context?: Response }).context?.json();
+      } catch {
+        /* keep generic message */
+      }
+    }
     setBusy(false);
-    const session = res as { publishableKey?: string; clientSecret?: string; error?: string } | null;
     if (error || !session?.publishableKey || !session.clientSecret) {
       toast({ title: 'Could not start payout setup', description: session?.error ?? 'Please try again in a moment.', variant: 'destructive' });
       return;
