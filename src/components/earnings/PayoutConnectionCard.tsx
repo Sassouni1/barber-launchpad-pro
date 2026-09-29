@@ -74,7 +74,14 @@ function EmbeddedOnboarding({
           <ConnectAccountOnboarding
             onExit={onExit}
             collectionOptions={{ fields: 'currently_due', futureRequirements: 'omit' }}
-            onLoadError={() => toast({ title: 'Stripe setup could not load', description: 'Please try again in a moment.', variant: 'destructive' })}
+            onLoadError={({ error }) => {
+              console.error('[payout-setup] Stripe onboarding load error', error?.type, error?.message);
+              toast({
+                title: 'Stripe setup could not load',
+                description: error?.message ? `Stripe says: ${error.message}` : 'Please try again in a moment.',
+                variant: 'destructive',
+              });
+            }}
           />
         </ConnectComponentsProvider>
       </CardContent>
