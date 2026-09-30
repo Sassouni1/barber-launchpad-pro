@@ -5,7 +5,7 @@
 //   execute     — requires confirm:"EXECUTE"; replays only unsent/failed channels
 // Nothing runs automatically on deploy.
 
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, stripeGet } from "../_shared/hairSystemFulfillment.ts";
 import {
