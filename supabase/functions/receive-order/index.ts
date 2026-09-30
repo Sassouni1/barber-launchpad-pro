@@ -113,6 +113,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Reject unverified submissions before duplicate handling can update any
+    // existing order details or report an unpaid submission as a purchase.
+    const payment = await verifyLegacyPayment(body, Deno.env.get('HAIR_SYSTEM_STRIPE_SECRET_KEY') || Deno.env.get('STRIPE_SECRET_KEY') || null);
+    if (!payment.ok) {
+      console.warn(`receive-order: not inserted (${payment.reason}) external_id=${externalOrderId}`);
+      return new Response(JSON.stringify({ success: false, inserted: false, reason: payment.reason }), {
+        status: 202,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -228,16 +239,6 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Order matching: method=${matchMethod}, user_id=${matchedUserId}, email=${customerEmail}, external_id=${externalOrderId}`);
-
-    // Fail closed: a form-only webhook never creates a purchase row or receipt.
-    const payment = await verifyLegacyPayment(body, Deno.env.get('HAIR_SYSTEM_STRIPE_SECRET_KEY') || Deno.env.get('STRIPE_SECRET_KEY') || null);
-    if (!payment.ok) {
-      console.warn(`receive-order: not inserted (${payment.reason}) external_id=${externalOrderId}`);
-      return new Response(JSON.stringify({ success: false, inserted: false, reason: payment.reason }), {
-        status: 202,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     const { data: order, error: insertError } = await supabase
       .from('orders')
