@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
   try { peek = JSON.parse(payload); } catch { /* ignore */ }
   const tMatch = sigHeader.match(/(?:^|,)\s*t=(\d+)/);
   const skew = tMatch ? Math.round(Date.now() / 1000 - Number(tMatch[1])) : null;
+  const epTag = (new URL(req.url).searchParams.get("ep") ?? "").replace(/[^a-z0-9_-]/gi, "").slice(0, 20);
   const record = (outcome: string) =>
     db.from("hair_system_webhook_attempts").insert({
       event_id: typeof peek?.id === "string" ? peek.id.slice(0, 80) : null,
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
       signature_header_present: Boolean(sigHeader),
       signature_valid: ok,
       timestamp_skew_seconds: skew,
-      outcome,
+      outcome: epTag ? `${outcome}@${epTag}` : outcome,
       user_agent: (req.headers.get("user-agent") ?? "").slice(0, 120),
     }).then(() => undefined, () => undefined);
 
