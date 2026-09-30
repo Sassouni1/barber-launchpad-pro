@@ -421,8 +421,8 @@ export async function dispatchPaidOrderNotifications(
   const supplierEmail =
     (Deno.env.get("HAIR_SYSTEM_SUPPLIER_EMAIL") ?? "").trim().toLowerCase() || DEFAULT_SUPPLIER_EMAIL;
 
-  // One GHL token resolution for the whole dispatch.
-  const accessResult = await getGhlAccess(db);
+  // One GHL token resolution for the whole dispatch — Marketplace OAuth only.
+  const accessResult = await getGhlAccess(db, { oauthOnly: true });
   const access = "error" in accessResult ? null : accessResult;
   const accessError = "error" in accessResult ? accessResult.error : null;
 
@@ -430,11 +430,12 @@ export async function dispatchPaidOrderNotifications(
   for (const order of orders) {
     outcomes.push(
       await runChannel(db, order.id, "supplier_email", input.eventId, async () => {
+        if (!access) return { status: "failed", reason: `ghl_not_available:${accessError}`, recipient: supplierEmail };
         const res = await sendSupplierEmail(db, {
           to: supplierEmail,
           subject: SUPPLIER_SUBJECT,
           html: buildSupplierEmailHtml(order, input.buyer),
-          ...(access ? { access } : {}),
+          access,
         });
         return res.ok
           ? { status: "sent", messageId: res.messageId, recipient: `${supplierEmail} (from: ${res.sender})` }
