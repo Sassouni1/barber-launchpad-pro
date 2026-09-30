@@ -14,11 +14,14 @@ const session = (over: Record<string, any> = {}) => ({
 // In-memory mirror of hair_system_materialize_paid_draft uniqueness rules.
 function materializer(systemCount: number) {
   const orders = new Map<string, string>();
-  return (sessionId: string) => Array.from({ length: systemCount }, (_, i) => {
-    const ref = paymentReference(sessionId, i);
-    if (!orders.has(ref)) orders.set(ref, crypto.randomUUID());
-    return orders.get(ref)!;
-  }).concat([]) && { ids: Array.from({ length: systemCount }, (_, i) => orders.get(paymentReference(sessionId, i))!), total: orders.size };
+  return (sessionId: string) => {
+    const ids = Array.from({ length: systemCount }, (_, i) => {
+      const ref = paymentReference(sessionId, i);
+      if (!orders.has(ref)) orders.set(ref, crypto.randomUUID());
+      return orders.get(ref)!;
+    });
+    return { ids, total: orders.size };
+  };
 }
 
 // Fake db that records every write; any orders write in an unpaid path fails the test.
