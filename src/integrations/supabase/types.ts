@@ -2423,6 +2423,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hair_system_webhook_attempts: {
+        Row: {
+          event_id: string | null
+          event_type: string | null
+          id: string
+          outcome: string
+          received_at: string
+          signature_header_present: boolean
+          signature_valid: boolean
+          timestamp_skew_seconds: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          outcome: string
+          received_at?: string
+          signature_header_present: boolean
+          signature_valid: boolean
+          timestamp_skew_seconds?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          event_id?: string | null
+          event_type?: string | null
+          id?: string
+          outcome?: string
+          received_at?: string
+          signature_header_present?: boolean
+          signature_valid?: boolean
+          timestamp_skew_seconds?: number | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       hair_system_webhook_events: {
         Row: {
           created_at: string

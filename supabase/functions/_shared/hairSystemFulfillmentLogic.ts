@@ -52,7 +52,8 @@ export function planReplay(orderIds: string[], rows: NotificationRow[], now = Da
 export type WebhookEndpoint = { id: string; url: string; status: string; enabled_events: string[] };
 
 export function webhookCoverage(endpoints: WebhookEndpoint[], expectedUrl: string) {
-  const matches = endpoints.filter((e) => e.url.replace(/\/+$/, "") === expectedUrl.replace(/\/+$/, ""));
+  const norm = (u: string) => u.split("?")[0].replace(/\/+$/, "");
+  const matches = endpoints.filter((e) => norm(e.url) === norm(expectedUrl));
   if (!matches.length) return { configured: false, reason: "no_endpoint_for_url", missingEvents: HAIR_WEBHOOK_EVENTS };
   const enabled = matches.filter((e) => e.status === "enabled");
   if (!enabled.length) return { configured: false, reason: "endpoint_disabled", missingEvents: HAIR_WEBHOOK_EVENTS };

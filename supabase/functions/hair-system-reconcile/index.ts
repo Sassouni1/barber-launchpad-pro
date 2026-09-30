@@ -114,11 +114,108 @@ Deno.serve(async (req) => {
     const diag = await diagnostics(db, key);
     if (action === "diagnostics") return json({ diagnostics: diag });
 
+    if (action === "attempts") {
+      const { data } = await db.from("hair_system_webhook_attempts").select("*").order("received_at", { ascending: false }).limit(50);
+      const { data: hold } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_hold").maybeSingle();
+      return json({ hold: hold?.value === true, attempts: data ?? [] });
+    }
+
+    const stripePost = async (path: string, params: Record<string, string | string[]>) => {
+      const form = new URLSearchParams();
+      for (const [k, v] of Object.entries(params)) (Array.isArray(v) ? v : [v]).forEach((x) => form.append(k, x));
+      const r = await fetch(`https://api.stripe.com/v1${path}`, {
+        method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" }, body: form,
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b?.error?.message ?? `stripe_http_${r.status}`);
+      return b;
+    };
+    const getRef = async () => (await db.from("app_settings").select("value").eq("key", "hair_system_webhook_secret_ref").maybeSingle()).data?.value as any ?? null;
+    const setRef = (value: unknown) => db.from("app_settings").upsert({ key: "hair_system_webhook_secret_ref", value }, { onConflict: "key" });
+    const audit = (step: string) => console.log("hair-system webhook repair", step, "by", u.user.id);
+
+    if (action === "repair_webhook") {
+      // Creates a replacement endpoint (old one untouched). Its whsec is stored
+      // encrypted and never logged or returned.
+      if (body.confirm !== "REPAIR") return json({ error: "Type REPAIR to confirm." }, 400);
+      const existing = await getRef();
+      if (existing?.status === "pending_verification" || existing?.status === "active") {
+        return json({ error: "A replacement endpoint already exists.", endpoint: existing.new_endpoint_id, status: existing.status }, 409);
+      }
+      const oldId = (diag.webhook as any)?.endpointIds?.[0];
+      if (!oldId) return json({ error: "No current endpoint found." }, 409);
+      const encKey = Deno.env.get("GHL_ENCRYPTION_KEY");
+      if (!encKey) return json({ error: "Encryption key not configured." }, 503);
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/hair-system-stripe-webhook?ep=v2`;
+      const created = await stripePost("/webhook_endpoints", {
+        url,
+        "enabled_events[]": ["checkout.session.completed", "checkout.session.async_payment_succeeded"],
+        description: "Barber Launch hair-system checkout (API repair)",
+        "metadata[purpose]": "hair_system_checkout",
+        "metadata[replaces]": oldId,
+      });
+      const whsec = String(created.secret ?? "");
+      if (!whsec.startsWith("whsec_")) {
+        await stripePost(`/webhook_endpoints/${created.id}`, { disabled: "true" });
+        return json({ error: "Stripe did not return a signing secret; new endpoint disabled." }, 502);
+      }
+      const { data: secretId, error: encErr } = await db.rpc("store_encrypted_token", { token_value: whsec, encryption_key: encKey });
+      if (encErr || !secretId) {
+        await stripePost(`/webhook_endpoints/${created.id}`, { disabled: "true" });
+        return json({ error: "Could not store signing secret; new endpoint disabled." }, 500);
+      }
+      await setRef({ status: "pending_verification", secret_id: secretId, new_endpoint_id: created.id, old_endpoint_id: oldId, created_at: new Date().toISOString() });
+      audit(`created ${created.id}`);
+      return json({ status: "pending_verification", new_endpoint_id: created.id, old_endpoint_id: oldId, url, enabled_events: created.enabled_events });
+    }
+
+    if (action === "finalize_webhook") {
+      const ref = await getRef();
+      if (ref?.status !== "pending_verification") return json({ error: "Nothing pending.", ref: ref ? { status: ref.status } : null }, 409);
+      const { data: good } = await db.from("hair_system_webhook_attempts").select("id, event_id, received_at, outcome")
+        .eq("signature_valid", true).like("outcome", "%@v2").gte("received_at", ref.created_at).limit(1);
+      if (!good?.length) return json({ error: "No verified signed delivery on the new endpoint yet." }, 409);
+      const old = await stripePost(`/webhook_endpoints/${ref.old_endpoint_id}`, { disabled: "true" });
+      await setRef({ ...ref, status: "active", finalized_at: new Date().toISOString(), proof_attempt_id: good[0].id });
+      audit(`disabled old ${ref.old_endpoint_id}`);
+      return json({ status: "active", proof: good[0], old_endpoint: { id: old.id, status: old.status } });
+    }
+
+    if (action === "rollback_webhook") {
+      if (body.confirm !== "ROLLBACK") return json({ error: "Type ROLLBACK to confirm." }, 400);
+      const ref = await getRef();
+      if (!ref?.new_endpoint_id) return json({ error: "No repair to roll back." }, 409);
+      await stripePost(`/webhook_endpoints/${ref.old_endpoint_id}`, { disabled: "false" });
+      await stripePost(`/webhook_endpoints/${ref.new_endpoint_id}`, { disabled: "true" });
+      await setRef({ ...ref, status: "rolled_back", rolled_back_at: new Date().toISOString() });
+      audit("rolled back");
+      return json({ status: "rolled_back" });
+    }
+
+    if (action === "probe_retry") {
+      // Asks Stripe to redeliver one existing event to the configured endpoint.
+      // Safe only while the fulfillment hold is on (webhook answers 503 before any claim/send).
+      const { data: hold } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_hold").maybeSingle();
+      if (hold?.value !== true) return json({ error: "Turn the fulfillment hold on before probing." }, 409);
+      const eventId = String(body.event_id ?? "");
+      const endpointId = String(body.endpoint_id ?? ((diag.webhook as any)?.endpointIds?.[0] ?? ""));
+      if (!/^evt_[A-Za-z0-9]+$/.test(eventId) || !/^we_[A-Za-z0-9]+$/.test(endpointId)) return json({ error: "Bad event or endpoint id." }, 400);
+      const res = await fetch(`https://api.stripe.com/v1/events/${eventId}/retry`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ webhook_endpoint: endpointId }),
+      });
+      const text = await res.text();
+      let parsed: any = null; try { parsed = JSON.parse(text); } catch { /* keep text */ }
+      return json({ stripeStatus: res.status, stripeResponse: parsed ?? text.slice(0, 500) });
+    }
+
     const orderIds = (Array.isArray(body.order_ids) && body.order_ids.length ? body.order_ids : DEFAULT_ORDER_IDS)
       .map(String).filter((id) => UUID.test(id)).slice(0, 20);
     if (!orderIds.length) return json({ error: "No valid order IDs." }, 400);
 
-    if (action !== "dry_run" && action !== "execute") return json({ error: "Unknown action." }, 400);
+    if (action !== "dry_run" && action !== "execute" && action !== "verify") return json({ error: "Unknown action." }, 400);
+
     if (action === "execute") {
       if (body.confirm !== "EXECUTE") return json({ error: 'Type EXECUTE to confirm.' }, 400);
       if (diag.stripeAccountMatches !== true) return json({ error: "Stripe account does not match the hair-system seller.", diagnostics: diag }, 409);
@@ -148,6 +245,8 @@ Deno.serve(async (req) => {
         verified.push({ orderId, ok: false, reason: e instanceof Error ? e.message.slice(0, 200) : "verify_error" });
       }
     }
+
+    if (action === "verify") return json({ mode: "verify", verified });
 
     const sessionOrderIds = [...new Set([...sessions.values()].flatMap((s) => String(s.metadata?.order_ids ?? "").split(",").filter(Boolean)))];
     const before = await notificationRows(db, sessionOrderIds.length ? sessionOrderIds : orderIds);
