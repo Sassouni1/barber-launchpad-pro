@@ -71,23 +71,39 @@ async function stripeGet(path: string, secret: string) {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const signingSecret = Deno.env.get("HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET");
-  if (!signingSecret) {
-    console.error("hair-system webhook signing secret missing");
-    return json({ error: "Webhook not configured." }, 503);
-  }
+  const envSecret = Deno.env.get("HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET") ?? "";
   const stripeSecret = hairSystemStripeKey();
   if (!stripeSecret) return json({ error: "Stripe not configured." }, 503);
-
-  const payload = await req.text();
-  const sigHeader = req.headers.get("stripe-signature") ?? "";
-  const ok = await verifySignature(payload, sigHeader, signingSecret);
 
   const db = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } },
   );
+
+  // Signing secret created by the admin API repair, stored encrypted in the
+  // database. Checked first; the legacy env secret stays as a fallback.
+  const secrets: string[] = [];
+  try {
+    const { data: ref } = await db.from("app_settings").select("value").eq("key", "hair_system_webhook_secret_ref").maybeSingle();
+    const secretId = (ref?.value as any)?.secret_id;
+    const encKey = Deno.env.get("GHL_ENCRYPTION_KEY");
+    if (secretId && encKey) {
+      const { data: dec } = await db.rpc("decrypt_token", { token_id: secretId, encryption_key: encKey });
+      if (typeof dec === "string" && dec.startsWith("whsec_")) secrets.push(dec);
+    }
+  } catch { /* fall back to env secret */ }
+  if (envSecret) secrets.push(envSecret);
+  if (!secrets.length) {
+    console.error("hair-system webhook signing secret missing");
+    return json({ error: "Webhook not configured." }, 503);
+  }
+
+  const payload = await req.text();
+  const sigHeader = req.headers.get("stripe-signature") ?? "";
+  let ok = false;
+  for (const s of secrets) { if (await verifySignature(payload, sigHeader, s)) { ok = true; break; } }
+
 
   // Durable delivery evidence (platform logs roll over quickly). Never stores
   // the payload, signature or any secret.
