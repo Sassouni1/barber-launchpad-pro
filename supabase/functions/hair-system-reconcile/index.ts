@@ -248,6 +248,12 @@ Deno.serve(async (req) => {
 
     if (action === "dry_run") return json({ mode: "dry_run", diagnostics: diag, verified, plan, notifications: before });
 
+    if (sessions.size !== 1) return json({ error: "Order is not verified as paid; nothing executed.", verified }, 409);
+    const onlyIds = String([...sessions.values()][0].metadata?.order_ids ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    if (onlyIds.length !== 1 || onlyIds[0] !== orderIds[0]) {
+      return json({ error: "This checkout covers other orders too; single-order execute refused.", sessionOrderIds: onlyIds }, 409);
+    }
+
     const runs: Array<Record<string, unknown>> = [];
     for (const [sessionId, session] of sessions) {
       try {
