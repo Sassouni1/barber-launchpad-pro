@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Tables } from '@/integrations/supabase/types';
+import { receiptEligibleOrders } from '@/lib/receiptEligibility';
 
 type Order = Tables<'orders'>;
 
@@ -14,9 +15,11 @@ export function useUserOrders() {
         .from('orders')
         .select('*')
         .eq('user_id', user!.id)
+        .neq('status', 'pending_payment')
         .order('order_date', { ascending: false });
       if (error) throw error;
-      return data as Order[];
+      // Unpaid checkout attempts are audit records, never receipts.
+      return receiptEligibleOrders(data as Order[]);
     },
     enabled: !!user,
   });
@@ -29,9 +32,11 @@ export function useAllOrders() {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
+        .neq('status', 'pending_payment')
         .order('order_date', { ascending: false });
       if (error) throw error;
-      return data as Order[];
+      // Manufacturers never see unpaid checkout attempts as production orders.
+      return receiptEligibleOrders(data as Order[]);
     },
   });
 }
