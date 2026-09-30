@@ -1,1 +1,2 @@
 - Hair-system post-payment deliveries run only through _shared/hairSystemFulfillment.ts (webhook primary, return-URL fallback, admin reconcile), GHL Marketplace OAuth only — one idempotent path prevents duplicate sends.
+- Hair-system webhook verifies against the encrypted DB signing secret (app_settings.hair_system_webhook_secret_ref) before the env fallback, logs every delivery to hair_system_webhook_attempts, and returns 503 without sending while app_settings.hair_system_fulfillment_hold is true — rotation and replay pause happen via API, no dashboard needed.
