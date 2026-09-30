@@ -114,11 +114,36 @@ Deno.serve(async (req) => {
     const diag = await diagnostics(db, key);
     if (action === "diagnostics") return json({ diagnostics: diag });
 
+    if (action === "attempts") {
+      const { data } = await db.from("hair_system_webhook_attempts").select("*").order("received_at", { ascending: false }).limit(50);
+      const { data: hold } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_hold").maybeSingle();
+      return json({ hold: hold?.value === true, attempts: data ?? [] });
+    }
+
+    if (action === "probe_retry") {
+      // Asks Stripe to redeliver one existing event to the configured endpoint.
+      // Safe only while the fulfillment hold is on (webhook answers 503 before any claim/send).
+      const { data: hold } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_hold").maybeSingle();
+      if (hold?.value !== true) return json({ error: "Turn the fulfillment hold on before probing." }, 409);
+      const eventId = String(body.event_id ?? "");
+      const endpointId = String(body.endpoint_id ?? ((diag.webhook as any)?.endpointIds?.[0] ?? ""));
+      if (!/^evt_[A-Za-z0-9]+$/.test(eventId) || !/^we_[A-Za-z0-9]+$/.test(endpointId)) return json({ error: "Bad event or endpoint id." }, 400);
+      const res = await fetch(`https://api.stripe.com/v1/events/${eventId}/retry`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ webhook_endpoint: endpointId }),
+      });
+      const text = await res.text();
+      let parsed: any = null; try { parsed = JSON.parse(text); } catch { /* keep text */ }
+      return json({ stripeStatus: res.status, stripeResponse: parsed ?? text.slice(0, 500) });
+    }
+
     const orderIds = (Array.isArray(body.order_ids) && body.order_ids.length ? body.order_ids : DEFAULT_ORDER_IDS)
       .map(String).filter((id) => UUID.test(id)).slice(0, 20);
     if (!orderIds.length) return json({ error: "No valid order IDs." }, 400);
 
-    if (action !== "dry_run" && action !== "execute") return json({ error: "Unknown action." }, 400);
+    if (action !== "dry_run" && action !== "execute" && action !== "verify") return json({ error: "Unknown action." }, 400);
+
     if (action === "execute") {
       if (body.confirm !== "EXECUTE") return json({ error: 'Type EXECUTE to confirm.' }, 400);
       if (diag.stripeAccountMatches !== true) return json({ error: "Stripe account does not match the hair-system seller.", diagnostics: diag }, 409);
@@ -148,6 +173,8 @@ Deno.serve(async (req) => {
         verified.push({ orderId, ok: false, reason: e instanceof Error ? e.message.slice(0, 200) : "verify_error" });
       }
     }
+
+    if (action === "verify") return json({ mode: "verify", verified });
 
     const sessionOrderIds = [...new Set([...sessions.values()].flatMap((s) => String(s.metadata?.order_ids ?? "").split(",").filter(Boolean)))];
     const before = await notificationRows(db, sessionOrderIds.length ? sessionOrderIds : orderIds);
