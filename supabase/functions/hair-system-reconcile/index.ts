@@ -7,7 +7,7 @@
 
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, stripeGet } from "../_shared/hairSystemFulfillment.ts";
+import { attachExistingOrderIds, fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, stripeGet } from "../_shared/hairSystemFulfillment.ts";
 import {
   HAIR_SYSTEM_SELLER_ACCOUNT,
   planReplay,
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
       if ((diag.ghlAccess as any)?.ready !== true) return json({ error: "No verified GoHighLevel access for the approved location — nothing can be delivered yet.", diagnostics: diag }, 409);
     }
 
-    const { data: orderRows } = await db.from("orders").select("id, user_id, status, customer_email").in("id", orderIds);
+    const { data: orderRows } = await db.from("orders").select("id, user_id, status, customer_email, stripe_checkout_session_id").in("id", orderIds);
     const verified: Array<Record<string, unknown>> = [];
     const sessions = new Map<string, Record<string, any>>();
 
@@ -226,9 +226,10 @@ Deno.serve(async (req) => {
       const order = (orderRows ?? []).find((o: any) => o.id === orderId);
       if (!order) { verified.push({ orderId, ok: false, reason: "order_not_found" }); continue; }
       try {
-        const sessionId = await findSession(db, key, orderId, order.user_id);
+        const sessionId = order.stripe_checkout_session_id || await findSession(db, key, orderId, order.user_id);
         if (!sessionId) { verified.push({ orderId, ok: false, reason: "no_stripe_session_found" }); continue; }
-        const session = sessions.get(sessionId) ?? (await loadExpandedSession(sessionId, key));
+        // Draft checkouts: expose already-created order IDs (read-only; never creates rows).
+        const session = sessions.get(sessionId) ?? (await attachExistingOrderIds(db, await loadExpandedSession(sessionId, key)));
         const check = verifyPaidSession(session, { requireOrderId: orderId, expectedUserId: order.user_id ?? undefined });
         if (!check.ok) { verified.push({ orderId, sessionId, ok: false, reason: check.reason }); continue; }
         sessions.set(sessionId, session);
