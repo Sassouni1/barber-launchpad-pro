@@ -15,7 +15,8 @@
 //   HAIR_SYSTEM_SUPPLIER_FROM          overrides the preferred sender address
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession } from "../_shared/hairSystemFulfillment.ts";
+import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, loadFulfillmentCutover } from "../_shared/hairSystemFulfillment.ts";
+import { automaticFulfillmentAllowed } from "../_shared/hairSystemFulfillmentLogic.ts";
 
 const encoder = new TextEncoder();
 
@@ -143,6 +144,14 @@ Deno.serve(async (req) => {
   // Not one of our hair system checkouts (affiliate/enrollment sessions carry other metadata).
   if (!orderIds.length) { await record("ignored_no_order_ids"); return json({ received: true, ignored: "no_order_ids" }); }
   if (session.payment_status !== "paid") { await record("ignored_not_paid"); return json({ received: true, ignored: "not_paid" }); }
+
+  // Historical cutover guard runs before anything else: pre-cutover or excluded
+  // orders are acknowledged (200, Stripe stops retrying) and never claimed.
+  const gate = automaticFulfillmentAllowed(session.created, orderIds, await loadFulfillmentCutover(db));
+  if (!gate.ok) {
+    await record(`skipped_${gate.reason}`);
+    return json({ received: true, skipped: gate.reason });
+  }
 
   // Admin hold: verified events are acknowledged as "retry later" without
   // claiming or sending anything, so Stripe keeps them for the paused replay.
