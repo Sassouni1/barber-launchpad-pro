@@ -15,7 +15,7 @@ import {
   webhookCoverage,
   type NotificationRow,
 } from "../_shared/hairSystemFulfillmentLogic.ts";
-import { probeHairSystemGhl } from "../_shared/hairSystemGhlAccess.ts";
+import { relayProbe } from "../_shared/barberLaunchGhlRelay.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -53,7 +53,7 @@ async function diagnostics(db: SupabaseClient, key: string) {
   out.webhookEventsReceived = count ?? 0;
   const { data: tok } = await db.from("ghl_oauth_tokens").select("location_id, expires_at").order("updated_at", { ascending: false }).limit(1).maybeSingle();
   out.ghlOauth = tok ? { connected: true, locationId: tok.location_id, expiresAt: tok.expires_at } : { connected: false, reason: "ghl_marketplace_not_connected" };
-  out.ghlAccess = await probeHairSystemGhl(db);
+  out.ghlAccess = await relayProbe();
   return out;
 }
 

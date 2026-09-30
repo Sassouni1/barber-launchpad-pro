@@ -94,6 +94,7 @@ export async function fulfillPaidSession(
   const details = (orders[0].order_details ?? {}) as Record<string, any>;
 
   let crm: CrmSyncResult;
+  // CRM runs first; if it fails, no notification is attempted (retry later).
   try {
     crm = await syncPaidBuyerToGhl(db, {
       orderId: orders[0].id,
@@ -106,6 +107,12 @@ export async function fulfillPaidSession(
       systemCount: orders.length,
       amountPaid: typeof session.amount_total === "number" ? session.amount_total : null,
       currency: t(session.currency, 10) || "usd",
+      note: buildCrmOrderNote(orders, buyerFromSession(session), {
+        sessionId: String(session.id ?? ""),
+        amountPaid: Number(session.amount_total ?? 0),
+        currency: String(session.currency ?? "usd"),
+        paidAt: new Date(Number(session.created ?? Date.now() / 1000) * 1000),
+      }),
     });
   } catch (e) {
     crm = { status: "failed", reason: e instanceof Error ? e.message.slice(0, 300) : "crm_sync_error" };
@@ -121,7 +128,7 @@ export async function fulfillPaidSession(
   const pm = session.payment_intent?.payment_method;
   const card = pm && typeof pm === "object" ? pm.card : null;
 
-  const outcomes = await dispatchPaidOrderNotifications(db, {
+  const outcomes = crm.status === "failed" ? [] : await dispatchPaidOrderNotifications(db, {
     orders,
     buyer: buyerFromSession(session),
     eventId: opts.eventId,

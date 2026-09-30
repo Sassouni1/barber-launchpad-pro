@@ -248,6 +248,40 @@ export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
 </div></body></html>`;
 }
 
+/** Plain-text CRM note: every system's specs, buyer, shipping, Stripe-paid reference. */
+export function buildCrmOrderNote(
+  orders: OrderRow[],
+  buyer: SessionBuyer,
+  paid: { sessionId: string; amountPaid: number; currency: string; paidAt: Date },
+) {
+  const first = orders[0];
+  const d0 = first.order_details ?? {};
+  const ship = shippingBlock(d0);
+  const shipLines = ship.lines.length ? ship.lines : buyer.address;
+  const amt = `${(paid.amountPaid / 100).toFixed(2)} ${paid.currency.toUpperCase()}`;
+  const out = [
+    "Hair System Purchase — paid via Stripe",
+    `Order ID${orders.length > 1 ? "s" : ""}: ${orders.map((o) => o.id).join(", ")}`,
+    `Stripe checkout: ${paid.sessionId}`,
+    `Amount paid: ${amt}`,
+    `Paid at: ${paid.paidAt.toISOString()}`,
+    `Buyer: ${String(d0.full_name ?? first.customer_name ?? buyer.name ?? "")}`,
+    `Email: ${String(buyer.email || d0.email || first.customer_email || "")}`,
+    `Phone: ${String(d0.phone ?? buyer.phone ?? "")}`,
+    ship.method ? `Shipping preference: ${ship.method}` : "",
+    `Shipping address: ${shipLines.join(", ")}`,
+  ];
+  orders.forEach((o, i) => {
+    const d = o.order_details ?? {};
+    out.push("", `System ${i + 1} of ${orders.length} (order ${o.id})`);
+    for (const [k, v] of systemRows(d)) out.push(`- ${k}: ${v}`);
+    if (d.client_name) out.push(`- Client name: ${d.client_name}`);
+    const n = String(d.notes ?? "").trim();
+    if (n) out.push(`- Notes: ${n}`);
+  });
+  return out.filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+}
+
 // ── Supplier email delivery (GoHighLevel transport) ──────────
 //
 // Transport is the existing connected Barber Launch GHL location (same OAuth
