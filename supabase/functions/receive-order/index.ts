@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyLegacyPayment } from "../_shared/legacyOrderPayment.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -228,6 +229,16 @@ Deno.serve(async (req) => {
 
     console.log(`Order matching: method=${matchMethod}, user_id=${matchedUserId}, email=${customerEmail}, external_id=${externalOrderId}`);
 
+    // Fail closed: a form-only webhook never creates a purchase row or receipt.
+    const payment = await verifyLegacyPayment(body, Deno.env.get('HAIR_SYSTEM_STRIPE_SECRET_KEY') || Deno.env.get('STRIPE_SECRET_KEY') || null);
+    if (!payment.ok) {
+      console.warn(`receive-order: not inserted (${payment.reason}) external_id=${externalOrderId}`);
+      return new Response(JSON.stringify({ success: false, inserted: false, reason: payment.reason }), {
+        status: 202,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { data: order, error: insertError } = await supabase
       .from('orders')
       .insert({
@@ -237,6 +248,7 @@ Deno.serve(async (req) => {
         order_details: body,
         status: 'pending',
         external_order_id: externalOrderId,
+        payment_reference: `stripe:${payment.ref.id}`,
       })
       .select()
       .single();
