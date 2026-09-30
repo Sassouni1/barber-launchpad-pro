@@ -91,8 +91,10 @@ Deno.serve(async (req) => {
           stripeSecret: secret,
           syncSavedCard: true,
           expectedUserId: user.id,
+          mode: "automatic",
         });
-        crmStatus = result.crm.status;
+        if (result.skipped) console.log("hair system return-path skipped (historical guard)", result.skipped);
+        crmStatus = result.skipped ? `skipped:${result.skipped}` : result.crm.status;
         anyFailed = result.anyFailed;
         if (anyFailed) console.error("hair system return-path delivery failures", JSON.stringify(result.outcomes));
       } catch (e) {

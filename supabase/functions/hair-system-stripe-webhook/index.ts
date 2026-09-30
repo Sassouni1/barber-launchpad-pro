@@ -176,7 +176,13 @@ Deno.serve(async (req) => {
       eventId: String(event.id),
       stripeSecret,
       syncSavedCard: true,
+      mode: "automatic",
     });
+    if (result.skipped) {
+      await record(`skipped_${result.skipped}`);
+      await db.from("hair_system_webhook_events").update({ status: "done", processed_at: new Date().toISOString() }).eq("event_id", event.id);
+      return json({ received: true, skipped: result.skipped });
+    }
     console.log("hair-system fulfillment", JSON.stringify(result.outcomes));
     if (result.anyFailed) throw new Error("one_or_more_notifications_failed");
 

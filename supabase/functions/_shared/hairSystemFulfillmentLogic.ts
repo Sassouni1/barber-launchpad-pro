@@ -61,3 +61,25 @@ export function webhookCoverage(endpoints: WebhookEndpoint[], expectedUrl: strin
   const missingEvents = events.has("*") ? [] : HAIR_WEBHOOK_EVENTS.filter((e) => !events.has(e));
   return { configured: missingEvents.length === 0, reason: missingEvents.length ? "missing_events" : "ok", missingEvents, endpointIds: enabled.map((e) => e.id) };
 }
+
+export type FulfillmentCutover = { at: string; excluded_order_ids?: string[] } | null;
+
+/**
+ * Automatic paths (signed webhook, buyer return) only fulfill checkouts created
+ * at/after the cutover and never excluded historical orders. Missing or invalid
+ * cutover fails closed. Manual admin reconcile does not use this gate.
+ */
+export function automaticFulfillmentAllowed(
+  sessionCreatedSec: unknown,
+  orderIds: string[],
+  cutover: FulfillmentCutover,
+): { ok: true } | { ok: false; reason: string } {
+  const cutMs = cutover?.at ? Date.parse(cutover.at) : NaN;
+  if (!Number.isFinite(cutMs)) return { ok: false, reason: "cutover_not_configured" };
+  const created = Number(sessionCreatedSec);
+  if (!Number.isFinite(created) || created <= 0) return { ok: false, reason: "session_created_unknown" };
+  const excluded = new Set((cutover?.excluded_order_ids ?? []).map((s) => s.toLowerCase()));
+  if (orderIds.some((id) => excluded.has(id.toLowerCase()))) return { ok: false, reason: "historical_order_excluded" };
+  if (created * 1000 < cutMs) return { ok: false, reason: "session_before_cutover" };
+  return { ok: true };
+}
