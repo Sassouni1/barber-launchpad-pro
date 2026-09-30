@@ -66,16 +66,22 @@ async function refreshGhlToken(
   return tokenData.access_token as string;
 }
 
-export async function getGhlAccess(supabase: SupabaseClient): Promise<GhlAccessResult> {
+export async function getGhlAccess(
+  supabase: SupabaseClient,
+  opts: { oauthOnly?: boolean } = {},
+): Promise<GhlAccessResult> {
   // Same precedence as the other live GHL functions: a directly configured
   // token/location wins, otherwise fall back to the stored OAuth connection.
-  const directToken =
-    Deno.env.get("GHL_ACCESS_TOKEN") ||
-    Deno.env.get("GHL_PRIVATE_INTEGRATION_TOKEN") ||
-    Deno.env.get("GHL_API_KEY");
-  const directLocationId = Deno.env.get("GHL_LOCATION_ID");
-  if (directToken && directLocationId) {
-    return { accessToken: directToken, locationId: directLocationId };
+  // oauthOnly (hair-system flow) never uses a private-integration/direct token.
+  if (!opts.oauthOnly) {
+    const directToken =
+      Deno.env.get("GHL_ACCESS_TOKEN") ||
+      Deno.env.get("GHL_PRIVATE_INTEGRATION_TOKEN") ||
+      Deno.env.get("GHL_API_KEY");
+    const directLocationId = Deno.env.get("GHL_LOCATION_ID");
+    if (directToken && directLocationId) {
+      return { accessToken: directToken, locationId: directLocationId };
+    }
   }
 
   const encryptionKey = Deno.env.get("GHL_ENCRYPTION_KEY");
