@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       // shared pipeline uses the same per-order/channel claims, so a return
       // visit after the webhook (or a refresh) never re-sends anything, and a
       // delivery failure never changes the confirmed paid order state.
-      const orderIds = text(session.metadata?.order_ids, 500).split(",").filter(Boolean);
+      let orderIds = text(session.metadata?.order_ids, 500).split(",").filter(Boolean);
       let crmStatus = "skipped";
       let anyFailed = false;
       try {
@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
           expectedUserId: user.id,
           mode: "automatic",
         });
+        if (result.orderIds.length) orderIds = result.orderIds;
         if (result.skipped) console.log("hair system return-path skipped (historical guard)", result.skipped);
         crmStatus = result.skipped ? `skipped:${result.skipped}` : result.crm.status;
         anyFailed = result.anyFailed;
@@ -121,11 +122,16 @@ Deno.serve(async (req) => {
       full_name: buyerName, email: customerEmail, phone: text(body.barberPhone, 40),
       shipping: { method: shippingSpeed, address_1: text(body.address1, 150), address_2: text(body.address2, 150), city: text(body.city, 100), state: text(body.state, 2).toUpperCase(), zip: text(body.zip, 10) }, notes: text(body.notes, 2000),
     };
-    const { data: orders, error: insertError } = await admin.from("orders").insert(systems.map((system, index) => ({
-      user_id: user.id, customer_email: customerEmail, customer_name: buyerName, status: "pending_payment",
-      order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Lace or Skin": text(system.base, 50), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100) },
-    }))).select("id");
-    if (insertError || !orders?.length) throw insertError || new Error("Unable to prepare the order.");
+    // Prepayment details live only in the private server-only draft table.
+    // Real orders are created by the shared paid-fulfillment path after Stripe
+    // confirms payment, so abandoned checkouts never look like purchases.
+    const saveCard = body.saveCardForFutureOrders === true;
+    const { data: draft, error: draftError } = await admin.from("hair_system_checkout_drafts").insert({
+      user_id: user.id, customer_email: customerEmail, customer_name: buyerName,
+      base_details: baseDetails, shipping_speed: shippingSpeed, save_card: saveCard,
+      systems: systems.map((system) => ({ "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Lace or Skin": text(system.base, 50), "Hair Length": text(system.length === "Other" ? system.lengthOther : system.length, 50), "Choose Density": text(system.density === "Custom" ? system.densityOther : system.density, 100), "Curl Pattern": text(system.curl, 100) })),
+    }).select("id").single();
+    if (draftError || !draft?.id) throw new Error("Unable to prepare the order.");
 
     let { data: billing, error: billingError } = await admin
       .from("member_billing_profiles")
@@ -161,16 +167,17 @@ Deno.serve(async (req) => {
     if (!stripeCustomerId) throw new Error("Unable to prepare your secure payment profile.");
 
     const origin = new URL(req.headers.get("origin") || "https://member.thebarberlaunch.com").origin;
-    const saveCard = body.saveCardForFutureOrders === true;
     // Customer receipts are sent only by the signature-verified webhook after
     // payment. Omitting receipt_email prevents an extra Stripe-native receipt.
-    const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer: stripeCustomerId, return_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, "metadata[user_id]": user.id, "metadata[order_ids]": orders.map((order) => order.id).join(","), "metadata[save_card]": String(saveCard), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][order_ids]": orders.map((order) => order.id).join(","), "payment_intent_data[metadata][save_card]": String(saveCard) });
+    const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer: stripeCustomerId, return_url: `${origin}/order-hair-system?checkout=success&session_id={CHECKOUT_SESSION_ID}`, "metadata[user_id]": user.id, "metadata[draft_id]": draft.id, "metadata[system_count]": String(systems.length), "metadata[save_card]": String(saveCard), "payment_intent_data[metadata][user_id]": user.id, "payment_intent_data[metadata][draft_id]": draft.id, "payment_intent_data[metadata][save_card]": String(saveCard) });
     if (saveCard) form.append("payment_intent_data[setup_future_usage]", "off_session");
     const pairs = lineItems(systems, shippingSpeed);
     for (let index = 0; index < pairs.length; index += 2) form.append(pairs[index], pairs[index + 1]);
-    const checkoutResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `hair_checkout_${orders.map((order) => order.id).join("_")}` }, body: form });
+    const checkoutResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `hair_checkout_${draft.id}` }, body: form });
     const session = await checkoutResponse.json();
-    if (!checkoutResponse.ok || !session.client_secret) throw new Error("Unable to start secure payment.");
+    if (!checkoutResponse.ok || !session.client_secret || !session.id) throw new Error("Unable to start secure payment.");
+    const { error: linkError } = await admin.from("hair_system_checkout_drafts").update({ stripe_checkout_session_id: session.id }).eq("id", draft.id);
+    if (linkError) throw new Error("Unable to start secure payment.");
     return new Response(JSON.stringify({ clientSecret: session.client_secret }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unable to start checkout." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
