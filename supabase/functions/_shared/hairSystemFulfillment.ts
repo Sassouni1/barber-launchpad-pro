@@ -5,7 +5,7 @@
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { syncPaidBuyerToGhl, type CrmSyncResult } from "./ghlCrmSync.ts";
-import { buyerFromSession, dispatchPaidOrderNotifications, type OrderRow } from "./hairSystemNotifications.ts";
+import { buildCrmOrderNote, buyerFromSession, dispatchPaidOrderNotifications, type OrderRow } from "./hairSystemNotifications.ts";
 import { automaticFulfillmentAllowed, verifyPaidSession, type FulfillmentCutover } from "./hairSystemFulfillmentLogic.ts";
 
 /** Same key for checkout, webhook and reconciliation (Invasion Digital Media). */
