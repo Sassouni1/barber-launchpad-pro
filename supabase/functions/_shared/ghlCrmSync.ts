@@ -2,21 +2,16 @@
 // The Barber Launch location, triggered ONLY after Stripe confirms a checkout
 // session is paid.
 //
-// Strictly OAuth: the stored ghl_oauth_tokens connection (encrypted through
-// app_secrets + GHL_ENCRYPTION_KEY, refreshed and re-encrypted near
-// expiration by getGhlAccess). No private-integration token is ever used.
+// Transport: the Barber Launch GHL relay (existing Vlix Booking Marketplace
+// connector). Upserts the contact with the Hair System Purchase tag and a
+// complete order note. Sends no email.
 //
 // A GHL failure is reported, never allowed to change a confirmed Stripe
 // payment or order status.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  GHL_BASE,
-  getGhlAccess,
-  ghlHeaders,
-  normalizePhone,
-  type GhlAccess,
-} from "./ghlMessaging.ts";
+import { normalizePhone } from "./ghlMessaging.ts";
+import { relayCall } from "./barberLaunchGhlRelay.ts";
 
 export const BARBER_LAUNCH_LOCATION_ID = "JVBUuL3dVwZahuGay9T1";
 export const CRM_SOURCE = "Barber Launch Hair Systems";
@@ -77,83 +72,6 @@ export function buildOrderReceivedEmailHtml(input: {
 </body></html>`;
 }
 
-/** OAuth-only access to the connected Barber Launch location. */
-async function oauthAccess(db: SupabaseClient): Promise<GhlAccess | { error: string }> {
-  const { data: tokenRecord, error } = await db
-    .from("ghl_oauth_tokens")
-    .select("id")
-    .limit(1)
-    .maybeSingle();
-  if (error) return { error: `ghl_oauth_lookup_failed:${error.message}` };
-  if (!tokenRecord) return { error: "ghl_marketplace_not_connected" };
-  // getGhlAccess performs the secure refresh + re-encryption when the stored
-  // token is near expiration.
-  return await getGhlAccess(db, { oauthOnly: true });
-}
-
-/** Create or update the buyer contact with the purchase source and tag. */
-async function upsertContact(access: GhlAccess, buyer: CrmBuyer): Promise<{ id: string } | { error: string }> {
-  const parts = buyer.name.trim().split(/\s+/).filter(Boolean);
-  const phone = normalizePhone(buyer.phone);
-  const body: Record<string, unknown> = {
-    locationId: access.locationId,
-    firstName: parts[0] || "Customer",
-    lastName: parts.slice(1).join(" ") || "",
-    name: buyer.name.trim() || buyer.email,
-    email: buyer.email,
-    source: CRM_SOURCE,
-    tags: [CRM_TAG],
-  };
-  if (phone) body.phone = phone;
-
-  try {
-    const res = await fetch(`${GHL_BASE}/contacts/upsert`, {
-      method: "POST",
-      headers: ghlHeaders(access.accessToken),
-      body: JSON.stringify(body),
-    });
-    const payload = await res.json().catch(() => ({} as Record<string, unknown>));
-    if (!res.ok) {
-      return { error: `ghl_contact_upsert_http_${res.status}:${JSON.stringify(payload).slice(0, 200)}` };
-    }
-    const id = (payload as any)?.contact?.id ?? (payload as any)?.id ?? null;
-    if (!id) return { error: "ghl_contact_upsert_no_id" };
-    return { id: String(id) };
-  } catch (e) {
-    return { error: e instanceof Error ? e.message.slice(0, 200) : "ghl_contact_upsert_error" };
-  }
-}
-
-async function sendOrderReceivedEmail(
-  access: GhlAccess,
-  contactId: string,
-  buyer: CrmBuyer,
-  html: string,
-): Promise<{ messageId: string | null } | { error: string }> {
-  try {
-    const res = await fetch(`${GHL_BASE}/conversations/messages`, {
-      method: "POST",
-      headers: ghlHeaders(access.accessToken),
-      body: JSON.stringify({
-        type: "Email",
-        contactId,
-        emailFrom: CRM_FROM,
-        emailTo: buyer.email,
-        subject: CRM_EMAIL_SUBJECT,
-        html,
-      }),
-    });
-    if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 200);
-      return { error: `ghl_email_http_${res.status}:${detail}` };
-    }
-    const payload = await res.json().catch(() => ({} as any));
-    return { messageId: payload?.messageId ?? payload?.msgId ?? payload?.conversationId ?? null };
-  } catch (e) {
-    return { error: e instanceof Error ? e.message.slice(0, 200) : "ghl_email_error" };
-  }
-}
-
 /**
  * Idempotent per (order, 'crm_sync'): the first verified paid event wins, so a
  * refreshed return URL or a Stripe retry can never duplicate the contact sync
@@ -168,6 +86,7 @@ export async function syncPaidBuyerToGhl(
     systemCount: number;
     amountPaid?: number | null;
     currency?: string | null;
+    note: string;
   },
 ): Promise<CrmSyncResult> {
   const email = String(input.buyer.email || "").trim().toLowerCase();
@@ -198,35 +117,22 @@ export async function syncPaidBuyerToGhl(
   };
 
   try {
-    const access = await oauthAccess(db);
-    if ("error" in access) {
-      await finish("failed", access.error);
-      return { status: "failed", reason: access.error };
-    }
-    if (access.locationId !== BARBER_LAUNCH_LOCATION_ID) {
-      console.warn("crm_sync: connected location", access.locationId, "expected", BARBER_LAUNCH_LOCATION_ID);
-    }
-
-    const contact = await upsertContact(access, { ...input.buyer, email });
-    if ("error" in contact) {
-      await finish("failed", contact.error);
-      return { status: "failed", reason: contact.error };
-    }
-
-    const html = buildOrderReceivedEmailHtml({
-      buyerName: input.buyer.name,
-      systemCount: input.systemCount,
-      amountPaid: input.amountPaid,
-      currency: input.currency,
+    // Contact upsert + tag + note only. The buyer receipt is the separate
+    // customer_receipt channel — no second "order received" email here.
+    const note = input.note.includes(input.orderId) ? input.note : `Order ID: ${input.orderId}\n${input.note}`;
+    const r = await relayCall("upsert_order_contact", {
+      orderId: input.orderId,
+      email,
+      name: input.buyer.name.trim() || email,
+      phone: normalizePhone(input.buyer.phone) ?? "",
+      note,
     });
-    const sent = await sendOrderReceivedEmail(access, contact.id, { ...input.buyer, email }, html);
-    if ("error" in sent) {
-      await finish("failed", sent.error);
-      return { status: "failed", reason: sent.error, contactId: contact.id };
+    if (!r.ok) {
+      await finish("failed", r.reason);
+      return { status: "failed", reason: r.reason };
     }
-
-    await finish("sent", undefined, sent.messageId);
-    return { status: "synced", contactId: contact.id, messageId: sent.messageId };
+    await finish("sent", undefined, r.contactId ?? null);
+    return { status: "synced", contactId: r.contactId ?? null };
   } catch (e) {
     const reason = e instanceof Error ? e.message.slice(0, 300) : "crm_sync_error";
     await finish("failed", reason);

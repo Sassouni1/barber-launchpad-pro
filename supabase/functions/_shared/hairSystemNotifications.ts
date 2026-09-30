@@ -12,14 +12,8 @@
 // retried later.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import {
-  getGhlAccess,
-  normalizePhone,
-  resolveContactId,
-  sendGhlEmail,
-  sendGhlSms,
-  type GhlAccess,
-} from "./ghlMessaging.ts";
+import { normalizePhone } from "./ghlMessaging.ts";
+import { relayCall } from "./barberLaunchGhlRelay.ts";
 
 export const SUPPLIER_FROM = "send@barberlaunch.co";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
@@ -266,61 +260,29 @@ export type SendResult =
   | { ok: true; messageId: string | null; sender: string }
   | { ok: false; reason: string; configured: boolean };
 
+function emailFailure(res: { reason: string }, from: string): SendResult {
+  const senderIssue = /from|sender|domain|verif|unauthor/i.test(res.reason);
+  return { ok: false, configured: true, reason: `${senderIssue ? `ghl_sender_not_verified(${from}):` : "ghl_email_failed:"}${res.reason}`.slice(0, 400) };
+}
+
+/** Supplier sheet via relay — recipient and sender are fixed by the relay. */
 export async function sendSupplierEmail(
-  db: SupabaseClient,
-  input: { to: string; subject: string; html: string; access?: GhlAccess },
+  _db: SupabaseClient,
+  input: { to: string; subject: string; html: string },
 ): Promise<SendResult> {
-  const from =
-    (Deno.env.get("HAIR_SYSTEM_SUPPLIER_FROM") ?? "").trim().toLowerCase() || SUPPLIER_FROM;
-
-  const access = input.access ?? (await getGhlAccess(db));
-  if ("error" in access) {
-    return { ok: false, configured: false, reason: `ghl_not_available:${access.error}` };
-  }
-
-  const contactId = await resolveContactId(access, { email: input.to, name: "New Times Hair" });
-  if (!contactId) {
-    return { ok: false, configured: true, reason: "ghl_supplier_contact_unresolved" };
-  }
-
-  const res = await sendGhlEmail(access, {
-    contactId,
-    emailFrom: from,
-    emailTo: input.to,
-    subject: input.subject,
-    html: input.html,
-  });
-  if (!res.ok) {
-    const senderIssue = /from|sender|domain|verif|unauthor/i.test(res.reason);
-    return {
-      ok: false,
-      configured: true,
-      reason: `${senderIssue ? `ghl_sender_not_verified(${from}):` : "ghl_email_failed:"}${res.reason}`.slice(0, 400),
-    };
-  }
-  return { ok: true, messageId: res.messageId, sender: from };
+  if (input.to !== DEFAULT_SUPPLIER_EMAIL) return { ok: false, configured: true, reason: `supplier_recipient_mismatch:${input.to}` };
+  const r = await relayCall("send_email", { role: "supplier", to: input.to, name: "New Times Hair", subject: input.subject, html: input.html });
+  if (!r.ok) return emailFailure(r, SUPPLIER_FROM);
+  return { ok: true, messageId: r.messageId ?? null, sender: SUPPLIER_FROM };
 }
 
 export async function sendCustomerReceiptEmail(
-  db: SupabaseClient,
-  input: { to: string; name: string; subject: string; html: string; access?: GhlAccess },
+  _db: SupabaseClient,
+  input: { to: string; name: string; subject: string; html: string },
 ): Promise<SendResult> {
-  const access = input.access ?? (await getGhlAccess(db));
-  if ("error" in access) return { ok: false, configured: false, reason: `ghl_not_available:${access.error}` };
-  const contactId = await resolveContactId(access, { email: input.to, name: input.name });
-  if (!contactId) return { ok: false, configured: true, reason: "ghl_customer_contact_unresolved" };
-  const res = await sendGhlEmail(access, {
-    contactId,
-    emailFrom: SUPPLIER_FROM,
-    emailTo: input.to,
-    subject: input.subject,
-    html: input.html,
-  });
-  if (!res.ok) {
-    const senderIssue = /from|sender|domain|verif|unauthor/i.test(res.reason);
-    return { ok: false, configured: true, reason: `${senderIssue ? `ghl_sender_not_verified(${SUPPLIER_FROM}):` : "ghl_email_failed:"}${res.reason}`.slice(0, 400) };
-  }
-  return { ok: true, messageId: res.messageId, sender: SUPPLIER_FROM };
+  const r = await relayCall("send_email", { role: "buyer", to: input.to, name: input.name, subject: input.subject, html: input.html });
+  if (!r.ok) return emailFailure(r, SUPPLIER_FROM);
+  return { ok: true, messageId: r.messageId ?? null, sender: SUPPLIER_FROM };
 }
 
 // ── Customer SMS (approved Barber Launch GHL SMS route) ──────
@@ -418,24 +380,20 @@ export async function dispatchPaidOrderNotifications(
   const orders = input.orders;
   if (!orders.length) return [];
 
-  const supplierEmail =
-    (Deno.env.get("HAIR_SYSTEM_SUPPLIER_EMAIL") ?? "").trim().toLowerCase() || DEFAULT_SUPPLIER_EMAIL;
+  // Fixed supplier recipient (the relay also enforces it).
+  const supplierEmail = DEFAULT_SUPPLIER_EMAIL;
 
-  // One GHL token resolution for the whole dispatch — Marketplace OAuth only.
-  const accessResult = await getGhlAccess(db, { oauthOnly: true });
-  const access = "error" in accessResult ? null : accessResult;
-  const accessError = "error" in accessResult ? accessResult.error : null;
-
+  // Stop on first failure: later channels stay unclaimed for a clean retry.
   const outcomes: ChannelOutcome[] = [];
+  const failedYet = () => outcomes.some((o) => o.result === "failed" || o.result === "claim_failed");
   for (const order of orders) {
+    if (failedYet()) break;
     outcomes.push(
       await runChannel(db, order.id, "supplier_email", input.eventId, async () => {
-        if (!access) return { status: "failed", reason: `ghl_not_available:${accessError}`, recipient: supplierEmail };
         const res = await sendSupplierEmail(db, {
           to: supplierEmail,
           subject: SUPPLIER_SUBJECT,
           html: buildSupplierEmailHtml(order, input.buyer),
-          access,
         });
         return res.ok
           ? { status: "sent", messageId: res.messageId, recipient: `${supplierEmail} (from: ${res.sender})` }
@@ -448,17 +406,16 @@ export async function dispatchPaidOrderNotifications(
   // purchases and Stripe retries cannot generate duplicate customer emails.
   const primary = orders[0];
   const customerEmail = String(input.buyer.email || primary.customer_email || "").trim().toLowerCase();
+  if (failedYet()) return outcomes;
   outcomes.push(
     await runChannel(db, primary.id, "customer_receipt", input.eventId, async () => {
       if (!customerEmail) return { status: "skipped", reason: "no_buyer_email" };
-      if (!access) return { status: "failed", reason: `ghl_not_available:${accessError}`, recipient: customerEmail };
       const details = primary.order_details ?? {};
       const res = await sendCustomerReceiptEmail(db, {
         to: customerEmail,
         name: String(details.full_name ?? primary.customer_name ?? input.buyer.name ?? ""),
         subject: CUSTOMER_RECEIPT_SUBJECT,
         html: buildCustomerReceiptHtml(orders, input.buyer, input.receipt),
-        access,
       });
       return res.ok
         ? { status: "sent", messageId: res.messageId, recipient: `${customerEmail} (from: ${res.sender})` }
@@ -468,6 +425,7 @@ export async function dispatchPaidOrderNotifications(
 
   // One confirmation SMS per purchase, claimed against the first order so a
   // Stripe retry (or a multi-system order) can never text the buyer twice.
+  if (failedYet()) return outcomes;
   outcomes.push(
     await runChannel(db, primary.id, "customer_sms", input.eventId, async () => {
       const details = primary.order_details ?? {};
@@ -477,21 +435,13 @@ export async function dispatchPaidOrderNotifications(
       const allowed = await smsAllowed(db, phone, details);
       if (!allowed.ok) return { status: "skipped", reason: allowed.reason, recipient: phone };
 
-      if (!access) {
-        return { status: "failed", reason: `ghl_not_available:${accessError}`, recipient: phone };
-      }
-      const contactId = await resolveContactId(access, {
+      const r = await relayCall("send_sms", {
         email: String(input.buyer.email || primary.customer_email || ""),
         phone,
         name: String(details.full_name ?? primary.customer_name ?? input.buyer.name ?? ""),
-      });
-      if (!contactId) return { status: "failed", reason: "ghl_buyer_contact_unresolved", recipient: phone };
-
-      const res = await sendGhlSms(access, {
-        contactId,
-        phone,
         message: buildCustomerSmsBody(primary, input.buyer, orders.length),
       });
+      const res = r.ok ? { ok: true as const, messageId: r.messageId ?? null } : { ok: false as const, reason: r.reason };
       return res.ok
         ? { status: "sent", messageId: res.messageId, recipient: phone }
         : { status: "failed", reason: res.reason, recipient: phone };
