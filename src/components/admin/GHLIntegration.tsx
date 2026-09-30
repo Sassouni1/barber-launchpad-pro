@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { openOAuthPopup, PopupBlockedError, PopupClosedError } from "@/lib/oauthPopup";
+import { PopupClosedError } from "@/lib/oauthPopup";
 import {
   GHL_CALLBACK_PATH,
   clearGhlOAuthState,
   createGhlOAuthState,
-  peekGhlOAuthState,
 } from "@/lib/ghlOAuthState";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -90,34 +89,12 @@ export function GHLIntegration() {
         url: string;
       };
 
-      try {
-        const result = await openOAuthPopup(url, GHL_CALLBACK_PATH);
-
-        const expected = peekGhlOAuthState();
-        if (!expected || !result.state || result.state !== expected) {
-          throw new Error(
-            "Security check failed (state mismatch). Please try connecting again."
-          );
-        }
-        clearGhlOAuthState();
-
-        const exchanged = (await invokeGhlOAuth("exchangeToken", {
-          code: result.code,
-        })) as { locationName?: string };
-
-        await queryClient.invalidateQueries({ queryKey: ["ghl-locations"] });
-        toast.success(
-          `Connected to ${exchanged?.locationName || "GoHighLevel"}!`
-        );
-      } catch (popupErr) {
-        if (popupErr instanceof PopupBlockedError) {
-          // Safari / blocked popups: complete the flow in the top-level window.
-          redirected = true;
-          window.location.assign(url);
-          return;
-        }
-        throw popupErr;
-      }
+      // Same-window redirect: popups opened after an await land in a separate
+      // window that is easy to lose, leaving this button spinning. The callback
+      // page validates state and exchanges the code server-side.
+      redirected = true;
+      window.location.assign(url);
+      return;
     } catch (err) {
       const message =
         err instanceof PopupClosedError

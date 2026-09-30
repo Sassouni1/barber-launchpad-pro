@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const GHL_TOKEN_URL = "https://services.leadconnectorhq.com/oauth/token";
+const APPROVED_LOCATION_ID = "JVBUuL3dVwZahuGay9T1";
 const GHL_LOCATION_URL = "https://services.leadconnectorhq.com/locations";
 
 class HttpError extends Error {
@@ -150,6 +151,11 @@ async function exchangeToken(code: string) {
 
   if (!access_token || !refresh_token || !locationId) {
     throw new Error("Missing token data from GHL response");
+  }
+  // Fail closed: only the approved Barber Launch location may be stored.
+  if (locationId !== APPROVED_LOCATION_ID) {
+    console.warn("ghl-oauth refused token for unapproved location");
+    throw new HttpError(403, `This GoHighLevel location is not approved. Choose location ${APPROVED_LOCATION_ID}.`);
   }
 
   // Fetch location name

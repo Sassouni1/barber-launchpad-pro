@@ -6,7 +6,7 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { syncPaidBuyerToGhl, type CrmSyncResult } from "./ghlCrmSync.ts";
 import { buyerFromSession, dispatchPaidOrderNotifications, type OrderRow } from "./hairSystemNotifications.ts";
-import { verifyPaidSession } from "./hairSystemFulfillmentLogic.ts";
+import { automaticFulfillmentAllowed, verifyPaidSession, type FulfillmentCutover } from "./hairSystemFulfillmentLogic.ts";
 
 /** Same key for checkout, webhook and reconciliation (Invasion Digital Media). */
 export function hairSystemStripeKey(): string | null {
@@ -34,7 +34,13 @@ export type FulfillmentResult = {
   crm: CrmSyncResult;
   outcomes: Array<{ channel: string; result: string; reason?: string }>;
   anyFailed: boolean;
+  skipped?: string;
 };
+
+export async function loadFulfillmentCutover(db: SupabaseClient): Promise<FulfillmentCutover> {
+  const { data } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_cutover").maybeSingle();
+  return (data?.value as FulfillmentCutover) ?? null;
+}
 
 /**
  * `session` must be a freshly retrieved, expanded Checkout Session.
@@ -43,11 +49,19 @@ export type FulfillmentResult = {
 export async function fulfillPaidSession(
   db: SupabaseClient,
   session: Record<string, any>,
-  opts: { eventId: string; stripeSecret: string; syncSavedCard: boolean; expectedUserId?: string },
+  opts: { eventId: string; stripeSecret: string; syncSavedCard: boolean; expectedUserId?: string; mode: "automatic" | "manual" },
 ): Promise<FulfillmentResult> {
   const check = verifyPaidSession(session, { expectedUserId: opts.expectedUserId });
   if (!check.ok) throw new Error(`session_not_verified:${check.reason}`);
   const orderIds = check.orderIds;
+
+  // Historical cutover guard: automatic paths never touch pre-cutover orders.
+  if (opts.mode === "automatic") {
+    const gate = automaticFulfillmentAllowed(session.created, orderIds, await loadFulfillmentCutover(db));
+    if (!gate.ok) {
+      return { orderIds, crm: { status: "skipped", reason: gate.reason } as CrmSyncResult, outcomes: [], anyFailed: false, skipped: gate.reason };
+    }
+  }
 
   // Paid state first; a later GHL failure never rolls this back.
   const { error: statusError } = await db.from("orders").update({ status: "pending" }).in("id", orderIds).eq("status", "pending_payment");

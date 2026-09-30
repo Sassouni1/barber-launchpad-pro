@@ -15,7 +15,8 @@
 //   HAIR_SYSTEM_SUPPLIER_FROM          overrides the preferred sender address
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession } from "../_shared/hairSystemFulfillment.ts";
+import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, loadFulfillmentCutover } from "../_shared/hairSystemFulfillment.ts";
+import { automaticFulfillmentAllowed } from "../_shared/hairSystemFulfillmentLogic.ts";
 
 const encoder = new TextEncoder();
 
@@ -144,6 +145,14 @@ Deno.serve(async (req) => {
   if (!orderIds.length) { await record("ignored_no_order_ids"); return json({ received: true, ignored: "no_order_ids" }); }
   if (session.payment_status !== "paid") { await record("ignored_not_paid"); return json({ received: true, ignored: "not_paid" }); }
 
+  // Historical cutover guard runs before anything else: pre-cutover or excluded
+  // orders are acknowledged (200, Stripe stops retrying) and never claimed.
+  const gate = automaticFulfillmentAllowed(session.created, orderIds, await loadFulfillmentCutover(db));
+  if (!gate.ok) {
+    await record(`skipped_${gate.reason}`);
+    return json({ received: true, skipped: gate.reason });
+  }
+
   // Admin hold: verified events are acknowledged as "retry later" without
   // claiming or sending anything, so Stripe keeps them for the paused replay.
   const { data: hold } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_hold").maybeSingle();
@@ -176,7 +185,13 @@ Deno.serve(async (req) => {
       eventId: String(event.id),
       stripeSecret,
       syncSavedCard: true,
+      mode: "automatic",
     });
+    if (result.skipped) {
+      await record(`skipped_${result.skipped}`);
+      await db.from("hair_system_webhook_events").update({ status: "done", processed_at: new Date().toISOString() }).eq("event_id", event.id);
+      return json({ received: true, skipped: result.skipped });
+    }
     console.log("hair-system fulfillment", JSON.stringify(result.outcomes));
     if (result.anyFailed) throw new Error("one_or_more_notifications_failed");
 

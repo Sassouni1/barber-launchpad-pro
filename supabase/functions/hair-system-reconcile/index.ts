@@ -16,13 +16,6 @@ import {
   type NotificationRow,
 } from "../_shared/hairSystemFulfillmentLogic.ts";
 
-const DEFAULT_ORDER_IDS = [
-  "4809a521-9d4b-43c8-8be5-e6814b2cd113",
-  "c3aef2be-7b37-4575-b4f1-538c869f500d",
-  "f2ca7052-7dfd-4db2-bd22-c2347ba4b2a7",
-  "ab36e2e1-33f9-4236-b157-c2e1021b04f2",
-  "fa6a29dc-62e3-49ad-9927-e1093ad59fd0",
-];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const json = (body: unknown, status = 200) =>
@@ -210,9 +203,10 @@ Deno.serve(async (req) => {
       return json({ stripeStatus: res.status, stripeResponse: parsed ?? text.slice(0, 500) });
     }
 
-    const orderIds = (Array.isArray(body.order_ids) && body.order_ids.length ? body.order_ids : DEFAULT_ORDER_IDS)
-      .map(String).filter((id) => UUID.test(id)).slice(0, 20);
-    if (!orderIds.length) return json({ error: "No valid order IDs." }, 400);
+    // Manual replay is always one explicit order; there is no default list.
+    const rawIds = Array.isArray(body.order_ids) ? body.order_ids.map(String) : body.order_id ? [String(body.order_id)] : [];
+    if (rawIds.length !== 1 || !UUID.test(rawIds[0])) return json({ error: "Provide exactly one order ID." }, 400);
+    const orderIds = [rawIds[0].toLowerCase()];
 
     if (action !== "dry_run" && action !== "execute" && action !== "verify") return json({ error: "Unknown action." }, 400);
 
@@ -254,6 +248,12 @@ Deno.serve(async (req) => {
 
     if (action === "dry_run") return json({ mode: "dry_run", diagnostics: diag, verified, plan, notifications: before });
 
+    if (sessions.size !== 1) return json({ error: "Order is not verified as paid; nothing executed.", verified }, 409);
+    const onlyIds = String([...sessions.values()][0].metadata?.order_ids ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    if (onlyIds.length !== 1 || onlyIds[0] !== orderIds[0]) {
+      return json({ error: "This checkout covers other orders too; single-order execute refused.", sessionOrderIds: onlyIds }, 409);
+    }
+
     const runs: Array<Record<string, unknown>> = [];
     for (const [sessionId, session] of sessions) {
       try {
@@ -261,6 +261,7 @@ Deno.serve(async (req) => {
           eventId: `reconcile:${u.user.id}:${sessionId}`,
           stripeSecret: key,
           syncSavedCard: false,
+          mode: "manual",
         });
         runs.push({ sessionId, orderIds: r.orderIds, outcomes: r.outcomes });
       } catch (e) {
