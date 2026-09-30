@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { Tables } from "@/integrations/supabase/types";
+import { isReceiptEligible } from "./receiptEligibility";
 
 type Order = Tables<"orders">;
 
@@ -80,6 +81,7 @@ function money(amount: number, symbol: string): string {
 }
 
 export function buildReceiptPdf(order: Order): jsPDF {
+  if (!isReceiptEligible(order)) throw new Error("This checkout was not paid, so there is no receipt.");
   const data = extractReceiptData(order);
   const doc = new jsPDF({ unit: "pt", format: "letter" });
 

@@ -141,8 +141,9 @@ Deno.serve(async (req) => {
 
   const session = event.data?.object ?? {};
   const orderIds = String(session.metadata?.order_ids ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
+  const hasDraft = Boolean(String(session.metadata?.draft_id ?? "").trim());
   // Not one of our hair system checkouts (affiliate/enrollment sessions carry other metadata).
-  if (!orderIds.length) { await record("ignored_no_order_ids"); return json({ received: true, ignored: "no_order_ids" }); }
+  if (!orderIds.length && !hasDraft) { await record("ignored_no_order_ids"); return json({ received: true, ignored: "no_order_ids" }); }
   if (session.payment_status !== "paid") { await record("ignored_not_paid"); return json({ received: true, ignored: "not_paid" }); }
 
   // Historical cutover guard runs before anything else: pre-cutover or excluded

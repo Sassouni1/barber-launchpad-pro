@@ -43,6 +43,17 @@ export async function loadFulfillmentCutover(db: SupabaseClient): Promise<Fulfil
 }
 
 /**
+ * Read-only: for a draft checkout whose orders already exist, expose their IDs
+ * as metadata.order_ids so admin reconcile can plan/verify without creating rows.
+ */
+export async function attachExistingOrderIds(db: SupabaseClient, session: Record<string, any>) {
+  if (String(session?.metadata?.order_ids ?? "").trim()) return session;
+  const { data } = await db.from("orders").select("id, system_index").eq("stripe_checkout_session_id", String(session?.id ?? "")).order("system_index");
+  if (!data?.length) return session;
+  return { ...session, metadata: { ...(session.metadata ?? {}), order_ids: data.map((r: any) => r.id).join(",") } };
+}
+
+/**
  * `session` must be a freshly retrieved, expanded Checkout Session.
  * Re-verifies paid status itself; never trusts the caller.
  */
@@ -53,7 +64,7 @@ export async function fulfillPaidSession(
 ): Promise<FulfillmentResult> {
   const check = verifyPaidSession(session, { expectedUserId: opts.expectedUserId });
   if (!check.ok) throw new Error(`session_not_verified:${check.reason}`);
-  const orderIds = check.orderIds;
+  let orderIds = check.orderIds;
 
   // Historical cutover guard: automatic paths never touch pre-cutover orders.
   if (opts.mode === "automatic") {
@@ -63,9 +74,23 @@ export async function fulfillPaidSession(
     }
   }
 
-  // Paid state first; a later GHL failure never rolls this back.
-  const { error: statusError } = await db.from("orders").update({ status: "pending" }).in("id", orderIds).eq("status", "pending_payment");
-  if (statusError) throw statusError;
+  if (!orderIds.length && check.draftId) {
+    // Draft checkout: real orders are created here, only after Stripe confirms
+    // payment, exactly once per (session, system index). Retries return the same rows.
+    const { data, error } = await db.rpc("hair_system_materialize_paid_draft", {
+      _draft_id: check.draftId,
+      _session_id: String(session.id),
+      _user_id: String(session.metadata?.user_id ?? ""),
+    });
+    if (error) throw new Error(`materialize_failed:${error.message}`);
+    orderIds = ((data ?? []) as string[]).filter(Boolean);
+    if (!orderIds.length) throw new Error("materialize_returned_no_orders");
+  } else {
+    // Historical order_ids branch (kept for rollback): paid state first; a
+    // later GHL failure never rolls this back.
+    const { error: statusError } = await db.from("orders").update({ status: "pending" }).in("id", orderIds).eq("status", "pending_payment");
+    if (statusError) throw statusError;
+  }
 
   if (opts.syncSavedCard && session.metadata?.save_card === "true" && typeof session.customer === "string" && session.metadata?.user_id) {
     try {

@@ -5,7 +5,7 @@ const paid = { object: "checkout.session", payment_status: "paid", metadata: { o
 const URL_ = "https://x.supabase.co/functions/v1/hair-system-stripe-webhook";
 
 Deno.test("paid verification: paid session with matching order passes", () => {
-  assertEquals(verifyPaidSession(paid, { requireOrderId: "o2", expectedUserId: "u1" }), { ok: true, orderIds: ["o1", "o2"] });
+  assertEquals(verifyPaidSession(paid, { requireOrderId: "o2", expectedUserId: "u1" }), { ok: true, orderIds: ["o1", "o2"], draftId: null });
 });
 Deno.test("paid verification: unpaid, wrong order, wrong user, no metadata all rejected", () => {
   assertEquals(verifyPaidSession({ ...paid, payment_status: "unpaid" }).ok, false);

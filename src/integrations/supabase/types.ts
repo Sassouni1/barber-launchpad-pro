@@ -2423,6 +2423,54 @@ export type Database = {
         }
         Relationships: []
       }
+      hair_system_checkout_drafts: {
+        Row: {
+          base_details: Json
+          created_at: string
+          customer_email: string
+          customer_name: string | null
+          id: string
+          paid_at: string | null
+          save_card: boolean
+          shipping_speed: string | null
+          status: string
+          stripe_checkout_session_id: string | null
+          systems: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_details?: Json
+          created_at?: string
+          customer_email: string
+          customer_name?: string | null
+          id?: string
+          paid_at?: string | null
+          save_card?: boolean
+          shipping_speed?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          systems?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_details?: Json
+          created_at?: string
+          customer_email?: string
+          customer_name?: string | null
+          id?: string
+          paid_at?: string | null
+          save_card?: boolean
+          shipping_speed?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          systems?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hair_system_webhook_attempts: {
         Row: {
           event_id: string | null
@@ -3123,6 +3171,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          checkout_draft_id: string | null
           created_at: string
           customer_email: string
           customer_name: string | null
@@ -3130,7 +3179,10 @@ export type Database = {
           id: string
           order_date: string
           order_details: Json | null
+          payment_reference: string | null
           status: string
+          stripe_checkout_session_id: string | null
+          system_index: number | null
           tracking_number: string | null
           tracking_seen: boolean
           tracking_url: string | null
@@ -3138,6 +3190,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          checkout_draft_id?: string | null
           created_at?: string
           customer_email: string
           customer_name?: string | null
@@ -3145,7 +3198,10 @@ export type Database = {
           id?: string
           order_date?: string
           order_details?: Json | null
+          payment_reference?: string | null
           status?: string
+          stripe_checkout_session_id?: string | null
+          system_index?: number | null
           tracking_number?: string | null
           tracking_seen?: boolean
           tracking_url?: string | null
@@ -3153,6 +3209,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          checkout_draft_id?: string | null
           created_at?: string
           customer_email?: string
           customer_name?: string | null
@@ -3160,7 +3217,10 @@ export type Database = {
           id?: string
           order_date?: string
           order_details?: Json | null
+          payment_reference?: string | null
           status?: string
+          stripe_checkout_session_id?: string | null
+          system_index?: number | null
           tracking_number?: string | null
           tracking_seen?: boolean
           tracking_url?: string | null
@@ -4737,6 +4797,10 @@ export type Database = {
           _livemode: boolean
         }
         Returns: string
+      }
+      hair_system_materialize_paid_draft: {
+        Args: { _draft_id: string; _session_id: string; _user_id: string }
+        Returns: string[]
       }
       has_role: {
         Args: {
