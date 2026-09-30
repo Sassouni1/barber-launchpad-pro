@@ -81,7 +81,10 @@ Deno.serve(async (req) => {
 
   const payload = await req.text();
   const ok = await verifySignature(payload, req.headers.get("stripe-signature") ?? "", signingSecret);
-  if (!ok) return json({ error: "Invalid signature." }, 400);
+  if (!ok) {
+    console.warn("hair-system webhook rejected: signature did not match HAIR_SYSTEM_STRIPE_WEBHOOK_SECRET");
+    return json({ error: "Invalid signature." }, 400);
+  }
 
   let event: any;
   try {

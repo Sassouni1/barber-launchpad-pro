@@ -47,6 +47,14 @@ async function diagnostics(db: SupabaseClient, key: string) {
   } catch (e) {
     out.webhook = { configured: false, reason: `cannot_list_endpoints:${e instanceof Error ? e.message : "error"}` };
   }
+  try {
+    const failed = await stripeGet("/events?type=checkout.session.completed&delivery_success=false&limit=20", key);
+    out.recentUndeliveredCheckoutEvents = (failed.data ?? []).map((e: any) => ({
+      id: e.id, created: new Date(e.created * 1000).toISOString(), orderIds: e.data?.object?.metadata?.order_ids ?? null,
+    }));
+  } catch (e) {
+    out.recentUndeliveredCheckoutEvents = `unavailable:${e instanceof Error ? e.message : "error"}`;
+  }
   const { count } = await db.from("hair_system_webhook_events").select("event_id", { count: "exact", head: true });
   out.webhookEventsReceived = count ?? 0;
   const { data: tok } = await db.from("ghl_oauth_tokens").select("location_id, expires_at").order("updated_at", { ascending: false }).limit(1).maybeSingle();
