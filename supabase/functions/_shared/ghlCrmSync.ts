@@ -88,7 +88,7 @@ async function oauthAccess(db: SupabaseClient): Promise<GhlAccess | { error: str
   if (!tokenRecord) return { error: "ghl_marketplace_not_connected" };
   // getGhlAccess performs the secure refresh + re-encryption when the stored
   // token is near expiration.
-  return await getGhlAccess(db);
+  return await getGhlAccess(db, { oauthOnly: true });
 }
 
 /** Create or update the buyer contact with the purchase source and tag. */

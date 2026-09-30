@@ -7,6 +7,7 @@ import { CertificateLayoutEditor } from '@/components/admin/CertificateLayoutEdi
 import { FontUploader } from '@/components/admin/FontUploader';
 
 import { GHLIntegration } from '@/components/admin/GHLIntegration';
+import { HairSystemReconciliation } from '@/components/admin/HairSystemReconciliation';
 
 
 import { Switch } from '@/components/ui/switch';
@@ -143,6 +144,7 @@ export default function AdminDashboard() {
             <h2 className="font-display text-xl font-semibold">Integrations</h2>
           </div>
           <GHLIntegration />
+          <div className="mt-6"><HairSystemReconciliation /></div>
         </div>
 
 

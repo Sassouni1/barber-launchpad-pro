@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { syncPaidBuyerToGhl, type CrmSyncResult } from "../_shared/ghlCrmSync.ts";
+import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession } from "../_shared/hairSystemFulfillment.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,74 +63,43 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     // Invasion Digital Media live account (acct_1LMNKMI6LFtj88Bq).
-    const secret = Deno.env.get("STRIPE_SECRET_KEY");
+    const secret = hairSystemStripeKey();
     if (!secret) throw new Error("Hair system payments are not configured.");
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     if (body.action === "verify") {
       const sessionId = text(body.sessionId, 100);
       if (!sessionId.startsWith("cs_")) throw new Error("Invalid checkout session.");
-      const response = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, { headers: { Authorization: `Bearer ${secret}` } });
-      const session = await response.json();
-      if (!response.ok || session.metadata?.user_id !== user.id) throw new Error("Unable to verify this checkout.");
+      let session: Record<string, any>;
+      try {
+        session = await loadExpandedSession(sessionId, secret);
+      } catch {
+        throw new Error("Unable to verify this checkout.");
+      }
+      if (session.metadata?.user_id !== user.id) throw new Error("Unable to verify this checkout.");
       if (session.payment_status !== "paid") return new Response(JSON.stringify({ paid: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Fallback path only: the signed webhook normally gets here first. The
+      // shared pipeline uses the same per-order/channel claims, so a return
+      // visit after the webhook (or a refresh) never re-sends anything, and a
+      // delivery failure never changes the confirmed paid order state.
       const orderIds = text(session.metadata?.order_ids, 500).split(",").filter(Boolean);
-      if (orderIds.length) {
-        // Idempotent: only lifts orders out of pending_payment, so a repeat
-        // return-URL visit (or the webhook arriving first) changes nothing.
-        // Customer/supplier notifications are NEVER sent from this path — the
-        // signed hair-system-stripe-webhook owns all messaging.
-        const { error } = await admin
-          .from("orders")
-          .update({ status: "pending" })
-          .in("id", orderIds)
-          .eq("status", "pending_payment");
-        if (error) throw error;
+      let crmStatus = "skipped";
+      let anyFailed = false;
+      try {
+        const result = await fulfillPaidSession(admin, session, {
+          eventId: `checkout_session:${sessionId}`,
+          stripeSecret: secret,
+          syncSavedCard: true,
+          expectedUserId: user.id,
+        });
+        crmStatus = result.crm.status;
+        anyFailed = result.anyFailed;
+        if (anyFailed) console.error("hair system return-path delivery failures", JSON.stringify(result.outcomes));
+      } catch (e) {
+        anyFailed = true;
+        console.error("hair system return-path fulfillment error", e instanceof Error ? e.message : e);
       }
-      if (session.metadata?.save_card === "true" && typeof session.customer === "string" && typeof session.payment_intent === "string") {
-        const intentResponse = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(session.payment_intent)}`, { headers: { Authorization: `Bearer ${secret}` } });
-        const intent = await intentResponse.json();
-        if (intentResponse.ok && typeof intent.payment_method === "string") {
-          const customerForm = new URLSearchParams({ "invoice_settings[default_payment_method]": intent.payment_method });
-          const customerResponse = await fetch(`https://api.stripe.com/v1/customers/${encodeURIComponent(session.customer)}`, { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded" }, body: customerForm });
-          if (!customerResponse.ok) throw new Error("Unable to save this payment method.");
-          const { error } = await admin.from("member_billing_profiles").upsert({ customer_id: user.id, stripe_customer_id: session.customer, default_payment_method_id: intent.payment_method }, { onConflict: "customer_id" });
-          if (error) throw error;
-        }
-      }
-      // Stripe has confirmed payment: sync the buyer into the connected
-      // GoHighLevel Marketplace location once. A GHL failure never changes the
-      // payment or the order status above — it is logged and reported.
-      let crmSync: CrmSyncResult = { status: "skipped", reason: "no_orders" };
-      if (orderIds.length) {
-        try {
-          const { data: orderRow } = await admin
-            .from("orders")
-            .select("customer_name, order_details")
-            .eq("id", orderIds[0])
-            .maybeSingle();
-          const details = (orderRow?.order_details ?? {}) as Record<string, any>;
-          crmSync = await syncPaidBuyerToGhl(admin, {
-            orderId: orderIds[0],
-            eventId: `checkout_session:${sessionId}`,
-            buyer: {
-              name: text(session.customer_details?.name || orderRow?.customer_name || details.full_name, 120),
-              email: text(session.customer_details?.email || user.email, 200).toLowerCase(),
-              phone: text(session.customer_details?.phone || details.phone, 40),
-            },
-            systemCount: orderIds.length,
-            amountPaid: typeof session.amount_total === "number" ? session.amount_total : null,
-            currency: text(session.currency, 10) || "usd",
-          });
-        } catch (syncError) {
-          crmSync = {
-            status: "failed",
-            reason: syncError instanceof Error ? syncError.message.slice(0, 300) : "crm_sync_error",
-          };
-        }
-        if (crmSync.status === "failed") console.error("hair system crm sync failed", crmSync.reason);
-      }
-      return new Response(JSON.stringify({ paid: true, order_ids: orderIds, crm_sync: crmSync.status }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ paid: true, order_ids: orderIds, crm_sync: crmStatus, delivery: anyFailed ? "retry_pending" : "ok" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const required = ["barberFirstName", "barberLastName", "barberPhone", "address1", "city", "state", "zip"];

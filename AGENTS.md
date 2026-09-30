@@ -1,0 +1,1 @@
+- Hair-system post-payment deliveries run only through _shared/hairSystemFulfillment.ts (webhook primary, return-URL fallback, admin reconcile), GHL Marketplace OAuth only — one idempotent path prevents duplicate sends.
