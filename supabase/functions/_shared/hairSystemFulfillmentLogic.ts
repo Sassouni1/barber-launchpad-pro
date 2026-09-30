@@ -10,20 +10,37 @@ export function orderIdsFromMetadata(metadata: Record<string, unknown> | null | 
   return String(metadata?.order_ids ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-export type SessionCheck = { ok: true; orderIds: string[] } | { ok: false; reason: string };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** A session may only drive sends when Stripe says it is paid and it carries the order. */
+/** New checkouts carry a private draft reference instead of pre-created order rows. */
+export function draftIdFromMetadata(metadata: Record<string, unknown> | null | undefined): string | null {
+  const v = String(metadata?.draft_id ?? "").trim();
+  return UUID_RE.test(v) ? v.toLowerCase() : null;
+}
+
+/** Durable per-system payment reference; mirrors hair_system_materialize_paid_draft. */
+export function paymentReference(sessionId: string, systemIndex: number) {
+  return `stripe:${sessionId}:${systemIndex}`;
+}
+
+export type SessionCheck = { ok: true; orderIds: string[]; draftId: string | null } | { ok: false; reason: string };
+
+/**
+ * A session may only drive order creation or sends when Stripe says it is paid
+ * and it carries either historical order_ids or a draft reference.
+ */
 export function verifyPaidSession(
   session: Record<string, any> | null | undefined,
   opts: { requireOrderId?: string; expectedUserId?: string } = {},
 ): SessionCheck {
   if (!session || session.object !== "checkout.session") return { ok: false, reason: "not_a_checkout_session" };
   const orderIds = orderIdsFromMetadata(session.metadata);
-  if (!orderIds.length) return { ok: false, reason: "no_order_ids_metadata" };
+  const draftId = draftIdFromMetadata(session.metadata);
+  if (!orderIds.length && !draftId) return { ok: false, reason: "no_order_ids_metadata" };
   if (opts.requireOrderId && !orderIds.includes(opts.requireOrderId)) return { ok: false, reason: "order_id_not_in_metadata" };
   if (opts.expectedUserId && session.metadata?.user_id !== opts.expectedUserId) return { ok: false, reason: "user_mismatch" };
   if (session.payment_status !== "paid") return { ok: false, reason: `not_paid:${session.payment_status ?? "unknown"}` };
-  return { ok: true, orderIds };
+  return { ok: true, orderIds, draftId };
 }
 
 export type NotificationRow = { order_id: string; channel: string; status: string; updated_at?: string | null };
