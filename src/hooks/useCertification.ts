@@ -267,56 +267,75 @@ export function useCertificationPhotos(
   });
 
   const uploadPhotoMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (input: File | File[]) => {
       if (!user?.id || !courseId) throw new Error('Not authenticated');
+      const files = Array.isArray(input) ? input : [input];
+      if (files.length === 0) throw new Error('No files selected');
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${courseId}/${Date.now()}.${fileExt}`;
+      const saved: { id: string }[] = [];
+      const failed: string[] = [];
 
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from('certification-photos')
-        .upload(fileName, file);
+      for (const file of files) {
+        try {
+          const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
+          const fileName = `${user.id}/${courseId}/${crypto.randomUUID()}.${fileExt}`;
 
-      if (uploadError) throw uploadError;
+          const { error: uploadError } = await supabase.storage
+            .from('certification-photos')
+            .upload(fileName, file);
+          if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('certification-photos')
-        .getPublicUrl(fileName);
+          const { data: { publicUrl } } = supabase.storage
+            .from('certification-photos')
+            .getPublicUrl(fileName);
 
-      // Save to database
-      const { data, error } = await supabase
-        .from('certification_photos')
-        .insert({
-          user_id: user.id,
-          course_id: courseId,
-          file_name: file.name,
-          file_url: publicUrl,
-          photo_type: photoType,
-        })
-        .select()
-        .single();
+          const { data, error } = await supabase
+            .from('certification_photos')
+            .insert({
+              user_id: user.id,
+              course_id: courseId,
+              file_name: file.name,
+              file_url: publicUrl,
+              photo_type: photoType,
+            })
+            .select()
+            .single();
+          if (error) throw error;
+          saved.push(data);
+        } catch (err) {
+          console.error('Upload error:', file.name, err);
+          failed.push(file.name);
+        }
+      }
 
+      if (saved.length === 0) throw new Error('All uploads failed');
 
-      if (error) throw error;
+      // One alert per batch; the server claim also dedupes per-photo callers.
       supabase.functions.invoke('notify-certification-submission', {
-        body: { submissionId: data.id },
+        body: { submissionId: saved[0].id },
       }).then(({ error: notifyError }) => {
         if (notifyError) console.error('Certification notification error:', notifyError);
       }).catch((notifyError) => {
         console.error('Certification notification error:', notifyError);
       });
-      return data;
+
+      return { saved: saved.length, failed };
     },
-    onSuccess: () => {
+    onSuccess: ({ saved, failed }) => {
       queryClient.invalidateQueries({ queryKey: ['certification-photos'] });
       queryClient.invalidateQueries({ queryKey: ['certification-eligibility'] });
       queryClient.invalidateQueries({ queryKey: ['completed-modules'] });
-      toast.success('Photo uploaded successfully');
+      if (failed.length > 0) {
+        toast.warning(
+          `${saved} photo${saved === 1 ? '' : 's'} uploaded, ${failed.length} failed: ${failed.join(', ')}. Please try those again.`,
+        );
+      } else {
+        toast.success(saved === 1 ? 'Photo uploaded successfully' : `${saved} photos uploaded successfully`);
+      }
     },
     onError: (error) => {
       console.error('Upload error:', error);
+      queryClient.invalidateQueries({ queryKey: ['certification-photos'] });
       toast.error('Failed to upload photo');
     },
   });
