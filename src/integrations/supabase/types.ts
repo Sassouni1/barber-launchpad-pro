@@ -1907,6 +1907,30 @@ export type Database = {
           },
         ]
       }
+      certification_install_alert_claims: {
+        Row: {
+          claimed_at: string
+          course_id: string
+          status: string
+          submission_id: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          course_id: string
+          status?: string
+          submission_id: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          course_id?: string
+          status?: string
+          submission_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       certification_photos: {
         Row: {
           admin_note: string | null
@@ -4772,6 +4796,10 @@ export type Database = {
       }
       affiliate_transfer_release: {
         Args: { _id: string; _patch: Json; _worker: string }
+        Returns: boolean
+      }
+      claim_certification_install_alert: {
+        Args: { _submission_id: string }
         Returns: boolean
       }
       claim_order_notification: {
