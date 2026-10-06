@@ -256,6 +256,47 @@ Deno.serve(async (req) => {
               `Admin URL: ${adminUrl}`,
             ].join("\n");
 
+      if (kind === "submitted" && isInstall) {
+        // Only the photo owner (or service role) may trigger an install alert.
+        if (!isService && caller !== submission.user_id) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // Atomic claim: one SMS per member/course per 10-minute upload window.
+        const { data: claimed, error: claimError } = await supabase.rpc(
+          "claim_certification_install_alert",
+          { _submission_id: submissionId },
+        );
+        if (claimError) {
+          console.error("Install alert claim failed:", claimError.message);
+          return new Response(JSON.stringify({ error: "Alert claim failed" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (claimed !== true) {
+          return new Response(
+            JSON.stringify({ success: true, submissionId, skipped: "already_alerted" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        try {
+          await sendSms(supabase, message);
+        } catch (sendError) {
+          await supabase.from("certification_install_alert_claims")
+            .update({ status: "failed" }).eq("submission_id", submissionId);
+          throw sendError;
+        }
+        await supabase.from("certification_install_alert_claims")
+          .update({ status: "sent" }).eq("submission_id", submissionId);
+        return new Response(
+          JSON.stringify({ success: true, submissionId, sentTo: CHRIS_PHONE }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       await sendSms(supabase, message);
       return new Response(
         JSON.stringify({ success: true, submissionId, sentTo: CHRIS_PHONE }),

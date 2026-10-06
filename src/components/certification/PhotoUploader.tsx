@@ -46,7 +46,7 @@ interface Photo {
 
 interface PhotoUploaderProps {
   photos: Photo[];
-  onUpload: (file: File) => void;
+  onUpload: (files: File[]) => void;
   onDelete: (photoId: string) => void;
   isUploading: boolean;
   isDeleting: boolean;
@@ -70,17 +70,13 @@ export function PhotoUploader({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    files.forEach(file => {
-      if (file.type.startsWith('image/')) {
-        onUpload(file);
-      }
-    });
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (files.length > 0) onUpload(files);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    files.forEach(file => onUpload(file));
+    if (files.length > 0) onUpload(files);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
