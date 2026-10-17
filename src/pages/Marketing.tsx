@@ -642,14 +642,7 @@ export default function Marketing() {
                   >
                     <X className="w-3 h-3 text-destructive-foreground" />
                   </button>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    onClick={() => downloadImage(imgUrl, `${seoNameForIndex(i)}.jpg`)}
-                    className="absolute bottom-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Download className="w-3 h-3" />
-                  </Button>
+                  <FileDownloadButton url={imgUrl} filename={`${seoNameForIndex(i)}.jpg`} className="absolute bottom-1 right-1 h-7" />
                 </div>
               ))}
               <button
