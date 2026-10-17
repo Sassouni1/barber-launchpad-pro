@@ -73,6 +73,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Level1CertModal } from "@/components/certification/Level1CertModal";
+import { TrainingLoadError } from "@/components/courses/TrainingLoadError";
 import {
   BUSINESS_MASTERY_WELCOME_PENDING_KEY,
   BusinessMasteryWelcome,
@@ -448,7 +449,7 @@ const SubLessonTrack = ({
 };
 
 export default function Courses({ courseType = "hair-system" }: CoursesProps) {
-  const { data: allCoursesRaw = [], isLoading } = useCourses();
+  const { data: allCoursesRaw = [], isLoading, isError, isFetching, refetch } = useCourses();
   const { isAdmin, user } = useAuth();
   const { locale } = useLocale();
 
@@ -461,7 +462,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   )?.id;
   const { data: hairSystemCertification, isLoading: isLoadingCertification } =
     useUserCertification(hairSystemCourseId);
-  const { data: specialistListing, isLoading: isLoadingListing } =
+  const { data: specialistListing, isLoading: isLoadingListing, isSuccess: isListingLoaded } =
     useMyListing(user?.id);
   const directoryUploadAvailable = isDirectoryUploadAvailable(
     hairSystemCertification?.issued_at,
@@ -470,7 +471,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
     !!hairSystemCertification &&
     directoryUploadAvailable &&
     !isLoadingListing &&
-    !specialistListing;
+    isListingLoaded && specialistListing === null;
   const directoryUploadWaiting =
     !!hairSystemCertification &&
     !directoryUploadAvailable &&
@@ -917,6 +918,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
 
   const moduleData = findModule();
 
+  if (isError && allCourses.length === 0) {
+    return <DashboardLayout><TrainingLoadError retry={() => { void refetch(); }} retrying={isFetching} /></DashboardLayout>;
+  }
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -1242,12 +1247,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         setShowBusinessRecommendation(true);
                         return;
                       }
-                      if (needsDatabaseListing) {
-                        setIsCertModalOpen(true);
-                        clearModuleSelection();
-                      } else {
-                        setExpandedCourse(category.id);
-                      }
+                      setExpandedCourse(category.id);
                     }}
                     className={cn(
                       "relative flex flex-col text-left overflow-hidden rounded-[1.5rem] border p-5 transition-all active:scale-[0.985]",

@@ -589,7 +589,7 @@ export default function Lesson() {
   const navigate = useNavigate();
   const { lessonId, courseType } = useParams();
   const [searchParams] = useSearchParams();
-  const { data: courses = [], isLoading } = useCourses();
+  const { data: courses = [], isLoading, isError, isFetching, refetch } = useCourses();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -862,6 +862,10 @@ export default function Lesson() {
   );
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (isError && courses.length === 0) {
+    return <DashboardLayout><TrainingLoadError retry={() => { void refetch(); }} retrying={isFetching} /></DashboardLayout>;
+  }
 
   if (isLoading) {
     return (
