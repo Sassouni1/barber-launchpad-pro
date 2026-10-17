@@ -14,16 +14,23 @@ export async function deliverFile(blob: Blob, filename: string) {
   if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: filename });
-      return;
+      return true;
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (error instanceof DOMException && error.name === 'AbortError') return false;
     }
   }
   downloadBlob(blob, filename);
+  return true;
 }
 
 export async function fetchDownload(url: string): Promise<Blob> {
-  const response = await fetch(url);
+  let response: Response;
+  try { response = await fetch(url); }
+  catch (error) {
+    if (!/^https?:\/\//.test(url)) throw error;
+    const proxy = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(url)}`;
+    response = await fetch(proxy);
+  }
   if (!response.ok) throw new Error(`Could not download file (${response.status})`);
   const blob = await response.blob();
   if (!blob.size || /text\/html|application\/json/.test(blob.type)) {

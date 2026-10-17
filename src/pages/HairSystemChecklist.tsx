@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { downloadBlob, fetchDownload } from '@/lib/fileDownloads';
 
 interface ChecklistItem {
   id: string;
@@ -224,16 +225,8 @@ export default function HairSystemChecklist() {
       const isInstallation = lists.some(l => l.title.toLowerCase().includes('installation') && !l.title.toLowerCase().includes('after'));
       
       if (isInstallation) {
-        const response = await fetch('/files/Barber_Installation_Checklist_Mobile.pdf');
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'Installation_Checklist.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const blob = await fetchDownload('/files/Barber_Installation_Checklist_Mobile.pdf');
+        downloadBlob(blob, 'Installation_Checklist.pdf');
       } else {
         const lines: string[] = [];
         lists.forEach(list => {
@@ -247,14 +240,7 @@ export default function HairSystemChecklist() {
         });
 
         const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${lists[0]?.title || 'checklist'}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        downloadBlob(blob, `${lists[0]?.title || 'checklist'}.txt`);
       }
       toast.success('Checklist downloaded!');
     } catch {

@@ -9,6 +9,7 @@ import { playMessageReceivedSound, playMessageSentSound, primeMessageSounds } fr
 import { normalizeAttachments } from '@/lib/messageAttachments';
 import { AttachmentLightbox } from '@/components/support/AttachmentLightbox';
 import { toast } from 'sonner';
+import { FileDownloadButton } from '@/components/ui/file-download-button';
 
 // Support messages synced from external sources (e.g. GHL) can carry loosely
 // shaped attachment payloads alongside the native storage attachment.
@@ -232,10 +233,7 @@ export function SupportThread({ conversationId, title, description, participantN
                             <img src={attachment.url} alt={attachment.name} className="max-h-72 w-auto max-w-[min(360px,100%)] rounded-xl border border-border object-contain" />
                           </button>
                         ) : (
-                          <a key={attachment.url} href={attachment.url} target="_blank" rel="noreferrer" download className="mb-2 flex w-fit max-w-full items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs text-foreground/90">
-                            <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{attachment.name}</span>
-                          </a>
+                          <FileDownloadButton key={attachment.url} url={attachment.url} filename={attachment.name} label={attachment.name} className="mb-2 max-w-full whitespace-normal break-all h-auto py-2" />
                         ))}
                         {message.body && <p className="whitespace-pre-wrap break-words text-foreground/90">{message.body}</p>}
                       </div>

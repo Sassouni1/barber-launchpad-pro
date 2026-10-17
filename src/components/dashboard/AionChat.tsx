@@ -21,6 +21,7 @@ import {
   PromptInputTextarea,
 } from '@/components/ai-elements/prompt-input';
 import { Shimmer } from '@/components/ai-elements/shimmer';
+import { FileDownloadButton } from '@/components/ui/file-download-button';
 
 type ImageMeta = {
   imageUrl?: string;
@@ -53,23 +54,6 @@ function detectAspect(text: string): 'square' | 'portrait' | 'landscape' {
   if (/\b(story|stories|reel|reels|vertical|portrait|9:16)\b/i.test(text)) return 'portrait';
   if (/\b(wide|banner|landscape|horizontal|16:9)\b/i.test(text)) return 'landscape';
   return 'square';
-}
-
-async function downloadImage(url: string, id?: string) {
-  try {
-    const resp = await fetch(url);
-    const blob = await resp.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = `aion-${id || 'image'}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objectUrl);
-  } catch {
-    window.open(url, '_blank');
-  }
 }
 
 
@@ -368,16 +352,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
                         className="rounded-lg max-w-full border border-border/50"
                       />
                       <div className="flex flex-wrap gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            const imageUrl = (m.metadata as ImageMeta).imageUrl;
-                            if (imageUrl) void downloadImage(imageUrl, (m.metadata as ImageMeta).imageId);
-                          }}
-                        >
-                          <Download className="w-3.5 h-3.5 mr-1.5" /> Download
-                        </Button>
+                        <FileDownloadButton url={(m.metadata as ImageMeta).imageUrl || ''} filename={`aion-${(m.metadata as ImageMeta).imageId || 'image'}.png`} label="Download" />
                         <Button
                           size="sm"
                           variant="outline"
