@@ -37,6 +37,6 @@
 - [x] Replace the My Links opening with the approved earnings and processing explanation; visually verify it exactly (left unpublished)
 
 ## Download and directory repair
-- [ ] Fix download controls opening preview pages; verify actual file downloads.
-- [ ] Add mobile-safe Download All image archive with location filenames.
-- [ ] Identify Sierra and repair valid ZIP lookup failures without changing her listing.
+- [x] Fix resource, content, marketing, certificate, Aion and support Save controls; verified real lesson/image downloads without navigation.
+- [x] Add mobile-safe Download All image archive with location filenames; desktop and touch-mobile ZIP downloads verified.
+- [x] Sierra Hannibal: valid ZIP 84045 was blocked by provider Access denied; replacement lookup deployed and live-verified, listing unchanged.
