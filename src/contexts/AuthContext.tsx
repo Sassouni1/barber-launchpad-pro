@@ -95,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const checkUserStatus = async (userId: string) => {
+    if (!statusRequests.current.isActive(userId)) return;
     const request = statusRequests.current.begin(userId);
     try {
     const [rolesResult, profileResult, passwordResetResult] = await Promise.all([

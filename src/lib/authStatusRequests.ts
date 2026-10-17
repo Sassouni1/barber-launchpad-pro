@@ -16,6 +16,8 @@ export class AuthStatusRequests {
     return { userId, version: ++this.version };
   }
 
+  isActive(userId: string) { return this.userId === userId; }
+
   isCurrent(request: { userId: string; version: number }) {
     return this.userId === request.userId && this.version === request.version;
   }

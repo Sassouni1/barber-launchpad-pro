@@ -35,5 +35,6 @@ test('another user never inherits resolved role status', () => {
   reads.resolve(old);
   reads.activate('member');
   expect(reads.hasResolved).toBe(false);
+  expect(reads.isActive('admin')).toBe(false);
   expect(reads.isCurrent(old)).toBe(false);
 });
