@@ -35,3 +35,8 @@
 - [x] Publish safe production version and verify https://member.thebarberlaunch.com/card/yoKiq1Sw (Valerie Prieto, The Glam Rock Salon)
 - [x] My Links balance follow-up: show each connected member's real Stripe payout schedule and explain available-to-transfer balance (left unpublished)
 - [x] Replace the My Links opening with the approved earnings and processing explanation; visually verify it exactly (left unpublished)
+
+## Download and directory repair
+- [ ] Fix download controls opening preview pages; verify actual file downloads.
+- [ ] Add mobile-safe Download All image archive with location filenames.
+- [ ] Identify Sierra and repair valid ZIP lookup failures without changing her listing.
