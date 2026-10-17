@@ -8,7 +8,7 @@ export default function SocialMediaPost() {
         <div>
           <h1 className="text-3xl font-display font-bold gold-text">Hair System Content</h1>
           <p className="text-muted-foreground mt-2">
-            Ready-to-use image assets for your social posts. Tap any image to download.
+            Ready-to-use image assets for your social posts.
           </p>
         </div>
         <SocialMediaPostAssets />

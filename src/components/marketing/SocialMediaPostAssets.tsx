@@ -113,7 +113,7 @@ export function SocialMediaPostAssets() {
             <span className="text-xs text-muted-foreground">{files.length} assets</span>
             <Button size="sm" onClick={downloadAll} disabled={preparing || files.length === 0}>
               {preparing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {preparing ? `${progress}/${files.length}` : archive ? 'Download All' : 'Download All'}
+              {preparing ? `${progress}/${files.length}` : 'Download All'}
             </Button>
           </div>
         )}
