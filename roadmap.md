@@ -37,7 +37,7 @@
 - [x] Replace the My Links opening with the approved earnings and processing explanation; visually verify it exactly (left unpublished)
 
 ## Download and directory repair
-- [ ] Audit and repair training access before/after certification; verify authenticated desktop/mobile access without changing member records or publishing.
+- [x] Audit and repair training access before/after certification; real signed-in video verified on desktop/mobile, simulated certification/listing combinations and refresh event verified, failed-load retry recovered; no member records changed or frontend published. Actual token renewal remains unverified because the injected refresh attempt signed out.
 - [x] Fix resource, content, marketing, certificate, Aion and support Save controls; verified real lesson/image downloads without navigation.
 - [x] Add mobile-safe Download All image archive with location filenames; desktop and touch-mobile ZIP downloads verified.
 - [x] Sierra Hannibal: valid ZIP 84045 was blocked by provider Access denied; replacement lookup deployed and live-verified, listing unchanged.

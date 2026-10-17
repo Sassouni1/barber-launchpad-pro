@@ -1,6 +1,8 @@
 import asyncio,json,os
+from pathlib import Path
 from playwright.async_api import async_playwright
 ROOT='http://localhost:8080'
+Path('/tmp/browser/training-audit').mkdir(parents=True, exist_ok=True)
 async def restore(page):
  await page.goto(ROOT)
  await page.evaluate('([k,v])=>localStorage.setItem(k,v)',[os.environ['LOVABLE_BROWSER_SUPABASE_STORAGE_KEY'],os.environ['LOVABLE_BROWSER_SUPABASE_SESSION_JSON']])
