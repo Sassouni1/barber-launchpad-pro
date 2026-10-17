@@ -1,3 +1,4 @@
+import { geocodeZip } from "@/lib/geocodeZip";
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -109,9 +110,7 @@ export const AddSpecialistDialog = ({ open, onClose }: Props) => {
 
     setSaving(true);
     try {
-      const geo = await supabase.functions.invoke("geocode-zip", { body: { zip } });
-      if (geo.error) throw new Error("Could not validate ZIP code");
-      const { latitude, longitude } = geo.data;
+      const { latitude, longitude } = await geocodeZip(zip);
 
       // user_id is required & unique. If no member selected, generate a placeholder UUID.
       const userId = selectedUserId || crypto.randomUUID();

@@ -9,6 +9,7 @@ import JSZip from 'jszip';
 import { toast } from 'sonner';
 import { buildReceiptPdf, receiptFileName, extractReceiptData, downloadReceipt } from '@/lib/orderReceipt';
 import type { Tables } from '@/integrations/supabase/types';
+import { downloadBlob } from '@/lib/fileDownloads';
 
 type Order = Tables<'orders'>;
 
@@ -66,14 +67,7 @@ export default function Orders() {
         zip.file(name, doc.output('arraybuffer'));
       }
       const blob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `order-receipts-${new Date().toISOString().slice(0, 10)}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `order-receipts-${new Date().toISOString().slice(0, 10)}.zip`);
       toast.success(`Downloaded ${orders.length} receipt${orders.length === 1 ? '' : 's'}`);
     } catch {
       toast.error('Failed to download receipts');

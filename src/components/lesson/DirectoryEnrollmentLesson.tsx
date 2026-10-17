@@ -1,3 +1,4 @@
+import { geocodeZip } from "@/lib/geocodeZip";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -376,9 +377,7 @@ function DetailsStep({
     }
     setSaving(true);
     try {
-      const geo = await supabase.functions.invoke("geocode-zip", { body: { zip } });
-      if (geo.error) throw new Error("Could not validate ZIP code");
-      const { latitude, longitude } = geo.data;
+      const { latitude, longitude } = await geocodeZip(zip);
 
       const result = await submit({
         user_id: userId,

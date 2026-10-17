@@ -1,3 +1,4 @@
+import { FileDownloadButton } from '@/components/ui/file-download-button';
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw, Camera, Star, ArrowRight, BookOpen, Download } from 'lucide-react';
@@ -287,64 +288,15 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                   className="w-full"
                 />
               </div>
-              <Button
-                className={cn(
-                  'w-full',
-                  existingCertification?.downloaded_at
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'gold-gradient'
-                )}
-                onClick={async () => {
-                  if (!baseCertificateUrl || !existingCertification?.id) return;
-                  const downloadUrl = getCertificateUrlWithCacheBuster(baseCertificateUrl);
-                  const fileName = `certificate-${existingCertification.certificate_name.replace(/\s+/g, '-')}.png`;
-                  try {
-                    const response = await fetch(downloadUrl, { cache: 'no-store', mode: 'cors' });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileName;
-                    a.rel = 'noopener';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-
-                    markDownloaded.mutate({
-                      courseId,
-                      certificationId: existingCertification.id,
-                    });
-                  } catch (error) {
-                    console.error('Download failed:', error);
-                    // Fallback: open in new tab so user can long-press / save-as
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    a.download = fileName;
-                    a.target = '_blank';
-                    a.rel = 'noopener';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-
-                    markDownloaded.mutate({
-                      courseId,
-                      certificationId: existingCertification.id,
-                    });
-                  }
+              <FileDownloadButton
+                url={certificateUrlWithCache || ''}
+                filename={`certificate-${existingCertification?.certificate_name.replace(/\s+/g, '-') || 'certificate'}.png`}
+                label={existingCertification?.downloaded_at ? 'Downloaded' : 'Download Certificate'}
+                className="w-full"
+                onDelivered={() => {
+                  if (existingCertification?.id) markDownloaded.mutate({ courseId, certificationId: existingCertification.id });
                 }}
-                disabled={markDownloaded.isPending}
-              >
-                {markDownloaded.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : existingCertification?.downloaded_at ? (
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                ) : (
-                  <Download className="w-4 h-4 mr-2" />
-                )}
-                {existingCertification?.downloaded_at ? 'Downloaded' : 'Download Certificate'}
-              </Button>
+              />
             </div>
           )}
 

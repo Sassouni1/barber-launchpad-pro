@@ -1,3 +1,4 @@
+import { FileDownloadButton } from '@/components/ui/file-download-button';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw, ZoomIn, ZoomOut, Search } from 'lucide-react';
@@ -400,45 +401,6 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
     }
   };
 
-  const handleDownload = async () => {
-    const baseUrl = generatedCertificateUrl || existingCertification?.certificate_url;
-    if (!baseUrl || !existingCertification?.id) return;
-
-    const ts = Date.now();
-    const downloadUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${ts}`;
-    const fileName = `certificate-${existingCertification?.certificate_name?.replace(/\s+/g, '-') || 'level1'}.png`;
-
-    try {
-      const response = await fetch(downloadUrl, { cache: 'no-store', mode: 'cors' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-
-      // Mark the certificate as downloaded in the database
-      markDownloaded.mutate({ courseId: courseId!, certificationId: existingCertification.id });
-    } catch (error) {
-      console.error('Download failed:', error);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = fileName;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      // Still record the download attempt on fallback so the UI turns green
-      markDownloaded.mutate({ courseId: courseId!, certificationId: existingCertification.id });
-    }
-  };
 
   const baseCertificateUrl = generatedCertificateUrl || existingCertification?.certificate_url;
   const certCacheKey = generatedCertificateUrl || existingCertification?.issued_at || '';
@@ -650,23 +612,15 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
-                    className={cn(
-                      'flex-1',
-                      existingCertification?.downloaded_at ? 'bg-green-600 hover:bg-green-700 text-white' : 'gold-gradient'
-                    )}
-                    onClick={handleDownload}
-                    disabled={markDownloaded.isPending}
-                  >
-                    {markDownloaded.isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : existingCertification?.downloaded_at ? (
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                    ) : (
-                      <Download className="w-4 h-4 mr-2" />
-                    )}
-                    {existingCertification?.downloaded_at ? 'Downloaded' : 'Download'}
-                  </Button>
+                  <FileDownloadButton
+                    url={generatedCertificateUrl || existingCertification?.certificate_url || ''}
+                    filename={`certificate-${existingCertification?.certificate_name?.replace(/\s+/g, '-') || 'level1'}.png`}
+                    label={existingCertification?.downloaded_at ? 'Downloaded' : 'Download'}
+                    className="flex-1"
+                    onDelivered={() => {
+                      if (courseId && existingCertification?.id) markDownloaded.mutate({ courseId, certificationId: existingCertification.id });
+                    }}
+                  />
                   <Button
                     variant="outline"
                     onClick={handleEditCertificate}

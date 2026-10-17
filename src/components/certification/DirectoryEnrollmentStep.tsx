@@ -1,3 +1,4 @@
+import { geocodeZip } from "@/lib/geocodeZip";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -59,9 +60,7 @@ export const DirectoryEnrollmentStep = ({ open, onClose }: Props) => {
     setUploading(true);
     try {
       // Geocode ZIP
-      const geo = await supabase.functions.invoke("geocode-zip", { body: { zip } });
-      if (geo.error) throw new Error("Could not validate ZIP code");
-      const { latitude, longitude } = geo.data;
+      const { latitude, longitude } = await geocodeZip(zip);
 
       // Upload hero photo if provided
       let hero_photo_url = existing?.hero_photo_url || null;

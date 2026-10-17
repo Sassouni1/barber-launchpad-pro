@@ -1,3 +1,4 @@
+import { geocodeZip } from "@/lib/geocodeZip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -50,7 +51,7 @@ export function useMyListing(userId: string | undefined) {
       const { data, error } = await supabase
         .from("specialist_directory")
         .select("*")
-        .eq("user_id", userId!)
+        .eq("user_id", userId || "")
         .maybeSingle();
       if (error) throw error;
       return data as SpecialistListing | null;
@@ -109,9 +110,7 @@ export function useApproveListing() {
 
 export async function searchSpecialists(zip: string, radius = 50): Promise<SpecialistSearchResult[]> {
   // Geocode the ZIP first
-  const geo = await supabase.functions.invoke("geocode-zip", { body: { zip } });
-  if (geo.error) throw new Error(geo.error.message);
-  const { latitude, longitude } = geo.data;
+  const { latitude, longitude } = await geocodeZip(zip);
 
   const { data, error } = await supabase.rpc("search_specialists", {
     search_lat: latitude,
