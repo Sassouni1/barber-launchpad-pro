@@ -3,6 +3,7 @@ import { downloadBlob } from "@/lib/fileDownloads";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { TrainingLoadError } from "@/components/courses/TrainingLoadError";
 import { useCourses } from "@/hooks/useCourses";
 import { useModuleFiles } from "@/hooks/useModuleFiles";
 import {
@@ -589,7 +590,7 @@ export default function Lesson() {
   const navigate = useNavigate();
   const { lessonId, courseType } = useParams();
   const [searchParams] = useSearchParams();
-  const { data: courses = [], isLoading } = useCourses();
+  const { data: courses = [], isLoading, isError, isFetching, refetch } = useCourses();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -862,6 +863,10 @@ export default function Lesson() {
   );
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (isError && courses.length === 0) {
+    return <DashboardLayout><TrainingLoadError retry={() => { void refetch(); }} retrying={isFetching} /></DashboardLayout>;
+  }
 
   if (isLoading) {
     return (

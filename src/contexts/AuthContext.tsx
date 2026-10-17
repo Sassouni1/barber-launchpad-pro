@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { getDirectoryListingReminderKey } from '@/lib/directoryListingReminder';
+import { AuthStatusRequests } from '@/lib/authStatusRequests';
 
 interface AgreementSetting {
   enabled: boolean;
@@ -12,6 +13,7 @@ const ADMIN_MODE_KEY = 'adminModeActive';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  statusError: string | null;
   isAdmin: boolean;
   isManufacturer: boolean;
   hasSignedAgreement: boolean;
@@ -30,6 +32,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const statusRequests = useRef(new AuthStatusRequests());
   const [isAdmin, setIsAdmin] = useState(false);
   const [isManufacturer, setIsManufacturer] = useState(false);
   const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
@@ -91,6 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const checkUserStatus = async (userId: string) => {
+    if (!statusRequests.current.isActive(userId)) return;
+    const request = statusRequests.current.begin(userId);
+    try {
     const [rolesResult, profileResult, passwordResetResult] = await Promise.all([
       supabase
         .from('user_roles')
@@ -103,48 +110,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle(),
       (supabase as any).rpc('current_user_requires_password_reset')
     ]);
-    
+    if (!statusRequests.current.isCurrent(request)) return;
+    if (rolesResult.error || profileResult.error || passwordResetResult.error) {
+      throw new Error('Account access could not be checked. Please try again.');
+    }
     const roles = (rolesResult.data || []).map((r: any) => r.role);
     setIsAdmin(roles.includes('admin'));
     setIsManufacturer(roles.includes('manufacturer'));
     setHasSignedAgreement(!!profileResult.data?.agreement_signed_at || !!profileResult.data?.skip_agreement);
     setRequiresPasswordReset(Boolean(passwordResetResult.data));
+    statusRequests.current.resolve(request);
+    setStatusError(null);
     setLoading(false);
 
-    updateLastActive(userId);
+    void updateLastActive(userId).catch(() => {});
+    } catch {
+      if (!statusRequests.current.isCurrent(request)) return;
+      // Never turn a failed lookup into a role, agreement or reset decision.
+      if (!statusRequests.current.hasResolved) {
+        setStatusError('Account access could not be checked. Please try again.');
+      }
+      setLoading(false);
+      throw new Error('Account access could not be checked. Please try again.');
+    }
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    let disposed = false;
+    let eventReceived = false;
+    const applySession = (session: Session | null) => {
+      if (disposed) return;
+      const changed = statusRequests.current.activate(session?.user.id ?? null);
       setUser(session?.user ?? null);
-      
       if (session?.user) {
-        setLoading(true); // Reset loading when new session detected to prevent race condition
-        // Defer Supabase calls with setTimeout to prevent deadlock
+        if (changed) {
+          setIsAdmin(false);
+          setIsManufacturer(false);
+          setHasSignedAgreement(false);
+          setRequiresPasswordReset(false);
+          setStatusError(null);
+          lastActiveUpdated.current = false;
+        }
+        if (!statusRequests.current.hasResolved) setLoading(true);
+        // Defer client calls outside the auth callback; keep same-user lessons mounted.
         setTimeout(() => {
-          checkUserStatus(session.user.id);
+          if (!disposed) void checkUserStatus(session.user.id).catch(() => {});
         }, 0);
       } else {
         setIsAdmin(false);
         setIsManufacturer(false);
         setHasSignedAgreement(false);
         setRequiresPasswordReset(false);
+        setStatusError(null);
         setLoading(false);
       }
+    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      eventReceived = true;
+      applySession(session);
     });
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkUserStatus(session.user.id);
-      } else {
+      if (!eventReceived) applySession(session);
+    }).catch(() => {
+      if (!disposed && !eventReceived) {
+        setStatusError('Account access could not be checked. Please try again.');
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      disposed = true;
+      statusRequests.current.invalidate();
+      subscription.unsubscribe();
+    };
   }, []);
 
   const toggleAdminMode = () => {
@@ -182,6 +221,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUserStatus = async () => {
     if (user) {
       await checkUserStatus(user.id);
+    } else {
+      const { error } = await supabase.auth.getSession();
+      if (error) throw error;
+      window.location.reload();
     }
   };
 
@@ -189,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user,
       loading: loading || !agreementSettingLoaded,
+      statusError,
       isAdmin,
       isManufacturer,
       hasSignedAgreement,

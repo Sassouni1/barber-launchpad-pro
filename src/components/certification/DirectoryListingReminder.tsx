@@ -29,11 +29,11 @@ export function DirectoryListingReminder() {
   );
   const { data: certification, isLoading: isLoadingCertification } =
     useUserCertification(hairSystemCourse?.id);
-  const { data: listing, isLoading: isLoadingListing } = useMyListing(user?.id);
+  const { data: listing, isLoading: isLoadingListing, isSuccess: isListingLoaded } = useMyListing(user?.id);
   const [isOpen, setIsOpen] = useState(false);
 
   const shouldRemind = Boolean(
-    user && !isAdmin && certification && !listing && directoryModule,
+    user && !isAdmin && certification && isListingLoaded && listing === null && directoryModule,
   );
 
   useEffect(() => {
@@ -42,19 +42,26 @@ export function DirectoryListingReminder() {
       return;
     }
 
-    setIsOpen(sessionStorage.getItem(getDirectoryListingReminderKey(user.id)) !== "true");
+    try {
+      setIsOpen(sessionStorage.getItem(getDirectoryListingReminderKey(user.id)) !== "true");
+    } catch {
+      setIsOpen(true);
+    }
   }, [shouldRemind, user]);
 
   const dismiss = () => {
-    if (user) {
-      sessionStorage.setItem(getDirectoryListingReminderKey(user.id), "true");
-    }
     setIsOpen(false);
+    try {
+      if (user) sessionStorage.setItem(getDirectoryListingReminderKey(user.id), "true");
+    } catch {
+      // Storage restrictions must never prevent closing the reminder.
+    }
   };
 
   const startEnrollment = () => {
+    if (!directoryModule) return;
     dismiss();
-    navigate(`/courses/hair-system/lesson/${directoryModule!.id}`);
+    navigate(`/courses/hair-system/lesson/${directoryModule.id}`);
   };
 
   if (isLoadingCourses || isLoadingCertification || isLoadingListing || !shouldRemind) {

@@ -5,3 +5,6 @@
 - receive-order inserts only when a Stripe payment reference in the payload is independently confirmed succeeded; form-only webhooks fail closed (202, no row). Receipts/manufacturer lists exclude status pending_payment.
 - Resource Save controls use the shared FileDownloadButton and fileDownloads helpers, prefetching visible files and delivering local blobs instead of navigating to remote URLs; prepared ZIPs require a fresh save click to retain mobile user activation.
 - Directory enrollment and search share geocodeZip error handling; the server validates coordinates from a ZIP-specific lookup so provider outages are not mislabeled as invalid member addresses.
+- Training entry always opens lessons independently of directory enrollment; certification/listing actions remain separate so unfinished listings cannot block review.
+- Auth status reads use identity/version coordination, reject failed initial lookups, and refresh resolved same-user sessions without unmounting lessons; stale responses cannot restore old-user access.
+- Course and lesson fetch failures show a retryable loading error, never an empty-catalog or missing-module claim; listing prompts require a successful absent-listing result.
