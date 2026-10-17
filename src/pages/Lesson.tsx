@@ -1,3 +1,5 @@
+import { FileDownloadButton } from "@/components/ui/file-download-button";
+import { downloadBlob } from "@/lib/fileDownloads";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -372,14 +374,7 @@ const CopyableText = ({
     try {
       setDownloading(true);
       const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = downloadFileName || "lesson-content.txt";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      downloadBlob(blob, downloadFileName || "lesson-content.txt");
       toast.success("Downloaded lesson content");
     } catch {
       toast.error("Download failed. Please try again.");
@@ -1277,31 +1272,6 @@ export default function Lesson() {
             const isVideo = (fileType: string | null) =>
               fileType && videoExtensions.includes(fileType.toLowerCase());
 
-            const triggerDownload = async (
-              fileUrl: string,
-              fileName: string,
-            ) => {
-              try {
-                const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-                const downloadUrl = fileUrl.startsWith("/")
-                  ? fileUrl
-                  : `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
-                const response = await fetch(downloadUrl);
-                if (!response.ok) throw new Error("Download failed");
-                const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = blobUrl;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(blobUrl);
-                toast.success(`Downloaded ${fileName}`);
-              } catch {
-                toast.error("Download failed. Please try again.");
-              }
-            };
 
             const MobileFileCard = ({
               file,
@@ -1359,22 +1329,7 @@ export default function Lesson() {
                     >
                       {file.file_name}
                     </p>
-                    <button
-                      onClick={async () => {
-                        setDownloading(true);
-                        await triggerDownload(file.file_url, file.file_name);
-                        setDownloading(false);
-                      }}
-                      disabled={downloading}
-                      className="flex items-center justify-center gap-1 text-xs text-primary hover:underline w-full"
-                    >
-                      {downloading ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Download className="w-3 h-3" />
-                      )}
-                      {downloading ? "Saving..." : "Save"}
-                    </button>
+<FileDownloadButton url={file.file_url} filename={file.file_name} className="w-full" />
                   </div>
                 </div>
               );
@@ -1783,31 +1738,6 @@ export default function Lesson() {
                       fileType &&
                       videoExtensions.includes(fileType.toLowerCase());
 
-                    const triggerDownloadDesktop = async (
-                      fileUrl: string,
-                      fileName: string,
-                    ) => {
-                      try {
-                        const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-                        const downloadUrl = fileUrl.startsWith("/")
-                          ? fileUrl
-                          : `${baseUrl}/functions/v1/download-file?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
-                        const response = await fetch(downloadUrl);
-                        if (!response.ok) throw new Error("Download failed");
-                        const blob = await response.blob();
-                        const blobUrl = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = blobUrl;
-                        a.download = fileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(blobUrl);
-                        toast.success(`Downloaded ${fileName}`);
-                      } catch {
-                        toast.error("Download failed. Please try again.");
-                      }
-                    };
 
                     const FileCard = ({
                       file,
@@ -1865,25 +1795,7 @@ export default function Lesson() {
                             >
                               {file.file_name}
                             </p>
-                            <button
-                              onClick={async () => {
-                                setDownloading(true);
-                                await triggerDownloadDesktop(
-                                  file.file_url,
-                                  file.file_name,
-                                );
-                                setDownloading(false);
-                              }}
-                              disabled={downloading}
-                              className="flex items-center justify-center gap-1.5 w-full py-1.5 px-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-                            >
-                              {downloading ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Download className="w-3.5 h-3.5" />
-                              )}
-                              {downloading ? "Saving..." : "Save"}
-                            </button>
+<FileDownloadButton url={file.file_url} filename={file.file_name} className="w-full" />
                           </div>
                         </div>
                       );

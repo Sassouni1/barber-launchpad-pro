@@ -1,3 +1,4 @@
+import { FileDownloadButton } from '@/components/ui/file-download-button';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/card';
@@ -91,16 +92,6 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
     return () => { emblaApi.off('select', onSelect); };
   }, [emblaApi, onSelect]);
 
-  const downloadImage = (url: string, filename: string) => {
-    // Use edge function proxy for reliable cross-platform downloads
-    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
-    const link = document.createElement('a');
-    link.href = proxyUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const seoNameForIndex = (i: number) => {
     const names = [
@@ -133,14 +124,7 @@ function ImageCarousel({ images, aspectClass }: { images: (string | null)[]; asp
                   }}
                   className="w-full h-full object-cover"
                 />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => downloadImage(url, `${seoNameForIndex(i)}.png`)}
-                  className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Download className="w-3 h-3 mr-1" /> Save
-                </Button>
+                <FileDownloadButton url={url} filename={`${seoNameForIndex(i)}.png`} className="absolute bottom-2 right-2" />
               </div>
             </div>
           ))}
@@ -477,15 +461,6 @@ export default function Marketing() {
     }
   };
 
-  const downloadImage = (url: string, filename: string) => {
-    const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-file?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename)}`;
-    const link = document.createElement('a');
-    link.href = proxyUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const seoNameForIndex = (i: number) => {
     const names = [
