@@ -3,6 +3,7 @@ import { downloadBlob } from "@/lib/fileDownloads";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { TrainingLoadError } from "@/components/courses/TrainingLoadError";
 import { useCourses } from "@/hooks/useCourses";
 import { useModuleFiles } from "@/hooks/useModuleFiles";
 import {
