@@ -1232,7 +1232,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 const trackDescription = businessLocked
                   ? "We recommend finishing Hair System Training first."
                   : needsDatabaseListing
-                  ? "Get added into the Hair System Database. Click here to do so."
+                  ? "Your lessons are available to review. Directory listing is still pending."
                   : directoryUploadWaiting && isHair
                     ? "Download or print your certificate, then upload a photo holding it to join the Hair System Database."
                     : isHair
@@ -1363,8 +1363,6 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                     >
                       {businessLocked
                         ? "View Business Mastery anyway"
-                        : needsDatabaseListing
-                        ? "Get added into the Hair System Database"
                         : certificationComplete
                           ? "Review lessons"
                         : done > 0
@@ -1723,7 +1721,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
               const description = businessLocked
                 ? "We recommend finishing Hair System Training first."
                 : needsDatabaseListing
-                ? "Get added into the Hair System Database. Click here to do so."
+                ? "Your lessons are available to review. Directory listing is still pending."
                 : directoryUploadWaiting && isHair
                   ? "Download or print your certificate, then upload a photo holding it to join the Hair System Database."
                   : isHair
@@ -1829,8 +1827,6 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                   )}>
                     {businessLocked
                       ? "View Business Mastery anyway"
-                      : needsDatabaseListing
-                      ? "Get added into the Hair System Database"
                       : certificationComplete
                         ? "Review lessons"
                         : done > 0
