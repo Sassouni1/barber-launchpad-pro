@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
@@ -18,6 +19,7 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const { refreshUserStatus } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +109,9 @@ export default function ResetPassword() {
         return;
       }
 
-      await (supabase as any).rpc('complete_current_user_password_reset');
+      const { error: completionError } = await (supabase as any).rpc('complete_current_user_password_reset');
+      if (completionError) throw completionError;
+      await refreshUserStatus();
       setPasswordChanged(true);
       toast.success('Password successfully changed.');
     } catch {
