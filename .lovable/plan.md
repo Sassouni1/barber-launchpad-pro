@@ -1,29 +1,28 @@
-# Persistent floating Aion assistant
+# Can a Stripe test charge verify the live hair-system pipeline? (Assessment only)
 
-## Experience
-- Add a compact gold-accented circular **Aion** launcher fixed at the bottom-right of authenticated member pages.
-- Open a polished chat panel above the launcher: approximately 380 × 560px on desktop and a shorter, mobile-safe bottom sheet with visible page context on phones.
-- Include distinct minimize and close controls, keyboard/focus support, readable labels/tooltips, safe-area spacing, and positioning that clears the mobile navigation.
-- Preserve the panel’s open, minimized, or closed state while navigating between member pages.
+## Short answer
+No. There is no isolated test-mode hair-system checkout today, and one cannot be used safely right now without code/config changes.
 
-## Existing Aion behavior
-- Reuse Aion’s existing database-backed conversations, message history, streaming responses, image generation, greeting, and download/variation actions.
-- Extract the existing conversation selection/creation behavior into a reusable floating chat host rather than adding another AI endpoint or storage system.
-- Keep the full `/aion` page and dashboard Aion card working with the same saved conversations.
-- Use the required AI Elements conversation, message, prompt input, and loading primitives as the chat foundation while retaining Aion’s black-and-gold appearance and current capabilities.
+## What the project actually uses
+- The order page loads Stripe with one publishable key: the live `pk_live_...` key (Invasion Digital Media).
+- Checkout, webhook and reconcile all use one secret key resolver: `HAIR_SYSTEM_STRIPE_SECRET_KEY`, else `STRIPE_SECRET_KEY` — no test-key branch.
+- The hair-system webhook is registered on the live endpoint and verifies with the live signing secret. A test-mode event would fail the signature check.
+- The webhook records `livemode` but does not branch on it — so if a test event ever got in, it would run the real pipeline.
+- Supplier email is hard-locked to `sales30@newtimeshair.com`; buyer receipt and SMS go through the same live Vlix/GHL relay. No sandbox recipient exists.
+- The separate affiliate test key (`AFFILIATE_STRIPE_TEST_SECRET_KEY`) is only used by the affiliate flow, not hair systems.
 
-## Visibility
-- Mount the assistant once inside the authenticated member application so it survives page navigation.
-- Show it for standard member pages such as dashboard, training, marketing, website, support, rewards, and other protected member areas.
-- Hide it on signed-out/public/auth pages, every `/admin` page, supplier/manufacturer view, agreement/password-reset gates, public referral/card/client/directory pages, and the entire `/order-hair-system` flow.
-- Hide the floating launcher on `/aion` itself to avoid two simultaneous copies of the same conversation; the full Aion page remains the active experience there.
+## Why a test card on the live page fails
+Stripe test cards (4242...) are rejected by live keys. You cannot "temporarily test" the current live page without real money.
 
-## Verification and release
-- Verify launcher, open, minimized, close, conversation persistence, navigation persistence, and route exclusions while signed in.
-- Visually inspect desktop and 319 × 635 mobile layouts, including mobile-navigation clearance, panel sizing, scrolling, focus, contrast, and no overlap.
-- Run the full build and lint checks, publish the frontend, then verify the published member experience without changing Aion’s backend behavior.
+## What a safe test path would require (not done)
+1. Test-mode checkout route using a test key and test prices.
+2. A separate test-mode webhook endpoint and signing secret.
+3. A `livemode=false` branch that sends supplier/buyer messages only to an internal address/phone — never sales30 or buyers.
+4. Keep test orders out of receipts and supplier lists.
+Even then, it proves code behavior, not the live account, live webhook or live supplier inbox.
 
-## Technical notes
-- Keep the existing Aion functions and tables unchanged; no second backend or duplicate history store will be created.
-- Replace the current global conversation-ID bridge with an explicit conversation ID passed to the streaming request so the full page and floating host cannot interfere.
-- Store only the panel presentation state and selected conversation ID locally; message history remains in the existing database.
+## Cheapest real alternative
+One real $210 live order by Chris on his own account, then refund. Caveat: it sends a real production sheet to the supplier (must tell them to ignore it) and Stripe fees are not returned on refund.
+
+## Limits of this assessment
+Based on source code only; live Stripe dashboard webhook list and secrets were not read. Nothing was changed or sent.
