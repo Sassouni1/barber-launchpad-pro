@@ -9,3 +9,4 @@
 - Training entry always opens lessons independently of directory enrollment; certification/listing actions remain separate so unfinished listings cannot block review.
 - Auth status reads use identity/version coordination, reject failed initial lookups, and refresh resolved same-user sessions without unmounting lessons; stale responses cannot restore old-user access.
 - Course and lesson fetch failures show a retryable loading error, never an empty-catalog or missing-module claim; listing prompts require a successful absent-listing result.
+- Native hair-system receipt retrieval uses a read-only owner/admin endpoint with paid Stripe seller/session/owner/draft verification; checkout-level receipts consolidate system rows so payment totals and shipping are never duplicated. Future snapshots are stored only inside the existing paid path without changing notification inputs.

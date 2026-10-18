@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import type { Tables } from "@/integrations/supabase/types";
 import { isReceiptEligible } from "./receiptEligibility";
+import { currencyMinorDivisor, type NativeReceipt } from "./nativeOrderReceipt";
 
 type Order = Tables<"orders">;
 
@@ -33,6 +34,22 @@ function cleanTitle(title: string): string {
 export function extractReceiptData(order: Order): ReceiptData {
   const details = (order.order_details || {}) as Record<string, any>;
   const inner = details.order || details;
+
+  if (order.stripe_checkout_session_id) {
+    const snapshot = details.stripe_receipt as NativeReceipt | undefined;
+    const available = snapshot?.session_id === order.stripe_checkout_session_id;
+    const currencyCode = available ? snapshot.currency : 'USD';
+    const divisor = currencyMinorDivisor(currencyCode);
+    const currencySymbol = new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).formatToParts(0).find((part) => part.type === 'currency')?.value ?? currencyCode;
+    const systemDetails = Array.isArray(details.checkout_system_details) ? details.checkout_system_details : [details];
+    const specs = systemDetails.flatMap((system: Record<string, any>, index: number) => ['Lace or Skin', 'Choose Color', 'Hair Length', 'Choose Density', 'Curl Pattern'].filter((key) => system?.[key]).map((key) => ({ label: `${systemDetails.length > 1 ? `System ${index + 1} · ` : ''}${key}`, value: String(system[key]) })));
+    return {
+      receiptNumber: order.stripe_checkout_session_id, date: new Date(available ? snapshot.purchased_at : order.order_date),
+      customerName: order.customer_name || 'Customer', customerEmail: order.customer_email || '',
+      items: available ? snapshot.items.map((item) => ({ title: item.title, quantity: item.quantity, unitPrice: item.unit_minor / divisor, lineTotal: item.total_minor / divisor })) : [],
+      total: available ? snapshot.total_minor / divisor : null, currencySymbol, currencyCode, specs,
+    };
+  }
 
   const rawItems = Array.isArray(inner.line_items) ? inner.line_items : [];
   const items: ReceiptLineItem[] = rawItems.map((item: any) => ({
@@ -76,13 +93,15 @@ export function extractReceiptData(order: Order): ReceiptData {
   };
 }
 
-function money(amount: number, symbol: string): string {
-  return `${symbol}${amount.toFixed(2)}`;
+export function receiptMoney(amount: number, symbol: string, currency?: string): string {
+  const digits = currency ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2 : 2;
+  return `${symbol}${amount.toFixed(digits)}`;
 }
 
 export function buildReceiptPdf(order: Order): jsPDF {
   if (!isReceiptEligible(order)) throw new Error("This checkout was not paid, so there is no receipt.");
   const data = extractReceiptData(order);
+  if (order.stripe_checkout_session_id && data.total === null) throw new Error("Paid amount unavailable. Retry Stripe receipt lookup before downloading.");
   const doc = new jsPDF({ unit: "pt", format: "letter" });
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -98,10 +117,10 @@ export function buildReceiptPdf(order: Order): jsPDF {
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(120, 120, 120);
-  doc.text("Purchase Receipt", margin, y + 18);
+  doc.text(order.stripe_checkout_session_id ? "Checkout Receipt · all systems and shipping" : "Purchase Receipt", margin, y + 18);
 
   doc.setFontSize(10);
-  doc.text(`Receipt #${data.receiptNumber}`, pageWidth - margin, y, { align: "right" });
+  doc.text(`Receipt #${order.stripe_checkout_session_id ? order.id.slice(0, 8).toUpperCase() : data.receiptNumber}`, pageWidth - margin, y, { align: "right" });
   doc.text(
     data.date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
     pageWidth - margin,
@@ -140,13 +159,23 @@ export function buildReceiptPdf(order: Order): jsPDF {
     y += 14;
     doc.setFontSize(10);
     doc.setTextColor(60, 60, 60);
-    doc.text(data.specs.map((s) => `${s.label}: ${s.value}`).join("   •   "), margin, y, {
-      maxWidth: pageWidth - margin * 2,
-    });
+    const lines = doc.splitTextToSize(data.specs.map((s) => `${s.label}: ${s.value}`).join("   •   "), pageWidth - margin * 2);
+    if (order.stripe_checkout_session_id) {
+      for (const line of lines) {
+        if (y > doc.internal.pageSize.getHeight() - 110) { doc.addPage(); y = margin; }
+        doc.text(line, margin, y);
+        y += 12;
+      }
+      y -= 12;
+    } else {
+      doc.text(lines, margin, y);
+      y += (lines.length - 1) * 12;
+    }
   }
 
   // Line items table header
   y += 30;
+  if (order.stripe_checkout_session_id && y > doc.internal.pageSize.getHeight() - 160) { doc.addPage(); y = margin; }
   const colQty = pageWidth - margin - 160;
   const colPrice = pageWidth - margin - 90;
   const colTotal = pageWidth - margin;
@@ -168,15 +197,16 @@ export function buildReceiptPdf(order: Order): jsPDF {
   if (data.items.length > 0) {
     for (const item of data.items) {
       const titleLines = doc.splitTextToSize(item.title, colQty - margin - 24);
+      if (order.stripe_checkout_session_id && y + titleLines.length * 14 > doc.internal.pageSize.getHeight() - 100) { doc.addPage(); y = margin; }
       doc.setTextColor(30, 30, 30);
       doc.setFont("helvetica", "normal");
       doc.text(titleLines, margin, y);
       doc.setTextColor(70, 70, 70);
       doc.text(String(item.quantity), colQty, y, { align: "right" });
-      doc.text(money(item.unitPrice, data.currencySymbol), colPrice, y, { align: "right" });
+      doc.text(receiptMoney(item.unitPrice, data.currencySymbol, order.stripe_checkout_session_id ? data.currencyCode : undefined), colPrice, y, { align: "right" });
       doc.setFont("helvetica", "bold");
       doc.setTextColor(30, 30, 30);
-      doc.text(money(item.lineTotal, data.currencySymbol), colTotal, y, { align: "right" });
+      doc.text(receiptMoney(item.lineTotal, data.currencySymbol, order.stripe_checkout_session_id ? data.currencyCode : undefined), colTotal, y, { align: "right" });
       y += titleLines.length * 14 + 8;
     }
   } else {
@@ -188,6 +218,7 @@ export function buildReceiptPdf(order: Order): jsPDF {
 
   // Total
   if (data.total !== null) {
+    if (order.stripe_checkout_session_id && y > doc.internal.pageSize.getHeight() - 110) { doc.addPage(); y = margin; }
     y += 10;
     doc.setDrawColor(210, 175, 55);
     doc.setLineWidth(1.5);
@@ -197,7 +228,7 @@ export function buildReceiptPdf(order: Order): jsPDF {
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 30, 30);
     doc.text("Total", colPrice, y, { align: "right" });
-    doc.text(`${money(data.total, data.currencySymbol)} ${data.currencyCode}`, colTotal, y, { align: "right" });
+    doc.text(`${receiptMoney(data.total, data.currencySymbol, order.stripe_checkout_session_id ? data.currencyCode : undefined)} ${data.currencyCode}`, colTotal, y, { align: "right" });
   }
 
   // Footer

@@ -7,6 +7,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { syncPaidBuyerToGhl, type CrmSyncResult } from "./ghlCrmSync.ts";
 import { buildCrmOrderNote, buyerFromSession, dispatchPaidOrderNotifications, type OrderRow } from "./hairSystemNotifications.ts";
 import { automaticFulfillmentAllowed, verifyPaidSession, type FulfillmentCutover } from "./hairSystemFulfillmentLogic.ts";
+import { stripeReceiptSnapshot } from "./hairSystemReceipt.ts";
 
 /** Same key for checkout, webhook and reconciliation (Invasion Digital Media). */
 export function hairSystemStripeKey(): string | null {
@@ -20,11 +21,25 @@ export async function stripeGet(path: string, secret: string) {
   return body;
 }
 
-export function loadExpandedSession(sessionId: string, secret: string) {
-  return stripeGet(
+export async function loadExpandedSession(sessionId: string, secret: string) {
+  const session = await stripeGet(
     `/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items.data.price.product&expand[]=payment_intent.payment_method`,
     secret,
   );
+  // Expanded line_items are truncated by Stripe; retrieve the entire receipt.
+  if (session.line_items?.has_more) {
+    const items: any[] = [];
+    let cursor = '';
+    for (let page = 0; page < 100; page++) {
+      const lines = await stripeGet(`/checkout/sessions/${encodeURIComponent(sessionId)}/line_items?limit=100&expand[]=data.price.product${cursor ? `&starting_after=${encodeURIComponent(cursor)}` : ''}`, secret);
+      items.push(...(lines.data ?? []));
+      if (!lines.has_more) { session.line_items = { data: items, has_more: false }; break; }
+      cursor = lines.data?.at(-1)?.id;
+      if (!cursor) throw new Error('Stripe receipt pagination failed.');
+      if (page === 99) throw new Error('Stripe receipt pagination limit exceeded.');
+    }
+  }
+  return session;
 }
 
 const t = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
@@ -122,6 +137,18 @@ export async function fulfillPaidSession(
   if (error) throw error;
   const orders = orderIds.map((id) => (rows ?? []).find((o: any) => o.id === id)).filter(Boolean) as OrderRow[];
   if (!orders.length) throw new Error("orders_not_found");
+  // Persist only on the existing paid path, without changing notification data
+  // or its outcome. Read-only receipt lookup also recovers missing snapshots.
+  if (check.draftId) {
+    try {
+      const snapshot = stripeReceiptSnapshot(session);
+      for (const order of orders) {
+        const { error: receiptError } = await db.from('orders').update({ order_details: { ...(order.order_details ?? {}), stripe_receipt: snapshot } })
+          .eq('id', order.id).eq('stripe_checkout_session_id', String(session.id)).eq('user_id', String(session.metadata?.user_id));
+        if (receiptError) console.error('paid receipt snapshot storage failed', order.id);
+      }
+    } catch { console.error('paid receipt snapshot unavailable; read-only recovery required'); }
+  }
   const details = (orders[0].order_details ?? {}) as Record<string, any>;
 
   let crm: CrmSyncResult;
