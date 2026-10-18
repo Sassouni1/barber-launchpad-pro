@@ -5,11 +5,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Receipt, Loader2, Scissors, Download, FolderDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState } from 'react';
+import { useQueries } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import JSZip from 'jszip';
 import { toast } from 'sonner';
 import { buildReceiptPdf, receiptFileName, extractReceiptData, downloadReceipt } from '@/lib/orderReceipt';
 import type { Tables } from '@/integrations/supabase/types';
 import { downloadBlob } from '@/lib/fileDownloads';
+import { consolidateNativeOrders, withNativeReceipt, type NativeReceiptResult } from '@/lib/nativeOrderReceipt';
 
 type Order = Tables<'orders'>;
 
@@ -19,10 +23,12 @@ function dedupeOrders<T extends { id: string; external_order_id: string | null; 
   // that arrived seconds earlier with the same product signature.
   const kept: T[] = [];
   for (const o of orders) {
+    if ((o as any).stripe_checkout_session_id) { kept.push(o); continue; }
     const d = (o.order_details || {}) as Record<string, any>;
     const sig = `${d['Lace or Skin'] || ''}|${d['Choose Color'] || ''}|${d['Curl Pattern — only if needed'] || ''}`.toLowerCase();
     const ts = new Date(o.order_date).getTime();
     const dupIdx = kept.findIndex((k) => {
+      if ((k as any).stripe_checkout_session_id) return false;
       const kd = (k.order_details || {}) as Record<string, any>;
       const ksig = `${kd['Lace or Skin'] || ''}|${kd['Choose Color'] || ''}|${kd['Curl Pattern — only if needed'] || ''}`.toLowerCase();
       const kts = new Date(k.order_date).getTime();
@@ -44,12 +50,32 @@ function dedupeOrders<T extends { id: string; external_order_id: string | null; 
 }
 
 export default function Orders() {
-  const { data: rawOrders, isLoading } = useUserOrders();
-  const orders = rawOrders ? dedupeOrders(rawOrders) : rawOrders;
+  const { data: rawOrders, isLoading, isError, refetch } = useUserOrders();
+  const baseOrders = consolidateNativeOrders(dedupeOrders(rawOrders ?? []));
+  const nativeOrders = baseOrders.filter((o) => o.stripe_checkout_session_id);
+  const lookups = useQueries({ queries: nativeOrders.map((order) => ({
+    queryKey: ['native-receipt', order.user_id, order.id], staleTime: 300000, retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('hair-system-order-details', { body: { action: 'receipt', order_id: order.id } });
+      if (error instanceof FunctionsHttpError) {
+        const details = await error.context.json().catch(() => null);
+        throw new Error(details?.error ?? 'Paid amount unavailable. Please retry.');
+      }
+      if (error || data?.error) throw new Error(data?.error ?? error?.message);
+      return data as NativeReceiptResult;
+    },
+  })) });
+  const orders = baseOrders.map((order) => {
+    const lookup = lookups[nativeOrders.findIndex((o) => o.id === order.id)];
+    return lookup?.data ? withNativeReceipt(order, lookup.data) : order;
+  });
+  const amountsReady = nativeOrders.every((_, index) => !!lookups[index]?.data);
   const [zipping, setZipping] = useState(false);
+  const [archive, setArchive] = useState<Blob | null>(null);
 
   const handleDownloadAll = async () => {
-    if (!orders?.length) return;
+    if (!orders?.length || !amountsReady) return;
+    if (archive) { downloadBlob(archive, `order-receipts-${new Date().toISOString().slice(0, 10)}.zip`); return; }
     setZipping(true);
     try {
       const zip = new JSZip();
@@ -67,8 +93,7 @@ export default function Orders() {
         zip.file(name, doc.output('arraybuffer'));
       }
       const blob = await zip.generateAsync({ type: 'blob' });
-      downloadBlob(blob, `order-receipts-${new Date().toISOString().slice(0, 10)}.zip`);
-      toast.success(`Downloaded ${orders.length} receipt${orders.length === 1 ? '' : 's'}`);
+      setArchive(blob);
     } catch {
       toast.error('Failed to download receipts');
     } finally {
@@ -89,7 +114,7 @@ export default function Orders() {
           {orders && orders.length > 0 && (
             <Button
               onClick={handleDownloadAll}
-              disabled={zipping}
+              disabled={zipping || !amountsReady}
               className="gold-gradient text-primary-foreground font-semibold shadow-md hover:opacity-90 transition-opacity shrink-0"
             >
               {zipping ? (
@@ -97,7 +122,7 @@ export default function Orders() {
               ) : (
                 <FolderDown className="w-4 h-4 mr-2" />
               )}
-              {zipping ? 'Preparing...' : 'Download All'}
+              {zipping ? 'Preparing...' : archive ? 'Save All' : 'Download All'}
             </Button>
           )}
         </div>
@@ -106,6 +131,8 @@ export default function Orders() {
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
+        ) : isError ? (
+          <div role="alert" className="text-sm text-destructive">Orders unavailable. <Button variant="outline" onClick={() => refetch()}>Try again</Button></div>
         ) : !orders?.length ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -117,6 +144,8 @@ export default function Orders() {
           <div className="space-y-4">
             {orders.map((order: Order) => {
               const receipt = extractReceiptData(order);
+              const native = !!order.stripe_checkout_session_id;
+              const lookup = lookups[nativeOrders.findIndex((o) => o.id === order.id)];
 
               return (
                 <Card key={order.id} className="border-border/50">
@@ -135,6 +164,9 @@ export default function Orders() {
                         <p className="text-sm text-muted-foreground">
                           Ordered {format(new Date(order.order_date), 'MMMM d, yyyy')}
                         </p>
+                        {native && <p className="text-sm text-muted-foreground">Checkout receipt · all systems and shipping</p>}
+                        {native && lookup?.isPending && <p className="text-sm text-muted-foreground">Verifying paid amount…</p>}
+                        {native && lookup?.isError && <div role="alert" className="text-sm text-destructive">Paid amount unavailable. <Button variant="outline" size="sm" onClick={() => lookup.refetch()}>Try again</Button></div>}
 
                         {receipt.specs.length > 0 && (
                           <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
@@ -148,15 +180,16 @@ export default function Orders() {
                         )}
 
                         {receipt.total !== null && (
-                          <p className="text-sm font-semibold text-foreground">
+                          <><div className="space-y-1 text-sm">{native && receipt.items.map((item, index) => <p key={index} className="flex flex-wrap justify-between gap-2"><span>{item.title} × {item.quantity}</span><span>{receipt.currencySymbol}{item.lineTotal.toFixed(2)}</span></p>)}</div><p className="text-sm font-semibold text-foreground">
                             Total: {receipt.currencySymbol}{receipt.total.toFixed(2)} {receipt.currencyCode}
-                          </p>
+                          </p></>
                         )}
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
                         className="shrink-0"
+                        disabled={native && !lookup?.data}
                         onClick={() => downloadReceipt(order)}
                       >
                         <Download className="w-4 h-4 mr-2" />
