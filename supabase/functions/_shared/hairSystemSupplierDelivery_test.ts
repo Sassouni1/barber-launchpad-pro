@@ -1,7 +1,7 @@
 import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { fulfillPaidSession } from "./hairSystemFulfillment.ts";
 import { __setRelayFetch } from "./barberLaunchGhlRelay.ts";
-import { DEFAULT_SUPPLIER_EMAIL } from "./hairSystemNotifications.ts";
+import { DEFAULT_SUPPLIER_EMAIL, dispatchSupplierOrderNotifications } from "./hairSystemNotifications.ts";
 
 const ORDER = "11111111-2222-4333-8444-555555555555";
 const USER = "22222222-2222-4333-8444-555555555555";
@@ -143,4 +143,16 @@ Deno.test("successful CRM preserves supplier then buyer receipt and SMS behavior
     assertEquals(f.states.get("customer_sms"), "skipped"); // No fixture phone; existing consent behavior.
     assertEquals(f.states.get("customer_receipt"), "sent");
   }, false, false);
+});
+
+Deno.test("shared supplier-only helper claims only supplier; sent terminal, failures retry and no buyer or CRM calls", async () => {
+  await withRelay(async (calls) => {
+    const f = fixture();
+    const input = { orders: [{ id: ORDER, customer_email: "fixture@example.invalid", customer_name: "Fixture Buyer", order_details: {} }], buyer: { name: "Paid Buyer", email: "paid@example.invalid", phone: "", address: [] }, eventId: "supplier-only-fixture" };
+    assertEquals((await dispatchSupplierOrderNotifications(f.db, input))[0].result, "sent");
+    assertEquals((await dispatchSupplierOrderNotifications(f.db, input))[0].result, "duplicate");
+    assertEquals(calls.map((c) => [c.action, c.role, c.to]), [["send_email", "supplier", "sales30@newtimeshair.com"]]);
+    assertEquals(f.claims, ["supplier_email", "supplier_email"]);
+    assertEquals(f.logs.map((l) => l.channel), ["supplier_email"]);
+  });
 });
