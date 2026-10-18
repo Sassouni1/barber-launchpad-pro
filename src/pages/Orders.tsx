@@ -67,7 +67,11 @@ export default function Orders() {
   })) });
   const orders = baseOrders.map((order) => {
     const lookup = lookups[nativeOrders.findIndex((o) => o.id === order.id)];
-    return lookup?.data ? withNativeReceipt(order, lookup.data) : order;
+    if (lookup?.data) return withNativeReceipt(order, lookup.data);
+    if (!order.stripe_checkout_session_id) return order;
+    const details = { ...(order.order_details as Record<string, any> ?? {}) };
+    delete details.stripe_receipt;
+    return { ...order, order_details: details };
   });
   const amountsReady = nativeOrders.every((_, index) => !!lookups[index]?.data);
   const [zipping, setZipping] = useState(false);
