@@ -56,3 +56,7 @@
 - [x] Fix resource, content, marketing, certificate, Aion and support Save controls; verified real lesson/image downloads without navigation.
 - [x] Add mobile-safe Download All image archive with location filenames; desktop and touch-mobile ZIP downloads verified.
 - [x] Sierra Hannibal: valid ZIP 84045 was blocked by provider Access denied; replacement lookup deployed and live-verified, listing unchanged.
+
+## Hair-system Stripe TEST mode (isolated)
+- [x] Admin-only test checkout + test webhook + capture sink tables; live webhook now rejects test events
+- [ ] Blocked: add HAIR_SYSTEM_STRIPE_TEST_SECRET_KEY, HAIR_SYSTEM_STRIPE_TEST_PUBLISHABLE_KEY, HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET; register test endpoint in Stripe

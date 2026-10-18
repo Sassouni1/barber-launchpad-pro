@@ -62,6 +62,7 @@ import ContentRewards from "./pages/ContentRewards";
 import BonusEarningsRedirect from "./pages/BonusEarningsRedirect";
 import Refer, { ReferThankYou } from "./pages/Refer";
 import AffiliatesAdmin from "./pages/admin/AffiliatesAdmin";
+import HairSystemTestCheckout from "./pages/admin/HairSystemTestCheckout";
 import Terms from "./pages/Terms";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -170,6 +171,7 @@ const MemberApp = () => (
         <Route path="/admin/ads" element={<ProtectedRoute requireAdmin><AdsManager /></ProtectedRoute>} />
         <Route path="/admin/notifications" element={<ProtectedRoute requireAdmin><PushNotifications /></ProtectedRoute>} />
         <Route path="/admin/affiliates" element={<ProtectedRoute requireAdmin><AffiliatesAdmin /></ProtectedRoute>} />
+        <Route path="/admin/hair-system-test" element={<ProtectedRoute requireAdmin><HairSystemTestCheckout /></ProtectedRoute>} />
         <Route path="/admin/support" element={<ProtectedRoute requireAdmin><SupportInbox /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
