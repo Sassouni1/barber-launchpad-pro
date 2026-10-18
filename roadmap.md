@@ -1,5 +1,10 @@
 # Roadmap
 
+## Chris-only live $1 verification
+- [ ] Add one-time server-authorized live checkout and conditional test-only supplier/receipt/SMS notices; normal checkout unchanged.
+- [ ] Add isolated admin section, test without Stripe creation or sends, deploy affected functions and request publication.
+- [ ] Verify page without clicking Start; Chris/Codex retain payment and post-payment checks.
+
 ## Supplier-only historical recovery
 - [x] Add admin-only single-order paid Stripe supplier dry run and explicitly confirmed supplier-only execution; preserve all buyer/CRM paths.
 - [x] Pass 33 network-disabled fixture/regression tests and function dependency check; deploy reconcile only. Live unsigned/invalid-token checks return 401. No recovery or send performed; authorized order dry runs remain for Codex because the current tool session is signed out.

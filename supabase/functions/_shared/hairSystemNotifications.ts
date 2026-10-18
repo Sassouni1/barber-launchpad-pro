@@ -21,6 +21,9 @@ export const DEFAULT_SUPPLIER_EMAIL = "sales30@newtimeshair.com";
 export const SUPPLIER_SUBJECT = "NEW Hair System Purchase (Order Details) (IMPORTANT)";
 export const SUPPLIER_STANDING_INSTRUCTION = "Please always choose NCON and HS1.";
 export const CUSTOMER_RECEIPT_SUBJECT = "Your Barber Launch Hair System Order Receipt";
+export const VERIFICATION_BANNER = "TEST ONLY — DO NOT PRODUCE OR SHIP";
+const verificationBannerHtml = `<div style="background:#b91c1c;color:#fff;padding:20px;font-size:22px;font-weight:700">${VERIFICATION_BANNER}</div>`;
+export const supplierSubject = (order: OrderRow) => order.order_details?.live_verification_test === true ? `${VERIFICATION_BANNER} — ${SUPPLIER_SUBJECT}` : SUPPLIER_SUBJECT;
 
 export type Channel = "supplier_email" | "customer_receipt" | "customer_sms";
 
@@ -173,6 +176,7 @@ export function buildCustomerReceiptHtml(orders: OrderRow[], buyer: SessionBuyer
 
   return `<!doctype html><html><body style="margin:0;background:#f4f4f2;font-family:Helvetica,Arial,sans-serif;color:#171717">
 <div style="max-width:640px;margin:0 auto;padding:24px 12px">
+  ${details.live_verification_test === true ? `${verificationBannerHtml}<p style="background:#fff;padding:16px">This was a live notification verification test. No product will be produced or shipped.</p>` : ""}
   <div style="background:#111;color:#d6ae52;padding:22px 24px;font-size:22px;font-weight:700">Barber Launch</div>
   <div style="background:#fff;padding:28px 24px">
     <div style="color:#247a46;font-size:13px;font-weight:700;text-transform:uppercase">Payment confirmed</div>
@@ -223,6 +227,7 @@ export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
 
   return `<!doctype html><html><body style="margin:0;font-family:Helvetica,Arial,sans-serif;color:#111">
 <div style="max-width:620px;margin:0 auto;padding:24px">
+  ${details.live_verification_test === true ? verificationBannerHtml : ""}
   <h1 style="font-size:18px;margin:0 0 12px">New hair system purchase — order details</h1>
   <p style="margin:0 0 16px;font-size:13px;color:#555">Order reference: ${esc(order.id)}${
     details.total_orders ? ` &middot; system ${esc(details.order_number)} of ${esc(details.total_orders)}` : ""
@@ -325,6 +330,7 @@ export async function sendCustomerReceiptEmail(
 export function buildCustomerSmsBody(order: OrderRow, buyer: SessionBuyer, systemCount: number) {
   const details = order.order_details ?? {};
   const name = String(details.full_name ?? order.customer_name ?? buyer.name ?? "").split(" ")[0];
+  if (details.live_verification_test === true) return `${name ? `${name}, ` : ""}your Barber Launch test checkout is confirmed. TEST ONLY: no product will be produced or shipped. Reply STOP to opt out.`;
   const what = systemCount > 1 ? `${systemCount} hair systems are` : "hair system is";
   return `${name ? `${name}, ` : ""}thanks for your order with Barber Launch. Your ${what} confirmed and going into production. We'll be in touch with shipping updates. Reply STOP to opt out.`;
 }
@@ -422,7 +428,7 @@ export async function dispatchSupplierOrderNotifications(
       await runChannel(db, order.id, "supplier_email", input.eventId, async () => {
         const res = await sendSupplierEmail(db, {
           to: supplierEmail,
-          subject: SUPPLIER_SUBJECT,
+          subject: supplierSubject(order),
           html: buildSupplierEmailHtml(order, input.buyer),
         });
         return res.ok

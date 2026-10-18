@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession } from "../_shared/hairSystemFulfillment.ts";
+import { liveVerificationCheckout, cancelLiveVerification } from "../_shared/liveHairVerification.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,6 +67,14 @@ Deno.serve(async (req) => {
     const secret = hairSystemStripeKey();
     if (!secret) throw new Error("Hair system payments are not configured.");
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    if (body.action === "create_live_verification_checkout" || body.action === "cancel_live_verification_checkout") {
+      const verifiedUser = { id: user.id, email: user.email, email_confirmed_at: user.email_confirmed_at };
+      const result = body.action === "create_live_verification_checkout"
+        ? await liveVerificationCheckout(admin, verifiedUser, body, secret, new URL(req.headers.get("origin") || "https://member.thebarberlaunch.com").origin)
+        : await cancelLiveVerification(admin, verifiedUser, body, secret);
+      return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (body.action === "verify") {
       const sessionId = text(body.sessionId, 100);
