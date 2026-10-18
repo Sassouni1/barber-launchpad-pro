@@ -63,7 +63,8 @@ export async function liveVerificationCheckout(db: SupabaseClient, user: { id: s
   if (drafts.length) throw new Error("A live verification is already reserved. Do not create another; inspect or cancel its unpaid session.");
   const { data: hold, error: holdError } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_hold").maybeSingle();
   const { data: cutover, error: cutoverError } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_cutover").maybeSingle();
-  if (holdError || hold?.value !== false || cutoverError || !Number.isFinite(Date.parse(cutover?.value?.at)) || Date.parse(cutover.value.at) > Date.now()) throw new Error("Production fulfillment safety configuration unavailable or held; nothing created.");
+  const cutoverAt = Date.parse(cutover?.value?.at);
+  if (holdError || hold?.value !== false || cutoverError || !Number.isFinite(cutoverAt) || cutoverAt > Date.now()) throw new Error("Production fulfillment safety configuration unavailable or held; nothing created.");
 
   const id = await verificationReservationId(user.id);
   const { error: reserveError } = await db.from("hair_system_checkout_drafts").insert({ id, ...verificationDraft(user), base_details: { ...verificationDraft(user).base_details, submitted_at: new Date().toISOString() } });
