@@ -2495,6 +2495,172 @@ export type Database = {
         }
         Relationships: []
       }
+      hair_system_test_drafts: {
+        Row: {
+          admin_user_id: string
+          base_details: Json
+          created_at: string
+          customer_email: string
+          customer_name: string | null
+          id: string
+          paid_at: string | null
+          shipping_speed: string
+          status: string
+          stripe_checkout_session_id: string | null
+          systems: Json
+        }
+        Insert: {
+          admin_user_id: string
+          base_details?: Json
+          created_at?: string
+          customer_email: string
+          customer_name?: string | null
+          id?: string
+          paid_at?: string | null
+          shipping_speed: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          systems?: Json
+        }
+        Update: {
+          admin_user_id?: string
+          base_details?: Json
+          created_at?: string
+          customer_email?: string
+          customer_name?: string | null
+          id?: string
+          paid_at?: string | null
+          shipping_speed?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          systems?: Json
+        }
+        Relationships: []
+      }
+      hair_system_test_notifications: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          intended_recipient: string
+          outbound_calls: number
+          status: string
+          stripe_checkout_session_id: string
+          subject: string | null
+          test_order_id: string | null
+        }
+        Insert: {
+          body: string
+          channel: string
+          created_at?: string
+          id?: string
+          intended_recipient: string
+          outbound_calls?: number
+          status?: string
+          stripe_checkout_session_id: string
+          subject?: string | null
+          test_order_id?: string | null
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          intended_recipient?: string
+          outbound_calls?: number
+          status?: string
+          stripe_checkout_session_id?: string
+          subject?: string | null
+          test_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hair_system_test_notifications_test_order_id_fkey"
+            columns: ["test_order_id"]
+            isOneToOne: false
+            referencedRelation: "hair_system_test_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hair_system_test_orders: {
+        Row: {
+          amount_total_minor: number | null
+          created_at: string
+          currency: string | null
+          customer_email: string
+          customer_name: string | null
+          draft_id: string
+          id: string
+          order_details: Json
+          receipt: Json | null
+          stripe_checkout_session_id: string
+          system_index: number
+        }
+        Insert: {
+          amount_total_minor?: number | null
+          created_at?: string
+          currency?: string | null
+          customer_email: string
+          customer_name?: string | null
+          draft_id: string
+          id?: string
+          order_details: Json
+          receipt?: Json | null
+          stripe_checkout_session_id: string
+          system_index: number
+        }
+        Update: {
+          amount_total_minor?: number | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string
+          customer_name?: string | null
+          draft_id?: string
+          id?: string
+          order_details?: Json
+          receipt?: Json | null
+          stripe_checkout_session_id?: string
+          system_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hair_system_test_orders_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "hair_system_test_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hair_system_test_webhook_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_id: string
+          event_type: string
+          livemode: boolean
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_id: string
+          event_type: string
+          livemode: boolean
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_id?: string
+          event_type?: string
+          livemode?: boolean
+          status?: string
+        }
+        Relationships: []
+      }
       hair_system_webhook_attempts: {
         Row: {
           event_id: string | null
