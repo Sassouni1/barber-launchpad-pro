@@ -1,5 +1,10 @@
 # Roadmap
 
+## Supplier delivery production repair
+- [ ] Decouple supplier attempts from CRM failure; retain paid gates, channel claims, buyer behavior and holds.
+- [ ] Fix single-order read-only admin dry run and distinguish relay, OAuth, hold and attempt diagnostics.
+- [ ] Run isolated regressions and checks; deploy/publish safe changes without live database access or sends.
+
 - [x] Rework Orders page: statuses removed, receipts-only view for tax purposes
 - [x] Per-order "Receipt" PDF download + "Download All" zip (verified in preview: page renders, PDF + zip download correctly)
 - [x] Split Bonus Earnings into two menu items/pages: /affiliates and /content-rewards (old /bonus-earnings redirects, ?tab=content -> /content-rewards)

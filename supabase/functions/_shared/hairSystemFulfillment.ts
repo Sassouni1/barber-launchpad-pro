@@ -66,6 +66,12 @@ export async function fulfillPaidSession(
   if (!check.ok) throw new Error(`session_not_verified:${check.reason}`);
   let orderIds = check.orderIds;
 
+  // All entry points honor the hold, including buyer return and manual replay.
+  // An unreadable safety setting must never authorize delivery.
+  const { data: hold, error: holdError } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_hold").maybeSingle();
+  if (holdError) throw new Error(`fulfillment_hold_check_failed:${holdError.message}`);
+  if (hold?.value === true) throw new Error("fulfillment_held");
+
   // Historical cutover guard: automatic paths never touch pre-cutover orders.
   if (opts.mode === "automatic") {
     const gate = automaticFulfillmentAllowed(session.created, orderIds, await loadFulfillmentCutover(db));
@@ -119,7 +125,7 @@ export async function fulfillPaidSession(
   const details = (orders[0].order_details ?? {}) as Record<string, any>;
 
   let crm: CrmSyncResult;
-  // CRM runs first; if it fails, no notification is attempted (retry later).
+  // CRM runs first; its failure blocks buyer communications, not the supplier.
   try {
     crm = await syncPaidBuyerToGhl(db, {
       orderId: orders[0].id,
@@ -153,10 +159,11 @@ export async function fulfillPaidSession(
   const pm = session.payment_intent?.payment_method;
   const card = pm && typeof pm === "object" ? pm.card : null;
 
-  const outcomes = crm.status === "failed" ? [] : await dispatchPaidOrderNotifications(db, {
+  const outcomes = await dispatchPaidOrderNotifications(db, {
     orders,
     buyer: buyerFromSession(session),
     eventId: opts.eventId,
+    buyerCommunicationsAllowed: crm.status !== "failed",
     receipt: {
       orderReference: String(session.id ?? orders[0].id),
       purchasedAt: new Date(Number(session.created ?? Date.now() / 1000) * 1000),
