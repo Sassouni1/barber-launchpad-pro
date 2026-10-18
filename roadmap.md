@@ -1,5 +1,11 @@
 # Roadmap
 
+## Authoritative hair-system receipts and read-only order details
+- [ ] Add owner/admin-only paid Stripe receipt retrieval and consolidated multi-system receipts; preserve legacy receipts.
+- [ ] Store authoritative receipt snapshots for future paid orders without changing deliveries or holds.
+- [ ] Add admin email/date lookup with stored specifications, shipping and supplier attempts; keep diagnostics read-only.
+- [ ] Run focused tests and authorized app checks; deploy safe functions and attempt scoped UI publication.
+
 ## Supplier delivery production repair
 - [x] Decouple supplier attempts from CRM failure; retain paid gates, channel claims, buyer behavior and holds.
 - [x] Fix single-order read-only admin dry run and distinguish relay, OAuth, hold and attempt diagnostics.
