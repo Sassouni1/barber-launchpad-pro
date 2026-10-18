@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import JSZip from 'jszip';
 import { toast } from 'sonner';
-import { buildReceiptPdf, receiptFileName, extractReceiptData, downloadReceipt } from '@/lib/orderReceipt';
+import { buildReceiptPdf, receiptFileName, extractReceiptData, downloadReceipt, receiptMoney } from '@/lib/orderReceipt';
 import type { Tables } from '@/integrations/supabase/types';
 import { downloadBlob } from '@/lib/fileDownloads';
 import { consolidateNativeOrders, withNativeReceipt, type NativeReceiptResult } from '@/lib/nativeOrderReceipt';
@@ -180,8 +180,8 @@ export default function Orders() {
                         )}
 
                         {receipt.total !== null && (
-                          <><div className="space-y-1 text-sm">{native && receipt.items.map((item, index) => <p key={index} className="flex flex-wrap justify-between gap-2"><span>{item.title} × {item.quantity}</span><span>{receipt.currencySymbol}{item.lineTotal.toFixed(2)}</span></p>)}</div><p className="text-sm font-semibold text-foreground">
-                            Total: {receipt.currencySymbol}{receipt.total.toFixed(2)} {receipt.currencyCode}
+                          <><div className="space-y-1 text-sm">{native && receipt.items.map((item, index) => <p key={index} className="flex flex-wrap justify-between gap-2"><span>{item.title} × {item.quantity}</span><span>{receiptMoney(item.lineTotal, receipt.currencySymbol, receipt.currencyCode)}</span></p>)}</div><p className="text-sm font-semibold text-foreground">
+                            Total: {receiptMoney(receipt.total, receipt.currencySymbol, native ? receipt.currencyCode : undefined)} {receipt.currencyCode}
                           </p></>
                         )}
                       </div>

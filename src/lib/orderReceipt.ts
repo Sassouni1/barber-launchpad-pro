@@ -93,8 +93,9 @@ export function extractReceiptData(order: Order): ReceiptData {
   };
 }
 
-function money(amount: number, symbol: string): string {
-  return `${symbol}${amount.toFixed(2)}`;
+export function receiptMoney(amount: number, symbol: string, currency?: string): string {
+  const digits = currency ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2 : 2;
+  return `${symbol}${amount.toFixed(digits)}`;
 }
 
 export function buildReceiptPdf(order: Order): jsPDF {
@@ -191,10 +192,10 @@ export function buildReceiptPdf(order: Order): jsPDF {
       doc.text(titleLines, margin, y);
       doc.setTextColor(70, 70, 70);
       doc.text(String(item.quantity), colQty, y, { align: "right" });
-      doc.text(money(item.unitPrice, data.currencySymbol), colPrice, y, { align: "right" });
+      doc.text(receiptMoney(item.unitPrice, data.currencySymbol, order.stripe_checkout_session_id ? data.currencyCode : undefined), colPrice, y, { align: "right" });
       doc.setFont("helvetica", "bold");
       doc.setTextColor(30, 30, 30);
-      doc.text(money(item.lineTotal, data.currencySymbol), colTotal, y, { align: "right" });
+      doc.text(receiptMoney(item.lineTotal, data.currencySymbol, order.stripe_checkout_session_id ? data.currencyCode : undefined), colTotal, y, { align: "right" });
       y += titleLines.length * 14 + 8;
     }
   } else {
@@ -215,7 +216,7 @@ export function buildReceiptPdf(order: Order): jsPDF {
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 30, 30);
     doc.text("Total", colPrice, y, { align: "right" });
-    doc.text(`${money(data.total, data.currencySymbol)} ${data.currencyCode}`, colTotal, y, { align: "right" });
+    doc.text(`${receiptMoney(data.total, data.currencySymbol, order.stripe_checkout_session_id ? data.currencyCode : undefined)} ${data.currencyCode}`, colTotal, y, { align: "right" });
   }
 
   // Footer
