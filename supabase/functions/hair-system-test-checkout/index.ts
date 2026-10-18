@@ -24,7 +24,32 @@ Deno.serve(async (req) => {
     const key = await resolveHairSystemTestKey();
     const webhookConfigured = (Deno.env.get("HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET") ?? "").startsWith("whsec_");
 
-    if (body.action === "config") return json({ configured: Boolean(key), webhookConfigured });
+    const testRef = async () => (await db.from("app_settings").select("value").eq("key", "hair_system_test_webhook_secret_ref").maybeSingle()).data?.value as any ?? null;
+    if (body.action === "config") { const ref = await testRef(); return json({ configured: Boolean(key), webhookConfigured: webhookConfigured || Boolean(ref?.secret_id), webhookEndpoint: ref?.endpoint_id ?? null }); }
+
+    if (body.action === "setup_test_webhook") {
+      // Creates a TEST-mode endpoint only (test key is account-verified). Signing secret is stored encrypted, never returned or logged.
+      if (!key) return json({ error: "No verified test key." }, 503);
+      const existing = await testRef();
+      if (existing?.endpoint_id) return json({ status: "already_configured", endpoint: existing.endpoint_id });
+      const encKey = Deno.env.get("GHL_ENCRYPTION_KEY");
+      if (!encKey) return json({ error: "Encryption key unavailable." }, 503);
+      const target = `${url}/functions/v1/hair-system-test-webhook`;
+      const form = new URLSearchParams({ url: target, "enabled_events[0]": "checkout.session.completed", "enabled_events[1]": "checkout.session.async_payment_succeeded", description: "Barber Launch hair-system TEST sink (captures only, no sends)", "metadata[hair_system_test_mode]": "true" });
+      const r = await fetch("https://api.stripe.com/v1/webhook_endpoints", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `hair_test_whk_${user.id}` }, body: form });
+      const ep = await r.json();
+      if (!r.ok) return json({ error: "stripe_rejected", code: ep?.error?.code ?? null, type: ep?.error?.type ?? null, message: String(ep?.error?.message ?? "").slice(0, 200) }, 502);
+      if (ep.livemode !== false || !String(ep.secret ?? "").startsWith("whsec_")) return json({ error: "unexpected_endpoint" }, 502);
+      const { data: secretId, error: encErr } = await db.rpc("store_encrypted_token", { token_value: ep.secret, encryption_key: encKey });
+      if (encErr || !secretId) return json({ error: "store_failed", endpoint: ep.id }, 500);
+      await db.from("app_settings").upsert({ key: "hair_system_test_webhook_secret_ref", value: { endpoint_id: ep.id, secret_id: secretId, url: target, livemode: false, created_by: user.id, created_at: new Date().toISOString() } }, { onConflict: "key" });
+      return json({ status: "created", endpoint: ep.id, url: target, livemode: false, events: ep.enabled_events });
+    }
+
+    if (body.action === "webhook_events") {
+      const { data } = await db.from("hair_system_test_webhook_events").select("*").order("created_at", { ascending: false }).limit(20);
+      return json({ events: data });
+    }
 
     if (body.action === "results") {
       const { data: drafts } = await db.from("hair_system_test_drafts").select("id, stripe_checkout_session_id, status, paid_at, created_at, customer_name").order("created_at", { ascending: false }).limit(10);
