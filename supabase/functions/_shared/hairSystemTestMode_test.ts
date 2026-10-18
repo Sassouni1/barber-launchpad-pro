@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { hairSystemTestStripeKey, testLineItems } from "./hairSystemTestMode.ts";
+import { hairSystemTestStripeKey, isStripeCheckoutUrl, testLineItems } from "./hairSystemTestMode.ts";
 
 Deno.test("test checkout: one standard system + $10 shipping totals $210", () => {
   const items = testLineItems([{ length: 'Standard 5" hair', curl: "Standard" }], "Shipping · $10");
@@ -12,4 +12,10 @@ Deno.test("test checkout refuses a live secret key", () => {
   Deno.env.set("HAIR_SYSTEM_STRIPE_TEST_SECRET_KEY", "sk_test_x");
   assertEquals(hairSystemTestStripeKey(), "sk_test_x");
   Deno.env.delete("HAIR_SYSTEM_STRIPE_TEST_SECRET_KEY");
+});
+
+Deno.test("test checkout only redirects to Stripe-hosted checkout", () => {
+  assertEquals(isStripeCheckoutUrl("https://checkout.stripe.com/c/pay/cs_test_1"), true);
+  assertEquals(isStripeCheckoutUrl("https://evil.example/checkout.stripe.com"), false);
+  assertEquals(isStripeCheckoutUrl("http://checkout.stripe.com/x"), false);
 });
