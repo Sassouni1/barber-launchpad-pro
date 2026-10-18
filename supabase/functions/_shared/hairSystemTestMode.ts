@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { loadExpandedSession } from "./hairSystemFulfillment.ts";
 import { stripeReceiptSnapshot } from "./hairSystemReceipt.ts";
+import { normalizePhone } from "./ghlMessaging.ts";
 import {
   DEFAULT_SUPPLIER_EMAIL, SUPPLIER_SUBJECT, CUSTOMER_RECEIPT_SUBJECT,
   buildSupplierEmailHtml, buildCustomerReceiptHtml, buildCustomerSmsBody, buyerFromSession,
@@ -117,11 +118,16 @@ export async function processTestSession(db: SupabaseClient, sessionId: string, 
   const captures = [
     ...o.map((order) => ({ test_order_id: order.id, channel: "supplier_email", intended_recipient: DEFAULT_SUPPLIER_EMAIL, subject: SUPPLIER_SUBJECT, body: buildSupplierEmailHtml(order, buyer) })),
     { test_order_id: o[0].id, channel: "customer_receipt", intended_recipient: buyer.email || draft.customer_email, subject: CUSTOMER_RECEIPT_SUBJECT, body: buildCustomerReceiptHtml(o, buyer, paid) },
-    { test_order_id: o[0].id, channel: "customer_sms", intended_recipient: buyer.phone || "(none)", subject: null, body: buildCustomerSmsBody(o[0], buyer, o.length) },
+    { test_order_id: o[0].id, channel: "customer_sms", intended_recipient: testSmsRecipient(o[0].order_details, buyer.phone), subject: null, body: buildCustomerSmsBody(o[0], buyer, o.length) },
   ].map((c) => ({ ...c, stripe_checkout_session_id: sessionId, status: "captured_not_sent", outbound_calls: 0 }));
   // Sink is the only destination; if it cannot record, fail closed (nothing is ever sent).
   const { error: capErr } = await db.from("hair_system_test_notifications").upsert(captures, { onConflict: "stripe_checkout_session_id,test_order_id,channel", ignoreDuplicates: true });
   if (capErr) throw new Error(`test_sink_unavailable:${capErr.message}`);
   await db.from("hair_system_test_drafts").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", draft.id);
   return { paid: true, orderIds: o.map((r) => r.id), receipt };
+}
+
+/** Mirrors live SMS recipient resolution: normalized stored order phone first, then Stripe buyer phone. */
+export function testSmsRecipient(details: Record<string, unknown> | null | undefined, buyerPhone?: string | null): string {
+  return normalizePhone(String((details ?? {}).phone ?? buyerPhone ?? "")) ?? "(none — live path would skip SMS)";
 }
