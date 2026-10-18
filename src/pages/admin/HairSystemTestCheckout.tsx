@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadStripe, type Stripe } from "@stripe/stripe-js";
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// Internal TEST MODE page (admin route, not linked). Uses only a pk_test key
-// served by the backend; payments never touch the live account.
+// Internal TEST MODE page (admin route, not linked). Redirects only to a
+// Stripe-hosted TEST checkout URL; payments never touch the live account.
+const isStripeCheckoutUrl = (u: unknown) => { try { const x = new URL(String(u)); return x.protocol === "https:" && x.hostname === "checkout.stripe.com"; } catch { return false; } };
 const SHIPPING = ["Shipping · $10", "Rush Ship (3 Days) · $50"];
 const cents = (n: number) => `$${(n / 100).toFixed(2)}`;
 
@@ -20,8 +19,7 @@ function estimate(length: string, other: string, curl: string, shipping: string)
 
 export default function HairSystemTestCheckout() {
   const [config, setConfig] = useState<any>(null);
-  const [stripe, setStripe] = useState<Promise<Stripe | null> | null>(null);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [f, setF] = useState<Record<string, string>>({ barberFirstName: "Chris", barberLastName: "Sassouni", barberPhone: "", address1: "", address2: "", city: "", state: "", zip: "", notes: "TEST MODE — do not manufacture",
@@ -37,18 +35,19 @@ export default function HairSystemTestCheckout() {
   const loadResults = () => call({ action: "results" }).then(setResults).catch((e) => setError(e.message));
 
   useEffect(() => {
-    call({ action: "config" }).then((c) => { setConfig(c); if (c.publishableKey) setStripe(loadStripe(c.publishableKey)); }).catch((e) => setError(e.message));
+    call({ action: "config" }).then(setConfig).catch((e) => setError(e.message));
     const sid = new URLSearchParams(location.search).get("session_id");
     (sid ? call({ action: "verify", sessionId: sid }).catch((e) => setError(e.message)) : Promise.resolve()).then(loadResults);
   }, []);
 
   const start = async () => {
-    setError(null);
+    setError(null); setStarting(true);
     try {
       const { clientName, color, base, length, lengthOther, density, curl, ...rest } = f;
       const r = await call({ ...rest, systems: [{ clientName, color, base, length, lengthOther, density, curl }] });
-      setClientSecret(r.clientSecret);
-    } catch (e: any) { setError(e.message); }
+      if (!isStripeCheckoutUrl(r?.url)) throw new Error("Unexpected checkout URL.");
+      window.location.assign(r.url);
+    } catch (e: any) { setError(e.message); setStarting(false); }
   };
 
   const field = (k: string, label: string) => (<div className="space-y-1"><Label>{label}</Label><Input value={f[k]} onChange={set(k)} /></div>);
@@ -62,9 +61,12 @@ export default function HairSystemTestCheckout() {
         </div>
         {error && <p className="text-destructive text-sm">{error}</p>}
         {config && !config.configured && (
-          <p className="text-sm text-muted-foreground">Test mode is not configured. Missing: {!config.secretKey && "HAIR_SYSTEM_STRIPE_TEST_SECRET_KEY "}{!config.publishableKey && "HAIR_SYSTEM_STRIPE_TEST_PUBLISHABLE_KEY "}{!config.webhookConfigured && "HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET"}</p>
+          <p className="text-sm text-muted-foreground">Test mode is not configured: no verified Stripe test key for the hair-system account.</p>
         )}
-        {!clientSecret && (
+        {config && !config.webhookConfigured && (
+          <p className="rounded-md border border-border p-3 text-sm">Webhook NOT tested: HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET is not configured, so this test verifies only the paid-return fallback (results are recorded when you come back to this page), not automatic webhook delivery.</p>
+        )}
+        {(
           <div className="grid gap-3 sm:grid-cols-2">
             {field("barberFirstName", "First name")}{field("barberLastName", "Last name")}{field("barberPhone", "Phone")}
             {field("clientName", "Client name (internal)")}{field("color", "Color")}{field("base", "Lace or Skin")}
@@ -75,12 +77,9 @@ export default function HairSystemTestCheckout() {
             <div className="space-y-1"><Label>Shipping</Label><select className="w-full h-10 rounded-md border border-input bg-background px-3" value={f.shippingSpeed} onChange={set("shippingSpeed")}>{SHIPPING.map((s) => <option key={s}>{s}</option>)}</select></div>
             <div className="sm:col-span-2 flex items-center justify-between">
               <span className="font-semibold">Test total: {cents(total)}</span>
-              <Button onClick={start} disabled={!config?.configured}>Start TEST payment</Button>
+              <Button onClick={start} disabled={!config?.configured || starting}>{starting ? "Opening Stripe test checkout…" : "Start TEST payment"}</Button>
             </div>
           </div>
-        )}
-        {clientSecret && stripe && (
-          <EmbeddedCheckoutProvider stripe={stripe} options={{ clientSecret }}><EmbeddedCheckout /></EmbeddedCheckoutProvider>
         )}
         <section className="space-y-3">
           <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Test results</h2><Button variant="outline" size="sm" onClick={loadResults}>Refresh</Button></div>
