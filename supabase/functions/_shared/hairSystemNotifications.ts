@@ -409,7 +409,7 @@ async function runChannel(
  */
 export async function dispatchPaidOrderNotifications(
   db: SupabaseClient,
-  input: { orders: OrderRow[]; buyer: SessionBuyer; eventId: string; receipt: PaidReceipt },
+  input: { orders: OrderRow[]; buyer: SessionBuyer; eventId: string; receipt: PaidReceipt; buyerCommunicationsAllowed?: boolean },
 ): Promise<ChannelOutcome[]> {
   const orders = input.orders;
   if (!orders.length) return [];
@@ -435,6 +435,9 @@ export async function dispatchPaidOrderNotifications(
       }),
     );
   }
+
+  // Supplier delivery is independent of CRM; buyer behavior remains gated by it.
+  if (input.buyerCommunicationsAllowed === false) return outcomes;
 
   // One receipt per purchase, claimed against the first order so multi-system
   // purchases and Stripe retries cannot generate duplicate customer emails.
