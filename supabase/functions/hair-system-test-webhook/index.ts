@@ -1,15 +1,16 @@
 // Stripe TEST-mode webhook for the isolated hair-system test checkout.
 // Rejects livemode=true. Never sends messages; captures only.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { hairSystemTestStripeKey, processTestSession, verifyStripeSignature } from "../_shared/hairSystemTestMode.ts";
+import { resolveHairSystemTestKey, processTestSession, verifyStripeSignature } from "../_shared/hairSystemTestMode.ts";
 
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const whsec = Deno.env.get("HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET") ?? "";
-  const key = hairSystemTestStripeKey();
-  if (!whsec.startsWith("whsec_") || !key) return json({ error: "Test mode not configured." }, 503);
+  if (!whsec.startsWith("whsec_")) return json({ error: "Test mode not configured." }, 503);
+  const key = await resolveHairSystemTestKey();
+  if (!key) return json({ error: "Test mode not configured." }, 503);
 
   const payload = await req.text();
   if (!(await verifyStripeSignature(payload, req.headers.get("stripe-signature") ?? "", whsec))) return json({ error: "Invalid signature." }, 400);

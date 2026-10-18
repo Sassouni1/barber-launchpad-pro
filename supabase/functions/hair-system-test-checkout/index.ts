@@ -1,7 +1,7 @@
 // Admin-only Stripe TEST-mode hair-system checkout. Never uses live keys,
 // never writes production orders, never sends messages.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { hairSystemTestPublishableKey, hairSystemTestStripeKey, processTestSession, testLineItems } from "../_shared/hairSystemTestMode.ts";
+import { isStripeCheckoutUrl, processTestSession, resolveHairSystemTestKey, testLineItems } from "../_shared/hairSystemTestMode.ts";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -21,11 +21,10 @@ Deno.serve(async (req) => {
     if (!role) return json({ error: "Admins only." }, 403);
 
     const body = await req.json().catch(() => ({}));
-    const key = hairSystemTestStripeKey();
-    const pk = hairSystemTestPublishableKey();
+    const key = await resolveHairSystemTestKey();
     const webhookConfigured = (Deno.env.get("HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET") ?? "").startsWith("whsec_");
 
-    if (body.action === "config") return json({ configured: Boolean(key && pk), secretKey: Boolean(key), publishableKey: pk, webhookConfigured });
+    if (body.action === "config") return json({ configured: Boolean(key), webhookConfigured });
 
     if (body.action === "results") {
       const { data: drafts } = await db.from("hair_system_test_drafts").select("id, stripe_checkout_session_id, status, paid_at, created_at, customer_name").order("created_at", { ascending: false }).limit(10);
@@ -37,7 +36,7 @@ Deno.serve(async (req) => {
       return json({ drafts, orders, notifications: notes, outbound_messages_sent: 0 });
     }
 
-    if (!key || !pk) return json({ error: "Test mode is not configured (HAIR_SYSTEM_STRIPE_TEST_SECRET_KEY / HAIR_SYSTEM_STRIPE_TEST_PUBLISHABLE_KEY)." }, 503);
+    if (!key) return json({ error: "Test mode is not configured: no verified test key for the hair-system Stripe account." }, 503);
 
     if (body.action === "verify") {
       const r = await processTestSession(db, text(body.sessionId, 100), key, user.id);
@@ -62,8 +61,9 @@ Deno.serve(async (req) => {
     if (error || !draft) return json({ error: "Unable to prepare test draft." }, 500);
 
     const origin = new URL(req.headers.get("origin") || "https://member.thebarberlaunch.com").origin;
-    const form = new URLSearchParams({ mode: "payment", ui_mode: "embedded", customer_email: email,
-      return_url: `${origin}/admin/hair-system-test?session_id={CHECKOUT_SESSION_ID}`,
+    const form = new URLSearchParams({ mode: "payment", ui_mode: "hosted", customer_email: email,
+      success_url: `${origin}/admin/hair-system-test?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/admin/hair-system-test?canceled=1`,
       "metadata[hair_system_test_mode]": "true", "metadata[test_draft_id]": draft.id, "metadata[admin_user_id]": user.id,
       "phone_number_collection[enabled]": "false" });
     testLineItems(systems, shippingSpeed).forEach((li, i) => {
@@ -76,7 +76,8 @@ Deno.serve(async (req) => {
     const session = await res.json();
     if (!res.ok || session.livemode !== false || !String(session.id).startsWith("cs_test_")) return json({ error: "Unable to start test payment." }, 502);
     await db.from("hair_system_test_drafts").update({ stripe_checkout_session_id: session.id }).eq("id", draft.id);
-    return json({ clientSecret: session.client_secret, sessionId: session.id });
+    if (!isStripeCheckoutUrl(session.url)) return json({ error: "Unexpected checkout URL." }, 502);
+    return json({ url: session.url });
   } catch (e) {
     console.error("hair-system-test-checkout error", e instanceof Error ? e.message : "error");
     return json({ error: e instanceof Error ? e.message.slice(0, 200) : "Test checkout failed." }, 400);
