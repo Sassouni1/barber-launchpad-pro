@@ -126,7 +126,7 @@ export default function HairSystemTestCheckout() {
                     <summary>{n.channel} → {n.intended_recipient} · {n.status} · outbound calls {n.outbound_calls}</summary>
                     {n.subject && <p className="font-semibold mt-2">{n.subject}</p>}
                     {n.channel === "customer_sms" ? <pre className="whitespace-pre-wrap">{n.body}</pre>
-                      : <iframe title={n.channel} sandbox="" srcDoc={n.body} className="w-full h-96 bg-background mt-2" />}
+                      : <iframe title={n.channel} sandbox="" srcDoc={n.body} style={{ backgroundColor: "#ffffff", colorScheme: "light" }} className="w-full h-[80vh] min-h-[640px] mt-2 rounded border border-border" />}
                   </details>
                 ))}
               </div>
