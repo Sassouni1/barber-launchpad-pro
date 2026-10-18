@@ -135,6 +135,11 @@ Deno.serve(async (req) => {
     await record("invalid_payload");
     return json({ error: "Invalid payload." }, 400);
   }
+  // Production endpoint accepts live events only; test mode has its own endpoint.
+  if (event.livemode !== true) {
+    await record("rejected_test_mode");
+    return json({ error: "Test-mode events are not accepted here." }, 400);
+  }
 
   const handled = ["checkout.session.completed", "checkout.session.async_payment_succeeded"];
   if (!handled.includes(event.type)) { await record("ignored_type"); return json({ received: true, ignored: event.type }); }
