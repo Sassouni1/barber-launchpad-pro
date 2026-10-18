@@ -54,7 +54,7 @@ export default function HairSystemTestCheckout() {
   const field = (k: string, label: string) => (<div className="space-y-1"><Label>{label}</Label><Input value={f[k]} onChange={set(k)} /></div>);
 
   return (
-    <DashboardLayout>
+    <DashboardLayout isAdminView>
       <div className="max-w-3xl mx-auto space-y-6 p-4">
         <div className="rounded-lg border-4 border-destructive bg-destructive/15 p-4 text-center">
           <p className="text-2xl font-bold text-destructive">TEST MODE — NO REAL MONEY</p>
