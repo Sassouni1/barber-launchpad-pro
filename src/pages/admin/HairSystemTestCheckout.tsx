@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LiveHairVerification } from "@/components/admin/LiveHairVerification";
 
 // Internal TEST MODE page (admin route, not linked). Redirects only to a
 // Stripe-hosted TEST checkout URL; payments never touch the live account.
@@ -69,6 +70,7 @@ export default function HairSystemTestCheckout() {
   return (
     <DashboardLayout isAdminView>
       <div className="max-w-3xl mx-auto space-y-6 p-4">
+        <LiveHairVerification />
         <div className="rounded-lg border-4 border-destructive bg-destructive/15 p-4 text-center">
           <p className="text-2xl font-bold text-destructive">TEST MODE — NO REAL MONEY</p>
           <p className="text-sm text-foreground">Stripe test card only (4242 4242 4242 4242). No supplier, buyer, GHL or SMS message is sent; everything is captured below.</p>
