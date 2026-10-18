@@ -71,7 +71,9 @@ export default function Orders() {
   });
   const amountsReady = nativeOrders.every((_, index) => !!lookups[index]?.data);
   const [zipping, setZipping] = useState(false);
-  const [archive, setArchive] = useState<Blob | null>(null);
+  const archiveKey = orders.map((o) => `${o.user_id}:${o.id}:${extractReceiptData(o).total}`).join('|');
+  const [preparedArchive, setArchive] = useState<{ key: string; blob: Blob } | null>(null);
+  const archive = preparedArchive?.key === archiveKey ? preparedArchive.blob : null;
 
   const handleDownloadAll = async () => {
     if (!orders?.length || !amountsReady) return;
@@ -93,7 +95,7 @@ export default function Orders() {
         zip.file(name, doc.output('arraybuffer'));
       }
       const blob = await zip.generateAsync({ type: 'blob' });
-      setArchive(blob);
+      setArchive({ key: archiveKey, blob });
     } catch {
       toast.error('Failed to download receipts');
     } finally {

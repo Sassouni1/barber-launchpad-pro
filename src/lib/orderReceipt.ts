@@ -160,12 +160,22 @@ export function buildReceiptPdf(order: Order): jsPDF {
     doc.setFontSize(10);
     doc.setTextColor(60, 60, 60);
     const lines = doc.splitTextToSize(data.specs.map((s) => `${s.label}: ${s.value}`).join("   •   "), pageWidth - margin * 2);
-    doc.text(lines, margin, y);
-    y += (lines.length - 1) * 12;
+    if (order.stripe_checkout_session_id) {
+      for (const line of lines) {
+        if (y > doc.internal.pageSize.getHeight() - 110) { doc.addPage(); y = margin; }
+        doc.text(line, margin, y);
+        y += 12;
+      }
+      y -= 12;
+    } else {
+      doc.text(lines, margin, y);
+      y += (lines.length - 1) * 12;
+    }
   }
 
   // Line items table header
   y += 30;
+  if (order.stripe_checkout_session_id && y > doc.internal.pageSize.getHeight() - 160) { doc.addPage(); y = margin; }
   const colQty = pageWidth - margin - 160;
   const colPrice = pageWidth - margin - 90;
   const colTotal = pageWidth - margin;
@@ -187,6 +197,7 @@ export function buildReceiptPdf(order: Order): jsPDF {
   if (data.items.length > 0) {
     for (const item of data.items) {
       const titleLines = doc.splitTextToSize(item.title, colQty - margin - 24);
+      if (order.stripe_checkout_session_id && y + titleLines.length * 14 > doc.internal.pageSize.getHeight() - 100) { doc.addPage(); y = margin; }
       doc.setTextColor(30, 30, 30);
       doc.setFont("helvetica", "normal");
       doc.text(titleLines, margin, y);
@@ -207,6 +218,7 @@ export function buildReceiptPdf(order: Order): jsPDF {
 
   // Total
   if (data.total !== null) {
+    if (order.stripe_checkout_session_id && y > doc.internal.pageSize.getHeight() - 110) { doc.addPage(); y = margin; }
     y += 10;
     doc.setDrawColor(210, 175, 55);
     doc.setLineWidth(1.5);
