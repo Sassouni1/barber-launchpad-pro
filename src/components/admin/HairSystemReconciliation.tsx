@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertTriangle } from "lucide-react";
+import { HairSystemOrderLookup } from "./HairSystemOrderLookup";
 
 type Result = Record<string, any>;
 
@@ -121,6 +122,7 @@ export function HairSystemReconciliation() {
         </div>
       )}
 
+      <HairSystemOrderLookup />
     </div>
   );
 }
