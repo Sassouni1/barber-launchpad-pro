@@ -19,3 +19,10 @@ Deno.test("test checkout only redirects to Stripe-hosted checkout", () => {
   assertEquals(isStripeCheckoutUrl("https://evil.example/checkout.stripe.com"), false);
   assertEquals(isStripeCheckoutUrl("http://checkout.stripe.com/x"), false);
 });
+
+Deno.test("test SMS recipient uses normalized stored order phone first", async () => {
+  const { testSmsRecipient } = await import("./hairSystemTestMode.ts");
+  if (testSmsRecipient({ phone: "7276374672" }, null) !== "+17276374672") throw new Error("stored phone not used");
+  if (testSmsRecipient({}, "(727) 637-4672") !== "+17276374672") throw new Error("buyer fallback failed");
+  if (!testSmsRecipient({}, null).startsWith("(none")) throw new Error("missing phone should be none");
+});
