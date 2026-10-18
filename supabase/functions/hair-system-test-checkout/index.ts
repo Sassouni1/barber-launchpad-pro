@@ -43,6 +43,27 @@ Deno.serve(async (req) => {
       return json(r);
     }
 
+    if (body.action === "expire_unused") {
+      // Only this admin's own unpaid cs_test_ drafts; never touches paid sessions.
+      const { data: drafts } = await db.from("hair_system_test_drafts").select("id, stripe_checkout_session_id, status")
+        .eq("admin_user_id", user.id).neq("status", "paid").neq("status", "canceled").like("stripe_checkout_session_id", "cs_test_%").limit(50);
+      const out: { session: string; result: string }[] = [];
+      for (const d of drafts ?? []) {
+        const sid = d.stripe_checkout_session_id as string;
+        const h = { Authorization: `Bearer ${key}` };
+        const s = await (await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sid)}`, { headers: h })).json();
+        if (s?.livemode !== false || s?.metadata?.admin_user_id !== user.id) { out.push({ session: sid, result: "skipped_unverified" }); continue; }
+        if (s.payment_status === "paid" || s.status === "complete") { out.push({ session: sid, result: "skipped_paid" }); continue; }
+        if (s.status === "open") {
+          const ex = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sid)}/expire`, { method: "POST", headers: h });
+          if (!ex.ok) { out.push({ session: sid, result: "expire_failed" }); continue; }
+        }
+        await db.from("hair_system_test_drafts").update({ status: "canceled" }).eq("id", d.id).eq("admin_user_id", user.id).neq("status", "paid");
+        out.push({ session: sid, result: "canceled" });
+      }
+      return json({ results: out, outbound_messages_sent: 0 });
+    }
+
     const required = ["barberFirstName", "barberLastName", "barberPhone", "address1", "city", "state", "zip"];
     if (required.some((f) => !text(body[f]))) return json({ error: "Complete every required field." }, 400);
     const shippingSpeed = text(body.shippingSpeed, 100);
@@ -77,7 +98,7 @@ Deno.serve(async (req) => {
     if (!res.ok || session.livemode !== false || !String(session.id).startsWith("cs_test_")) return json({ error: "Unable to start test payment." }, 502);
     await db.from("hair_system_test_drafts").update({ stripe_checkout_session_id: session.id }).eq("id", draft.id);
     if (!isStripeCheckoutUrl(session.url)) return json({ error: "Unexpected checkout URL." }, 502);
-    return json({ url: session.url });
+    return json({ url: session.url, sessionId: session.id });
   } catch (e) {
     console.error("hair-system-test-checkout error", e instanceof Error ? e.message : "error");
     return json({ error: e instanceof Error ? e.message.slice(0, 200) : "Test checkout failed." }, 400);
