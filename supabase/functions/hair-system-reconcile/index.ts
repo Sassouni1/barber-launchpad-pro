@@ -5,7 +5,7 @@
 //   execute     — requires confirm:"EXECUTE"; replays only unsent/failed channels
 // Nothing runs automatically on deploy.
 
-const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { attachExistingOrderIds, fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, stripeGet } from "../_shared/hairSystemFulfillment.ts";
 import {
@@ -16,6 +16,7 @@ import {
   type NotificationRow,
 } from "../_shared/hairSystemFulfillmentLogic.ts";
 import { relayProbe } from "../_shared/barberLaunchGhlRelay.ts";
+import { supplierOnlyRecovery } from "./supplierOnly.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -117,6 +118,15 @@ Deno.serve(async (req) => {
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const action = String(body.action ?? "diagnostics");
+    if (action === "supplier_only_dry_run" || action === "execute_supplier_only") {
+      try {
+        const result = await supplierOnlyRecovery(db, key, body, u.user.id, findSession);
+        return json(result.body, result.status);
+      } catch {
+        // Never log provider response bodies, buyer addresses, or credentials.
+        return json({ error: "Supplier-only safety verification failed; no further action taken." }, 503);
+      }
+    }
     const diag = await diagnostics(db, key);
     if (action === "diagnostics") return json({ diagnostics: diag });
 

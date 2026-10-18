@@ -402,14 +402,10 @@ async function runChannel(
   }
 }
 
-/**
- * After a verified successful Stripe payment: one supplier production sheet
- * per ordered system, one branded customer receipt, and one transactional SMS
- * to the buyer through the connected Barber Launch GoHighLevel location.
- */
-export async function dispatchPaidOrderNotifications(
+/** Supplier phase only. Callers must verify paid Stripe ownership and hold first. */
+export async function dispatchSupplierOrderNotifications(
   db: SupabaseClient,
-  input: { orders: OrderRow[]; buyer: SessionBuyer; eventId: string; receipt: PaidReceipt; buyerCommunicationsAllowed?: boolean },
+  input: { orders: OrderRow[]; buyer: SessionBuyer; eventId: string },
 ): Promise<ChannelOutcome[]> {
   const orders = input.orders;
   if (!orders.length) return [];
@@ -435,6 +431,19 @@ export async function dispatchPaidOrderNotifications(
       }),
     );
   }
+
+  return outcomes;
+}
+
+/** Existing production dispatch: supplier phase, then unchanged buyer channels. */
+export async function dispatchPaidOrderNotifications(
+  db: SupabaseClient,
+  input: { orders: OrderRow[]; buyer: SessionBuyer; eventId: string; receipt: PaidReceipt; buyerCommunicationsAllowed?: boolean },
+): Promise<ChannelOutcome[]> {
+  const orders = input.orders;
+  if (!orders.length) return [];
+  const outcomes = await dispatchSupplierOrderNotifications(db, input);
+  const failedYet = () => outcomes.some((o) => o.result === "failed" || o.result === "claim_failed");
 
   // Supplier delivery is independent of CRM; buyer behavior remains gated by it.
   if (input.buyerCommunicationsAllowed === false) return outcomes;
