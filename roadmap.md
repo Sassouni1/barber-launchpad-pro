@@ -59,4 +59,5 @@
 
 ## Hair-system Stripe TEST mode (isolated)
 - [x] Admin-only test checkout + test webhook + capture sink tables; live webhook now rejects test events
-- [ ] Blocked: add HAIR_SYSTEM_STRIPE_TEST_SECRET_KEY, HAIR_SYSTEM_STRIPE_TEST_PUBLISHABLE_KEY, HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET; register test endpoint in Stripe
+- [x] Hosted test checkout uses verified affiliate test key fallback (account-checked)
+- [ ] Optional: HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET + test endpoint for automatic webhook testing

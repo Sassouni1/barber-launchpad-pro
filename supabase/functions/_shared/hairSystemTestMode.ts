@@ -10,14 +10,42 @@ import {
   type OrderRow,
 } from "./hairSystemNotifications.ts";
 
+export const HAIR_SYSTEM_STRIPE_ACCOUNT = "acct_1LMNKMI6LFtj88Bq";
+const isTestKey = (k: string) => /^(sk|rk)_test_/.test(k);
+
 /** Dedicated test key only; refuses anything that is not visibly test-mode. */
 export function hairSystemTestStripeKey(): string | null {
   const key = Deno.env.get("HAIR_SYSTEM_STRIPE_TEST_SECRET_KEY") ?? "";
-  return /^(sk|rk)_test_/.test(key) ? key : null;
+  return isTestKey(key) ? key : null;
 }
-export function hairSystemTestPublishableKey(): string | null {
-  const key = Deno.env.get("HAIR_SYSTEM_STRIPE_TEST_PUBLISHABLE_KEY") ?? "";
-  return key.startsWith("pk_test_") ? key : null;
+
+let resolved: Promise<string | null> | null = null;
+/**
+ * Dedicated test key first, then the affiliate test key as fallback. Each must
+ * be test-prefixed AND belong to the Invasion Digital Media account; a live key
+ * is never returned.
+ */
+export function resolveHairSystemTestKey(fetcher: typeof fetch = fetch): Promise<string | null> {
+  if (resolved) return resolved;
+  resolved = (async () => {
+    for (const name of ["HAIR_SYSTEM_STRIPE_TEST_SECRET_KEY", "AFFILIATE_STRIPE_TEST_SECRET_KEY"]) {
+      const key = Deno.env.get(name) ?? "";
+      if (!isTestKey(key)) continue;
+      try {
+        const res = await fetcher("https://api.stripe.com/v1/account", { headers: { Authorization: `Bearer ${key}` } });
+        const acct = await res.json();
+        if (res.ok && acct?.id === HAIR_SYSTEM_STRIPE_ACCOUNT) return key;
+      } catch { /* try next */ }
+    }
+    return null;
+  })();
+  resolved.then((k) => { if (!k) resolved = null; });
+  return resolved;
+}
+
+/** Only Stripe-hosted Checkout URLs may be returned to the browser. */
+export function isStripeCheckoutUrl(url: unknown): url is string {
+  try { const u = new URL(String(url)); return u.protocol === "https:" && u.hostname === "checkout.stripe.com"; } catch { return false; }
 }
 
 // Same amounts as the live catalog (hair-system-checkout priceIds), in cents.
