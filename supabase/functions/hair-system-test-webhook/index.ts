@@ -7,7 +7,15 @@ const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { sta
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  const whsec = Deno.env.get("HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET") ?? "";
+  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+  let whsec = Deno.env.get("HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET") ?? "";
+  if (!whsec.startsWith("whsec_")) {
+    try {
+      const { data: ref } = await db.from("app_settings").select("value").eq("key", "hair_system_test_webhook_secret_ref").maybeSingle();
+      const sid = (ref?.value as any)?.secret_id; const enc = Deno.env.get("GHL_ENCRYPTION_KEY");
+      if (sid && enc) { const { data: dec } = await db.rpc("decrypt_token", { token_id: sid, encryption_key: enc }); if (typeof dec === "string") whsec = dec; }
+    } catch { /* stays unconfigured */ }
+  }
   if (!whsec.startsWith("whsec_")) return json({ error: "Test mode not configured." }, 503);
   const key = await resolveHairSystemTestKey();
   if (!key) return json({ error: "Test mode not configured." }, 503);
@@ -20,7 +28,6 @@ Deno.serve(async (req) => {
   const session = event.data?.object ?? {};
   if (session.metadata?.hair_system_test_mode !== "true") return json({ received: true, ignored: "not_hair_system_test" });
 
-  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   const { error: claimErr } = await db.from("hair_system_test_webhook_events").insert({ event_id: event.id, event_type: event.type, livemode: false });
   if (claimErr) {
     const { data: ex } = await db.from("hair_system_test_webhook_events").select("status").eq("event_id", event.id).maybeSingle();
