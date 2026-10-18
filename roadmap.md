@@ -1,5 +1,9 @@
 # Roadmap
 
+## Supplier-only historical recovery
+- [ ] Add admin-only single-order paid Stripe supplier dry run and explicitly confirmed supplier-only execution; preserve all buyer/CRM paths.
+- [ ] Test with in-memory fixtures and deploy reconcile only; do not execute recovery or send messages.
+
 ## Authoritative hair-system receipts and read-only order details
 - [x] Add owner/admin-only paid Stripe receipt retrieval and consolidated multi-system receipts; preserve legacy receipts.
 - [x] Store authoritative receipt snapshots for future paid orders without changing deliveries or holds.
