@@ -20,6 +20,10 @@ function estimate(length: string, other: string, curl: string, shipping: string)
 export default function HairSystemTestCheckout() {
   const [config, setConfig] = useState<any>(null);
   const [starting, setStarting] = useState(false);
+  const [checkout, setCheckout] = useState<{ url: string; sessionId: string } | null>(null);
+  const [expiring, setExpiring] = useState(false);
+  const [expireMsg, setExpireMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [f, setF] = useState<Record<string, string>>({ barberFirstName: "Chris", barberLastName: "Sassouni", barberPhone: "", address1: "", address2: "", city: "", state: "", zip: "", notes: "TEST MODE — do not manufacture",
@@ -87,7 +91,21 @@ export default function HairSystemTestCheckout() {
             <div className="space-y-1"><Label>Shipping</Label><select className="w-full h-10 rounded-md border border-input bg-background px-3" value={f.shippingSpeed} onChange={set("shippingSpeed")}>{SHIPPING.map((s) => <option key={s}>{s}</option>)}</select></div>
             <div className="sm:col-span-2 flex items-center justify-between">
               <span className="font-semibold">Test total: {cents(total)}</span>
-              <Button onClick={start} disabled={!config?.configured || starting}>{starting ? "Opening Stripe test checkout…" : "Start TEST payment"}</Button>
+              <Button onClick={start} disabled={!config?.configured || starting || !!checkout}>{starting ? "Creating Stripe test session…" : checkout ? "Test session created" : "Start TEST payment"}</Button>
+            </div>
+            {checkout && isStripeCheckoutUrl(checkout.url) && (
+              <div className="sm:col-span-2 rounded-lg border-2 border-primary p-4 space-y-3">
+                <p className="text-sm">Test session <code className="break-all">{checkout.sessionId}</code> · <strong>UNPAID</strong> until return verification.</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="lg"><a href={checkout.url} target="_blank" rel="noopener noreferrer">Open Stripe TEST checkout</a></Button>
+                  <Button variant="outline" onClick={() => navigator.clipboard?.writeText(checkout.url).then(() => setCopied(true)).catch(() => setCopied(false))}>{copied ? "Copied" : "Copy link"}</Button>
+                </div>
+                <p className="text-xs text-muted-foreground break-all">{checkout.url}</p>
+              </div>
+            )}
+            <div className="sm:col-span-2 flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={expireUnused} disabled={expiring}>{expiring ? "Canceling…" : "Expire my unused test sessions"}</Button>
+              {expireMsg && <span className="text-sm text-muted-foreground">{expireMsg}</span>}
             </div>
           </div>
         )}
