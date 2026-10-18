@@ -41,13 +41,23 @@ export default function HairSystemTestCheckout() {
   }, []);
 
   const start = async () => {
+    if (checkout) return;
     setError(null); setStarting(true);
     try {
       const { clientName, color, base, length, lengthOther, density, curl, ...rest } = f;
       const r = await call({ ...rest, systems: [{ clientName, color, base, length, lengthOther, density, curl }] });
       if (!isStripeCheckoutUrl(r?.url)) throw new Error("Unexpected checkout URL.");
-      window.location.assign(r.url);
-    } catch (e: any) { setError(e.message); setStarting(false); }
+      setCheckout({ url: r.url, sessionId: String(r.sessionId ?? "") });
+      loadResults();
+      try { window.location.assign(r.url); } catch { /* visible link remains */ }
+    } catch (e: any) { setError(e.message); }
+    setStarting(false);
+  };
+  const expireUnused = async () => {
+    setError(null); setExpiring(true);
+    try { const r = await call({ action: "expire_unused" }); setExpireMsg(`${(r?.results ?? []).filter((x: any) => x.result === "canceled").length} unused test session(s) canceled.`); setCheckout(null); await loadResults(); }
+    catch (e: any) { setError(e.message); }
+    setExpiring(false);
   };
 
   const field = (k: string, label: string) => (<div className="space-y-1"><Label>{label}</Label><Input value={f[k]} onChange={set(k)} /></div>);
