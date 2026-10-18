@@ -49,11 +49,22 @@ async function diagnostics(db: SupabaseClient, key: string) {
   } catch (e) {
     out.recentUndeliveredCheckoutEvents = `unavailable:${e instanceof Error ? e.message : "error"}`;
   }
-  const { count } = await db.from("hair_system_webhook_events").select("event_id", { count: "exact", head: true });
-  out.webhookEventsReceived = count ?? 0;
-  const { data: tok } = await db.from("ghl_oauth_tokens").select("location_id, expires_at").order("updated_at", { ascending: false }).limit(1).maybeSingle();
-  out.ghlOauth = tok ? { connected: true, locationId: tok.location_id, expiresAt: tok.expires_at } : { connected: false, reason: "ghl_marketplace_not_connected" };
+  const { count, error: eventsError } = await db.from("hair_system_webhook_events").select("event_id", { count: "exact", head: true });
+  out.webhookEventsReceived = eventsError ? null : count;
+  if (eventsError) out.webhookEventsError = eventsError.message;
+  const { data: tok, error: oauthError } = await db.from("ghl_oauth_tokens").select("location_id, expires_at").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  out.ghlOauth = oauthError ? { connected: null, reason: oauthError.message } : tok ? { connected: true, locationId: tok.location_id, expiresAt: tok.expires_at } : { connected: false, reason: "ghl_marketplace_not_connected" };
+  // Relay is the delivery transport; local OAuth is informational only.
   out.ghlAccess = await relayProbe();
+  const { data: hold, error: holdError } = await db.from("app_settings").select("value").eq("key", "hair_system_fulfillment_hold").maybeSingle();
+  const { data: attempts, error: attemptsError } = await db.from("hair_system_webhook_attempts")
+    .select("received_at, signature_valid, outcome").order("received_at", { ascending: false }).limit(10);
+  out.fulfillment = {
+    hold: holdError ? null : hold?.value === true,
+    holdError: holdError?.message ?? null,
+    attempts: attemptsError ? null : attempts,
+    attemptsError: attemptsError?.message ?? null,
+  };
   return out;
 }
 
@@ -214,6 +225,7 @@ Deno.serve(async (req) => {
 
     if (action === "execute") {
       if (body.confirm !== "EXECUTE") return json({ error: 'Type EXECUTE to confirm.' }, 400);
+      if ((diag.fulfillment as any)?.hold !== false) return json({ error: "Fulfillment is held or its safety status is unavailable; nothing executed.", diagnostics: diag }, 409);
       if (diag.stripeAccountMatches !== true) return json({ error: "Stripe account does not match the hair-system seller.", diagnostics: diag }, 409);
       if ((diag.ghlAccess as any)?.ready !== true) return json({ error: "No verified GoHighLevel access for the approved location — nothing can be delivered yet.", diagnostics: diag }, 409);
     }
