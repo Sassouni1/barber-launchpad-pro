@@ -60,8 +60,8 @@ async function diagnostics(db: SupabaseClient, key: string) {
   const { data: attempts, error: attemptsError } = await db.from("hair_system_webhook_attempts")
     .select("received_at, signature_valid, outcome").order("received_at", { ascending: false }).limit(10);
   out.fulfillment = {
-    hold: holdError ? null : hold?.value === true,
-    holdError: holdError?.message ?? null,
+    hold: holdError || typeof hold?.value !== 'boolean' ? null : hold.value,
+    holdError: holdError?.message ?? (typeof hold?.value !== 'boolean' ? 'Fulfillment hold is not configured as a boolean.' : null),
     attempts: attemptsError ? null : attempts,
     attemptsError: attemptsError?.message ?? null,
   };

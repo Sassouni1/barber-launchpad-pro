@@ -17,7 +17,7 @@ describe('paid native checkout receipts', () => {
     expect(data.total).toBe(210);
     expect(data.currencyCode).toBe('USD');
     expect(data.items.map((item) => [item.unitPrice, item.lineTotal])).toEqual([[200, 200], [10, 10]]);
-    expect(buildReceiptPdf(withNativeReceipt(order, { receipt, orders: [order] })).output()).toContain('(210.00');
+    expect(buildReceiptPdf(withNativeReceipt(order, { receipt, orders: [order] })).output()).toContain('($210.00 USD)');
   });
   test('missing Stripe amount stays unavailable and cannot create a blank PDF', () => {
     expect(extractReceiptData(order).total).toBeNull();
