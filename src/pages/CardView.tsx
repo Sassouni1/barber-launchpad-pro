@@ -1,7 +1,7 @@
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useBusinessCardByCode } from '@/hooks/useBusinessCard';
 import { downloadVCard } from '@/lib/generateVCard';
-import { Loader2, UserPlus, Calendar, Sparkles, Wallet, Instagram, Globe, Gift, Users } from 'lucide-react';
+import { Loader2, UserPlus, Calendar, Sparkles, Wallet, Instagram, Globe, Gift, Users, Star } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -120,6 +120,7 @@ export default function CardView() {
   const websiteUrl = normalizeWebsiteUrl(card?.website_url);
   const bookingUrl = normalizeWebsiteUrl(card?.booking_url);
   const galleryUrl = normalizeWebsiteUrl(card?.gallery_url);
+  const googleReviewUrl = normalizeWebsiteUrl(card?.google_review_url);
 
   const rewardsJoinUrl = card ? `/rewards/join/${card.user_id}` : '#';
 
@@ -231,6 +232,17 @@ export default function CardView() {
                 >
                   <Globe className="w-5 h-5 shrink-0 text-primary" />
                   Visit Website
+                </a>
+              )}
+              {googleReviewUrl && (
+                <a
+                  href={googleReviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl bg-secondary/50 text-secondary-foreground font-semibold text-sm border border-primary/10 transition-all active:scale-[0.98] hover:bg-secondary/70 hover:border-primary/20"
+                >
+                  <Star className="w-5 h-5 shrink-0 text-primary" />
+                  Leave a Review on Google
                 </a>
               )}
             </div>
