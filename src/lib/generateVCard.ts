@@ -21,6 +21,7 @@ export function generateVCard(card: BusinessCard): string {
     lines.push(`item3.URL:https://instagram.com/${handle}`, `item3.X-ABLabel:Instagram`);
   }
   if (card.website_url) lines.push(`item4.URL:${card.website_url}`, `item4.X-ABLabel:Website`);
+  if (card.google_review_url) lines.push(`item5.URL:${card.google_review_url}`, `item5.X-ABLabel:Leave a Review on Google`);
   if (card.logo_url) lines.push(`PHOTO;VALUE=URI:${card.logo_url}`);
 
   lines.push('END:VCARD');

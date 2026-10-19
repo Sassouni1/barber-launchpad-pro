@@ -168,6 +168,15 @@ Deno.serve(async (req) => {
                 },
               ]
             : []),
+          ...(normalizeWebsiteUrl(card.google_review_url)
+            ? [
+                {
+                  uri: `${normalizeWebsiteUrl(card.google_review_url)}`,
+                  description: "Leave a Review on Google",
+                  id: "google-review",
+                },
+              ]
+            : []),
         ],
       },
       textModulesData: [

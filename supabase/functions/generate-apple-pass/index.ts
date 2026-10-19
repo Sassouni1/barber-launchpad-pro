@@ -171,6 +171,9 @@ Deno.serve(async (req) => {
           ...(normalizeWebsiteUrl(card.website_url)
             ? [{ key: "websiteback", label: "Website", value: `${normalizeWebsiteUrl(card.website_url)}`, attributedValue: `<a href="${normalizeWebsiteUrl(card.website_url)}">Visit Website</a>` }]
             : []),
+          ...(normalizeWebsiteUrl(card.google_review_url)
+            ? [{ key: "googlereview", label: "Google Review", value: `${normalizeWebsiteUrl(card.google_review_url)}`, attributedValue: `<a href="${normalizeWebsiteUrl(card.google_review_url)}">Leave a Review on Google</a>` }]
+            : []),
         ],
       },
       barcode: {
