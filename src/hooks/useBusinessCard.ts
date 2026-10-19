@@ -13,6 +13,7 @@ export interface BusinessCard {
   gallery_url: string;
   instagram_handle: string;
   website_url: string;
+  google_review_url: string;
   phone: string;
   email: string;
   logo_url: string;

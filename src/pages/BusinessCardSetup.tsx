@@ -28,6 +28,7 @@ export default function BusinessCardSetup() {
   const [galleryUrl, setGalleryUrl] = useState('');
   const [instagramHandle, setInstagramHandle] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [googleReviewUrl, setGoogleReviewUrl] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -46,6 +47,7 @@ export default function BusinessCardSetup() {
       setGalleryUrl(card.gallery_url);
       setInstagramHandle(card.instagram_handle || '');
       setWebsiteUrl(card.website_url || '');
+      setGoogleReviewUrl(card.google_review_url || '');
       setPhone(card.phone || '');
       setEmail(card.email || '');
       setLogoUrl(card.logo_url || '');
@@ -69,6 +71,7 @@ export default function BusinessCardSetup() {
         gallery_url: normalizeWebsiteUrl(galleryUrl) || '',
         instagram_handle: normalizeInstagramHandle(instagramHandle) || '',
         website_url: normalizeWebsiteUrl(websiteUrl) || '',
+        google_review_url: normalizeWebsiteUrl(googleReviewUrl) || '',
         phone: phone.trim(),
         email: email.trim(),
         logo_url: logoUrl,
@@ -176,6 +179,12 @@ export default function BusinessCardSetup() {
             <div className="space-y-2">
               <Label>Website <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://yourbusiness.com" className="bg-secondary/50" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Google Business Profile <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input value={googleReviewUrl} onChange={e => setGoogleReviewUrl(e.target.value)} placeholder="https://g.page/r/yourbusiness/review" className="bg-secondary/50" />
+              <p className="text-xs text-muted-foreground">Paste your Google review link — clients will see "Leave a Review on Google" on your card.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
