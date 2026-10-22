@@ -57,25 +57,11 @@ export async function printImageFromUrl(url: string, title = 'Certificate'): Pro
   // in the opener window inside a document.write'd popup, which left the
   // print view showing a broken image.
   const dataUrl = await blobToDataUrl(blob);
-  const cleanup = () => {};
   const html = `<!doctype html><html><head><title>${title}</title><style>@page{size:landscape;margin:0}html,body{margin:0;padding:0;height:100%}img{display:block;width:100vw;height:100vh;object-fit:contain}</style></head><body><img src="${dataUrl}" alt="${title}"></body></html>`;
-  const wireUp = (doc: Document, win: Window, done: () => void) => {
-    const img = doc.querySelector('img');
-    const trigger = () => { win.focus(); win.print(); done(); };
-    if (!img) { done(); return; }
-    if (img.complete) trigger();
-    else img.addEventListener('load', trigger, { once: true });
-  };
 
-  const printWindow = window.open('', '_blank');
-  if (printWindow) {
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-    wireUp(printWindow.document, printWindow, cleanup);
-    return true;
-  }
-
+  // Always print from a hidden same-tab frame. Popup windows are blocked on
+  // many mobile browsers, and Safari prints a blank page when print() fires
+  // before the image has decoded — so we wait for decode() first.
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
@@ -83,20 +69,38 @@ export async function printImageFromUrl(url: string, title = 'Certificate'): Pro
   iframe.style.width = '0';
   iframe.style.height = '0';
   iframe.style.border = '0';
+  iframe.setAttribute('aria-hidden', 'true');
   document.body.appendChild(iframe);
   const doc = iframe.contentDocument;
   const win = iframe.contentWindow;
   if (!doc || !win) {
     iframe.remove();
-    cleanup();
     return false;
   }
   doc.open();
   doc.write(html);
   doc.close();
-  wireUp(doc, win, () => {
-    cleanup();
+
+  const img = doc.querySelector('img');
+  const trigger = () => {
+    win.focus();
+    win.print();
     window.setTimeout(() => iframe.remove(), 60_000);
-  });
+  };
+  if (!img) {
+    iframe.remove();
+    return false;
+  }
+  const whenReady = img.decode
+    ? img.decode().catch(() => {})
+    : new Promise<void>((resolve) => {
+        if (img.complete) resolve();
+        else {
+          img.addEventListener('load', () => resolve(), { once: true });
+          img.addEventListener('error', () => resolve(), { once: true });
+        }
+      });
+  // Small extra delay so Safari has laid out the decoded image before printing.
+  whenReady.then(() => window.setTimeout(trigger, 150));
   return true;
 }
