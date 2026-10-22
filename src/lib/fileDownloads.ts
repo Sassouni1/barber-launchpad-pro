@@ -39,68 +39,72 @@ export async function fetchDownload(url: string): Promise<Blob> {
   return blob;
 }
 
-// Opens an image (e.g. a certificate) in a print-ready view and triggers the
-// browser print dialog. Landscape page, image fitted to the sheet. Falls back
-// to a hidden iframe when popups are blocked (common on mobile).
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error('Could not read the file for printing'));
-    reader.readAsDataURL(blob);
-  });
+// Certificate printing. Prints from the main document using a print-only
+// stylesheet (no popup, no iframe): popups are blocked on mobile and a hidden
+// 0x0 iframe gives the image zero size, which printed a blank page in Safari.
+// The image is preloaded + decoded before the click so window.print() can run
+// synchronously inside the user's tap.
+const preparedImages = new Map<string, Promise<HTMLImageElement>>();
+
+export function preparePrintImage(url: string): Promise<HTMLImageElement> {
+  let pending = preparedImages.get(url);
+  if (!pending) {
+    pending = (async () => {
+      const blob = await fetchDownload(url);
+      const img = new Image();
+      img.src = URL.createObjectURL(blob);
+      if (img.decode) await img.decode();
+      else await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(new Error('Could not load the certificate')); });
+      return img;
+    })();
+    pending.catch(() => preparedImages.delete(url));
+    preparedImages.set(url, pending);
+  }
+  return pending;
+}
+
+const PRINT_ROOT_ID = 'print-image-root';
+const PRINT_STYLE_ID = 'print-image-style';
+const PRINT_CSS = `
+#${PRINT_ROOT_ID}{display:none}
+@media print{
+  @page{size:landscape;margin:0}
+  html,body{margin:0!important;padding:0!important;height:auto!important;overflow:visible!important;background:#fff!important}
+  body>*:not(#${PRINT_ROOT_ID}){display:none!important}
+  #${PRINT_ROOT_ID}{display:block!important;width:100%;page-break-inside:avoid;break-inside:avoid}
+  #${PRINT_ROOT_ID} img{display:block;width:100%;height:auto;max-height:100vh;object-fit:contain;margin:0 auto}
+}`;
+
+export function printPreparedImage(img: HTMLImageElement, title = 'Certificate') {
+  document.getElementById(PRINT_ROOT_ID)?.remove();
+  if (!document.getElementById(PRINT_STYLE_ID)) {
+    const style = document.createElement('style');
+    style.id = PRINT_STYLE_ID;
+    style.textContent = PRINT_CSS;
+    document.head.appendChild(style);
+  }
+  const root = document.createElement('div');
+  root.id = PRINT_ROOT_ID;
+  const copy = img.cloneNode() as HTMLImageElement;
+  copy.alt = title;
+  root.appendChild(copy);
+  document.body.appendChild(root);
+
+  const previousTitle = document.title;
+  document.title = title; // used as the default "Save as PDF" filename
+  const cleanup = () => {
+    root.remove();
+    document.title = previousTitle;
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  window.print();
+  // Fallback for browsers that don't fire afterprint.
+  window.setTimeout(() => { if (root.isConnected) cleanup(); }, 120_000);
 }
 
 export async function printImageFromUrl(url: string, title = 'Certificate'): Promise<boolean> {
-  const blob = await fetchDownload(url);
-  // Inline the image as a data URL: Safari cannot resolve blob: URLs created
-  // in the opener window inside a document.write'd popup, which left the
-  // print view showing a broken image.
-  const dataUrl = await blobToDataUrl(blob);
-  const html = `<!doctype html><html><head><title>${title}</title><style>@page{size:landscape;margin:0}html,body{margin:0;padding:0;height:100%}img{display:block;width:100vw;height:100vh;object-fit:contain}</style></head><body><img src="${dataUrl}" alt="${title}"></body></html>`;
-
-  // Always print from a hidden same-tab frame. Popup windows are blocked on
-  // many mobile browsers, and Safari prints a blank page when print() fires
-  // before the image has decoded — so we wait for decode() first.
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  iframe.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(iframe);
-  const doc = iframe.contentDocument;
-  const win = iframe.contentWindow;
-  if (!doc || !win) {
-    iframe.remove();
-    return false;
-  }
-  doc.open();
-  doc.write(html);
-  doc.close();
-
-  const img = doc.querySelector('img');
-  const trigger = () => {
-    win.focus();
-    win.print();
-    window.setTimeout(() => iframe.remove(), 60_000);
-  };
-  if (!img) {
-    iframe.remove();
-    return false;
-  }
-  const whenReady = img.decode
-    ? img.decode().catch(() => {})
-    : new Promise<void>((resolve) => {
-        if (img.complete) resolve();
-        else {
-          img.addEventListener('load', () => resolve(), { once: true });
-          img.addEventListener('error', () => resolve(), { once: true });
-        }
-      });
-  // Small extra delay so Safari has laid out the decoded image before printing.
-  whenReady.then(() => window.setTimeout(trigger, 150));
+  const img = await preparePrintImage(url);
+  printPreparedImage(img, title);
   return true;
 }
