@@ -1,4 +1,5 @@
 import { FileDownloadButton } from '@/components/ui/file-download-button';
+import { PrintImageButton } from '@/components/ui/print-image-button';
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw, Camera, Star, ArrowRight, BookOpen, Download } from 'lucide-react';
@@ -288,15 +289,22 @@ export function CertificationSection({ courseId }: CertificationSectionProps) {
                   className="w-full"
                 />
               </div>
-              <FileDownloadButton
-                url={certificateUrlWithCache || ''}
-                filename={`certificate-${existingCertification?.certificate_name.replace(/\s+/g, '-') || 'certificate'}.png`}
-                label={existingCertification?.downloaded_at ? 'Downloaded' : 'Download Certificate'}
-                className="w-full"
-                onDelivered={() => {
-                  if (existingCertification?.id) markDownloaded.mutate({ courseId, certificationId: existingCertification.id });
-                }}
-              />
+              <div className="flex gap-2">
+                <FileDownloadButton
+                  url={certificateUrlWithCache || ''}
+                  filename={`certificate-${existingCertification?.certificate_name.replace(/\s+/g, '-') || 'certificate'}.png`}
+                  label={existingCertification?.downloaded_at ? 'Downloaded' : 'Download Certificate'}
+                  className="flex-1"
+                  onDelivered={() => {
+                    if (existingCertification?.id) markDownloaded.mutate({ courseId, certificationId: existingCertification.id });
+                  }}
+                />
+                <PrintImageButton
+                  url={certificateUrlWithCache || ''}
+                  title={`Certificate - ${existingCertification?.certificate_name || 'Level 1'}`}
+                  className="flex-1"
+                />
+              </div>
             </div>
           )}
 

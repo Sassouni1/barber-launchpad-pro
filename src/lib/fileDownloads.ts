@@ -38,3 +38,53 @@ export async function fetchDownload(url: string): Promise<Blob> {
   }
   return blob;
 }
+
+// Opens an image (e.g. a certificate) in a print-ready view and triggers the
+// browser print dialog. Landscape page, image fitted to the sheet. Falls back
+// to a hidden iframe when popups are blocked (common on mobile).
+export async function printImageFromUrl(url: string, title = 'Certificate'): Promise<boolean> {
+  const blob = await fetchDownload(url);
+  const objectUrl = URL.createObjectURL(blob);
+  const cleanup = () => window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  const html = `<!doctype html><html><head><title>${title}</title><style>@page{size:landscape;margin:0}html,body{margin:0;padding:0;height:100%}img{display:block;width:100vw;height:100vh;object-fit:contain}</style></head><body><img src="${objectUrl}" alt="${title}"></body></html>`;
+  const wireUp = (doc: Document, win: Window, done: () => void) => {
+    const img = doc.querySelector('img');
+    const trigger = () => { win.focus(); win.print(); done(); };
+    if (!img) { done(); return; }
+    if (img.complete) trigger();
+    else img.addEventListener('load', trigger, { once: true });
+  };
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    wireUp(printWindow.document, printWindow, cleanup);
+    return true;
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  const win = iframe.contentWindow;
+  if (!doc || !win) {
+    iframe.remove();
+    cleanup();
+    return false;
+  }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  wireUp(doc, win, () => {
+    cleanup();
+    window.setTimeout(() => iframe.remove(), 60_000);
+  });
+  return true;
+}

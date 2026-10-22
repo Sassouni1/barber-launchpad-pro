@@ -1,4 +1,5 @@
 import { FileDownloadButton } from '@/components/ui/file-download-button';
+import { PrintImageButton } from '@/components/ui/print-image-button';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw, ZoomIn, ZoomOut, Search } from 'lucide-react';
@@ -620,6 +621,11 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
                     onDelivered={() => {
                       if (courseId && existingCertification?.id) markDownloaded.mutate({ courseId, certificationId: existingCertification.id });
                     }}
+                  />
+                  <PrintImageButton
+                    url={generatedCertificateUrl || existingCertification?.certificate_url || ''}
+                    title={`Certificate - ${existingCertification?.certificate_name || 'Level 1'}`}
+                    className="flex-1"
                   />
                   <Button
                     variant="outline"
