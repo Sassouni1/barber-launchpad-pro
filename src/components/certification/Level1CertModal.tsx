@@ -621,6 +621,11 @@ export function Level1CertModal({ isOpen, onClose, openEditForm = false }: Level
                       if (courseId && existingCertification?.id) markDownloaded.mutate({ courseId, certificationId: existingCertification.id });
                     }}
                   />
+                  <PrintImageButton
+                    url={generatedCertificateUrl || existingCertification?.certificate_url || ''}
+                    title={`Certificate - ${existingCertification?.certificate_name || 'Level 1'}`}
+                    className="flex-1"
+                  />
                   <Button
                     variant="outline"
                     onClick={handleEditCertificate}
