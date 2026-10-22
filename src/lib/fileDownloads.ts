@@ -42,11 +42,23 @@ export async function fetchDownload(url: string): Promise<Blob> {
 // Opens an image (e.g. a certificate) in a print-ready view and triggers the
 // browser print dialog. Landscape page, image fitted to the sheet. Falls back
 // to a hidden iframe when popups are blocked (common on mobile).
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Could not read the file for printing'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 export async function printImageFromUrl(url: string, title = 'Certificate'): Promise<boolean> {
   const blob = await fetchDownload(url);
-  const objectUrl = URL.createObjectURL(blob);
-  const cleanup = () => window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-  const html = `<!doctype html><html><head><title>${title}</title><style>@page{size:landscape;margin:0}html,body{margin:0;padding:0;height:100%}img{display:block;width:100vw;height:100vh;object-fit:contain}</style></head><body><img src="${objectUrl}" alt="${title}"></body></html>`;
+  // Inline the image as a data URL: Safari cannot resolve blob: URLs created
+  // in the opener window inside a document.write'd popup, which left the
+  // print view showing a broken image.
+  const dataUrl = await blobToDataUrl(blob);
+  const cleanup = () => {};
+  const html = `<!doctype html><html><head><title>${title}</title><style>@page{size:landscape;margin:0}html,body{margin:0;padding:0;height:100%}img{display:block;width:100vw;height:100vh;object-fit:contain}</style></head><body><img src="${dataUrl}" alt="${title}"></body></html>`;
   const wireUp = (doc: Document, win: Window, done: () => void) => {
     const img = doc.querySelector('img');
     const trigger = () => { win.focus(); win.print(); done(); };
