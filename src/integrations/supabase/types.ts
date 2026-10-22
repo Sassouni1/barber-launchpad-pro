@@ -1656,6 +1656,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           gallery_url: string
+          google_review_url: string | null
           hero_image_url: string | null
           id: string
           instagram_handle: string | null
@@ -1675,6 +1676,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           gallery_url?: string
+          google_review_url?: string | null
           hero_image_url?: string | null
           id?: string
           instagram_handle?: string | null
@@ -1694,6 +1696,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           gallery_url?: string
+          google_review_url?: string | null
           hero_image_url?: string | null
           id?: string
           instagram_handle?: string | null
