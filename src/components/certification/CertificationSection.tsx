@@ -1,4 +1,5 @@
 import { FileDownloadButton } from '@/components/ui/file-download-button';
+import { PrintImageButton } from '@/components/ui/print-image-button';
 import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Award, CheckCircle, Loader2, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, RotateCw, Camera, Star, ArrowRight, BookOpen, Download } from 'lucide-react';

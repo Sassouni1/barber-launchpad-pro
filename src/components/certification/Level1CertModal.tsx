@@ -1,4 +1,5 @@
 import { FileDownloadButton } from '@/components/ui/file-download-button';
+import { PrintImageButton } from '@/components/ui/print-image-button';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Award, CheckCircle, Circle, Loader2, Download, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw, ZoomIn, ZoomOut, Search } from 'lucide-react';
