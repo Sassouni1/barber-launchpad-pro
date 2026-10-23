@@ -103,22 +103,6 @@ export function printPreparedImage(img: HTMLImageElement, title = 'Certificate')
   window.setTimeout(() => { if (root.isConnected) cleanup(); }, 120_000);
 }
 
-export async function downloadLandscapeCertificatePdf(img: HTMLImageElement, title = 'Certificate') {
-  const { jsPDF } = await import('jspdf');
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter' });
-  const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('Could not prepare the certificate PDF');
-  context.drawImage(img, 0, 0);
-  const scale = Math.min(10.5 / canvas.width, 8 / canvas.height);
-  const width = canvas.width * scale;
-  const height = canvas.height * scale;
-  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (11 - width) / 2, (8.5 - height) / 2, width, height);
-  downloadBlob(pdf.output('blob'), `${title.replace(/[^a-z0-9-_ ]/gi, '').trim() || 'Certificate'}.pdf`);
-}
-
 export async function printImageFromUrl(url: string, title = 'Certificate'): Promise<boolean> {
   const img = await preparePrintImage(url);
   printPreparedImage(img, title);

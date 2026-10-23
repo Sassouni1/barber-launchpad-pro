@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Printer, Download, Loader2 } from 'lucide-react';
+import { Printer, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { downloadLandscapeCertificatePdf, preparePrintImage, printPreparedImage } from '@/lib/fileDownloads';
-
-const safari = /^((?!chrome|crios|fxios|edg|opr).)*safari/i.test(navigator.userAgent);
+import { preparePrintImage, printPreparedImage } from '@/lib/fileDownloads';
 
 export function PrintImageButton({ url, title = 'Certificate', className, label = 'Print' }: { url: string; title?: string; className?: string; label?: string }) {
   const [busy, setBusy] = useState(false);
@@ -21,20 +19,6 @@ export function PrintImageButton({ url, title = 'Certificate', className, label 
   }, [url]);
 
   const print = async () => {
-    if (safari) {
-      setBusy(true);
-      try {
-        const img = readyImage.current || await preparePrintImage(url);
-        readyImage.current = img;
-        await downloadLandscapeCertificatePdf(img, title);
-        toast.info('Open the downloaded PDF in Preview to print it in landscape.');
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Could not prepare the certificate PDF');
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
     if (readyImage.current) {
       printPreparedImage(readyImage.current, title);
       return;
@@ -53,8 +37,8 @@ export function PrintImageButton({ url, title = 'Certificate', className, label 
 
   return (
     <Button variant="outline" size="sm" onClick={print} disabled={busy || !url} className={className}>
-      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : safari ? <Download className="h-3.5 w-3.5" /> : <Printer className="h-3.5 w-3.5" />}
-      {busy ? 'Preparing…' : safari ? 'Landscape PDF' : label}
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+      {busy ? 'Preparing…' : label}
     </Button>
   );
 }
