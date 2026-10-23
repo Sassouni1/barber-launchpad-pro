@@ -74,7 +74,7 @@ const PRINT_CSS = `
   body>*:not(#${PRINT_ROOT_ID}){display:none!important}
   #${PRINT_ROOT_ID}{display:flex!important;align-items:center;justify-content:center;box-sizing:border-box;width:11in;height:8.5in;padding:0.25in;margin:0;page-break-inside:avoid;break-inside:avoid}
   #${PRINT_ROOT_ID} img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center;margin:0}
-  #${PRINT_ROOT_ID}.safari-portrait{position:relative;width:8in;height:9.5in;padding:0;overflow:hidden}
+  #${PRINT_ROOT_ID}.safari-portrait{position:relative;width:8in;height:9.5in;padding:0;overflow:hidden;transform:translateY(0.6in)}
   #${PRINT_ROOT_ID}.safari-portrait img{position:absolute;top:50%;left:50%;width:9.5in;height:7.5in;max-width:none;max-height:none;transform:translate(-50%,-50%) rotate(90deg)}
 }`;
 
