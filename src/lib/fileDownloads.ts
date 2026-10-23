@@ -68,11 +68,11 @@ const PRINT_STYLE_ID = 'print-image-style';
 const PRINT_CSS = `
 #${PRINT_ROOT_ID}{display:none}
 @media print{
-  @page{size:landscape;margin:0}
+  @page{size:letter landscape;margin:0}
   html,body{margin:0!important;padding:0!important;height:auto!important;overflow:visible!important;background:#fff!important}
   body>*:not(#${PRINT_ROOT_ID}){display:none!important}
-  #${PRINT_ROOT_ID}{display:block!important;width:100%;page-break-inside:avoid;break-inside:avoid}
-  #${PRINT_ROOT_ID} img{display:block;width:100%;height:auto;max-height:100vh;object-fit:contain;margin:0 auto}
+  #${PRINT_ROOT_ID}{display:flex!important;align-items:center;justify-content:center;box-sizing:border-box;width:11in;height:8.5in;padding:0.25in;margin:0;page-break-inside:avoid;break-inside:avoid}
+  #${PRINT_ROOT_ID} img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center;margin:0}
 }`;
 
 export function printPreparedImage(img: HTMLImageElement, title = 'Certificate') {
