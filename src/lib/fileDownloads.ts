@@ -65,6 +65,7 @@ export function preparePrintImage(url: string): Promise<HTMLImageElement> {
 
 const PRINT_ROOT_ID = 'print-image-root';
 const PRINT_STYLE_ID = 'print-image-style';
+const isSafari = /^((?!chrome|crios|fxios|edg|opr).)*safari/i.test(navigator.userAgent);
 const PRINT_CSS = `
 #${PRINT_ROOT_ID}{display:none}
 @media print{
@@ -73,6 +74,8 @@ const PRINT_CSS = `
   body>*:not(#${PRINT_ROOT_ID}){display:none!important}
   #${PRINT_ROOT_ID}{display:flex!important;align-items:center;justify-content:center;box-sizing:border-box;width:11in;height:8.5in;padding:0.25in;margin:0;page-break-inside:avoid;break-inside:avoid}
   #${PRINT_ROOT_ID} img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center;margin:0}
+  #${PRINT_ROOT_ID}.safari-portrait{position:relative;width:8in;height:9.5in;padding:0;overflow:hidden}
+  #${PRINT_ROOT_ID}.safari-portrait img{position:absolute;top:50%;left:50%;width:9.5in;height:7.5in;max-width:none;max-height:none;transform:translate(-50%,-50%) rotate(90deg)}
 }`;
 
 export function printPreparedImage(img: HTMLImageElement, title = 'Certificate') {
@@ -85,6 +88,7 @@ export function printPreparedImage(img: HTMLImageElement, title = 'Certificate')
   }
   const root = document.createElement('div');
   root.id = PRINT_ROOT_ID;
+  if (isSafari) root.className = 'safari-portrait';
   const copy = img.cloneNode() as HTMLImageElement;
   copy.alt = title;
   root.appendChild(copy);
