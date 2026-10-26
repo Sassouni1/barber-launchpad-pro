@@ -206,8 +206,8 @@ function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEdi
                     className="w-36 sm:w-40"
                   />
                   {order.tracking_number && <Input
-                    placeholder="Reason for reopening (optional)"
-                    aria-label="Reason for reopening"
+                    placeholder="Issue or reason (optional)"
+                    aria-label="Issue or reason for reopening"
                     value={reopenNote}
                     onChange={(e) => setReopenNote(e.target.value)}
                     className="w-52"
@@ -217,7 +217,7 @@ function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEdi
                       <Check className="w-4 h-4 mr-1" /> Save tracking
                     </Button>
                     {order.tracking_number && <Button size="sm" variant="outline" onClick={() => onReopen(order.id)} disabled={isSaving || isReopening}>
-                      <RotateCcw className="w-4 h-4 mr-1" /> Reopen order
+                      <RotateCcw className="w-4 h-4 mr-1" /> Issue / Reopen Order
                     </Button>}
                     <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                   </div>
@@ -362,7 +362,7 @@ export default function ManufacturerOrders() {
   const handleReopen = async (orderId: string) => {
     try {
       await reopenOrder.mutateAsync({ orderId, note: reopenNote });
-      toast.success('Order reopened — needs tracking');
+      toast.success('Order moved back to Needs Tracking; previous tracking saved');
       setEditingId(null);
       setTrackingNumber('');
       setReopenNote('');
