@@ -1,5 +1,10 @@
 # Roadmap
 
+## GHL kit supplier path
+- [ ] Inspect live schema, relay payment-read capabilities and current main supplier-page contract.
+- [ ] Add inactive kit-only qualification, atomic reservation and supplier-page deep link/shipping support.
+- [ ] Run safety tests, verify page and deployed inactive diagnostics; no activation, backfill or messages.
+
 ## Chris-only live $1 verification
 - [x] Add one-time server-authorized live checkout and conditional test-only supplier/receipt/SMS notices; normal checkout unchanged.
 - [x] Pass 34 network-disabled fixture/regression tests and three function checks; deploy checkout/webhook/reconcile and request publication. Existing nine critical security findings remain; workspace permits publication.
