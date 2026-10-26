@@ -2498,6 +2498,68 @@ export type Database = {
         }
         Relationships: []
       }
+      hair_system_kit_activation: {
+        Row: {
+          activation_cutoff: string
+          enabled: boolean
+          singleton: boolean
+        }
+        Insert: {
+          activation_cutoff?: string
+          enabled?: boolean
+          singleton?: boolean
+        }
+        Update: {
+          activation_cutoff?: string
+          enabled?: boolean
+          singleton?: boolean
+        }
+        Relationships: []
+      }
+      hair_system_kit_deliveries: {
+        Row: {
+          completed_at: string | null
+          ghl_order_id: string
+          id: string
+          location_id: string
+          message_id: string | null
+          order_id: string
+          reason: string | null
+          reserved_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          ghl_order_id: string
+          id?: string
+          location_id: string
+          message_id?: string | null
+          order_id: string
+          reason?: string | null
+          reserved_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          ghl_order_id?: string
+          id?: string
+          location_id?: string
+          message_id?: string | null
+          order_id?: string
+          reason?: string | null
+          reserved_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hair_system_kit_deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hair_system_test_drafts: {
         Row: {
           admin_user_id: string

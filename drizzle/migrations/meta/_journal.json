@@ -8,6 +8,13 @@
       "when": 1792346245184,
       "tag": "0000_hair_system_test_mode_isolation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793051357653,
+      "tag": "0001_hair_system_kit_inactive_delivery",
+      "breakpoints": true
     }
   ]
 }
