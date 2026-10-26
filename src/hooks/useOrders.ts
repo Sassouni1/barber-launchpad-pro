@@ -6,7 +6,9 @@ import { receiptEligibleOrders } from '@/lib/receiptEligibility';
 
 type Order = Tables<'orders'>;
 export const TRACKING_ADDED_AT_KEY = 'supplier_tracking_added_at';
+export const TRACKING_CARRIER_KEY = 'supplier_tracking_carrier';
 export const REOPEN_HISTORY_KEY = 'supplier_reopen_history';
+export type TrackingCarrier = 'DHL' | 'FedEx' | 'Other';
 
 export function useUserOrders() {
   const { user } = useAuth();
@@ -46,8 +48,9 @@ export function useAllOrders() {
 export function useUpdateTracking() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ orderId, trackingNumber }: { orderId: string; trackingNumber: string }) => {
-      const hasTracking = !!trackingNumber.trim();
+    mutationFn: async ({ orderId, trackingNumber, carrier }: { orderId: string; trackingNumber: string; carrier: TrackingCarrier }) => {
+      const number = trackingNumber.trim();
+      if (!number) throw new Error('Enter a tracking number.');
       const { data: order, error: readError } = await supabase
         .from('orders')
         .select('tracking_number, order_details, updated_at')
@@ -58,20 +61,22 @@ export function useUpdateTracking() {
       const details = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
         ? { ...order.order_details }
         : {};
-      if (hasTracking) {
-        // Editing a tracking number must not restart the eight-day archive clock.
-        details[TRACKING_ADDED_AT_KEY] = order.tracking_number
-          ? details[TRACKING_ADDED_AT_KEY] || order.updated_at
-          : new Date().toISOString();
-      } else {
-        delete details[TRACKING_ADDED_AT_KEY];
-      }
+      // Editing a tracking number must not restart the eight-day archive clock.
+      details[TRACKING_ADDED_AT_KEY] = order.tracking_number
+        ? details[TRACKING_ADDED_AT_KEY] || order.updated_at
+        : new Date().toISOString();
+      details[TRACKING_CARRIER_KEY] = carrier;
+      const trackingUrl = carrier === 'FedEx'
+        ? `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(number)}`
+        : carrier === 'DHL'
+          ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}`
+          : null;
       const { data: updated, error } = await supabase
         .from('orders')
         .update({
-          tracking_number: hasTracking ? trackingNumber : null,
-          tracking_url: hasTracking ? `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber.trim()}` : null,
-          status: hasTracking ? 'shipped' : 'processing',
+          tracking_number: number,
+          tracking_url: trackingUrl,
+          status: 'shipped',
           order_details: details,
         })
         .eq('id', orderId)
@@ -104,10 +109,12 @@ export function useReopenOrder() {
       const previousHistory = Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
       details[REOPEN_HISTORY_KEY] = [...previousHistory, {
         tracking_number: order.tracking_number,
+        carrier: details[TRACKING_CARRIER_KEY] || null,
         reopened_at: new Date().toISOString(),
         note: note.trim(),
       }];
       delete details[TRACKING_ADDED_AT_KEY];
+      delete details[TRACKING_CARRIER_KEY];
 
       const { data: updated, error } = await supabase
         .from('orders')

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAllOrders, useUpdateTracking, useReopenOrder, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY, REOPEN_HISTORY_KEY } from '@/hooks/useOrders';
+import { useAllOrders, useUpdateTracking, useReopenOrder, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY, REOPEN_HISTORY_KEY, type TrackingCarrier } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,15 @@ import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Order = Tables<'orders'>;
+const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
+
+function savedTrackingCarrier(order: Order): TrackingCarrier | null {
+  const details = order.order_details;
+  const value = details && typeof details === 'object' && !Array.isArray(details)
+    ? details[TRACKING_CARRIER_KEY]
+    : null;
+  return TRACKING_CARRIERS.find(carrier => carrier === value) ?? null;
+}
 
 // Nikkole Abila's October 20 order is the first current order (6:48 PM PDT).
 const CURRENT_ORDERS_START = new Date('2026-10-21T01:48:00Z').getTime();
@@ -112,9 +121,11 @@ interface OrderCardProps {
   index?: number;
   editingId: string | null;
   trackingNumber: string;
+  trackingCarrier: TrackingCarrier | null;
   reopenNote: string;
   setEditingId: (id: string | null) => void;
   setTrackingNumber: (v: string) => void;
+  setTrackingCarrier: (v: TrackingCarrier | null) => void;
   setReopenNote: (v: string) => void;
   onSave: (orderId: string) => void;
   onReopen: (orderId: string) => void;
@@ -145,11 +156,12 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEditingId, setTrackingNumber, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
+function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
   const barber = extractBarberInfo(details);
+  const savedCarrier = savedTrackingCarrier(order);
   const reopenHistory = details && Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
   const lastReopen = reopenHistory.at(-1);
   const isReopened = reopenHistory.length > 0 && order.status === 'processing' && !order.tracking_number;
@@ -165,7 +177,7 @@ function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEdi
     if (lineItems.length > 1) lines.push(`Add Ons: ${lineItems.slice(1).join(', ')}`);
     specs.forEach(s => lines.push(`${s.key}: ${s.value}`));
     if (shipping) lines.push(`Shipping: ${shipping}`);
-    if (order.tracking_number) lines.push(`Tracking: ${order.tracking_number}`);
+    if (order.tracking_number) lines.push(`Tracking: ${savedCarrier ? `${savedCarrier} ` : ''}${order.tracking_number}`);
     return lines.join('\n');
   };
 
@@ -185,8 +197,10 @@ function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEdi
               </p>
               {order.tracking_number && (
                 <p className="text-sm flex items-center gap-1.5 flex-wrap">
-                  Tracking: <span className="font-mono break-all">{order.tracking_number}</span>
+                  Tracking: {savedCarrier && <span className="font-semibold">{savedCarrier}</span>}
+                  <span className="font-mono break-all">{order.tracking_number}</span>
                   <CopyBtn text={order.tracking_number} label="Tracking" />
+                  {order.tracking_url && savedCarrier && <a href={order.tracking_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Track package</a>}
                 </p>
               )}
               {lastReopen && (
@@ -199,12 +213,20 @@ function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEdi
             {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:flex-row sm:items-center sm:p-2.5 ${editingId === order.id ? 'col-span-2 w-full items-start' : 'items-end'}`}>
               {editingId === order.id ? (
                 <div className="flex w-full flex-col items-start gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-                  <Input
+                  <div role="group" aria-label="Shipping carrier" className="flex flex-wrap gap-1.5">
+                    {TRACKING_CARRIERS.map(carrier => (
+                      <Button key={carrier} size="sm" type="button" variant={trackingCarrier === carrier ? 'default' : 'outline'} aria-pressed={trackingCarrier === carrier} onClick={() => setTrackingCarrier(carrier)}>
+                        {carrier}
+                      </Button>
+                    ))}
+                  </div>
+                  {(trackingCarrier || order.tracking_number) && <Input
                     placeholder="Tracking #"
+                    aria-label="Tracking number"
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
                     className="w-36 sm:w-40"
-                  />
+                  />}
                   {order.tracking_number && <Input
                     placeholder="Issue or reason (optional)"
                     aria-label="Issue or reason for reopening"
@@ -213,7 +235,7 @@ function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEdi
                     className="w-52"
                   />}
                   <div className="flex items-center gap-2">
-                    <Button size="sm" onClick={() => onSave(order.id)} disabled={isSaving || isReopening || !trackingNumber.trim()} aria-label="Save tracking">
+                    <Button size="sm" onClick={() => onSave(order.id)} disabled={isSaving || isReopening || !trackingCarrier || !trackingNumber.trim()} aria-label="Save tracking">
                       <Check className="w-4 h-4 mr-1" /> Save tracking
                     </Button>
                     {order.tracking_number && <Button size="sm" variant="outline" onClick={() => onReopen(order.id)} disabled={isSaving || isReopening}>
@@ -243,6 +265,7 @@ function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEdi
                       onClick={() => {
                         setEditingId(order.id);
                         setTrackingNumber(order.tracking_number || '');
+                        setTrackingCarrier(savedCarrier);
                         setReopenNote('');
                       }}
                     >
@@ -339,6 +362,7 @@ export default function ManufacturerOrders() {
   const { isAdmin } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingCarrier, setTrackingCarrier] = useState<TrackingCarrier | null>(null);
   const [reopenNote, setReopenNote] = useState('');
   const [search, setSearch] = useState('');
   const [now, setNow] = useState(() => Date.now());
@@ -350,10 +374,12 @@ export default function ManufacturerOrders() {
 
   const handleSave = async (orderId: string) => {
     try {
-      await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim() });
-      toast.success(trackingNumber.trim() ? 'Tracking added — order completed / shipped' : 'Tracking removed — order needs tracking');
+      if (!trackingCarrier) throw new Error('Choose DHL, FedEx, or Other.');
+      await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim(), carrier: trackingCarrier });
+      toast.success('Tracking added — order completed / shipped');
       setEditingId(null);
       setTrackingNumber('');
+      setTrackingCarrier(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update tracking');
     }
@@ -365,6 +391,7 @@ export default function ManufacturerOrders() {
       toast.success('Order moved back to Needs Tracking; previous tracking saved');
       setEditingId(null);
       setTrackingNumber('');
+      setTrackingCarrier(null);
       setReopenNote('');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to reopen order');
@@ -423,9 +450,11 @@ export default function ManufacturerOrders() {
   const cardProps = {
     editingId,
     trackingNumber,
+    trackingCarrier,
     reopenNote,
     setEditingId,
     setTrackingNumber,
+    setTrackingCarrier,
     setReopenNote,
     onSave: handleSave,
     onReopen: handleReopen,
