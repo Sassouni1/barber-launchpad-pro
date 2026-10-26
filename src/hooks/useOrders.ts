@@ -62,7 +62,7 @@ export function useUpdateTracking() {
   });
 }
 
-export function useMarkOrderReviewed() {
+export function useMarkOrderPlaced() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (orderId: string) => {

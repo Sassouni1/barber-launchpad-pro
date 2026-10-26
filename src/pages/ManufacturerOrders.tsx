@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAllOrders, useUpdateTracking, useMarkOrderReviewed, useDeleteOrder } from '@/hooks/useOrders';
+import { useAllOrders, useUpdateTracking, useMarkOrderPlaced, useDeleteOrder } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,9 @@ import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Order = Tables<'orders'>;
+
+// Nikkole Abila's October 20 order is the first current order (6:48 PM PDT).
+const CURRENT_ORDERS_START = new Date('2026-10-21T01:48:00Z').getTime();
 
 const statusColors: Record<string, string> = {
   new: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
@@ -96,8 +99,9 @@ interface OrderCardProps {
   setTrackingNumber: (v: string) => void;
   onSave: (orderId: string) => void;
   isSaving: boolean;
-  onMarkReviewed: (orderId: string) => void;
-  isMarkingReviewed: boolean;
+  onOrderPlaced: (orderId: string) => void;
+  isPlacingOrder: boolean;
+  isPast?: boolean;
   isAdmin?: boolean;
   onDelete?: (orderId: string) => void;
 }
@@ -118,12 +122,14 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving, onMarkReviewed, isMarkingReviewed, isAdmin, onDelete }: OrderCardProps) {
+function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving, onOrderPlaced, isPlacingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
   const barber = extractBarberInfo(details);
-  const displayStatus = getDisplayStatus(order);
+  const displayStatus = isPast && !order.tracking_number
+    ? { label: 'Past Order', color: 'bg-muted text-muted-foreground border-border' }
+    : getDisplayStatus(order);
 
   const buildCopyAllText = () => {
     const lines: string[] = [];
@@ -175,22 +181,24 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  {order.status === 'pending' && !order.tracking_number && (
-                    <Button size="sm" variant="secondary" onClick={() => onMarkReviewed(order.id)} disabled={isMarkingReviewed}>
-                      Mark Reviewed
+                  {!isPast && order.status === 'pending' && !order.tracking_number && (
+                    <Button size="sm" variant="secondary" onClick={() => onOrderPlaced(order.id)} disabled={isPlacingOrder}>
+                      Order Placed
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setEditingId(order.id);
-                      setTrackingNumber(order.tracking_number || '');
-                    }}
-                  >
-                    <Truck className="w-4 h-4 mr-1" />
-                    {order.tracking_number ? 'Edit Tracking' : 'Add Tracking'}
-                  </Button>
+                  {!isPast && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingId(order.id);
+                        setTrackingNumber(order.tracking_number || '');
+                      }}
+                    >
+                      <Truck className="w-4 h-4 mr-1" />
+                      {order.tracking_number ? 'Edit Tracking' : 'Add Tracking'}
+                    </Button>
+                  )}
                   {isAdmin && onDelete && (
                     <Button
                       size="sm"
@@ -273,7 +281,7 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
 export default function ManufacturerOrders() {
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
-  const markReviewed = useMarkOrderReviewed();
+  const markOrderPlaced = useMarkOrderPlaced();
   const deleteOrder = useDeleteOrder();
   const { isAdmin } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -291,12 +299,12 @@ export default function ManufacturerOrders() {
     }
   };
 
-  const handleMarkReviewed = async (orderId: string) => {
+  const handleOrderPlaced = async (orderId: string) => {
     try {
-      await markReviewed.mutateAsync(orderId);
-      toast.success('Order moved to Needs Tracking');
+      await markOrderPlaced.mutateAsync(orderId);
+      toast.success('Order placed — needs tracking');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to mark order reviewed');
+      toast.error(error instanceof Error ? error.message : 'Failed to mark order placed');
     }
   };
 
@@ -318,9 +326,15 @@ export default function ManufacturerOrders() {
   const sortedOrders = useMemo(() => [...(orders ?? [])].sort((a, b) =>
     new Date(b.order_date).getTime() - new Date(a.order_date).getTime()
   ), [orders]);
-  const newOrders = filterOrders(sortedOrders.filter(o => !o.tracking_number && o.status === 'pending'));
-  const needsTracking = filterOrders(sortedOrders.filter(o => !o.tracking_number && o.status !== 'pending'));
-  const completedOrders = filterOrders(sortedOrders.filter(o => !!o.tracking_number));
+  const currentOrders = filterOrders(sortedOrders.filter(o =>
+    new Date(o.order_date).getTime() >= CURRENT_ORDERS_START && !o.tracking_number
+  ));
+  const completedOrders = filterOrders(sortedOrders.filter(o =>
+    new Date(o.order_date).getTime() >= CURRENT_ORDERS_START && !!o.tracking_number
+  ));
+  const pastOrders = filterOrders(sortedOrders.filter(o =>
+    new Date(o.order_date).getTime() < CURRENT_ORDERS_START
+  ));
 
   const handleDelete = async (orderId: string) => {
     try {
@@ -338,8 +352,8 @@ export default function ManufacturerOrders() {
     setTrackingNumber,
     onSave: handleSave,
     isSaving: updateTracking.isPending,
-    onMarkReviewed: handleMarkReviewed,
-    isMarkingReviewed: markReviewed.isPending,
+    onOrderPlaced: handleOrderPlaced,
+    isPlacingOrder: markOrderPlaced.isPending,
     isAdmin,
     onDelete: isAdmin ? handleDelete : undefined,
   };
@@ -350,7 +364,7 @@ export default function ManufacturerOrders() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-display font-bold">Order Management</h1>
-            <p className="text-muted-foreground text-sm mt-1">Review new orders, add tracking, and see shipped orders in one place.</p>
+            <p className="text-muted-foreground text-sm mt-1">Place new orders, add tracking, and see past orders in one place.</p>
           </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -370,9 +384,9 @@ export default function ManufacturerOrders() {
         ) : (
           <div className="space-y-10">
             {([
-              { title: 'New Orders', description: 'Recently received and waiting for review.', list: newOrders, empty: 'No new orders.' },
-              { title: 'Needs Tracking', description: 'Reviewed orders waiting for a tracking number.', list: needsTracking, empty: 'No orders need tracking.' },
+              { title: 'Current Orders', description: 'Newest first. Orders stay in place when marked placed; their status changes to Needs Tracking.', list: currentOrders, empty: 'No current orders need action.' },
               { title: 'Completed / Shipped', description: 'Tracking has been added. Delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
+              { title: 'Past Orders', description: 'Orders before Nikkole Abila’s October 20 order.', list: pastOrders, empty: 'No past orders.' },
             ] as const).map(section => (
               <section key={section.title} aria-label={section.title} className="space-y-4 border-t border-border/70 pt-6">
                 <div className="flex items-baseline gap-3">
@@ -383,7 +397,7 @@ export default function ManufacturerOrders() {
                 {section.list.length ? (
                   <div className="space-y-3">
                     {section.list.map((order, i) => (
-                      <OrderCard key={order.id} order={order} index={i + 1} {...cardProps} />
+                      <OrderCard key={order.id} order={order} index={i + 1} isPast={section.title === 'Past Orders'} {...cardProps} />
                     ))}
                   </div>
                 ) : (
