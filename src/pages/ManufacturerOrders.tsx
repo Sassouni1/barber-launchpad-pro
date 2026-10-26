@@ -140,16 +140,16 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
   };
 
   return (
-    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking ? 'border-blue-400/70 bg-blue-500/10' : view.isKit || kitLabelPreview ? 'border-violet-400/70 bg-violet-500/10' : 'border-border/50'}>
+    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           {(view.isKit || kitLabelPreview) && (
-            <div className="rounded-lg border-2 border-violet-400 bg-violet-500/25 px-4 py-3 text-violet-100" aria-label="Hair system kit order">
-              <div className="flex items-center gap-2 text-base font-extrabold uppercase tracking-wide sm:text-lg">
+            <div className="rounded-lg border-2 border-primary bg-card px-4 py-3 text-primary" aria-label="Hair system kit order">
+              <div className="flex items-center gap-2 text-lg font-extrabold uppercase tracking-wide sm:text-xl">
                 <Package className="h-5 w-5 shrink-0" aria-hidden="true" />
                 Hair System Kit
               </div>
-              <p className="mt-1 text-sm font-medium text-violet-100/90">{kitLabelPreview ? 'Visual example only — Sierra’s saved order is still a regular hair system.' : 'Order every item below together as one kit.'}</p>
+              <p className="mt-1 text-sm font-medium text-muted-foreground">{kitLabelPreview ? 'Visual example only — Sierra’s saved order is still a regular hair system.' : 'Order every item below together as one kit.'}</p>
             </div>
           )}
           <div className="flex flex-wrap items-start gap-3">
@@ -268,14 +268,14 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
           </div>
 
           {view.isKit ? (
-            <div className="rounded-lg border border-violet-400/50 bg-violet-500/10 p-3 sm:p-4">
-              <div className="mb-2 flex items-center gap-2 font-bold text-violet-200">
+            <div className="border-l-2 border-primary/30 pl-3">
+              <div className="mb-2 flex items-center gap-2 font-bold text-foreground">
                 <span>Kit contents · {lineItems.length} items</span>
                 {!!lineItems.length && <CopyBtn text={lineItems.join('\n')} label="Kit contents" />}
               </div>
               {lineItems.length ? (
                 <ul className="grid gap-1.5 text-sm font-medium text-foreground sm:grid-cols-2">
-                  {lineItems.map((item, i) => <li key={`${item}-${i}`} className="flex gap-2"><span className="text-violet-300" aria-hidden="true">•</span><span>{item}</span></li>)}
+                  {lineItems.map((item, i) => <li key={`${item}-${i}`} className="flex gap-2"><span className="text-primary" aria-hidden="true">•</span><span>{item}</span></li>)}
                 </ul>
               ) : <p className="text-sm text-muted-foreground">Kit contents not provided</p>}
             </div>
