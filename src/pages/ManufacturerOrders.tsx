@@ -185,7 +185,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
     <Card className="border-border/50">
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
                 {index != null && <span className="text-sm font-mono text-muted-foreground">#{index}</span>}
@@ -210,7 +210,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
               )}
             </div>
 
-            {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:p-2.5 ${editingId === order.id ? 'w-full items-stretch md:w-[340px]' : 'items-end sm:flex-row sm:items-center'}`}>
+            {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:p-2.5 ${editingId === order.id ? 'w-full items-stretch sm:w-[320px]' : 'items-end sm:flex-row sm:items-center'}`}>
               {editingId === order.id ? (
                 <div className="flex w-full flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Carrier</span>
