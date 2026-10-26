@@ -160,7 +160,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
               )}
             </div>
 
-            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:p-2.5 ${editingId === order.id ? 'w-full items-stretch sm:w-[320px]' : 'items-end sm:flex-row sm:items-center'}`}>
+            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'w-full items-stretch rounded-lg border border-primary/20 bg-primary/5 p-2 sm:w-[320px] sm:p-2.5' : 'items-start sm:flex-row sm:items-center'}`}>
               {editingId === order.id ? (
                 <div className="flex w-full flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Carrier</span>
