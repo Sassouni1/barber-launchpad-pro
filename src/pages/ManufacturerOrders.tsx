@@ -1,13 +1,12 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAllOrders, useUpdateTracking, useDeleteOrder } from '@/hooks/useOrders';
+import { useAllOrders, useUpdateTracking, useMarkOrderReviewed, useDeleteOrder } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { Loader2, Truck, Check, ChevronDown, Search, Copy, Trash2 } from 'lucide-react';
+import { Loader2, Truck, Check, Search, Copy, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -15,19 +14,15 @@ import type { Tables } from '@/integrations/supabase/types';
 type Order = Tables<'orders'>;
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
-  processing: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
+  new: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
+  tracking: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
   shipped: 'bg-green-500/10 text-green-500 border-green-500/30',
-  completed: 'bg-primary/10 text-primary border-primary/30',
 };
 
-function getDisplayStatus(order: { status: string; order_date: string }): string {
-  if (order.status === 'shipped') {
-    const shippedDate = new Date(order.order_date);
-    const daysSince = (Date.now() - shippedDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSince >= 7) return 'completed';
-  }
-  return order.status;
+function getDisplayStatus(order: Order): { label: string; color: string } {
+  if (order.tracking_number) return { label: 'Completed / Shipped', color: statusColors.shipped };
+  if (order.status === 'pending') return { label: 'New Order', color: statusColors.new };
+  return { label: 'Needs Tracking', color: statusColors.tracking };
 }
 
 const ORDER_SPEC_KEYS: (string | { display: string; keys: string[] })[] = [
@@ -101,6 +96,8 @@ interface OrderCardProps {
   setTrackingNumber: (v: string) => void;
   onSave: (orderId: string) => void;
   isSaving: boolean;
+  onMarkReviewed: (orderId: string) => void;
+  isMarkingReviewed: boolean;
   isAdmin?: boolean;
   onDelete?: (orderId: string) => void;
 }
@@ -121,11 +118,12 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving, isAdmin, onDelete }: OrderCardProps) {
+function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving, onMarkReviewed, isMarkingReviewed, isAdmin, onDelete }: OrderCardProps) {
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
   const barber = extractBarberInfo(details);
+  const displayStatus = getDisplayStatus(order);
 
   const buildCopyAllText = () => {
     const lines: string[] = [];
@@ -148,9 +146,7 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
               <div className="flex items-center gap-3 flex-wrap">
                 {index != null && <span className="text-sm font-mono text-muted-foreground">#{index}</span>}
                 <span className="font-medium">{barber.name || 'Unknown'}</span>
-                <Badge variant="outline" className={statusColors[getDisplayStatus(order)] || ''}>
-                  {getDisplayStatus(order).charAt(0).toUpperCase() + getDisplayStatus(order).slice(1)}
-                </Badge>
+                <Badge variant="outline" className={displayStatus.color}>{displayStatus.label}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
@@ -179,6 +175,11 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
+                  {order.status === 'pending' && !order.tracking_number && (
+                    <Button size="sm" variant="secondary" onClick={() => onMarkReviewed(order.id)} disabled={isMarkingReviewed}>
+                      Mark Reviewed
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -272,6 +273,7 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
 export default function ManufacturerOrders() {
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
+  const markReviewed = useMarkOrderReviewed();
   const deleteOrder = useDeleteOrder();
   const { isAdmin } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -281,11 +283,20 @@ export default function ManufacturerOrders() {
   const handleSave = async (orderId: string) => {
     try {
       await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim() });
-      toast.success(trackingNumber.trim() ? 'Tracking added' : 'Tracking removed — order set back to pending');
+      toast.success(trackingNumber.trim() ? 'Tracking added — order completed / shipped' : 'Tracking removed — order needs tracking');
       setEditingId(null);
       setTrackingNumber('');
     } catch {
       toast.error('Failed to update tracking');
+    }
+  };
+
+  const handleMarkReviewed = async (orderId: string) => {
+    try {
+      await markReviewed.mutateAsync(orderId);
+      toast.success('Order moved to Needs Tracking');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to mark order reviewed');
     }
   };
 
@@ -304,10 +315,12 @@ export default function ManufacturerOrders() {
     });
   };
 
-  const allNew = useMemo(() => (orders?.filter(o => !o.tracking_number) ?? []).reverse(), [orders]);
-  const allPrevious = useMemo(() => (orders?.filter(o => !!o.tracking_number) ?? []).reverse(), [orders]);
-  const newOrders = useMemo(() => filterOrders(allNew), [allNew, search]);
-  const previousOrders = useMemo(() => filterOrders(allPrevious), [allPrevious, search]);
+  const sortedOrders = useMemo(() => [...(orders ?? [])].sort((a, b) =>
+    new Date(b.order_date).getTime() - new Date(a.order_date).getTime()
+  ), [orders]);
+  const newOrders = filterOrders(sortedOrders.filter(o => !o.tracking_number && o.status === 'pending'));
+  const needsTracking = filterOrders(sortedOrders.filter(o => !o.tracking_number && o.status !== 'pending'));
+  const completedOrders = filterOrders(sortedOrders.filter(o => !!o.tracking_number));
 
   const handleDelete = async (orderId: string) => {
     try {
@@ -325,6 +338,8 @@ export default function ManufacturerOrders() {
     setTrackingNumber,
     onSave: handleSave,
     isSaving: updateTracking.isPending,
+    onMarkReviewed: handleMarkReviewed,
+    isMarkingReviewed: markReviewed.isPending,
     isAdmin,
     onDelete: isAdmin ? handleDelete : undefined,
   };
@@ -335,7 +350,7 @@ export default function ManufacturerOrders() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-display font-bold">Order Management</h1>
-            <p className="text-muted-foreground text-sm mt-1">New Orders</p>
+            <p className="text-muted-foreground text-sm mt-1">Review new orders, add tracking, and see shipped orders in one place.</p>
           </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -352,42 +367,31 @@ export default function ManufacturerOrders() {
           <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
-        ) : !orders?.length ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              No orders yet
-            </CardContent>
-          </Card>
         ) : (
-          <>
-            {newOrders.length > 0 ? (
-              <div className="space-y-3">
-                {newOrders.map((order, i) => (
-                  <OrderCard key={order.id} order={order} index={i + 1} {...cardProps} />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No new orders
-                </CardContent>
-              </Card>
-            )}
-
-            {previousOrders.length > 0 && (
-              <Collapsible defaultOpen={false}>
-                <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group w-full">
-                  <ChevronDown className="w-4 h-4 transition-transform group-data-[state=closed]:-rotate-90" />
-                  Previous Orders ({previousOrders.length})
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-3 mt-3">
-                  {previousOrders.map((order) => (
-                    <OrderCard key={order.id} order={order} {...cardProps} />
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-          </>
+          <div className="space-y-10">
+            {([
+              { title: 'New Orders', description: 'Recently received and waiting for review.', list: newOrders, empty: 'No new orders.' },
+              { title: 'Needs Tracking', description: 'Reviewed orders waiting for a tracking number.', list: needsTracking, empty: 'No orders need tracking.' },
+              { title: 'Completed / Shipped', description: 'Tracking has been added. Delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
+            ] as const).map(section => (
+              <section key={section.title} aria-label={section.title} className="space-y-4 border-t border-border/70 pt-6">
+                <div className="flex items-baseline gap-3">
+                  <h2 className="font-display text-xl font-semibold">{section.title}</h2>
+                  <span className="text-sm text-muted-foreground">{section.list.length}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{section.description}</p>
+                {section.list.length ? (
+                  <div className="space-y-3">
+                    {section.list.map((order, i) => (
+                      <OrderCard key={order.id} order={order} index={i + 1} {...cardProps} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border/70 px-5 py-8 text-sm text-muted-foreground">{section.empty}</div>
+                )}
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </DashboardLayout>

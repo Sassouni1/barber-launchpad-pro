@@ -51,10 +51,30 @@ export function useUpdateTracking() {
         .update({
           tracking_number: hasTracking ? trackingNumber : null,
           tracking_url: hasTracking ? `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber.trim()}` : null,
-          status: hasTracking ? 'shipped' : 'pending',
+          status: hasTracking ? 'shipped' : 'processing',
         })
         .eq('id', orderId);
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+}
+
+export function useMarkOrderReviewed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: 'processing' })
+        .eq('id', orderId)
+        .eq('status', 'pending')
+        .is('tracking_number', null)
+        .select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('Order is no longer new. Refresh and try again.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
