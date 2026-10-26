@@ -49,7 +49,7 @@ function isPastOrder(order: Order, now: number): boolean {
 const statusColors: Record<string, string> = {
   new: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
   overdue: 'bg-red-500/15 text-red-400 border-red-500/50',
-  tracking: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
+  tracking: 'border-blue-400/80 bg-blue-500/25 px-3 py-1 text-sm font-bold text-blue-200',
   shipped: 'bg-green-500/10 text-green-500 border-green-500/30',
 };
 
@@ -138,7 +138,7 @@ function OrderCard({ order, now, index, editingId, trackingNumber, trackingCarri
   };
 
   return (
-    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking ? 'border-amber-400/50 bg-amber-400/5' : 'border-border/50'}>
+    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-start gap-3">
@@ -146,7 +146,10 @@ function OrderCard({ order, now, index, editingId, trackingNumber, trackingCarri
               <div className="flex items-center gap-3 flex-wrap">
                 {index != null && <span className="text-sm font-mono text-muted-foreground">#{index}</span>}
                 <span className="font-medium break-words">{barber.name || 'Unknown'}</span>
-                <Badge variant="outline" className={displayStatus.color}>{displayStatus.label}</Badge>
+                <Badge variant="outline" className={displayStatus.color}>
+                  {needsTracking && <Truck className="mr-1.5 h-4 w-4" />}
+                  {displayStatus.label}
+                </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
