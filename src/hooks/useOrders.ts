@@ -5,6 +5,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { receiptEligibleOrders } from '@/lib/receiptEligibility';
 
 type Order = Tables<'orders'>;
+export const TRACKING_ADDED_AT_KEY = 'supplier_tracking_added_at';
 
 export function useUserOrders() {
   const { user } = useAuth();
@@ -46,15 +47,37 @@ export function useUpdateTracking() {
   return useMutation({
     mutationFn: async ({ orderId, trackingNumber }: { orderId: string; trackingNumber: string }) => {
       const hasTracking = !!trackingNumber.trim();
-      const { error } = await supabase
+      const { data: order, error: readError } = await supabase
+        .from('orders')
+        .select('tracking_number, order_details, updated_at')
+        .eq('id', orderId)
+        .single();
+      if (readError) throw readError;
+
+      const details = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
+        ? { ...order.order_details }
+        : {};
+      if (hasTracking) {
+        // Editing a tracking number must not restart the eight-day archive clock.
+        details[TRACKING_ADDED_AT_KEY] = order.tracking_number
+          ? details[TRACKING_ADDED_AT_KEY] || order.updated_at
+          : new Date().toISOString();
+      } else {
+        delete details[TRACKING_ADDED_AT_KEY];
+      }
+      const { data: updated, error } = await supabase
         .from('orders')
         .update({
           tracking_number: hasTracking ? trackingNumber : null,
           tracking_url: hasTracking ? `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber.trim()}` : null,
           status: hasTracking ? 'shipped' : 'processing',
+          order_details: details,
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .eq('updated_at', order.updated_at)
+        .select('id');
       if (error) throw error;
+      if (!updated?.length) throw new Error('Order changed while saving. Refresh and try again.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });

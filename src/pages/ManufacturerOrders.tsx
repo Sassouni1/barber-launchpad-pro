@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAllOrders, useUpdateTracking, useMarkOrderPlaced, useDeleteOrder } from '@/hooks/useOrders';
+import { useAllOrders, useUpdateTracking, useMarkOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,23 @@ type Order = Tables<'orders'>;
 
 // Nikkole Abila's October 20 order is the first current order (6:48 PM PDT).
 const CURRENT_ORDERS_START = new Date('2026-10-21T01:48:00Z').getTime();
+const PAST_ORDER_DELAY_MS = 8 * 24 * 60 * 60 * 1000;
+
+function trackingAddedAt(order: Order): number | null {
+  if (!order.tracking_number) return null;
+  const details = order.order_details;
+  const savedAt = details && typeof details === 'object' && !Array.isArray(details)
+    ? details[TRACKING_ADDED_AT_KEY]
+    : null;
+  const timestamp = Date.parse(typeof savedAt === 'string' ? savedAt : order.updated_at);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function isPastOrder(order: Order, now: number): boolean {
+  if (new Date(order.order_date).getTime() < CURRENT_ORDERS_START) return true;
+  const addedAt = trackingAddedAt(order);
+  return addedAt !== null && now - addedAt >= PAST_ORDER_DELAY_MS;
+}
 
 const statusColors: Record<string, string> = {
   new: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
@@ -287,6 +304,12 @@ export default function ManufacturerOrders() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [search, setSearch] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const handleSave = async (orderId: string) => {
     try {
@@ -294,8 +317,8 @@ export default function ManufacturerOrders() {
       toast.success(trackingNumber.trim() ? 'Tracking added — order completed / shipped' : 'Tracking removed — order needs tracking');
       setEditingId(null);
       setTrackingNumber('');
-    } catch {
-      toast.error('Failed to update tracking');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update tracking');
     }
   };
 
@@ -326,15 +349,9 @@ export default function ManufacturerOrders() {
   const sortedOrders = useMemo(() => [...(orders ?? [])].sort((a, b) =>
     new Date(b.order_date).getTime() - new Date(a.order_date).getTime()
   ), [orders]);
-  const currentOrders = filterOrders(sortedOrders.filter(o =>
-    new Date(o.order_date).getTime() >= CURRENT_ORDERS_START && !o.tracking_number
-  ));
-  const completedOrders = filterOrders(sortedOrders.filter(o =>
-    new Date(o.order_date).getTime() >= CURRENT_ORDERS_START && !!o.tracking_number
-  ));
-  const pastOrders = filterOrders(sortedOrders.filter(o =>
-    new Date(o.order_date).getTime() < CURRENT_ORDERS_START
-  ));
+  const currentOrders = filterOrders(sortedOrders.filter(o => !isPastOrder(o, now) && !o.tracking_number));
+  const completedOrders = filterOrders(sortedOrders.filter(o => !isPastOrder(o, now) && !!o.tracking_number));
+  const pastOrders = filterOrders(sortedOrders.filter(o => isPastOrder(o, now)));
 
   const handleDelete = async (orderId: string) => {
     try {
@@ -385,8 +402,8 @@ export default function ManufacturerOrders() {
           <div className="space-y-10">
             {([
               { title: 'Current Orders', description: 'Newest first. Orders stay in place when marked placed; their status changes to Needs Tracking.', list: currentOrders, empty: 'No current orders need action.' },
-              { title: 'Completed / Shipped', description: 'Tracking has been added. Delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
-              { title: 'Past Orders', description: 'Orders before Nikkole Abila’s October 20 order.', list: pastOrders, empty: 'No past orders.' },
+              { title: 'Completed / Shipped', description: 'Tracking has been added. Orders move to Past Orders after eight days; delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
+              { title: 'Past Orders', description: 'Older orders and tracked orders eight days after tracking was added.', list: pastOrders, empty: 'No past orders.' },
             ] as const).map(section => (
               <section key={section.title} aria-label={section.title} className="space-y-4 border-t border-border/70 pt-6">
                 <div className="flex items-baseline gap-3">
