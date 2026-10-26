@@ -136,7 +136,6 @@ interface OrderCardProps {
   onUndoOrderPlaced: (orderId: string) => void;
   isUndoingOrder: boolean;
   isPast?: boolean;
-  isAdmin?: boolean;
   onDelete?: (orderId: string) => void;
 }
 
@@ -156,7 +155,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
+function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete }: OrderCardProps) {
   const trackingInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (editingId === order.id && trackingCarrier) trackingInputRef.current?.focus();
@@ -214,7 +213,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
               )}
             </div>
 
-            {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:p-2.5 ${editingId === order.id ? 'w-full items-stretch sm:w-[320px]' : 'items-end sm:flex-row sm:items-center'}`}>
+            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:p-2.5 ${editingId === order.id ? 'w-full items-stretch sm:w-[320px]' : 'items-end sm:flex-row sm:items-center'}`}>
               {editingId === order.id ? (
                 <div className="flex w-full flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Carrier</span>
@@ -279,10 +278,11 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
                       {order.tracking_number ? 'Manage Order' : 'Add Tracking'}
                     </Button>
                   )}
-                  {isAdmin && onDelete && (
+                  {onDelete && (
                     <Button
                       size="sm"
                       variant="ghost"
+                      aria-label="Delete order"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => {
                         if (window.confirm('Delete this order?')) {
@@ -358,14 +358,15 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
   );
 }
 
-export default function ManufacturerOrders() {
+export default function ManufacturerOrders({ adminView = false }: { adminView?: boolean }) {
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
   const reopenOrder = useReopenOrder();
   const markOrderPlaced = useMarkOrderPlaced();
   const undoOrderPlaced = useUndoOrderPlaced();
   const deleteOrder = useDeleteOrder();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const canDeleteOrders = adminView && isAdmin && user?.email?.toLowerCase() === 'chris@invasiondigitalmedia.com';
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingCarrier, setTrackingCarrier] = useState<TrackingCarrier | null>(null);
@@ -445,6 +446,7 @@ export default function ManufacturerOrders() {
   const pastOrders = filterOrders(sortedOrders.filter(o => isPastOrder(o, now)));
 
   const handleDelete = async (orderId: string) => {
+    if (!canDeleteOrders) return;
     try {
       await deleteOrder.mutateAsync(orderId);
       toast.success('Order deleted');
@@ -470,12 +472,11 @@ export default function ManufacturerOrders() {
     isPlacingOrder: markOrderPlaced.isPending,
     onUndoOrderPlaced: handleUndoOrderPlaced,
     isUndoingOrder: undoOrderPlaced.isPending,
-    isAdmin,
-    onDelete: isAdmin ? handleDelete : undefined,
+    onDelete: canDeleteOrders ? handleDelete : undefined,
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout isAdminView={adminView}>
        <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>

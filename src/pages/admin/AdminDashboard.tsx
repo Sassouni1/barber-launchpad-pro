@@ -1,7 +1,8 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCourses } from '@/hooks/useCourses';
 import { useAgreementRequired, useToggleAgreementRequired } from '@/hooks/useAppSettings';
-import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2, Settings } from 'lucide-react';
+import { Users, BookOpen, Ticket, TrendingUp, ArrowUpRight, Loader2, Settings, Package } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { CertificateTemplateUploader } from '@/components/admin/CertificateTemplateUploader';
 import { CertificateLayoutEditor } from '@/components/admin/CertificateLayoutEditor';
 import { FontUploader } from '@/components/admin/FontUploader';
@@ -58,6 +59,15 @@ export default function AdminDashboard() {
           <h1 className="font-display text-4xl font-bold mb-2">Admin Dashboard</h1>
           <p className="text-muted-foreground text-lg">Manage your members and course content.</p>
         </div>
+
+        <Link to="/admin/orders" className="glass-card flex items-center gap-4 rounded-2xl p-5 hover:bg-primary/10 transition-colors">
+          <Package className="h-6 w-6 text-primary" />
+          <div>
+            <h2 className="font-display text-xl font-semibold">Order Management</h2>
+            <p className="text-sm text-muted-foreground">View current, shipped, and past orders.</p>
+          </div>
+          <ArrowUpRight className="ml-auto h-5 w-5 text-muted-foreground" />
+        </Link>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

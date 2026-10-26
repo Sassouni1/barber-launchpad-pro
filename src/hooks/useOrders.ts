@@ -193,7 +193,9 @@ export function useDeleteOrder() {
       const { error } = await supabase
         .from('orders')
         .delete()
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select('id')
+        .single();
       if (error) throw error;
     },
     onSuccess: () => {

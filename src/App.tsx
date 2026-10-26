@@ -158,6 +158,7 @@ const MemberApp = () => (
         <Route path="/newtimes" element={<ProtectedRoute requireManufacturer><ManufacturerOrders /></ProtectedRoute>} />
 
         <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/orders" element={<ProtectedRoute requireAdmin><ManufacturerOrders adminView /></ProtectedRoute>} />
         <Route path="/admin/members" element={<ProtectedRoute requireAdmin><Members /></ProtectedRoute>} />
         <Route path="/admin/courses" element={<ProtectedRoute requireAdmin><CourseBuilder /></ProtectedRoute>} />
         <Route path="/admin/todos" element={<ProtectedRoute requireAdmin><TodosManager /></ProtectedRoute>} />

@@ -299,6 +299,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
 
   const adminLinks = [
     { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
+    { to: '/admin/orders', icon: Package, label: 'Order Management' },
     { to: '/admin/members', icon: Users, label: 'Members' },
     { to: '/admin/courses', icon: FileEdit, label: 'Course Builder' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos Manager' },
