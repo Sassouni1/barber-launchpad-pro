@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Check, Search, Copy, Trash2 } from 'lucide-react';
+import { Loader2, Truck, Check, CheckCircle2, Search, Copy, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -162,51 +162,53 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
 
   return (
     <Card className="border-border/50">
-      <CardContent className="p-5">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
                 {index != null && <span className="text-sm font-mono text-muted-foreground">#{index}</span>}
-                <span className="font-medium">{barber.name || 'Unknown'}</span>
+                <span className="font-medium break-words">{barber.name || 'Unknown'}</span>
                 <Badge variant="outline" className={displayStatus.color}>{displayStatus.label}</Badge>
               </div>
               <p className="text-xs text-muted-foreground">
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
               </p>
               {order.tracking_number && (
-                <p className="text-sm flex items-center gap-1.5">
-                  Tracking: <span className="font-mono">{order.tracking_number}</span>
+                <p className="text-sm flex items-center gap-1.5 flex-wrap">
+                  Tracking: <span className="font-mono break-all">{order.tracking_number}</span>
                   <CopyBtn text={order.tracking_number} label="Tracking" />
                 </p>
               )}
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {(!isPast || (isAdmin && onDelete)) && <div className="flex flex-col items-end gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:flex-row sm:items-center sm:p-2.5">
               {editingId === order.id ? (
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
                   <Input
                     placeholder="Tracking #"
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
-                    className="w-40"
+                    className="w-36 sm:w-40"
                   />
-                  <Button size="sm" onClick={() => onSave(order.id)} disabled={isSaving}>
-                    <Check className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => onSave(order.id)} disabled={isSaving} aria-label="Save tracking">
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                  </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
                   {!isPast && order.status === 'pending' && !order.tracking_number && (
-                    <Button size="sm" variant="secondary" onClick={() => onOrderPlaced(order.id)} disabled={isPlacingOrder}>
-                      Order Placed
+                    <Button variant="outline" onClick={() => onOrderPlaced(order.id)} disabled={isPlacingOrder} className="h-auto min-h-10 w-40 whitespace-normal border-primary/70 bg-primary/10 px-2 py-2 text-xs font-semibold leading-tight text-primary shadow-sm hover:bg-primary/20 hover:text-primary sm:w-auto sm:min-w-[162px] sm:px-4 sm:text-sm">
+                      <CheckCircle2 className="mr-1" />
+                      Mark as Order Placed
                     </Button>
                   )}
                   {!isPast && (
                     <Button
-                      size="sm"
-                      variant="outline"
+                      className="w-40 border border-amber-300 bg-amber-400 text-black font-semibold shadow-sm hover:bg-amber-300 hover:text-black sm:w-auto sm:min-w-[132px]"
                       onClick={() => {
                         setEditingId(order.id);
                         setTrackingNumber(order.tracking_number || '');
@@ -232,8 +234,15 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                   )}
                 </div>
               )}
-            </div>
+            </div>}
           </div>
+
+          {!isPast && order.status !== 'pending' && !order.tracking_number && (
+            <div className="flex items-center gap-1.5 text-sm font-semibold text-green-500">
+              <CheckCircle2 className="h-4 w-4" />
+              Order placed
+            </div>
+          )}
 
           {lineItems.length > 0 && (
             <div className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
@@ -325,7 +334,7 @@ export default function ManufacturerOrders() {
   const handleOrderPlaced = async (orderId: string) => {
     try {
       await markOrderPlaced.mutateAsync(orderId);
-      toast.success('Order placed — needs tracking');
+      toast.success('Marked as ordered — needs tracking');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark order placed');
     }
@@ -401,7 +410,7 @@ export default function ManufacturerOrders() {
         ) : (
           <div className="space-y-10">
             {([
-              { title: 'Current Orders', description: 'Newest first. Orders stay in place when marked placed; their status changes to Needs Tracking.', list: currentOrders, empty: 'No current orders need action.' },
+              { title: 'Current Orders', description: 'Newest first. Marking an order as ordered changes its status to Needs Tracking without moving it.', list: currentOrders, empty: 'No current orders need action.' },
               { title: 'Completed / Shipped', description: 'Tracking has been added. Orders move to Past Orders after eight days; delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
               { title: 'Past Orders', description: 'Older orders and tracked orders eight days after tracking was added.', list: pastOrders, empty: 'No past orders.' },
             ] as const).map(section => (
