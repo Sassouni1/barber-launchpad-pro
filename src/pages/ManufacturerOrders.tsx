@@ -64,7 +64,6 @@ function getDisplayStatus(order: Order, overdue: boolean): { label: string; colo
 interface OrderCardProps {
   order: Order;
   now: number;
-  isPreview?: boolean;
   index?: number;
   editingId: string | null;
   trackingNumber: string;
@@ -102,7 +101,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, isPreview, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete }: OrderCardProps) {
+function OrderCard({ order, now, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete }: OrderCardProps) {
   const trackingInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (editingId === order.id && trackingCarrier) trackingInputRef.current?.focus();
@@ -169,7 +168,7 @@ function OrderCard({ order, now, isPreview, index, editingId, trackingNumber, tr
               )}
             </div>
 
-            {!isPreview && (!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'w-full items-stretch rounded-lg border border-primary/20 bg-primary/5 p-2 sm:w-[320px] sm:p-2.5' : 'items-start sm:flex-row sm:items-center'}`}>
+            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'w-full items-stretch rounded-lg border border-primary/20 bg-primary/5 p-2 sm:w-[320px] sm:p-2.5' : 'items-start sm:flex-row sm:items-center'}`}>
               {editingId === order.id ? (
                 <div className="flex w-full flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Carrier</span>
@@ -322,7 +321,7 @@ function kitPreviewOrder(now: number, status: 'pending' | 'processing'): Order {
       supplier_kit: true,
       full_name: 'Sample Buyer',
       phone: '(555) 010-0000',
-      shipping_address: { name: 'Sample Buyer', address1: '123 Example Street', city: 'Example City', state: 'CA', postal_code: '90000', country: 'US' },
+      shipping_address: { name: 'Sample Buyer', address1: '123 Example Street', city: 'Example City', state: 'CA', postal_code: '90000', country: 'US', method: 'Shipping' },
       order: { line_items: KIT_MANIFEST.map(item => ({ ...item })) },
     },
     payment_reference: null,
@@ -335,6 +334,100 @@ function kitPreviewOrder(now: number, status: 'pending' | 'processing'): Order {
     updated_at: timestamp,
     user_id: null,
   };
+}
+
+function KitOrderPreview({ now }: { now: number }) {
+  const [previewOrders, setPreviewOrders] = useState<Order[]>(() => [
+    kitPreviewOrder(Date.now(), 'processing'),
+    kitPreviewOrder(Date.now(), 'pending'),
+  ]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingCarrier, setTrackingCarrier] = useState<TrackingCarrier | null>(null);
+  const [reopenNote, setReopenNote] = useState('');
+  const updatePreview = (orderId: string, change: (order: Order) => Order) =>
+    setPreviewOrders(orders => orders.map(order => order.id === orderId ? change(order) : order));
+
+  const resetPreview = () => {
+    setPreviewOrders([kitPreviewOrder(Date.now(), 'processing'), kitPreviewOrder(Date.now(), 'pending')]);
+    setEditingId(null);
+    setTrackingNumber('');
+    setTrackingCarrier(null);
+    setReopenNote('');
+  };
+
+  const previewProps = {
+    now, editingId, trackingNumber, trackingCarrier, reopenNote,
+    setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote,
+    isSaving: false, isReopening: false, isPlacingOrder: false, isUndoingOrder: false,
+    onOrderPlaced: (orderId: string) => {
+      updatePreview(orderId, order => ({ ...order, status: 'processing' }));
+      toast.success('Preview: order marked placed');
+    },
+    onUndoOrderPlaced: (orderId: string) => {
+      updatePreview(orderId, order => ({ ...order, status: 'pending' }));
+      toast.success('Preview: order returned to New Order');
+    },
+    onSave: (orderId: string) => {
+      const number = trackingNumber.trim();
+      if (!number || !trackingCarrier) return;
+      const carrier = trackingCarrier;
+      updatePreview(orderId, order => {
+        const details = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
+          ? { ...order.order_details } : {};
+        details[TRACKING_ADDED_AT_KEY] = order.tracking_number
+          ? details[TRACKING_ADDED_AT_KEY] || order.updated_at : new Date().toISOString();
+        details[TRACKING_CARRIER_KEY] = carrier;
+        const trackingUrl = carrier === 'FedEx'
+          ? `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(number)}`
+          : carrier === 'DHL'
+            ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}`
+            : null;
+        return { ...order, status: 'shipped', tracking_number: number, tracking_url: trackingUrl, order_details: details };
+      });
+      setEditingId(null);
+      setTrackingNumber('');
+      setTrackingCarrier(null);
+      toast.success('Preview: tracking added');
+    },
+    onReopen: (orderId: string) => {
+      updatePreview(orderId, order => {
+        if (!order.tracking_number) return order;
+        const details = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
+          ? { ...order.order_details } : {};
+        const previousHistory = Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
+        details[REOPEN_HISTORY_KEY] = [...previousHistory, {
+          tracking_number: order.tracking_number,
+          carrier: details[TRACKING_CARRIER_KEY] || null,
+          reopened_at: new Date().toISOString(),
+          note: reopenNote.trim(),
+        }];
+        delete details[TRACKING_ADDED_AT_KEY];
+        delete details[TRACKING_CARRIER_KEY];
+        return { ...order, status: 'processing', tracking_number: null, tracking_url: null, tracking_seen: false, order_details: details };
+      });
+      setEditingId(null);
+      setTrackingNumber('');
+      setTrackingCarrier(null);
+      setReopenNote('');
+      toast.success('Preview: order reopened');
+    },
+  };
+
+  return (
+    <section aria-label="Kit order preview" className="space-y-4 rounded-xl border border-dashed border-border/70 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-semibold">Kit order preview</h2>
+          <p className="text-sm text-muted-foreground">Try the order and tracking buttons. Changes stay in this preview; no order or email is created.</p>
+        </div>
+        <Button type="button" size="sm" variant="outline" onClick={resetPreview}>Reset preview</Button>
+      </div>
+      <div className="space-y-3">
+        {previewOrders.map(order => <OrderCard key={order.id} order={order} {...previewProps} />)}
+      </div>
+    </section>
+  );
 }
 
 export default function ManufacturerOrders({ adminView = false }: { adminView?: boolean }) {
@@ -486,16 +579,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
         ) : (
           <div className="space-y-10">
             {showKitPreview && (
-              <section aria-label="Kit order preview" className="space-y-4 rounded-xl border border-dashed border-border/70 p-4 sm:p-5">
-                <div>
-                  <h2 className="font-display text-xl font-semibold">Kit order preview</h2>
-                  <p className="text-sm text-muted-foreground">Sample cards only. No order was created, and these controls cannot change an order.</p>
-                </div>
-                <div className="space-y-3">
-                  <OrderCard order={kitPreviewOrder(now, 'processing')} isPreview {...cardProps} />
-                  <OrderCard order={kitPreviewOrder(now, 'pending')} isPreview {...cardProps} />
-                </div>
-              </section>
+              <KitOrderPreview now={now} />
             )}
             {([
               { title: 'Current Orders', description: 'Newest first. Marking an order as ordered changes its status to Needs Tracking without moving it.', list: currentOrders, empty: 'No current orders need action.' },
