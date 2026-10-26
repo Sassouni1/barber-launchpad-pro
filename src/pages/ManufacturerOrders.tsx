@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Check, CheckCircle2, Undo2, Search, Copy, Trash2 } from 'lucide-react';
+import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -202,16 +202,17 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                 </div>
               ) : (
                 <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-                  {!isPast && order.status === 'pending' && !order.tracking_number && (
-                    <Button variant="outline" onClick={() => onOrderPlaced(order.id)} disabled={isPlacingOrder} className="h-auto min-h-10 w-40 whitespace-normal border-primary/70 bg-primary/10 px-2 py-2 text-xs font-semibold leading-tight text-primary shadow-sm hover:bg-primary/20 hover:text-primary sm:w-auto sm:min-w-[162px] sm:px-4 sm:text-sm">
-                      <CheckCircle2 className="mr-1" />
-                      Mark as Order Placed
-                    </Button>
-                  )}
-                  {!isPast && order.status === 'processing' && !order.tracking_number && (
-                    <Button variant="outline" onClick={() => onUndoOrderPlaced(order.id)} disabled={isUndoingOrder} className="w-40 border-green-500/60 bg-green-500/10 px-2 text-xs font-semibold text-green-500 shadow-sm hover:bg-green-500/20 hover:text-green-400 sm:w-auto sm:min-w-[162px] sm:px-4 sm:text-sm">
-                      <Undo2 className="mr-1" />
-                      Undo Order Placed
+                  {!isPast && !order.tracking_number && (order.status === 'pending' || order.status === 'processing') && (
+                    <Button
+                      variant="outline"
+                      aria-pressed={order.status === 'processing'}
+                      title={order.status === 'processing' ? 'Click to unmark order placed' : 'Click to mark order placed'}
+                      onClick={() => order.status === 'processing' ? onUndoOrderPlaced(order.id) : onOrderPlaced(order.id)}
+                      disabled={isPlacingOrder || isUndoingOrder}
+                      className={`h-auto min-h-10 w-40 whitespace-normal px-2 py-2 text-xs font-semibold leading-tight shadow-sm sm:w-auto sm:min-w-[162px] sm:px-4 sm:text-sm ${order.status === 'processing' ? 'border-green-500/60 bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-400' : 'border-primary/70 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`}
+                    >
+                      {order.status === 'processing' ? <CheckCircle2 className="mr-1" /> : <Circle className="mr-1" />}
+                      {order.status === 'processing' ? 'Order placed' : 'Mark as Order Placed'}
                     </Button>
                   )}
                   {!isPast && (
@@ -244,13 +245,6 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
               )}
             </div>}
           </div>
-
-          {!isPast && order.status !== 'pending' && !order.tracking_number && (
-            <div className="flex items-center gap-1.5 text-sm font-semibold text-green-500">
-              <CheckCircle2 className="h-4 w-4" />
-              Order placed
-            </div>
-          )}
 
           {lineItems.length > 0 && (
             <div className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
