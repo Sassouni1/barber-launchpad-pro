@@ -185,7 +185,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
     <Card className="border-border/50">
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+          <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
                 {index != null && <span className="text-sm font-mono text-muted-foreground">#{index}</span>}
@@ -210,12 +210,13 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
               )}
             </div>
 
-            {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:flex-row sm:items-center sm:p-2.5 ${editingId === order.id ? 'col-span-2 w-full items-start' : 'items-end'}`}>
+            {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:p-2.5 ${editingId === order.id ? 'w-full items-stretch md:w-[340px]' : 'items-end sm:flex-row sm:items-center'}`}>
               {editingId === order.id ? (
-                <div className="flex w-full flex-col items-start gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-                  <div role="group" aria-label="Shipping carrier" className="flex flex-wrap gap-1.5">
+                <div className="flex w-full flex-col gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Carrier</span>
+                  <div role="group" aria-label="Shipping carrier" className="grid grid-cols-3 gap-1.5">
                     {TRACKING_CARRIERS.map(carrier => (
-                      <Button key={carrier} size="sm" type="button" variant={trackingCarrier === carrier ? 'default' : 'outline'} aria-pressed={trackingCarrier === carrier} onClick={() => setTrackingCarrier(carrier)}>
+                      <Button key={carrier} size="sm" type="button" variant="outline" className={`px-1 text-xs font-semibold ${trackingCarrier === carrier ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground' : 'border-primary/60 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`} aria-pressed={trackingCarrier === carrier} onClick={() => setTrackingCarrier(carrier)}>
                         {carrier}
                       </Button>
                     ))}
@@ -225,24 +226,24 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
                     aria-label="Tracking number"
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
-                    className="w-36 sm:w-40"
+                    className="w-full"
                   />}
                   {order.tracking_number && <Input
                     placeholder="Issue or reason (optional)"
                     aria-label="Issue or reason for reopening"
                     value={reopenNote}
                     onChange={(e) => setReopenNote(e.target.value)}
-                    className="w-52"
+                    className="w-full"
                   />}
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" onClick={() => onSave(order.id)} disabled={isSaving || isReopening || !trackingCarrier || !trackingNumber.trim()} aria-label="Save tracking">
                       <Check className="w-4 h-4 mr-1" /> Save tracking
                     </Button>
-                    {order.tracking_number && <Button size="sm" variant="outline" onClick={() => onReopen(order.id)} disabled={isSaving || isReopening}>
-                      <RotateCcw className="w-4 h-4 mr-1" /> Issue / Reopen Order
-                    </Button>}
                     <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                   </div>
+                  {order.tracking_number && <Button size="sm" variant="outline" className="w-full border-primary/40 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => onReopen(order.id)} disabled={isSaving || isReopening}>
+                    <RotateCcw className="w-4 h-4 mr-1" /> Issue / Reopen Order
+                  </Button>}
                 </div>
               ) : (
                 <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
