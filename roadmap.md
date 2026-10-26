@@ -1,5 +1,12 @@
 # Roadmap
 
+## GHL kit supplier path
+- [x] Inspect live schema/permissions and synchronized main baseline; real relay probe ready, but no payment-read contract advertised. GitHub connector source lookup fails with 401 Bad credentials.
+- [x] Add isolated qualification/storage/reservation scaffolding, server-only disabled activation state and kit-only restrictive order reads; preview supplier deep-link/shipping change preserves controls.
+- [x] Pass 14 network-disabled kit tests and 13 frontend/receipt regressions; verify real selected order plus desktop/mobile kit response fixture; deployed Chris admin diagnostics HTTP 200 inactive, manufacturer 403 and anonymous 401.
+- [ ] Bind fresh GHL order/transaction/current-payment reader and enable purchase-to-email path (blocked: real relay payment-read contract unavailable; no guessed actions or evidence).
+- [ ] Publish and verify real qualifying kit row through manufacturer session before activation (blocked: payment reads unavailable; frontend left unpublished; fixture-only kit rendering is not a real purchase verification).
+
 ## Chris-only live $1 verification
 - [x] Add one-time server-authorized live checkout and conditional test-only supplier/receipt/SMS notices; normal checkout unchanged.
 - [x] Pass 34 network-disabled fixture/regression tests and three function checks; deploy checkout/webhook/reconcile and request publication. Existing nine critical security findings remain; workspace permits publication.

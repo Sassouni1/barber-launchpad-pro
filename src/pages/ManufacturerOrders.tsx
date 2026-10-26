@@ -10,6 +10,8 @@ import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2, Penc
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
+import { useSearchParams } from 'react-router-dom';
+import { kitShippingLines, supplierOrderSelected } from '@/lib/supplierKitOrder';
 
 type Order = Tables<'orders'>;
 const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
@@ -164,6 +166,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
   const barber = extractBarberInfo(details);
+  const kitShipping = kitShippingLines(details);
   const savedCarrier = savedTrackingCarrier(order);
   const reopenHistory = details && Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
   const lastReopen = reopenHistory.at(-1);
@@ -180,6 +183,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
     if (lineItems.length > 1) lines.push(`Add Ons: ${lineItems.slice(1).join(', ')}`);
     specs.forEach(s => lines.push(`${s.key}: ${s.value}`));
     if (shipping) lines.push(`Shipping: ${shipping}`);
+    if (kitShipping.length) lines.push(`Ship to: ${kitShipping.join(', ')}`);
     if (order.tracking_number) lines.push(`Tracking: ${savedCarrier ? `${savedCarrier} ` : ''}${order.tracking_number}`);
     return lines.join('\n');
   };
@@ -340,6 +344,11 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
           )}
 
           <div className="pt-1">
+            {kitShipping.length > 0 && <div className="mb-3 text-sm flex items-start gap-1.5">
+              <span className="text-muted-foreground">Ship to:</span>
+              <span className="min-w-0 break-words">{kitShipping.join(', ')}</span>
+              <CopyBtn text={kitShipping.join(', ')} label="Shipping address" />
+            </div>}
             <button
               type="button"
               onClick={() => {
@@ -359,6 +368,8 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
 }
 
 export default function ManufacturerOrders({ adminView = false }: { adminView?: boolean }) {
+  const [searchParams] = useSearchParams();
+  const selectedReference = searchParams.get('order');
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
   const reopenOrder = useReopenOrder();
@@ -424,9 +435,10 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   };
 
   const filterOrders = (list: typeof orders) => {
-    if (!search.trim()) return list ?? [];
+    const selected = (list ?? []).filter(o => supplierOrderSelected(o, selectedReference));
+    if (!search.trim()) return selected;
     const q = search.toLowerCase();
-    return (list ?? []).filter(o => {
+    return selected.filter(o => {
       const details = o.order_details as Record<string, any> | null;
       const barber = extractBarberInfo(details);
       return (
