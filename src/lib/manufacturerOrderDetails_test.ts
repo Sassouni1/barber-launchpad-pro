@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { manufacturerOrderView } from './manufacturerOrderDetails.ts';
+import { manufacturerOrderView, orderSearchFromQuery } from './manufacturerOrderDetails.ts';
+
+test('order query selects the current requested reference', () => {
+  assert.equal(orderSearchFromQuery('?order=ghl%2F123'), 'ghl/123');
+  assert.equal(orderSearchFromQuery('?order='), '');
+});
 
 test('native paid order exposes all collected supplier fields, including modern density', () => {
   const view = manufacturerOrderView({ customerName: 'Barber', customerEmail: 'barber@example.com', orderDetails: {

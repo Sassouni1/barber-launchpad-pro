@@ -44,6 +44,10 @@ export type ManufacturerOrderView = {
   sequence: string;
 };
 
+export function orderSearchFromQuery(search: string): string {
+  return new URLSearchParams(search).get('order')?.trim() || '';
+}
+
 export function manufacturerOrderView(input: { orderDetails: unknown; customerName: unknown; customerEmail: unknown }): ManufacturerOrderView {
   const details = obj(input.orderDetails);
   const order = obj(details.order);

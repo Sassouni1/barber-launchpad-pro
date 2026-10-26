@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAllOrders, useUpdateTracking, useReopenOrder, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY, REOPEN_HISTORY_KEY, type TrackingCarrier } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +11,7 @@ import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2, Penc
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
-import { manufacturerOrderView } from '@/lib/manufacturerOrderDetails';
+import { manufacturerOrderView, orderSearchFromQuery } from '@/lib/manufacturerOrderDetails';
 
 type Order = Tables<'orders'>;
 const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
@@ -299,6 +300,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
 }
 
 export default function ManufacturerOrders({ adminView = false }: { adminView?: boolean }) {
+  const location = useLocation();
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
   const reopenOrder = useReopenOrder();
@@ -311,13 +313,15 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingCarrier, setTrackingCarrier] = useState<TrackingCarrier | null>(null);
   const [reopenNote, setReopenNote] = useState('');
-  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('order') || '');
+  const [search, setSearch] = useState(() => orderSearchFromQuery(location.search));
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => setSearch(orderSearchFromQuery(location.search)), [location.search]);
 
   const handleSave = async (orderId: string) => {
     try {
