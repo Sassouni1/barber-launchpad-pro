@@ -196,9 +196,9 @@ function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEdi
               )}
             </div>
 
-            {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className="flex flex-col items-end gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:flex-row sm:items-center sm:p-2.5">
+            {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className={`flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:flex-row sm:items-center sm:p-2.5 ${editingId === order.id ? 'col-span-2 w-full items-start' : 'items-end'}`}>
               {editingId === order.id ? (
-                <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:flex-wrap">
+                <div className="flex w-full flex-col items-start gap-2 sm:flex-row sm:items-center sm:flex-wrap">
                   <Input
                     placeholder="Tracking #"
                     value={trackingNumber}
