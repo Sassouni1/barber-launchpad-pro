@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAllOrders, useUpdateTracking, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY } from '@/hooks/useOrders';
+import { useAllOrders, useUpdateTracking, useReopenOrder, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY, REOPEN_HISTORY_KEY } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2 } from 'lucide-react';
+import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2, Pencil, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -112,10 +112,14 @@ interface OrderCardProps {
   index?: number;
   editingId: string | null;
   trackingNumber: string;
+  reopenNote: string;
   setEditingId: (id: string | null) => void;
   setTrackingNumber: (v: string) => void;
+  setReopenNote: (v: string) => void;
   onSave: (orderId: string) => void;
+  onReopen: (orderId: string) => void;
   isSaving: boolean;
+  isReopening: boolean;
   onOrderPlaced: (orderId: string) => void;
   isPlacingOrder: boolean;
   onUndoOrderPlaced: (orderId: string) => void;
@@ -141,12 +145,15 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
+function OrderCard({ order, index, editingId, trackingNumber, reopenNote, setEditingId, setTrackingNumber, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
   const barber = extractBarberInfo(details);
-  const displayStatus = isPast && !order.tracking_number
+  const reopenHistory = details && Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
+  const lastReopen = reopenHistory.at(-1);
+  const isReopened = reopenHistory.length > 0 && order.status === 'processing' && !order.tracking_number;
+  const displayStatus = isPast && !order.tracking_number && !isReopened
     ? { label: 'Past Order', color: 'bg-muted text-muted-foreground border-border' }
     : getDisplayStatus(order);
 
@@ -182,21 +189,36 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                   <CopyBtn text={order.tracking_number} label="Tracking" />
                 </p>
               )}
+              {lastReopen && (
+                <p className="text-xs text-muted-foreground">
+                  Previously reopened from tracking {lastReopen.tracking_number}{lastReopen.note ? ` — ${lastReopen.note}` : ''}
+                </p>
+              )}
             </div>
 
-            {(!isPast || (isAdmin && onDelete)) && <div className="flex flex-col items-end gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:flex-row sm:items-center sm:p-2.5">
+            {(!isPast || order.tracking_number || isReopened || (isAdmin && onDelete)) && <div className="flex flex-col items-end gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 sm:flex-row sm:items-center sm:p-2.5">
               {editingId === order.id ? (
-                <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+                <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:flex-wrap">
                   <Input
                     placeholder="Tracking #"
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
                     className="w-36 sm:w-40"
                   />
+                  {order.tracking_number && <Input
+                    placeholder="Reason for reopening (optional)"
+                    aria-label="Reason for reopening"
+                    value={reopenNote}
+                    onChange={(e) => setReopenNote(e.target.value)}
+                    className="w-52"
+                  />}
                   <div className="flex items-center gap-2">
-                    <Button size="sm" onClick={() => onSave(order.id)} disabled={isSaving} aria-label="Save tracking">
-                      <Check className="w-4 h-4" />
+                    <Button size="sm" onClick={() => onSave(order.id)} disabled={isSaving || isReopening || !trackingNumber.trim()} aria-label="Save tracking">
+                      <Check className="w-4 h-4 mr-1" /> Save tracking
                     </Button>
+                    {order.tracking_number && <Button size="sm" variant="outline" onClick={() => onReopen(order.id)} disabled={isSaving || isReopening}>
+                      <RotateCcw className="w-4 h-4 mr-1" /> Reopen order
+                    </Button>}
                     <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                   </div>
                 </div>
@@ -215,16 +237,17 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                       {order.status === 'processing' ? 'Order placed' : 'Mark as Order Placed'}
                     </Button>
                   )}
-                  {!isPast && (
+                  {(!isPast || order.tracking_number || isReopened) && (
                     <Button
                       className="w-40 border border-amber-300 bg-amber-400 text-black font-semibold shadow-sm hover:bg-amber-300 hover:text-black sm:w-auto sm:min-w-[132px]"
                       onClick={() => {
                         setEditingId(order.id);
                         setTrackingNumber(order.tracking_number || '');
+                        setReopenNote('');
                       }}
                     >
-                      <Truck className="w-4 h-4 mr-1" />
-                      {order.tracking_number ? 'Edit Tracking' : 'Add Tracking'}
+                      {order.tracking_number ? <Pencil className="w-4 h-4 mr-1" /> : <Truck className="w-4 h-4 mr-1" />}
+                      {order.tracking_number ? 'Manage Order' : 'Add Tracking'}
                     </Button>
                   )}
                   {isAdmin && onDelete && (
@@ -309,12 +332,14 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
 export default function ManufacturerOrders() {
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
+  const reopenOrder = useReopenOrder();
   const markOrderPlaced = useMarkOrderPlaced();
   const undoOrderPlaced = useUndoOrderPlaced();
   const deleteOrder = useDeleteOrder();
   const { isAdmin } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [reopenNote, setReopenNote] = useState('');
   const [search, setSearch] = useState('');
   const [now, setNow] = useState(() => Date.now());
 
@@ -331,6 +356,18 @@ export default function ManufacturerOrders() {
       setTrackingNumber('');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update tracking');
+    }
+  };
+
+  const handleReopen = async (orderId: string) => {
+    try {
+      await reopenOrder.mutateAsync({ orderId, note: reopenNote });
+      toast.success('Order reopened — needs tracking');
+      setEditingId(null);
+      setTrackingNumber('');
+      setReopenNote('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to reopen order');
     }
   };
 
@@ -386,10 +423,14 @@ export default function ManufacturerOrders() {
   const cardProps = {
     editingId,
     trackingNumber,
+    reopenNote,
     setEditingId,
     setTrackingNumber,
+    setReopenNote,
     onSave: handleSave,
+    onReopen: handleReopen,
     isSaving: updateTracking.isPending,
+    isReopening: reopenOrder.isPending,
     onOrderPlaced: handleOrderPlaced,
     isPlacingOrder: markOrderPlaced.isPending,
     onUndoOrderPlaced: handleUndoOrderPlaced,
