@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAllOrders, useUpdateTracking, useReopenOrder, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY, REOPEN_HISTORY_KEY, type TrackingCarrier } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
@@ -157,6 +157,10 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
 }
 
 function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
+  const trackingInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (editingId === order.id && trackingCarrier) trackingInputRef.current?.focus();
+  }, [editingId, order.id, trackingCarrier]);
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
@@ -222,6 +226,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
                     ))}
                   </div>
                   {(trackingCarrier || order.tracking_number) && <Input
+                    ref={trackingInputRef}
                     placeholder="Tracking #"
                     aria-label="Tracking number"
                     value={trackingNumber}
