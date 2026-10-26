@@ -226,7 +226,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
                     aria-label="Tracking number"
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
-                    className="w-full"
+                    className="w-full border-amber-400 bg-amber-400/5 ring-2 ring-amber-400/60 focus-visible:border-amber-300 focus-visible:ring-amber-300"
                   />}
                   {order.tracking_number && <Input
                     placeholder="Issue or reason (optional)"
