@@ -10,8 +10,7 @@ import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2, Penc
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
-import { useSearchParams } from 'react-router-dom';
-import { kitShippingLines, supplierOrderSelected } from '@/lib/supplierKitOrder';
+import { manufacturerOrderView } from '@/lib/manufacturerOrderDetails';
 
 type Order = Tables<'orders'>;
 const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
@@ -55,68 +54,6 @@ function getDisplayStatus(order: Order): { label: string; color: string } {
   if (order.status === 'pending') return { label: 'New Order', color: statusColors.new };
   return { label: 'Needs Tracking', color: statusColors.tracking };
 }
-
-const ORDER_SPEC_KEYS: (string | { display: string; keys: string[] })[] = [
-  { display: 'Choose Color', keys: ['Choose Color', 'Hair Color'] },
-  'Lace or Skin',
-  'Curl Pattern — only if needed',
-  { display: 'Choose Density', keys: ['Choose Density if Needed (75%-110%) - 100% is regular'] },
-  'Hair Salon Service Requested',
-];
-
-function extractBarberInfo(details: Record<string, any> | null): { name: string; phone: string } {
-  if (!details) return { name: '', phone: '' };
-  const name = details.full_name || details.name || details.contact?.name || '';
-  const phone = details.phone || details.order?.customer?.phone || '';
-  return { name, phone };
-}
-
-function extractLineItems(details: Record<string, any> | null): { items: string[]; shipping: string | null } {
-  if (!details) return { items: [], shipping: null };
-  const order = details.order || details;
-  const rawItems = order.line_items;
-  if (!Array.isArray(rawItems)) return { items: [], shipping: null };
-  let shipping: string | null = null;
-  const items = rawItems.map((item: any) => {
-    let title = String(item.title || '')
-      .replace(/\s*@\s*\d+/g, '')
-      .replace(/\s*\(\$[\d.,]+[^)]*\)/gi, '')
-      .trim();
-    const dashParts = title.split(/\s*-\s*/);
-    if (dashParts.length === 2 && dashParts[0].trim().toLowerCase() === dashParts[1].trim().toLowerCase()) {
-      title = dashParts[0].trim();
-    } else {
-      title = title.replace(/\s*-\s*Hair System$/i, '').trim();
-    }
-    return title;
-  }).filter((title: string) => {
-    if (/rush\s*ship|over\s*night/i.test(title)) {
-      shipping = title;
-      return false;
-    }
-    return Boolean(title);
-  });
-  return { items, shipping };
-}
-
-function extractOrderDetails(details: Record<string, any> | null): { key: string; value: string }[] {
-  if (!details) return [];
-  const items: { key: string; value: string }[] = [];
-  for (const spec of ORDER_SPEC_KEYS) {
-    const isAlias = typeof spec === 'object';
-    const displayKey = isAlias ? spec.display : spec;
-    const keysToCheck = isAlias ? spec.keys : [spec];
-    for (const k of keysToCheck) {
-      const val = details[k];
-      if (val && typeof val === 'string' && val.trim() && val.trim().toLowerCase() !== 'none' && val.trim().toLowerCase() !== 'no') {
-        items.push({ key: displayKey, value: val.trim() });
-        break;
-      }
-    }
-  }
-  return items;
-}
-
 
 interface OrderCardProps {
   order: Order;
@@ -162,13 +99,14 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
   useEffect(() => {
     if (editingId === order.id && trackingCarrier) trackingInputRef.current?.focus();
   }, [editingId, order.id, trackingCarrier]);
-  const details = order.order_details as Record<string, any> | null;
-  const specs = extractOrderDetails(details);
-  const { items: lineItems, shipping } = extractLineItems(details);
-  const barber = extractBarberInfo(details);
-  const kitShipping = kitShippingLines(details);
+  const details = order.order_details as Record<string, unknown> | null;
+  const view = manufacturerOrderView({ orderDetails: details, customerName: order.customer_name, customerEmail: order.customer_email });
+  const { specs, items: lineItems, shippingMethod, shippingAddress } = view;
+  const barber = { name: view.name, phone: view.phone };
   const savedCarrier = savedTrackingCarrier(order);
-  const reopenHistory = details && Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
+  const reopenHistory = details && Array.isArray(details[REOPEN_HISTORY_KEY])
+    ? details[REOPEN_HISTORY_KEY] as Array<{ tracking_number?: string; note?: string }>
+    : [];
   const lastReopen = reopenHistory.at(-1);
   const isReopened = reopenHistory.length > 0 && order.status === 'processing' && !order.tracking_number;
   const displayStatus = isPast && !order.tracking_number && !isReopened
@@ -179,11 +117,13 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
     const lines: string[] = [];
     if (barber.name) lines.push(`Name: ${barber.name}`);
     if (barber.phone) lines.push(`Phone: ${barber.phone}`);
-    if (lineItems.length > 0) lines.push(`Product: ${lineItems[0]}`);
-    if (lineItems.length > 1) lines.push(`Add Ons: ${lineItems.slice(1).join(', ')}`);
-    specs.forEach(s => lines.push(`${s.key}: ${s.value}`));
-    if (shipping) lines.push(`Shipping: ${shipping}`);
-    if (kitShipping.length) lines.push(`Ship to: ${kitShipping.join(', ')}`);
+    if (view.email) lines.push(`Email: ${view.email}`);
+    if (lineItems.length > 0) lines.push(`${view.isKit ? 'Kit contents' : 'Product'}: ${lineItems.join(', ')}`);
+    specs.forEach(s => lines.push(`${s.label}: ${s.value}`));
+    if (shippingMethod) lines.push(`Shipping method: ${shippingMethod}`);
+    lines.push(`Shipping address: ${shippingAddress.join(', ') || 'Not provided'}`);
+    if (view.notes) lines.push(`Order notes: ${view.notes}`);
+    if (view.instruction) lines.push(view.instruction);
     if (order.tracking_number) lines.push(`Tracking: ${savedCarrier ? `${savedCarrier} ` : ''}${order.tracking_number}`);
     return lines.join('\n');
   };
@@ -202,6 +142,8 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
               <p className="text-xs text-muted-foreground">
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
               </p>
+              {order.external_order_id && <p className="text-xs text-muted-foreground break-all">Order reference: {order.external_order_id}</p>}
+              {view.sequence && <p className="text-xs text-muted-foreground">{view.sequence}</p>}
               {order.tracking_number && (
                 <p className="text-sm flex items-center gap-1.5 flex-wrap">
                   Tracking: {savedCarrier && <span className="font-semibold">{savedCarrier}</span>}
@@ -302,22 +244,12 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
             </div>}
           </div>
 
-          {lineItems.length > 0 && (
-            <div className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
-              <span>{lineItems[0]}</span>
-              <CopyBtn text={lineItems[0]} label="Product" />
-            </div>
-          )}
+          <div className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
+            <span><strong>{view.isKit ? 'Kit contents' : 'Product'}:</strong> {lineItems.join(', ') || 'Not provided'}</span>
+            {!!lineItems.length && <CopyBtn text={lineItems.join(', ')} label={view.isKit ? 'Kit contents' : 'Product'} />}
+          </div>
 
-          {lineItems.length > 1 && (
-            <div className="text-sm flex items-center gap-1.5">
-              <span className="text-muted-foreground font-medium">Add Ons: </span>
-              <span className="text-muted-foreground">{lineItems.slice(1).join(', ')}</span>
-              <CopyBtn text={lineItems.slice(1).join(', ')} label="Add Ons" />
-            </div>
-          )}
-
-          {(barber.phone || specs.length > 0 || shipping) && (
+          {(barber.phone || view.email || specs.length > 0 || shippingMethod || shippingAddress.length > 0 || view.notes || view.instruction) && (
             <div className="flex flex-col gap-1.5">
               {barber.phone && (
                 <div className="text-sm flex items-center gap-1.5">
@@ -326,29 +258,28 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
                   <CopyBtn text={barber.phone} label="Phone" />
                 </div>
               )}
+              {view.email && <div className="text-sm flex items-center gap-1.5"><span className="text-muted-foreground">Email: </span><span className="font-medium break-all">{view.email}</span><CopyBtn text={view.email} label="Email" /></div>}
               {specs.map((spec, i) => (
                 <div key={i} className="text-sm flex items-center gap-1.5">
-                  <span className="text-muted-foreground">{spec.key}: </span>
+                  <span className="text-muted-foreground">{spec.label}: </span>
                   <span className="font-medium">{spec.value}</span>
-                  <CopyBtn text={spec.value} label={spec.key} />
+                  <CopyBtn text={spec.value} label={spec.label} />
                 </div>
               ))}
-              {shipping && (
+              {shippingMethod && (
                 <div className="text-sm flex items-center gap-1.5">
-                  <span className="text-muted-foreground">Shipping: </span>
-                  <span className="font-medium">{shipping}</span>
-                  <CopyBtn text={shipping} label="Shipping" />
+                  <span className="text-muted-foreground">Shipping method: </span>
+                  <span className="font-medium">{shippingMethod}</span>
+                  <CopyBtn text={shippingMethod} label="Shipping method" />
                 </div>
               )}
+              <div className="text-sm flex items-start gap-1.5"><span className="text-muted-foreground shrink-0">Shipping address: </span><span className="font-medium">{shippingAddress.join(', ') || 'Not provided'}</span>{!!shippingAddress.length && <CopyBtn text={shippingAddress.join(', ')} label="Shipping address" />}</div>
+              {view.notes && <div className="text-sm flex items-start gap-1.5"><span className="text-muted-foreground shrink-0">Order notes: </span><span className="font-medium whitespace-pre-wrap">{view.notes}</span><CopyBtn text={view.notes} label="Order notes" /></div>}
+              {view.instruction && <div className="text-sm font-medium text-primary">{view.instruction}</div>}
             </div>
           )}
 
           <div className="pt-1">
-            {kitShipping.length > 0 && <div className="mb-3 text-sm flex items-start gap-1.5">
-              <span className="text-muted-foreground">Ship to:</span>
-              <span className="min-w-0 break-words">{kitShipping.join(', ')}</span>
-              <CopyBtn text={kitShipping.join(', ')} label="Shipping address" />
-            </div>}
             <button
               type="button"
               onClick={() => {
@@ -368,8 +299,6 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
 }
 
 export default function ManufacturerOrders({ adminView = false }: { adminView?: boolean }) {
-  const [searchParams] = useSearchParams();
-  const selectedReference = searchParams.get('order');
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
   const reopenOrder = useReopenOrder();
@@ -382,7 +311,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingCarrier, setTrackingCarrier] = useState<TrackingCarrier | null>(null);
   const [reopenNote, setReopenNote] = useState('');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('order') || '');
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -435,16 +364,16 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   };
 
   const filterOrders = (list: typeof orders) => {
-    const selected = (list ?? []).filter(o => supplierOrderSelected(o, selectedReference));
-    if (!search.trim()) return selected;
+    if (!search.trim()) return list ?? [];
     const q = search.toLowerCase();
-    return selected.filter(o => {
-      const details = o.order_details as Record<string, any> | null;
-      const barber = extractBarberInfo(details);
+    return (list ?? []).filter(o => {
+      const view = manufacturerOrderView({ orderDetails: o.order_details, customerName: o.customer_name, customerEmail: o.customer_email });
       return (
-        barber.name.toLowerCase().includes(q) ||
-        barber.phone.toLowerCase().includes(q) ||
+        view.name.toLowerCase().includes(q) ||
+        view.phone.toLowerCase().includes(q) ||
         o.customer_email?.toLowerCase().includes(q) ||
+        o.external_order_id?.toLowerCase().includes(q) ||
+        o.id.toLowerCase().includes(q) ||
         o.tracking_number?.toLowerCase().includes(q)
       );
     });
