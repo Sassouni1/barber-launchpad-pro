@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2, Pencil, RotateCcw } from 'lucide-react';
+import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2, Pencil, RotateCcw, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -65,6 +65,7 @@ interface OrderCardProps {
   order: Order;
   now: number;
   index?: number;
+  kitLabelPreview?: boolean;
   editingId: string | null;
   trackingNumber: string;
   trackingCarrier: TrackingCarrier | null;
@@ -101,7 +102,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete }: OrderCardProps) {
+function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete }: OrderCardProps) {
   const trackingInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (editingId === order.id && trackingCarrier) trackingInputRef.current?.focus();
@@ -127,6 +128,7 @@ function OrderCard({ order, now, index, editingId, trackingNumber, trackingCarri
     if (barber.name) lines.push(`Name: ${barber.name}`);
     if (barber.phone) lines.push(`Phone: ${barber.phone}`);
     if (view.email) lines.push(`Email: ${view.email}`);
+    if (view.isKit) lines.push('Order type: HAIR SYSTEM KIT — order all items together');
     if (lineItems.length > 0) lines.push(`${view.isKit ? 'Kit contents' : 'Product'}: ${lineItems.join(', ')}`);
     specs.forEach(s => lines.push(`${s.label}: ${s.value}`));
     if (shippingMethod) lines.push(`Shipping method: ${shippingMethod}`);
@@ -138,9 +140,18 @@ function OrderCard({ order, now, index, editingId, trackingNumber, trackingCarri
   };
 
   return (
-    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
+    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking ? 'border-blue-400/70 bg-blue-500/10' : view.isKit || kitLabelPreview ? 'border-violet-400/70 bg-violet-500/10' : 'border-border/50'}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
+          {(view.isKit || kitLabelPreview) && (
+            <div className="rounded-lg border-2 border-violet-400 bg-violet-500/25 px-4 py-3 text-violet-100" aria-label="Hair system kit order">
+              <div className="flex items-center gap-2 text-base font-extrabold uppercase tracking-wide sm:text-lg">
+                <Package className="h-5 w-5 shrink-0" aria-hidden="true" />
+                Hair System Kit
+              </div>
+              <p className="mt-1 text-sm font-medium text-violet-100/90">{kitLabelPreview ? 'Visual example only — Sierra’s saved order is still a regular hair system.' : 'Order every item below together as one kit.'}</p>
+            </div>
+          )}
           <div className="flex flex-wrap items-start gap-3">
             <div className="min-w-0 basis-[220px] flex-1 space-y-1">
               <div className="flex items-center gap-3 flex-wrap">
@@ -256,10 +267,24 @@ function OrderCard({ order, now, index, editingId, trackingNumber, trackingCarri
             </div>}
           </div>
 
-          <div className="min-w-0 text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
-            <span className="min-w-0 break-words"><strong>{view.isKit ? 'Kit contents' : 'Product'}:</strong> {lineItems.join(', ') || 'Not provided'}</span>
-            {!!lineItems.length && <CopyBtn text={lineItems.join(', ')} label={view.isKit ? 'Kit contents' : 'Product'} />}
-          </div>
+          {view.isKit ? (
+            <div className="rounded-lg border border-violet-400/50 bg-violet-500/10 p-3 sm:p-4">
+              <div className="mb-2 flex items-center gap-2 font-bold text-violet-200">
+                <span>Kit contents · {lineItems.length} items</span>
+                {!!lineItems.length && <CopyBtn text={lineItems.join('\n')} label="Kit contents" />}
+              </div>
+              {lineItems.length ? (
+                <ul className="grid gap-1.5 text-sm font-medium text-foreground sm:grid-cols-2">
+                  {lineItems.map((item, i) => <li key={`${item}-${i}`} className="flex gap-2"><span className="text-violet-300" aria-hidden="true">•</span><span>{item}</span></li>)}
+                </ul>
+              ) : <p className="text-sm text-muted-foreground">Kit contents not provided</p>}
+            </div>
+          ) : (
+            <div className="min-w-0 text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
+              <span className="min-w-0 break-words"><strong>Product:</strong> {lineItems.join(', ') || 'Not provided'}</span>
+              {!!lineItems.length && <CopyBtn text={lineItems.join(', ')} label="Product" />}
+            </div>
+          )}
 
           {(barber.phone || view.email || specs.length > 0 || shippingMethod || shippingAddress.length > 0 || view.notes || view.instruction) && (
             <div className="flex flex-col gap-1.5">
@@ -450,6 +475,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const [search, setSearch] = useState(() => orderSearchFromQuery(location.search));
   const [now, setNow] = useState(() => Date.now());
   const showKitPreview = new URLSearchParams(location.search).get('preview_kit') === '1';
+  const previewKitLabelOnSierra = new URLSearchParams(location.search).get('preview_kit') === 'sierra';
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -598,7 +624,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
                 {section.list.length ? (
                   <div className="space-y-3">
                     {section.list.map((order, i) => (
-                      <OrderCard key={order.id} order={order} index={i + 1} isPast={section.title === 'Past Orders'} {...cardProps} />
+                      <OrderCard key={order.id} order={order} index={i + 1} isPast={section.title === 'Past Orders'} kitLabelPreview={previewKitLabelOnSierra && section.title === 'Current Orders' && order.customer_email?.toLowerCase() === 'sierrascreations@gmail.com'} {...cardProps} />
                     ))}
                   </div>
                 ) : (
