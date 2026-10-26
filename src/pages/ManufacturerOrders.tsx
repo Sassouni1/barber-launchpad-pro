@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAllOrders, useUpdateTracking, useMarkOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY } from '@/hooks/useOrders';
+import { useAllOrders, useUpdateTracking, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Check, CheckCircle2, Search, Copy, Trash2 } from 'lucide-react';
+import { Loader2, Truck, Check, CheckCircle2, Undo2, Search, Copy, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -118,6 +118,8 @@ interface OrderCardProps {
   isSaving: boolean;
   onOrderPlaced: (orderId: string) => void;
   isPlacingOrder: boolean;
+  onUndoOrderPlaced: (orderId: string) => void;
+  isUndoingOrder: boolean;
   isPast?: boolean;
   isAdmin?: boolean;
   onDelete?: (orderId: string) => void;
@@ -139,7 +141,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving, onOrderPlaced, isPlacingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
+function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setTrackingNumber, onSave, isSaving, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, isAdmin, onDelete }: OrderCardProps) {
   const details = order.order_details as Record<string, any> | null;
   const specs = extractOrderDetails(details);
   const { items: lineItems, shipping } = extractLineItems(details);
@@ -204,6 +206,12 @@ function OrderCard({ order, index, editingId, trackingNumber, setEditingId, setT
                     <Button variant="outline" onClick={() => onOrderPlaced(order.id)} disabled={isPlacingOrder} className="h-auto min-h-10 w-40 whitespace-normal border-primary/70 bg-primary/10 px-2 py-2 text-xs font-semibold leading-tight text-primary shadow-sm hover:bg-primary/20 hover:text-primary sm:w-auto sm:min-w-[162px] sm:px-4 sm:text-sm">
                       <CheckCircle2 className="mr-1" />
                       Mark as Order Placed
+                    </Button>
+                  )}
+                  {!isPast && order.status === 'processing' && !order.tracking_number && (
+                    <Button variant="outline" onClick={() => onUndoOrderPlaced(order.id)} disabled={isUndoingOrder} className="w-40 border-green-500/60 bg-green-500/10 px-2 text-xs font-semibold text-green-500 shadow-sm hover:bg-green-500/20 hover:text-green-400 sm:w-auto sm:min-w-[162px] sm:px-4 sm:text-sm">
+                      <Undo2 className="mr-1" />
+                      Undo Order Placed
                     </Button>
                   )}
                   {!isPast && (
@@ -308,6 +316,7 @@ export default function ManufacturerOrders() {
   const { data: orders, isLoading } = useAllOrders();
   const updateTracking = useUpdateTracking();
   const markOrderPlaced = useMarkOrderPlaced();
+  const undoOrderPlaced = useUndoOrderPlaced();
   const deleteOrder = useDeleteOrder();
   const { isAdmin } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -337,6 +346,15 @@ export default function ManufacturerOrders() {
       toast.success('Marked as ordered — needs tracking');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark order placed');
+    }
+  };
+
+  const handleUndoOrderPlaced = async (orderId: string) => {
+    try {
+      await undoOrderPlaced.mutateAsync(orderId);
+      toast.success('Order returned to New Order');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to undo order placed');
     }
   };
 
@@ -380,6 +398,8 @@ export default function ManufacturerOrders() {
     isSaving: updateTracking.isPending,
     onOrderPlaced: handleOrderPlaced,
     isPlacingOrder: markOrderPlaced.isPending,
+    onUndoOrderPlaced: handleUndoOrderPlaced,
+    isUndoingOrder: undoOrderPlaced.isPending,
     isAdmin,
     onDelete: isAdmin ? handleDelete : undefined,
   };

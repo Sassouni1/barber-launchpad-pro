@@ -105,6 +105,26 @@ export function useMarkOrderPlaced() {
   });
 }
 
+export function useUndoOrderPlaced() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: 'pending' })
+        .eq('id', orderId)
+        .eq('status', 'processing')
+        .is('tracking_number', null)
+        .select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('Order can no longer be unplaced. Refresh and check its tracking.');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+}
+
 export function useDismissTrackingNotification() {
   const queryClient = useQueryClient();
   return useMutation({
