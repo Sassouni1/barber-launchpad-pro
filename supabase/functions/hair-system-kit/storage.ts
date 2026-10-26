@@ -22,8 +22,9 @@ export function kitStorage(db: SupabaseClient) {
       const expected = kitOrderRow(e).order_details;
       const d = data.order_details;
       return d?.supplier_kit === true && d.ghl_location_id === KIT_LOCATION && d.phone === e.contact.phone
-        && JSON.stringify(d.shipping_address) === JSON.stringify(expected.shipping_address)
-        && JSON.stringify(d.order?.line_items) === JSON.stringify(expected.order.line_items);
+        && Object.entries(expected.shipping_address).every(([key,value]) => d.shipping_address?.[key] === value)
+        && Array.isArray(d.order?.line_items) && d.order.line_items.length === expected.order.line_items.length
+        && expected.order.line_items.every((item,index) => d.order.line_items[index]?.title === item.title && d.order.line_items[index]?.quantity === 1);
     },
     async reserve(locationId: string, orderId: string, rowId: string): Promise<boolean> {
       if (locationId !== KIT_LOCATION) throw new Error('location_mismatch');
