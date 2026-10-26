@@ -111,7 +111,7 @@ export function useReopenOrder() {
 
       const { data: updated, error } = await supabase
         .from('orders')
-        .update({ status: 'processing', tracking_number: null, tracking_url: null, order_details: details })
+        .update({ status: 'processing', tracking_number: null, tracking_url: null, tracking_seen: false, order_details: details })
         .eq('id', orderId)
         .eq('tracking_number', order.tracking_number)
         .eq('updated_at', order.updated_at)
