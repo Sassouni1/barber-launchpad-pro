@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, Json } from '@/integrations/supabase/types';
 import { receiptEligibleOrders } from '@/lib/receiptEligibility';
 
 type Order = Tables<'orders'>;
@@ -103,7 +103,7 @@ export function useReopenOrder() {
       if (readError) throw readError;
       if (!order.tracking_number) throw new Error('This order no longer has tracking. Refresh and try again.');
 
-      const details: Record<string, unknown> = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
+      const details: Record<string, Json | undefined> = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
         ? { ...order.order_details }
         : {};
       const previousHistory = Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
