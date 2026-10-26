@@ -12,6 +12,8 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 import { manufacturerOrderView, orderSearchFromQuery } from '@/lib/manufacturerOrderDetails';
+import { isNewOrderOverdue } from '@/lib/manufacturerOrderUrgency';
+import { KIT_MANIFEST } from '@/lib/supplierKitOrder';
 
 type Order = Tables<'orders'>;
 const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
@@ -46,18 +48,23 @@ function isPastOrder(order: Order, now: number): boolean {
 
 const statusColors: Record<string, string> = {
   new: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
+  overdue: 'bg-red-500/15 text-red-400 border-red-500/50',
   tracking: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
   shipped: 'bg-green-500/10 text-green-500 border-green-500/30',
 };
 
-function getDisplayStatus(order: Order): { label: string; color: string } {
+function getDisplayStatus(order: Order, overdue: boolean): { label: string; color: string } {
   if (order.tracking_number) return { label: 'Completed / Shipped', color: statusColors.shipped };
-  if (order.status === 'pending') return { label: 'New Order', color: statusColors.new };
+  if (order.status === 'pending') return overdue
+    ? { label: 'New Order · Overdue', color: statusColors.overdue }
+    : { label: 'New Order', color: statusColors.new };
   return { label: 'Needs Tracking', color: statusColors.tracking };
 }
 
 interface OrderCardProps {
   order: Order;
+  now: number;
+  isPreview?: boolean;
   index?: number;
   editingId: string | null;
   trackingNumber: string;
@@ -95,7 +102,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete }: OrderCardProps) {
+function OrderCard({ order, now, isPreview, index, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete }: OrderCardProps) {
   const trackingInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (editingId === order.id && trackingCarrier) trackingInputRef.current?.focus();
@@ -110,9 +117,11 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
     : [];
   const lastReopen = reopenHistory.at(-1);
   const isReopened = reopenHistory.length > 0 && order.status === 'processing' && !order.tracking_number;
+  const overdue = !isPast && !order.tracking_number && order.status === 'pending' && isNewOrderOverdue(order.order_date, now);
+  const needsTracking = !isPast && !order.tracking_number && order.status === 'processing';
   const displayStatus = isPast && !order.tracking_number && !isReopened
     ? { label: 'Past Order', color: 'bg-muted text-muted-foreground border-border' }
-    : getDisplayStatus(order);
+    : getDisplayStatus(order, overdue);
 
   const buildCopyAllText = () => {
     const lines: string[] = [];
@@ -130,7 +139,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
   };
 
   return (
-    <Card className="border-border/50">
+    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking ? 'border-amber-400/50 bg-amber-400/5' : 'border-border/50'}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-start gap-3">
@@ -160,7 +169,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
               )}
             </div>
 
-            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'w-full items-stretch rounded-lg border border-primary/20 bg-primary/5 p-2 sm:w-[320px] sm:p-2.5' : 'items-start sm:flex-row sm:items-center'}`}>
+            {!isPreview && (!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'w-full items-stretch rounded-lg border border-primary/20 bg-primary/5 p-2 sm:w-[320px] sm:p-2.5' : 'items-start sm:flex-row sm:items-center'}`}>
               {editingId === order.id ? (
                 <div className="flex w-full flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Carrier</span>
@@ -245,8 +254,8 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
             </div>}
           </div>
 
-          <div className="text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
-            <span><strong>{view.isKit ? 'Kit contents' : 'Product'}:</strong> {lineItems.join(', ') || 'Not provided'}</span>
+          <div className="min-w-0 text-sm text-muted-foreground border-l-2 border-primary/30 pl-3 flex items-center gap-1.5">
+            <span className="min-w-0 break-words"><strong>{view.isKit ? 'Kit contents' : 'Product'}:</strong> {lineItems.join(', ') || 'Not provided'}</span>
             {!!lineItems.length && <CopyBtn text={lineItems.join(', ')} label={view.isKit ? 'Kit contents' : 'Product'} />}
           </div>
 
@@ -274,7 +283,7 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
                   <CopyBtn text={shippingMethod} label="Shipping method" />
                 </div>
               )}
-              <div className="text-sm flex items-start gap-1.5"><span className="text-muted-foreground shrink-0">Shipping address: </span><span className="font-medium">{shippingAddress.join(', ') || 'Not provided'}</span>{!!shippingAddress.length && <CopyBtn text={shippingAddress.join(', ')} label="Shipping address" />}</div>
+              <div className="min-w-0 text-sm flex items-start gap-1.5"><span className="text-muted-foreground shrink-0">Shipping address: </span><span className="min-w-0 break-words font-medium">{shippingAddress.join(', ') || 'Not provided'}</span>{!!shippingAddress.length && <CopyBtn text={shippingAddress.join(', ')} label="Shipping address" />}</div>
               {view.notes && <div className="text-sm flex items-start gap-1.5"><span className="text-muted-foreground shrink-0">Order notes: </span><span className="font-medium whitespace-pre-wrap">{view.notes}</span><CopyBtn text={view.notes} label="Order notes" /></div>}
               {view.instruction && <div className="text-sm font-medium text-primary">{view.instruction}</div>}
             </div>
@@ -299,6 +308,35 @@ function OrderCard({ order, index, editingId, trackingNumber, trackingCarrier, r
   );
 }
 
+function kitPreviewOrder(now: number, status: 'pending' | 'processing'): Order {
+  const timestamp = new Date(status === 'pending' ? now - 7 * 24 * 60 * 60 * 1000 : now).toISOString();
+  return {
+    id: `kit-preview-${status}`,
+    checkout_draft_id: null,
+    created_at: timestamp,
+    customer_email: 'sample@example.com',
+    customer_name: 'Sample Buyer',
+    external_order_id: `KIT-PREVIEW-${status.toUpperCase()}`,
+    order_date: timestamp,
+    order_details: {
+      supplier_kit: true,
+      full_name: 'Sample Buyer',
+      phone: '(555) 010-0000',
+      shipping_address: { name: 'Sample Buyer', address1: '123 Example Street', city: 'Example City', state: 'CA', postal_code: '90000', country: 'US' },
+      order: { line_items: KIT_MANIFEST.map(item => ({ ...item })) },
+    },
+    payment_reference: null,
+    status,
+    stripe_checkout_session_id: null,
+    system_index: null,
+    tracking_number: null,
+    tracking_seen: false,
+    tracking_url: null,
+    updated_at: timestamp,
+    user_id: null,
+  };
+}
+
 export default function ManufacturerOrders({ adminView = false }: { adminView?: boolean }) {
   const location = useLocation();
   const { data: orders, isLoading } = useAllOrders();
@@ -315,6 +353,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const [reopenNote, setReopenNote] = useState('');
   const [search, setSearch] = useState(() => orderSearchFromQuery(location.search));
   const [now, setNow] = useState(() => Date.now());
+  const showKitPreview = new URLSearchParams(location.search).get('preview_kit') === '1';
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -401,6 +440,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   };
 
   const cardProps = {
+    now,
     editingId,
     trackingNumber,
     trackingCarrier,
@@ -423,12 +463,12 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   return (
     <DashboardLayout isAdminView={adminView}>
        <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-display font-bold">Order Management</h1>
             <p className="text-muted-foreground text-sm mt-1">Place new orders, add tracking, and see past orders in one place.</p>
           </div>
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search orders..."
@@ -445,6 +485,18 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
           </div>
         ) : (
           <div className="space-y-10">
+            {showKitPreview && (
+              <section aria-label="Kit order preview" className="space-y-4 rounded-xl border border-dashed border-border/70 p-4 sm:p-5">
+                <div>
+                  <h2 className="font-display text-xl font-semibold">Kit order preview</h2>
+                  <p className="text-sm text-muted-foreground">Sample cards only. No order was created, and these controls cannot change an order.</p>
+                </div>
+                <div className="space-y-3">
+                  <OrderCard order={kitPreviewOrder(now, 'processing')} isPreview {...cardProps} />
+                  <OrderCard order={kitPreviewOrder(now, 'pending')} isPreview {...cardProps} />
+                </div>
+              </section>
+            )}
             {([
               { title: 'Current Orders', description: 'Newest first. Marking an order as ordered changes its status to Needs Tracking without moving it.', list: currentOrders, empty: 'No current orders need action.' },
               { title: 'Completed / Shipped', description: 'Tracking has been added. Orders move to Past Orders after eight days; delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
