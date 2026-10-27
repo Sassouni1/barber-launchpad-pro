@@ -458,7 +458,7 @@ function KitOrderPreview({ now }: { now: number }) {
             ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}`
             : null;
         const flow = shippingLocationUpdate(details, number, carrier, shippingMode, new Date().toISOString());
-        return { ...order, ...flow, tracking_number: number, tracking_url: trackingUrl, order_details: flow.order_details };
+        return { ...order, ...flow, tracking_number: number, tracking_url: trackingUrl, order_details: flow.order_details as Order['order_details'] };
       });
       setEditingId(null);
       setTrackingNumber('');
@@ -491,7 +491,7 @@ function KitOrderPreview({ now }: { now: number }) {
       updatePreview(order.id, previous => {
         const carrier = savedTrackingCarrier(previous);
         const flow = shippingLocationUpdate(previous.order_details, previous.tracking_number, carrier, mode, new Date().toISOString());
-        return { ...previous, ...flow, order_details: flow.order_details };
+        return { ...previous, ...flow, order_details: flow.order_details as Order['order_details'] };
       });
     },
     onExtraTracking: async (order: Order, change: ExtraChange) => {
@@ -500,7 +500,7 @@ function KitOrderPreview({ now }: { now: number }) {
         const mode = shippingLocations(details);
         const flow = mode ? shippingLocationUpdate(details, previous.tracking_number, savedTrackingCarrier(previous), mode, new Date().toISOString())
           : { status: previous.status, order_details: details };
-        return { ...previous, ...flow, order_details: flow.order_details };
+        return { ...previous, ...flow, order_details: flow.order_details as Order['order_details'] };
       });
     },
   };
