@@ -95,6 +95,8 @@ function getAuthUrl(state: string) {
   const scopes = [
     "contacts.readonly",
     "contacts.write",
+    "payments/orders.readonly",
+    "payments/transactions.readonly",
     "conversations/message.write",
     "locations.readonly",
   ].join(" ");
