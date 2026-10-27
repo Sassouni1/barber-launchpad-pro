@@ -15,7 +15,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizePhone } from "./ghlMessaging.ts";
 import { relayCall } from "./barberLaunchGhlRelay.ts";
 
-export const SUPPLIER_FROM = "send@barberlaunch.co";
+export const SUPPLIER_FROM = "chris@training.thebarberlaunch.com";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
 export const DEFAULT_SUPPLIER_EMAIL = "sales30@newtimeshair.com";
 export const SUPPLIER_SUBJECT = "New Hair System Order";
@@ -265,9 +265,9 @@ export function buildCrmOrderNote(
 //
 // Transport is the existing connected Barber Launch GHL location (same OAuth
 // path as the other live functions). The rendered HTML is handed to GHL fully
-// built — GHL contributes nothing to the content. The From address must be
-// send@barberlaunch.co; if GHL refuses that sender the send FAILS and the
-// exact provider rejection is recorded. No silent fallback sender.
+// built — GHL contributes nothing to the content. The deployed Vlix relay
+// fixes the From address to chris@training.thebarberlaunch.com; if GHL refuses
+// it the send FAILS and the provider rejection is recorded. No fallback sender.
 
 export type SendResult =
   | { ok: true; messageId: string | null; sender: string }
