@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Copy, Pencil, Trash2, Plus } from 'lucide-react';
+import { Check, Copy, Pencil, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { extraPackages, MAX_ADDITIONAL_PACKAGES, type ExtraChange, type TrackingCarrier } from '../../../supabase/functions/_shared/supplierTracking';
 import { shippingLocations, shipmentProgress, type ShippingLocations } from '../../../supabase/functions/_shared/supplierShippingLocations';
@@ -32,8 +32,8 @@ export function AdditionalTracking({ details, primaryCarrier, onChange, onModeCh
   };
   return <div className="flex min-w-0 flex-wrap items-center gap-3 py-2" aria-label="Additional package tracking">
     {onModeChange && mode && <Button type="button" variant="outline" size="sm" aria-pressed={mode === 'two'} disabled={busy}
-      className={`w-fit max-w-full whitespace-normal text-xs ${mode === 'two' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}
-      onClick={() => onModeChange(mode === 'two' ? 'one' : 'two')}>Shipping from two locations</Button>}
+      className={`w-fit max-w-full whitespace-normal border-amber-300 bg-amber-400 text-xs font-semibold text-black hover:bg-amber-300 hover:text-black ${mode === 'two' ? 'ring-2 ring-amber-300/60' : ''}`}
+      onClick={() => onModeChange(mode === 'two' ? 'one' : 'two')}>{mode === 'two' && <Check className="mr-1.5 h-4 w-4" />}Shipping from two locations</Button>}
     {packages.map((p, i) => <div key={p.tracking_number} className="w-full space-y-1 border-l border-border pl-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">Package {i + 2}</span><span className="font-semibold">{p.carrier}</span>

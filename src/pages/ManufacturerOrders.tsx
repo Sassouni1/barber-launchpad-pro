@@ -254,8 +254,8 @@ function OrderCard({ order, now, index, kitLabelPreview = false, isSamplePreview
                     <PopoverContent align="end" sideOffset={8} className="w-[min(20rem,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto border-border bg-card p-3 shadow-xl">
                       <div className="flex flex-col gap-2">
                   {!order.tracking_number && <>
-                    <Button type="button" size="sm" variant="outline" aria-pressed={shippingMode === 'two'} className={`w-fit max-w-full whitespace-normal text-xs ${shippingMode === 'two' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`} onClick={() => { const next = shippingMode === 'two' ? 'one' : 'two'; setShippingMode(next); if (next === 'two' && trackingCarrier === 'Other') setTrackingCarrier(null); }}>
-                      Shipping from two locations
+                    <Button type="button" size="sm" variant="outline" aria-pressed={shippingMode === 'two'} className={`w-fit max-w-full whitespace-normal border-amber-300 bg-amber-400 text-xs font-semibold text-black hover:bg-amber-300 hover:text-black ${shippingMode === 'two' ? 'ring-2 ring-amber-300/60' : ''}`} onClick={() => { const next = shippingMode === 'two' ? 'one' : 'two'; setShippingMode(next); if (next === 'two' && trackingCarrier === 'Other') setTrackingCarrier(null); }}>
+                      {shippingMode === 'two' && <Check className="mr-1.5 h-4 w-4" />}Shipping from two locations
                     </Button>
                     {shippingMode === 'two' && <p className="text-xs text-muted-foreground">DHL · China and FedEx · US. Wait for both tracking numbers.</p>}
                   </>}
