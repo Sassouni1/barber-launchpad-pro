@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
-import { relayCall, relayProbe } from '../_shared/barberLaunchGhlRelay.ts';
+import { relayCall, relayProbe, relayDefinitelyDidNotSend } from '../_shared/barberLaunchGhlRelay.ts';
 import { KIT_ENROLLMENT_OFFERS, processKit } from './logic.ts';
 import { readStripeEvidence } from './readStripeEvidence.ts';
 import { kitStorage } from './storage.ts';
@@ -49,15 +49,16 @@ Deno.serve(async req => {
       ensureRow: storage.ensureRow,
       confirmVisible: storage.confirmVisible,
       reserve: storage.reserve,
+      releaseBeforeSend: storage.releaseBeforeSend,
       send: async mail => {
         const response = await relayCall('send_email', { role: mail.role, to: mail.to, name: 'New Times Hair', subject: mail.subject, html: mail.html });
-        return response.ok ? { ok: true, messageId: response.messageId } : { ok: false };
+        return response.ok ? { ok: true, messageId: response.messageId } : { ok: false, safeRetry: relayDefinitelyDidNotSend(response.reason) };
       },
       finish: storage.finish,
     }).catch(() => ({ status: 'error' }));
     // A blocked payment or missing shipping address must never become a supplier order.
     const temporaryFailure = result.status === 'error' ||
-      (result.status === 'blocked' && 'reason' in result && ['fresh_stripe_reads_unavailable', 'supplier_page_visibility_unverified'].includes(result.reason ?? ''));
+      (result.status === 'blocked' && 'reason' in result && ['fresh_stripe_reads_unavailable', 'supplier_page_visibility_unverified', 'supplier_delivery_not_attempted'].includes(result.reason ?? ''));
     return reply(result, temporaryFailure ? 503 : 200);
   }
   const auth = req.headers.get('Authorization');

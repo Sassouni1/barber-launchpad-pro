@@ -17,7 +17,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, loadFulfillmentCutover } from "../_shared/hairSystemFulfillment.ts";
 import { automaticFulfillmentAllowed } from "../_shared/hairSystemFulfillmentLogic.ts";
-import { ghlOrderContact, relayCall } from "../_shared/barberLaunchGhlRelay.ts";
+import { ghlOrderContact, relayCall, relayDefinitelyDidNotSend } from "../_shared/barberLaunchGhlRelay.ts";
 import { processKit } from "../_shared/hairSystemKit/logic.ts";
 import { readStripeEvidenceByPaymentIntent } from "../_shared/hairSystemKit/readStripeEvidence.ts";
 import { kitPaymentEvent } from "../_shared/hairSystemKit/stripeEvent.ts";
@@ -176,16 +176,17 @@ Deno.serve(async (req) => {
       ensureRow: storage.ensureRow,
       confirmVisible: storage.confirmVisible,
       reserve: storage.reserve,
+      releaseBeforeSend: storage.releaseBeforeSend,
       send: async mail => {
         const response = await relayCall("send_email", { role: mail.role, to: mail.to,
           name: "New Times Hair", subject: mail.subject, html: mail.html });
-        return response.ok ? { ok: true, messageId: response.messageId } : { ok: false };
+        return response.ok ? { ok: true, messageId: response.messageId } : { ok: false, safeRetry: relayDefinitelyDidNotSend(response.reason) };
       },
       finish: storage.finish,
     }).catch(() => ({ status: "error" }));
     await record(`kit_${result.status}`);
     const retry = result.status === "error" || (result.status === "blocked" && "reason" in result &&
-      ["fresh_stripe_reads_unavailable", "supplier_page_visibility_unverified", "shipping_missing", "contact_missing"].includes(String(result.reason)));
+      ["fresh_stripe_reads_unavailable", "supplier_page_visibility_unverified", "shipping_missing", "contact_missing", "supplier_delivery_not_attempted"].includes(String(result.reason)));
     return json({ received: !retry, kit: result.status }, retry ? 503 : 200);
   }
 
