@@ -53,6 +53,7 @@ function fixture(opts: { hold?: boolean; holdError?: boolean; supplierClaimError
       if (channel === "supplier_email" && opts.supplierClaimError) return Promise.resolve({ data: null, error: { message: "claim denied" } });
       const previous = states.get(channel);
       if (previous === "sent") return Promise.resolve({ data: "duplicate", error: null });
+      if (previous === "uncertain") return Promise.resolve({ data: "manual_review", error: null });
       if (previous === "sending") return Promise.resolve({ data: "in_progress", error: null });
       states.set(channel, "sending");
       return Promise.resolve({ data: "claimed", error: null });
@@ -65,7 +66,7 @@ const run = (db: any, session: any = paidSession) => fulfillPaidSession(db, sess
   eventId: "fixture-event", stripeSecret: "fixture-not-a-key", syncSavedCard: false, mode: "automatic", expectedUserId: USER,
 });
 
-async function withRelay(test: (calls: any[]) => Promise<void>, supplierFails = false, crmFails = true) {
+async function withRelay(test: (calls: any[]) => Promise<void>, supplierFails = false, crmFails = true, supplierFailure = "fixture provider failure") {
   const oldKey = Deno.env.get("GHL_API_KEY");
   const calls: any[] = [];
   Deno.env.set("GHL_API_KEY", "fixture-not-a-key");
@@ -73,7 +74,7 @@ async function withRelay(test: (calls: any[]) => Promise<void>, supplierFails = 
     const body = JSON.parse(String(init?.body));
     calls.push(body);
     const failed = body.action === "upsert_order_contact" ? crmFails : supplierFails;
-    return new Response(JSON.stringify(failed ? { ok: false, error: "fixture provider failure" } : { ok: true, messageId: "fixture-message", contactId: "fixture-contact" }), { status: failed ? 503 : 200 });
+    return new Response(JSON.stringify(failed ? { ok: false, error: body.role === "supplier" ? supplierFailure : "fixture provider failure" } : { ok: true, messageId: "fixture-message", contactId: "fixture-contact" }), { status: failed ? 503 : 200 });
   });
   try { await test(calls); } finally {
     __setRelayFetch(() => { throw new Error("Unmocked network forbidden"); });
@@ -98,14 +99,24 @@ Deno.test("CRM failure still attempts fixed supplier once; retries do not resend
   });
 });
 
-Deno.test("failed supplier audit remains retryable despite CRM failure", async () => {
+Deno.test("ambiguous supplier failure stays held despite Stripe retry", async () => {
+  await withRelay(async (calls) => {
+    const f = fixture();
+    await run(f.db);
+    await run(f.db);
+    assertEquals(calls.filter((c) => c.role === "supplier").length, 1);
+    assertEquals(f.logs.filter((l) => l.channel === "supplier_email").map((l) => l.status), ["uncertain"]);
+  }, true);
+});
+
+Deno.test("known pre-send relay failure remains retryable", async () => {
   await withRelay(async (calls) => {
     const f = fixture();
     await run(f.db);
     await run(f.db);
     assertEquals(calls.filter((c) => c.role === "supplier").length, 2);
     assertEquals(f.logs.filter((l) => l.channel === "supplier_email").map((l) => l.status), ["failed", "failed"]);
-  }, true);
+  }, true, true, "vlix_oauth_not_connected");
 });
 
 Deno.test("supplier claim errors and active claims never call supplier relay", async () => {
