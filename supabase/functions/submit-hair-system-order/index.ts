@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     if (!/^\d{5}(-\d{4})?$/.test(text(body.zip, 10))) throw new Error("Please provide a valid ZIP code.");
 
     const systems = Array.isArray(body.systems) && body.systems.length ? body.systems.slice(0, 12) : [body];
-    if (systems.some((system) => !["clientName", "color", "length"].every((field) => text(system[field])))) throw new Error("Please complete each system's client, color, and length.");
+    if (systems.some((system: Record<string, unknown>) => !["clientName", "color", "length"].every((field) => text(system[field])))) throw new Error("Please complete each system's client, color, and length.");
     const baseDetails = {
       source: "barber-launch-native-order-form",
       order_type: "hair_system",
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     };
 
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const ordersToInsert = systems.map((system, index) => ({ user_id: user.id, customer_email: user.email.toLowerCase(), customer_name: text(body.barberName, 100), status: "pending", order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length, 50), "Choose Density if Needed (75%-110%) - 100% is regular": text(system.density, 100), "Curl Pattern — only if needed": text(system.curl, 100), quantity: 1, line_items: [{ title: "Hair System", quantity: 1 }] } }));
+    const ordersToInsert = systems.map((system: Record<string, unknown>, index: number) => ({ user_id: user.id, customer_email: user.email!.toLowerCase(), customer_name: text(body.barberName, 100), status: "pending", order_details: { ...baseDetails, order_number: index + 1, total_orders: systems.length, "Client Name": text(system.clientName, 100), "Choose Color": text(system.color, 100), "Hair Length": text(system.length, 50), "Choose Density if Needed (75%-110%) - 100% is regular": text(system.density, 100), "Curl Pattern — only if needed": text(system.curl, 100), quantity: 1, line_items: [{ title: "Hair System", quantity: 1 }] } }));
     const { data: order, error } = await serviceClient.from("orders").insert(ordersToInsert).select("id");
     if (error) throw error;
     return new Response(JSON.stringify({ success: true, order_ids: order.map((item) => item.id) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

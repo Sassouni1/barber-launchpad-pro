@@ -345,7 +345,7 @@ async function accrue(
       .eq("id", referral.affiliate_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    affiliate = data as typeof affiliate;
+    affiliate = data as unknown as NonNullable<typeof affiliate>;
   }
 
   const rejectMixed = Boolean((settings as Record<string, unknown>).reject_mixed_carts);
