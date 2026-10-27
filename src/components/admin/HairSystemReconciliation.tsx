@@ -30,12 +30,27 @@ export function HairSystemReconciliation() {
   const [result, setResult] = useState<Result | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [orderId, setOrderId] = useState("");
+  const [kitEventId, setKitEventId] = useState("");
 
   const run = async (action: "diagnostics" | "dry_run") => {
     setBusy(action);
     setErr(null);
     try {
       setResult(await call(reconciliationRequest(action, orderId)));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runKitSetup = async (action: "subscribe_kit_payments" | "probe_kit_event") => {
+    setBusy(action);
+    setErr(null);
+    try {
+      setResult(await call(action === "subscribe_kit_payments"
+        ? { action, confirm: "SUBSCRIBE_KIT" }
+        : { action, confirm: "PROBE_KIT", event_id: kitEventId.trim() }));
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -51,7 +66,7 @@ export function HairSystemReconciliation() {
       <div>
         <h3 className="text-lg font-semibold text-foreground">Hair-system order reconciliation</h3>
         <p className="text-sm text-muted-foreground">
-          Read-only payment and delivery checks. No messages are sent.
+          Payment and delivery checks, plus controlled kit event setup.
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -63,6 +78,16 @@ export function HairSystemReconciliation() {
           {busy === "dry_run" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Dry run (read-only)
         </Button>
       </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <Button variant="outline" disabled={!!busy} onClick={() => runKitSetup("subscribe_kit_payments")}>Listen for paid kit events</Button>
+        <Input aria-label="Historical kit Stripe event ID" className="w-full sm:max-w-[300px]" placeholder="Historical kit Stripe event ID" value={kitEventId} disabled={!!busy} onChange={(e) => setKitEventId(e.target.value)} />
+        <Button variant="outline" disabled={!!busy || !/^evt_[A-Za-z0-9]+$/.test(kitEventId.trim())} onClick={() => runKitSetup("probe_kit_event")}>Probe with kit delivery off</Button>
+      </div>
+
+      {result?.status === "subscribed" && <p className="text-sm text-foreground">Stripe is listening for paid kit events.</p>}
+      {result?.status === "already_subscribed" && <p className="text-sm text-foreground">Stripe already listens for paid kit events.</p>}
+      {result?.status === "probe_requested" && <p className="text-sm text-foreground">Historical event probe requested. Check setup for the verified input result.</p>}
 
       {err && (
         <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{err}</AlertDescription></Alert>
