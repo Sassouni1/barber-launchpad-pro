@@ -18,8 +18,7 @@ import { relayCall } from "./barberLaunchGhlRelay.ts";
 export const SUPPLIER_FROM = "send@barberlaunch.co";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
 export const DEFAULT_SUPPLIER_EMAIL = "sales30@newtimeshair.com";
-export const SUPPLIER_SUBJECT = "NEW Hair System Purchase (Order Details) (IMPORTANT)";
-export const SUPPLIER_STANDING_INSTRUCTION = "Please always choose NCON and HS1.";
+export const SUPPLIER_SUBJECT = "New Hair System Order";
 export const CUSTOMER_RECEIPT_SUBJECT = "Your Barber Launch Hair System Order Receipt";
 export const VERIFICATION_BANNER = "TEST ONLY — DO NOT PRODUCE OR SHIP";
 const verificationBannerHtml = `<div style="background:#b91c1c;color:#fff;padding:20px;font-size:22px;font-weight:700">${VERIFICATION_BANNER}</div>`;
@@ -215,41 +214,16 @@ export function buildCustomerReceiptHtml(orders: OrderRow[], buyer: SessionBuyer
 export function buildSupplierEmailHtml(order: OrderRow, buyer: SessionBuyer) {
   const details = order.order_details ?? {};
   const ship = shippingBlock(details);
-  const rows = systemRows(details)
-    .map(([k, v]) => `<tr><td style="padding:3px 14px 3px 0;color:#777">${esc(k)}</td><td style="padding:3px 0"><strong>${esc(v)}</strong></td></tr>`)
-    .join("");
-
-  const notes = String(details.notes ?? "").trim();
   const shipLines = ship.lines.length ? ship.lines : buyer.address;
-  const recipient = String(details.full_name ?? order.customer_name ?? buyer.name ?? "");
-  const phone = String(details.phone ?? buyer.phone ?? "");
-  const email = String(buyer.email || details.email || order.customer_email || "");
+  const recipient = String(details.full_name ?? order.customer_name ?? buyer.name ?? "").trim();
+  if (!recipient || !shipLines.length || shipLines.every(line => !String(line).trim())) throw new Error("supplier_name_or_shipping_missing");
+  const url = `https://member.thebarberlaunch.com/newtimes?order=${encodeURIComponent(order.id)}`;
 
   return `<!doctype html><html><body style="margin:0;font-family:Helvetica,Arial,sans-serif;color:#111">
 <div style="max-width:620px;margin:0 auto;padding:24px">
   ${details.live_verification_test === true ? verificationBannerHtml : ""}
-  <h1 style="font-size:18px;margin:0 0 12px">New hair system purchase — order details</h1>
-  <p style="margin:0 0 16px;font-size:13px;color:#555">Order reference: ${esc(order.id)}${
-    details.total_orders ? ` &middot; system ${esc(details.order_number)} of ${esc(details.total_orders)}` : ""
-  }</p>
-
-  <p style="margin:0 0 20px;padding:10px 12px;background:#fff6d6;border-left:4px solid #b8860b;font-size:15px"><strong>${esc(SUPPLIER_STANDING_INSTRUCTION)}</strong></p>
-
-  <h2 style="font-size:14px;margin:16px 0 6px">System specification</h2>
-  <table style="border-collapse:collapse;font-size:14px">${rows}
-    <tr><td style="padding:3px 14px 3px 0;color:#777">Quantity</td><td style="padding:3px 0"><strong>1</strong></td></tr>
-  </table>
-
-  <h2 style="font-size:14px;margin:20px 0 6px">Buyer &amp; shipping</h2>
-  <table style="border-collapse:collapse;font-size:14px">
-    <tr><td style="padding:3px 14px 3px 0;color:#777">Buyer name</td><td style="padding:3px 0"><strong>${esc(recipient)}</strong></td></tr>
-    <tr><td style="padding:3px 14px 3px 0;color:#777">Email</td><td style="padding:3px 0">${esc(email)}</td></tr>
-    ${phone ? `<tr><td style="padding:3px 14px 3px 0;color:#777">Phone</td><td style="padding:3px 0">${esc(phone)}</td></tr>` : ""}
-    ${ship.method ? `<tr><td style="padding:3px 14px 3px 0;color:#777">Shipping preference</td><td style="padding:3px 0">${esc(ship.method)}</td></tr>` : ""}
-    <tr><td style="padding:3px 14px 3px 0;color:#777;vertical-align:top">Shipping address</td><td style="padding:3px 0">${shipLines.map(esc).join("<br>")}</td></tr>
-  </table>
-
-  ${notes ? `<h2 style="font-size:14px;margin:20px 0 6px">Order notes</h2><p style="font-size:14px;white-space:pre-wrap;margin:0">${esc(notes)}</p>` : ""}
+  <p>New order for ${esc(recipient)} at ${shipLines.map(esc).join(", ")}.</p>
+  <p><a href="${esc(url)}">Click here to view order and add tracking details.</a></p>
 </div></body></html>`;
 }
 

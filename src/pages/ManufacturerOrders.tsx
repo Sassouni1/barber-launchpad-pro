@@ -11,7 +11,7 @@ import { Loader2, Truck, Check, CheckCircle2, Circle, Search, Copy, Trash2, Penc
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
-import { manufacturerOrderView, orderSearchFromQuery } from '@/lib/manufacturerOrderDetails';
+import { manufacturerOrderView, highlightedOrderFromQuery } from '@/lib/manufacturerOrderDetails';
 import { isNewOrderOverdue } from '@/lib/manufacturerOrderUrgency';
 import { KIT_MANIFEST } from '@/lib/supplierKitOrder';
 import { supplierPriceFor, supplierPaymentState } from '@/lib/supplierPrice';
@@ -63,6 +63,7 @@ interface OrderCardProps {
   order: Order;
   now: number;
   index?: number;
+  isHighlighted?: boolean;
   kitLabelPreview?: boolean;
   isSamplePreview?: boolean;
   editingId: string | null;
@@ -111,7 +112,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, index, kitLabelPreview = false, isSamplePreview = false, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, onShippingMode, isSavingExtra, isSavingMode, onCompletion, isCompleting }: OrderCardProps) {
+function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview = false, isSamplePreview = false, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, onShippingMode, isSavingExtra, isSavingMode, onCompletion, isCompleting }: OrderCardProps) {
   const supplierPaidAt = (order as { supplier_paid_at?: string | null }).supplier_paid_at ?? null;
   const supplierPrice = supplierPriceFor(order.order_details);
   const paymentState = supplierPaymentState(supplierPaidAt, order.tracking_number);
@@ -156,9 +157,10 @@ function OrderCard({ order, now, index, kitLabelPreview = false, isSamplePreview
   };
 
   return (
-    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking || waitingForSecond ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
+    <Card id={isHighlighted ? 'supplier-linked-order' : undefined} className={isHighlighted ? 'border-amber-400 bg-amber-500/10 ring-2 ring-amber-400 shadow-lg shadow-amber-500/10' : overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking || waitingForSecond ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
+          {isHighlighted && <p className="text-sm font-semibold text-amber-300">Order linked from email</p>}
           {(view.isKit || kitLabelPreview) && (
             <div className="rounded-lg border border-muted-foreground/60 bg-card px-4 py-2" aria-label="Hair system kit order">
               <div className="flex items-center gap-2 text-2xl font-normal uppercase tracking-tight text-foreground sm:text-3xl">
@@ -574,7 +576,9 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const [trackingCarrier, setTrackingCarrier] = useState<TrackingCarrier | null>(null);
   const [shippingMode, setShippingMode] = useState<ShippingLocations>('one');
   const [reopenNote, setReopenNote] = useState('');
-  const [search, setSearch] = useState(() => orderSearchFromQuery(location.search));
+  const [search, setSearch] = useState('');
+  const highlightedOrderId = highlightedOrderFromQuery(location.search);
+  const lastScrolledOrderRef = useRef('');
   const [now, setNow] = useState(() => Date.now());
   const showKitPreview = new URLSearchParams(location.search).get('preview_kit') === '1';
   const previewKitLabelOnSierra = new URLSearchParams(location.search).get('preview_kit') === 'sierra';
@@ -584,7 +588,17 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
     return () => window.clearInterval(interval);
   }, []);
 
-  useEffect(() => setSearch(orderSearchFromQuery(location.search)), [location.search]);
+  useEffect(() => {
+    if (!highlightedOrderId || isLoading || !orders?.some(order => order.id === highlightedOrderId)) return;
+    if (lastScrolledOrderRef.current === highlightedOrderId) return;
+    const frame = window.requestAnimationFrame(() => {
+      const linkedOrder = document.getElementById('supplier-linked-order');
+      if (!linkedOrder) return;
+      linkedOrder.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+      lastScrolledOrderRef.current = highlightedOrderId;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [highlightedOrderId, isLoading, orders]);
 
   const handleSave = async (orderId: string) => {
     try {
@@ -759,7 +773,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
                 {section.list.length ? (
                   <div className="space-y-3">
                     {section.list.map((order, i) => (
-                      <OrderCard key={order.id} order={order} index={i + 1} isPast={section.title === 'Past Orders'} kitLabelPreview={previewKitLabelOnSierra && section.title === 'Current Orders' && order.customer_email?.toLowerCase() === 'sierrascreations@gmail.com'} {...cardProps} />
+                      <OrderCard key={order.id} order={order} index={i + 1} isHighlighted={order.id === highlightedOrderId} isPast={section.title === 'Past Orders'} kitLabelPreview={previewKitLabelOnSierra && section.title === 'Current Orders' && order.customer_email?.toLowerCase() === 'sierrascreations@gmail.com'} {...cardProps} />
                     ))}
                   </div>
                 ) : (

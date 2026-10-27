@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { manufacturerOrderView, orderSearchFromQuery } from './manufacturerOrderDetails.ts';
+import { manufacturerOrderView, highlightedOrderFromQuery } from './manufacturerOrderDetails.ts';
 
-test('order query selects the current requested reference', () => {
-  assert.equal(orderSearchFromQuery('?order=ghl%2F123'), 'ghl/123');
-  assert.equal(orderSearchFromQuery('?order='), '');
+test('order query identifies the card to highlight', () => {
+  assert.equal(highlightedOrderFromQuery('?order=ghl%2F123'), 'ghl/123');
+  assert.equal(highlightedOrderFromQuery('?order='), '');
 });
 
 test('native paid order exposes all collected supplier fields, including modern density', () => {

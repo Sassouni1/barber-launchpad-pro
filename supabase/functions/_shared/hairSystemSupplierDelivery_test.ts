@@ -5,6 +5,7 @@ import { DEFAULT_SUPPLIER_EMAIL, dispatchSupplierOrderNotifications } from "./ha
 
 const ORDER = "11111111-2222-4333-8444-555555555555";
 const USER = "22222222-2222-4333-8444-555555555555";
+const DETAILS = { shipping: { address_1: "1 Fixture St", city: "City", state: "FL", zip: "33764" } };
 const paidSession = {
   object: "checkout.session", id: "cs_test_fixture", payment_status: "paid",
   created: Date.parse("2026-10-18T00:00:00Z") / 1000,
@@ -36,7 +37,7 @@ function fixture(opts: { hold?: boolean; holdError?: boolean; supplierClaimError
               ? { data: { value: opts.hold ?? false }, error: opts.holdError ? { message: "denied" } : null }
               : { data: { value: { at: opts.cutover ?? "2026-10-01T00:00:00Z" } }, error: null };
           } else if (table === "orders" && !update) {
-            result.data = [{ id: ORDER, customer_email: "fixture@example.invalid", customer_name: "Fixture Buyer", order_details: {} }];
+            result.data = [{ id: ORDER, customer_email: "fixture@example.invalid", customer_name: "Fixture Buyer", order_details: DETAILS }];
           } else if (table === "order_notifications" && update) {
             states.set(channel, update.status);
             logs.push({ channel, status: update.status, reason: update.reason });
@@ -148,7 +149,7 @@ Deno.test("successful CRM preserves supplier then buyer receipt and SMS behavior
 Deno.test("shared supplier-only helper claims only supplier; sent terminal, failures retry and no buyer or CRM calls", async () => {
   await withRelay(async (calls) => {
     const f = fixture();
-    const input = { orders: [{ id: ORDER, customer_email: "fixture@example.invalid", customer_name: "Fixture Buyer", order_details: {} }], buyer: { name: "Paid Buyer", email: "paid@example.invalid", phone: "", address: [] }, eventId: "supplier-only-fixture" };
+    const input = { orders: [{ id: ORDER, customer_email: "fixture@example.invalid", customer_name: "Fixture Buyer", order_details: DETAILS }], buyer: { name: "Paid Buyer", email: "paid@example.invalid", phone: "", address: [] }, eventId: "supplier-only-fixture" };
     assertEquals((await dispatchSupplierOrderNotifications(f.db, input))[0].result, "sent");
     assertEquals((await dispatchSupplierOrderNotifications(f.db, input))[0].result, "duplicate");
     assertEquals(calls.map((c) => [c.action, c.role, c.to]), [["send_email", "supplier", "sales30@newtimeshair.com"]]);

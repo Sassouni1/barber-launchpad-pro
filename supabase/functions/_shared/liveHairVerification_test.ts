@@ -83,7 +83,12 @@ Deno.test("verification notifications warn no production/shipping; supplier has 
   assertEquals(buildCustomerSmsBody(order, buyer, 1).includes("no product will be produced or shipped"), true);
   const normal = { ...order, order_details: { ...order.order_details, live_verification_test: false } };
   assertEquals(supplierSubject(normal), SUPPLIER_SUBJECT);
-  assertEquals(buildSupplierEmailHtml(normal, buyer).includes("TEST ONLY — DO NOT PRODUCE OR SHIP"), false);
+  const normalSupplier = buildSupplierEmailHtml(normal, buyer);
+  assertEquals(normalSupplier.includes("TEST ONLY — DO NOT PRODUCE OR SHIP"), false);
+  assertEquals(normalSupplier.includes("New order for Chris Sassouni at"), true);
+  assertEquals(normalSupplier.includes("/newtimes?order=fixture-order"), true);
+  assertEquals(normalSupplier.includes("Click here to view order and add tracking details."), true);
+  assertEquals(normalSupplier.includes("System specification"), false);
   assertEquals(buildCustomerSmsBody(normal, buyer, 1), "Chris, thanks for your order with Barber Launch. Your hair system is confirmed and going into production. We'll be in touch with shipping updates. Reply STOP to opt out.");
 });
 Deno.test("live verification cancellation refuses paid draft without Stripe mutation", async () => {

@@ -44,7 +44,7 @@ export type ManufacturerOrderView = {
   sequence: string;
 };
 
-export function orderSearchFromQuery(search: string): string {
+export function highlightedOrderFromQuery(search: string): string {
   return new URLSearchParams(search).get('order')?.trim() || '';
 }
 

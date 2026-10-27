@@ -1,9 +1,9 @@
 export const KIT_MANIFEST = [
-  { title: '1 #2 skin system', quantity: 1 },
-  { title: '1 #2 lace system', quantity: 1 },
-  { title: 'color wheel', quantity: 1 },
-  { title: 'adhesive', quantity: 1 },
-  { title: 'tape', quantity: 1 },
+  { title: 'One #2 skin hair system', quantity: 1 },
+  { title: 'One #2 lace hair system', quantity: 1 },
+  { title: 'Color wheel', quantity: 1 },
+  { title: 'Adhesive', quantity: 1 },
+  { title: 'Tape', quantity: 1 },
   { title: 'C22 spray', quantity: 1 },
 ] as const;
 

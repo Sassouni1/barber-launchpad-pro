@@ -21,5 +21,5 @@ GRANT SELECT, INSERT, UPDATE ON public.hair_system_kit_deliveries TO service_rol
 ALTER TABLE public.hair_system_kit_deliveries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Kit rows are supplier or admin only" ON public.orders AS RESTRICTIVE FOR SELECT TO public
 USING (COALESCE(order_details->>'supplier_kit','false') <> 'true' OR public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manufacturer'));
-COMMENT ON TABLE public.hair_system_kit_activation IS 'Server-only kit gate. No activation row is seeded. Keep disabled until fresh GHL reads and published supplier page are verified; use a fresh cutoff on activation.';
+COMMENT ON TABLE public.hair_system_kit_activation IS 'Server-only kit gate. No activation row is seeded. Keep disabled until Stripe Order ID search, both product-specific GHL branches, phone mapping and published supplier page are verified; use a fresh cutoff on activation.';
 COMMENT ON TABLE public.hair_system_kit_deliveries IS 'Permanent atomic location/order reservation. Reserved and uncertain deliveries must never be retried automatically; reconcile manually.';

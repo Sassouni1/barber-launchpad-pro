@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.newtimes-orders]
 verify_jwt = false
+
+[functions.hair-system-kit]
+verify_jwt = false
