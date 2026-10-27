@@ -35,6 +35,12 @@ function savedTrackingCarrier(order: Order): TrackingCarrier | null {
   return TRACKING_CARRIERS.find(carrier => carrier === value) ?? null;
 }
 
+function awaitsSecondTracking(order: Order): boolean {
+  if (!order.tracking_number || shippingLocations(order.order_details) !== 'two') return false;
+  const progress = shipmentProgress(order.order_details, order.tracking_number, savedTrackingCarrier(order));
+  return !(progress.china && progress.us);
+}
+
 const statusColors: Record<string, string> = {
   new: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
   kit: 'border-border bg-muted/40 text-muted-foreground',
@@ -45,7 +51,7 @@ const statusColors: Record<string, string> = {
 
 function getDisplayStatus(order: Order, overdue: boolean, isKit: boolean): { label: string; color: string } {
   if (isSupplierCompleted(order)) return { label: 'Completed / Shipped', color: statusColors.shipped };
-  if (shippingLocations(order.order_details) === 'two' && order.tracking_number) return { label: 'Awaiting second tracking', color: statusColors.tracking };
+  if (awaitsSecondTracking(order)) return { label: 'Shipped · Awaiting Second Tracking', color: statusColors.tracking };
   if (order.tracking_number) return { label: 'In Progress · Tracking Added', color: statusColors.tracking };
   if (order.status === 'pending') return overdue
     ? { label: isKit ? 'New Hair System Kit · Overdue' : 'New Order · Overdue', color: statusColors.overdue }
@@ -119,7 +125,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
   const savedCarrier = savedTrackingCarrier(order);
   const savedMode = shippingLocations(details);
   const progress = shipmentProgress(details, order.tracking_number, savedCarrier);
-  const waitingForSecond = savedMode === 'two' && !!order.tracking_number && !(progress.china && progress.us);
+  const waitingForSecond = awaitsSecondTracking(order);
   const reopenHistory = details && Array.isArray(details[REOPEN_HISTORY_KEY])
     ? details[REOPEN_HISTORY_KEY] as Array<{ tracking_number?: string; note?: string }>
     : [];
@@ -520,8 +526,21 @@ function KitOrderPreview({ now }: { now: number }) {
         <Button type="button" size="sm" variant="outline" onClick={resetPreview}>Reset preview</Button>
       </div>
       <div className="space-y-3">
-        {previewOrders.map(order => <OrderCard key={order.id} order={order} {...previewProps} />)}
+        {previewOrders.filter(order => !awaitsSecondTracking(order) && !isSupplierCompleted(order)).map(order => <OrderCard key={order.id} order={order} {...previewProps} />)}
       </div>
+      {previewOrders.some(awaitsSecondTracking) && (
+        <div className="space-y-3 border-t border-blue-400/40 pt-4">
+          <h3 className="font-display text-lg font-semibold text-blue-200">Awaiting Second Tracking</h3>
+          <p className="text-sm text-muted-foreground">First package has tracking. This order stays on hold until both locations have tracking numbers.</p>
+          {previewOrders.filter(awaitsSecondTracking).map(order => <OrderCard key={order.id} order={order} {...previewProps} />)}
+        </div>
+      )}
+      {previewOrders.some(isSupplierCompleted) && (
+        <div className="space-y-3 border-t border-green-500/30 pt-4">
+          <h3 className="font-display text-lg font-semibold">Completed / Shipped</h3>
+          {previewOrders.filter(isSupplierCompleted).map(order => <OrderCard key={order.id} order={order} {...previewProps} />)}
+        </div>
+      )}
     </section>
   );
 }
@@ -629,7 +648,8 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const sortedOrders = useMemo(() => [...(orders ?? [])].sort((a, b) =>
     new Date(b.order_date).getTime() - new Date(a.order_date).getTime()
   ), [orders]);
-  const currentOrders = filterOrders(sortedOrders.filter(o => supplierOrderSection(o, now) === 'current'));
+  const currentOrders = filterOrders(sortedOrders.filter(o => supplierOrderSection(o, now) === 'current' && !awaitsSecondTracking(o)));
+  const holdingOrders = filterOrders(sortedOrders.filter(o => supplierOrderSection(o, now) === 'current' && awaitsSecondTracking(o)));
   const completedOrders = filterOrders(sortedOrders.filter(o => supplierOrderSection(o, now) === 'completed'));
   const pastOrders = filterOrders(sortedOrders.filter(o => supplierOrderSection(o, now) === 'past'));
 
@@ -724,9 +744,10 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
             )}
             {([
               { title: 'Current Orders', description: 'Newest first. Marking an order as ordered changes its status to Needs Tracking without moving it.', list: currentOrders, empty: 'No current orders need action.' },
+              { title: 'Awaiting Second Tracking', description: 'The first package has tracking. These orders stay on hold until DHL and FedEx tracking are both saved.', list: holdingOrders, empty: 'No orders are waiting for a second tracking number.' },
               { title: 'Completed / Shipped', description: 'Completed orders move to Past Orders eight days after completion; delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
               { title: 'Past Orders', description: 'Older orders and orders completed at least eight days ago.', list: pastOrders, empty: 'No past orders.' },
-            ] as const).map(section => (
+            ] as const).filter(section => section.title !== 'Awaiting Second Tracking' || section.list.length > 0).map(section => (
               <section key={section.title} aria-label={section.title} className="space-y-4 border-t border-border/70 pt-6">
                 <div className="flex items-baseline gap-3">
                   <h2 className="font-display text-xl font-semibold">{section.title}</h2>
