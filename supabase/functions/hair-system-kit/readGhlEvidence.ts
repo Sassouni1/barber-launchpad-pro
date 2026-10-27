@@ -7,8 +7,8 @@ const ORDER_ID = /^[A-Za-z0-9_-]{1,128}$/;
 type Obj = Record<string, unknown>;
 const obj = (v: unknown): Obj => v && typeof v === 'object' && !Array.isArray(v) ? v as Obj : {};
 
-async function readJson(url: URL, token: string): Promise<Obj> {
-  const response = await fetch(url, { headers: ghlHeaders(token) });
+async function readJson(url: URL, token: string, version: string): Promise<Obj> {
+  const response = await fetch(url, { headers: { ...ghlHeaders(token), Version: version } });
   if (!response.ok) throw new Error(`ghl_payment_read_${response.status}`);
   const data = await response.json();
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('ghl_payment_response_invalid');
@@ -23,14 +23,16 @@ export async function readGhlEvidence(db: SupabaseClient, orderId: string): Prom
   if (access.locationId !== KIT_LOCATION) throw new Error('ghl_wrong_location');
   const orderUrl = new URL(`/payments/orders/${encodeURIComponent(orderId)}`, GHL_BASE);
   orderUrl.searchParams.set('altType', 'location');
+  orderUrl.searchParams.set('altId', KIT_LOCATION);
   orderUrl.searchParams.set('locationId', KIT_LOCATION);
   const transactionsUrl = new URL('/payments/transactions', GHL_BASE);
   transactionsUrl.searchParams.set('altType', 'location');
+  transactionsUrl.searchParams.set('altId', KIT_LOCATION);
   transactionsUrl.searchParams.set('locationId', KIT_LOCATION);
   transactionsUrl.searchParams.set('entityId', orderId);
   transactionsUrl.searchParams.set('limit', '100');
   const [orderResponse, transactionResponse] = await Promise.all([
-    readJson(orderUrl, access.accessToken), readJson(transactionsUrl, access.accessToken),
+    readJson(orderUrl, access.accessToken, '2021-07-28'), readJson(transactionsUrl, access.accessToken, 'v3'),
   ]);
   const order = obj(orderResponse.data)._id ? obj(orderResponse.data) : orderResponse;
   const envelope = obj(transactionResponse.data);
