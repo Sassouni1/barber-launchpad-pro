@@ -1,5 +1,10 @@
 # Roadmap
 
+## Additional supplier packages
+- [ ] Add scoped extra-package storage/validation and matching public/authenticated actions; preserve primary tracking and reopen history.
+- [ ] Verify package flows and strict public allowlist without changing real customer tracking; deploy only newtimes-orders.
+- [ ] Inspect desktop/phone preview; leave frontend unpublished and report verified deployment/revision.
+
 ## GHL kit supplier path
 - [x] Inspect live schema/permissions and synchronized main baseline; real relay probe ready, but no payment-read contract advertised. GitHub connector source lookup fails with 401 Bad credentials.
 - [x] Add isolated qualification/storage/reservation scaffolding, server-only disabled activation state and kit-only restrictive order reads; preview supplier deep-link/shipping change preserves controls.
