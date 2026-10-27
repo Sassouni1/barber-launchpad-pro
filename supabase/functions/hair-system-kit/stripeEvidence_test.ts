@@ -2,7 +2,8 @@ import { assertEquals, assertThrows, assertRejects } from 'https://deno.land/std
 import { KIT_LOCATION, KIT_STRIPE_ACCOUNT, KIT_STRIPE_APPLICATION, KIT_ENROLLMENT_DESCRIPTION,
   KIT_ITEMS, KIT_1997_PRODUCT, KIT_ENROLLMENT_OFFERS, kitEmail, kitEnrollmentOffer, kitOrderRow, qualifyKit, processKit } from './logic.ts';
 import { evidenceFromStripe } from './stripeEvidence.ts';
-import { readStripeEvidence } from './readStripeEvidence.ts';
+import { readStripeEvidence, readStripeEvidenceByPaymentIntent } from './readStripeEvidence.ts';
+import { kitPaymentEvent } from './stripeEvent.ts';
 
 const ORDER = '6ad7ab5ef9a0f5d86d850cb9';
 const ORDER_1997 = '69b02cf0978001814a5adf77';
@@ -91,6 +92,25 @@ Deno.test('search by order ID retrieves the unique PI and checks current charge'
   const result = await readStripeEvidence(ORDER, '+17275550100', 'fixture-token', fetchFixture({ data: [{ id: PI }], has_more: false }));
   assertEquals(result.payment.id, PI);
   assertEquals(qualifyKit(result, ORDER, cutoff()), null);
+});
+Deno.test('signed event classifier accepts only GHL enrollment intents', () => {
+  const event = { type: 'payment_intent.succeeded', livemode: true, data: { object: paidFixture() } };
+  const fixture = event.data.object;
+  fixture.metadata.contactId = 'WYSQw4kAYQxVIDtxit0w';
+  assertEquals(kitPaymentEvent(event), { orderId: ORDER, paymentId: PI, contactId: 'WYSQw4kAYQxVIDtxit0w' });
+  assertEquals(kitPaymentEvent({ ...event, type: 'charge.succeeded' }), null);
+  assertEquals(kitPaymentEvent({ ...event, livemode: false }), null);
+  assertEquals(kitPaymentEvent({ ...event, data: { object: { ...fixture, application: 'another-app' } } }), null);
+  assertEquals(kitPaymentEvent({ ...event, data: { object: { ...fixture, description: 'Other purchase' } } }), null);
+  const installment = { ...fixture, amount_received: 50000 };
+  assertEquals(kitPaymentEvent({ ...event, data: { object: installment } })?.orderId, ORDER);
+  assertEquals(qualifyKit(evidenceFromStripe({ ...paidFixture(50000), metadata: fixture.metadata,
+    latest_charge: { ...paidFixture(50000).latest_charge, metadata: fixture.metadata } }, ORDER, '+17275550100'), ORDER, cutoff()), 'received_amount_not_verified');
+});
+Deno.test('signed event path re-reads the exact current PaymentIntent and charge', async () => {
+  const result = await readStripeEvidenceByPaymentIntent(PI, ORDER, '+17275550100', 'fixture-token', fetchFixture({}));
+  assertEquals(qualifyKit(result, ORDER, cutoff()), null);
+  await assertRejects(() => readStripeEvidenceByPaymentIntent('pi_wrong', ORDER, '+17275550100', 'fixture-token', fetchFixture({})), Error);
 });
 Deno.test('missing or ambiguous search fails closed for retry; no amount/email matching', async () => {
   await assertRejects(() => readStripeEvidence(ORDER, '+17275550100', 'fixture-token', fetchFixture({ data: [], has_more: false }), []), Error, 'stripe_payment_not_indexed');

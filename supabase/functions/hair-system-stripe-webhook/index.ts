@@ -17,6 +17,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, loadFulfillmentCutover } from "../_shared/hairSystemFulfillment.ts";
 import { automaticFulfillmentAllowed } from "../_shared/hairSystemFulfillmentLogic.ts";
+import { ghlOrderContact, relayCall } from "../_shared/barberLaunchGhlRelay.ts";
+import { processKit } from "../hair-system-kit/logic.ts";
+import { readStripeEvidenceByPaymentIntent } from "../hair-system-kit/readStripeEvidence.ts";
+import { kitPaymentEvent } from "../hair-system-kit/stripeEvent.ts";
+import { kitStorage } from "../hair-system-kit/storage.ts";
 
 const encoder = new TextEncoder();
 
@@ -139,6 +144,49 @@ Deno.serve(async (req) => {
   if (event.livemode !== true) {
     await record("rejected_test_mode");
     return json({ error: "Test-mode events are not accepted here." }, 400);
+  }
+
+  // GHL Link to Pay enrollments create PaymentIntents directly, not Checkout
+  // Sessions. This event is signed by the existing Stripe endpoint secret.
+  if (event.type === "payment_intent.succeeded") {
+    const match = kitPaymentEvent(event);
+    if (!match) { await record("ignored_non_kit_payment"); return json({ received: true, ignored: "non_kit_payment" }); }
+    const { data: gate, error: gateError } = await db.from("hair_system_kit_activation")
+      .select("enabled,activation_cutoff").eq("singleton", true).maybeSingle();
+    if (gateError) { await record("kit_gate_unavailable"); return json({ received: false, retry: true }, 503); }
+    if (gate?.enabled !== true) {
+      // Prove the server can resolve both linked records on a historical event
+      // without creating an order or contacting the supplier.
+      try {
+        const contact = await ghlOrderContact(match.contactId);
+        await readStripeEvidenceByPaymentIntent(match.paymentId, match.orderId, contact.phone, stripeSecret);
+        await record("kit_inactive_inputs_verified");
+        return json({ received: true, kit: "inactive", inputs_verified: true });
+      } catch {
+        await record("kit_inactive_inputs_unavailable");
+        return json({ received: true, kit: "inactive", inputs_verified: false });
+      }
+    }
+    let phone: string;
+    try { phone = (await ghlOrderContact(match.contactId)).phone; }
+    catch { await record("kit_contact_read_failed"); return json({ received: false, retry: true }, 503); }
+    const storage = kitStorage(db);
+    const result = await processKit(match.orderId, { enabled: true, cutoff: gate.activation_cutoff }, {
+      readFresh: id => readStripeEvidenceByPaymentIntent(match.paymentId, id, phone, stripeSecret),
+      ensureRow: storage.ensureRow,
+      confirmVisible: storage.confirmVisible,
+      reserve: storage.reserve,
+      send: async mail => {
+        const response = await relayCall("send_email", { role: mail.role, to: mail.to,
+          name: "New Times Hair", subject: mail.subject, html: mail.html });
+        return response.ok ? { ok: true, messageId: response.messageId } : { ok: false };
+      },
+      finish: storage.finish,
+    }).catch(() => ({ status: "error" }));
+    await record(`kit_${result.status}`);
+    const retry = result.status === "error" || (result.status === "blocked" && "reason" in result &&
+      ["fresh_stripe_reads_unavailable", "supplier_page_visibility_unverified", "shipping_missing", "contact_missing"].includes(String(result.reason)));
+    return json({ received: !retry, kit: result.status }, retry ? 503 : 200);
   }
 
   const handled = ["checkout.session.completed", "checkout.session.async_payment_succeeded"];

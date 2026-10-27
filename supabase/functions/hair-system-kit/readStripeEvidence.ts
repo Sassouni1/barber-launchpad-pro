@@ -41,3 +41,16 @@ export async function readStripeEvidence(orderId: string, phone: string, token: 
   const payment = await stripeGet(`/payment_intents/${encodeURIComponent(paymentId)}?expand[]=latest_charge`, token, fetcher);
   return evidenceFromStripe(payment, orderId, phone);
 }
+
+/** A signed Stripe event identifies the PaymentIntent directly. Re-retrieve it
+ * and its charge so event snapshots never authorize fulfillment. */
+export async function readStripeEvidenceByPaymentIntent(paymentId: string, orderId: string, phone: string,
+  token: string, fetcher: typeof fetch = fetch): Promise<KitEvidence> {
+  if (!PI_ID.test(paymentId) || !ORDER_ID.test(orderId)) throw new Error('invalid_payment_reference');
+  if (!token.trim()) throw new Error('stripe_key_unavailable');
+  const account = await stripeGet('/account', token, fetcher);
+  if (account.id !== KIT_STRIPE_ACCOUNT) throw new Error('wrong_stripe_seller');
+  const payment = await stripeGet(`/payment_intents/${encodeURIComponent(paymentId)}?expand[]=latest_charge`, token, fetcher);
+  if (payment.id !== paymentId) throw new Error('stripe_payment_id_mismatch');
+  return evidenceFromStripe(payment, orderId, phone);
+}
