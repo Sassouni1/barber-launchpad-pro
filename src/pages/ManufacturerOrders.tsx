@@ -431,6 +431,11 @@ function KitOrderPreview({ now }: { now: number }) {
     now, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote,
     setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote,
     isSaving: false, isReopening: false, isPlacingOrder: false, isUndoingOrder: false,
+    isTogglingPaid: false,
+    onToggleSupplierPaid: (orderId: string, paid: boolean) => {
+      updatePreview(orderId, order => ({ ...order, supplier_paid_at: paid ? new Date().toISOString() : null }));
+      toast.success(paid ? 'Preview: supplier marked paid' : 'Preview: supplier marked unpaid');
+    },
     onOrderPlaced: (orderId: string) => {
       updatePreview(orderId, order => ({ ...order, status: 'processing' }));
       toast.success('Preview: order marked placed');
