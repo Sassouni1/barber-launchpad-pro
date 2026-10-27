@@ -36,7 +36,7 @@ pU8RBWk6z/Kf
 -----END CERTIFICATE-----`;
 
 async function sha1Hex(data: Uint8Array): Promise<string> {
-  const hash = await crypto.subtle.digest("SHA-1", data);
+  const hash = await crypto.subtle.digest("SHA-1", data as BufferSource);
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
       authenticatedAttributes: [
         { type: forge.pki.oids.contentType, value: forge.pki.oids.data },
         { type: forge.pki.oids.messageDigest },
-        { type: forge.pki.oids.signingTime, value: new Date() },
+        { type: forge.pki.oids.signingTime, value: new Date() as unknown as string },
       ],
     });
     p7.sign({ detached: true });
@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
     }
     const pkpassBuffer = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
 
-    return new Response(pkpassBuffer, {
+    return new Response(pkpassBuffer as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/vnd.apple.pkpass",

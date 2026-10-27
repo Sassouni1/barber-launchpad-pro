@@ -337,7 +337,8 @@ async function accrue(
   }
   const paidAtIso = new Date((paidAtSeconds || Math.floor(Date.now() / 1000)) * 1000).toISOString();
 
-  let affiliate: { id: string; status: string; commission_rate: number | null } | null = null;
+  type AffiliateRow = { id: string; status: string; commission_rate: number | null };
+  let affiliate: AffiliateRow | null = null;
   if (referral?.affiliate_id) {
     const { data, error } = await db
       .from("affiliates")
@@ -345,7 +346,7 @@ async function accrue(
       .eq("id", referral.affiliate_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    affiliate = data as unknown as NonNullable<typeof affiliate>;
+    affiliate = (data ?? null) as AffiliateRow | null;
   }
 
   const rejectMixed = Boolean((settings as Record<string, unknown>).reject_mixed_carts);

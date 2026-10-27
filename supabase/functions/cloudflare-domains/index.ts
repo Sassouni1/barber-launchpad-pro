@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "check") {
-      const raw = Array.isArray(body.domains) ? body.domains : [];
+      const raw: unknown[] = Array.isArray(body.domains) ? body.domains : [];
       const domains = raw
         .filter((d: unknown): d is string => typeof d === "string")
         .map((d: string) => d.trim().toLowerCase())
