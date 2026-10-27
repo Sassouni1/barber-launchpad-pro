@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceClient = getSupabase();
-    await requireAdmin(req, supabaseUrl, anonKey, serviceClient);
+    await requireAdmin(req, supabaseUrl, anonKey, serviceClient as never);
 
     const { action, ...params } = await req.json();
 

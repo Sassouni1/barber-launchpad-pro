@@ -1,4 +1,4 @@
-import postgres from "npm:postgres@3.4.4";
+import postgres from "npm:postgres@^3.4.4";
 
 export const MANAGED_ADS_WEBHOOK_SECRET_NAME = "STRIPE_MANAGED_ADS_WEBHOOK_SECRET";
 

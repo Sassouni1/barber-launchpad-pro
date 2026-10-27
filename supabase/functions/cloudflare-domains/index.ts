@@ -1,6 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireUser, serviceClient, slugify } from "../_shared/websiteAuth.ts";
-import { SITE_WORKER_SOURCE, SITE_WORKER_VERSION } from "../_shared/siteWorker.ts";
+import { deploySiteWorker, SITE_WORKER_SOURCE, SITE_WORKER_VERSION } from "../_shared/siteWorker.ts";
 
 
 const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z]{2,24})+$/;
@@ -66,13 +66,13 @@ async function checkDomains(domains: string[], accountId: string, token: string)
     : [];
 
   const results: CheckResult[] = rows.map((row: Record<string, unknown>) => {
-    const pricing = row?.pricing ?? {};
+    const pricing = (row?.pricing ?? {}) as Record<string, unknown>;
     const registrable = row?.registrable === true;
     const premium = row?.tier === "premium";
     const price = Number(pricing?.registration_cost);
     const renewal = Number(pricing?.renewal_cost);
     let reason: string | null = null;
-    if (!registrable) reason = row?.reason ?? "This domain is not available for registration";
+    if (!registrable) reason = typeof row?.reason === "string" ? row.reason : "This domain is not available for registration";
     else if (premium) reason = "Premium domains cannot be purchased here";
     else if (!Number.isFinite(price)) reason = "Pricing unavailable for this domain";
     return {
@@ -114,10 +114,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === "check") {
-      const raw = Array.isArray(body.domains) ? body.domains : [];
+      const raw: unknown[] = Array.isArray(body.domains) ? body.domains : [];
       const domains = raw
-        .filter((d): d is string => typeof d === "string")
-        .map((d) => d.trim().toLowerCase())
+        .filter((d: unknown): d is string => typeof d === "string")
+        .map((d: string) => d.trim().toLowerCase())
         .filter(Boolean)
         .slice(0, 20);
       if (domains.length === 0) return json({ error: "Provide at least one domain name" }, 400);

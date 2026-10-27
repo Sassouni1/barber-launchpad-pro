@@ -64,7 +64,7 @@ export function useUpdateQRLink() {
 
   return useMutation({
     mutationFn: async ({ id, destination_url, label }: { id: string; destination_url?: string; label?: string }) => {
-      const updates: Record<string, string> = {};
+      const updates: { destination_url?: string; label?: string } = {};
       if (destination_url !== undefined) updates.destination_url = destination_url;
       if (label !== undefined) updates.label = label;
       const { error } = await supabase.from('qr_links').update(updates).eq('id', id);

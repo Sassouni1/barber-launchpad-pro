@@ -1,6 +1,6 @@
 // Secure server-side storage for the affiliate Stripe webhook signing secret.
 // Mirrors the managed-ads vault helper. The value is never logged or returned.
-import postgres from "npm:postgres@3.4.4";
+import postgres from "npm:postgres@^3.4.4";
 
 export const AFFILIATE_WEBHOOK_SECRET_NAME = "AFFILIATE_STRIPE_WEBHOOK_SECRET";
 /** Connected-account (Connect) deliveries are signed with their own secret. */

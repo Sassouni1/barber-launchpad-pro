@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
         body: {
           mode: "payment",
           ui_mode: "embedded",
-          customer: stripeCustomerId,
+          customer: stripeCustomerId ?? undefined,
           return_url: `${appUrl}/ads?funding_session_id={CHECKOUT_SESSION_ID}`,
           "line_items[0][price_data][currency]": campaign.currency,
           "line_items[0][price_data][product_data][name]": `${campaign.name} — prepaid media balance`,
