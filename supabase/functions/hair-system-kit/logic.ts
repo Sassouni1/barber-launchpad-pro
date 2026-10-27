@@ -4,7 +4,7 @@ export const KIT_LOCATION = 'JVBUuL3dVwZahuGay9T1';
 export const KIT_LINK = '69c05205b5622a509ebe35cd';
 export const KIT_PRODUCT = '69c04272e1fa5f9772b8a7ea';
 export const KIT_PRICE = '69c04272e1fa5fd8dab8a7ef';
-export const KIT_ITEMS = ['1 #2 skin system', '1 #2 lace system', 'color wheel', 'adhesive', 'tape', 'C22 spray'];
+export const KIT_ITEMS = ['One #2 skin hair system', 'One #2 lace hair system', 'Color wheel', 'Adhesive', 'Tape', 'C22 spray'];
 export type KitEvidence = {
   readAt: string;
   order: { id: string; locationId: string; paymentLinkId: string; completed: boolean; paid: boolean; createdAt: string; paidAt: string; productId: string; priceId: string; oneTime: boolean };
@@ -33,16 +33,21 @@ export function kitOrderRow(e: KitEvidence) {
   return {
     external_order_id: e.order.id, user_id: null, customer_name: e.shipping.name,
     customer_email: e.contact.email, status: 'pending', order_date: e.order.paidAt,
+    payment_reference: `ghl:${e.transaction.id}`,
     order_details: { supplier_kit: true, full_name: e.shipping.name, phone: e.contact.phone,
       shipping_address: e.shipping, ghl_location_id: KIT_LOCATION,
+      ghl_order_id: e.order.id, ghl_transaction_id: e.transaction.id,
+      provider_payment_id: e.payment.id, purchased_at: e.order.paidAt,
       order: { line_items: KIT_ITEMS.map(title => ({ title, quantity: 1 })) } },
   };
 }
 function escapeHtml(value: string) { return value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] ?? c)); }
-export function kitEmail(orderId: string) {
+export function kitEmail(orderId: string, evidence: KitEvidence) {
   const url = `https://member.thebarberlaunch.com/newtimes?order=${encodeURIComponent(orderId)}`;
+  const address = [evidence.shipping.address1, evidence.shipping.address2, evidence.shipping.city,
+    evidence.shipping.state, evidence.shipping.postal_code, evidence.shipping.country].filter(Boolean).join(', ');
   return { role: 'supplier', to: 'sales30@newtimeshair.com', subject: 'New Hair System Kit Order',
-    html: `<p>Order reference: ${escapeHtml(orderId)}</p><p><a href="${escapeHtml(url)}">View order</a></p>` };
+    html: `<p>New order for ${escapeHtml(evidence.shipping.name)} at ${escapeHtml(address)}.</p><p><a href="${escapeHtml(url)}">Click here to view order and add tracking details.</a></p>` };
 }
 type Deps = {
   readFresh: (orderId: string) => Promise<KitEvidence>;
@@ -63,7 +68,7 @@ export async function processKit(orderId: string, gate: { enabled: boolean; cuto
   // Permanent reservation precedes the only send; no reclaim/stale timeout.
   if (!await d.reserve(KIT_LOCATION, orderId, rowId)) return { status: 'reserved_no_retry' };
   try {
-    const r = await d.send(kitEmail(orderId));
+    const r = await d.send(kitEmail(orderId, e));
     const status = r.ok && r.messageId ? 'sent' : 'uncertain';
     await d.finish(orderId, status, r.messageId ?? null);
     return { status };

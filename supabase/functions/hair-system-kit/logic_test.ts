@@ -17,12 +17,12 @@ Deno.test('299700 received minimum, not quoted price', () => { const e=fixture()
 Deno.test('non USD blocks kit', () => { const e=fixture(); e.transaction.currency='eur'; assertEquals(qualifyKit(e,e.order.id,cutoff()),'wrong_currency'); });
 Deno.test('payment must link to current order', () => { const e=fixture(); e.payment.orderId='other'; assertEquals(qualifyKit(e,e.order.id,cutoff()),'payment_linkage_missing'); });
 Deno.test('stale provider snapshot blocks kit', () => { const e=fixture(); e.readAt=new Date(Date.now()-60000).toISOString(); assertEquals(qualifyKit(e,e.order.id,cutoff()),'fresh_evidence_or_cutoff_missing'); });
-Deno.test('kit has exact manifest and no member owner/price', () => { const row=kitOrderRow(fixture()); assertEquals(row.user_id,null); assertEquals(row.external_order_id,'newGhlOrder'); assertEquals(row.order_details.order.line_items.map(i=>i.title),['1 #2 skin system','1 #2 lace system','color wheel','adhesive','tape','C22 spray']); assertEquals(KIT_ITEMS.length,6); });
+Deno.test('kit retains payment identity and exact manifest without a member owner', () => { const row=kitOrderRow(fixture()); assertEquals(row.user_id,null); assertEquals(row.external_order_id,'newGhlOrder'); assertEquals(row.payment_reference,'ghl:tx1'); assertEquals(row.order_details.provider_payment_id,'pi_verified'); assertEquals(row.order_details.order.line_items.map(i=>i.title),['One #2 skin hair system','One #2 lace hair system','Color wheel','Adhesive','Tape','C22 spray']); assertEquals(KIT_ITEMS.length,6); });
 function deps() {
   let reserved=false, sends=0, rows=0;
   return { readFresh:async()=>fixture(),ensureRow:async()=>{ rows++; return 'row'; },confirmVisible:async()=>true,
     reserve:async()=>{ if(reserved)return false; reserved=true;return true; },
-    send:async(mail:unknown)=>{ sends++; const m=mail as {to:string;subject:string;html:string};assertEquals(m.to,'sales30@newtimeshair.com');assertEquals(m.subject,'New Hair System Kit Order');assertEquals(m.html.includes('Fixture'),false);return {ok:true,messageId:'message'}; },
+    send:async(mail:unknown)=>{ sends++; const m=mail as {to:string;subject:string;html:string};assertEquals(m.to,'sales30@newtimeshair.com');assertEquals(m.subject,'New Hair System Kit Order');assertEquals(m.html.includes('New order for Fixture buyer at 1 Fixture St, City, FL, 33764, US.'),true);assertEquals(m.html.includes('Click here to view order and add tracking details.'),true);assertEquals(m.html.includes('C22 spray'),false);return {ok:true,messageId:'message'}; },
     finish:async()=>{},count:()=>({sends,rows}) };
 }
 Deno.test('duplicate trigger sends only once after reservation',async()=>{const d=deps();const g={enabled:true,cutoff:cutoff()};assertEquals((await processKit('newGhlOrder',g,d)).status,'sent');assertEquals((await processKit('newGhlOrder',g,d)).status,'reserved_no_retry');assertEquals(d.count().sends,1);});
