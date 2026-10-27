@@ -202,6 +202,20 @@ export function useDismissTrackingNotification() {
   });
 }
 
+// Manual "Chris paid the supplier" marker; separate from customer payment. RLS limits writes to Chris's admin account.
+export function useToggleSupplierPaid() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, paid }: { orderId: string; paid: boolean }) => {
+      const { error } = paid
+        ? await supabase.from('supplier_payment_markers').insert({ order_id: orderId })
+        : await supabase.from('supplier_payment_markers').delete().eq('order_id', orderId);
+      if (error) throw new Error(error.code === '23505' ? 'Already marked paid. Refresh.' : error.message);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+  });
+}
+
 export function useDeleteOrder() {
   const queryClient = useQueryClient();
   return useMutation({
