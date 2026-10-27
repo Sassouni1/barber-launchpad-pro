@@ -16,6 +16,7 @@ import { isNewOrderOverdue } from '@/lib/manufacturerOrderUrgency';
 import { KIT_MANIFEST } from '@/lib/supplierKitOrder';
 import { supplierPriceFor, supplierPaymentState } from '@/lib/supplierPrice';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AdditionalTracking } from '@/components/orders/AdditionalTracking';
 import { useSupplierCompletion, useAdditionalTracking, useShippingLocations } from '@/hooks/useOrders';
 import { changeExtraPackage, extraPackages, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
@@ -212,9 +213,39 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
               {order.tracking_number && onExtraTracking && <AdditionalTracking details={details} primaryCarrier={savedCarrier} pending={isSavingExtra || isSavingMode} onChange={change => onExtraTracking(order, change)} onModeChange={onShippingMode ? mode => onShippingMode(order, mode) : undefined} />}
             </div>
 
-            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'basis-full w-full items-start' : 'items-start sm:flex-row sm:items-center'}`}>
-              {editingId === order.id ? (
-                <div className="flex w-full max-w-md flex-col gap-2">
+            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+                {!isPast && !order.tracking_number && (order.status === 'pending' || order.status === 'processing') && (
+                  <Button
+                    variant="outline"
+                    aria-pressed={order.status === 'processing'}
+                    title={order.status === 'processing' ? 'Click to unmark order placed' : 'Click to mark order placed'}
+                    onClick={() => order.status === 'processing' ? onUndoOrderPlaced(order.id) : onOrderPlaced(order.id)}
+                    disabled={isPlacingOrder || isUndoingOrder}
+                    className={`h-auto min-h-10 w-40 whitespace-normal px-2 py-2 text-xs font-semibold leading-tight shadow-sm sm:w-auto sm:min-w-[162px] sm:px-4 sm:text-sm ${order.status === 'processing' ? 'border-green-500/60 bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-400' : 'border-primary/70 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`}
+                  >
+                    {order.status === 'processing' ? <CheckCircle2 className="mr-1" /> : <Circle className="mr-1" />}
+                    {order.status === 'processing' ? 'Order placed' : 'Mark as Order Placed'}
+                  </Button>
+                )}
+                {(!isPast || order.tracking_number || isReopened) && (
+                  <Popover open={editingId === order.id} onOpenChange={(open) => {
+                    if (open) {
+                      setEditingId(order.id);
+                      setTrackingNumber(order.tracking_number || '');
+                      setTrackingCarrier(savedCarrier);
+                      setShippingMode(savedMode ?? 'one');
+                      setReopenNote('');
+                    } else setEditingId(null);
+                  }}>
+                    <PopoverTrigger asChild>
+                      <Button className="w-40 border border-amber-300 bg-amber-400 text-black font-semibold shadow-sm hover:bg-amber-300 hover:text-black sm:w-auto sm:min-w-[132px]">
+                        {order.tracking_number ? <Pencil className="w-4 h-4 mr-1" /> : <Truck className="w-4 h-4 mr-1" />}
+                        {order.tracking_number ? 'Manage Order' : 'Add Tracking'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" sideOffset={8} className="w-[min(20rem,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto border-border bg-card p-3 shadow-xl">
+                      <div className="flex flex-col gap-2">
                   {!order.tracking_number && <>
                     <Button type="button" size="sm" variant="outline" aria-pressed={shippingMode === 'two'} className={`w-fit max-w-full whitespace-normal text-xs ${shippingMode === 'two' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`} onClick={() => { const next = shippingMode === 'two' ? 'one' : 'two'; setShippingMode(next); if (next === 'two' && trackingCarrier === 'Other') setTrackingCarrier(null); }}>
                       Shipping from two locations
@@ -253,37 +284,10 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                   {order.tracking_number && <Button size="sm" variant="outline" className="w-full border-primary/40 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => onReopen(order.id)} disabled={isSaving || isReopening}>
                     <RotateCcw className="w-4 h-4 mr-1" /> Issue / Reopen Order
                   </Button>}
-                </div>
-              ) : (
-                <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-                  {!isPast && !order.tracking_number && (order.status === 'pending' || order.status === 'processing') && (
-                    <Button
-                      variant="outline"
-                      aria-pressed={order.status === 'processing'}
-                      title={order.status === 'processing' ? 'Click to unmark order placed' : 'Click to mark order placed'}
-                      onClick={() => order.status === 'processing' ? onUndoOrderPlaced(order.id) : onOrderPlaced(order.id)}
-                      disabled={isPlacingOrder || isUndoingOrder}
-                      className={`h-auto min-h-10 w-40 whitespace-normal px-2 py-2 text-xs font-semibold leading-tight shadow-sm sm:w-auto sm:min-w-[162px] sm:px-4 sm:text-sm ${order.status === 'processing' ? 'border-green-500/60 bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-400' : 'border-primary/70 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`}
-                    >
-                      {order.status === 'processing' ? <CheckCircle2 className="mr-1" /> : <Circle className="mr-1" />}
-                      {order.status === 'processing' ? 'Order placed' : 'Mark as Order Placed'}
-                    </Button>
-                  )}
-                  {(!isPast || order.tracking_number || isReopened) && (
-                    <Button
-                      className="w-40 border border-amber-300 bg-amber-400 text-black font-semibold shadow-sm hover:bg-amber-300 hover:text-black sm:w-auto sm:min-w-[132px]"
-                      onClick={() => {
-                        setEditingId(order.id);
-                        setTrackingNumber(order.tracking_number || '');
-                        setTrackingCarrier(savedCarrier);
-                        setShippingMode(savedMode ?? 'one');
-                        setReopenNote('');
-                      }}
-                    >
-                      {order.tracking_number ? <Pencil className="w-4 h-4 mr-1" /> : <Truck className="w-4 h-4 mr-1" />}
-                      {order.tracking_number ? 'Manage Order' : 'Add Tracking'}
-                    </Button>
-                  )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                   {order.tracking_number && !savedMode && onCompletion && <Button type="button" size="sm" variant="outline" disabled={isCompleting || isSavingExtra || isSaving || isReopening} className={isSupplierCompleted(order) ? undefined : 'border-primary/80 text-primary hover:border-primary hover:bg-primary/10 hover:text-primary focus-visible:border-primary focus-visible:ring-primary/50'} onClick={() => onCompletion(order, !isSupplierCompleted(order))}>
                     {isSupplierCompleted(order) ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
                     {isSupplierCompleted(order) ? 'Undo Completed' : 'Mark Complete'}
@@ -303,8 +307,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
-                </div>
-              )}
+              </div>
             </div>}
           </div>
 
