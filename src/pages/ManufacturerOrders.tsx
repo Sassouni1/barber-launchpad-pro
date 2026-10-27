@@ -145,8 +145,8 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           {(view.isKit || kitLabelPreview) && (
-            <div className="py-1" aria-label="Hair system kit order">
-              <div className="flex items-center gap-2 text-2xl font-medium uppercase tracking-tight text-muted-foreground sm:text-3xl">
+            <div className="rounded-lg border border-muted-foreground/60 bg-card px-4 py-2" aria-label="Hair system kit order">
+              <div className="flex items-center gap-2 text-2xl font-medium uppercase tracking-tight text-primary sm:text-3xl">
                 <Package className="h-5 w-5 shrink-0" aria-hidden="true" />
                 Hair System Kit
               </div>
