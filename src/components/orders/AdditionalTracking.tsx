@@ -31,15 +31,9 @@ export function AdditionalTracking({ details, primaryCarrier, onChange, onModeCh
     finally { setSaving(false); }
   };
   return <div className="min-w-0 space-y-3 py-2" aria-label="Additional package tracking">
-    {onModeChange && <div className="flex flex-wrap items-center gap-2 text-xs">
-      {mode === 'two' ? <>
-        <span className="rounded-md border border-blue-400/50 bg-blue-500/15 px-2 py-1 font-semibold text-blue-200">Shipping from two locations</span>
-        <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => onModeChange('one')}>Change to one location</Button>
-      </> : <>
-        {mode === 'one' && <span className="text-muted-foreground">One shipping location</span>}
-        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => onModeChange('two')}>Shipping from two locations</Button>
-      </>}
-    </div>}
+    {onModeChange && mode && <Button type="button" variant="outline" size="sm" aria-pressed={mode === 'two'} disabled={busy}
+      className={`w-fit max-w-full whitespace-normal text-xs ${mode === 'two' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}
+      onClick={() => onModeChange(mode === 'two' ? 'one' : 'two')}>Shipping from two locations</Button>}
     {packages.map((p, i) => <div key={p.tracking_number} className="space-y-1 border-l border-border pl-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">Package {i + 2}</span><span className="font-semibold">{p.carrier}</span>

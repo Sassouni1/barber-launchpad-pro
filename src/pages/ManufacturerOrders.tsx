@@ -212,18 +212,15 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
               {order.tracking_number && onExtraTracking && <AdditionalTracking details={details} primaryCarrier={savedCarrier} pending={isSavingExtra || isSavingMode} onChange={change => onExtraTracking(order, change)} onModeChange={onShippingMode ? mode => onShippingMode(order, mode) : undefined} />}
             </div>
 
-            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'w-full items-stretch rounded-lg border border-primary/20 bg-primary/5 p-2 sm:w-[320px] sm:p-2.5' : 'items-start sm:flex-row sm:items-center'}`}>
+            {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'basis-full w-full items-start' : 'items-start sm:flex-row sm:items-center'}`}>
               {editingId === order.id ? (
-                <div className="flex w-full flex-col gap-2">
-                  {!order.tracking_number && <div className="space-y-1.5" role="group" aria-label="Shipping locations">
-                    <span className="text-xs font-medium text-muted-foreground">Shipping locations</span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(['one', 'two'] as const).map(mode => <Button key={mode} type="button" size="sm" variant="outline" aria-pressed={shippingMode === mode} className={`h-auto min-h-9 whitespace-normal text-xs ${shippingMode === mode ? 'border-primary bg-primary/15 text-primary' : ''}`} onClick={() => { setShippingMode(mode); if (mode === 'two' && trackingCarrier === 'Other') setTrackingCarrier(null); }}>
-                        {mode === 'one' ? 'One location' : 'Shipping from two locations'}
-                      </Button>)}
-                    </div>
-                    {shippingMode === 'two' && <p className="text-xs text-muted-foreground">DHL · China warehouse and FedEx · US warehouse. This order stays current until both have tracking.</p>}
-                  </div>}
+                <div className="flex w-full max-w-md flex-col gap-2">
+                  {!order.tracking_number && <>
+                    <Button type="button" size="sm" variant="outline" aria-pressed={shippingMode === 'two'} className={`w-fit max-w-full whitespace-normal text-xs ${shippingMode === 'two' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`} onClick={() => { const next = shippingMode === 'two' ? 'one' : 'two'; setShippingMode(next); if (next === 'two' && trackingCarrier === 'Other') setTrackingCarrier(null); }}>
+                      Shipping from two locations
+                    </Button>
+                    {shippingMode === 'two' && <p className="text-xs text-muted-foreground">DHL · China and FedEx · US. Wait for both tracking numbers.</p>}
+                  </>}
                   <span className="text-xs font-medium text-muted-foreground">Carrier</span>
                   <div role="group" aria-label="Shipping carrier" className="grid grid-cols-3 gap-1.5">
                     {TRACKING_CARRIERS.filter(carrier => order.tracking_number || shippingMode === 'one' || carrier !== 'Other').map(carrier => (
