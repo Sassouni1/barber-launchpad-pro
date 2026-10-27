@@ -14,6 +14,8 @@ import type { Tables } from '@/integrations/supabase/types';
 import { manufacturerOrderView, orderSearchFromQuery } from '@/lib/manufacturerOrderDetails';
 import { isNewOrderOverdue } from '@/lib/manufacturerOrderUrgency';
 import { KIT_MANIFEST } from '@/lib/supplierKitOrder';
+import { supplierPriceFor, supplierPaymentState } from '@/lib/supplierPrice';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Order = Tables<'orders'>;
 const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
@@ -107,6 +109,8 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
 
 function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid }: OrderCardProps) {
   const supplierPaidAt = (order as { supplier_paid_at?: string | null }).supplier_paid_at ?? null;
+  const supplierPrice = supplierPriceFor(order.order_details);
+  const paymentState = supplierPaymentState(supplierPaidAt, order.tracking_number);
   const trackingInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (editingId === order.id && trackingCarrier) trackingInputRef.current?.focus();
@@ -169,21 +173,26 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
               <p className="text-xs text-muted-foreground">
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
               </p>
-              {(supplierPaidAt || onToggleSupplierPaid) && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {supplierPaidAt && (
-                    <Badge variant="outline" className={statusColors.shipped}>
-                      <Check className="mr-1 h-3.5 w-3.5" />Total Paid · {format(new Date(supplierPaidAt), 'MMM d, yyyy')}
-                    </Badge>
-                  )}
-                  {onToggleSupplierPaid && (
-                    <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={isTogglingPaid}
-                      onClick={() => onToggleSupplierPaid(order.id, !supplierPaidAt)}>
-                      {supplierPaidAt ? 'Undo Total Paid' : 'Mark Total Paid'}
-                    </Button>
-                  )}
-                </div>
-              )}
+              <div className="flex items-center gap-2 flex-wrap pt-1" aria-label="Supplier payment">
+                <span className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${supplierPrice.amount === null ? 'border-orange-500/50 text-orange-400' : 'border-border text-foreground'}`}>
+                  {supplierPrice.amount === null ? supplierPrice.label : `Supplier price ${supplierPrice.label}`}
+                </span>
+                {onToggleSupplierPaid ? (
+                  <label className="flex items-center gap-2 rounded-md border border-border px-2 py-0.5 text-sm cursor-pointer">
+                    <Checkbox checked={paymentState.paid} disabled={isTogglingPaid}
+                      onCheckedChange={(v) => onToggleSupplierPaid(order.id, v === true)} aria-label="Paid" />
+                    Paid
+                  </label>
+                ) : null}
+                <Badge variant="outline" className={paymentState.paid ? statusColors.shipped : 'border-border text-muted-foreground'}>
+                  {paymentState.paid && supplierPaidAt
+                    ? <><Check className="mr-1 h-3.5 w-3.5" />Paid · {format(new Date(supplierPaidAt), 'MMM d, yyyy')}</>
+                    : 'Unpaid'}
+                </Badge>
+                {paymentState.readyForShipment && (
+                  <Badge variant="outline" className="border-border text-foreground">Ready for Shipment</Badge>
+                )}
+              </div>
               {order.external_order_id && <p className="text-xs text-muted-foreground break-all">Order reference: {order.external_order_id}</p>}
               {view.sequence && <p className="text-xs text-muted-foreground">{view.sequence}</p>}
               {order.tracking_number && (
