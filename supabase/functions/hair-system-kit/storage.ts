@@ -1,8 +1,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { kitOrderRow, KIT_LOCATION, type KitEvidence } from './logic.ts';
 
-// Storage primitives are intentionally not wired to an executable endpoint.
-// Qualification and a verified supplier-page contract must precede their use.
+// Server-only storage primitives. The activation gate remains disabled.
 export function kitStorage(db: SupabaseClient) {
   return {
     async ensureRow(row: ReturnType<typeof kitOrderRow>): Promise<string> {
@@ -18,7 +17,7 @@ export function kitStorage(db: SupabaseClient) {
     },
     async confirmVisible(id: string, e: KitEvidence): Promise<boolean> {
       const { data, error } = await db.from('orders').select('external_order_id,user_id,status,payment_reference,order_details').eq('id',id).single();
-      if (error || !data || data.external_order_id !== e.order.id || data.user_id !== null || data.status === 'pending_payment' || data.payment_reference !== `ghl:${e.transaction.id}`) return false;
+      if (error || !data || data.external_order_id !== e.order.id || data.user_id !== null || data.status === 'pending_payment' || data.payment_reference !== `stripe:${e.payment.id}`) return false;
       const expected = kitOrderRow(e).order_details;
       const d = data.order_details;
       return d?.supplier_kit === true && d.ghl_location_id === KIT_LOCATION && d.phone === e.contact.phone

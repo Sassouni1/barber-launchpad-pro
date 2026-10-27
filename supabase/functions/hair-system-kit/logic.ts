@@ -1,43 +1,56 @@
-// This is an INTERNAL evidence contract, NOT an invented GHL API response.
-// A real fresh-read adapter must verify/map actual GHL responses before binding.
+// Prepared kit pipeline. Keep the activation gate disabled until a real
+// product-filtered workflow payload and server Stripe search are verified.
 export const KIT_LOCATION = 'JVBUuL3dVwZahuGay9T1';
-export const KIT_LINK = '69c05205b5622a509ebe35cd';
-export const KIT_PRODUCT = '69c04272e1fa5f9772b8a7ea';
-export const KIT_PRICE = '69c04272e1fa5fd8dab8a7ef';
+export const KIT_STRIPE_ACCOUNT = 'acct_1LMNKMI6LFtj88Bq';
+export const KIT_STRIPE_APPLICATION = 'ca_D5Mpe2emSMW6EZeofhNaydC4Kq5zGxQo';
+export const KIT_ENROLLMENT_DESCRIPTION = 'Barber Launch Hair System Mastery & Marketing ($2997)';
 export const KIT_ITEMS = ['One #2 skin hair system', 'One #2 lace hair system', 'Color wheel', 'Adhesive', 'Tape', 'C22 spray'];
+
 export type KitEvidence = {
   readAt: string;
-  order: { id: string; locationId: string; paymentLinkId: string; completed: boolean; paid: boolean; createdAt: string; paidAt: string; productId: string; priceId: string; oneTime: boolean };
-  transaction: { id: string; orderId: string; locationId: string; status: string; currency: string; receivedMinor: number; refundedMinor: number; providerPaymentId: string };
-  payment: { id: string; transactionId: string; orderId: string; live: boolean; status: string; currency: string; receivedMinor: number; refundedMinor: number; disputed: boolean };
+  order: { id: string; locationId: string; description: string; createdAt: string; paidAt: string };
+  payment: { id: string; orderId: string; locationId: string; contactId: string; application: string;
+    live: boolean; status: string; currency: string; receivedMinor: number; chargeId: string;
+    chargeStatus: string; chargePaid: boolean; chargeCaptured: boolean; chargeAmountMinor: number;
+    refundedMinor: number; disputed: boolean };
   shipping: { name: string; address1: string; address2?: string; city: string; state: string; postal_code: string; country: string };
   contact: { email: string; phone: string };
 };
+
 export function qualifyKit(e: KitEvidence, orderId: string, cutoff: string, now = Date.now()): string | null {
   const c = Date.parse(cutoff), read = Date.parse(e.readAt);
   if (!Number.isFinite(c) || c > now || !Number.isFinite(read) || read > now || now - read > 30_000) return 'fresh_evidence_or_cutoff_missing';
-  const o = e.order, t = e.transaction, p = e.payment;
+  const o = e.order, p = e.payment;
   const created = Date.parse(o.createdAt), paid = Date.parse(o.paidAt);
   if (!Number.isFinite(created) || !Number.isFinite(paid) || created <= c || paid < created || paid > now) return 'historical_or_ambiguous_purchase';
-  if (o.id !== orderId || o.locationId !== KIT_LOCATION || o.paymentLinkId !== KIT_LINK || o.productId !== KIT_PRODUCT || o.priceId !== KIT_PRICE || o.oneTime !== true) return 'wrong_order_or_offer';
-  if (o.completed !== true || o.paid !== true || t.status !== 'succeeded' || p.status !== 'succeeded' || p.live !== true || p.disputed !== false) return 'payment_not_completed';
-  if (!t.id || !p.id || !/^(pi|ch)_[A-Za-z0-9]+$/.test(p.id) || t.locationId !== KIT_LOCATION || t.orderId !== orderId || p.orderId !== orderId || p.transactionId !== t.id || t.providerPaymentId !== p.id) return 'payment_linkage_missing';
-  if (t.currency !== 'usd' || p.currency !== 'usd') return 'wrong_currency';
-  if (!Number.isSafeInteger(t.receivedMinor) || !Number.isSafeInteger(p.receivedMinor) || t.receivedMinor < 299700 || p.receivedMinor !== t.receivedMinor) return 'received_amount_not_verified';
-  if (t.refundedMinor !== 0 || p.refundedMinor !== 0) return 'refunded_or_unknown';
+  if (o.id !== orderId || o.locationId !== KIT_LOCATION || p.orderId !== orderId || p.locationId !== KIT_LOCATION ||
+    !p.contactId || p.application !== KIT_STRIPE_APPLICATION) return 'payment_linkage_missing';
+  // GHL-origin Stripe payments in the observed flow have no immutable product
+  // ID. This exact title is the available offer check, subject to a separate
+  // verified product-specific workflow assertion before activation.
+  if (o.description !== KIT_ENROLLMENT_DESCRIPTION) return 'wrong_order_or_offer';
+  if (!/^pi_[A-Za-z0-9]+$/.test(p.id) || !/^(ch|py)_[A-Za-z0-9]+$/.test(p.chargeId) ||
+    p.live !== true || p.status !== 'succeeded' || p.chargeStatus !== 'succeeded' ||
+    p.chargePaid !== true || p.chargeCaptured !== true || p.disputed !== false) return 'payment_not_completed';
+  if (p.currency !== 'usd') return 'wrong_currency';
+  if (!Number.isSafeInteger(p.receivedMinor) || p.receivedMinor < 299700 ||
+    !Number.isSafeInteger(p.chargeAmountMinor) || p.chargeAmountMinor !== p.receivedMinor) return 'received_amount_not_verified';
+  if (p.refundedMinor !== 0) return 'refunded_or_unknown';
   if (['name','address1','city','state','postal_code','country'].some(k => !String(e.shipping[k as keyof typeof e.shipping] ?? '').trim())) return 'shipping_missing';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.contact.email) || !e.contact.phone.trim()) return 'contact_missing';
   return null;
 }
+
 export function kitOrderRow(e: KitEvidence) {
   return {
     external_order_id: e.order.id, user_id: null, customer_name: e.shipping.name,
     customer_email: e.contact.email, status: 'pending', order_date: e.order.paidAt,
-    payment_reference: `ghl:${e.transaction.id}`,
+    payment_reference: `stripe:${e.payment.id}`,
     order_details: { supplier_kit: true, full_name: e.shipping.name, phone: e.contact.phone,
       shipping_address: e.shipping, ghl_location_id: KIT_LOCATION,
-      ghl_order_id: e.order.id, ghl_transaction_id: e.transaction.id,
-      provider_payment_id: e.payment.id, purchased_at: e.order.paidAt,
+      ghl_order_id: e.order.id, provider_payment_id: e.payment.id,
+      stripe_charge_id: e.payment.chargeId, purchase_description: e.order.description,
+      purchased_at: e.order.paidAt,
       order: { line_items: KIT_ITEMS.map(title => ({ title, quantity: 1 })) } },
   };
 }
@@ -60,7 +73,7 @@ type Deps = {
 export async function processKit(orderId: string, gate: { enabled: boolean; cutoff: string } | null, d: Deps) {
   if (gate?.enabled !== true) return { status: 'inactive' };
   let e: KitEvidence;
-  try { e = await d.readFresh(orderId); } catch { return { status: 'blocked', reason: 'fresh_ghl_reads_unavailable' }; }
+  try { e = await d.readFresh(orderId); } catch { return { status: 'blocked', reason: 'fresh_stripe_reads_unavailable' }; }
   const reason = qualifyKit(e, orderId, gate.cutoff);
   if (reason) return { status: 'blocked', reason };
   const rowId = await d.ensureRow(kitOrderRow(e));
@@ -73,7 +86,6 @@ export async function processKit(orderId: string, gate: { enabled: boolean; cuto
     await d.finish(orderId, status, r.messageId ?? null);
     return { status };
   } catch {
-    // If audit fails too, permanent reserved state still prevents resend.
     await d.finish(orderId, 'uncertain', null).catch(() => {});
     return { status: 'uncertain' };
   }

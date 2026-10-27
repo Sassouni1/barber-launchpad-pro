@@ -2,12 +2,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { relayCall, relayProbe } from '../_shared/barberLaunchGhlRelay.ts';
-import { processKit } from './logic.ts';
-import { readGhlEvidence } from './readGhlEvidence.ts';
+import { KIT_ENROLLMENT_DESCRIPTION, processKit } from './logic.ts';
+import { readStripeEvidence } from './readStripeEvidence.ts';
 import { kitStorage } from './storage.ts';
+import { hairSystemStripeKey } from '../_shared/hairSystemFulfillment.ts';
 
 const Body = z.object({ action: z.enum(['diagnostics','dry_run']), order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict();
-const WebhookBody = z.object({ order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/) }).passthrough();
+const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), phone: z.string().max(40).optional() }).passthrough();
 async function validWebhookToken(value: string | null, secret: string): Promise<boolean> {
   if (!value || !secret || value.length !== secret.length) return false;
   const expected = new TextEncoder().encode(secret);
@@ -37,9 +38,18 @@ Deno.serve(async req => {
     const { data: gate, error } = await db.from('hair_system_kit_activation').select('enabled,activation_cutoff').eq('singleton', true).maybeSingle();
     if (error || !gate) return reply({ error: 'activation_state_unavailable' }, 503);
     if (gate.enabled !== true) return reply({ status: 'inactive' });
+    // The welcome workflow merges unrelated Order Submitted triggers. The
+    // token must be used only inside an If/Else Order > Product Is branch for
+    // the verified enrollment product. This separate gate prevents activation
+    // from the shared path or by enabling the database row alone.
+    if (Deno.env.get('KIT_PRODUCT_BRANCH_VERIFIED') !== 'true') {
+      return reply({ status: 'blocked', reason: 'product_branch_not_verified' }, 503);
+    }
+    const stripeKey = hairSystemStripeKey();
+    if (!stripeKey) return reply({ status: 'blocked', reason: 'stripe_key_unavailable' }, 503);
     const storage = kitStorage(db);
     const result = await processKit(body.data.order_id, { enabled: gate.enabled, cutoff: gate.activation_cutoff }, {
-      readFresh: id => readGhlEvidence(db, id),
+      readFresh: id => readStripeEvidence(id, body.data.phone ?? '', stripeKey),
       ensureRow: storage.ensureRow,
       confirmVisible: storage.confirmVisible,
       reserve: storage.reserve,
@@ -51,7 +61,7 @@ Deno.serve(async req => {
     }).catch(() => ({ status: 'error' }));
     // A blocked payment or missing shipping address must never become a supplier order.
     const temporaryFailure = result.status === 'error' ||
-      (result.status === 'blocked' && 'reason' in result && ['fresh_ghl_reads_unavailable', 'supplier_page_visibility_unverified'].includes(result.reason ?? ''));
+      (result.status === 'blocked' && 'reason' in result && ['fresh_stripe_reads_unavailable', 'supplier_page_visibility_unverified'].includes(result.reason ?? ''));
     return reply(result, temporaryFailure ? 503 : 200);
   }
   const auth = req.headers.get('Authorization');
@@ -66,7 +76,24 @@ Deno.serve(async req => {
   const { data: gate, error } = await db.from('hair_system_kit_activation').select('enabled,activation_cutoff').eq('singleton', true).maybeSingle();
   if (error) return reply({ active: false, reason: 'activation_state_unavailable' }, 503);
   const relay = await relayProbe();
-  return reply({ active: false, configured_enabled: gate?.enabled === true, activation_cutoff: gate?.activation_cutoff ?? null,
-    relay, fresh_payment_reads: 'requires_payments_read_oauth_scope', reason: 'workflow_order_id_mapping_and_live_ghl_payment_read_not_verified',
+  if (parsed.data.action === 'dry_run' && parsed.data.order_id) {
+    const key = hairSystemStripeKey();
+    if (!key) return reply({ active: false, stripe_search: 'key_unavailable', writes: 0, outbound_messages: 0 }, 503);
+    try {
+      const e = await readStripeEvidence(parsed.data.order_id, '', key);
+      return reply({ active: false, stripe_search: 'unique_payment_found', order_matches: e.order.id === parsed.data.order_id,
+        offer_description_matches: e.order.description === KIT_ENROLLMENT_DESCRIPTION,
+        payment_succeeded: e.payment.status === 'succeeded' && e.payment.chargeStatus === 'succeeded',
+        received_minor: e.payment.receivedMinor, refunded_minor: e.payment.refundedMinor,
+        disputed: e.payment.disputed, shipping_complete: Boolean(e.shipping.name && e.shipping.address1 && e.shipping.city && e.shipping.state && e.shipping.postal_code && e.shipping.country),
+        phone_in_stripe: false, writes: 0, outbound_messages: 0 });
+    } catch (readError) {
+      const reason = readError instanceof Error ? readError.message : 'stripe_read_failed';
+      return reply({ active: false, stripe_search: reason, writes: 0, outbound_messages: 0 }, 503);
+    }
+  }
+  return reply({ active: false, configured_enabled: gate?.enabled === true, product_branch_verified: Deno.env.get('KIT_PRODUCT_BRANCH_VERIFIED') === 'true',
+    activation_cutoff: gate?.activation_cutoff ?? null,
+    relay, fresh_payment_reads: 'stripe_order_id_search_not_yet_verified_on_server', reason: 'workflow_product_assertion_and_phone_mapping_not_verified',
     writes: 0, outbound_messages: 0, order_id: parsed.data.order_id ?? null });
 });
