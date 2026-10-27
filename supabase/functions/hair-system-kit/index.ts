@@ -2,13 +2,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { relayCall, relayProbe } from '../_shared/barberLaunchGhlRelay.ts';
-import { KIT_AUTOMATIC_PRODUCT, KIT_ENROLLMENT_DESCRIPTION, KIT_MANUAL_PRODUCT, processKit } from './logic.ts';
+import { KIT_2997_PRODUCT, KIT_1997_PRODUCT, KIT_ENROLLMENT_OFFERS, processKit } from './logic.ts';
 import { readStripeEvidence } from './readStripeEvidence.ts';
 import { kitStorage } from './storage.ts';
 import { hairSystemStripeKey } from '../_shared/hairSystemFulfillment.ts';
 
 const Body = z.object({ action: z.enum(['diagnostics','dry_run']), order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict();
-const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), product_id: z.enum([KIT_AUTOMATIC_PRODUCT, KIT_MANUAL_PRODUCT]), phone: z.string().max(40).optional() }).passthrough();
+const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), product_id: z.enum([KIT_2997_PRODUCT, KIT_1997_PRODUCT]), phone: z.string().max(40).optional() }).passthrough();
 async function validWebhookToken(value: string | null, secret: string): Promise<boolean> {
   if (!value || !secret || value.length !== secret.length) return false;
   const expected = new TextEncoder().encode(secret);
@@ -39,9 +39,9 @@ Deno.serve(async req => {
     if (error || !gate) return reply({ error: 'activation_state_unavailable' }, 503);
     if (gate.enabled !== true) return reply({ status: 'inactive' });
     // The welcome workflow merges unrelated Order Submitted triggers. The
-    // token must be used only inside an If/Else Order > Product Is branch for
-    // the verified enrollment product. This separate gate prevents activation
-    // from the shared path or by enabling the database row alone.
+    // token must be used only inside verified product-specific branches for
+    // the two enrollment products. The product_id is static in each branch.
+    // This gate prevents activation from the shared path or DB row alone.
     if (Deno.env.get('KIT_PRODUCT_BRANCH_VERIFIED') !== 'true') {
       return reply({ status: 'blocked', reason: 'product_branch_not_verified' }, 503);
     }
@@ -82,7 +82,7 @@ Deno.serve(async req => {
     try {
       const e = await readStripeEvidence(parsed.data.order_id, '', key);
       return reply({ active: false, stripe_search: 'unique_payment_found', order_matches: e.order.id === parsed.data.order_id,
-        offer_description_matches: e.order.description === KIT_ENROLLMENT_DESCRIPTION,
+        recognized_offer_description: Object.values(KIT_ENROLLMENT_OFFERS).some(o => o.description === e.order.description),
         payment_succeeded: e.payment.status === 'succeeded' && e.payment.chargeStatus === 'succeeded',
         received_minor: e.payment.receivedMinor, refunded_minor: e.payment.refundedMinor,
         disputed: e.payment.disputed, shipping_complete: Boolean(e.shipping.name && e.shipping.address1 && e.shipping.city && e.shipping.state && e.shipping.postal_code && e.shipping.country),

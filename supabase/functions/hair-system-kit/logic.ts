@@ -4,17 +4,18 @@ export const KIT_LOCATION = 'JVBUuL3dVwZahuGay9T1';
 export const KIT_STRIPE_ACCOUNT = 'acct_1LMNKMI6LFtj88Bq';
 export const KIT_STRIPE_APPLICATION = 'ca_D5Mpe2emSMW6EZeofhNaydC4Kq5zGxQo';
 export const KIT_ENROLLMENT_DESCRIPTION = 'Barber Launch Hair System Mastery & Marketing ($2997)';
-export const KIT_AUTOMATIC_PRODUCT = '69c04272e1fa5f9772b8a7ea';
-export const KIT_MANUAL_PRODUCT = '69124b3bff3e41840f4d4b2d';
+export const KIT_2997_PRODUCT = '69c04272e1fa5f9772b8a7ea';
+export const KIT_1997_PRODUCT = '69124b3bff3e41840f4d4b2d';
+export const KIT_ENROLLMENT_OFFERS = {
+  [KIT_2997_PRODUCT]: { description: KIT_ENROLLMENT_DESCRIPTION, minimumReceivedMinor: 299700 },
+  [KIT_1997_PRODUCT]: { description: 'Barber Launch Hair System Mastery & Marketing ($1997)', minimumReceivedMinor: 199700 },
+} as const;
 export const KIT_ITEMS = ['One #2 skin hair system', 'One #2 lace hair system', 'Color wheel', 'Adhesive', 'Tape', 'C22 spray'];
 
-/** Both GHL enrollments are kits. Only the $2,997 enrollment currently has
- * approval for automatic supplier release; the $1,997 case awaits Chris's
- * decision and must not create a supplier-facing row or email. */
-export function kitEnrollmentRoute(productId: string): 'automatic_candidate' | 'manual_review' | null {
-  if (productId === KIT_AUTOMATIC_PRODUCT) return 'automatic_candidate';
-  if (productId === KIT_MANUAL_PRODUCT) return 'manual_review';
-  return null;
+/** Only these two identified GHL enrollment products are kit candidates.
+ * Each still needs its own freshly verified full payment and shipping. */
+export function kitEnrollmentOffer(productId: string): { description: string; minimumReceivedMinor: number } | null {
+  return KIT_ENROLLMENT_OFFERS[productId as keyof typeof KIT_ENROLLMENT_OFFERS] ?? null;
 }
 
 export type KitEvidence = {
@@ -28,7 +29,9 @@ export type KitEvidence = {
   contact: { email: string; phone: string };
 };
 
-export function qualifyKit(e: KitEvidence, orderId: string, cutoff: string, now = Date.now()): string | null {
+export function qualifyKit(e: KitEvidence, orderId: string, cutoff: string, now = Date.now(), productId = KIT_2997_PRODUCT): string | null {
+  const offer = kitEnrollmentOffer(productId);
+  if (!offer) return 'unrelated_product';
   const c = Date.parse(cutoff), read = Date.parse(e.readAt);
   if (!Number.isFinite(c) || c > now || !Number.isFinite(read) || read > now || now - read > 30_000) return 'fresh_evidence_or_cutoff_missing';
   const o = e.order, p = e.payment;
@@ -37,14 +40,14 @@ export function qualifyKit(e: KitEvidence, orderId: string, cutoff: string, now 
   if (o.id !== orderId || o.locationId !== KIT_LOCATION || p.orderId !== orderId || p.locationId !== KIT_LOCATION ||
     !p.contactId || p.application !== KIT_STRIPE_APPLICATION) return 'payment_linkage_missing';
   // GHL-origin Stripe payments in the observed flow have no immutable product
-  // ID. This exact title is the available offer check, subject to a separate
-  // verified product-specific workflow assertion before activation.
-  if (o.description !== KIT_ENROLLMENT_DESCRIPTION) return 'wrong_order_or_offer';
+  // ID. Bind the static product ID from its verified workflow branch to the
+  // exact Stripe description and that product's full-payment threshold.
+  if (o.description !== offer.description) return 'wrong_order_or_offer';
   if (!/^pi_[A-Za-z0-9]+$/.test(p.id) || !/^(ch|py)_[A-Za-z0-9]+$/.test(p.chargeId) ||
     p.live !== true || p.status !== 'succeeded' || p.chargeStatus !== 'succeeded' ||
     p.chargePaid !== true || p.chargeCaptured !== true || p.disputed !== false) return 'payment_not_completed';
   if (p.currency !== 'usd') return 'wrong_currency';
-  if (!Number.isSafeInteger(p.receivedMinor) || p.receivedMinor < 299700 ||
+  if (!Number.isSafeInteger(p.receivedMinor) || p.receivedMinor < offer.minimumReceivedMinor ||
     !Number.isSafeInteger(p.chargeAmountMinor) || p.chargeAmountMinor !== p.receivedMinor) return 'received_amount_not_verified';
   if (p.refundedMinor !== 0) return 'refunded_or_unknown';
   if (['name','address1','city','state','postal_code','country'].some(k => !String(e.shipping[k as keyof typeof e.shipping] ?? '').trim())) return 'shipping_missing';
@@ -83,12 +86,10 @@ type Deps = {
 };
 export async function processKit(orderId: string, productId: string, gate: { enabled: boolean; cutoff: string } | null, d: Deps) {
   if (gate?.enabled !== true) return { status: 'inactive' };
-  const route = kitEnrollmentRoute(productId);
-  if (!route) return { status: 'blocked', reason: 'unrelated_product' };
-  if (route === 'manual_review') return { status: 'manual_review_required', reason: 'kit_enrollment_not_automatically_approved' };
+  if (!kitEnrollmentOffer(productId)) return { status: 'blocked', reason: 'unrelated_product' };
   let e: KitEvidence;
   try { e = await d.readFresh(orderId); } catch { return { status: 'blocked', reason: 'fresh_stripe_reads_unavailable' }; }
-  const reason = qualifyKit(e, orderId, gate.cutoff);
+  const reason = qualifyKit(e, orderId, gate.cutoff, Date.now(), productId);
   if (reason) return { status: 'blocked', reason };
   const rowId = await d.ensureRow(kitOrderRow(e));
   if (!await d.confirmVisible(rowId, e)) return { status: 'blocked', reason: 'supplier_page_visibility_unverified' };

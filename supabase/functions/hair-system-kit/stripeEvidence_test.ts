@@ -1,24 +1,26 @@
 import { assertEquals, assertThrows, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { KIT_LOCATION, KIT_STRIPE_ACCOUNT, KIT_STRIPE_APPLICATION, KIT_ENROLLMENT_DESCRIPTION,
-  KIT_ITEMS, KIT_AUTOMATIC_PRODUCT, KIT_MANUAL_PRODUCT, kitEmail, kitEnrollmentRoute, kitOrderRow, qualifyKit, processKit } from './logic.ts';
+  KIT_ITEMS, KIT_2997_PRODUCT, KIT_1997_PRODUCT, KIT_ENROLLMENT_OFFERS, kitEmail, kitEnrollmentOffer, kitOrderRow, qualifyKit, processKit } from './logic.ts';
 import { evidenceFromStripe } from './stripeEvidence.ts';
 import { readStripeEvidence } from './readStripeEvidence.ts';
 
 const ORDER = '6ad7ab5ef9a0f5d86d850cb9';
+const ORDER_1997 = '69b02cf0978001814a5adf77';
 const PI = 'pi_3UShHHI6LFtj88Bq0lgxtwUf';
 const CHARGE = 'py_3UShHHI6LFtj88Bq0yG7CQrl';
-function paidFixture() {
+function paidFixture(amountMinor = 299700, description: string = KIT_ENROLLMENT_DESCRIPTION, orderId = ORDER) {
   const now = Math.floor(Date.now() / 1000);
-  const metadata = { orderId: ORDER, altId: KIT_LOCATION, altType: 'location', contactId: 'ghl-contact' };
+  const metadata = { orderId, altId: KIT_LOCATION, altType: 'location', contactId: 'ghl-contact' };
   const shipping = { name: 'Fixture Buyer', address: { line1: '1 Fixture St', line2: null, city: 'City', state: 'FL', postal_code: '33764', country: 'US' } };
   return { id: PI, object: 'payment_intent', application: KIT_STRIPE_APPLICATION, metadata,
-    description: KIT_ENROLLMENT_DESCRIPTION, created: now - 20, livemode: true, status: 'succeeded', currency: 'usd', amount_received: 299700,
+    description, created: now - 20, livemode: true, status: 'succeeded', currency: 'usd', amount_received: amountMinor,
     shipping, latest_charge: { id: CHARGE, object: 'charge', application: KIT_STRIPE_APPLICATION, payment_intent: PI,
-      metadata, description: KIT_ENROLLMENT_DESCRIPTION, created: now - 10, livemode: true, status: 'succeeded',
-      paid: true, captured: true, amount_captured: 299700, amount_refunded: 0, disputed: false, dispute: null, refunded: false,
+      metadata, description, created: now - 10, livemode: true, status: 'succeeded',
+      paid: true, captured: true, amount_captured: amountMinor, amount_refunded: 0, disputed: false, dispute: null, refunded: false,
       shipping, billing_details: { email: 'fixture@example.com' } } };
 }
 const evidence = () => evidenceFromStripe(paidFixture(), ORDER, '+17275550100');
+const evidence1997 = () => evidenceFromStripe(paidFixture(199700, KIT_ENROLLMENT_OFFERS[KIT_1997_PRODUCT].description, ORDER_1997), ORDER_1997, '+17275550101');
 const cutoff = () => new Date(Date.now() - 60_000).toISOString();
 
 Deno.test('exact GHL order metadata binds fresh paid Stripe charge and real shipping', () => {
@@ -63,10 +65,18 @@ Deno.test('wrong enrollment title, missing phone or shipping, and old purchase b
   const old = evidence(); old.order.createdAt = '2026-01-01T00:00:00Z';
   assertEquals(qualifyKit(old, ORDER, cutoff()), 'historical_or_ambiguous_purchase');
 });
-Deno.test('both enrollment products classify as kits, while only $2,997 is an automatic candidate', () => {
-  assertEquals(kitEnrollmentRoute(KIT_AUTOMATIC_PRODUCT), 'automatic_candidate');
-  assertEquals(kitEnrollmentRoute(KIT_MANUAL_PRODUCT), 'manual_review');
-  assertEquals(kitEnrollmentRoute('unrelated-product'), null);
+Deno.test('each identified enrollment has its own verified full-payment threshold', () => {
+  assertEquals(kitEnrollmentOffer(KIT_2997_PRODUCT)?.minimumReceivedMinor, 299700);
+  assertEquals(kitEnrollmentOffer(KIT_1997_PRODUCT)?.minimumReceivedMinor, 199700);
+  assertEquals(kitEnrollmentOffer('unrelated-product'), null);
+  assertEquals(qualifyKit(evidence1997(), ORDER_1997, cutoff(), Date.now(), KIT_1997_PRODUCT), null);
+  assertEquals(qualifyKit(evidence1997(), ORDER_1997, cutoff(), Date.now(), KIT_2997_PRODUCT), 'wrong_order_or_offer');
+  for (const amount of [50000, 80000, 100000]) {
+    const installment = evidence1997(); installment.payment.receivedMinor = installment.payment.chargeAmountMinor = amount;
+    assertEquals(qualifyKit(installment, ORDER_1997, cutoff(), Date.now(), KIT_1997_PRODUCT), 'received_amount_not_verified');
+  }
+  const missingShipping = evidence1997(); missingShipping.shipping.address1 = '';
+  assertEquals(qualifyKit(missingShipping, ORDER_1997, cutoff(), Date.now(), KIT_1997_PRODUCT), 'shipping_missing');
 });
 
 function fetchFixture(search: unknown): typeof fetch {
@@ -106,12 +116,25 @@ Deno.test('inactive gate and duplicate reservation produce no extra supplier mai
   const d = { readFresh: async () => { reads++; return evidence(); }, ensureRow: async () => { rows++; return 'row'; }, confirmVisible: async () => true,
     reserve: async () => { if (reserved) return false; reserved = true; return true; },
     send: async () => { sends++; return { ok: true, messageId: 'msg' }; }, finish: async () => {} };
-  assertEquals((await processKit(ORDER, KIT_AUTOMATIC_PRODUCT, null, d)).status, 'inactive');
-  assertEquals(rows, 0);
-  assertEquals((await processKit(ORDER, KIT_MANUAL_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'manual_review_required');
+  assertEquals((await processKit(ORDER, KIT_2997_PRODUCT, null, d)).status, 'inactive');
   assertEquals(rows, 0);
   assertEquals(reads, 0);
-  assertEquals((await processKit(ORDER, KIT_AUTOMATIC_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
-  assertEquals((await processKit(ORDER, KIT_AUTOMATIC_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
+  assertEquals((await processKit(ORDER, KIT_2997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
+  assertEquals((await processKit(ORDER, KIT_2997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
   assertEquals(sends, 1);
+});
+Deno.test('a fully paid $1,997 enrollment with shipping sends once; incomplete shipping sends none', async () => {
+  let sends = 0, rows = 0, reserved = false;
+  let current = evidence1997();
+  const d = { readFresh: async () => current, ensureRow: async (row: ReturnType<typeof kitOrderRow>) => {
+    rows++; assertEquals(row.external_order_id, ORDER_1997); return 'row-1997'; }, confirmVisible: async () => true,
+    reserve: async () => { if (reserved) return false; reserved = true; return true; },
+    send: async () => { sends++; return { ok: true, messageId: 'msg-1997' }; }, finish: async () => {} };
+  current.shipping.address1 = '';
+  assertEquals((await processKit(ORDER_1997, KIT_1997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'blocked');
+  assertEquals(rows, 0); assertEquals(sends, 0);
+  current = evidence1997();
+  assertEquals((await processKit(ORDER_1997, KIT_1997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
+  assertEquals((await processKit(ORDER_1997, KIT_1997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
+  assertEquals(rows, 2); assertEquals(sends, 1);
 });
