@@ -315,7 +315,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                 {!!lineItems.length && <CopyBtn text={lineItems.join('\n')} label="Kit contents" />}
               </div>
               {lineItems.length ? (
-                <ul className="grid gap-1.5 text-sm font-medium text-foreground sm:grid-cols-2">
+                <ul className="space-y-1.5 text-sm font-medium text-foreground">
                   {lineItems.map((item, i) => <li key={`${item}-${i}`} className="flex gap-2"><span className="text-primary" aria-hidden="true">•</span><span>{item}</span></li>)}
                 </ul>
               ) : <p className="text-sm text-muted-foreground">Kit contents not provided</p>}
