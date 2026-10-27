@@ -30,11 +30,11 @@ export function AdditionalTracking({ details, primaryCarrier, onChange, onModeCh
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Could not save package'); }
     finally { setSaving(false); }
   };
-  return <div className="min-w-0 space-y-3 py-2" aria-label="Additional package tracking">
+  return <div className="flex min-w-0 flex-wrap items-center gap-3 py-2" aria-label="Additional package tracking">
     {onModeChange && mode && <Button type="button" variant="outline" size="sm" aria-pressed={mode === 'two'} disabled={busy}
       className={`w-fit max-w-full whitespace-normal text-xs ${mode === 'two' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}
       onClick={() => onModeChange(mode === 'two' ? 'one' : 'two')}>Shipping from two locations</Button>}
-    {packages.map((p, i) => <div key={p.tracking_number} className="space-y-1 border-l border-border pl-3">
+    {packages.map((p, i) => <div key={p.tracking_number} className="w-full space-y-1 border-l border-border pl-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">Package {i + 2}</span><span className="font-semibold">{p.carrier}</span>
       </div>
@@ -58,7 +58,7 @@ export function AdditionalTracking({ details, primaryCarrier, onChange, onModeCh
     </div>)}
     {editing === null ? <Button type="button" variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={busy || packages.length >= MAX_ADDITIONAL_PACKAGES} onClick={() => {
       setEditing(''); setNumber(''); setCarrier(mode === 'two' ? missingCarrier : 'DHL');
-    }}><Plus className="mr-1.5 h-4 w-4" />{mode === 'two' && !(progress.china && progress.us) ? `Add ${missingCarrier} tracking` : 'Add additional tracking'}</Button> : <div className="max-w-md space-y-2 border-l border-border pl-3">
+    }}><Plus className="mr-1.5 h-4 w-4" />{mode === 'two' && !(progress.china && progress.us) ? `Add ${missingCarrier} tracking` : 'Add additional tracking'}</Button> : <div className="w-full max-w-md space-y-2 border-l border-border pl-3">
       <p className="text-sm font-medium">{editing ? 'Correct additional package' : 'Additional package'}</p>
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="Additional package carrier">
         {(mode === 'two' && !editing && !(progress.china && progress.us) ? [missingCarrier] : ['DHL', 'FedEx', 'Other'] as const).map(c => <Button type="button" key={c} variant="outline" size="sm" aria-pressed={carrier === c} className={carrier === c ? 'border-primary text-primary' : ''} onClick={() => setCarrier(c)}>{c}</Button>)}
