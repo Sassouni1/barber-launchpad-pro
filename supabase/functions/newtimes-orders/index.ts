@@ -17,6 +17,32 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const fail = (message: string, status = 400) => json({ error: message }, status);
 const asObject = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? { ...(v as Record<string, unknown>) } : {});
 
+// Strict allowlist: a freshly built object with only fields /newtimes displays. Never raw nested order/GHL data.
+const str = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : undefined);
+const TOP_TEXT = ['order_type', 'full_name', 'name', 'phone', 'notes', TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY,
+  'Choose Color', 'Hair Color', 'Lace or Skin', 'Hair Length', 'Choose Density', 'Choose Density if Needed (75%-110%) - 100% is regular',
+  'Curl Pattern', 'Curl Pattern — only if needed', 'Hair Salon Service Requested'];
+const ADDRESS_KEYS = ['name', 'address_1', 'address_2', 'address1', 'address2', 'city', 'state', 'zip', 'postal_code', 'country', 'method'];
+function pickText(src: Record<string, unknown>, keys: string[]) {
+  const out: Record<string, string> = {};
+  for (const k of keys) { const v = str(src[k]); if (v !== undefined) out[k] = v; }
+  return out;
+}
+export function publicOrderDetails(raw: unknown): Record<string, unknown> {
+  const d = asObject(raw);
+  const nested = asObject(d.order);
+  const out: Record<string, unknown> = pickText(d, TOP_TEXT);
+  if (d.kit_order === true) out.kit_order = true;
+  if (d.supplier_kit === true) out.supplier_kit = true;
+  for (const k of ['order_number', 'total_orders']) if (typeof d[k] === 'number' || typeof d[k] === 'string') out[k] = d[k];
+  if (out.phone === undefined) { const p = str(asObject(nested.customer).phone); if (p) out.phone = p; }
+  for (const k of ['shipping', 'shipping_address']) if (d[k] && typeof d[k] === 'object' && !Array.isArray(d[k])) out[k] = pickText(asObject(d[k]), ADDRESS_KEYS);
+  const items = Array.isArray(nested.line_items) ? nested.line_items : Array.isArray(d.line_items) ? d.line_items : null;
+  if (items) out.line_items = items.map((i) => { const o = asObject(i); const r: Record<string, unknown> = { title: str(o.title) ?? '' }; if (typeof o.quantity === 'number') r.quantity = o.quantity; return r; });
+  if (Array.isArray(d[REOPEN_HISTORY_KEY])) out[REOPEN_HISTORY_KEY] = (d[REOPEN_HISTORY_KEY] as unknown[]).map((h) => pickText(asObject(h), ['tracking_number', 'carrier', 'reopened_at', 'note']));
+  return out;
+}
+
 async function readOrder(id: string) {
   const { data, error } = await db.from('orders').select('status, tracking_number, order_details, updated_at').eq('id', id).neq('status', 'pending_payment').maybeSingle();
   if (error) throw error;
@@ -33,7 +59,7 @@ Deno.serve(async (req) => {
     if (action === 'list') {
       const { data, error } = await db.from('orders').select(FIELDS).neq('status', 'pending_payment').order('order_date', { ascending: false });
       if (error) throw error;
-      return json({ orders: data ?? [] });
+      return json({ orders: (data ?? []).map((o) => ({ ...o, order_details: publicOrderDetails(o.order_details) })) });
     }
 
     const orderId = typeof body.orderId === 'string' && UUID.test(body.orderId) ? body.orderId : null;
