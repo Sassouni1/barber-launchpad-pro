@@ -20,7 +20,7 @@ export function shippingLocationUpdate(
   raw: unknown, primary: string | null, primaryCarrier: TrackingCarrier | null,
   mode: ShippingLocations, now: string,
 ) {
-  const details = { ...objectDetails(raw), [SHIPPING_LOCATIONS_KEY]: mode };
+  const details: Record<string, unknown> = { ...objectDetails(raw), [SHIPPING_LOCATIONS_KEY]: mode };
   const { china, us } = shipmentProgress(details, primary, primaryCarrier);
   const complete = !!primary && (mode === 'one' || (china && us));
   if (complete) {
