@@ -81,7 +81,8 @@ type Deps = {
   ensureRow: (row: ReturnType<typeof kitOrderRow>) => Promise<string>;
   confirmVisible: (id: string, e: KitEvidence) => Promise<boolean>;
   reserve: (locationId: string, orderId: string, rowId: string) => Promise<boolean>;
-  send: (mail: ReturnType<typeof kitEmail>) => Promise<{ ok: boolean; messageId?: string | null }>;
+  releaseBeforeSend: (orderId: string) => Promise<void>;
+  send: (mail: ReturnType<typeof kitEmail>) => Promise<{ ok: boolean; messageId?: string | null; safeRetry?: boolean }>;
   finish: (orderId: string, status: 'sent' | 'uncertain', messageId: string | null) => Promise<void>;
 };
 export async function processKit(orderId: string, gate: { enabled: boolean; cutoff: string } | null, d: Deps) {
@@ -92,10 +93,14 @@ export async function processKit(orderId: string, gate: { enabled: boolean; cuto
   if (reason) return { status: 'blocked', reason };
   const rowId = await d.ensureRow(kitOrderRow(e));
   if (!await d.confirmVisible(rowId, e)) return { status: 'blocked', reason: 'supplier_page_visibility_unverified' };
-  // Permanent reservation precedes the only send; no reclaim/stale timeout.
+  // Reserve before sending. Release only when the relay proves no send was attempted.
   if (!await d.reserve(KIT_LOCATION, orderId, rowId)) return { status: 'reserved_no_retry' };
   try {
     const r = await d.send(kitEmail(orderId, e));
+    if (!r.ok && r.safeRetry) {
+      await d.releaseBeforeSend(orderId);
+      return { status: 'blocked', reason: 'supplier_delivery_not_attempted' };
+    }
     const status = r.ok && r.messageId ? 'sent' : 'uncertain';
     await d.finish(orderId, status, r.messageId ?? null);
     return { status };

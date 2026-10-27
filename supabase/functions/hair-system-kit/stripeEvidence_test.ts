@@ -4,6 +4,7 @@ import { KIT_LOCATION, KIT_STRIPE_ACCOUNT, KIT_STRIPE_APPLICATION, KIT_ENROLLMEN
 import { evidenceFromStripe } from './stripeEvidence.ts';
 import { readStripeEvidence, readStripeEvidenceByPaymentIntent } from './readStripeEvidence.ts';
 import { kitPaymentEvent } from './stripeEvent.ts';
+import { relayDefinitelyDidNotSend } from '../_shared/barberLaunchGhlRelay.ts';
 
 const ORDER = '6ad7ab5ef9a0f5d86d850cb9';
 const ORDER_1997 = '69b02cf0978001814a5adf77';
@@ -134,6 +135,7 @@ Deno.test('inactive gate and duplicate reservation produce no extra supplier mai
   let sends = 0, rows = 0, reads = 0, reserved = false;
   const d = { readFresh: async () => { reads++; return evidence(); }, ensureRow: async () => { rows++; return 'row'; }, confirmVisible: async () => true,
     reserve: async () => { if (reserved) return false; reserved = true; return true; },
+    releaseBeforeSend: async () => { reserved = false; },
     send: async () => { sends++; return { ok: true, messageId: 'msg' }; }, finish: async () => {} };
   assertEquals((await processKit(ORDER, null, d)).status, 'inactive');
   assertEquals(rows, 0);
@@ -148,6 +150,7 @@ Deno.test('a fully paid $1,997 enrollment with shipping sends once; incomplete s
   const d = { readFresh: async () => current, ensureRow: async (row: ReturnType<typeof kitOrderRow>) => {
     rows++; assertEquals(row.external_order_id, ORDER_1997); return 'row-1997'; }, confirmVisible: async () => true,
     reserve: async () => { if (reserved) return false; reserved = true; return true; },
+    releaseBeforeSend: async () => { reserved = false; },
     send: async () => { sends++; return { ok: true, messageId: 'msg-1997' }; }, finish: async () => {} };
   current.shipping.address1 = '';
   assertEquals((await processKit(ORDER_1997, { enabled: true, cutoff: cutoff() }, d)).status, 'blocked');
@@ -156,4 +159,33 @@ Deno.test('a fully paid $1,997 enrollment with shipping sends once; incomplete s
   assertEquals((await processKit(ORDER_1997, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
   assertEquals((await processKit(ORDER_1997, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
   assertEquals(rows, 2); assertEquals(sends, 1);
+});
+Deno.test('definite pre-send failure releases reservation and retries once', async () => {
+  let reserved = false, sends = 0, releases = 0;
+  const d = { readFresh: async () => evidence(), ensureRow: async () => 'row', confirmVisible: async () => true,
+    reserve: async () => { if (reserved) return false; reserved = true; return true; },
+    releaseBeforeSend: async () => { releases++; reserved = false; },
+    send: async () => { sends++; return sends === 1 ? { ok: false, safeRetry: true } : { ok: true, messageId: 'msg' }; },
+    finish: async () => {} };
+  assertEquals(await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d), { status: 'blocked', reason: 'supplier_delivery_not_attempted' });
+  assertEquals((await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
+  assertEquals((await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
+  assertEquals({ sends, releases }, { sends: 2, releases: 1 });
+});
+Deno.test('ambiguous relay failure keeps reservation and never resends automatically', async () => {
+  let reserved = false, sends = 0, releases = 0;
+  const d = { readFresh: async () => evidence(), ensureRow: async () => 'row', confirmVisible: async () => true,
+    reserve: async () => { if (reserved) return false; reserved = true; return true; },
+    releaseBeforeSend: async () => { releases++; reserved = false; },
+    send: async () => { sends++; return { ok: false, safeRetry: false }; }, finish: async () => {} };
+  assertEquals((await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d)).status, 'uncertain');
+  assertEquals((await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
+  assertEquals({ sends, releases }, { sends: 1, releases: 0 });
+});
+Deno.test('only relay failures known to precede sending can retry', () => {
+  assertEquals(relayDefinitelyDidNotSend('relay_key_missing'), true);
+  assertEquals(relayDefinitelyDidNotSend('relay_send_email_http_401:Unauthorized'), true);
+  assertEquals(relayDefinitelyDidNotSend('relay_send_email_http_503:vlix_oauth_not_connected'), true);
+  assertEquals(relayDefinitelyDidNotSend('relay_send_email_error:fetch failed'), false);
+  assertEquals(relayDefinitelyDidNotSend('relay_send_email_http_500:unknown'), false);
 });

@@ -66,3 +66,11 @@ export async function ghlOrderContact(contactId: string): Promise<{ phone: strin
   if (!/^\+?[0-9]{10,15}$/.test(phone) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('ghl_contact_details_missing');
   return { phone, email };
 }
+
+/** These failures happen before the relay calls GHL's send endpoint. Other
+ * failures are ambiguous and must keep the permanent delivery reservation. */
+export function relayDefinitelyDidNotSend(reason: string): boolean {
+  return reason === 'relay_key_missing' ||
+    reason.startsWith('relay_send_email_http_401:') ||
+    reason === 'relay_send_email_http_503:vlix_oauth_not_connected';
+}

@@ -32,6 +32,11 @@ export function kitStorage(db: SupabaseClient) {
       if (error) throw new Error('delivery_reservation_failed');
       return true;
     },
+    async releaseBeforeSend(orderId: string) {
+      const { data, error } = await db.from('hair_system_kit_deliveries').delete()
+        .eq('location_id', KIT_LOCATION).eq('ghl_order_id', orderId).eq('status', 'reserved').select('id');
+      if (error || data?.length !== 1) throw new Error('pre_send_reservation_release_failed');
+    },
     async finish(orderId: string, status: 'sent' | 'uncertain', messageId: string | null) {
       const { data, error } = await db.from('hair_system_kit_deliveries').update({ status,message_id:messageId,
         reason:status === 'uncertain' ? 'Delivery outcome uncertain; manual reconciliation required. No automatic retry.' : null,
