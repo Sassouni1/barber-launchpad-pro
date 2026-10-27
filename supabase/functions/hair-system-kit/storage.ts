@@ -1,4 +1,4 @@
-import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { kitOrderRow, KIT_LOCATION, type KitEvidence } from './logic.ts';
 
 // Storage primitives are intentionally not wired to an executable endpoint.
