@@ -2,13 +2,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { relayCall, relayProbe } from '../_shared/barberLaunchGhlRelay.ts';
-import { KIT_2997_PRODUCT, KIT_1997_PRODUCT, KIT_ENROLLMENT_OFFERS, processKit } from './logic.ts';
+import { KIT_ENROLLMENT_OFFERS, processKit } from './logic.ts';
 import { readStripeEvidence } from './readStripeEvidence.ts';
 import { kitStorage } from './storage.ts';
 import { hairSystemStripeKey } from '../_shared/hairSystemFulfillment.ts';
 
 const Body = z.object({ action: z.enum(['diagnostics','dry_run']), order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict();
-const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), product_id: z.enum([KIT_2997_PRODUCT, KIT_1997_PRODUCT]), phone: z.string().max(40).optional() }).passthrough();
+const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), phone: z.string().max(40).optional() }).passthrough();
 async function validWebhookToken(value: string | null, secret: string): Promise<boolean> {
   if (!value || !secret || value.length !== secret.length) return false;
   const expected = new TextEncoder().encode(secret);
@@ -38,17 +38,13 @@ Deno.serve(async req => {
     const { data: gate, error } = await db.from('hair_system_kit_activation').select('enabled,activation_cutoff').eq('singleton', true).maybeSingle();
     if (error || !gate) return reply({ error: 'activation_state_unavailable' }, 503);
     if (gate.enabled !== true) return reply({ status: 'inactive' });
-    // The welcome workflow merges unrelated Order Submitted triggers. The
-    // token must be used only inside verified product-specific branches for
-    // the two enrollment products. The product_id is static in each branch.
-    // This gate prevents activation from the shared path or DB row alone.
-    if (Deno.env.get('KIT_PRODUCT_BRANCH_VERIFIED') !== 'true') {
-      return reply({ status: 'blocked', reason: 'product_branch_not_verified' }, 503);
-    }
+    // The welcome workflow merges multiple products. The shared action is safe
+    // only because the receiver re-reads the unique live Stripe payment and
+    // checks its exact enrollment description, full price, and shipping.
     const stripeKey = hairSystemStripeKey();
     if (!stripeKey) return reply({ status: 'blocked', reason: 'stripe_key_unavailable' }, 503);
     const storage = kitStorage(db);
-    const result = await processKit(body.data.order_id, body.data.product_id, { enabled: gate.enabled, cutoff: gate.activation_cutoff }, {
+    const result = await processKit(body.data.order_id, { enabled: gate.enabled, cutoff: gate.activation_cutoff }, {
       readFresh: id => readStripeEvidence(id, body.data.phone ?? '', stripeKey),
       ensureRow: storage.ensureRow,
       confirmVisible: storage.confirmVisible,
@@ -92,8 +88,8 @@ Deno.serve(async req => {
       return reply({ active: false, stripe_search: reason, writes: 0, outbound_messages: 0 }, 503);
     }
   }
-  return reply({ active: false, configured_enabled: gate?.enabled === true, product_branch_verified: Deno.env.get('KIT_PRODUCT_BRANCH_VERIFIED') === 'true',
+  return reply({ active: false, configured_enabled: gate?.enabled === true,
     activation_cutoff: gate?.activation_cutoff ?? null,
-    relay, fresh_payment_reads: 'stripe_order_id_search_not_yet_verified_on_server', reason: 'workflow_product_assertion_and_phone_mapping_not_verified',
+    relay, fresh_payment_reads: 'stripe_order_id_search_not_yet_verified_on_server', reason: 'workflow_order_id_and_phone_mapping_not_verified',
     writes: 0, outbound_messages: 0, order_id: parsed.data.order_id ?? null });
 });

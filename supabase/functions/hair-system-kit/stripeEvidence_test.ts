@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { KIT_LOCATION, KIT_STRIPE_ACCOUNT, KIT_STRIPE_APPLICATION, KIT_ENROLLMENT_DESCRIPTION,
-  KIT_ITEMS, KIT_2997_PRODUCT, KIT_1997_PRODUCT, KIT_ENROLLMENT_OFFERS, kitEmail, kitEnrollmentOffer, kitOrderRow, qualifyKit, processKit } from './logic.ts';
+  KIT_ITEMS, KIT_1997_PRODUCT, KIT_ENROLLMENT_OFFERS, kitEmail, kitEnrollmentOffer, kitOrderRow, qualifyKit, processKit } from './logic.ts';
 import { evidenceFromStripe } from './stripeEvidence.ts';
 import { readStripeEvidence } from './readStripeEvidence.ts';
 
@@ -66,17 +66,16 @@ Deno.test('wrong enrollment title, missing phone or shipping, and old purchase b
   assertEquals(qualifyKit(old, ORDER, cutoff()), 'historical_or_ambiguous_purchase');
 });
 Deno.test('each identified enrollment has its own verified full-payment threshold', () => {
-  assertEquals(kitEnrollmentOffer(KIT_2997_PRODUCT)?.minimumReceivedMinor, 299700);
-  assertEquals(kitEnrollmentOffer(KIT_1997_PRODUCT)?.minimumReceivedMinor, 199700);
+  assertEquals(kitEnrollmentOffer(KIT_ENROLLMENT_DESCRIPTION)?.minimumReceivedMinor, 299700);
+  assertEquals(kitEnrollmentOffer(KIT_ENROLLMENT_OFFERS[KIT_1997_PRODUCT].description)?.minimumReceivedMinor, 199700);
   assertEquals(kitEnrollmentOffer('unrelated-product'), null);
-  assertEquals(qualifyKit(evidence1997(), ORDER_1997, cutoff(), Date.now(), KIT_1997_PRODUCT), null);
-  assertEquals(qualifyKit(evidence1997(), ORDER_1997, cutoff(), Date.now(), KIT_2997_PRODUCT), 'wrong_order_or_offer');
+  assertEquals(qualifyKit(evidence1997(), ORDER_1997, cutoff()), null);
   for (const amount of [50000, 80000, 100000]) {
     const installment = evidence1997(); installment.payment.receivedMinor = installment.payment.chargeAmountMinor = amount;
-    assertEquals(qualifyKit(installment, ORDER_1997, cutoff(), Date.now(), KIT_1997_PRODUCT), 'received_amount_not_verified');
+    assertEquals(qualifyKit(installment, ORDER_1997, cutoff()), 'received_amount_not_verified');
   }
   const missingShipping = evidence1997(); missingShipping.shipping.address1 = '';
-  assertEquals(qualifyKit(missingShipping, ORDER_1997, cutoff(), Date.now(), KIT_1997_PRODUCT), 'shipping_missing');
+  assertEquals(qualifyKit(missingShipping, ORDER_1997, cutoff()), 'shipping_missing');
 });
 
 function fetchFixture(search: unknown): typeof fetch {
@@ -116,11 +115,11 @@ Deno.test('inactive gate and duplicate reservation produce no extra supplier mai
   const d = { readFresh: async () => { reads++; return evidence(); }, ensureRow: async () => { rows++; return 'row'; }, confirmVisible: async () => true,
     reserve: async () => { if (reserved) return false; reserved = true; return true; },
     send: async () => { sends++; return { ok: true, messageId: 'msg' }; }, finish: async () => {} };
-  assertEquals((await processKit(ORDER, KIT_2997_PRODUCT, null, d)).status, 'inactive');
+  assertEquals((await processKit(ORDER, null, d)).status, 'inactive');
   assertEquals(rows, 0);
   assertEquals(reads, 0);
-  assertEquals((await processKit(ORDER, KIT_2997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
-  assertEquals((await processKit(ORDER, KIT_2997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
+  assertEquals((await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
+  assertEquals((await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
   assertEquals(sends, 1);
 });
 Deno.test('a fully paid $1,997 enrollment with shipping sends once; incomplete shipping sends none', async () => {
@@ -131,10 +130,10 @@ Deno.test('a fully paid $1,997 enrollment with shipping sends once; incomplete s
     reserve: async () => { if (reserved) return false; reserved = true; return true; },
     send: async () => { sends++; return { ok: true, messageId: 'msg-1997' }; }, finish: async () => {} };
   current.shipping.address1 = '';
-  assertEquals((await processKit(ORDER_1997, KIT_1997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'blocked');
+  assertEquals((await processKit(ORDER_1997, { enabled: true, cutoff: cutoff() }, d)).status, 'blocked');
   assertEquals(rows, 0); assertEquals(sends, 0);
   current = evidence1997();
-  assertEquals((await processKit(ORDER_1997, KIT_1997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
-  assertEquals((await processKit(ORDER_1997, KIT_1997_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
+  assertEquals((await processKit(ORDER_1997, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
+  assertEquals((await processKit(ORDER_1997, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
   assertEquals(rows, 2); assertEquals(sends, 1);
 });
