@@ -29,10 +29,22 @@ export function useUserOrders() {
   });
 }
 
-export function useAllOrders() {
+// /newtimes is public by owner request; it goes through the scoped newtimes-orders function.
+async function supplierAction(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('newtimes-orders', { body });
+  if (error) {
+    let message = 'Request failed. Refresh and try again.';
+    try { const ctx = await (error as { context?: Response }).context?.json(); if (ctx?.error) message = ctx.error; } catch { /* keep default */ }
+    throw new Error(message);
+  }
+  return data;
+}
+
+export function useAllOrders(publicSupplier = false) {
   return useQuery({
-    queryKey: ['orders', 'all'],
+    queryKey: ['orders', 'all', publicSupplier ? 'supplier' : 'direct'],
     queryFn: async () => {
+      if (publicSupplier) return receiptEligibleOrders((await supplierAction({ action: 'list' })).orders as Order[]);
       const { data, error } = await supabase
         .from('orders')
         .select('*')
@@ -45,10 +57,11 @@ export function useAllOrders() {
   });
 }
 
-export function useUpdateTracking() {
+export function useUpdateTracking(publicSupplier = false) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ orderId, trackingNumber, carrier }: { orderId: string; trackingNumber: string; carrier: TrackingCarrier }) => {
+      if (publicSupplier) { await supplierAction({ action: 'update_tracking', orderId, trackingNumber: trackingNumber.trim(), carrier }); return; }
       const number = trackingNumber.trim();
       if (!number) throw new Error('Enter a tracking number.');
       const { data: order, error: readError } = await supabase
@@ -91,10 +104,11 @@ export function useUpdateTracking() {
   });
 }
 
-export function useReopenOrder() {
+export function useReopenOrder(publicSupplier = false) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ orderId, note }: { orderId: string; note: string }) => {
+      if (publicSupplier) { await supplierAction({ action: 'reopen', orderId, note }); return; }
       const { data: order, error: readError } = await supabase
         .from('orders')
         .select('status, tracking_number, order_details, updated_at')
@@ -130,10 +144,11 @@ export function useReopenOrder() {
   });
 }
 
-export function useMarkOrderPlaced() {
+export function useMarkOrderPlaced(publicSupplier = false) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (orderId: string) => {
+      if (publicSupplier) { await supplierAction({ action: 'mark_placed', orderId }); return; }
       const { data, error } = await supabase
         .from('orders')
         .update({ status: 'processing' })
@@ -150,10 +165,11 @@ export function useMarkOrderPlaced() {
   });
 }
 
-export function useUndoOrderPlaced() {
+export function useUndoOrderPlaced(publicSupplier = false) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (orderId: string) => {
+      if (publicSupplier) { await supplierAction({ action: 'undo_placed', orderId }); return; }
       const { data, error } = await supabase
         .from('orders')
         .update({ status: 'pending' })

@@ -459,15 +459,22 @@ function KitOrderPreview({ now }: { now: number }) {
   );
 }
 
+function PublicSupplierLayout({ children }: { children: React.ReactNode; isAdminView?: boolean }) {
+  return <div className="min-h-screen bg-background"><main className="p-4 md:p-8">{children}</main></div>;
+}
+
 export default function ManufacturerOrders({ adminView = false }: { adminView?: boolean }) {
   const location = useLocation();
-  const { data: orders, isLoading } = useAllOrders();
-  const updateTracking = useUpdateTracking();
-  const reopenOrder = useReopenOrder();
-  const markOrderPlaced = useMarkOrderPlaced();
-  const undoOrderPlaced = useUndoOrderPlaced();
-  const deleteOrder = useDeleteOrder();
   const { isAdmin, user } = useAuth();
+  // /newtimes (non-admin view) is public and always uses the scoped supplier access layer.
+  const publicSupplier = !adminView;
+  const { data: orders, isLoading } = useAllOrders(publicSupplier);
+  const updateTracking = useUpdateTracking(publicSupplier);
+  const reopenOrder = useReopenOrder(publicSupplier);
+  const markOrderPlaced = useMarkOrderPlaced(publicSupplier);
+  const undoOrderPlaced = useUndoOrderPlaced(publicSupplier);
+  const deleteOrder = useDeleteOrder();
+  const Layout = !user && !adminView ? PublicSupplierLayout : DashboardLayout;
   const canDeleteOrders = adminView && isAdmin && user?.email?.toLowerCase() === 'chris@invasiondigitalmedia.com';
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
@@ -584,7 +591,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   };
 
   return (
-    <DashboardLayout isAdminView={adminView}>
+    <Layout isAdminView={adminView}>
        <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -636,6 +643,6 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }
