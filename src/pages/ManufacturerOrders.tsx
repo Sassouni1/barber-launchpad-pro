@@ -269,7 +269,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                   )}
                   {order.tracking_number && onCompletion && <Button type="button" size="sm" variant="outline" disabled={isCompleting || isSavingExtra || isSaving || isReopening} className={isSupplierCompleted(order) ? undefined : 'border-primary/80 text-primary hover:border-primary hover:bg-primary/10 hover:text-primary focus-visible:border-primary focus-visible:ring-primary/50'} onClick={() => onCompletion(order, !isSupplierCompleted(order))}>
                     {isSupplierCompleted(order) ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
-                    {isSupplierCompleted(order) ? 'Undo Completed' : 'Completed'}
+                    {isSupplierCompleted(order) ? 'Undo Completed' : 'Mark Complete'}
                   </Button>}
                   {onDelete && (
                     <Button
