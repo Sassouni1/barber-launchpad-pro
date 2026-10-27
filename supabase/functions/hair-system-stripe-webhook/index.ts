@@ -18,10 +18,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fulfillPaidSession, hairSystemStripeKey, loadExpandedSession, loadFulfillmentCutover } from "../_shared/hairSystemFulfillment.ts";
 import { automaticFulfillmentAllowed } from "../_shared/hairSystemFulfillmentLogic.ts";
 import { ghlOrderContact, relayCall } from "../_shared/barberLaunchGhlRelay.ts";
-import { processKit } from "../hair-system-kit/logic.ts";
-import { readStripeEvidenceByPaymentIntent } from "../hair-system-kit/readStripeEvidence.ts";
-import { kitPaymentEvent } from "../hair-system-kit/stripeEvent.ts";
-import { kitStorage } from "../hair-system-kit/storage.ts";
+import { processKit } from "../_shared/hairSystemKit/logic.ts";
+import { readStripeEvidenceByPaymentIntent } from "../_shared/hairSystemKit/readStripeEvidence.ts";
+import { kitPaymentEvent } from "../_shared/hairSystemKit/stripeEvent.ts";
+import { kitStorage } from "../_shared/hairSystemKit/storage.ts";
 
 const encoder = new TextEncoder();
 
