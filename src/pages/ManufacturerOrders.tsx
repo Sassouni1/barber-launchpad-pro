@@ -48,16 +48,17 @@ function isPastOrder(order: Order, now: number): boolean {
 
 const statusColors: Record<string, string> = {
   new: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
+  kit: 'border-border bg-muted/40 text-muted-foreground',
   overdue: 'bg-red-500/15 text-red-400 border-red-500/50',
   tracking: 'border-blue-400/80 bg-blue-500/25 px-3 py-1 text-sm font-bold text-blue-200',
   shipped: 'bg-green-500/10 text-green-500 border-green-500/30',
 };
 
-function getDisplayStatus(order: Order, overdue: boolean): { label: string; color: string } {
+function getDisplayStatus(order: Order, overdue: boolean, isKit: boolean): { label: string; color: string } {
   if (order.tracking_number) return { label: 'Completed / Shipped', color: statusColors.shipped };
   if (order.status === 'pending') return overdue
-    ? { label: 'New Order · Overdue', color: statusColors.overdue }
-    : { label: 'New Order', color: statusColors.new };
+    ? { label: isKit ? 'New Hair System Kit · Overdue' : 'New Order · Overdue', color: statusColors.overdue }
+    : { label: isKit ? 'New Hair System Kit' : 'New Order', color: isKit ? statusColors.kit : statusColors.new };
   return { label: 'Needs Tracking', color: statusColors.tracking };
 }
 
@@ -121,7 +122,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
   const needsTracking = !isPast && !order.tracking_number && order.status === 'processing';
   const displayStatus = isPast && !order.tracking_number && !isReopened
     ? { label: 'Past Order', color: 'bg-muted text-muted-foreground border-border' }
-    : getDisplayStatus(order, overdue);
+    : getDisplayStatus(order, overdue, view.isKit || kitLabelPreview);
 
   const buildCopyAllText = () => {
     const lines: string[] = [];
@@ -144,12 +145,12 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           {(view.isKit || kitLabelPreview) && (
-            <div className="rounded-lg border-2 border-primary bg-card px-4 py-3 text-primary" aria-label="Hair system kit order">
-              <div className="flex items-center gap-2 text-lg font-extrabold uppercase tracking-wide sm:text-xl">
+            <div className="py-1" aria-label="Hair system kit order">
+              <div className="flex items-center gap-2 text-2xl font-medium uppercase tracking-tight text-muted-foreground sm:text-3xl">
                 <Package className="h-5 w-5 shrink-0" aria-hidden="true" />
                 Hair System Kit
               </div>
-              <p className="mt-1 text-sm font-medium text-muted-foreground">{kitLabelPreview ? 'Visual example only — Sierra’s saved order is still a regular hair system.' : 'Order every item below together as one kit.'}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{kitLabelPreview ? 'Visual example only — Sierra’s saved order is still a regular hair system.' : 'Order every item below together as one kit.'}</p>
             </div>
           )}
           <div className="flex flex-wrap items-start gap-3">
