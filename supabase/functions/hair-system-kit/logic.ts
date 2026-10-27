@@ -4,7 +4,18 @@ export const KIT_LOCATION = 'JVBUuL3dVwZahuGay9T1';
 export const KIT_STRIPE_ACCOUNT = 'acct_1LMNKMI6LFtj88Bq';
 export const KIT_STRIPE_APPLICATION = 'ca_D5Mpe2emSMW6EZeofhNaydC4Kq5zGxQo';
 export const KIT_ENROLLMENT_DESCRIPTION = 'Barber Launch Hair System Mastery & Marketing ($2997)';
+export const KIT_AUTOMATIC_PRODUCT = '69c04272e1fa5f9772b8a7ea';
+export const KIT_MANUAL_PRODUCT = '69124b3bff3e41840f4d4b2d';
 export const KIT_ITEMS = ['One #2 skin hair system', 'One #2 lace hair system', 'Color wheel', 'Adhesive', 'Tape', 'C22 spray'];
+
+/** Both GHL enrollments are kits. Only the $2,997 enrollment currently has
+ * approval for automatic supplier release; the $1,997 case awaits Chris's
+ * decision and must not create a supplier-facing row or email. */
+export function kitEnrollmentRoute(productId: string): 'automatic_candidate' | 'manual_review' | null {
+  if (productId === KIT_AUTOMATIC_PRODUCT) return 'automatic_candidate';
+  if (productId === KIT_MANUAL_PRODUCT) return 'manual_review';
+  return null;
+}
 
 export type KitEvidence = {
   readAt: string;
@@ -70,8 +81,11 @@ type Deps = {
   send: (mail: ReturnType<typeof kitEmail>) => Promise<{ ok: boolean; messageId?: string | null }>;
   finish: (orderId: string, status: 'sent' | 'uncertain', messageId: string | null) => Promise<void>;
 };
-export async function processKit(orderId: string, gate: { enabled: boolean; cutoff: string } | null, d: Deps) {
+export async function processKit(orderId: string, productId: string, gate: { enabled: boolean; cutoff: string } | null, d: Deps) {
   if (gate?.enabled !== true) return { status: 'inactive' };
+  const route = kitEnrollmentRoute(productId);
+  if (!route) return { status: 'blocked', reason: 'unrelated_product' };
+  if (route === 'manual_review') return { status: 'manual_review_required', reason: 'kit_enrollment_not_automatically_approved' };
   let e: KitEvidence;
   try { e = await d.readFresh(orderId); } catch { return { status: 'blocked', reason: 'fresh_stripe_reads_unavailable' }; }
   const reason = qualifyKit(e, orderId, gate.cutoff);

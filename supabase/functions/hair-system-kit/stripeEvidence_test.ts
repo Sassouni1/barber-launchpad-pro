@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { KIT_LOCATION, KIT_STRIPE_ACCOUNT, KIT_STRIPE_APPLICATION, KIT_ENROLLMENT_DESCRIPTION,
-  KIT_ITEMS, kitEmail, kitOrderRow, qualifyKit, processKit } from './logic.ts';
+  KIT_ITEMS, KIT_AUTOMATIC_PRODUCT, KIT_MANUAL_PRODUCT, kitEmail, kitEnrollmentRoute, kitOrderRow, qualifyKit, processKit } from './logic.ts';
 import { evidenceFromStripe } from './stripeEvidence.ts';
 import { readStripeEvidence } from './readStripeEvidence.ts';
 
@@ -63,6 +63,11 @@ Deno.test('wrong enrollment title, missing phone or shipping, and old purchase b
   const old = evidence(); old.order.createdAt = '2026-01-01T00:00:00Z';
   assertEquals(qualifyKit(old, ORDER, cutoff()), 'historical_or_ambiguous_purchase');
 });
+Deno.test('both enrollment products classify as kits, while only $2,997 is an automatic candidate', () => {
+  assertEquals(kitEnrollmentRoute(KIT_AUTOMATIC_PRODUCT), 'automatic_candidate');
+  assertEquals(kitEnrollmentRoute(KIT_MANUAL_PRODUCT), 'manual_review');
+  assertEquals(kitEnrollmentRoute('unrelated-product'), null);
+});
 
 function fetchFixture(search: unknown): typeof fetch {
   return (async (url: string | URL | Request) => {
@@ -97,13 +102,16 @@ Deno.test('missing first search result retries once, then retrieves current PI',
   assertEquals(searches, 2);
 });
 Deno.test('inactive gate and duplicate reservation produce no extra supplier mail', async () => {
-  let sends = 0, rows = 0, reserved = false;
-  const d = { readFresh: async () => evidence(), ensureRow: async () => { rows++; return 'row'; }, confirmVisible: async () => true,
+  let sends = 0, rows = 0, reads = 0, reserved = false;
+  const d = { readFresh: async () => { reads++; return evidence(); }, ensureRow: async () => { rows++; return 'row'; }, confirmVisible: async () => true,
     reserve: async () => { if (reserved) return false; reserved = true; return true; },
     send: async () => { sends++; return { ok: true, messageId: 'msg' }; }, finish: async () => {} };
-  assertEquals((await processKit(ORDER, null, d)).status, 'inactive');
+  assertEquals((await processKit(ORDER, KIT_AUTOMATIC_PRODUCT, null, d)).status, 'inactive');
   assertEquals(rows, 0);
-  assertEquals((await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
-  assertEquals((await processKit(ORDER, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
+  assertEquals((await processKit(ORDER, KIT_MANUAL_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'manual_review_required');
+  assertEquals(rows, 0);
+  assertEquals(reads, 0);
+  assertEquals((await processKit(ORDER, KIT_AUTOMATIC_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'sent');
+  assertEquals((await processKit(ORDER, KIT_AUTOMATIC_PRODUCT, { enabled: true, cutoff: cutoff() }, d)).status, 'reserved_no_retry');
   assertEquals(sends, 1);
 });

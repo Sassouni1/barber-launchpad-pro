@@ -2,13 +2,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { relayCall, relayProbe } from '../_shared/barberLaunchGhlRelay.ts';
-import { KIT_ENROLLMENT_DESCRIPTION, processKit } from './logic.ts';
+import { KIT_AUTOMATIC_PRODUCT, KIT_ENROLLMENT_DESCRIPTION, KIT_MANUAL_PRODUCT, processKit } from './logic.ts';
 import { readStripeEvidence } from './readStripeEvidence.ts';
 import { kitStorage } from './storage.ts';
 import { hairSystemStripeKey } from '../_shared/hairSystemFulfillment.ts';
 
 const Body = z.object({ action: z.enum(['diagnostics','dry_run']), order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict();
-const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), phone: z.string().max(40).optional() }).passthrough();
+const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), product_id: z.enum([KIT_AUTOMATIC_PRODUCT, KIT_MANUAL_PRODUCT]), phone: z.string().max(40).optional() }).passthrough();
 async function validWebhookToken(value: string | null, secret: string): Promise<boolean> {
   if (!value || !secret || value.length !== secret.length) return false;
   const expected = new TextEncoder().encode(secret);
@@ -48,7 +48,7 @@ Deno.serve(async req => {
     const stripeKey = hairSystemStripeKey();
     if (!stripeKey) return reply({ status: 'blocked', reason: 'stripe_key_unavailable' }, 503);
     const storage = kitStorage(db);
-    const result = await processKit(body.data.order_id, { enabled: gate.enabled, cutoff: gate.activation_cutoff }, {
+    const result = await processKit(body.data.order_id, body.data.product_id, { enabled: gate.enabled, cutoff: gate.activation_cutoff }, {
       readFresh: id => readStripeEvidence(id, body.data.phone ?? '', stripeKey),
       ensureRow: storage.ensureRow,
       confirmVisible: storage.confirmVisible,
