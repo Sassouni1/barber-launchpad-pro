@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAllOrders, useUpdateTracking, useReopenOrder, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY, REOPEN_HISTORY_KEY, type TrackingCarrier } from '@/hooks/useOrders';
+import { useAllOrders, useUpdateTracking, useReopenOrder, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, useToggleSupplierPaid, TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY, REOPEN_HISTORY_KEY, type TrackingCarrier } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -85,6 +85,8 @@ interface OrderCardProps {
   isUndoingOrder: boolean;
   isPast?: boolean;
   onDelete?: (orderId: string) => void;
+  onToggleSupplierPaid?: (orderId: string, paid: boolean) => void;
+  isTogglingPaid?: boolean;
 }
 
 function CopyBtn({ text, label }: { text: string; label?: string }) {
@@ -103,7 +105,8 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete }: OrderCardProps) {
+function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid }: OrderCardProps) {
+  const supplierPaidAt = (order as { supplier_paid_at?: string | null }).supplier_paid_at ?? null;
   const trackingInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (editingId === order.id && trackingCarrier) trackingInputRef.current?.focus();
@@ -166,6 +169,21 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
               <p className="text-xs text-muted-foreground">
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
               </p>
+              {(supplierPaidAt || onToggleSupplierPaid) && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {supplierPaidAt && (
+                    <Badge variant="outline" className={statusColors.shipped}>
+                      <Check className="mr-1 h-3.5 w-3.5" />Total Paid · {format(new Date(supplierPaidAt), 'MMM d, yyyy')}
+                    </Badge>
+                  )}
+                  {onToggleSupplierPaid && (
+                    <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={isTogglingPaid}
+                      onClick={() => onToggleSupplierPaid(order.id, !supplierPaidAt)}>
+                      {supplierPaidAt ? 'Undo Total Paid' : 'Mark Total Paid'}
+                    </Button>
+                  )}
+                </div>
+              )}
               {order.external_order_id && <p className="text-xs text-muted-foreground break-all">Order reference: {order.external_order_id}</p>}
               {view.sequence && <p className="text-xs text-muted-foreground">{view.sequence}</p>}
               {order.tracking_number && (
@@ -474,6 +492,8 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const markOrderPlaced = useMarkOrderPlaced(publicSupplier);
   const undoOrderPlaced = useUndoOrderPlaced(publicSupplier);
   const deleteOrder = useDeleteOrder();
+  const canMarkSupplierPaid = publicSupplier && isAdmin && user?.email?.toLowerCase() === 'chris@invasiondigitalmedia.com';
+  const toggleSupplierPaid = useToggleSupplierPaid();
   const Layout = !user && !adminView ? PublicSupplierLayout : DashboardLayout;
   const canDeleteOrders = adminView && isAdmin && user?.email?.toLowerCase() === 'chris@invasiondigitalmedia.com';
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -588,6 +608,15 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
     onUndoOrderPlaced: handleUndoOrderPlaced,
     isUndoingOrder: undoOrderPlaced.isPending,
     onDelete: canDeleteOrders ? handleDelete : undefined,
+    onToggleSupplierPaid: canMarkSupplierPaid ? async (orderId: string, paid: boolean) => {
+      try {
+        await toggleSupplierPaid.mutateAsync({ orderId, paid });
+        toast.success(paid ? 'Marked Total Paid' : 'Total Paid marker removed');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to update Total Paid');
+      }
+    } : undefined,
+    isTogglingPaid: toggleSupplierPaid.isPending,
   };
 
   return (

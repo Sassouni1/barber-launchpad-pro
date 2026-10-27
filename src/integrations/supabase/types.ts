@@ -4127,6 +4127,32 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_payment_markers: {
+        Row: {
+          marked_by: string
+          order_id: string
+          paid_at: string
+        }
+        Insert: {
+          marked_by?: string
+          order_id: string
+          paid_at?: string
+        }
+        Update: {
+          marked_by?: string
+          order_id?: string
+          paid_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payment_markers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_conversations: {
         Row: {
           created_at: string
