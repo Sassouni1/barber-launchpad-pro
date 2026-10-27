@@ -1,5 +1,10 @@
 # Roadmap
 
+## Explicit supplier completion correction
+- [ ] Keep tracking saves in processing/current; explicit Completed and undo with shared optimistic actions and completion-based eight-day archive.
+- [ ] Simplify package UI, deploy newtimes-orders, verify disposable order flows/time boundaries and remove fixtures.
+- [ ] Run regressions and inspect desktop/phone; leave frontend unpublished and report revision.
+
 ## Additional supplier packages
 - [x] Add scoped extra-package storage/validation and matching public/authenticated actions; preserve primary tracking, legacy archive timing, private details and reopen history.
 - [x] Deploy only newtimes-orders through project-managed deployment; 20 focused/regression tests and Deno dependency check pass. Deployed disposable-order add-second/add-third, duplicate/stale rejection, confirmed edit/remove, Copy All/search and reopen pass; disposable record removed.
