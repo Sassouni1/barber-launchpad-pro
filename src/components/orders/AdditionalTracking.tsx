@@ -25,7 +25,7 @@ export function AdditionalTracking({ details, onChange, pending = false }: {
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Could not save package'); }
     finally { setSaving(false); }
   };
-  return <div className="min-w-0 space-y-3" aria-label="Additional package tracking">
+  return <div className="min-w-0 space-y-3 py-2" aria-label="Additional package tracking">
     {packages.map((p, i) => <div key={p.tracking_number} className="space-y-1 border-l border-border pl-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">Package {i + 2}</span><span className="font-semibold">{p.carrier}</span>
