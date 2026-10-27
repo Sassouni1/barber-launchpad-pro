@@ -17,6 +17,7 @@ import {
 } from "../_shared/hairSystemFulfillmentLogic.ts";
 import { relayProbe } from "../_shared/barberLaunchGhlRelay.ts";
 import { supplierOnlyRecovery } from "./supplierOnly.ts";
+import { kitPaymentEvent } from "../_shared/hairSystemKit/stripeEvent.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -149,6 +150,48 @@ Deno.serve(async (req) => {
     const getRef = async () => (await db.from("app_settings").select("value").eq("key", "hair_system_webhook_secret_ref").maybeSingle()).data?.value as any ?? null;
     const setRef = (value: unknown) => db.from("app_settings").upsert({ key: "hair_system_webhook_secret_ref", value }, { onConflict: "key" });
     const audit = (step: string) => console.log("hair-system webhook repair", step, "by", u.user.id);
+
+    if (action === "subscribe_kit_payments" || action === "probe_kit_event") {
+      const ref = await getRef();
+      const endpointId = String(ref?.new_endpoint_id ?? "");
+      if (ref?.status !== "active" || !/^we_[A-Za-z0-9]+$/.test(endpointId) || diag.stripeAccountMatches !== true) {
+        return json({ error: "The verified live Stripe endpoint is unavailable." }, 409);
+      }
+      const endpoint = await stripeGet(`/webhook_endpoints/${endpointId}`, key);
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/hair-system-stripe-webhook?ep=v2`;
+      const required = ["checkout.session.completed", "checkout.session.async_payment_succeeded"];
+      if (endpoint.id !== endpointId || endpoint.url !== url || endpoint.status !== "enabled" ||
+        endpoint.livemode !== true || !required.every((e) => endpoint.enabled_events?.includes(e))) {
+        return json({ error: "The current checkout webhook does not match the approved endpoint." }, 409);
+      }
+      if (action === "subscribe_kit_payments") {
+        if (body.confirm !== "SUBSCRIBE_KIT") return json({ error: "Confirmation missing." }, 400);
+        if (endpoint.enabled_events.includes("payment_intent.succeeded")) {
+          return json({ status: "already_subscribed", endpoint_id: endpointId, enabled_events: endpoint.enabled_events });
+        }
+        if (endpoint.enabled_events.length !== required.length) {
+          return json({ error: "The endpoint has other events; refusing to replace its subscription." }, 409);
+        }
+        const enabledEvents = [...required, "payment_intent.succeeded"];
+        const updated = await stripePost(`/webhook_endpoints/${endpointId}`, { "enabled_events[]": enabledEvents });
+        if (updated.id !== endpointId || updated.url !== url || updated.status !== "enabled" ||
+          !enabledEvents.every((e) => updated.enabled_events?.includes(e))) {
+          return json({ error: "Stripe did not confirm the kit event subscription." }, 502);
+        }
+        audit(`subscribed kit event on ${endpointId}`);
+        return json({ status: "subscribed", endpoint_id: endpointId, enabled_events: updated.enabled_events });
+      }
+      const { data: gate, error: gateError } = await db.from("hair_system_kit_activation")
+        .select("enabled").eq("singleton", true).maybeSingle();
+      if (gateError || gate?.enabled === true) return json({ error: "Kit delivery must be inactive for this probe." }, 409);
+      const eventId = String(body.event_id ?? "");
+      if (body.confirm !== "PROBE_KIT" || !/^evt_[A-Za-z0-9]+$/.test(eventId)) return json({ error: "Valid event and confirmation required." }, 400);
+      const event = await stripeGet(`/events/${eventId}`, key);
+      if (!kitPaymentEvent(event)) return json({ error: "This is not a live GHL kit enrollment payment event." }, 409);
+      const retried = await stripePost(`/events/${eventId}/retry`, { webhook_endpoint: endpointId });
+      audit(`probed kit event ${eventId}`);
+      return json({ status: "probe_requested", event_id: eventId, endpoint_id: endpointId, stripe_event: retried.id ?? null });
+    }
 
     if (action === "repair_webhook") {
       // Creates a replacement endpoint (old one untouched). Its whsec is stored
