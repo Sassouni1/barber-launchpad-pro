@@ -620,9 +620,9 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
     onToggleSupplierPaid: canMarkSupplierPaid ? async (orderId: string, paid: boolean) => {
       try {
         await toggleSupplierPaid.mutateAsync({ orderId, paid });
-        toast.success(paid ? 'Marked Total Paid' : 'Total Paid marker removed');
+        toast.success(paid ? 'Marked Paid' : 'Marked Unpaid');
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to update Total Paid');
+        toast.error(error instanceof Error ? error.message : 'Failed to update payment status');
       }
     } : undefined,
     isTogglingPaid: toggleSupplierPaid.isPending,
