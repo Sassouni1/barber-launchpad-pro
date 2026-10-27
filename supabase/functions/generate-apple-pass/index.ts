@@ -4,7 +4,7 @@ const corsHeaders = {
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import forge from "npm:node-forge@1.3.1";
-import JSZip from "npm:jszip@3.10.1";
+import JSZip from "npm:jszip@^3.10.1";
 import { CARD_BASE_URL, normalizeWebsiteUrl, normalizeInstagramUrl, normalizeInstagramHandle } from "../_shared/cardLinks.ts";
 
 // Apple WWDR G4 intermediate certificate (PEM)
