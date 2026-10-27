@@ -12,9 +12,9 @@ describe('supplier price rules', () => {
     expect(p.amount).toBe(345);
     expect(p.amount).not.toBe(335);
   });
-  it('kit flag with unknown manifest needs review', () => {
-    expect(supplierPriceFor(kit([{ title: '1 #2 skin system', quantity: 1 }])).kind).toBe('review');
-    expect(supplierPriceFor(kit(KIT_MANIFEST.map(i => ({ ...i, quantity: 2 })))).kind).toBe('review');
+  it('every marked kit is $345 regardless of line item details', () => {
+    expect(supplierPriceFor(kit([{ title: '1 #2 skin system', quantity: 1 }])).amount).toBe(345);
+    expect(supplierPriceFor({ kit_order: true }).amount).toBe(345);
   });
   it('known manifest without kit flag is not priced as kit', () => {
     expect(supplierPriceFor({ order: { line_items: KIT_MANIFEST.map(i => ({ ...i })) } }).kind).toBe('review');

@@ -1,5 +1,3 @@
-import { KIT_MANIFEST } from './supplierKitOrder';
-
 // Chris's supplier costs (what Chris pays New Times), in whole USD.
 // The kit is a fixed $345 price — intentionally NOT lace + skin summed.
 export const SUPPLIER_PRICES = { lace: 175, skin: 160, kit: 345 } as const;
@@ -13,21 +11,11 @@ const obj = (v: unknown): Data => (v && typeof v === 'object' && !Array.isArray(
 const norm = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase() : '');
 const REVIEW: SupplierPrice = { kind: 'review', amount: null, label: 'Price needs review' };
 
-function isKnownKitManifest(details: Data): boolean {
-  const order = obj(details.order);
-  const items = Array.isArray(order.line_items) ? order.line_items : Array.isArray(details.line_items) ? details.line_items : null;
-  if (!items || items.length !== KIT_MANIFEST.length) return false;
-  const expected = KIT_MANIFEST.map(i => i.title.toLowerCase()).sort();
-  const actual = items.map(i => norm(obj(i).title)).sort();
-  const qtyOk = items.every(i => { const q = obj(i).quantity; return q === undefined || q === 1; });
-  return qtyOk && expected.every((t, idx) => t === actual[idx]);
-}
-
 export function supplierPriceFor(orderDetails: unknown): SupplierPrice {
   const details = obj(orderDetails);
   const kitFlag = details.kit_order === true || details.supplier_kit === true;
   if (kitFlag) {
-    return isKnownKitManifest(details) ? { kind: 'kit', amount: SUPPLIER_PRICES.kit, label: '$345' } : REVIEW;
+    return { kind: 'kit', amount: SUPPLIER_PRICES.kit, label: '$345' };
   }
   const base = norm(details['Lace or Skin']);
   if (base === 'lace') return { kind: 'lace', amount: SUPPLIER_PRICES.lace, label: '$175' };
