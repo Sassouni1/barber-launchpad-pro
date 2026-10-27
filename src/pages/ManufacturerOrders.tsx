@@ -64,6 +64,7 @@ interface OrderCardProps {
   now: number;
   index?: number;
   kitLabelPreview?: boolean;
+  isSamplePreview?: boolean;
   editingId: string | null;
   trackingNumber: string;
   trackingCarrier: TrackingCarrier | null;
@@ -110,7 +111,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, onShippingMode, isSavingExtra, isSavingMode, onCompletion, isCompleting }: OrderCardProps) {
+function OrderCard({ order, now, index, kitLabelPreview = false, isSamplePreview = false, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, onShippingMode, isSavingExtra, isSavingMode, onCompletion, isCompleting }: OrderCardProps) {
   const supplierPaidAt = (order as { supplier_paid_at?: string | null }).supplier_paid_at ?? null;
   const supplierPrice = supplierPriceFor(order.order_details);
   const paymentState = supplierPaymentState(supplierPaidAt, order.tracking_number);
@@ -216,7 +217,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                   Previously reopened from tracking {lastReopen.tracking_number}{lastReopen.note ? ` — ${lastReopen.note}` : ''}
                 </p>
               )}
-              {order.tracking_number && onExtraTracking && <AdditionalTracking details={details} primaryCarrier={savedCarrier} pending={isSavingExtra || isSavingMode} onChange={change => onExtraTracking(order, change)} onModeChange={onShippingMode ? mode => onShippingMode(order, mode) : undefined} />}
+              {order.tracking_number && onExtraTracking && <AdditionalTracking details={details} primaryCarrier={savedCarrier} pending={isSavingExtra || isSavingMode} isPreview={isSamplePreview} onChange={change => onExtraTracking(order, change)} onModeChange={onShippingMode ? mode => onShippingMode(order, mode) : undefined} />}
             </div>
 
             {(!isPast || order.tracking_number || isReopened || onDelete) && <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
@@ -437,6 +438,7 @@ function KitOrderPreview({ now }: { now: number }) {
   };
 
   const previewProps = {
+    isSamplePreview: true,
     now, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote,
     setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote,
     isSaving: false, isReopening: false, isPlacingOrder: false, isUndoingOrder: false,

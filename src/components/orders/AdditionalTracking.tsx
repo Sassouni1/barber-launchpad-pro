@@ -6,9 +6,9 @@ import { toast } from 'sonner';
 import { extraPackages, MAX_ADDITIONAL_PACKAGES, type ExtraChange, type TrackingCarrier } from '../../../supabase/functions/_shared/supplierTracking';
 import { shippingLocations, shipmentProgress, type ShippingLocations } from '../../../supabase/functions/_shared/supplierShippingLocations';
 
-export function AdditionalTracking({ details, primaryCarrier, onChange, onModeChange, pending = false }: {
+export function AdditionalTracking({ details, primaryCarrier, onChange, onModeChange, pending = false, isPreview = false }: {
   details: unknown; primaryCarrier: TrackingCarrier | null; onChange: (change: ExtraChange) => Promise<void>;
-  onModeChange?: (mode: ShippingLocations) => Promise<void>; pending?: boolean;
+  onModeChange?: (mode: ShippingLocations) => Promise<void>; pending?: boolean; isPreview?: boolean;
 }) {
   const packages = extraPackages(details);
   const mode = shippingLocations(details);
@@ -21,7 +21,7 @@ export function AdditionalTracking({ details, primaryCarrier, onChange, onModeCh
   const busy = pending || saving;
   const save = async () => {
     if (editing === null) return;
-    if (editing && !window.confirm('Save corrections to this additional package?')) return;
+    if (editing && !isPreview && !window.confirm('Save corrections to this additional package?')) return;
     setSaving(true);
     try {
       await onChange({ action: editing ? 'edit_additional_tracking' : 'add_additional_tracking', originalNumber: editing || undefined,
@@ -48,7 +48,7 @@ export function AdditionalTracking({ details, primaryCarrier, onChange, onModeCh
           setEditing(p.tracking_number); setNumber(p.tracking_number); setCarrier(p.carrier);
         }}><Pencil className="h-3.5 w-3.5" /></Button>
         <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" disabled={busy} aria-label={`Remove package ${i + 2}`} title="Remove package" onClick={async () => {
-          if (!window.confirm('Remove this additional package? The primary tracking number will remain.')) return;
+          if (!isPreview && !window.confirm('Remove this additional package? The primary tracking number will remain.')) return;
           setSaving(true);
           try { await onChange({ action: 'remove_additional_tracking', originalNumber: p.tracking_number }); setEditing(null); }
           catch (e) { toast.error(e instanceof Error ? e.message : 'Could not remove package'); }
