@@ -5,6 +5,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { changeExtraPackage, ensurePrimaryUnique, reopenTrackingDetails, type ExtraChange } from '../_shared/supplierTracking.ts';
 
+import { completionUpdate, preserveCompletionClock, trackingSaveStatus } from '../_shared/supplierOrderLifecycle.ts';
 import { publicOrderDetails } from './projection.ts';
 
 const FIELDS = 'id, status, order_date, customer_name, customer_email, external_order_id, tracking_number, tracking_url, order_details, updated_at';
@@ -25,7 +26,7 @@ const asObject = (v: unknown): Record<string, unknown> => (v && typeof v === 'ob
 
 
 async function readOrder(id: string) {
-  const { data, error } = await db.from('orders').select('status, tracking_number, tracking_url, order_details, updated_at').eq('id', id).neq('status', 'pending_payment').maybeSingle();
+  const { data, error } = await db.from('orders').select('status, tracking_number, tracking_url, order_details, updated_at, tracking_seen').eq('id', id).neq('status', 'pending_payment').maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -57,13 +58,28 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === 'complete_order' || action === 'undo_completion') {
+      if (typeof body.expectedUpdatedAt !== 'string' || !Number.isFinite(Date.parse(body.expectedUpdatedAt))) return fail('Refresh the order before changing completion.');
+      const order = await readOrder(orderId);
+      if (!order) return fail('Order not found.', 404);
+      if (order.updated_at !== body.expectedUpdatedAt) return fail('Order changed. Refresh and try again.', 409);
+      let patch;
+      try { patch = completionUpdate(order, action === 'complete_order', new Date().toISOString()); }
+      catch (e) { return fail(e instanceof Error ? e.message : 'Invalid completion state.'); }
+      const { data, error } = await db.from('orders').update(patch).eq('id', orderId).neq('status', 'pending_payment')
+        .eq('updated_at', body.expectedUpdatedAt).eq('status', order.status).eq('tracking_number', order.tracking_number).select('id');
+      if (error) throw error;
+      if (!data?.length) return fail('Order changed while completing. Refresh and try again.', 409);
+      return json({ ok: true });
+    }
+
     if (action === 'add_additional_tracking' || action === 'edit_additional_tracking' || action === 'remove_additional_tracking') {
       if (typeof body.expectedUpdatedAt !== 'string' || !Number.isFinite(Date.parse(body.expectedUpdatedAt))) return fail('Refresh the order before changing packages.');
       const order = await readOrder(orderId);
       if (!order) return fail('Order not found.', 404);
       if (order.updated_at !== body.expectedUpdatedAt) return fail('Order changed. Refresh and try again.', 409);
       let details: Record<string, unknown>;
-      try { details = changeExtraPackage(order.order_details, order.tracking_number, { ...body, action } as ExtraChange, new Date().toISOString(), order.updated_at); }
+      try { details = changeExtraPackage(preserveCompletionClock(order), order.tracking_number, { ...body, action } as ExtraChange, new Date().toISOString(), order.updated_at); }
       catch (e) { return fail(e instanceof Error ? e.message : 'Invalid package tracking.'); }
       const { data, error } = await db.from('orders').update({ order_details: details })
         .eq('id', orderId).neq('status', 'pending_payment').eq('updated_at', body.expectedUpdatedAt).eq('tracking_number', order.tracking_number).select('id');
@@ -80,12 +96,12 @@ Deno.serve(async (req) => {
       const order = await readOrder(orderId);
       if (!order) return fail('Order not found.', 404);
       try { ensurePrimaryUnique(order.order_details, number); } catch (e) { return fail(e instanceof Error ? e.message : 'Duplicate tracking.'); }
-      const details = asObject(order.order_details);
+      const details = preserveCompletionClock(order);
       details[TRACKING_ADDED_AT_KEY] = order.tracking_number ? details[TRACKING_ADDED_AT_KEY] || order.updated_at : new Date().toISOString();
       details[TRACKING_CARRIER_KEY] = carrier;
       const trackingUrl = carrier === 'FedEx' ? `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(number)}`
         : carrier === 'DHL' ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}` : null;
-      const { data, error } = await db.from('orders').update({ tracking_number: number, tracking_url: trackingUrl, status: 'shipped', order_details: details })
+      const { data, error } = await db.from('orders').update({ tracking_number: number, tracking_url: trackingUrl, status: trackingSaveStatus(order.status), order_details: details })
         .eq('id', orderId).eq('updated_at', order.updated_at).select('id');
       if (error) throw error;
       if (!data?.length) return fail('Order changed while saving. Refresh and try again.', 409);

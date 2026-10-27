@@ -1,3 +1,4 @@
+import { COMPLETED_AT_KEY } from './supplierOrderLifecycle.ts';
 export const ADDITIONAL_TRACKING_KEY = 'supplier_additional_tracking';
 export const MAX_ADDITIONAL_PACKAGES = 10;
 export type TrackingCarrier = 'DHL' | 'FedEx' | 'Other';
@@ -81,5 +82,8 @@ export function reopenTrackingDetails(raw: unknown, primary: string, url: string
   delete details.supplier_tracking_added_at;
   delete details.supplier_tracking_carrier;
   delete details[ADDITIONAL_TRACKING_KEY];
+  delete details[COMPLETED_AT_KEY];
+  delete details.supplier_completion_undone_at;
+  delete details.supplier_shipment_previously_completed;
   return details;
 }

@@ -5,7 +5,7 @@ const REOPEN_HISTORY_KEY = 'supplier_reopen_history';
 const asObject = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
 // Strict allowlist: a freshly built object with only fields /newtimes displays. Never raw nested order/GHL data.
 const str = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : undefined);
-const TOP_TEXT = ['order_type', 'full_name', 'name', 'phone', 'notes', TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY,
+const TOP_TEXT = ['order_type', 'full_name', 'name', 'phone', 'notes', 'supplier_completed_at', 'supplier_completion_undone_at', TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY,
   'Choose Color', 'Hair Color', 'Lace or Skin', 'Hair Length', 'Choose Density', 'Choose Density if Needed (75%-110%) - 100% is regular',
   'Curl Pattern', 'Curl Pattern — only if needed', 'Hair Salon Service Requested'];
 const ADDRESS_KEYS = ['name', 'address_1', 'address_2', 'address1', 'address2', 'city', 'state', 'zip', 'postal_code', 'country', 'method'];

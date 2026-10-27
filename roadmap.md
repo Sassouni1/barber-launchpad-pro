@@ -1,5 +1,10 @@
 # Roadmap
 
+## Explicit supplier completion correction
+- [x] Keep tracking saves in processing/current; explicit Completed and undo with shared optimistic actions and completion-based eight-day archive; undo/recompletion suppresses repeat in-app shipment notice.
+- [x] Simplify package UI, deploy newtimes-orders through managed path; disposable first/second/late-third tracking, stale completion rejection, completion/undo, 40-day working-clock and eight-day completion-clock checks pass; remove disposable fixture.
+- [x] 26 regressions, function dependency check and automatic preview builds pass; logged-out desktop/393px phone inspected without overflow or runtime errors. Frontend unpublished; authenticated admin hook shares tested reducer but admin browser flow not exercised.
+
 ## Additional supplier packages
 - [x] Add scoped extra-package storage/validation and matching public/authenticated actions; preserve primary tracking, legacy archive timing, private details and reopen history.
 - [x] Deploy only newtimes-orders through project-managed deployment; 20 focused/regression tests and Deno dependency check pass. Deployed disposable-order add-second/add-third, duplicate/stale rejection, confirmed edit/remove, Copy All/search and reopen pass; disposable record removed.
