@@ -207,6 +207,6 @@ export async function fulfillPaidSession(
     orderIds,
     crm,
     outcomes: all,
-    anyFailed: all.some((o) => o.result === "failed" || o.result === "claim_failed"),
+    anyFailed: all.some((o) => ["failed", "claim_failed", "uncertain", "in_progress"].includes(o.result)),
   };
 }
