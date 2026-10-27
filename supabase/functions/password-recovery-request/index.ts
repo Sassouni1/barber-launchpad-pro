@@ -319,7 +319,7 @@ Deno.serve(async (req) => {
         const access = await getGhlAccess(supabase);
         if ("error" in access) {
           smsStatus = "skipped";
-          smsReason = access.error;
+          smsReason = access.error ?? "ghl_access_failed";
         } else {
           const contactId = await resolveContactId(access.accessToken!, access.locationId!, {
             email,
