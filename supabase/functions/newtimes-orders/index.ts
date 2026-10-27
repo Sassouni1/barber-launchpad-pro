@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
       details[TRACKING_CARRIER_KEY] = carrier;
       const requestedMode = body.mode;
       if (requestedMode !== undefined && requestedMode !== 'one' && requestedMode !== 'two') return fail('Choose one or two shipping locations.');
-      const mode = shippingLocations(details) ?? (requestedMode as ShippingLocations | undefined);
+      const mode = (requestedMode as ShippingLocations | undefined) ?? shippingLocations(details);
       if (!order.tracking_number && !mode) return fail('Choose one or two shipping locations.');
       const trackingUrl = carrier === 'FedEx' ? `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(number)}`
         : carrier === 'DHL' ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}` : null;

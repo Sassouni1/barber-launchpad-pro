@@ -91,6 +91,8 @@ export function reopenTrackingDetails(raw: unknown, primary: string, url: string
     additional_tracking: extraPackages(raw), reopened_at: now, note }];
   delete details.supplier_tracking_added_at;
   delete details.supplier_tracking_carrier;
+  // A reopened order starts a new shipment; the prior package count is no longer active.
+  delete details.supplier_shipping_locations;
   delete details[ADDITIONAL_TRACKING_KEY];
   delete details[COMPLETED_AT_KEY];
   delete details.supplier_completion_undone_at;

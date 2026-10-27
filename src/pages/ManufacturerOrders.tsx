@@ -20,7 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AdditionalTracking } from '@/components/orders/AdditionalTracking';
 import { useSupplierCompletion, useAdditionalTracking, useShippingLocations } from '@/hooks/useOrders';
-import { changeExtraPackage, extraPackages, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
+import { changeExtraPackage, extraPackages, reopenTrackingDetails, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
 import { shippingLocationUpdate, shippingLocations, shipmentProgress, type ShippingLocations } from '../../supabase/functions/_shared/supplierShippingLocations';
 
 import { supplierOrderSection, isSupplierCompleted } from '../../supabase/functions/_shared/supplierOrderLifecycle';
@@ -244,7 +244,7 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
                       setEditingId(order.id);
                       setTrackingNumber(order.tracking_number || '');
                       setTrackingCarrier(savedCarrier);
-                      setShippingMode(savedMode ?? 'one');
+                      setShippingMode(order.tracking_number ? savedMode ?? 'one' : 'one');
                       setReopenNote('');
                     } else setEditingId(null);
                   }}>
@@ -484,17 +484,7 @@ function KitOrderPreview({ now, completedTarget }: { now: number; completedTarge
     onReopen: (orderId: string) => {
       updatePreview(orderId, order => {
         if (!order.tracking_number) return order;
-        const details = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
-          ? { ...order.order_details } : {};
-        const previousHistory = Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
-        details[REOPEN_HISTORY_KEY] = [...previousHistory, {
-          tracking_number: order.tracking_number,
-          carrier: details[TRACKING_CARRIER_KEY] || null,
-          reopened_at: new Date().toISOString(),
-          note: reopenNote.trim(),
-        }];
-        delete details[TRACKING_ADDED_AT_KEY];
-        delete details[TRACKING_CARRIER_KEY];
+        const details = reopenTrackingDetails(order.order_details, order.tracking_number, order.tracking_url, new Date().toISOString(), reopenNote.trim());
         return { ...order, status: 'processing', tracking_number: null, tracking_url: null, tracking_seen: false, order_details: details };
       });
       setEditingId(null);

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { changeExtraPackage, extraPackages } from '../supabase/functions/_shared/supplierTracking.ts';
+import { changeExtraPackage, extraPackages, reopenTrackingDetails } from '../supabase/functions/_shared/supplierTracking.ts';
 import { shippingLocationUpdate, shippingLocations } from '../supabase/functions/_shared/supplierShippingLocations.ts';
 import { publicOrderDetails } from '../supabase/functions/newtimes-orders/projection.ts';
 import { supplierOrderSection } from '../supabase/functions/_shared/supplierOrderLifecycle.ts';
@@ -65,5 +65,16 @@ describe('warehouse tracking flow', () => {
     assert.equal(both.order_details.supplier_completed_at, undefined);
     assert.equal(publicOrderDetails({ ...both.order_details, secret: 'private' }).supplier_shipping_locations, 'two');
     assert.equal(publicOrderDetails({ ...both.order_details, secret: 'private' }).secret, undefined);
+  });
+
+  it('resets two-location shipping when tracking is reopened, then accepts one-location tracking', () => {
+    const waiting = shippingLocationUpdate({}, 'FIRST123', 'DHL', 'two', first);
+    const reopened = reopenTrackingDetails(waiting.order_details, 'FIRST123', 'https://www.dhl.com/', second, 'Correction');
+    assert.equal(shippingLocations(reopened), null);
+    assert.equal(extraPackages(reopened).length, 0);
+    const next = shippingLocationUpdate(reopened, 'FIXED123', 'DHL', 'one', second);
+    assert.equal(next.status, 'shipped');
+    assert.equal(shippingLocations(next.order_details), 'one');
+    assert.equal((next.order_details.supplier_reopen_history as unknown[]).length, 1);
   });
 });

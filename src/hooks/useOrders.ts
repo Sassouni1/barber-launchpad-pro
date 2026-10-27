@@ -82,7 +82,7 @@ export function useUpdateTracking(publicSupplier = false) {
         ? details[TRACKING_ADDED_AT_KEY] || order.updated_at
         : new Date().toISOString();
       details[TRACKING_CARRIER_KEY] = carrier;
-      const chosenMode = shippingLocations(details) ?? mode;
+      const chosenMode = mode ?? shippingLocations(details);
       if (!order.tracking_number && !chosenMode) throw new Error('Choose one or two shipping locations.');
       const trackingUrl = carrier === 'FedEx'
         ? `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(number)}`
