@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAllOrders, useUpdateTracking, useReopenOrder, useMarkOrderPlaced, useUndoOrderPlaced, useDeleteOrder, useToggleSupplierPaid, TRACKING_ADDED_AT_KEY, TRACKING_CARRIER_KEY, REOPEN_HISTORY_KEY, type TrackingCarrier } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,7 +39,7 @@ function savedTrackingCarrier(order: Order): TrackingCarrier | null {
 function awaitsSecondTracking(order: Order): boolean {
   if (!order.tracking_number || shippingLocations(order.order_details) !== 'two') return false;
   const progress = shipmentProgress(order.order_details, order.tracking_number, savedTrackingCarrier(order));
-  return !(progress.china && progress.us);
+  return !progress.hasSecondTracking;
 }
 
 const statusColors: Record<string, string> = {
@@ -213,7 +214,7 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
                   {order.tracking_url && savedCarrier && <a href={order.tracking_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Track package</a>}
                 </p>
               )}
-              {waitingForSecond && <p className="text-sm font-medium text-blue-200">Waiting for {progress.china ? 'FedEx · US warehouse' : 'DHL · China warehouse'} tracking</p>}
+              {waitingForSecond && <p className="text-sm font-medium text-blue-200">Waiting for second package tracking</p>}
               {lastReopen && (
                 <p className="text-xs text-muted-foreground">
                   Previously reopened from tracking {lastReopen.tracking_number}{lastReopen.note ? ` — ${lastReopen.note}` : ''}
@@ -256,14 +257,14 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
                     <PopoverContent align="end" sideOffset={8} className="w-[min(20rem,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto border-border bg-card p-3 shadow-xl">
                       <div className="flex flex-col gap-2">
                   {!order.tracking_number && <>
-                    <Button type="button" size="sm" variant="outline" aria-pressed={shippingMode === 'two'} className={`w-fit max-w-full whitespace-normal text-xs font-semibold ${shippingMode === 'two' ? 'border-amber-400 bg-amber-400/25 text-amber-300 hover:bg-amber-400/35 hover:text-amber-200' : 'border-primary/60 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`} onClick={() => { const next = shippingMode === 'two' ? 'one' : 'two'; setShippingMode(next); if (next === 'two' && trackingCarrier === 'Other') setTrackingCarrier(null); }}>
-                      {shippingMode === 'two' && <Check className="mr-1.5 h-4 w-4" />}Shipping from two locations?
+                    <Button type="button" size="sm" variant="outline" aria-pressed={shippingMode === 'two'} className={`w-fit max-w-full whitespace-normal text-xs font-semibold ${shippingMode === 'two' ? 'border-amber-400 bg-amber-400/25 text-amber-300 hover:bg-amber-400/35 hover:text-amber-200' : 'border-primary/60 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`} onClick={() => setShippingMode(shippingMode === 'two' ? 'one' : 'two')}>
+                      {shippingMode === 'two' && <Check className="mr-1.5 h-4 w-4" />}{shippingMode === 'two' ? 'Shipping from two locations' : 'Shipping from two locations?'}
                     </Button>
-                    {shippingMode === 'two' && <p className="text-xs text-muted-foreground">DHL · China and FedEx · US. Wait for both tracking numbers.</p>}
+                    {shippingMode === 'two' && <p className="text-xs text-muted-foreground">Save tracking for both packages before this order is complete.</p>}
                   </>}
                   <span className="text-xs font-medium text-muted-foreground">Carrier</span>
                   <div role="group" aria-label="Shipping carrier" className="grid grid-cols-3 gap-1.5">
-                    {TRACKING_CARRIERS.filter(carrier => order.tracking_number || shippingMode === 'one' || carrier !== 'Other').map(carrier => (
+                    {TRACKING_CARRIERS.map(carrier => (
                       <Button key={carrier} size="sm" type="button" variant="outline" className={`px-1 text-xs font-semibold ${trackingCarrier === carrier ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground' : 'border-primary/60 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`} aria-pressed={trackingCarrier === carrier} onClick={() => setTrackingCarrier(carrier)}>
                         {carrier}
                       </Button>
@@ -417,7 +418,7 @@ function kitPreviewOrder(now: number, status: 'pending' | 'processing'): Order {
   };
 }
 
-function KitOrderPreview({ now }: { now: number }) {
+function KitOrderPreview({ now, completedTarget }: { now: number; completedTarget: HTMLDivElement | null }) {
   const [previewOrders, setPreviewOrders] = useState<Order[]>(() => [
     kitPreviewOrder(Date.now(), 'processing'),
     kitPreviewOrder(Date.now(), 'pending'),
@@ -521,6 +522,7 @@ function KitOrderPreview({ now }: { now: number }) {
   };
 
   return (
+    <>
     <section aria-label="Kit order preview" className="space-y-4 rounded-xl border border-dashed border-border/70 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -539,13 +541,15 @@ function KitOrderPreview({ now }: { now: number }) {
           {previewOrders.filter(awaitsSecondTracking).map(order => <OrderCard key={order.id} order={order} {...previewProps} />)}
         </div>
       )}
-      {previewOrders.some(isSupplierCompleted) && (
-        <div className="space-y-3 border-t border-green-500/30 pt-4">
-          <h3 className="font-display text-lg font-semibold">Completed / Shipped</h3>
-          {previewOrders.filter(isSupplierCompleted).map(order => <OrderCard key={order.id} order={order} {...previewProps} />)}
-        </div>
-      )}
     </section>
+    {completedTarget && previewOrders.some(isSupplierCompleted) && createPortal(
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">Kit sample preview · no real order was created</p>
+        {previewOrders.filter(isSupplierCompleted).map(order => <OrderCard key={order.id} order={order} {...previewProps} />)}
+      </div>,
+      completedTarget,
+    )}
+    </>
   );
 }
 
@@ -580,6 +584,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const highlightedOrderId = highlightedOrderFromQuery(location.search);
   const lastScrolledOrderRef = useRef('');
   const [now, setNow] = useState(() => Date.now());
+  const [completedPreviewTarget, setCompletedPreviewTarget] = useState<HTMLDivElement | null>(null);
   const showKitPreview = new URLSearchParams(location.search).get('preview_kit') === '1';
   const previewKitLabelOnSierra = new URLSearchParams(location.search).get('preview_kit') === 'sierra';
 
@@ -695,7 +700,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
     onShippingMode: async (order: Order, mode: ShippingLocations) => {
       try {
         await shippingLocationsMutation.mutateAsync({ orderId: order.id, expectedUpdatedAt: order.updated_at, mode });
-        toast.success(mode === 'two' ? 'Waiting for DHL and FedEx tracking' : 'One-location shipping saved');
+        toast.success(mode === 'two' ? 'Waiting for second package tracking' : 'One-location shipping saved');
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Could not change shipping locations'); }
     },
     isSavingMode: shippingLocationsMutation.isPending,
@@ -756,11 +761,11 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
         ) : (
           <div className="space-y-10">
             {showKitPreview && (
-              <KitOrderPreview now={now} />
+              <KitOrderPreview now={now} completedTarget={completedPreviewTarget} />
             )}
             {([
               { title: 'Current Orders', description: 'Newest first. Marking an order as ordered changes its status to Needs Tracking without moving it.', list: currentOrders, empty: 'No current orders need action.' },
-              { title: 'Awaiting Second Tracking', description: 'The first package has tracking. These orders stay on hold until DHL and FedEx tracking are both saved.', list: holdingOrders, empty: 'No orders are waiting for a second tracking number.' },
+              { title: 'Awaiting Second Tracking', description: 'The first package has tracking. These orders stay on hold until the second package has tracking.', list: holdingOrders, empty: 'No orders are waiting for a second tracking number.' },
               { title: 'Completed / Shipped', description: 'Completed orders move to Past Orders eight days after completion; delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
               { title: 'Past Orders', description: 'Older orders and orders completed at least eight days ago.', list: pastOrders, empty: 'No past orders.' },
             ] as const).filter(section => section.title !== 'Awaiting Second Tracking' || section.list.length > 0).map(section => (
@@ -770,6 +775,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
                   <span className="text-sm text-muted-foreground">{section.list.length}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{section.description}</p>
+                {showKitPreview && section.title === 'Completed / Shipped' && <div ref={setCompletedPreviewTarget} />}
                 {section.list.length ? (
                   <div className="space-y-3">
                     {section.list.map((order, i) => (

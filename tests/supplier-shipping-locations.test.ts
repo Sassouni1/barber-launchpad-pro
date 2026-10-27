@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { changeExtraPackage } from '../supabase/functions/_shared/supplierTracking.ts';
+import { changeExtraPackage, extraPackages } from '../supabase/functions/_shared/supplierTracking.ts';
 import { shippingLocationUpdate, shippingLocations } from '../supabase/functions/_shared/supplierShippingLocations.ts';
 import { publicOrderDetails } from '../supabase/functions/newtimes-orders/projection.ts';
 import { supplierOrderSection } from '../supabase/functions/_shared/supplierOrderLifecycle.ts';
@@ -19,7 +19,7 @@ describe('warehouse tracking flow', () => {
     assert.equal(supplierOrderSection(order(patch), Date.parse(first)), 'completed');
   });
 
-  it('waits for both China DHL and US FedEx tracking even when the second arrives days later', () => {
+  it('waits for a second package even when its tracking arrives days later', () => {
     const firstPatch = shippingLocationUpdate({}, 'FIRST123', 'DHL', 'two', first);
     assert.equal(firstPatch.status, 'processing');
     assert.equal(supplierOrderSection(order(firstPatch), Date.parse(second)), 'current');
@@ -34,6 +34,28 @@ describe('warehouse tracking flow', () => {
       action: 'remove_additional_tracking', originalNumber: 'SECOND123',
     }, second);
     assert.equal(shippingLocationUpdate(removed, 'FIRST123', 'DHL', 'two', second).status, 'processing');
+  });
+
+  it('accepts Other as the second carrier and completes after its tracking is saved', () => {
+    const firstPatch = shippingLocationUpdate({}, 'FIRST123', 'DHL', 'two', first);
+    assert.equal(firstPatch.status, 'processing');
+    const details = changeExtraPackage(firstPatch.order_details, 'FIRST123', {
+      action: 'add_additional_tracking', trackingNumber: 'OTHER456', carrier: 'Other', trackingUrl: 'https://carrier.example/track/OTHER456',
+    }, second);
+    assert.equal(extraPackages(details)[0].tracking_url, 'https://carrier.example/track/OTHER456');
+    assert.equal((publicOrderDetails(details).supplier_additional_tracking as Array<{ tracking_url: string }>)[0].tracking_url, 'https://carrier.example/track/OTHER456');
+    const secondPatch = shippingLocationUpdate(details, 'FIRST123', 'DHL', 'two', second);
+    assert.equal(secondPatch.status, 'shipped');
+    assert.equal(supplierOrderSection(order(secondPatch), Date.parse(second)), 'completed');
+  });
+
+  it('requires an HTTPS tracking link for an Other package', () => {
+    assert.throws(() => changeExtraPackage({}, 'FIRST123', {
+      action: 'add_additional_tracking', trackingNumber: 'OTHER456', carrier: 'Other',
+    }, second), /HTTPS tracking link/);
+    assert.throws(() => changeExtraPackage({}, 'FIRST123', {
+      action: 'add_additional_tracking', trackingNumber: 'OTHER456', carrier: 'Other', trackingUrl: 'javascript:alert(1)',
+    }, second), /HTTPS tracking link/);
   });
 
   it('can switch to two locations after first tracking and projects only the choice', () => {

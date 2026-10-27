@@ -42,7 +42,13 @@ describe('additional supplier tracking', () => {
     expect(extraPackages(d)).toHaveLength(10);
     expect(() => add(d, 'ELEVENTH')).toThrow('Maximum 10');
   });
-  it('Other has no invented tracking link', () => expect(extraPackages(add({}, 'SECOND', 'Other'))[0].tracking_url).toBeNull());
+  it('requires a safe real tracking link for Other', () => {
+    expect(() => add({}, 'SECOND', 'Other')).toThrow('HTTPS tracking link');
+    expect(() => changeExtraPackage({}, 'PRIMARY123', { action: 'add_additional_tracking', trackingNumber: 'SECOND', carrier: 'Other', trackingUrl: 'javascript:alert(1)' }, now)).toThrow('HTTPS tracking link');
+    const details = changeExtraPackage({}, 'PRIMARY123', { action: 'add_additional_tracking', trackingNumber: 'SECOND', carrier: 'Other', trackingUrl: 'https://carrier.example/track/SECOND' }, now);
+    expect(extraPackages(details)[0].tracking_url).toBe('https://carrier.example/track/SECOND');
+    expect((publicOrderDetails(details)[ADDITIONAL_TRACKING_KEY] as Array<{ tracking_url: string }>)[0].tracking_url).toBe('https://carrier.example/track/SECOND');
+  });
   it('archives all primary/extra tracking and clears active labels on reopen', () => {
     const d = add(add({ supplier_tracking_carrier: 'DHL', supplier_tracking_added_at: now, privateGHL: 'keep' }, 'SECOND123'), 'THIRD123');
     const reopened = reopenTrackingDetails(d, 'PRIMARY123', 'https://www.dhl.com/', now, 'Issue');

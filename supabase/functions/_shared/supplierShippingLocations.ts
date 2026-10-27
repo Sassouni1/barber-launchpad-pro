@@ -12,8 +12,9 @@ export function shippingLocations(raw: unknown): ShippingLocations | null {
 export function shipmentProgress(raw: unknown, primary: string | null, primaryCarrier: TrackingCarrier | null) {
   const carriers = new Set<TrackingCarrier>();
   if (primary && primaryCarrier) carriers.add(primaryCarrier);
-  for (const item of extraPackages(raw)) carriers.add(item.carrier);
-  return { china: carriers.has('DHL'), us: carriers.has('FedEx') };
+  const additionalPackages = extraPackages(raw);
+  for (const item of additionalPackages) carriers.add(item.carrier);
+  return { china: carriers.has('DHL'), us: carriers.has('FedEx'), hasSecondTracking: additionalPackages.length > 0 };
 }
 
 export function shippingLocationUpdate(
@@ -21,8 +22,8 @@ export function shippingLocationUpdate(
   mode: ShippingLocations, now: string,
 ) {
   const details: Record<string, unknown> = { ...objectDetails(raw), [SHIPPING_LOCATIONS_KEY]: mode };
-  const { china, us } = shipmentProgress(details, primary, primaryCarrier);
-  const complete = !!primary && (mode === 'one' || (china && us));
+  const { hasSecondTracking } = shipmentProgress(details, primary, primaryCarrier);
+  const complete = !!primary && (mode === 'one' || hasSecondTracking);
   if (complete) {
     if (!details[COMPLETED_AT_KEY]) details[COMPLETED_AT_KEY] = now;
     delete details.supplier_completion_undone_at;

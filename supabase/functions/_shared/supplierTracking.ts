@@ -25,6 +25,13 @@ export function trackingUrl(number: string, carrier: TrackingCarrier): string | 
   return carrier === 'FedEx' ? `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(number)}`
     : carrier === 'DHL' ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}` : null;
 }
+function customTrackingUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length > 2048) return null;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' && !url.username && !url.password ? url.href : null;
+  } catch { return null; }
+}
 export function extraPackages(raw: unknown): ExtraPackage[] {
   const value = objectDetails(raw)[ADDITIONAL_TRACKING_KEY];
   if (!Array.isArray(value)) return [];
@@ -34,7 +41,7 @@ export function extraPackages(raw: unknown): ExtraPackage[] {
       const number = trackingNumber(e.tracking_number);
       const carrier = trackingCarrier(e.carrier);
       return [{ tracking_number: number, carrier, supplier_name: typeof e.supplier_name === 'string' ? e.supplier_name.slice(0, 80) : '',
-        tracking_url: trackingUrl(number, carrier), added_at: typeof e.added_at === 'string' ? e.added_at : '', updated_at: typeof e.updated_at === 'string' ? e.updated_at : '' }];
+        tracking_url: carrier === 'Other' ? customTrackingUrl(e.tracking_url) : trackingUrl(number, carrier), added_at: typeof e.added_at === 'string' ? e.added_at : '', updated_at: typeof e.updated_at === 'string' ? e.updated_at : '' }];
     } catch { return []; }
   }).slice(0, MAX_ADDITIONAL_PACKAGES);
 }
@@ -43,6 +50,7 @@ export type ExtraChange = {
   originalNumber?: unknown;
   trackingNumber?: unknown;
   carrier?: unknown;
+  trackingUrl?: unknown;
   supplierName?: unknown;
 };
 export function changeExtraPackage(raw: unknown, primary: string | null, change: ExtraChange, now: string, previousUpdatedAt?: string): Record<string, unknown> {
@@ -62,11 +70,13 @@ export function changeExtraPackage(raw: unknown, primary: string | null, change:
   else {
     const number = trackingNumber(change.trackingNumber);
     const carrier = trackingCarrier(change.carrier);
+    const url = carrier === 'Other' ? customTrackingUrl(change.trackingUrl) : trackingUrl(number, carrier);
+    if (carrier === 'Other' && !url) throw new Error('Enter a valid HTTPS tracking link for Other.');
     const supplier = change.supplierName === undefined ? '' : change.supplierName;
     if (typeof supplier !== 'string' || supplier.trim().length > 80 || /[\u0000-\u001f\u007f]/.test(supplier)) throw new Error('Supplier name must be at most 80 characters with no control characters.');
     if (numberKey(primary) === numberKey(number) || entries.some((e, i) => i !== index && numberKey(e.tracking_number) === numberKey(number))) throw new Error('That tracking number already exists on this order.');
     if (change.action === 'add_additional_tracking' && entries.length >= MAX_ADDITIONAL_PACKAGES) throw new Error('Maximum 10 additional packages per order.');
-    const entry = { tracking_number: number, carrier, supplier_name: supplier.trim(), tracking_url: trackingUrl(number, carrier), added_at: index < 0 ? now : entries[index].added_at, updated_at: now };
+    const entry = { tracking_number: number, carrier, supplier_name: supplier.trim(), tracking_url: url, added_at: index < 0 ? now : entries[index].added_at, updated_at: now };
     if (index < 0) entries.push(entry); else entries[index] = entry;
   }
   return { ...details, [ADDITIONAL_TRACKING_KEY]: entries };
