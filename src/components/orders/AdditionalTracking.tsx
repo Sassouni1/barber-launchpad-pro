@@ -32,8 +32,8 @@ export function AdditionalTracking({ details, primaryCarrier, onChange, onModeCh
   };
   return <div className="flex min-w-0 flex-wrap items-center gap-3 py-2" aria-label="Additional package tracking">
     {onModeChange && mode && <Button type="button" variant="outline" size="sm" aria-pressed={mode === 'two'} disabled={busy}
-      className={`w-fit max-w-full whitespace-normal border-amber-300 bg-amber-400 text-xs font-semibold text-black hover:bg-amber-300 hover:text-black ${mode === 'two' ? 'ring-2 ring-amber-300/60' : ''}`}
-      onClick={() => onModeChange(mode === 'two' ? 'one' : 'two')}>{mode === 'two' && <Check className="mr-1.5 h-4 w-4" />}Shipping from two locations</Button>}
+      className={`w-fit max-w-full whitespace-normal text-xs font-semibold ${mode === 'two' ? 'border-amber-400 bg-amber-400/25 text-amber-300 hover:bg-amber-400/35 hover:text-amber-200' : 'border-primary/60 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`}
+      onClick={() => onModeChange(mode === 'two' ? 'one' : 'two')}>{mode === 'two' && <Check className="mr-1.5 h-4 w-4" />}Shipping from two locations?</Button>}
     {packages.map((p, i) => <div key={p.tracking_number} className="w-full space-y-1 border-l border-border pl-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">Package {i + 2}</span><span className="font-semibold">{p.carrier}</span>
