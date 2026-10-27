@@ -16,6 +16,9 @@ import { isNewOrderOverdue } from '@/lib/manufacturerOrderUrgency';
 import { KIT_MANIFEST } from '@/lib/supplierKitOrder';
 import { supplierPriceFor, supplierPaymentState } from '@/lib/supplierPrice';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AdditionalTracking } from '@/components/orders/AdditionalTracking';
+import { useAdditionalTracking } from '@/hooks/useOrders';
+import { extraPackages, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
 
 type Order = Tables<'orders'>;
 const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
@@ -89,6 +92,8 @@ interface OrderCardProps {
   onDelete?: (orderId: string) => void;
   onToggleSupplierPaid?: (orderId: string, paid: boolean) => void;
   isTogglingPaid?: boolean;
+  onExtraTracking?: (order: Order, change: ExtraChange) => Promise<void>;
+  isSavingExtra?: boolean;
 }
 
 function CopyBtn({ text, label }: { text: string; label?: string }) {
@@ -107,7 +112,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid }: OrderCardProps) {
+function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, isSavingExtra }: OrderCardProps) {
   const supplierPaidAt = (order as { supplier_paid_at?: string | null }).supplier_paid_at ?? null;
   const supplierPrice = supplierPriceFor(order.order_details);
   const paymentState = supplierPaymentState(supplierPaidAt, order.tracking_number);
@@ -144,6 +149,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
     if (view.notes) lines.push(`Order notes: ${view.notes}`);
     if (view.instruction) lines.push(view.instruction);
     if (order.tracking_number) lines.push(`Tracking: ${savedCarrier ? `${savedCarrier} ` : ''}${order.tracking_number}`);
+    extraPackages(details).forEach((p, i) => lines.push(`Package ${i + 2}: ${p.carrier} ${p.tracking_number}${p.supplier_name ? ` · ${p.supplier_name}` : ''}${p.tracking_url ? ` · ${p.tracking_url}` : ''}`));
     return lines.join('\n');
   };
 
@@ -208,6 +214,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                   Previously reopened from tracking {lastReopen.tracking_number}{lastReopen.note ? ` — ${lastReopen.note}` : ''}
                 </p>
               )}
+              {order.tracking_number && onExtraTracking && <AdditionalTracking details={details} pending={isSavingExtra} onChange={change => onExtraTracking(order, change)} />}
             </div>
 
             {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'w-full items-stretch rounded-lg border border-primary/20 bg-primary/5 p-2 sm:w-[320px] sm:p-2.5' : 'items-start sm:flex-row sm:items-center'}`}>
@@ -497,6 +504,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const publicSupplier = !adminView;
   const { data: orders, isLoading } = useAllOrders(publicSupplier);
   const updateTracking = useUpdateTracking(publicSupplier);
+  const additionalTracking = useAdditionalTracking(publicSupplier);
   const reopenOrder = useReopenOrder(publicSupplier);
   const markOrderPlaced = useMarkOrderPlaced(publicSupplier);
   const undoOrderPlaced = useUndoOrderPlaced(publicSupplier);
@@ -576,7 +584,8 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
         o.customer_email?.toLowerCase().includes(q) ||
         o.external_order_id?.toLowerCase().includes(q) ||
         o.id.toLowerCase().includes(q) ||
-        o.tracking_number?.toLowerCase().includes(q)
+        o.tracking_number?.toLowerCase().includes(q) ||
+        extraPackages(o.order_details).some(p => p.tracking_number.toLowerCase().includes(q) || p.supplier_name.toLowerCase().includes(q))
       );
     });
   };
@@ -599,6 +608,11 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   };
 
   const cardProps = {
+    onExtraTracking: async (order: Order, change: ExtraChange) => {
+      await additionalTracking.mutateAsync({ ...change, orderId: order.id, expectedUpdatedAt: order.updated_at });
+      toast.success(change.action === 'remove_additional_tracking' ? 'Additional package removed' : 'Additional package saved');
+    },
+    isSavingExtra: additionalTracking.isPending,
     now,
     editingId,
     trackingNumber,

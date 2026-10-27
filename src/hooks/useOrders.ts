@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Tables, Json } from '@/integrations/supabase/types';
 import { receiptEligibleOrders } from '@/lib/receiptEligibility';
+import { changeExtraPackage, ensurePrimaryUnique, reopenTrackingDetails, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
 
 type Order = Tables<'orders'>;
 export const TRACKING_ADDED_AT_KEY = 'supplier_tracking_added_at';
@@ -18,7 +19,7 @@ export function useUserOrders() {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', user?.id ?? '')
         .neq('status', 'pending_payment')
         .order('order_date', { ascending: false });
       if (error) throw error;
@@ -71,6 +72,7 @@ export function useUpdateTracking(publicSupplier = false) {
         .single();
       if (readError) throw readError;
 
+      ensurePrimaryUnique(order.order_details, number);
       const details = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
         ? { ...order.order_details }
         : {};
@@ -111,24 +113,13 @@ export function useReopenOrder(publicSupplier = false) {
       if (publicSupplier) { await supplierAction({ action: 'reopen', orderId, note }); return; }
       const { data: order, error: readError } = await supabase
         .from('orders')
-        .select('status, tracking_number, order_details, updated_at')
+        .select('status, tracking_number, tracking_url, order_details, updated_at')
         .eq('id', orderId)
         .single();
       if (readError) throw readError;
       if (!order.tracking_number) throw new Error('This order no longer has tracking. Refresh and try again.');
 
-      const details: Record<string, Json | undefined> = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
-        ? { ...order.order_details }
-        : {};
-      const previousHistory = Array.isArray(details[REOPEN_HISTORY_KEY]) ? details[REOPEN_HISTORY_KEY] : [];
-      details[REOPEN_HISTORY_KEY] = [...previousHistory, {
-        tracking_number: order.tracking_number,
-        carrier: details[TRACKING_CARRIER_KEY] || null,
-        reopened_at: new Date().toISOString(),
-        note: note.trim(),
-      }];
-      delete details[TRACKING_ADDED_AT_KEY];
-      delete details[TRACKING_CARRIER_KEY];
+      const details = reopenTrackingDetails(order.order_details, order.tracking_number, order.tracking_url, new Date().toISOString(), note.trim()) as Json;
 
       const { data: updated, error } = await supabase
         .from('orders')
@@ -139,6 +130,25 @@ export function useReopenOrder(publicSupplier = false) {
         .select('id');
       if (error) throw error;
       if (!updated?.length) throw new Error('Order changed while reopening. Refresh and try again.');
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+  });
+}
+
+export function useAdditionalTracking(publicSupplier = false) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, expectedUpdatedAt, ...change }: ExtraChange & { orderId: string; expectedUpdatedAt: string }) => {
+      if (publicSupplier) { await supplierAction({ ...change, orderId, expectedUpdatedAt }); return; }
+      const { data: order, error: readError } = await supabase.from('orders')
+        .select('tracking_number, order_details, updated_at').eq('id', orderId).neq('status', 'pending_payment').single();
+      if (readError) throw readError;
+      if (order.updated_at !== expectedUpdatedAt) throw new Error('Order changed. Refresh and try again.');
+      const details = changeExtraPackage(order.order_details, order.tracking_number, change, new Date().toISOString(), order.updated_at);
+      const { data, error } = await supabase.from('orders').update({ order_details: details as Json })
+        .eq('id', orderId).neq('status', 'pending_payment').eq('updated_at', expectedUpdatedAt).eq('tracking_number', order.tracking_number).select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('Order changed while saving packages. Refresh and try again.');
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
   });
@@ -242,7 +252,7 @@ export function useUnseenShippedOrders() {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', user?.id ?? '')
         .eq('status', 'shipped')
         .eq('tracking_seen', false);
       if (error) throw error;
