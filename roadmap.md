@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Additional supplier packages
-- [ ] Add scoped extra-package storage/validation and matching public/authenticated actions; preserve primary tracking and reopen history.
-- [ ] Verify package flows and strict public allowlist without changing real customer tracking; deploy only newtimes-orders.
-- [ ] Inspect desktop/phone preview; leave frontend unpublished and report verified deployment/revision.
+- [x] Add scoped extra-package storage/validation and matching public/authenticated actions; preserve primary tracking, legacy archive timing, private details and reopen history.
+- [x] Deploy only newtimes-orders through project-managed deployment; 20 focused/regression tests and Deno dependency check pass. Deployed disposable-order add-second/add-third, duplicate/stale rejection, confirmed edit/remove, Copy All/search and reopen pass; disposable record removed.
+- [x] Inspect logged-out desktop/393px phone preview, unchanged primary after extras, cleared labels after reopen and no horizontal overflow/runtime errors; frontend unpublished. Managed deployment returns submitted source hash; independent live-source download and authenticated /admin/orders browser exercise unavailable/not performed.
 
 ## GHL kit supplier path
 - [x] Inspect live schema/permissions and synchronized main baseline; real relay probe ready, but no payment-read contract advertised. GitHub connector source lookup fails with 401 Bad credentials.
