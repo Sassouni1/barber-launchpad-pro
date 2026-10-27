@@ -82,7 +82,7 @@ export default function CreateAccount() {
         toast.success('Account created successfully!');
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const updates: Record<string, any> = {
+          const updates: { agreement_signed_at: string; phone?: string } = {
             agreement_signed_at: new Date().toISOString(),
           };
           if (phone.trim()) updates.phone = phone.trim();
