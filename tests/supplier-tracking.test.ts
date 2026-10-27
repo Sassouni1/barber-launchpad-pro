@@ -5,6 +5,10 @@ import { publicOrderDetails } from '../supabase/functions/newtimes-orders/projec
 const now = '2026-10-27T02:00:00.000Z';
 const add = (raw: unknown, number: string, carrier: 'DHL' | 'FedEx' | 'Other' = 'DHL') => changeExtraPackage(raw, 'PRIMARY123', { action: 'add_additional_tracking', trackingNumber: number, carrier, supplierName: 'Supplier Two' }, now);
 describe('additional supplier tracking', () => {
+  it('preserves the legacy primary archive clock before extra-package writes change updated_at', () => {
+    const d = changeExtraPackage({}, 'PRIMARY123', { action: 'add_additional_tracking', trackingNumber: 'SECOND123', carrier: 'DHL' }, now, '2026-10-20T00:00:00Z');
+    expect(d.supplier_tracking_added_at).toBe('2026-10-20T00:00:00Z');
+  });
   it('adds second and third packages without changing primary clock or private data', () => {
     const raw = { supplier_tracking_added_at: '2026-10-21', privateGHL: { secret: 'internal' } };
     const d = add(add(raw, 'SECOND123'), 'THIRD123', 'FedEx');

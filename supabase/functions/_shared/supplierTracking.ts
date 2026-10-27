@@ -44,9 +44,12 @@ export type ExtraChange = {
   carrier?: unknown;
   supplierName?: unknown;
 };
-export function changeExtraPackage(raw: unknown, primary: string | null, change: ExtraChange, now: string): Record<string, unknown> {
+export function changeExtraPackage(raw: unknown, primary: string | null, change: ExtraChange, now: string, previousUpdatedAt?: string): Record<string, unknown> {
   if (!primary) throw new Error('Add primary tracking before additional packages.');
   const details = objectDetails(raw);
+  // Legacy tracked orders without an explicit archive timestamp use updated_at.
+  // Preserve that original fallback before an extra-package write updates the row.
+  if (!details.supplier_tracking_added_at && previousUpdatedAt) details.supplier_tracking_added_at = previousUpdatedAt;
   const entries = extraPackages(raw);
   // Fail closed rather than silently dropping malformed/oversized internal entries.
   const stored = details[ADDITIONAL_TRACKING_KEY];

@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       if (!order) return fail('Order not found.', 404);
       if (order.updated_at !== body.expectedUpdatedAt) return fail('Order changed. Refresh and try again.', 409);
       let details: Record<string, unknown>;
-      try { details = changeExtraPackage(order.order_details, order.tracking_number, { ...body, action } as ExtraChange, new Date().toISOString()); }
+      try { details = changeExtraPackage(order.order_details, order.tracking_number, { ...body, action } as ExtraChange, new Date().toISOString(), order.updated_at); }
       catch (e) { return fail(e instanceof Error ? e.message : 'Invalid package tracking.'); }
       const { data, error } = await db.from('orders').update({ order_details: details })
         .eq('id', orderId).neq('status', 'pending_payment').eq('updated_at', body.expectedUpdatedAt).eq('tracking_number', order.tracking_number).select('id');

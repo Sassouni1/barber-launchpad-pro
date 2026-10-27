@@ -144,7 +144,7 @@ export function useAdditionalTracking(publicSupplier = false) {
         .select('tracking_number, order_details, updated_at').eq('id', orderId).neq('status', 'pending_payment').single();
       if (readError) throw readError;
       if (order.updated_at !== expectedUpdatedAt) throw new Error('Order changed. Refresh and try again.');
-      const details = changeExtraPackage(order.order_details, order.tracking_number, change, new Date().toISOString());
+      const details = changeExtraPackage(order.order_details, order.tracking_number, change, new Date().toISOString(), order.updated_at);
       const { data, error } = await supabase.from('orders').update({ order_details: details as Json })
         .eq('id', orderId).neq('status', 'pending_payment').eq('updated_at', expectedUpdatedAt).eq('tracking_number', order.tracking_number).select('id');
       if (error) throw error;
