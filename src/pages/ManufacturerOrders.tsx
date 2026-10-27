@@ -17,8 +17,10 @@ import { KIT_MANIFEST } from '@/lib/supplierKitOrder';
 import { supplierPriceFor, supplierPaymentState } from '@/lib/supplierPrice';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AdditionalTracking } from '@/components/orders/AdditionalTracking';
-import { useAdditionalTracking } from '@/hooks/useOrders';
+import { useSupplierCompletion, useAdditionalTracking } from '@/hooks/useOrders';
 import { extraPackages, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
+
+import { supplierOrderSection, isSupplierCompleted, trackingSaveStatus } from '../../supabase/functions/_shared/supplierOrderLifecycle';
 
 type Order = Tables<'orders'>;
 const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
@@ -31,26 +33,6 @@ function savedTrackingCarrier(order: Order): TrackingCarrier | null {
   return TRACKING_CARRIERS.find(carrier => carrier === value) ?? null;
 }
 
-// Nikkole Abila's October 20 order is the first current order (6:48 PM PDT).
-const CURRENT_ORDERS_START = new Date('2026-10-21T01:48:00Z').getTime();
-const PAST_ORDER_DELAY_MS = 8 * 24 * 60 * 60 * 1000;
-
-function trackingAddedAt(order: Order): number | null {
-  if (!order.tracking_number) return null;
-  const details = order.order_details;
-  const savedAt = details && typeof details === 'object' && !Array.isArray(details)
-    ? details[TRACKING_ADDED_AT_KEY]
-    : null;
-  const timestamp = Date.parse(typeof savedAt === 'string' ? savedAt : order.updated_at);
-  return Number.isFinite(timestamp) ? timestamp : null;
-}
-
-function isPastOrder(order: Order, now: number): boolean {
-  if (new Date(order.order_date).getTime() < CURRENT_ORDERS_START) return true;
-  const addedAt = trackingAddedAt(order);
-  return addedAt !== null && now - addedAt >= PAST_ORDER_DELAY_MS;
-}
-
 const statusColors: Record<string, string> = {
   new: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
   kit: 'border-border bg-muted/40 text-muted-foreground',
@@ -60,7 +42,8 @@ const statusColors: Record<string, string> = {
 };
 
 function getDisplayStatus(order: Order, overdue: boolean, isKit: boolean): { label: string; color: string } {
-  if (order.tracking_number) return { label: 'Completed / Shipped', color: statusColors.shipped };
+  if (isSupplierCompleted(order)) return { label: 'Completed / Shipped', color: statusColors.shipped };
+  if (order.tracking_number) return { label: 'In Progress · Tracking Added', color: statusColors.tracking };
   if (order.status === 'pending') return overdue
     ? { label: isKit ? 'New Hair System Kit · Overdue' : 'New Order · Overdue', color: statusColors.overdue }
     : { label: isKit ? 'New Hair System Kit' : 'New Order', color: isKit ? statusColors.kit : statusColors.new };
@@ -94,6 +77,8 @@ interface OrderCardProps {
   isTogglingPaid?: boolean;
   onExtraTracking?: (order: Order, change: ExtraChange) => Promise<void>;
   isSavingExtra?: boolean;
+  onCompletion?: (order: Order, completed: boolean) => void;
+  isCompleting?: boolean;
 }
 
 function CopyBtn({ text, label }: { text: string; label?: string }) {
@@ -112,7 +97,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, isSavingExtra }: OrderCardProps) {
+function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, isSavingExtra, onCompletion, isCompleting }: OrderCardProps) {
   const supplierPaidAt = (order as { supplier_paid_at?: string | null }).supplier_paid_at ?? null;
   const supplierPrice = supplierPriceFor(order.order_details);
   const paymentState = supplierPaymentState(supplierPaidAt, order.tracking_number);
@@ -149,7 +134,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
     if (view.notes) lines.push(`Order notes: ${view.notes}`);
     if (view.instruction) lines.push(view.instruction);
     if (order.tracking_number) lines.push(`Tracking: ${savedCarrier ? `${savedCarrier} ` : ''}${order.tracking_number}`);
-    extraPackages(details).forEach((p, i) => lines.push(`Package ${i + 2}: ${p.carrier} ${p.tracking_number}${p.supplier_name ? ` · ${p.supplier_name}` : ''}${p.tracking_url ? ` · ${p.tracking_url}` : ''}`));
+    extraPackages(details).forEach((p, i) => lines.push(`Package ${i + 2}: ${p.carrier} ${p.tracking_number}${p.tracking_url ? ` · ${p.tracking_url}` : ''}`));
     return lines.join('\n');
   };
 
@@ -282,6 +267,10 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                       {order.tracking_number ? 'Manage Order' : 'Add Tracking'}
                     </Button>
                   )}
+                  {order.tracking_number && onCompletion && <Button type="button" size="sm" variant="outline" disabled={isCompleting || isSavingExtra || isSaving || isReopening} onClick={() => onCompletion(order, !isSupplierCompleted(order))}>
+                    {isSupplierCompleted(order) ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
+                    {isSupplierCompleted(order) ? 'Undo Completed' : 'Completed'}
+                  </Button>}
                   {onDelete && (
                     <Button
                       size="sm"
@@ -446,7 +435,7 @@ function KitOrderPreview({ now }: { now: number }) {
           : carrier === 'DHL'
             ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}`
             : null;
-        return { ...order, status: 'shipped', tracking_number: number, tracking_url: trackingUrl, order_details: details };
+        return { ...order, status: trackingSaveStatus(order.status), tracking_number: number, tracking_url: trackingUrl, order_details: details };
       });
       setEditingId(null);
       setTrackingNumber('');
@@ -505,6 +494,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const { data: orders, isLoading } = useAllOrders(publicSupplier);
   const updateTracking = useUpdateTracking(publicSupplier);
   const additionalTracking = useAdditionalTracking(publicSupplier);
+  const completion = useSupplierCompletion(publicSupplier);
   const reopenOrder = useReopenOrder(publicSupplier);
   const markOrderPlaced = useMarkOrderPlaced(publicSupplier);
   const undoOrderPlaced = useUndoOrderPlaced(publicSupplier);
@@ -533,7 +523,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
     try {
       if (!trackingCarrier) throw new Error('Choose DHL, FedEx, or Other.');
       await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim(), carrier: trackingCarrier });
-      toast.success('Tracking added — order completed / shipped');
+      toast.success('Tracking saved');
       setEditingId(null);
       setTrackingNumber('');
       setTrackingCarrier(null);
@@ -585,7 +575,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
         o.external_order_id?.toLowerCase().includes(q) ||
         o.id.toLowerCase().includes(q) ||
         o.tracking_number?.toLowerCase().includes(q) ||
-        extraPackages(o.order_details).some(p => p.tracking_number.toLowerCase().includes(q) || p.supplier_name.toLowerCase().includes(q))
+        extraPackages(o.order_details).some(p => p.tracking_number.toLowerCase().includes(q))
       );
     });
   };
@@ -593,9 +583,9 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const sortedOrders = useMemo(() => [...(orders ?? [])].sort((a, b) =>
     new Date(b.order_date).getTime() - new Date(a.order_date).getTime()
   ), [orders]);
-  const currentOrders = filterOrders(sortedOrders.filter(o => !isPastOrder(o, now) && !o.tracking_number));
-  const completedOrders = filterOrders(sortedOrders.filter(o => !isPastOrder(o, now) && !!o.tracking_number));
-  const pastOrders = filterOrders(sortedOrders.filter(o => isPastOrder(o, now)));
+  const currentOrders = filterOrders(sortedOrders.filter(o => supplierOrderSection(o, now) === 'current'));
+  const completedOrders = filterOrders(sortedOrders.filter(o => supplierOrderSection(o, now) === 'completed'));
+  const pastOrders = filterOrders(sortedOrders.filter(o => supplierOrderSection(o, now) === 'past'));
 
   const handleDelete = async (orderId: string) => {
     if (!canDeleteOrders) return;
@@ -608,6 +598,13 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   };
 
   const cardProps = {
+    onCompletion: async (order: Order, completed: boolean) => {
+      try {
+        await completion.mutateAsync({ orderId: order.id, expectedUpdatedAt: order.updated_at, completed });
+        toast.success(completed ? 'Order completed' : 'Returned to Current Orders; tracking kept');
+      } catch (e) { toast.error(e instanceof Error ? e.message : 'Could not update completion'); }
+    },
+    isCompleting: completion.isPending,
     onExtraTracking: async (order: Order, change: ExtraChange) => {
       await additionalTracking.mutateAsync({ ...change, orderId: order.id, expectedUpdatedAt: order.updated_at });
       toast.success(change.action === 'remove_additional_tracking' ? 'Additional package removed' : 'Additional package saved');
@@ -672,8 +669,8 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
             )}
             {([
               { title: 'Current Orders', description: 'Newest first. Marking an order as ordered changes its status to Needs Tracking without moving it.', list: currentOrders, empty: 'No current orders need action.' },
-              { title: 'Completed / Shipped', description: 'Tracking has been added. Orders move to Past Orders after eight days; delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
-              { title: 'Past Orders', description: 'Older orders and tracked orders eight days after tracking was added.', list: pastOrders, empty: 'No past orders.' },
+              { title: 'Completed / Shipped', description: 'Completed orders move to Past Orders eight days after completion; delivery is not confirmed here.', list: completedOrders, empty: 'No completed / shipped orders.' },
+              { title: 'Past Orders', description: 'Older orders and orders completed at least eight days ago.', list: pastOrders, empty: 'No past orders.' },
             ] as const).map(section => (
               <section key={section.title} aria-label={section.title} className="space-y-4 border-t border-border/70 pt-6">
                 <div className="flex items-baseline gap-3">

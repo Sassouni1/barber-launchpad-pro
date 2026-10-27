@@ -5,6 +5,8 @@ import type { Tables, Json } from '@/integrations/supabase/types';
 import { receiptEligibleOrders } from '@/lib/receiptEligibility';
 import { changeExtraPackage, ensurePrimaryUnique, reopenTrackingDetails, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
 
+import { completionUpdate, preserveCompletionClock, trackingSaveStatus } from '../../supabase/functions/_shared/supplierOrderLifecycle';
+
 type Order = Tables<'orders'>;
 export const TRACKING_ADDED_AT_KEY = 'supplier_tracking_added_at';
 export const TRACKING_CARRIER_KEY = 'supplier_tracking_carrier';
@@ -67,15 +69,13 @@ export function useUpdateTracking(publicSupplier = false) {
       if (!number) throw new Error('Enter a tracking number.');
       const { data: order, error: readError } = await supabase
         .from('orders')
-        .select('tracking_number, order_details, updated_at')
+        .select('status, tracking_number, order_details, updated_at')
         .eq('id', orderId)
         .single();
       if (readError) throw readError;
 
       ensurePrimaryUnique(order.order_details, number);
-      const details = order.order_details && typeof order.order_details === 'object' && !Array.isArray(order.order_details)
-        ? { ...order.order_details }
-        : {};
+      const details = preserveCompletionClock(order) as Record<string, Json | undefined>;
       // Editing a tracking number must not restart the eight-day archive clock.
       details[TRACKING_ADDED_AT_KEY] = order.tracking_number
         ? details[TRACKING_ADDED_AT_KEY] || order.updated_at
@@ -91,7 +91,7 @@ export function useUpdateTracking(publicSupplier = false) {
         .update({
           tracking_number: number,
           tracking_url: trackingUrl,
-          status: 'shipped',
+          status: trackingSaveStatus(order.status),
           order_details: details,
         })
         .eq('id', orderId)
@@ -141,14 +141,33 @@ export function useAdditionalTracking(publicSupplier = false) {
     mutationFn: async ({ orderId, expectedUpdatedAt, ...change }: ExtraChange & { orderId: string; expectedUpdatedAt: string }) => {
       if (publicSupplier) { await supplierAction({ ...change, orderId, expectedUpdatedAt }); return; }
       const { data: order, error: readError } = await supabase.from('orders')
-        .select('tracking_number, order_details, updated_at').eq('id', orderId).neq('status', 'pending_payment').single();
+        .select('status, tracking_number, order_details, updated_at').eq('id', orderId).neq('status', 'pending_payment').single();
       if (readError) throw readError;
       if (order.updated_at !== expectedUpdatedAt) throw new Error('Order changed. Refresh and try again.');
-      const details = changeExtraPackage(order.order_details, order.tracking_number, change, new Date().toISOString(), order.updated_at);
+      const details = changeExtraPackage(preserveCompletionClock(order), order.tracking_number, change, new Date().toISOString(), order.updated_at);
       const { data, error } = await supabase.from('orders').update({ order_details: details as Json })
         .eq('id', orderId).neq('status', 'pending_payment').eq('updated_at', expectedUpdatedAt).eq('tracking_number', order.tracking_number).select('id');
       if (error) throw error;
       if (!data?.length) throw new Error('Order changed while saving packages. Refresh and try again.');
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+  });
+}
+
+export function useSupplierCompletion(publicSupplier = false) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, expectedUpdatedAt, completed }: { orderId: string; expectedUpdatedAt: string; completed: boolean }) => {
+      if (publicSupplier) { await supplierAction({ action: completed ? 'complete_order' : 'undo_completion', orderId, expectedUpdatedAt }); return; }
+      const { data: order, error: readError } = await supabase.from('orders')
+        .select('status, tracking_number, order_details, updated_at, tracking_seen').eq('id', orderId).neq('status', 'pending_payment').single();
+      if (readError) throw readError;
+      if (order.updated_at !== expectedUpdatedAt) throw new Error('Order changed. Refresh and try again.');
+      const patch = completionUpdate(order, completed, new Date().toISOString());
+      const { data, error } = await supabase.from('orders').update({ ...patch, order_details: patch.order_details as Json })
+        .eq('id', orderId).neq('status', 'pending_payment').eq('updated_at', expectedUpdatedAt).eq('status', order.status).eq('tracking_number', order.tracking_number).select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('Order changed while completing. Refresh and try again.');
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
   });
