@@ -59,7 +59,10 @@ Deno.serve(async (req) => {
     if (action === 'list') {
       const { data, error } = await db.from('orders').select(FIELDS).neq('status', 'pending_payment').order('order_date', { ascending: false });
       if (error) throw error;
-      return json({ orders: (data ?? []).map((o) => ({ ...o, order_details: publicOrderDetails(o.order_details) })) });
+      const { data: marks, error: markError } = await db.from('supplier_payment_markers').select('order_id, paid_at');
+      if (markError) throw markError;
+      const paid = new Map((marks ?? []).map((m) => [m.order_id, m.paid_at]));
+      return json({ orders: (data ?? []).map((o) => ({ ...o, order_details: publicOrderDetails(o.order_details), supplier_paid_at: paid.get(o.id) ?? null })) });
     }
 
     const orderId = typeof body.orderId === 'string' && UUID.test(body.orderId) ? body.orderId : null;
