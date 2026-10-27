@@ -13,7 +13,7 @@
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizePhone } from "./ghlMessaging.ts";
-import { relayCall } from "./barberLaunchGhlRelay.ts";
+import { relayCall, relayDefinitelyDidNotSend } from "./barberLaunchGhlRelay.ts";
 
 export const SUPPLIER_FROM = "chris@training.thebarberlaunch.com";
 export const SUPPLIER_FROM_NAME = "Barber Launch";
@@ -271,11 +271,12 @@ export function buildCrmOrderNote(
 
 export type SendResult =
   | { ok: true; messageId: string | null; sender: string }
-  | { ok: false; reason: string; configured: boolean };
+  | { ok: false; reason: string; configured: boolean; safeRetry: boolean };
 
 function emailFailure(res: { reason: string }, from: string): SendResult {
   const senderIssue = /from|sender|domain|verif|unauthor/i.test(res.reason);
-  return { ok: false, configured: true, reason: `${senderIssue ? `ghl_sender_not_verified(${from}):` : "ghl_email_failed:"}${res.reason}`.slice(0, 400) };
+  return { ok: false, configured: true, safeRetry: relayDefinitelyDidNotSend(res.reason),
+    reason: `${senderIssue ? `ghl_sender_not_verified(${from}):` : "ghl_email_failed:"}${res.reason}`.slice(0, 400) };
 }
 
 /** Supplier sheet via relay — recipient and sender are fixed by the relay. */
@@ -283,7 +284,7 @@ export async function sendSupplierEmail(
   _db: SupabaseClient,
   input: { to: string; subject: string; html: string },
 ): Promise<SendResult> {
-  if (input.to !== DEFAULT_SUPPLIER_EMAIL) return { ok: false, configured: true, reason: `supplier_recipient_mismatch:${input.to}` };
+  if (input.to !== DEFAULT_SUPPLIER_EMAIL) return { ok: false, configured: true, safeRetry: true, reason: `supplier_recipient_mismatch:${input.to}` };
   const r = await relayCall("send_email", { role: "supplier", to: input.to, name: "New Times Hair", subject: input.subject, html: input.html });
   if (!r.ok) return emailFailure(r, SUPPLIER_FROM);
   return { ok: true, messageId: r.messageId ?? null, sender: SUPPLIER_FROM };
@@ -334,7 +335,7 @@ async function finish(
   db: SupabaseClient,
   orderId: string,
   channel: Channel,
-  update: { status: "sent" | "failed" | "skipped"; provider_message_id?: string | null; reason?: string | null; recipient_hint?: string | null },
+  update: { status: "sent" | "failed" | "skipped" | "uncertain"; provider_message_id?: string | null; reason?: string | null; recipient_hint?: string | null },
 ) {
   const { error } = await db
     .from("order_notifications")
@@ -356,7 +357,7 @@ async function runChannel(
   orderId: string,
   channel: Channel,
   eventId: string,
-  send: () => Promise<{ status: "sent" | "failed" | "skipped"; messageId?: string | null; reason?: string | null; recipient?: string | null }>,
+  send: () => Promise<{ status: "sent" | "failed" | "skipped" | "uncertain"; messageId?: string | null; reason?: string | null; recipient?: string | null }>,
 ): Promise<ChannelOutcome> {
   const { data: claim, error } = await db.rpc("claim_order_notification", {
     _order_id: orderId,
@@ -364,7 +365,7 @@ async function runChannel(
     _event_id: eventId,
   });
   if (error) return { channel, result: "claim_failed", reason: error.message };
-  if (claim !== "claimed") return { channel, result: String(claim) };
+  if (claim !== "claimed") return { channel, result: claim === "manual_review" ? "uncertain" : String(claim) };
 
   try {
     const outcome = await send();
@@ -377,8 +378,9 @@ async function runChannel(
     return { channel, result: outcome.status, reason: outcome.reason ?? undefined };
   } catch (e) {
     const reason = e instanceof Error ? e.message.slice(0, 300) : "send_error";
-    await finish(db, orderId, channel, { status: "failed", reason });
-    return { channel, result: "failed", reason };
+    const status = channel === "supplier_email" ? "uncertain" : "failed";
+    await finish(db, orderId, channel, { status, reason });
+    return { channel, result: status, reason };
   }
 }
 
@@ -395,7 +397,7 @@ export async function dispatchSupplierOrderNotifications(
 
   // Stop on first failure: later channels stay unclaimed for a clean retry.
   const outcomes: ChannelOutcome[] = [];
-  const failedYet = () => outcomes.some((o) => o.result === "failed" || o.result === "claim_failed");
+  const failedYet = () => outcomes.some((o) => ["failed", "claim_failed", "uncertain", "in_progress"].includes(o.result));
   for (const order of orders) {
     if (failedYet()) break;
     outcomes.push(
@@ -407,7 +409,7 @@ export async function dispatchSupplierOrderNotifications(
         });
         return res.ok
           ? { status: "sent", messageId: res.messageId, recipient: `${supplierEmail} (from: ${res.sender})` }
-          : { status: "failed", reason: res.reason, recipient: supplierEmail };
+          : { status: res.safeRetry ? "failed" : "uncertain", reason: res.reason, recipient: supplierEmail };
       }),
     );
   }
@@ -423,7 +425,7 @@ export async function dispatchPaidOrderNotifications(
   const orders = input.orders;
   if (!orders.length) return [];
   const outcomes = await dispatchSupplierOrderNotifications(db, input);
-  const failedYet = () => outcomes.some((o) => o.result === "failed" || o.result === "claim_failed");
+  const failedYet = () => outcomes.some((o) => ["failed", "claim_failed", "uncertain", "in_progress"].includes(o.result));
 
   // Supplier delivery is independent of CRM; buyer behavior remains gated by it.
   if (input.buyerCommunicationsAllowed === false) return outcomes;
