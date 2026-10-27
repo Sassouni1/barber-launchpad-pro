@@ -1,4 +1,5 @@
 import { ADDITIONAL_TRACKING_KEY, extraPackages } from '../_shared/supplierTracking.ts';
+import { SHIPPING_LOCATIONS_KEY, shippingLocations } from '../_shared/supplierShippingLocations.ts';
 const TRACKING_ADDED_AT_KEY = 'supplier_tracking_added_at';
 const TRACKING_CARRIER_KEY = 'supplier_tracking_carrier';
 const REOPEN_HISTORY_KEY = 'supplier_reopen_history';
@@ -20,6 +21,8 @@ export function publicOrderDetails(raw: unknown): Record<string, unknown> {
   const out: Record<string, unknown> = pickText(d, TOP_TEXT);
   if (d.kit_order === true) out.kit_order = true;
   if (d.supplier_kit === true) out.supplier_kit = true;
+  const locationMode = shippingLocations(d);
+  if (locationMode) out[SHIPPING_LOCATIONS_KEY] = locationMode;
   for (const k of ['order_number', 'total_orders']) if (typeof d[k] === 'number' || typeof d[k] === 'string') out[k] = d[k];
   if (out.phone === undefined) { const p = str(asObject(nested.customer).phone); if (p) out.phone = p; }
   for (const k of ['shipping', 'shipping_address']) if (d[k] && typeof d[k] === 'object' && !Array.isArray(d[k])) out[k] = pickText(asObject(d[k]), ADDRESS_KEYS);

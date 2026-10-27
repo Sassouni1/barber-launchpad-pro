@@ -4,11 +4,16 @@ import { Input } from '@/components/ui/input';
 import { Copy, Pencil, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { extraPackages, MAX_ADDITIONAL_PACKAGES, type ExtraChange, type TrackingCarrier } from '../../../supabase/functions/_shared/supplierTracking';
+import { shippingLocations, shipmentProgress, type ShippingLocations } from '../../../supabase/functions/_shared/supplierShippingLocations';
 
-export function AdditionalTracking({ details, onChange, pending = false }: {
-  details: unknown; onChange: (change: ExtraChange) => Promise<void>; pending?: boolean;
+export function AdditionalTracking({ details, primaryCarrier, onChange, onModeChange, pending = false }: {
+  details: unknown; primaryCarrier: TrackingCarrier | null; onChange: (change: ExtraChange) => Promise<void>;
+  onModeChange?: (mode: ShippingLocations) => Promise<void>; pending?: boolean;
 }) {
   const packages = extraPackages(details);
+  const mode = shippingLocations(details);
+  const progress = shipmentProgress(details, primaryCarrier ? 'primary' : null, primaryCarrier);
+  const missingCarrier: TrackingCarrier = progress.china ? 'FedEx' : 'DHL';
   const [editing, setEditing] = useState<string | null>(null);
   const [number, setNumber] = useState('');
   const [carrier, setCarrier] = useState<TrackingCarrier>('DHL');
@@ -26,6 +31,15 @@ export function AdditionalTracking({ details, onChange, pending = false }: {
     finally { setSaving(false); }
   };
   return <div className="min-w-0 space-y-3 py-2" aria-label="Additional package tracking">
+    {onModeChange && <div className="flex flex-wrap items-center gap-2 text-xs">
+      {mode === 'two' ? <>
+        <span className="rounded-md border border-blue-400/50 bg-blue-500/15 px-2 py-1 font-semibold text-blue-200">Shipping from two locations</span>
+        <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => onModeChange('one')}>Change to one location</Button>
+      </> : <>
+        {mode === 'one' && <span className="text-muted-foreground">One shipping location</span>}
+        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => onModeChange('two')}>Shipping from two locations</Button>
+      </>}
+    </div>}
     {packages.map((p, i) => <div key={p.tracking_number} className="space-y-1 border-l border-border pl-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">Package {i + 2}</span><span className="font-semibold">{p.carrier}</span>
@@ -49,11 +63,11 @@ export function AdditionalTracking({ details, onChange, pending = false }: {
       </div>
     </div>)}
     {editing === null ? <Button type="button" variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={busy || packages.length >= MAX_ADDITIONAL_PACKAGES} onClick={() => {
-      setEditing(''); setNumber(''); setCarrier('DHL');
-    }}><Plus className="mr-1.5 h-4 w-4" />Add additional tracking</Button> : <div className="max-w-md space-y-2 border-l border-border pl-3">
+      setEditing(''); setNumber(''); setCarrier(mode === 'two' ? missingCarrier : 'DHL');
+    }}><Plus className="mr-1.5 h-4 w-4" />{mode === 'two' && !(progress.china && progress.us) ? `Add ${missingCarrier} tracking` : 'Add additional tracking'}</Button> : <div className="max-w-md space-y-2 border-l border-border pl-3">
       <p className="text-sm font-medium">{editing ? 'Correct additional package' : 'Additional package'}</p>
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="Additional package carrier">
-        {(['DHL', 'FedEx', 'Other'] as const).map(c => <Button type="button" key={c} variant="outline" size="sm" aria-pressed={carrier === c} className={carrier === c ? 'border-primary text-primary' : ''} onClick={() => setCarrier(c)}>{c}</Button>)}
+        {(mode === 'two' && !editing && !(progress.china && progress.us) ? [missingCarrier] : ['DHL', 'FedEx', 'Other'] as const).map(c => <Button type="button" key={c} variant="outline" size="sm" aria-pressed={carrier === c} className={carrier === c ? 'border-primary text-primary' : ''} onClick={() => setCarrier(c)}>{c}</Button>)}
       </div>
       <Input aria-label="Additional tracking number" placeholder="Tracking number" maxLength={100} value={number} onChange={e => setNumber(e.target.value)} />
       <div className="flex gap-2"><Button type="button" size="sm" variant="outline" disabled={busy || !number.trim()} onClick={save}>Save package</Button>

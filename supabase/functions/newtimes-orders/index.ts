@@ -6,6 +6,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { changeExtraPackage, ensurePrimaryUnique, reopenTrackingDetails, type ExtraChange } from '../_shared/supplierTracking.ts';
 
 import { completionUpdate, preserveCompletionClock, trackingSaveStatus } from '../_shared/supplierOrderLifecycle.ts';
+import { shippingLocationUpdate, shippingLocations, type ShippingLocations } from '../_shared/supplierShippingLocations.ts';
 import { publicOrderDetails } from './projection.ts';
 
 const FIELDS = 'id, status, order_date, customer_name, customer_email, external_order_id, tracking_number, tracking_url, order_details, updated_at';
@@ -73,6 +74,22 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === 'set_shipping_locations') {
+      if (body.mode !== 'one' && body.mode !== 'two') return fail('Choose one or two shipping locations.');
+      if (typeof body.expectedUpdatedAt !== 'string' || !Number.isFinite(Date.parse(body.expectedUpdatedAt))) return fail('Refresh the order before changing shipping locations.');
+      const order = await readOrder(orderId);
+      if (!order) return fail('Order not found.', 404);
+      if (order.updated_at !== body.expectedUpdatedAt) return fail('Order changed. Refresh and try again.', 409);
+      if (!order.tracking_number) return fail('Add the first tracking number before changing shipping locations.');
+      const details = preserveCompletionClock(order);
+      const carrier = details[TRACKING_CARRIER_KEY] as 'DHL' | 'FedEx' | 'Other' | null;
+      const patch = shippingLocationUpdate(details, order.tracking_number, carrier, body.mode as ShippingLocations, new Date().toISOString());
+      const { data, error } = await db.from('orders').update(patch).eq('id', orderId).eq('updated_at', body.expectedUpdatedAt).eq('tracking_number', order.tracking_number).select('id');
+      if (error) throw error;
+      if (!data?.length) return fail('Order changed while saving. Refresh and try again.', 409);
+      return json({ ok: true });
+    }
+
     if (action === 'add_additional_tracking' || action === 'edit_additional_tracking' || action === 'remove_additional_tracking') {
       if (typeof body.expectedUpdatedAt !== 'string' || !Number.isFinite(Date.parse(body.expectedUpdatedAt))) return fail('Refresh the order before changing packages.');
       const order = await readOrder(orderId);
@@ -81,7 +98,9 @@ Deno.serve(async (req) => {
       let details: Record<string, unknown>;
       try { details = changeExtraPackage(preserveCompletionClock(order), order.tracking_number, { ...body, action } as ExtraChange, new Date().toISOString(), order.updated_at); }
       catch (e) { return fail(e instanceof Error ? e.message : 'Invalid package tracking.'); }
-      const { data, error } = await db.from('orders').update({ order_details: details })
+      const mode = shippingLocations(details);
+      const patch = mode ? shippingLocationUpdate(details, order.tracking_number, details[TRACKING_CARRIER_KEY] as 'DHL' | 'FedEx' | 'Other' | null, mode, new Date().toISOString()) : { order_details: details };
+      const { data, error } = await db.from('orders').update(patch)
         .eq('id', orderId).neq('status', 'pending_payment').eq('updated_at', body.expectedUpdatedAt).eq('tracking_number', order.tracking_number).select('id');
       if (error) throw error;
       if (!data?.length) return fail('Order changed while saving packages. Refresh and try again.', 409);
@@ -99,9 +118,15 @@ Deno.serve(async (req) => {
       const details = preserveCompletionClock(order);
       details[TRACKING_ADDED_AT_KEY] = order.tracking_number ? details[TRACKING_ADDED_AT_KEY] || order.updated_at : new Date().toISOString();
       details[TRACKING_CARRIER_KEY] = carrier;
+      const requestedMode = body.mode;
+      if (requestedMode !== undefined && requestedMode !== 'one' && requestedMode !== 'two') return fail('Choose one or two shipping locations.');
+      const mode = shippingLocations(details) ?? (requestedMode as ShippingLocations | undefined);
+      if (!order.tracking_number && !mode) return fail('Choose one or two shipping locations.');
       const trackingUrl = carrier === 'FedEx' ? `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(number)}`
         : carrier === 'DHL' ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}` : null;
-      const { data, error } = await db.from('orders').update({ tracking_number: number, tracking_url: trackingUrl, status: trackingSaveStatus(order.status), order_details: details })
+      const flow = mode ? shippingLocationUpdate(details, number, carrier as 'DHL' | 'FedEx' | 'Other', mode, new Date().toISOString())
+        : { status: trackingSaveStatus(order.status), order_details: details };
+      const { data, error } = await db.from('orders').update({ tracking_number: number, tracking_url: trackingUrl, ...flow })
         .eq('id', orderId).eq('updated_at', order.updated_at).select('id');
       if (error) throw error;
       if (!data?.length) return fail('Order changed while saving. Refresh and try again.', 409);

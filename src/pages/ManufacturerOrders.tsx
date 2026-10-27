@@ -17,10 +17,11 @@ import { KIT_MANIFEST } from '@/lib/supplierKitOrder';
 import { supplierPriceFor, supplierPaymentState } from '@/lib/supplierPrice';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AdditionalTracking } from '@/components/orders/AdditionalTracking';
-import { useSupplierCompletion, useAdditionalTracking } from '@/hooks/useOrders';
-import { extraPackages, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
+import { useSupplierCompletion, useAdditionalTracking, useShippingLocations } from '@/hooks/useOrders';
+import { changeExtraPackage, extraPackages, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
+import { shippingLocationUpdate, shippingLocations, shipmentProgress, type ShippingLocations } from '../../supabase/functions/_shared/supplierShippingLocations';
 
-import { supplierOrderSection, isSupplierCompleted, trackingSaveStatus } from '../../supabase/functions/_shared/supplierOrderLifecycle';
+import { supplierOrderSection, isSupplierCompleted } from '../../supabase/functions/_shared/supplierOrderLifecycle';
 
 type Order = Tables<'orders'>;
 const TRACKING_CARRIERS: TrackingCarrier[] = ['DHL', 'FedEx', 'Other'];
@@ -43,6 +44,7 @@ const statusColors: Record<string, string> = {
 
 function getDisplayStatus(order: Order, overdue: boolean, isKit: boolean): { label: string; color: string } {
   if (isSupplierCompleted(order)) return { label: 'Completed / Shipped', color: statusColors.shipped };
+  if (shippingLocations(order.order_details) === 'two' && order.tracking_number) return { label: 'Awaiting second tracking', color: statusColors.tracking };
   if (order.tracking_number) return { label: 'In Progress · Tracking Added', color: statusColors.tracking };
   if (order.status === 'pending') return overdue
     ? { label: isKit ? 'New Hair System Kit · Overdue' : 'New Order · Overdue', color: statusColors.overdue }
@@ -58,10 +60,12 @@ interface OrderCardProps {
   editingId: string | null;
   trackingNumber: string;
   trackingCarrier: TrackingCarrier | null;
+  shippingMode: ShippingLocations;
   reopenNote: string;
   setEditingId: (id: string | null) => void;
   setTrackingNumber: (v: string) => void;
   setTrackingCarrier: (v: TrackingCarrier | null) => void;
+  setShippingMode: (v: ShippingLocations) => void;
   setReopenNote: (v: string) => void;
   onSave: (orderId: string) => void;
   onReopen: (orderId: string) => void;
@@ -76,6 +80,8 @@ interface OrderCardProps {
   onToggleSupplierPaid?: (orderId: string, paid: boolean) => void;
   isTogglingPaid?: boolean;
   onExtraTracking?: (order: Order, change: ExtraChange) => Promise<void>;
+  onShippingMode?: (order: Order, mode: ShippingLocations) => Promise<void>;
+  isSavingMode?: boolean;
   isSavingExtra?: boolean;
   onCompletion?: (order: Order, completed: boolean) => void;
   isCompleting?: boolean;
@@ -97,7 +103,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, isSavingExtra, onCompletion, isCompleting }: OrderCardProps) {
+function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, onShippingMode, isSavingExtra, isSavingMode, onCompletion, isCompleting }: OrderCardProps) {
   const supplierPaidAt = (order as { supplier_paid_at?: string | null }).supplier_paid_at ?? null;
   const supplierPrice = supplierPriceFor(order.order_details);
   const paymentState = supplierPaymentState(supplierPaidAt, order.tracking_number);
@@ -110,6 +116,9 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
   const { specs, items: lineItems, shippingMethod, shippingAddress } = view;
   const barber = { name: view.name, phone: view.phone };
   const savedCarrier = savedTrackingCarrier(order);
+  const savedMode = shippingLocations(details);
+  const progress = shipmentProgress(details, order.tracking_number, savedCarrier);
+  const waitingForSecond = savedMode === 'two' && !!order.tracking_number && !(progress.china && progress.us);
   const reopenHistory = details && Array.isArray(details[REOPEN_HISTORY_KEY])
     ? details[REOPEN_HISTORY_KEY] as Array<{ tracking_number?: string; note?: string }>
     : [];
@@ -139,7 +148,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
   };
 
   return (
-    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
+    <Card className={overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking || waitingForSecond ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           {(view.isKit || kitLabelPreview) && (
@@ -194,20 +203,30 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                   {order.tracking_url && savedCarrier && <a href={order.tracking_url} target="_blank" rel="noopener noreferrer" className="text-primary underline">Track package</a>}
                 </p>
               )}
+              {waitingForSecond && <p className="text-sm font-medium text-blue-200">Waiting for {progress.china ? 'FedEx · US warehouse' : 'DHL · China warehouse'} tracking</p>}
               {lastReopen && (
                 <p className="text-xs text-muted-foreground">
                   Previously reopened from tracking {lastReopen.tracking_number}{lastReopen.note ? ` — ${lastReopen.note}` : ''}
                 </p>
               )}
-              {order.tracking_number && onExtraTracking && <AdditionalTracking details={details} pending={isSavingExtra} onChange={change => onExtraTracking(order, change)} />}
+              {order.tracking_number && onExtraTracking && <AdditionalTracking details={details} primaryCarrier={savedCarrier} pending={isSavingExtra || isSavingMode} onChange={change => onExtraTracking(order, change)} onModeChange={onShippingMode ? mode => onShippingMode(order, mode) : undefined} />}
             </div>
 
             {(!isPast || order.tracking_number || isReopened || onDelete) && <div className={`flex flex-col gap-2 ${editingId === order.id ? 'w-full items-stretch rounded-lg border border-primary/20 bg-primary/5 p-2 sm:w-[320px] sm:p-2.5' : 'items-start sm:flex-row sm:items-center'}`}>
               {editingId === order.id ? (
                 <div className="flex w-full flex-col gap-2">
+                  {!order.tracking_number && <div className="space-y-1.5" role="group" aria-label="Shipping locations">
+                    <span className="text-xs font-medium text-muted-foreground">Shipping locations</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['one', 'two'] as const).map(mode => <Button key={mode} type="button" size="sm" variant="outline" aria-pressed={shippingMode === mode} className={`h-auto min-h-9 whitespace-normal text-xs ${shippingMode === mode ? 'border-primary bg-primary/15 text-primary' : ''}`} onClick={() => { setShippingMode(mode); if (mode === 'two' && trackingCarrier === 'Other') setTrackingCarrier(null); }}>
+                        {mode === 'one' ? 'One location' : 'Shipping from two locations'}
+                      </Button>)}
+                    </div>
+                    {shippingMode === 'two' && <p className="text-xs text-muted-foreground">DHL · China warehouse and FedEx · US warehouse. This order stays current until both have tracking.</p>}
+                  </div>}
                   <span className="text-xs font-medium text-muted-foreground">Carrier</span>
                   <div role="group" aria-label="Shipping carrier" className="grid grid-cols-3 gap-1.5">
-                    {TRACKING_CARRIERS.map(carrier => (
+                    {TRACKING_CARRIERS.filter(carrier => order.tracking_number || shippingMode === 'one' || carrier !== 'Other').map(carrier => (
                       <Button key={carrier} size="sm" type="button" variant="outline" className={`px-1 text-xs font-semibold ${trackingCarrier === carrier ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground' : 'border-primary/60 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}`} aria-pressed={trackingCarrier === carrier} onClick={() => setTrackingCarrier(carrier)}>
                         {carrier}
                       </Button>
@@ -260,6 +279,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                         setEditingId(order.id);
                         setTrackingNumber(order.tracking_number || '');
                         setTrackingCarrier(savedCarrier);
+                        setShippingMode(savedMode ?? 'one');
                         setReopenNote('');
                       }}
                     >
@@ -267,7 +287,7 @@ function OrderCard({ order, now, index, kitLabelPreview = false, editingId, trac
                       {order.tracking_number ? 'Manage Order' : 'Add Tracking'}
                     </Button>
                   )}
-                  {order.tracking_number && onCompletion && <Button type="button" size="sm" variant="outline" disabled={isCompleting || isSavingExtra || isSaving || isReopening} className={isSupplierCompleted(order) ? undefined : 'border-primary/80 text-primary hover:border-primary hover:bg-primary/10 hover:text-primary focus-visible:border-primary focus-visible:ring-primary/50'} onClick={() => onCompletion(order, !isSupplierCompleted(order))}>
+                  {order.tracking_number && !savedMode && onCompletion && <Button type="button" size="sm" variant="outline" disabled={isCompleting || isSavingExtra || isSaving || isReopening} className={isSupplierCompleted(order) ? undefined : 'border-primary/80 text-primary hover:border-primary hover:bg-primary/10 hover:text-primary focus-visible:border-primary focus-visible:ring-primary/50'} onClick={() => onCompletion(order, !isSupplierCompleted(order))}>
                     {isSupplierCompleted(order) ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
                     {isSupplierCompleted(order) ? 'Undo Completed' : 'Mark Complete'}
                   </Button>}
@@ -396,6 +416,7 @@ function KitOrderPreview({ now }: { now: number }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingCarrier, setTrackingCarrier] = useState<TrackingCarrier | null>(null);
+  const [shippingMode, setShippingMode] = useState<ShippingLocations>('one');
   const [reopenNote, setReopenNote] = useState('');
   const updatePreview = (orderId: string, change: (order: Order) => Order) =>
     setPreviewOrders(orders => orders.map(order => order.id === orderId ? change(order) : order));
@@ -405,12 +426,13 @@ function KitOrderPreview({ now }: { now: number }) {
     setEditingId(null);
     setTrackingNumber('');
     setTrackingCarrier(null);
+    setShippingMode('one');
     setReopenNote('');
   };
 
   const previewProps = {
-    now, editingId, trackingNumber, trackingCarrier, reopenNote,
-    setEditingId, setTrackingNumber, setTrackingCarrier, setReopenNote,
+    now, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote,
+    setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote,
     isSaving: false, isReopening: false, isPlacingOrder: false, isUndoingOrder: false,
     onOrderPlaced: (orderId: string) => {
       updatePreview(orderId, order => ({ ...order, status: 'processing' }));
@@ -435,7 +457,8 @@ function KitOrderPreview({ now }: { now: number }) {
           : carrier === 'DHL'
             ? `https://www.dhl.com/us-en/home/tracking.html?submit=1&tracking-id=${encodeURIComponent(number)}`
             : null;
-        return { ...order, status: trackingSaveStatus(order.status), tracking_number: number, tracking_url: trackingUrl, order_details: details };
+        const flow = shippingLocationUpdate(details, number, carrier, shippingMode, new Date().toISOString());
+        return { ...order, ...flow, tracking_number: number, tracking_url: trackingUrl, order_details: flow.order_details };
       });
       setEditingId(null);
       setTrackingNumber('');
@@ -463,6 +486,22 @@ function KitOrderPreview({ now }: { now: number }) {
       setTrackingCarrier(null);
       setReopenNote('');
       toast.success('Preview: order reopened');
+    },
+    onShippingMode: async (order: Order, mode: ShippingLocations) => {
+      updatePreview(order.id, previous => {
+        const carrier = savedTrackingCarrier(previous);
+        const flow = shippingLocationUpdate(previous.order_details, previous.tracking_number, carrier, mode, new Date().toISOString());
+        return { ...previous, ...flow, order_details: flow.order_details };
+      });
+    },
+    onExtraTracking: async (order: Order, change: ExtraChange) => {
+      updatePreview(order.id, previous => {
+        const details = changeExtraPackage(previous.order_details, previous.tracking_number, change, new Date().toISOString(), previous.updated_at);
+        const mode = shippingLocations(details);
+        const flow = mode ? shippingLocationUpdate(details, previous.tracking_number, savedTrackingCarrier(previous), mode, new Date().toISOString())
+          : { status: previous.status, order_details: details };
+        return { ...previous, ...flow, order_details: flow.order_details };
+      });
     },
   };
 
@@ -494,6 +533,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const { data: orders, isLoading } = useAllOrders(publicSupplier);
   const updateTracking = useUpdateTracking(publicSupplier);
   const additionalTracking = useAdditionalTracking(publicSupplier);
+  const shippingLocationsMutation = useShippingLocations(publicSupplier);
   const completion = useSupplierCompletion(publicSupplier);
   const reopenOrder = useReopenOrder(publicSupplier);
   const markOrderPlaced = useMarkOrderPlaced(publicSupplier);
@@ -506,6 +546,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingCarrier, setTrackingCarrier] = useState<TrackingCarrier | null>(null);
+  const [shippingMode, setShippingMode] = useState<ShippingLocations>('one');
   const [reopenNote, setReopenNote] = useState('');
   const [search, setSearch] = useState(() => orderSearchFromQuery(location.search));
   const [now, setNow] = useState(() => Date.now());
@@ -522,7 +563,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const handleSave = async (orderId: string) => {
     try {
       if (!trackingCarrier) throw new Error('Choose DHL, FedEx, or Other.');
-      await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim(), carrier: trackingCarrier });
+      await updateTracking.mutateAsync({ orderId, trackingNumber: trackingNumber.trim(), carrier: trackingCarrier, mode: shippingMode });
       toast.success('Tracking saved');
       setEditingId(null);
       setTrackingNumber('');
@@ -610,14 +651,23 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
       toast.success(change.action === 'remove_additional_tracking' ? 'Additional package removed' : 'Additional package saved');
     },
     isSavingExtra: additionalTracking.isPending,
+    onShippingMode: async (order: Order, mode: ShippingLocations) => {
+      try {
+        await shippingLocationsMutation.mutateAsync({ orderId: order.id, expectedUpdatedAt: order.updated_at, mode });
+        toast.success(mode === 'two' ? 'Waiting for DHL and FedEx tracking' : 'One-location shipping saved');
+      } catch (e) { toast.error(e instanceof Error ? e.message : 'Could not change shipping locations'); }
+    },
+    isSavingMode: shippingLocationsMutation.isPending,
     now,
     editingId,
     trackingNumber,
     trackingCarrier,
+    shippingMode,
     reopenNote,
     setEditingId,
     setTrackingNumber,
     setTrackingCarrier,
+    setShippingMode,
     setReopenNote,
     onSave: handleSave,
     onReopen: handleReopen,
