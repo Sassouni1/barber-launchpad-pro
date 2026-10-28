@@ -5134,6 +5134,10 @@ export type Database = {
         Args: { p_message_id: string }
         Returns: undefined
       }
+      vlix_has_issued_hair_system_certificate: {
+        Args: { p_email: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "member" | "manufacturer"
