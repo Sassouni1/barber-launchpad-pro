@@ -24,7 +24,7 @@ async function validBridgeSecret(actual: string | null, expected: string): Promi
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const secret = Deno.env.get("VLIX_CERTIFICATION_BRIDGE_SECRET") ?? "";
+  const secret = Deno.env.get("VLIXTOBARBERLAUNCH") ?? "";
   if (!secret) return json({ error: "Certification bridge unavailable" }, 503);
   if (!(await validBridgeSecret(request.headers.get("x-vlix-certification-secret"), secret))) {
     return json({ error: "Unauthorized" }, 401);
