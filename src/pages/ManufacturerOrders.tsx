@@ -485,7 +485,7 @@ function KitOrderPreview({ now, completedTarget }: { now: number; completedTarge
       updatePreview(orderId, order => {
         if (!order.tracking_number) return order;
         const details = reopenTrackingDetails(order.order_details, order.tracking_number, order.tracking_url, new Date().toISOString(), reopenNote.trim());
-        return { ...order, status: 'processing', tracking_number: null, tracking_url: null, tracking_seen: false, order_details: details };
+        return { ...order, status: 'processing', tracking_number: null, tracking_url: null, tracking_seen: false, order_details: details as Order['order_details'] };
       });
       setEditingId(null);
       setTrackingNumber('');
