@@ -1,28 +1,31 @@
-# Can a Stripe test charge verify the live hair-system pipeline? (Assessment only)
+# Vlix certification check: backend confirmation and secure install path
 
-## Short answer
-No. There is no isolated test-mode hair-system checkout today, and one cannot be used safely right now without code/config changes.
+## Confirmed (read-only, this turn)
+- The backend project reference is **ynooatjtgstgwfssnira**. Three sources match: `supabase/config.toml` (`project_id`), the app's environment project ID, and the Lovable Cloud project info.
+- This one backend serves both the preview and the published site (member.thebarberlaunch.com).
+- The synced code is at commit `9baf1ae2ad42c2d155da9c4b772dc9695974e37c`.
 
-## What the project actually uses
-- The order page loads Stripe with one publishable key: the live `pk_live_...` key (Invasion Digital Media).
-- Checkout, webhook and reconcile all use one secret key resolver: `HAIR_SYSTEM_STRIPE_SECRET_KEY`, else `STRIPE_SECRET_KEY` — no test-key branch.
-- The hair-system webhook is registered on the live endpoint and verifies with the live signing secret. A test-mode event would fail the signature check.
-- The webhook records `livemode` but does not branch on it — so if a test event ever got in, it would run the real pipeline.
-- Supplier email is hard-locked to `sales30@newtimeshair.com`; buyer receipt and SMS go through the same live Vlix/GHL relay. No sandbox recipient exists.
-- The separate affiliate test key (`AFFILIATE_STRIPE_TEST_SECRET_KEY`) is only used by the affiliate flow, not hair systems.
+## Supported secure path (runs in build mode, after approval)
+1. **Server-only secret**
+   - Tell me the secret's name, for example `VLIX_CERT_CHECK_SECRET`. Never send its value in chat.
+   - If Vlix must hold the same value (a shared secret), you create it yourself, for example with a password manager or `openssl rand -hex 32`. You then paste it into Vlix and into Project Settings -> Secrets. I can trigger the secure entry form, but I never see or print the value.
+   - If only this app needs the value, I can generate it server-side. Its value is never revealed, so this option only works if Vlix never needs a copy.
+   - Only Edge Functions can read it, through `Deno.env.get(...)`. It never goes into client code, `.env` or git.
+2. **Reviewed SQL migration**
+   - You supply the reviewed SQL, or I add it from the merged GitHub commit.
+   - I apply it through the managed migration tool against ynooatjtgstgwfssnira. Anything destructive pauses for your yes or no.
+   - Any new public table includes GRANTs, row-level security and policies.
+3. **Edge Function**
+   - First, I confirm Git HEAD equals your stated commit. If it doesn't match, I stop.
+   - I deploy only the named function, with its `_shared` imports, through the managed deploy path. I report the deployment-reported source SHA-256.
+   - I verify only with a harmless unauthenticated request that should be rejected. I don't invoke any real action.
 
-## Why a test card on the live page fails
-Stripe test cards (4242...) are rejected by live keys. You cannot "temporarily test" the current live page without real money.
+## Access and limits
+- I have no access gap for these steps: secret entry, migrations and function deploys are available on this project.
+- I cannot read secret values back.
+- There is no separate dashboard login, and the service-role key and database password aren't available to anyone on Lovable Cloud.
+- Direct Supabase CLI deploys are refused with a 403 error, so the managed path is the only supported route.
 
-## What a safe test path would require (not done)
-1. Test-mode checkout route using a test key and test prices.
-2. A separate test-mode webhook endpoint and signing secret.
-3. A `livemode=false` branch that sends supplier/buyer messages only to an internal address/phone — never sales30 or buyers.
-4. Keep test orders out of receipts and supplier lists.
-Even then, it proves code behavior, not the live account, live webhook or live supplier inbox.
-
-## Cheapest real alternative
-One real $210 live order by Chris on his own account, then refund. Caveat: it sends a real production sheet to the supplier (must tell them to ignore it) and Stripe fees are not returned on refund.
-
-## Limits of this assessment
-Based on source code only; live Stripe dashboard webhook list and secrets were not read. Nothing was changed or sent.
+## Needed from you before build
+- The secret name, and whether Vlix shares the value.
+- The commit that holds the reviewed migration and function, and the function name.
