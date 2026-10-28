@@ -26,6 +26,10 @@
 - There is no separate dashboard login, and the service-role key and database password aren't available to anyone on Lovable Cloud.
 - Direct Supabase CLI deploys are refused with a 403 error, so the managed path is the only supported route.
 
+## Scope: full install (chosen)
+Order: secret, then migration, then function. I stop at the first failure and report it.
+
 ## Needed from you before build
 - The secret name, and whether Vlix shares the value.
-- The commit that holds the reviewed migration and function, and the function name.
+- The exact GitHub commit that holds the reviewed migration and function, plus the function name.
+- If either is missing when build starts, I stop and ask. I don't guess.
