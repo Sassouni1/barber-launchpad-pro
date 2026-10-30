@@ -1711,6 +1711,113 @@ export type Database = {
         }
         Relationships: []
       }
+      buyer_shipping_notification_channels: {
+        Row: {
+          attempts: number
+          channel: string
+          created_at: string
+          id: string
+          notification_id: string
+          order_id: string
+          provider_message_id: string | null
+          reason: string | null
+          recipient_hint: string | null
+          status: string
+          tracking_keys: string[]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          channel: string
+          created_at?: string
+          id?: string
+          notification_id: string
+          order_id: string
+          provider_message_id?: string | null
+          reason?: string | null
+          recipient_hint?: string | null
+          status: string
+          tracking_keys?: string[]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          created_at?: string
+          id?: string
+          notification_id?: string
+          order_id?: string
+          provider_message_id?: string | null
+          reason?: string | null
+          recipient_hint?: string | null
+          status?: string
+          tracking_keys?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_shipping_notification_channels_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_shipping_notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_shipping_notification_channels_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buyer_shipping_notifications: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          due_at: string
+          id: string
+          new_keys: string[]
+          order_id: string
+          reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          due_at?: string
+          id?: string
+          new_keys?: string[]
+          order_id: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          due_at?: string
+          id?: string
+          new_keys?: string[]
+          order_id?: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_shipping_notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_scans: {
         Row: {
           card_id: string
@@ -5055,6 +5162,27 @@ export type Database = {
         Args: { _id: string; _patch: Json; _worker: string }
         Returns: boolean
       }
+      claim_buyer_shipping_notifications: {
+        Args: { _limit?: number }
+        Returns: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          due_at: string
+          id: string
+          new_keys: string[]
+          order_id: string
+          reason: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "buyer_shipping_notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_certification_install_alert: {
         Args: { _submission_id: string }
         Returns: boolean
@@ -5097,6 +5225,10 @@ export type Database = {
       mark_support_messages_read: {
         Args: { p_conversation_id: string }
         Returns: undefined
+      }
+      order_tracking_keys: {
+        Args: { _details: Json; _primary: string }
+        Returns: string[]
       }
       password_reset_required_for_email: {
         Args: { _email: string }
