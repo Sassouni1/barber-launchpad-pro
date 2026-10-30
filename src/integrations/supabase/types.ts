@@ -2975,6 +2975,27 @@ export type Database = {
           },
         ]
       }
+      internal_cron_tokens: {
+        Row: {
+          created_at: string
+          name: string
+          token: string
+          token_sha256: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          token: string
+          token_sha256: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          token?: string
+          token_sha256?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           created_at: string
@@ -5265,6 +5286,10 @@ export type Database = {
       unsend_support_message: {
         Args: { p_message_id: string }
         Returns: undefined
+      }
+      verify_buyer_shipping_cron_token: {
+        Args: { _token: string }
+        Returns: boolean
       }
       vlix_has_issued_hair_system_certificate: {
         Args: { p_email: string }
