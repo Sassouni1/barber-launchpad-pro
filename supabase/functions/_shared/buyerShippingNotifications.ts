@@ -66,7 +66,7 @@ export function buildShippingSms(pkgs: Pkg[], kit: boolean, isUpdate: boolean): 
     : (kit ? 'Barber Launch: Your hair system kit is on its way.' : 'Barber Launch: Your hair system order has shipped.');
   const label = many ? 'Here are the tracking numbers:' : kit ? 'Here’s the tracking number:' : 'Here’s your tracking number:';
   const body = many ? pkgs.map(pkgText).join('; ') : (() => { const p = pkgs[0]; return `${p.number}${p.carrier && p.carrier !== 'Other' ? ` (${p.carrier})` : ''}.${p.url ? ` ${p.url}` : ''}`; })();
-  return `${lead} ${label} ${body}${many ? '.' : ''} ${STOP_FOOTER}`.replace(/\.\./g, '.');
+  return `${lead} ${label} ${body} ${STOP_FOOTER}`;
 }
 
 export function buildShippingEmail(order: ShipOrder, pkgs: Pkg[], kit: boolean, isUpdate: boolean) {
