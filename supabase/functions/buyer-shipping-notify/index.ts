@@ -37,7 +37,6 @@ const deps: Deps = {
       if (existing.status !== 'retry') return false;
       const { data } = await db.from('buyer_shipping_notification_channels').update({ status: 'sending', tracking_keys: keys, updated_at: now() })
         .eq('notification_id', row.id).eq('channel', channel).eq('status', 'retry').select('id');
-      if (data?.length) await db.rpc('noop').then(() => {}, () => {});
       return !!data?.length;
     }
     const { error: insErr } = await db.from('buyer_shipping_notification_channels').insert({ notification_id: row.id, order_id: row.order_id, channel, status: 'sending', tracking_keys: keys });
