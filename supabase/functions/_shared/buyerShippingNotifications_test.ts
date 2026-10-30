@@ -122,3 +122,26 @@ Deno.test('email escapes untrusted values and has no prices', () => {
   assert(!/\$\d/.test(html)); assertStringIncludes(text, 'Order reference');
   assertEquals(buildShippingSms([{ key: 'A', number: 'A', carrier: 'Other', url: null }], false, false), 'Barber Launch: Your hair system order has shipped. Here’s your tracking number: A. Reply STOP to opt out.');
 });
+
+Deno.test('coalesced save restarts the 10-minute delay: A at 0, B at +9 cannot dispatch at +10, dispatches at +19', () => {
+  const sql = Deno.readTextFileSync(new URL('../../../drizzle/migrations/0006_buyer_shipping_reset_due_on_coalesce.sql', import.meta.url));
+  const onConflict = sql.slice(sql.indexOf('ON CONFLICT'));
+  assertStringIncludes(onConflict, "due_at = now() + interval '10 minutes'");
+  // Model of the trigger + claim rule (claim only when due_at <= now).
+  const min = 60_000; let due = 0;
+  const save = (at: number) => { due = at + QUEUE_DELAY_MINUTES * min; }; // every distinct-key save resets due_at
+  const claimable = (now: number) => due <= now;
+  save(0); save(9 * min);
+  assert(!claimable(10 * min));
+  assert(!claimable(18 * min + 59_000));
+  assert(claimable(19 * min));
+});
+
+Deno.test('SMS is skipped with a clear reason before the relay when buyer email is invalid or missing', async () => {
+  for (const customer_email of [null, 'not-an-email']) {
+    const h = harness(base({ customer_email }));
+    await processQueueRow(h.deps, row('n1', ['77771111']));
+    assertEquals(h.sent.length, 0);
+    assertEquals(h.channels.get('n1:sms')?.status, 'skipped');
+  }
+});
