@@ -36,6 +36,13 @@
       "when": 1793181812794,
       "tag": "0004_vlix_certification_lookup",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793392806857,
+      "tag": "0005_buyer_shipping_notifications",
+      "breakpoints": true
     }
   ]
 }
