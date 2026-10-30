@@ -73,6 +73,10 @@ const deps: Deps = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+  // Scheduler-only: token is held in the database vault and sent by the cron job; never in source.
+  const token = req.headers.get('x-cron-token') ?? '';
+  const { data: allowed, error: authErr } = await db.rpc('verify_buyer_shipping_cron_token', { _token: token });
+  if (authErr || allowed !== true) return json({ error: 'Unauthorized' }, 401);
   try {
     const { data, error } = await db.rpc('claim_buyer_shipping_notifications', { _limit: 20 });
     if (error) throw error;
