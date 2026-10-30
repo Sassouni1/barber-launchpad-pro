@@ -43,6 +43,13 @@
       "when": 1793392806857,
       "tag": "0005_buyer_shipping_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793393194052,
+      "tag": "0006_buyer_shipping_reset_due_on_coalesce",
+      "breakpoints": true
     }
   ]
 }
