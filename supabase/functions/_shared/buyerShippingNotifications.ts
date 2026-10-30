@@ -159,6 +159,8 @@ export async function processQueueRow(deps: Deps, row: QueueRow): Promise<Record
         const r = await deps.sendEmail({ to: email, name, ...msg });
         results[channel] = await settle(deps, row, channel, r, email, keys, lastAttempt);
       } else {
+        // The SMS relay requires a valid buyer email; skip clearly instead of risking an ambiguous relay result.
+        if (!validEmail(email)) { await deps.finishChannel(row, channel, { status: 'skipped', reason: 'sms_requires_valid_buyer_email', keys }); results[channel] = 'skipped'; continue; }
         let phone = normalizePhone(typeof details.phone === 'string' ? details.phone : null);
         if (!phone && order.user_id && email) phone = normalizePhone(await deps.profilePhone(order.user_id, email));
         if (!phone) { await deps.finishChannel(row, channel, { status: 'skipped', reason: 'no_valid_buyer_phone', keys }); results[channel] = 'skipped'; continue; }
