@@ -82,7 +82,7 @@ Deno.test('multiple packages: all newly queued numbers with carriers; later pack
   h.sent.length = 0;
   await processQueueRow(h.deps, row('n2', ['X3', '77771111']));
   const sms2 = h.sent.find(s => s.channel === 'sms')!.body.message as string;
-  assertStringIncludes(sms2, 'Another package'); assertStringIncludes(sms2, 'X-3 https://track.example.com/X-3');
+  assertStringIncludes(sms2, 'Another package'); assertStringIncludes(sms2, 'X-3. https://track.example.com/X-3');
   assert(!sms2.includes('7777'));
   const html = h.sent.find(s => s.channel === 'email')!.body.html as string;
   assertStringIncludes(html, 'href="https://track.example.com/X-3"');
