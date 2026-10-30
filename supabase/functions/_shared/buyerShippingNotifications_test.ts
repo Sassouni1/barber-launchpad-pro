@@ -129,9 +129,9 @@ Deno.test('coalesced save restarts the 10-minute delay: A at 0, B at +9 cannot d
   assertStringIncludes(onConflict, "due_at = now() + interval '10 minutes'");
   // Model of the trigger + claim rule (claim only when due_at <= now).
   const min = 60_000; let due = 0;
-  const save = (at: number, first: boolean) => { due = first ? at + QUEUE_DELAY_MINUTES * min : at + QUEUE_DELAY_MINUTES * min; };
+  const save = (at: number) => { due = at + QUEUE_DELAY_MINUTES * min; }; // every distinct-key save resets due_at
   const claimable = (now: number) => due <= now;
-  save(0, true); save(9 * min, false);
+  save(0); save(9 * min);
   assert(!claimable(10 * min));
   assert(!claimable(18 * min + 59_000));
   assert(claimable(19 * min));
