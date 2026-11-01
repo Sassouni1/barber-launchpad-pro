@@ -145,7 +145,7 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
     const lines: string[] = [];
     if (barber.name) lines.push(`Name: ${barber.name}`);
     if (!hidePrivateDetails && barber.phone) lines.push(`Phone: ${barber.phone}`);
-    if (view.email) lines.push(`Email: ${view.email}`);
+    if (!hidePrivateDetails && view.email) lines.push(`Email: ${view.email}`);
     if (view.isKit) lines.push('Order type: HAIR SYSTEM KIT — order all items together');
     if (lineItems.length > 0) lines.push(`${view.isKit ? 'Kit contents' : 'Product'}: ${lineItems.join(', ')}`);
     specs.forEach(s => lines.push(`${s.label}: ${s.value}`));
@@ -341,7 +341,7 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
             </div>
           )}
 
-          {((!hidePrivateDetails && (barber.phone || shippingAddress.length > 0)) || view.email || specs.length > 0 || shippingMethod || view.notes || view.instruction) && (
+          {((!hidePrivateDetails && (barber.phone || view.email || shippingAddress.length > 0)) || specs.length > 0 || shippingMethod || view.notes || view.instruction) && (
             <div className="flex flex-col gap-1.5">
               {!hidePrivateDetails && barber.phone && (
                 <div className="text-sm flex items-center gap-1.5">
@@ -350,7 +350,7 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
                   <CopyBtn text={barber.phone} label="Phone" />
                 </div>
               )}
-              {view.email && <div className="text-sm flex items-center gap-1.5"><span className="text-muted-foreground">Email: </span><span className="font-medium break-all">{view.email}</span><CopyBtn text={view.email} label="Email" /></div>}
+              {!hidePrivateDetails && view.email && <div className="text-sm flex items-center gap-1.5"><span className="text-muted-foreground">Email: </span><span className="font-medium break-all">{view.email}</span><CopyBtn text={view.email} label="Email" /></div>}
               {specs.map((spec, i) => (
                 <div key={i} className="text-sm flex items-center gap-1.5">
                   <span className="text-muted-foreground">{spec.label}: </span>
@@ -648,7 +648,7 @@ export default function ManufacturerOrders({ adminView = false, hidePrivateDetai
       return (
         view.name.toLowerCase().includes(q) ||
         (!hidePrivateDetails && view.phone.toLowerCase().includes(q)) ||
-        o.customer_email?.toLowerCase().includes(q) ||
+        (!hidePrivateDetails && o.customer_email?.toLowerCase().includes(q)) ||
         o.external_order_id?.toLowerCase().includes(q) ||
         o.id.toLowerCase().includes(q) ||
         o.tracking_number?.toLowerCase().includes(q) ||
