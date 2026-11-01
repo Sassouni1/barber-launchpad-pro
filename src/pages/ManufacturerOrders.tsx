@@ -95,6 +95,7 @@ interface OrderCardProps {
   isSavingExtra?: boolean;
   onCompletion?: (order: Order, completed: boolean) => void;
   isCompleting?: boolean;
+  hidePrivateDetails?: boolean;
 }
 
 function CopyBtn({ text, label }: { text: string; label?: string }) {
@@ -113,7 +114,7 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview = false, isSamplePreview = false, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, onShippingMode, isSavingExtra, isSavingMode, onCompletion, isCompleting }: OrderCardProps) {
+function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview = false, isSamplePreview = false, editingId, trackingNumber, trackingCarrier, shippingMode, reopenNote, setEditingId, setTrackingNumber, setTrackingCarrier, setShippingMode, setReopenNote, onSave, onReopen, isSaving, isReopening, onOrderPlaced, isPlacingOrder, onUndoOrderPlaced, isUndoingOrder, isPast, onDelete, onToggleSupplierPaid, isTogglingPaid, onExtraTracking, onShippingMode, isSavingExtra, isSavingMode, onCompletion, isCompleting, hidePrivateDetails = false }: OrderCardProps) {
   const supplierPaidAt = (order as { supplier_paid_at?: string | null }).supplier_paid_at ?? null;
   const supplierPrice = supplierPriceFor(order.order_details);
   const paymentState = supplierPaymentState(supplierPaidAt, order.tracking_number);
@@ -143,13 +144,13 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
   const buildCopyAllText = () => {
     const lines: string[] = [];
     if (barber.name) lines.push(`Name: ${barber.name}`);
-    if (barber.phone) lines.push(`Phone: ${barber.phone}`);
+    if (!hidePrivateDetails && barber.phone) lines.push(`Phone: ${barber.phone}`);
     if (view.email) lines.push(`Email: ${view.email}`);
     if (view.isKit) lines.push('Order type: HAIR SYSTEM KIT — order all items together');
     if (lineItems.length > 0) lines.push(`${view.isKit ? 'Kit contents' : 'Product'}: ${lineItems.join(', ')}`);
     specs.forEach(s => lines.push(`${s.label}: ${s.value}`));
     if (shippingMethod) lines.push(`Shipping method: ${shippingMethod}`);
-    lines.push(`Shipping address: ${shippingAddress.join(', ') || 'Not provided'}`);
+    if (!hidePrivateDetails) lines.push(`Shipping address: ${shippingAddress.join(', ') || 'Not provided'}`);
     if (view.notes) lines.push(`Order notes: ${view.notes}`);
     if (view.instruction) lines.push(view.instruction);
     if (order.tracking_number) lines.push(`Tracking: ${savedCarrier ? `${savedCarrier} ` : ''}${order.tracking_number}`);
@@ -185,9 +186,9 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
               </p>
               <div className="flex items-center gap-2 flex-wrap pt-1" aria-label="Supplier payment">
-                <span className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${supplierPrice.amount === null ? 'border-orange-500/50 text-orange-400' : 'border-border text-foreground'}`}>
+                {!hidePrivateDetails && <span className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${supplierPrice.amount === null ? 'border-orange-500/50 text-orange-400' : 'border-border text-foreground'}`}>
                   {supplierPrice.amount === null ? supplierPrice.label : `Supplier price ${supplierPrice.label}`}
-                </span>
+                </span>}
                 {onToggleSupplierPaid ? (
                   <label className="flex items-center gap-2 rounded-md border border-border px-2 py-0.5 text-sm cursor-pointer">
                     <Checkbox checked={paymentState.paid} disabled={isTogglingPaid}
@@ -340,9 +341,9 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
             </div>
           )}
 
-          {(barber.phone || view.email || specs.length > 0 || shippingMethod || shippingAddress.length > 0 || view.notes || view.instruction) && (
+          {((!hidePrivateDetails && (barber.phone || shippingAddress.length > 0)) || view.email || specs.length > 0 || shippingMethod || view.notes || view.instruction) && (
             <div className="flex flex-col gap-1.5">
-              {barber.phone && (
+              {!hidePrivateDetails && barber.phone && (
                 <div className="text-sm flex items-center gap-1.5">
                   <span className="text-muted-foreground">Phone: </span>
                   <span className="font-medium">{barber.phone}</span>
@@ -364,7 +365,7 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
                   <CopyBtn text={shippingMethod} label="Shipping method" />
                 </div>
               )}
-              <div className="min-w-0 text-sm flex items-start gap-1.5"><span className="text-muted-foreground shrink-0">Shipping address: </span><span className="min-w-0 break-words font-medium">{shippingAddress.join(', ') || 'Not provided'}</span>{!!shippingAddress.length && <CopyBtn text={shippingAddress.join(', ')} label="Shipping address" />}</div>
+              {!hidePrivateDetails && <div className="min-w-0 text-sm flex items-start gap-1.5"><span className="text-muted-foreground shrink-0">Shipping address: </span><span className="min-w-0 break-words font-medium">{shippingAddress.join(', ') || 'Not provided'}</span>{!!shippingAddress.length && <CopyBtn text={shippingAddress.join(', ')} label="Shipping address" />}</div>}
               {view.notes && <div className="text-sm flex items-start gap-1.5"><span className="text-muted-foreground shrink-0">Order notes: </span><span className="font-medium whitespace-pre-wrap">{view.notes}</span><CopyBtn text={view.notes} label="Order notes" /></div>}
               {view.instruction && <div className="text-sm font-medium text-primary">{view.instruction}</div>}
             </div>
@@ -547,7 +548,7 @@ function PublicSupplierLayout({ children }: { children: React.ReactNode; isAdmin
   return <div className="min-h-screen bg-background"><main className="p-4 md:p-8">{children}</main></div>;
 }
 
-export default function ManufacturerOrders({ adminView = false }: { adminView?: boolean }) {
+export default function ManufacturerOrders({ adminView = false, hidePrivateDetails = false }: { adminView?: boolean; hidePrivateDetails?: boolean }) {
   const location = useLocation();
   const { isAdmin, user } = useAuth();
   // /newtimes (non-admin view) is public and always uses the scoped supplier access layer.
@@ -575,7 +576,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
   const lastScrolledOrderRef = useRef('');
   const [now, setNow] = useState(() => Date.now());
   const [completedPreviewTarget, setCompletedPreviewTarget] = useState<HTMLDivElement | null>(null);
-  const showKitPreview = new URLSearchParams(location.search).get('preview_kit') === '1';
+  const showKitPreview = !hidePrivateDetails && new URLSearchParams(location.search).get('preview_kit') === '1';
   const previewKitLabelOnSierra = new URLSearchParams(location.search).get('preview_kit') === 'sierra';
 
   useEffect(() => {
@@ -646,7 +647,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
       const view = manufacturerOrderView({ orderDetails: o.order_details, customerName: o.customer_name, customerEmail: o.customer_email });
       return (
         view.name.toLowerCase().includes(q) ||
-        view.phone.toLowerCase().includes(q) ||
+        (!hidePrivateDetails && view.phone.toLowerCase().includes(q)) ||
         o.customer_email?.toLowerCase().includes(q) ||
         o.external_order_id?.toLowerCase().includes(q) ||
         o.id.toLowerCase().includes(q) ||
@@ -723,6 +724,7 @@ export default function ManufacturerOrders({ adminView = false }: { adminView?: 
       }
     } : undefined,
     isTogglingPaid: toggleSupplierPaid.isPending,
+    hidePrivateDetails,
   };
 
   return (
