@@ -136,10 +136,11 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
   const lastReopen = reopenHistory.at(-1);
   const isReopened = reopenHistory.length > 0 && order.status === 'processing' && !order.tracking_number;
   const overdue = !isPast && !order.tracking_number && order.status === 'pending' && isNewOrderOverdue(order.order_date, now);
+  const showOverdue = overdue && !hidePrivateDetails;
   const needsTracking = !isPast && !order.tracking_number && order.status === 'processing';
   const displayStatus = isPast && !order.tracking_number && !isReopened
     ? { label: 'Past Order', color: 'bg-muted text-muted-foreground border-border' }
-    : getDisplayStatus(order, overdue, view.isKit || kitLabelPreview);
+    : getDisplayStatus(order, showOverdue, view.isKit || kitLabelPreview);
 
   const buildCopyAllText = () => {
     const lines: string[] = [];
@@ -159,7 +160,7 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
   };
 
   return (
-    <Card id={isHighlighted ? 'supplier-linked-order' : undefined} className={isHighlighted ? 'border-amber-400 bg-amber-500/10 ring-2 ring-amber-400 shadow-lg shadow-amber-500/10' : overdue ? 'border-red-500/60 bg-red-500/10' : needsTracking || waitingForSecond ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
+    <Card id={isHighlighted ? 'supplier-linked-order' : undefined} className={isHighlighted ? 'border-amber-400 bg-amber-500/10 ring-2 ring-amber-400 shadow-lg shadow-amber-500/10' : showOverdue ? 'border-red-500/60 bg-red-500/10' : needsTracking || waitingForSecond ? 'border-blue-400/70 bg-blue-500/10' : 'border-border/50'}>
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col gap-3">
           {isHighlighted && <p className="text-sm font-semibold text-amber-300">Order linked from email</p>}
@@ -185,10 +186,10 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
               <p className="text-xs text-muted-foreground">
                 {format(new Date(order.order_date), 'MMM d, yyyy h:mm a')}
               </p>
-              <div className="flex items-center gap-2 flex-wrap pt-1" aria-label="Supplier payment">
-                {!hidePrivateDetails && <span className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${supplierPrice.amount === null ? 'border-orange-500/50 text-orange-400' : 'border-border text-foreground'}`}>
+              {!hidePrivateDetails && <div className="flex items-center gap-2 flex-wrap pt-1" aria-label="Supplier payment">
+                <span className={`rounded-md border px-2 py-0.5 text-sm font-semibold ${supplierPrice.amount === null ? 'border-orange-500/50 text-orange-400' : 'border-border text-foreground'}`}>
                   {supplierPrice.amount === null ? supplierPrice.label : `Supplier price ${supplierPrice.label}`}
-                </span>}
+                </span>
                 {onToggleSupplierPaid ? (
                   <label className="flex items-center gap-2 rounded-md border border-border px-2 py-0.5 text-sm cursor-pointer">
                     <Checkbox checked={paymentState.paid} disabled={isTogglingPaid}
@@ -204,7 +205,7 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
                 {paymentState.readyForShipment && (
                   <Badge variant="outline" className="border-border text-foreground">Ready for Shipment</Badge>
                 )}
-              </div>
+              </div>}
               {order.external_order_id && <p className="text-xs text-muted-foreground break-all">Order reference: {order.external_order_id}</p>}
               {view.sequence && <p className="text-xs text-muted-foreground">{view.sequence}</p>}
               {order.tracking_number && (
