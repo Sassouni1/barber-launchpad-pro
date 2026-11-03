@@ -49,3 +49,11 @@ Deno.test("setup session body charges nothing and is scoped to server member id"
   assertEquals(body["metadata[customer_id]"], member);
   assertEquals(Object.keys(body).some((k) => k.startsWith("line_items") || k.includes("amount")), false);
 });
+
+Deno.test("setup session uses hosted Checkout with success/cancel URLs, not embedded return_url", () => {
+  const body = buildSetupSessionBody({ stripeCustomerId: "cus_A", memberId: member, appUrl: "https://x" });
+  assertEquals(body.ui_mode, "hosted");
+  assertEquals(body.success_url, "https://x/ads?setup_session_id={CHECKOUT_SESSION_ID}");
+  assertEquals(body.cancel_url, "https://x/ads?setup_canceled=1");
+  assertEquals("return_url" in body, false);
+});

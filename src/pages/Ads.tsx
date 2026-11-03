@@ -288,14 +288,15 @@ async function readErrorMessage(data: unknown, error: unknown, fallback: string)
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Saves a card with Stripe Checkout in setup mode. No charge; success is shown only after the server has it. */
+const SETUP_PREVIOUS_KEY = 'ad-card-setup-previous';
+
+/** Saves a card with Stripe-hosted Checkout in setup mode. No charge; success is shown only after the server has it. */
 function CardSetupPanel({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: billingProfile, isLoading, isError, refetch } = useAdBillingProfile();
   const saved = billingProfile?.default_payment_method_id ?? null;
   const [busy, setBusy] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -319,43 +320,38 @@ function CardSetupPanel({ embedded = false }: { embedded?: boolean }) {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (!params.get('setup_session_id')) return;
+    const returned = params.get('setup_session_id');
+    const canceled = params.get('setup_canceled');
+    if (!returned && !canceled) return;
     params.delete('setup_session_id');
+    params.delete('setup_canceled');
     const query = params.toString();
     window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-    void waitForServer(null);
+    const previous = sessionStorage.getItem(SETUP_PREVIOUS_KEY);
+    sessionStorage.removeItem(SETUP_PREVIOUS_KEY);
+    if (returned) void waitForServer(previous && previous !== 'none' ? previous : null);
   }, [waitForServer]);
 
   const start = async () => {
-    if (!getStripe()) {
-      setError('Card setup is not configured yet. Please contact Barber Launch support.');
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
       const { data, error: invokeError } = await supabase.functions.invoke('managed-ad-billing', {
         body: { action: 'createSetupCheckout', idempotencyKey: crypto.randomUUID() },
       });
-      const secret = (data as { clientSecret?: string | null } | null)?.clientSecret;
-      if (!invokeError && typeof secret === 'string' && secret) {
-        setClientSecret(secret);
+      const url = (data as { url?: string | null } | null)?.url;
+      if (!invokeError && typeof url === 'string' && url.startsWith('https://checkout.stripe.com/')) {
+        sessionStorage.setItem(SETUP_PREVIOUS_KEY, saved ?? 'none');
+        window.location.assign(url);
         return;
       }
-      setError(await readErrorMessage(data, invokeError, 'Could not open the secure card form. Please try again.'));
+      setError(await readErrorMessage(data, invokeError, 'Could not open the secure Stripe page. Please try again.'));
+      setBusy(false);
     } catch {
       setError('Could not reach billing. Check your connection and try again.');
-    } finally {
       setBusy(false);
     }
   };
-
-  const previousRef = saved;
-  const onComplete = useCallback(() => {
-    setClientSecret(null);
-    void waitForServer(previousRef);
-  }, [waitForServer, previousRef]);
-  const options = useMemo(() => (clientSecret ? { clientSecret, onComplete } : null), [clientSecret, onComplete]);
 
   return (
     <div className={`${embedded ? '' : 'glass-card '}rounded-lg border border-border/60 bg-background/40 p-4 space-y-3`}>
@@ -370,29 +366,17 @@ function CardSetupPanel({ embedded = false }: { embedded?: boolean }) {
             <span className="font-medium">Payment method</span>
           )}
         </div>
-        {!clientSecret && !waiting && (
+        {!waiting && (
           <Button size="sm" variant={saved ? 'outline' : 'default'} onClick={start} disabled={busy || isLoading}>
             {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            {saved ? 'Replace card' : 'Add payment method'}
+            {busy ? 'Opening secure Stripe page…' : saved ? 'Replace card' : 'Add payment method'}
           </Button>
         )}
       </div>
       <p className="text-xs text-muted-foreground">
-        Saving a card does not charge you, does not add media funds, and does not start any ads.
+        You'll be redirected to a secure Stripe page to save your card, then brought back here. Saving a card does not charge you, does not add media funds, and does not start any ads.
       </p>
       {isError && <p className="text-xs text-destructive" role="alert">Could not check your saved card. Refresh to try again.</p>}
-      {clientSecret && options && (
-        <div className="space-y-2">
-          <div className="flex justify-end">
-            <Button size="sm" variant="ghost" onClick={() => setClientSecret(null)}>Cancel</Button>
-          </div>
-          <div className="rounded-lg bg-white p-2 overflow-hidden">
-            <EmbeddedCheckoutProvider stripe={getStripe()!} options={options}>
-              <EmbeddedCheckout className="min-h-[360px]" />
-            </EmbeddedCheckoutProvider>
-          </div>
-        </div>
-      )}
       {waiting && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" /> Waiting for Stripe to confirm your card…
