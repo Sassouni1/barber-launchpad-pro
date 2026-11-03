@@ -58,6 +58,9 @@ export default function TermsPage() {
               <p className="font-semibold text-foreground">
                 Refund Policy — The 3 Client Guarantee
               </p>
+              <p className="font-semibold text-foreground">
+                There are no refunds outside of our 3 Client Guarantee. This is the only refund we offer, period. To qualify, you must complete every single requirement listed below — if even one requirement is not met, your refund is void.
+              </p>
               <p>
                 The Barber Launch Hair System Mastery &amp; Business Training program is backed by our 3 Client Guarantee: get 3 paying hair system clients within your first 16 weeks with us, or get your money back.
               </p>
@@ -110,7 +113,7 @@ export default function TermsPage() {
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p className="font-semibold text-foreground">
-                There are no refunds outside of our guarantee described on this page.
+                There are no refunds outside of our 3 Client Guarantee. This is the only refund we offer, period. You must complete every requirement listed in our Refund Policy above — if even one requirement is not met, no refund is given.
               </p>
               <p>
                 Results from our training programs depend on individual effort, experience, and market conditions. Testimonials shown are real experiences but are not a guarantee of future results.
