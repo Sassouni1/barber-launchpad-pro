@@ -160,9 +160,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
 
     // One shared contract: an array of configured pages rendered by the editor.
-    const rawPages = Array.isArray(body.pages) ? body.pages : [];
+    const rawPages: unknown[] = Array.isArray(body.pages) ? body.pages : [];
     const pages = rawPages
-      .map((p) => p as Record<string, unknown>)
+      .map((p: unknown) => p as Record<string, unknown>)
       .filter((p) => typeof p?.path === "string" && typeof p?.html === "string")
       .map((p) => ({
         key: typeof p.key === "string" ? p.key : String(p.path),

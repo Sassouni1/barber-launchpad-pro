@@ -385,7 +385,7 @@ export default function AccessLog() {
         </Card>
 
         <p className="text-xs text-muted-foreground">
-          Showing up to 2,000 most recent events. IP, geolocation, device and user agent are captured server-side and cannot be spoofed by the client.
+          Searching a member name or email shows their full history (all time). Otherwise showing up to 2,000 most recent events. IP, geolocation, device and user agent are captured server-side and cannot be spoofed by the client.
         </p>
       </div>
     </DashboardLayout>
