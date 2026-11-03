@@ -64,8 +64,9 @@ export default function TermsPage() {
               <p>
                 The Barber Launch Hair System Mastery &amp; Business Training program is backed by our 3 Client Guarantee: get 3 paying hair system clients within your first 16 weeks with us, or get your money back.
               </p>
-              <p>To qualify for a refund under the 3 Client Guarantee, you must complete every one of the following:</p>
+              <p>To qualify for a refund under the 3 Client Guarantee, you must complete the full 16 weeks and every one of the following:</p>
               <ul className="list-disc space-y-2 pl-6 text-foreground">
+                <li>Complete the full 16 weeks of the program — you must stay in and complete all 16 weeks</li>
                 <li>Complete all required training modules and quizzes</li>
                 <li>Post the 8 pieces of content we give you on your social media</li>
                 <li>Submit certification photos and pass certification and complete all homework assignments</li>
