@@ -42,11 +42,11 @@ export default function SettingUpYourFacebook() {
         <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
           <h2 className="font-display text-xl font-semibold">Facebook cover image</h2>
           <p className="mt-1 text-sm text-muted-foreground">Preview the image, then save the original PNG file to use as your Page cover photo.</p>
-          <div className="mx-auto mt-4 w-full max-w-xl overflow-hidden rounded-xl border border-border">
-            <img src={FACEBOOK_BANNER_PATH} alt="Before-and-after hair system photos of Chris" className="block h-auto w-full" />
+          <div className="mt-4 overflow-hidden rounded-xl border border-border">
+            <img src={FACEBOOK_BANNER_PATH} alt="Chris's hair system before-and-after on the left and a red-haired before-and-after on the right" className="block h-auto w-full" />
           </div>
           <div className="mt-4">
-            <FileDownloadButton url={FACEBOOK_BANNER_PATH} filename="chris-hair-system-before-after.png" label="Download cover image" className="gap-2" />
+            <FileDownloadButton url={FACEBOOK_BANNER_PATH} filename="barber-launch-facebook-cover.png" label="Download cover image" className="gap-2" />
           </div>
         </section>
 

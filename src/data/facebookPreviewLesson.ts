@@ -2,7 +2,7 @@ import type { ModuleWithLessons } from "@/hooks/useCourses";
 
 export const FACEBOOK_PREVIEW_MODULE_ID = "b1050000-0000-4000-8000-000000000105";
 export const FACEBOOK_PREVIEW_PATH = "/courses/business/lesson/setting-up-your-facebook";
-export const FACEBOOK_BANNER_PATH = "/lesson-assets/facebook/chris-before-after-hair-system.png";
+export const FACEBOOK_BANNER_PATH = "/lesson-assets/facebook/chris-redhead-facebook-cover.png";
 
 export const canViewFacebookPreview = (email?: string | null) =>
   email?.trim().toLowerCase() === "chris@invasiondigitalmedia.com";
