@@ -601,7 +601,7 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
                   <div key={quiz.module_id} className="rounded-lg border border-border p-3 space-y-2">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <p className="text-sm font-medium min-w-0 flex-1 break-words">{quiz.module_title}</p>
-                      <Badge variant={quiz.passed ? 'default' : quiz.attempted ? 'destructive' : 'secondary'} className="shrink-0">
+                      <Badge variant={quiz.passed ? 'success' : quiz.attempted ? 'destructive' : 'secondary'} className="shrink-0">
                         {quiz.passed ? 'Passed' : quiz.attempted ? 'Not passed' : 'Not taken'}
                       </Badge>
                     </div>
@@ -609,7 +609,7 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
                       <div key={attempt.id} className="border-t border-border pt-2 text-xs space-y-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="text-muted-foreground">Attempt {quiz.attemptCount - index}{attempt.lesson_title ? ` · ${attempt.lesson_title}` : ''}</span>
-                          <span className={isQuizPassed(attempt.score, attempt.total_questions) ? 'text-primary' : 'text-destructive'}>
+                          <span className={isQuizPassed(attempt.score, attempt.total_questions) ? 'text-success' : 'text-destructive'}>
                             {attempt.score}/{attempt.total_questions} correct · {isQuizPassed(attempt.score, attempt.total_questions) ? 'Passed' : 'Not passed'}
                           </span>
                         </div>
