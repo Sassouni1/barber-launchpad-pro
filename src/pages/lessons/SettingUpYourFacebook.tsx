@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, Video } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -32,14 +32,21 @@ export default function SettingUpYourFacebook() {
         </div>
 
         <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+          <h2 className="font-display text-xl font-semibold">Lesson video</h2>
+          <div className="mt-4 flex aspect-video flex-col items-center justify-center gap-3 rounded-xl border border-border bg-black text-center">
+            <Video className="h-8 w-8 text-primary" aria-hidden="true" />
+            <p className="text-sm text-muted-foreground">Video coming soon</p>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
           <h2 className="font-display text-xl font-semibold">Facebook cover image</h2>
           <p className="mt-1 text-sm text-muted-foreground">Preview the image, then save the original PNG file to use as your Page cover photo.</p>
-          <a href={FACEBOOK_BANNER_PATH} target="_blank" rel="noopener noreferrer" className="mt-4 block overflow-hidden rounded-xl border border-border" aria-label="Open Facebook cover image at full size">
+          <div className="mt-4 overflow-hidden rounded-xl border border-border">
             <img src={FACEBOOK_BANNER_PATH} alt="Before and after hair replacement examples for a Facebook Page cover" className="block h-auto w-full" />
-          </a>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          </div>
+          <div className="mt-4">
             <FileDownloadButton url={FACEBOOK_BANNER_PATH} filename="barber-launch-facebook-cover.png" label="Download cover image" className="gap-2" />
-            <a href={FACEBOOK_BANNER_PATH} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary underline underline-offset-4">View full size <ExternalLink className="h-3.5 w-3.5" /></a>
           </div>
         </section>
 
