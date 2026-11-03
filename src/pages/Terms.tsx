@@ -64,8 +64,9 @@ export default function TermsPage() {
               <p>
                 The Barber Launch Hair System Mastery &amp; Business Training program is backed by our 3 Client Guarantee: get 3 paying hair system clients within your first 16 weeks with us, or get your money back.
               </p>
-              <p>To qualify for a refund under the 3 Client Guarantee, you must complete every one of the following:</p>
+              <p>To qualify for a refund under the 3 Client Guarantee, you must complete the full 16 weeks and every one of the following:</p>
               <ul className="list-disc space-y-2 pl-6 text-foreground">
+                <li>Complete the full 16 weeks of the program — you must stay in and complete all 16 weeks</li>
                 <li>Complete all required training modules and quizzes</li>
                 <li>Post the 8 pieces of content we give you on your social media</li>
                 <li>Submit certification photos and pass certification and complete all homework assignments</li>
@@ -76,7 +77,7 @@ export default function TermsPage() {
                 <li>Hang up your Hair System poster in your booth or shop and submit a photo as proof</li>
               </ul>
               <p>
-                If you complete every requirement above and still have not secured 3 paying hair system clients within 16 weeks, you are eligible for a full refund.
+                If you complete the full 16 weeks and every requirement above and still have not secured 3 paying hair system clients, you are eligible for a full refund.
               </p>
               <p className="font-medium text-foreground">
                 The 3 Client Guarantee applies only to the Barber Launch Hair System Mastery &amp; Business Training program. Standalone hair system training (without the business &amp; marketing components) and all other memberships, products, and services are non-refundable.
@@ -119,7 +120,7 @@ export default function TermsPage() {
                 Results from our training programs depend on individual effort, experience, and market conditions. Testimonials shown are real experiences but are not a guarantee of future results.
               </p>
               <p>
-                Our 3 Client Guarantee applies to the Barber Launch Hair System Mastery &amp; Business Training program. To remain eligible you must complete all required training modules and quizzes, post the 8 pieces of content we give you on your social media, submit certification photos and pass certification and complete all homework assignments, attend your onboarding call, tech call, and half way call, run the required ad spend of $10 per day for at least 50 days, call at least 50 of the leads we generate for you using the phone number we provide so we can verify the calls, respond to Barber Launch calls, text, and emails at <a href="mailto:Thebarberlaunch@gmail.com" className="text-primary underline hover:text-primary/80">Thebarberlaunch@gmail.com</a> or <a href="tel:727-637-4672" className="text-primary underline hover:text-primary/80">727-637-4672</a>, and hang up your Hair System poster in your booth or shop and submit a photo as proof. Failing to complete any of these voids guarantee eligibility.
+                Our 3 Client Guarantee applies to the Barber Launch Hair System Mastery &amp; Business Training program. To remain eligible you must complete the full 16 weeks of the program, complete all required training modules and quizzes, post the 8 pieces of content we give you on your social media, submit certification photos and pass certification and complete all homework assignments, attend your onboarding call, tech call, and half way call, run the required ad spend of $10 per day for at least 50 days, call at least 50 of the leads we generate for you using the phone number we provide so we can verify the calls, respond to Barber Launch calls, text, and emails at <a href="mailto:Thebarberlaunch@gmail.com" className="text-primary underline hover:text-primary/80">Thebarberlaunch@gmail.com</a> or <a href="tel:727-637-4672" className="text-primary underline hover:text-primary/80">727-637-4672</a>, and hang up your Hair System poster in your booth or shop and submit a photo as proof. Failing to complete any of these voids guarantee eligibility.
               </p>
               <p>
                 The platform is provided "as is" without warranties of any kind, either express or implied. We do not guarantee uninterrupted access or that the platform will be error-free at all times.
