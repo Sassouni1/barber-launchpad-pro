@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   const allowed = !!origin && ALLOWED_ORIGINS.has(origin);
 
   if (req.method === "OPTIONS") {
-    return new Response(allowed ? "ok" : null, { status: allowed ? 204 : 403, headers: cors(origin) });
+    return new Response(allowed ? "ok" : "forbidden", { status: allowed ? 200 : 403, headers: cors(origin) });
   }
   if (!allowed) return json({ error: "Origin not allowed" }, 403, origin);
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
