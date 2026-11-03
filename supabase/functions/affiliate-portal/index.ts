@@ -1,5 +1,5 @@
 // Authenticated affiliate portal: own code, links and sanitized totals only.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import { adminClient, json, loadSettings, missingConfig, newAffiliateCode, requireUser } from "../_shared/affiliate.ts";
 
 Deno.serve(async (req) => {

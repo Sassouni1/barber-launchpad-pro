@@ -1,5 +1,5 @@
 // Admin affiliate console: leads, reconciliation, corrections, payout receipts, setup.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import {
   adminClient,
   CANONICAL_ORIGIN,

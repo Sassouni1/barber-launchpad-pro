@@ -2,7 +2,7 @@
 // Reuses the member's existing Stripe Connect account when it is genuinely able
 // to receive transfers and bank payouts. Never creates a duplicate account and
 // never treats charges_enabled alone as payout readiness.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import {
   adminClient,
   evaluateAccount,
