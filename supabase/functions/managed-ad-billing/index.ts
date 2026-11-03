@@ -4,6 +4,7 @@ import {
   writeManagedAdsWebhookSecret,
   VaultUnavailableError,
 } from "../_shared/managedAdVault.ts";
+import { buildSetupSessionBody } from "../_shared/managedAdSetup.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -109,6 +110,47 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
     const body = await req.json();
     const action = body?.action as string | undefined;
+
+    if (action === "createSetupCheckout") {
+      // Card setup only: no charge, no funding ledger, no campaign changes. Identity comes from the JWT.
+      if (!isUuid(body?.idempotencyKey)) return json({ error: "Invalid idempotency key." }, 400);
+      const { data: profile, error: profileError } = await admin.from("profiles").select("email,full_name").eq("id", userId).maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile?.email) return json({ error: "Billing profile not found. Add an email to your account first." }, 404);
+      let { data: billing, error: billingError } = await admin.from("ad_billing_profiles").select("*").eq("customer_id", userId).maybeSingle();
+      if (billingError) throw billingError;
+      if (!billing) {
+        const { data, error } = await admin.from("ad_billing_profiles").upsert({ customer_id: userId }, { onConflict: "customer_id" }).select("*").single();
+        if (error) throw error;
+        billing = data;
+      }
+      let stripeCustomerId = billing.stripe_customer_id as string | null;
+      if (!stripeCustomerId) {
+        const customer = await stripeFetch("/customers", stripeSecret, {
+          idempotencyKey: `ad-customer-${userId}`,
+          body: { email: profile.email, name: profile.full_name || undefined, "metadata[barber_launch_customer_id]": userId },
+        });
+        stripeCustomerId = customer.id;
+        const { error } = await admin.from("ad_billing_profiles").update({ stripe_customer_id: stripeCustomerId }).eq("customer_id", userId).is("stripe_customer_id", null);
+        if (error) throw error;
+        const { data: reread, error: rereadError } = await admin.from("ad_billing_profiles").select("stripe_customer_id").eq("customer_id", userId).single();
+        if (rereadError) throw rereadError;
+        stripeCustomerId = reread.stripe_customer_id;
+      }
+      try {
+        await ensureManagedAdsWebhookEndpoint(stripeSecret);
+      } catch (error) {
+        if (error instanceof VaultUnavailableError) return json({ error: "Managed ad billing is not configured: secure secret storage is unavailable." }, 503);
+        console.error("managed-ad-billing: webhook endpoint registration failed", error);
+        return json({ error: "Managed ad billing is not configured: Stripe webhook registration failed." }, 503);
+      }
+      const session = await stripeFetch("/checkout/sessions", stripeSecret, {
+        idempotencyKey: `ad-setup-${userId}-${body.idempotencyKey}`,
+        body: buildSetupSessionBody({ stripeCustomerId: stripeCustomerId!, memberId: userId, appUrl }),
+      });
+      return json({ clientSecret: session.client_secret ?? null });
+    }
+
 
     if (action === "createCheckout") {
       if (!isUuid(body?.campaignId) || !isUuid(body?.idempotencyKey)) return json({ error: "Invalid campaign or idempotency key." }, 400);

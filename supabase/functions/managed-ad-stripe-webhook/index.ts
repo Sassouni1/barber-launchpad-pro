@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { readManagedAdsWebhookSecret } from "../_shared/managedAdVault.ts";
+import { handleAdCardSetupSession, isAdCardSetupSession } from "../_shared/managedAdSetup.ts";
 
 
 function hex(bytes: ArrayBuffer) {
@@ -49,9 +50,31 @@ Deno.serve(async (req) => {
     if (event.type !== "checkout.session.completed") return response({ received: true });
 
     const session = event.data?.object;
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (isAdCardSetupSession(session)) {
+      const outcome = await handleAdCardSetupSession(session, {
+        retrieveSetupIntent: async (id) => {
+          const r = await fetch(`https://api.stripe.com/v1/setup_intents/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${stripeSecret}` } });
+          const data = await r.json();
+          if (!r.ok) throw new Error("Could not retrieve SetupIntent");
+          return data;
+        },
+        loadBillingProfile: async (memberId) => {
+          const { data, error } = await admin.from("ad_billing_profiles").select("stripe_customer_id,default_payment_method_id").eq("customer_id", memberId).maybeSingle();
+          if (error) throw error;
+          return data;
+        },
+        saveDefaultPaymentMethod: async (memberId, stripeCustomerId, paymentMethodId) => {
+          const { error } = await admin.from("ad_billing_profiles").update({ default_payment_method_id: paymentMethodId })
+            .eq("customer_id", memberId).eq("stripe_customer_id", stripeCustomerId);
+          if (error) throw error;
+        },
+      });
+      if (outcome.handled && outcome.result === "rejected") console.warn("managed-ad-stripe-webhook: card setup rejected", outcome.reason);
+      return response({ received: true });
+    }
     const transactionId = session?.metadata?.transaction_id;
     if (!transactionId) return response({ received: true });
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: transaction, error: transactionError } = await admin.from("ad_payment_transactions")
       .select("*").eq("id", transactionId).maybeSingle();
     if (transactionError) throw transactionError;

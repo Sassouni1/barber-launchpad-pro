@@ -76,7 +76,7 @@ export default function Ads() {
   const onboardingComplete = connected && instagramDecided && billingComplete;
   const [skipping, setSkipping] = useState(false);
 
-  const { data: campaigns = [], isLoading } = useQuery({
+  const { data: campaigns = [], isLoading, isError: campaignsError } = useQuery({
     queryKey: ['member-ad-campaigns'],
     enabled: connected,
     queryFn: async () => {
@@ -91,7 +91,7 @@ export default function Ads() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.get('funding_session_id')) return;
-    toast.success('Payment submitted. Your media balance updates as soon as Stripe confirms it.');
+    toast.message('Payment submitted. Your media balance updates once Stripe confirms it.');
     queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] });
     queryClient.invalidateQueries({ queryKey: ['ad-billing-profile', user?.id] });
     params.delete('funding_session_id');
@@ -163,11 +163,16 @@ export default function Ads() {
             {intro}
           </div>
 
+          <CardSetupPanel />
+
           {isLoading ? (
             <div className="text-sm text-muted-foreground">Loading campaigns…</div>
+          ) : campaignsError ? (
+            <CampaignsError onRetry={refreshAll} />
           ) : campaigns.length === 0 ? (
             <div className="glass-card rounded-xl p-5 text-sm text-muted-foreground">
-              Barber Launch will add your campaign here as soon as it's live.
+              Your card is saved. Barber Launch will add your campaign here once it's created, and you can add media
+              funds to it then.
             </div>
           ) : (
             campaigns.map((c) => <CampaignCard key={c.id} campaign={c} onChanged={refreshAll} />)
@@ -178,8 +183,6 @@ export default function Ads() {
   }
 
   // ---- Onboarding: Facebook connected, remaining steps ----
-  const billingStepIndex = instagramConnected ? 2 : 3;
-
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
@@ -205,44 +208,200 @@ export default function Ads() {
           </div>
         </div>
 
-        {!instagramDecided ? (
-          <div className="glass-card rounded-xl p-5 space-y-4">
-            <StepHeader index={2} title="Connect your Instagram (optional)" />
-            <p className="text-sm text-muted-foreground">
-              Linking a professional Instagram account to your Facebook Page lets your ads run on Instagram too.
-            </p>
+        <div className="glass-card rounded-xl p-5 space-y-4">
+          <StepHeader index={2} title="Connect your Instagram (optional)" done={instagramDecided} />
+          {instagramConnected ? (
             <InstagramStatusCard />
-            <div className="border-t border-border/60 pt-4 space-y-2">
-              <Button variant="outline" size="sm" onClick={skipInstagram} disabled={skipping}>
-                {skipping ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                Skip Instagram for now
-              </Button>
-              <p className="text-xs text-muted-foreground">I do not have an Instagram to connect right now.</p>
-            </div>
-          </div>
-        ) : (
-          <div className="glass-card rounded-xl p-5 space-y-4">
-            <StepHeader index={billingStepIndex} title="Ad Billing" />
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Linking a professional Instagram account to your Facebook Page lets your ads run on Instagram too. This
+                is optional and doesn't block billing.
+              </p>
+              <InstagramStatusCard />
+              {instagramSkipped ? (
+                <p className="text-xs text-muted-foreground border-t border-border/60 pt-4">
+                  Skipped for now. You can connect Instagram any time.
+                </p>
+              ) : (
+                <div className="border-t border-border/60 pt-4 space-y-2">
+                  <Button variant="outline" size="sm" onClick={skipInstagram} disabled={skipping}>
+                    {skipping ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Skip Instagram for now
+                  </Button>
+                  <p className="text-xs text-muted-foreground">I do not have an Instagram to connect right now.</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="glass-card rounded-xl p-5 space-y-4">
+          <StepHeader index={3} title="Ad Billing" done={billingComplete} />
+          <CardSetupPanel embedded />
+          {isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading campaigns…</div>
+          ) : campaignsError ? (
+            <CampaignsError onRetry={refreshAll} />
+          ) : campaigns.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Add prepaid media funds so your campaigns can run. Payment is handled securely by Stripe right here on this
-              page. Minimum $2.00.
+              Adding media funds opens once Barber Launch has created your campaign. Prepaid funding is a separate step,
+              minimum $2.00.
             </p>
-            {isLoading ? (
-              <div className="text-sm text-muted-foreground">Loading campaigns…</div>
-            ) : campaigns.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                Barber Launch will add your campaign here — billing opens up as soon as it's live.
-              </div>
-            ) : (
-              <AdBillingPanel campaign={campaigns[0]} onChanged={refreshAll} />
-            )}
-          </div>
-        )}
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Add prepaid media funds to a campaign. Payment is handled securely by Stripe right here. Minimum $2.00.
+              </p>
+              {campaigns.map((c) => (
+                <AdBillingPanel key={c.id} campaign={c} onChanged={refreshAll} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
 }
 
+function CampaignsError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="text-sm text-destructive flex flex-wrap items-center gap-3" role="alert">
+      Could not load your campaigns. Check your connection and try again.
+      <Button size="sm" variant="outline" onClick={onRetry}>Try again</Button>
+    </div>
+  );
+}
+
+async function readErrorMessage(data: unknown, error: unknown, fallback: string) {
+  const fromData = (data as { error?: string } | null)?.error;
+  if (fromData) return fromData;
+  const ctx = (error as { context?: Response } | null)?.context;
+  if (ctx && typeof ctx.json === 'function') {
+    try {
+      const body = await ctx.clone().json();
+      if (body?.error) return String(body.error);
+    } catch { /* ignore */ }
+  }
+  return fallback;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Saves a card with Stripe Checkout in setup mode. No charge; success is shown only after the server has it. */
+function CardSetupPanel({ embedded = false }: { embedded?: boolean }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: billingProfile, isLoading, isError, refetch } = useAdBillingProfile();
+  const saved = billingProfile?.default_payment_method_id ?? null;
+  const [busy, setBusy] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const waitForServer = useCallback(async (previous: string | null) => {
+    setWaiting(true);
+    setError(null);
+    for (let i = 0; i < 30; i += 1) {
+      const { data } = await refetch();
+      const current = data?.default_payment_method_id ?? null;
+      if (current && current !== previous) {
+        setWaiting(false);
+        toast.success('Card saved. No charge was made and no media funds were added.');
+        queryClient.invalidateQueries({ queryKey: ['ad-billing-profile', user?.id] });
+        return;
+      }
+      await sleep(2000);
+    }
+    setWaiting(false);
+    setError("Stripe hasn't confirmed your card yet. Refresh this page in a minute; if it still isn't saved, contact Barber Launch support.");
+  }, [refetch, queryClient, user?.id]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get('setup_session_id')) return;
+    params.delete('setup_session_id');
+    const query = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    void waitForServer(null);
+  }, [waitForServer]);
+
+  const start = async () => {
+    if (!getStripe()) {
+      setError('Card setup is not configured yet. Please contact Barber Launch support.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('managed-ad-billing', {
+        body: { action: 'createSetupCheckout', idempotencyKey: crypto.randomUUID() },
+      });
+      const secret = (data as { clientSecret?: string | null } | null)?.clientSecret;
+      if (!invokeError && typeof secret === 'string' && secret) {
+        setClientSecret(secret);
+        return;
+      }
+      setError(await readErrorMessage(data, invokeError, 'Could not open the secure card form. Please try again.'));
+    } catch {
+      setError('Could not reach billing. Check your connection and try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const previousRef = saved;
+  const onComplete = useCallback(() => {
+    setClientSecret(null);
+    void waitForServer(previousRef);
+  }, [waitForServer, previousRef]);
+  const options = useMemo(() => (clientSecret ? { clientSecret, onComplete } : null), [clientSecret, onComplete]);
+
+  return (
+    <div className={`${embedded ? '' : 'glass-card '}rounded-lg border border-border/60 bg-background/40 p-4 space-y-3`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <CreditCard className="w-4 h-4 text-primary" />
+          {isLoading ? (
+            <span className="text-muted-foreground">Checking your saved card…</span>
+          ) : saved ? (
+            <span className="text-primary font-medium">Card saved</span>
+          ) : (
+            <span className="font-medium">Payment method</span>
+          )}
+        </div>
+        {!clientSecret && !waiting && (
+          <Button size="sm" variant={saved ? 'outline' : 'default'} onClick={start} disabled={busy || isLoading}>
+            {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            {saved ? 'Replace card' : 'Add payment method'}
+          </Button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Saving a card does not charge you, does not add media funds, and does not start any ads.
+      </p>
+      {isError && <p className="text-xs text-destructive" role="alert">Could not check your saved card. Refresh to try again.</p>}
+      {clientSecret && options && (
+        <div className="space-y-2">
+          <div className="flex justify-end">
+            <Button size="sm" variant="ghost" onClick={() => setClientSecret(null)}>Cancel</Button>
+          </div>
+          <div className="rounded-lg bg-white p-2 overflow-hidden">
+            <EmbeddedCheckoutProvider stripe={getStripe()!} options={options}>
+              <EmbeddedCheckout className="min-h-[360px]" />
+            </EmbeddedCheckoutProvider>
+          </div>
+        </div>
+      )}
+      {waiting && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" /> Waiting for Stripe to confirm your card…
+        </div>
+      )}
+      {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
+    </div>
+  );
+}
 
 function AdBillingPanel({ campaign, onChanged }: { campaign: Campaign; onChanged: () => void }) {
   const [fundingAmount, setFundingAmount] = useState('2.00');
@@ -273,15 +432,13 @@ function AdBillingPanel({ campaign, onChanged }: { campaign: Campaign; onChanged
           idempotencyKey: crypto.randomUUID(),
         },
       });
-      if (error) throw error;
       const secret = (data as { clientSecret?: string | null } | null)?.clientSecret;
-      if (typeof secret === 'string' && secret) {
+      if (!error && typeof secret === 'string' && secret) {
         setPendingCents(amountCents);
         setClientSecret(secret);
         return;
       }
-      const message = (data as { error?: string } | null)?.error;
-      setFundingError(message || 'Could not start the secure payment form. Please try again.');
+      setFundingError(await readErrorMessage(data, error, 'Could not start the secure payment form. Please try again.'));
     } catch (err) {
       setFundingError(err instanceof Error ? err.message : 'Could not start the secure payment form. Please try again.');
     } finally {
@@ -295,12 +452,29 @@ function AdBillingPanel({ campaign, onChanged }: { campaign: Campaign; onChanged
     setFundingError(null);
   };
 
+  const [confirming, setConfirming] = useState(false);
+  const startFunded = campaign.funded_cents;
   const onCheckoutComplete = useCallback(() => {
     setClientSecret(null);
     setPendingCents(null);
-    toast.success('Payment submitted. Your media balance updates as soon as Stripe confirms it.');
-    onChanged();
-  }, [onChanged]);
+    setConfirming(true);
+    void (async () => {
+      for (let i = 0; i < 30; i += 1) {
+        const { data } = await supabase.functions.invoke('managed-ad-campaigns', { body: { action: 'getDashboard' } });
+        const row = ((data?.campaigns ?? []) as Campaign[]).find((c) => c.id === campaign.id);
+        if (row && row.funded_cents > startFunded) {
+          setConfirming(false);
+          toast.success(`Payment confirmed. ${money(row.funded_cents - startFunded)} added to ${campaign.name}.`);
+          onChanged();
+          return;
+        }
+        await sleep(2000);
+      }
+      setConfirming(false);
+      setFundingError("Stripe hasn't confirmed this payment yet. Refresh in a minute before paying again; contact support if your balance doesn't update.");
+      onChanged();
+    })();
+  }, [onChanged, campaign.id, campaign.name, startFunded]);
 
   const checkoutOptions = useMemo(
     () => (clientSecret ? { clientSecret, onComplete: onCheckoutComplete } : null),
@@ -320,7 +494,7 @@ function AdBillingPanel({ campaign, onChanged }: { campaign: Campaign; onChanged
         </div>
       </div>
 
-      {!clientSecret ? (
+      {confirming ? null : !clientSecret ? (
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[140px]">
             <Label className="text-xs">Amount (USD)</Label>
@@ -366,6 +540,11 @@ function AdBillingPanel({ campaign, onChanged }: { campaign: Campaign; onChanged
         </div>
       )}
 
+      {confirming && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" /> Waiting for Stripe to confirm your payment…
+        </div>
+      )}
       {fundingError && (
         <p className="text-xs text-destructive" role="alert">
           {fundingError}
@@ -447,6 +626,11 @@ function CampaignCard({ campaign, onChanged }: { campaign: Campaign; onChanged: 
       <div className="border-t border-border/60 pt-4 flex items-center gap-2 text-sm">
         <WalletCards className="w-4 h-4 text-primary" />
         <span>{money(balance)} media balance</span>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">Add prepaid media funds to this campaign. Minimum $2.00.</p>
+        <AdBillingPanel campaign={campaign} onChanged={onChanged} />
       </div>
 
       <CampaignResults campaignId={campaign.id} />
