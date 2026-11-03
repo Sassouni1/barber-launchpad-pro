@@ -43,7 +43,7 @@ export default function SettingUpYourFacebook() {
           <h2 className="font-display text-xl font-semibold">Facebook cover image</h2>
           <p className="mt-1 text-sm text-muted-foreground">Preview the image, then save the original PNG file to use as your Page cover photo.</p>
           <div className="mt-4 overflow-hidden rounded-xl border border-border">
-            <img src={FACEBOOK_BANNER_PATH} alt="Before and after hair replacement examples for a Facebook Page cover" className="block h-auto w-full" />
+            <img src={FACEBOOK_BANNER_PATH} alt="Chris's before-and-after hair replacement photos on the left, with a second before-and-after on the right" className="block h-auto w-full" />
           </div>
           <div className="mt-4">
             <FileDownloadButton url={FACEBOOK_BANNER_PATH} filename="barber-launch-facebook-cover.png" label="Download cover image" className="gap-2" />
