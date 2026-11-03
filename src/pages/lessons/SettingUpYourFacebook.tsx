@@ -43,7 +43,7 @@ export default function SettingUpYourFacebook() {
           <h2 className="font-display text-xl font-semibold">Facebook cover image</h2>
           <p className="mt-1 text-sm text-muted-foreground">Preview the image, then save the original PNG file to use as your Page cover photo.</p>
           <div className="mt-4 overflow-hidden rounded-xl border border-border">
-            <img src={FACEBOOK_BANNER_PATH} alt="Chris's before-and-after hair replacement photos on the left, with a second before-and-after on the right" className="block h-auto w-full" />
+            <img src={FACEBOOK_BANNER_PATH} alt="Original Barber Launch cover image supplied by Chris, featuring Chris and a hair replacement before-and-after" className="block h-auto w-full" />
           </div>
           <div className="mt-4">
             <FileDownloadButton url={FACEBOOK_BANNER_PATH} filename="barber-launch-facebook-cover.png" label="Download cover image" className="gap-2" />
@@ -56,7 +56,7 @@ export default function SettingUpYourFacebook() {
             <li>In Facebook, create a Page for your barber or hair replacement business. Use the business name clients know.</li>
             <li>Add a clear profile photo or your business logo, then enter your location, contact details, hours, and booking link.</li>
             <li>Download the cover image above. On your Page, choose <strong>Edit cover photo</strong> and upload the saved PNG.</li>
-            <li>Check the cover on both desktop and mobile. Reposition it if Facebook crops an important part of either example.</li>
+            <li>Check the cover on both desktop and mobile. Reposition it if Facebook crops an important part of the image.</li>
             <li>Add a short description of your services and a booking action button, then review the Page before sharing it.</li>
           </ol>
         </section>
