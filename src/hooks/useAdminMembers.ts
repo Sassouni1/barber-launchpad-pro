@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
 import { isQuizPassed } from '@/lib/quizPass';
+import { summarizeQuizAttempts, type QuizHistoryAttempt } from '@/lib/memberQuizHistory';
 
 export interface DynamicTodoItemStatus {
   itemId: string;
@@ -51,6 +52,7 @@ export interface QuizModuleStatus {
   passed: boolean;
   attempted: boolean;
   attemptCount: number;
+  attempts: QuizHistoryAttempt[];
 }
 
 export interface CourseQuizGroup {
@@ -314,28 +316,51 @@ export function useAdminMemberDetail(userId: string | null) {
         .maybeSingle();
 
       // Fetch all courses for grouping
-      const { data: allCourses } = await supabase
+      const { data: allCourses, error: coursesError } = await supabase
         .from('courses')
         .select('id, title')
         .order('order_index');
 
+      if (coursesError) throw coursesError;
+
       const courseMap = new Map((allCourses || []).map(c => [c.id, c.title]));
 
       // Fetch all modules with quizzes
-      const { data: quizModules } = await supabase
+      const { data: quizModules, error: modulesError } = await supabase
         .from('modules')
         .select('id, title, order_index, course_id')
         .eq('has_quiz', true)
         .order('order_index');
 
-      // Fetch quiz attempts with module info
-      const { data: quizAttempts, error: quizError } = await supabase
-        .from('user_quiz_attempts')
-        .select('*, modules(title)')
-        .eq('user_id', userId)
-        .order('completed_at', { ascending: false });
+      if (modulesError) throw modulesError;
 
-      if (quizError) throw quizError;
+      // Fetch quiz attempts with module info
+      // Page the selected member's entire history, not the API's default row limit.
+      const quizAttempts: QuizHistoryAttempt[] = [];
+      const historicalModules = new Map<string, { id: string; title: string; course_id: string }>();
+      const pageSize = 500;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabase
+          .from('user_quiz_attempts')
+          .select('id, module_id, score, total_questions, completed_at, modules(title, course_id), lessons(title)')
+          .eq('user_id', userId)
+          .order('completed_at', { ascending: false })
+          .order('id', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        for (const q of data || []) {
+          quizAttempts.push({
+            id: q.id, module_id: q.module_id, module_title: q.modules?.title || 'Unknown Module',
+            lesson_title: q.lessons?.title || null, score: q.score,
+            total_questions: q.total_questions, completed_at: q.completed_at,
+          });
+          historicalModules.set(q.module_id, {
+            id: q.module_id, title: q.modules?.title || 'Unknown Module',
+            course_id: q.modules?.course_id || 'historical',
+          });
+        }
+        if (!data || data.length < pageSize) break;
+      }
 
       // Watch analytics — separate from completion / certification.
       const { data: videoProgress } = await supabase
@@ -434,32 +459,20 @@ export function useAdminMemberDetail(userId: string | null) {
         attemptsByModule.set(a.module_id, list);
       });
 
-      const quizStatus: QuizModuleStatus[] = (quizModules || []).map(mod => {
+      const configuredIds = new Set((quizModules || []).map(mod => mod.id));
+      const allQuizModules = [
+        ...(quizModules || []),
+        ...Array.from(historicalModules.values()).filter(mod => !configuredIds.has(mod.id)),
+      ];
+      const quizStatus: QuizModuleStatus[] = allQuizModules.map(mod => {
         const attempts = attemptsByModule.get(mod.id) || [];
-        let bestScore: number | null = null;
-        let bestTotal = 0;
-        let bestRatio = -1;
-        let bestRaw = 0;
-        attempts.forEach(a => {
-          if (!a.total_questions || a.total_questions <= 0) return;
-          const ratio = a.score / a.total_questions;
-          if (ratio > bestRatio) {
-            bestRatio = ratio;
-            bestScore = Math.round(Math.min(ratio, 1) * 100);
-            bestTotal = a.total_questions;
-            bestRaw = a.score;
-          }
-        });
         return {
           module_id: mod.id,
           module_title: mod.title,
           course_id: mod.course_id,
           course_title: courseMap.get(mod.course_id) || 'Unknown Course',
-          bestScore,
-          totalQuestions: bestTotal,
-          passed: bestTotal > 0 && isQuizPassed(bestRaw, bestTotal),
-          attempted: attempts.length > 0,
-          attemptCount: attempts.length,
+          ...summarizeQuizAttempts(attempts),
+          attempts,
         };
       });
 
@@ -475,7 +488,8 @@ export function useAdminMemberDetail(userId: string | null) {
             totalCount: 0,
           });
         }
-        const group = courseGroups.get(qs.course_id)!;
+        const group = courseGroups.get(qs.course_id);
+        if (!group) return;
         group.modules.push(qs);
         group.totalCount++;
         if (qs.passed) group.passedCount++;
@@ -483,9 +497,9 @@ export function useAdminMemberDetail(userId: string | null) {
       const quizByCourse = Array.from(courseGroups.values());
 
       return {
-        quizAttempts: quizAttempts?.map(q => ({
+        quizAttempts: quizAttempts.map(q => ({
           module_id: q.module_id,
-          module_title: (q.modules as any)?.title || 'Unknown Module',
+          module_title: q.module_title,
           score: q.score,
           total_questions: q.total_questions,
           completed_at: q.completed_at,
@@ -512,6 +526,7 @@ export function useAdminMemberDetail(userId: string | null) {
       } as MemberDetail;
     },
     enabled: !!userId,
+    staleTime: 300000,
   });
 }
 
