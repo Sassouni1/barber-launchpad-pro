@@ -4,7 +4,7 @@
 // Access is proved by a short-lived, single-use checkout intent issued by
 // affiliate-intake for the current submission. Referral ids are never accepted
 // from the browser, and redirect URLs are never taken from the request Origin.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import {
   adminClient,
   json,

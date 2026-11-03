@@ -1,4 +1,4 @@
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import { requireUser, serviceClient, slugify } from "../_shared/websiteAuth.ts";
 import { SITE_WORKER_SOURCE, SITE_WORKER_VERSION } from "../_shared/siteWorker.ts";
 

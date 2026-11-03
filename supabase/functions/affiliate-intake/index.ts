@@ -5,7 +5,7 @@
 // about an existing lead (name, phone, affiliate, status) and never returns a
 // reusable reference to a referral record. Enrollment hand-off uses a
 // short-lived, single-use checkout intent bound to THIS submission only.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import {
   adminClient,
   isEmail,

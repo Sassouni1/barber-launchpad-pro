@@ -6,7 +6,7 @@
 // Nothing is ever awarded unless an admin has configured a reward amount and
 // switched content rewards on. Files live in a private bucket; reviewers read
 // them through short-lived signed URLs only.
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import { adminClient, isAdmin, json, newAffiliateCode, requireUser } from "../_shared/affiliate.ts";
 
 const BUCKET = "content-rewards";

@@ -18,7 +18,7 @@
 //   * configuration / balance / account-not-ready are holds that resume by
 //     themselves — they never burn real retry attempts
 //   * a dry run writes nothing at all
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/cors.ts";
 import {
   adminClient,
   evaluateAccount,
