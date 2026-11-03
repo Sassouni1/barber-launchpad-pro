@@ -57,6 +57,13 @@
       "when": 1793393365771,
       "tag": "0007_buyer_shipping_cron_token_check",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793698309952,
+      "tag": "0008_ad_social_oauth_attempts",
+      "breakpoints": true
     }
   ]
 }
