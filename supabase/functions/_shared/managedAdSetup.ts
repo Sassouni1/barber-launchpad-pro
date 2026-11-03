@@ -61,15 +61,16 @@ export async function handleAdCardSetupSession(session: SetupSession, deps: Setu
   return { handled: true, result: "saved" };
 }
 
-/** Body for Stripe embedded Checkout in setup mode. No amount, no line items. */
+/** Body for Stripe-hosted Checkout in setup mode (same-tab redirect). No amount, no line items. */
 export function buildSetupSessionBody(input: { stripeCustomerId: string; memberId: string; appUrl: string }) {
   return {
     mode: "setup",
-    ui_mode: "embedded",
+    ui_mode: "hosted",
     currency: "usd",
     customer: input.stripeCustomerId,
     "payment_method_types[0]": "card",
-    return_url: `${input.appUrl}/ads?setup_session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${input.appUrl}/ads?setup_session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${input.appUrl}/ads?setup_canceled=1`,
     "metadata[purpose]": AD_CARD_SETUP_PURPOSE,
     "metadata[customer_id]": input.memberId,
     "setup_intent_data[metadata][purpose]": AD_CARD_SETUP_PURPOSE,

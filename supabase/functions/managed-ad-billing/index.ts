@@ -148,7 +148,9 @@ Deno.serve(async (req) => {
         idempotencyKey: `ad-setup-${userId}-${body.idempotencyKey}`,
         body: buildSetupSessionBody({ stripeCustomerId: stripeCustomerId!, memberId: userId, appUrl }),
       });
-      return json({ clientSecret: session.client_secret ?? null });
+      const hostedUrl = typeof session.url === "string" && session.url.startsWith("https://checkout.stripe.com/") ? session.url : null;
+      if (!hostedUrl) return json({ error: "Stripe did not return a secure card setup page. Please try again." }, 502);
+      return json({ url: hostedUrl });
     }
 
 
