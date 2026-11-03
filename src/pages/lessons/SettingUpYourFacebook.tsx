@@ -1,0 +1,59 @@
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { FileDownloadButton } from "@/components/ui/file-download-button";
+import { useAuth } from "@/hooks/useAuth";
+import { canViewFacebookPreview, FACEBOOK_BANNER_PATH } from "@/data/facebookPreviewLesson";
+
+export default function SettingUpYourFacebook() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  if (!canViewFacebookPreview(user?.email)) {
+    return <Navigate to="/courses/business" replace />;
+  }
+
+  return (
+    <DashboardLayout>
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-12">
+        <div className="flex items-start gap-3">
+          <Button variant="ghost" size="icon" aria-label="Back to Business Mastery" onClick={() => navigate("/courses/business")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <p className="text-sm text-muted-foreground">Business Mastery</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-display text-2xl font-bold sm:text-3xl">Setting Up Your Facebook</h1>
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-amber-400">Unpublished</span>
+            </div>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Create a Facebook Page for your hair replacement services and add the cover image below.</p>
+          </div>
+        </div>
+
+        <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+          <h2 className="font-display text-xl font-semibold">Facebook cover image</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Preview the image, then save the original PNG file to use as your Page cover photo.</p>
+          <a href={FACEBOOK_BANNER_PATH} target="_blank" rel="noopener noreferrer" className="mt-4 block overflow-hidden rounded-xl border border-border" aria-label="Open Facebook cover image at full size">
+            <img src={FACEBOOK_BANNER_PATH} alt="Before and after hair replacement examples for a Facebook Page cover" className="block h-auto w-full" />
+          </a>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <FileDownloadButton url={FACEBOOK_BANNER_PATH} filename="barber-launch-facebook-cover.png" label="Download cover image" className="gap-2" />
+            <a href={FACEBOOK_BANNER_PATH} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary underline underline-offset-4">View full size <ExternalLink className="h-3.5 w-3.5" /></a>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+          <h2 className="font-display text-xl font-semibold">Set up your Page</h2>
+          <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm leading-relaxed text-foreground/90">
+            <li>In Facebook, create a Page for your barber or hair replacement business. Use the business name clients know.</li>
+            <li>Add a clear profile photo or your business logo, then enter your location, contact details, hours, and booking link.</li>
+            <li>Download the cover image above. On your Page, choose <strong>Edit cover photo</strong> and upload the saved PNG.</li>
+            <li>Check the cover on both desktop and mobile. Reposition it if Facebook crops an important part of either example.</li>
+            <li>Add a short description of your services and a booking action button, then review the Page before sharing it.</li>
+          </ol>
+        </section>
+      </main>
+    </DashboardLayout>
+  );
+}

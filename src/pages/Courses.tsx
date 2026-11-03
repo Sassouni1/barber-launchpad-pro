@@ -45,6 +45,12 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { FIRST_POST_MODULE_ID } from "@/data/postLessons";
 import {
+  canViewFacebookPreview,
+  FACEBOOK_PREVIEW_MODULE,
+  FACEBOOK_PREVIEW_MODULE_ID,
+  FACEBOOK_PREVIEW_PATH,
+} from "@/data/facebookPreviewLesson";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -456,7 +462,16 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   // Directory enrollment module is always visible to everyone.
   // Verification that the user is holding the certificate happens at upload time
   // via AI image analysis in the analyze-certificate-template edge function.
-  const allCourses = allCoursesRaw;
+  const allCourses = useMemo(() => {
+    if (!canViewFacebookPreview(user?.email)) return allCoursesRaw;
+    return allCoursesRaw.map((course) => {
+      if (course.id !== FACEBOOK_PREVIEW_MODULE.course_id) return course;
+      const modules = course.modules.filter((module) => module.id !== FACEBOOK_PREVIEW_MODULE_ID);
+      const instagramIndex = modules.findIndex((module) => module.title === "Setting Up Your Instagram");
+      modules.splice(instagramIndex < 0 ? modules.length : instagramIndex + 1, 0, FACEBOOK_PREVIEW_MODULE);
+      return { ...course, modules };
+    });
+  }, [allCoursesRaw, user?.email]);
   const hairSystemCourseId = allCourses.find(
     (course) => (course as any).category === "hair-system",
   )?.id;
@@ -899,6 +914,10 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
   };
 
   const goToLesson = (moduleId: string, categoryId: string, tab?: string) => {
+    if (moduleId === FACEBOOK_PREVIEW_MODULE_ID) {
+      navigate(FACEBOOK_PREVIEW_PATH);
+      return;
+    }
     const url = tab
       ? `/courses/${categoryId}/lesson/${moduleId}?tab=${tab}`
       : `/courses/${categoryId}/lesson/${moduleId}`;
@@ -1489,9 +1508,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   } catch {
                                     // Ignore storage failures; navigation still works.
                                   }
-                                  navigate(
-                                    `/courses/${category.id}/lesson/${module.id}`,
-                                  );
+                                  goToLesson(module.id, category.id);
                                 }}
                                 className={cn(
                                   "w-full min-h-[100px] p-3.5 rounded-xl flex items-center gap-3 transition-all duration-200 text-left border-2 shadow-md shadow-black/20 active:scale-[0.98]",
@@ -1559,6 +1576,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     )}
                                   </h4>
                                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                    {module.id === FACEBOOK_PREVIEW_MODULE_ID && (
+                                      <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
+                                        Unpublished
+                                      </span>
+                                    )}
                                     {isOrderTrackingModule && !completed ? (
                                       <>
                                         <span className="inline-flex items-center gap-1 rounded-full border border-warning/35 bg-warning/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
@@ -1962,15 +1984,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                       shouldOpenModuleDirectly(module) ||
                                       !module.video_url?.trim()
                                     ) {
-                                      navigate(
-                                        `/courses/${courseType}/lesson/${module.id}`,
-                                      );
+                                      goToLesson(module.id, courseType);
                                     } else if (isDesktop) {
                                       selectDesktopModule(module.id);
                                     } else {
-                                      navigate(
-                                        `/courses/${courseType}/lesson/${module.id}`,
-                                      );
+                                      goToLesson(module.id, courseType);
                                     }
                                   }}
                                   className={cn(
@@ -2048,6 +2066,11 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
                                       )}
                                     </h4>
+                                    {module.id === FACEBOOK_PREVIEW_MODULE_ID && (
+                                      <span className="mb-2 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
+                                        Unpublished
+                                      </span>
+                                    )}
                                     {isOrderTrackingModule && !completed ? (
                                       <div className="mb-2 flex flex-wrap items-center gap-2">
                                         <span className="inline-flex items-center gap-1 rounded-full border border-warning/35 bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
