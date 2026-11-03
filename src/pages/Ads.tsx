@@ -88,16 +88,19 @@ export default function Ads() {
     },
   });
 
+  const [fundingReturnSession, setFundingReturnSession] = useState<string | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (!params.get('funding_session_id')) return;
-    toast.message('Payment submitted. Your media balance updates once Stripe confirms it.');
-    queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] });
-    queryClient.invalidateQueries({ queryKey: ['ad-billing-profile', user?.id] });
+    const returned = params.get('funding_session_id');
+    const canceled = params.get('funding_canceled');
+    if (!returned && !canceled) return;
+    if (returned) setFundingReturnSession(returned);
+    else toast.message('Payment canceled. No charge was made.');
     params.delete('funding_session_id');
+    params.delete('funding_canceled');
     const query = params.toString();
     window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-  }, [queryClient, user?.id]);
+  }, []);
 
   const refreshAll = () => {
     queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] });
@@ -118,9 +121,21 @@ export default function Ads() {
   };
 
   const intro = (
-    <p className="text-muted-foreground text-sm mt-1">
-      Barber Launch sets up and runs your campaigns from our managed Meta account.
-    </p>
+    <>
+      <p className="text-muted-foreground text-sm mt-1">
+        Barber Launch sets up and runs your campaigns from our managed Meta account.
+      </p>
+      {fundingReturnSession && (
+        <FundingReturnStatus
+          sessionId={fundingReturnSession}
+          onConfirmed={() => {
+            queryClient.invalidateQueries({ queryKey: ['member-ad-campaigns'] });
+            queryClient.invalidateQueries({ queryKey: ['ad-billing-profile', user?.id] });
+          }}
+          onDismiss={() => setFundingReturnSession(null)}
+        />
+      )}
+    </>
   );
 
   // ---- Onboarding: Facebook not connected yet ----
@@ -387,83 +402,109 @@ function CardSetupPanel({ embedded = false }: { embedded?: boolean }) {
   );
 }
 
-function AdBillingPanel({ campaign, onChanged }: { campaign: Campaign; onChanged: () => void }) {
+type FundingStatusResponse = {
+  state?: 'not_found' | 'pending' | 'failed' | 'confirmed';
+  amountCents?: number;
+  balanceCents?: number;
+  campaignName?: string | null;
+  error?: string;
+};
+
+/** After Stripe redirects back, success is shown only once the server confirms the webhook-recorded ledger entry. */
+function FundingReturnStatus({ sessionId, onConfirmed, onDismiss }: { sessionId: string; onConfirmed: () => void; onDismiss: () => void }) {
+  const [status, setStatus] = useState<FundingStatusResponse | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      for (let i = 0; i < 30 && !cancelled; i += 1) {
+        const { data, error } = await supabase.functions.invoke('managed-ad-billing', {
+          body: { action: 'getFundingStatus', sessionId },
+        });
+        if (cancelled) return;
+        if (error || (data as FundingStatusResponse | null)?.error) {
+          setRequestError(await readErrorMessage(data, error, 'Could not check this payment. Refresh before paying again.'));
+          return;
+        }
+        const next = data as FundingStatusResponse;
+        setStatus(next);
+        if (next.state === 'confirmed') {
+          onConfirmed();
+          return;
+        }
+        if (next.state === 'failed' || next.state === 'not_found') return;
+        await sleep(2000);
+      }
+      if (!cancelled) setTimedOut(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  const state = status?.state;
+  return (
+    <div className="glass-card mt-4 rounded-lg border border-border/60 bg-background/40 p-4 text-sm space-y-2" role="status">
+      {requestError ? (
+        <p className="text-destructive">{requestError}</p>
+      ) : state === 'confirmed' ? (
+        <p className="text-primary font-medium">
+          Payment confirmed: {money(status?.amountCents ?? 0)} added to {status?.campaignName ?? 'your campaign'}. New media balance: {money(status?.balanceCents ?? 0)}.
+        </p>
+      ) : state === 'failed' ? (
+        <p className="text-destructive">This payment did not go through. No media funds were added.</p>
+      ) : state === 'not_found' ? (
+        <p className="text-destructive">We couldn't find this payment on your account. Refresh before paying again, or contact Barber Launch support.</p>
+      ) : timedOut ? (
+        <p className="text-destructive">
+          Stripe hasn't confirmed {status?.amountCents ? money(status.amountCents) : 'this payment'} yet. Refresh in a minute before paying again; contact support if your balance doesn't update.
+        </p>
+      ) : (
+        <p className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" /> Waiting for Stripe to confirm your payment
+          {status?.amountCents ? ` of ${money(status.amountCents)}` : ''}… Your balance updates only after confirmation.
+        </p>
+      )}
+      {(state === 'confirmed' || state === 'failed' || state === 'not_found' || timedOut || requestError) && (
+        <Button size="sm" variant="ghost" onClick={onDismiss}>Dismiss</Button>
+      )}
+    </div>
+  );
+}
+
+function AdBillingPanel({ campaign }: { campaign: Campaign; onChanged?: () => void }) {
   const [fundingAmount, setFundingAmount] = useState('2.00');
   const [fundingBusy, setFundingBusy] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [fundingError, setFundingError] = useState<string | null>(null);
-  const [pendingCents, setPendingCents] = useState<number | null>(null);
   const balance = campaign.funded_cents - campaign.spent_cents;
+  const dollars = Number(fundingAmount);
+  const amountCents = Number.isFinite(dollars) ? Math.round(dollars * 100) : 0;
 
   const startPayment = async () => {
-    const dollars = Number(fundingAmount);
-    const amountCents = Math.round(dollars * 100);
-    if (!Number.isFinite(dollars) || amountCents < 200) {
+    if (amountCents < 200) {
       return toast.error('Enter a funding amount of at least $2.00.');
-    }
-    if (!getStripe()) {
-      setFundingError('Card payments are not configured yet. Please contact Barber Launch support.');
-      return;
     }
     setFundingBusy(true);
     setFundingError(null);
     try {
       const { data, error } = await supabase.functions.invoke('managed-ad-billing', {
-        body: {
-          action: 'createCheckout',
-          campaignId: campaign.id,
-          amountCents,
-          idempotencyKey: crypto.randomUUID(),
-        },
+        body: { action: 'createCheckout', campaignId: campaign.id, amountCents, idempotencyKey: crypto.randomUUID() },
       });
-      const secret = (data as { clientSecret?: string | null } | null)?.clientSecret;
-      if (!error && typeof secret === 'string' && secret) {
-        setPendingCents(amountCents);
-        setClientSecret(secret);
+      const url = (data as { url?: string | null } | null)?.url;
+      if (!error && typeof url === 'string' && url.startsWith('https://checkout.stripe.com/')) {
+        window.location.assign(url);
         return;
       }
-      setFundingError(await readErrorMessage(data, error, 'Could not start the secure payment form. Please try again.'));
+      setFundingError(await readErrorMessage(data, error, 'Could not open the secure Stripe page. Please try again.'));
+      setFundingBusy(false);
     } catch (err) {
-      setFundingError(err instanceof Error ? err.message : 'Could not start the secure payment form. Please try again.');
-    } finally {
+      setFundingError(err instanceof Error ? err.message : 'Could not open the secure Stripe page. Please try again.');
       setFundingBusy(false);
     }
   };
-
-  const cancelPayment = () => {
-    setClientSecret(null);
-    setPendingCents(null);
-    setFundingError(null);
-  };
-
-  const [confirming, setConfirming] = useState(false);
-  const startFunded = campaign.funded_cents;
-  const onCheckoutComplete = useCallback(() => {
-    setClientSecret(null);
-    setPendingCents(null);
-    setConfirming(true);
-    void (async () => {
-      for (let i = 0; i < 30; i += 1) {
-        const { data } = await supabase.functions.invoke('managed-ad-campaigns', { body: { action: 'getDashboard' } });
-        const row = ((data?.campaigns ?? []) as Campaign[]).find((c) => c.id === campaign.id);
-        if (row && row.funded_cents > startFunded) {
-          setConfirming(false);
-          toast.success(`Payment confirmed. ${money(row.funded_cents - startFunded)} added to ${campaign.name}.`);
-          onChanged();
-          return;
-        }
-        await sleep(2000);
-      }
-      setConfirming(false);
-      setFundingError("Stripe hasn't confirmed this payment yet. Refresh in a minute before paying again; contact support if your balance doesn't update.");
-      onChanged();
-    })();
-  }, [onChanged, campaign.id, campaign.name, startFunded]);
-
-  const checkoutOptions = useMemo(
-    () => (clientSecret ? { clientSecret, onComplete: onCheckoutComplete } : null),
-    [clientSecret, onCheckoutComplete],
-  );
 
   return (
     <div className="rounded-lg border border-border/60 bg-background/40 p-4 space-y-3">
@@ -477,58 +518,35 @@ function AdBillingPanel({ campaign, onChanged }: { campaign: Campaign; onChanged
           <span>{money(balance)} media balance</span>
         </div>
       </div>
-
-      {confirming ? null : !clientSecret ? (
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="flex-1 min-w-[140px]">
-            <Label className="text-xs">Amount (USD)</Label>
-            <Input
-              type="number"
-              min="2"
-              step="0.01"
-              inputMode="decimal"
-              value={fundingAmount}
-              onChange={(e) => setFundingAmount(e.target.value)}
-              disabled={fundingBusy}
-              className="mt-1"
-            />
-          </div>
-          <Button size="sm" onClick={startPayment} disabled={fundingBusy}>
-            {fundingBusy ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Preparing…
-              </>
-            ) : (
-              'Continue to secure payment'
-            )}
-          </Button>
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="flex-1 min-w-[140px]">
+          <Label className="text-xs">Amount (USD)</Label>
+          <Input
+            type="number"
+            min="2"
+            step="0.01"
+            inputMode="decimal"
+            value={fundingAmount}
+            onChange={(e) => setFundingAmount(e.target.value)}
+            disabled={fundingBusy}
+            className="mt-1"
+          />
         </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground">
-              Funding <span className="text-foreground font-medium">{money(pendingCents ?? 0)}</span> to {campaign.name}
-            </p>
-            <Button size="sm" variant="ghost" onClick={cancelPayment}>
-              Cancel payment
-            </Button>
-          </div>
-          <div className="rounded-lg bg-white p-2 overflow-hidden">
-            {checkoutOptions && (
-              <EmbeddedCheckoutProvider stripe={getStripe()!} options={checkoutOptions}>
-                <EmbeddedCheckout className="min-h-[420px]" />
-              </EmbeddedCheckoutProvider>
-            )}
-          </div>
-        </div>
-      )}
-
-      {confirming && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" /> Waiting for Stripe to confirm your payment…
-        </div>
-      )}
+        <Button size="sm" onClick={startPayment} disabled={fundingBusy}>
+          {fundingBusy ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Opening secure Stripe page…
+            </>
+          ) : (
+            'Continue to secure payment'
+          )}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        You'll fund <span className="text-foreground font-medium">{amountCents >= 200 ? money(amountCents) : 'at least $2.00'}</span> to{' '}
+        <span className="text-foreground font-medium">{campaign.name}</span> on a secure Stripe page, then return here. Your balance updates only after Stripe confirms the payment.
+      </p>
       {fundingError && (
         <p className="text-xs text-destructive" role="alert">
           {fundingError}
