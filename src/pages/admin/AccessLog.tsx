@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -62,22 +62,56 @@ function csvEscape(v: unknown): string {
 
 export default function AccessLog() {
   const [search, setSearch] = useState('');
+  const [debounced, setDebounced] = useState('');
   const [eventType, setEventType] = useState('all');
   const [days, setDays] = useState('30');
   const [focusUser, setFocusUser] = useState<string | null>(null);
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ['admin-access-log', eventType, days],
-    queryFn: async () => {
-      const since = new Date();
-      since.setDate(since.getDate() - parseInt(days, 10));
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(search.trim()), 350);
+    return () => window.clearTimeout(t);
+  }, [search]);
 
+  // When searching for a member by name/email (or focusing one), look up their full
+  // history on the server instead of filtering only the most recent events.
+  const { data: memberIds = null } = useQuery({
+    queryKey: ['admin-access-log-members', debounced],
+    enabled: debounced.length >= 2,
+    queryFn: async () => {
+      const term = debounced.replace(/[%,()]/g, ' ');
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .or(`full_name.ilike.%${term}%,email.ilike.%${term}%`)
+        .limit(50);
+      if (error) throw error;
+      return (data || []).map((p) => p.id as string);
+    },
+    staleTime: 30_000,
+  });
+
+  const scopedIds: string[] | null = focusUser
+    ? [focusUser]
+    : debounced.length >= 2 && memberIds && memberIds.length > 0
+    ? memberIds
+    : null;
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ['admin-access-log', eventType, days, scopedIds?.join(',') ?? ''],
+    queryFn: async () => {
       let q = supabase
         .from('access_log')
         .select('*')
-        .gte('created_at', since.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(2000);
+        .order('created_at', { ascending: false });
+
+      if (scopedIds) {
+        // Member lookup: full history, all time.
+        q = q.in('user_id', scopedIds).limit(5000);
+      } else {
+        const since = new Date();
+        since.setDate(since.getDate() - parseInt(days, 10));
+        q = q.gte('created_at', since.toISOString()).limit(2000);
+      }
 
       if (eventType !== 'all') q = q.eq('event_type', eventType);
 
@@ -351,7 +385,7 @@ export default function AccessLog() {
         </Card>
 
         <p className="text-xs text-muted-foreground">
-          Showing up to 2,000 most recent events. IP, geolocation, device and user agent are captured server-side and cannot be spoofed by the client.
+          Searching a member name or email shows their full history (all time). Otherwise showing up to 2,000 most recent events. IP, geolocation, device and user agent are captured server-side and cannot be spoofed by the client.
         </p>
       </div>
     </DashboardLayout>

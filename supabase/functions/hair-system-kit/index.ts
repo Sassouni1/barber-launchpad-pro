@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsHeaders } from "../_shared/cors.ts";
 import { z } from 'npm:zod@3';
 import { relayCall, relayProbe, relayDefinitelyDidNotSend } from '../_shared/barberLaunchGhlRelay.ts';
 import { KIT_ENROLLMENT_OFFERS, processKit } from './logic.ts';

@@ -1,7 +1,7 @@
 // Public supplier access layer for /newtimes. No login by owner request; returns only
 // the fields the supplier page displays and allows only supplier status/tracking actions
 // with the same optimistic checks the page used. Never deletes or touches other tables.
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { changeExtraPackage, ensurePrimaryUnique, reopenTrackingDetails, type ExtraChange } from '../_shared/supplierTracking.ts';
 
