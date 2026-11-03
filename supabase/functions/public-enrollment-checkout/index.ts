@@ -1,4 +1,4 @@
-// Public Barber Launch enrollment checkout: creates a Stripe Embedded Checkout session
+// Public Barber Launch enrollment checkout: creates a Stripe Checkout Session (ui_mode=elements) for a custom Payment Element form
 // for the fixed Hair System Mastery price. Standalone; no database access.
 const ALLOWED_ORIGINS = new Set(["https://thebarberlaunch.com", "https://www.thebarberlaunch.com"]);
 const EXPECTED_ACCOUNT = "acct_1LMNKMI6LFtj88Bq";
@@ -28,7 +28,7 @@ function json(body: unknown, status: number, origin: string | null) {
 async function stripe(path: string, key: string, init: RequestInit = {}) {
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${key}`, "Stripe-Version": "2024-06-20", ...(init.headers ?? {}) },
+    headers: { Authorization: `Bearer ${key}`, "Stripe-Version": "2026-03-25.dahlia", ...(init.headers ?? {}) },
   });
   let data: any = null;
   try { data = await res.json(); } catch { /* ignore */ }
@@ -69,13 +69,12 @@ Deno.serve(async (req) => {
   const acceptedAt = new Date().toISOString();
   const form = new URLSearchParams({
     mode: "payment",
-    ui_mode: "embedded",
+    ui_mode: "elements",
     "line_items[0][price]": PRICE_ID,
     "line_items[0][quantity]": "1",
     return_url: RETURN_URL,
     billing_address_collection: "required",
     "phone_number_collection[enabled]": "true",
-    "name_collection[individual][enabled]": "true",
     "metadata[source]": "barber_launch_enrollment",
     "metadata[product]": "hair_system_mastery",
     "metadata[accepted_terms]": "true",
@@ -91,12 +90,7 @@ Deno.serve(async (req) => {
     body: f.toString(),
   });
 
-  let result = await create(form);
-  // name_collection is newer; retry without it only if Stripe rejects that parameter.
-  if (!result.ok && String(result.data?.error?.param ?? "").startsWith("name_collection")) {
-    form.delete("name_collection[individual][enabled]");
-    result = await create(form);
-  }
+  const result = await create(form);
 
   if (!result.ok || !result.data?.client_secret || !result.data?.id) {
     console.error("public-enrollment-checkout: session create failed", result.status, result.data?.error?.code ?? "", result.data?.error?.param ?? "");
