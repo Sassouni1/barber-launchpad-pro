@@ -54,6 +54,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { isQuizPassed } from '@/lib/quizPass';
 
 function StatCard({ title, value, icon: Icon, subtitle }: { 
   title: string; 
@@ -110,7 +111,7 @@ function formatWatchTime(seconds: number) {
 
 function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; onClose: () => void; refetch: () => void }) {
   const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set());
-  const { data: detail, isLoading } = useAdminMemberDetail(member.id);
+  const { data: detail, isLoading, isError, refetch: retryDetails } = useAdminMemberDetail(member.id);
   const toggleAdminRole = useToggleAdminRole();
   const [updatingSkip, setUpdatingSkip] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
@@ -201,12 +202,12 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
             {member.full_name?.charAt(0) || member.email?.charAt(0) || '?'}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-display text-xl font-semibold">{member.full_name || 'No Name'}</h3>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-display text-xl font-semibold break-words">{member.full_name || 'No Name'}</h3>
             {member.isAdmin && <Badge className="bg-primary/20 text-primary border-primary/30">Admin</Badge>}
           </div>
-          <p className="text-muted-foreground">{member.email}</p>
+          <p className="text-muted-foreground break-all">{member.email}</p>
           <p className="text-xs text-muted-foreground mt-1">
             Joined {format(new Date(member.created_at), 'MMM d, yyyy')}
           </p>
@@ -488,6 +489,11 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
 
       {isLoading ? (
         <p className="text-muted-foreground text-center py-4">Loading details...</p>
+      ) : isError ? (
+        <div className="space-y-3 text-center py-4" role="alert">
+          <p className="text-destructive">Member details could not be loaded.</p>
+          <Button variant="outline" onClick={() => retryDetails()}>Retry</Button>
+        </div>
       ) : (
         <>
           {/* Dynamic Todo Status */}
@@ -573,56 +579,50 @@ function MemberDetailPanel({ member, onClose, refetch }: { member: MemberStats; 
             )}
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-3 flex items-center gap-2">
-              <GraduationCap className="w-4 h-4" /> Quiz Progress
-              {detail?.quizStatus && detail.quizStatus.length > 0 && (
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  detail.quizStatus.filter(q => q.passed).length === detail.quizStatus.length
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-amber-500/20 text-amber-400'
-                }`}>
-                  {detail.quizStatus.filter(q => q.passed).length}/{detail.quizStatus.length} passed
-                </span>
-              )}
-            </h4>
-            {detail?.quizStatus && detail.quizStatus.length > 0 ? (
-              <ScrollArea className="h-48">
-                <div className="space-y-2">
-                  {detail.quizStatus.map((quiz) => (
-                    <div key={quiz.module_id} className={`flex items-center justify-between p-3 rounded-lg border ${
-                      quiz.passed
-                        ? 'bg-green-500/5 border-green-500/20'
-                        : quiz.attempted
-                          ? 'bg-red-500/5 border-red-500/20'
-                          : 'bg-secondary/20 border-border'
-                    }`}>
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {quiz.passed ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                        ) : quiz.attempted ? (
-                          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                        ) : (
-                          <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        )}
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm truncate">{quiz.module_title}</p>
-                          {quiz.attemptCount > 0 && (
-                            <p className="text-xs text-muted-foreground">{quiz.attemptCount} attempt{quiz.attemptCount !== 1 ? 's' : ''}</p>
-                          )}
-                        </div>
-                      </div>
-                      <Badge variant={quiz.passed ? 'default' : quiz.attempted ? 'destructive' : 'secondary'} className="ml-2">
-                        {quiz.bestScore !== null ? `${quiz.bestScore}%` : 'Not taken'}
+          <section aria-label="Member quiz history" className="space-y-4">
+            <div>
+              <h4 className="font-semibold flex flex-wrap items-center gap-2">
+                <GraduationCap className="w-4 h-4" /> All Quizzes
+                <Badge variant="outline">
+                  {detail?.quizStatus.filter(q => q.passed).length || 0}/{detail?.quizStatus.length || 0} passed
+                </Badge>
+              </h4>
+              <p className="mt-2 text-sm font-medium break-words">{member.full_name || 'No Name'}</p>
+              <p className="text-xs text-muted-foreground break-all">{member.email}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{detail?.quizAttempts.length || 0} total attempts · Dates in {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+            </div>
+            {detail?.quizByCoure.length ? detail.quizByCoure.map(course => (
+              <div key={course.course_id} className="space-y-2">
+                <h5 className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-sm font-semibold">
+                  <span>{course.course_title}</span>
+                  <span className="text-xs text-muted-foreground">{course.passedCount}/{course.totalCount} passed</span>
+                </h5>
+                {course.modules.map(quiz => (
+                  <div key={quiz.module_id} className="rounded-lg border border-border p-3 space-y-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="text-sm font-medium min-w-0 flex-1 break-words">{quiz.module_title}</p>
+                      <Badge variant={quiz.passed ? 'default' : quiz.attempted ? 'destructive' : 'secondary'} className="shrink-0">
+                        {quiz.passed ? 'Passed' : quiz.attempted ? 'Not passed' : 'Not taken'}
                       </Badge>
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            ) : (
-              <p className="text-muted-foreground text-sm">No quizzes configured</p>
-            )}
-          </div>
+                    {quiz.attempts.map((attempt, index) => (
+                      <div key={attempt.id} className="border-t border-border pt-2 text-xs space-y-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-muted-foreground">Attempt {quiz.attemptCount - index}{attempt.lesson_title ? ` · ${attempt.lesson_title}` : ''}</span>
+                          <span className={isQuizPassed(attempt.score, attempt.total_questions) ? 'text-primary' : 'text-destructive'}>
+                            {attempt.score}/{attempt.total_questions} correct · {isQuizPassed(attempt.score, attempt.total_questions) ? 'Passed' : 'Not passed'}
+                          </span>
+                        </div>
+                        <time dateTime={attempt.completed_at} className="block text-muted-foreground">
+                          {format(new Date(attempt.completed_at), "MMM d, yyyy 'at' h:mm:ss a")}
+                        </time>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )) : <p className="text-muted-foreground text-sm">No quizzes configured</p>}
+          </section>
 
           <div>
             <h4 className="font-semibold mb-3 flex items-center gap-2">

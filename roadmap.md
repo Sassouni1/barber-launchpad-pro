@@ -1,5 +1,9 @@
 # Roadmap
 
+## Member quiz detail note 1a56c9b5-84c0-4e0f-875f-f6e734b92c83
+- [x] Show all quizzes and every dated attempt, grouped by course, alongside the selected member's name and email; preserve member-only read scope and shared pass rule.
+- [x] Three focused tests and preview build passed; signed-in desktop/phone showed Suzie's 15 actual attempts with matching identity and dates, without overflow; no publication or member-data writes.
+
 ## Explicit supplier completion correction
 - [x] Keep tracking saves in processing/current; explicit Completed and undo with shared optimistic actions and completion-based eight-day archive; undo/recompletion suppresses repeat in-app shipment notice.
 - [x] Simplify package UI, deploy newtimes-orders through managed path; disposable first/second/late-third tracking, stale completion rejection, completion/undo, 40-day working-clock and eight-day completion-clock checks pass; remove disposable fixture.
