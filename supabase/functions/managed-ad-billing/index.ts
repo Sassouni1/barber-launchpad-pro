@@ -1,3 +1,4 @@
+import { buildFundingSessionBody, evaluateFundingStatus, isStripeHostedUrl } from "../_shared/managedAdFunding.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   readManagedAdsWebhookSecret,
@@ -179,7 +180,8 @@ Deno.serve(async (req) => {
       if (existingError) throw existingError;
       if (existing?.stripe_checkout_session_id && existing.status !== "failed") {
         const session = await stripeFetch(`/checkout/sessions/${existing.stripe_checkout_session_id}`, stripeSecret, { method: "GET" });
-        return json({ clientSecret: session.client_secret ?? null, checkoutUrl: session.url ?? null, transactionId: existing.id, reused: true });
+        if (!isStripeHostedUrl(session.url)) return json({ error: "This payment link expired. Please start a new payment." }, 409);
+        return json({ url: session.url, transactionId: existing.id, reused: true });
       }
 
       let stripeCustomerId = billing.stripe_customer_id as string | null;
@@ -217,28 +219,36 @@ Deno.serve(async (req) => {
       if (transactionError) throw transactionError;
 
       const session = await stripeFetch("/checkout/sessions", stripeSecret, {
-        idempotencyKey: `ad-checkout-${body.idempotencyKey}`,
-        body: {
-          mode: "payment",
-          ui_mode: "embedded",
-          customer: stripeCustomerId,
-          return_url: `${appUrl}/ads?funding_session_id={CHECKOUT_SESSION_ID}`,
-          "line_items[0][price_data][currency]": campaign.currency,
-          "line_items[0][price_data][product_data][name]": `${campaign.name} — prepaid media balance`,
-          "line_items[0][price_data][unit_amount]": amountCents,
-          "line_items[0][price_data][product_data][metadata][campaign_id]": campaign.id,
-          "line_items[0][quantity]": 1,
-          "payment_intent_data[setup_future_usage]": "off_session",
-          "metadata[transaction_id]": transaction.id,
-          "metadata[campaign_id]": campaign.id,
-          "metadata[customer_id]": userId,
-        },
+        idempotencyKey: `ad-checkout-hosted-${body.idempotencyKey}`,
+        body: buildFundingSessionBody({ appUrl, stripeCustomerId: stripeCustomerId!, memberId: userId, transactionId: transaction.id, campaign, amountCents }),
       });
+      if (!isStripeHostedUrl(session.url)) return json({ error: "Stripe did not return a secure payment page. Please try again." }, 502);
       const { error: updateError } = await admin.from("ad_payment_transactions")
         .update({ stripe_checkout_session_id: session.id, status: "requires_action" })
         .eq("id", transaction.id);
       if (updateError) throw updateError;
-      return json({ clientSecret: session.client_secret ?? null, transactionId: transaction.id });
+      return json({ url: session.url, transactionId: transaction.id });
+    }
+
+    if (action === "getFundingStatus") {
+      const sessionId = body?.sessionId;
+      if (typeof sessionId !== "string" || !/^cs_(live|test)_[A-Za-z0-9]{10,200}$/.test(sessionId)) return json({ error: "Invalid checkout session." }, 400);
+      const { data: transaction, error: tError } = await admin.from("ad_payment_transactions")
+        .select("id,status,amount_cents,campaign_id").eq("stripe_checkout_session_id", sessionId).eq("customer_id", userId).maybeSingle();
+      if (tError) throw tError;
+      let ledgerFundingExists = false;
+      let campaignRow: { funded_cents: number; spent_cents: number; name: string } | null = null;
+      if (transaction?.campaign_id) {
+        const [{ data: ledger, error: lError }, { data: camp, error: cError }] = await Promise.all([
+          admin.from("ad_spend_ledger_entries").select("id").eq("payment_transaction_id", transaction.id).eq("customer_id", userId).eq("entry_type", "funding").limit(1),
+          admin.from("ad_campaigns").select("funded_cents,spent_cents,name").eq("id", transaction.campaign_id).eq("customer_id", userId).maybeSingle(),
+        ]);
+        if (lError || cError) throw lError || cError;
+        ledgerFundingExists = (ledger?.length ?? 0) > 0;
+        campaignRow = camp;
+      }
+      const status = evaluateFundingStatus({ transaction, ledgerFundingExists, campaign: campaignRow });
+      return json({ ...status, campaignName: campaignRow?.name ?? null });
     }
 
     if (action === "setAutopay") {
