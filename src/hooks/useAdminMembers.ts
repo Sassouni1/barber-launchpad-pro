@@ -336,13 +336,17 @@ export function useAdminMemberDetail(userId: string | null) {
 
       // Fetch quiz attempts with module info
       // Page the selected member's entire history, not the API's default row limit.
+      const { data: quizLessons, error: quizLessonsError } = await supabase
+        .from('lessons').select('id, title');
+      if (quizLessonsError) throw quizLessonsError;
+      const lessonTitles = new Map((quizLessons || []).map(lesson => [lesson.id, lesson.title]));
       const quizAttempts: QuizHistoryAttempt[] = [];
       const historicalModules = new Map<string, { id: string; title: string; course_id: string }>();
       const pageSize = 500;
       for (let offset = 0; ; offset += pageSize) {
         const { data, error } = await supabase
           .from('user_quiz_attempts')
-          .select('id, module_id, score, total_questions, completed_at, modules(title, course_id), lessons(title)')
+          .select('id, module_id, lesson_id, score, total_questions, completed_at, modules(title, course_id)')
           .eq('user_id', userId)
           .order('completed_at', { ascending: false })
           .order('id', { ascending: false })
@@ -351,7 +355,7 @@ export function useAdminMemberDetail(userId: string | null) {
         for (const q of data || []) {
           quizAttempts.push({
             id: q.id, module_id: q.module_id, module_title: q.modules?.title || 'Unknown Module',
-            lesson_title: q.lessons?.title || null, score: q.score,
+            lesson_title: q.lesson_id ? lessonTitles.get(q.lesson_id) || null : null, score: q.score,
             total_questions: q.total_questions, completed_at: q.completed_at,
           });
           historicalModules.set(q.module_id, {
