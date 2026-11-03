@@ -110,7 +110,7 @@ export default function TermsPage() {
             </div>
             <div className="space-y-4 text-sm leading-relaxed text-foreground md:text-base">
               <p className="font-semibold text-foreground">
-                No other guarantee: The Barber Launch does not offer any guarantee outside of this policy. The only guarantee we provide is the 3 Client Guarantee described on this page, subject to every condition listed here. Anything said on a call, in an ad, in a message, or anywhere else that goes beyond this policy does not apply.
+                There are no refunds outside of our guarantee described on this page.
               </p>
               <p>
                 Results from our training programs depend on individual effort, experience, and market conditions. Testimonials shown are real experiences but are not a guarantee of future results.
