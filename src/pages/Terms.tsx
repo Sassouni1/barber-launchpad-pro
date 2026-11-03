@@ -77,7 +77,7 @@ export default function TermsPage() {
                 <li>Hang up your Hair System poster in your booth or shop and submit a photo as proof</li>
               </ul>
               <p>
-                If you complete every requirement above and still have not secured 3 paying hair system clients within 16 weeks, you are eligible for a full refund.
+                If you complete the full 16 weeks and every requirement above and still have not secured 3 paying hair system clients, you are eligible for a full refund.
               </p>
               <p className="font-medium text-foreground">
                 The 3 Client Guarantee applies only to the Barber Launch Hair System Mastery &amp; Business Training program. Standalone hair system training (without the business &amp; marketing components) and all other memberships, products, and services are non-refundable.
