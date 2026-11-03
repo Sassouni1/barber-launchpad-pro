@@ -297,7 +297,6 @@ function CardSetupPanel({ embedded = false }: { embedded?: boolean }) {
   const { data: billingProfile, isLoading, isError, refetch } = useAdBillingProfile();
   const saved = billingProfile?.default_payment_method_id ?? null;
   const [busy, setBusy] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
