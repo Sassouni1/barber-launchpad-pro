@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
+import { adSocialErrorMessage } from '@/lib/adSocialError';
 import { InstagramStatusCard } from '@/components/ads/InstagramStatusCard';
 import { CampaignResults } from '@/components/ads/CampaignResults';
 
@@ -109,9 +110,8 @@ export default function Ads() {
       body: { action: 'skipInstagram' },
     });
     setSkipping(false);
-    const message = (data as { error?: string } | null)?.error;
-    if (error || message) {
-      return toast.error(message || error?.message || 'Could not save that choice.');
+    if (error || data?.error) {
+      return toast.error(await adSocialErrorMessage(data, error, 'Could not save that choice.'));
     }
     await queryClient.invalidateQueries({ queryKey: ['ad-social-connection', user?.id] });
     toast.success('Skipped Instagram for now. You can connect it later.');

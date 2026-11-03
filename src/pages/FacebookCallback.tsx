@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Facebook, Instagram, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { adSocialErrorMessage } from '@/lib/adSocialError';
 
 type Page = { id: string; name: string; instagram_business_account_id?: string | null };
 
@@ -45,7 +46,7 @@ export default function FacebookCallback() {
       });
       setLoading(false);
       if (fnError || data?.error) {
-        setError(data?.error || fnError?.message || 'Could not complete the Facebook connection.');
+        setError(await adSocialErrorMessage(data, fnError, 'Could not complete the Facebook connection.'));
         return;
       }
       setPages(Array.isArray(data?.pages) ? data.pages : []);
@@ -59,7 +60,7 @@ export default function FacebookCallback() {
     });
     setSaving(null);
     if (fnError || data?.error) {
-      toast.error(data?.error || fnError?.message || 'Could not save that Page.');
+      toast.error(await adSocialErrorMessage(data, fnError, 'Could not save that Page.'));
       return;
     }
     toast.success(`${page.name} is now your campaign Page.`);
@@ -94,7 +95,9 @@ export default function FacebookCallback() {
           <div className="glass-card rounded-xl divide-y divide-border/60">
             {pages.length === 0 ? (
               <div className="p-6 space-y-4">
-                <p className="text-sm text-muted-foreground">No Facebook Pages were returned for your account.</p>
+                <p className="text-sm text-muted-foreground">
+                  Facebook returned no Pages for this connection. Check that your Facebook account has access to the Page in Meta Business Settings, then reconnect and allow Page access.
+                </p>
                 <Button variant="outline" onClick={() => navigate('/ads', { replace: true })}>Back to Ads</Button>
               </div>
             ) : pages.map((page) => (

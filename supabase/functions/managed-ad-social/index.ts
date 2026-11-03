@@ -2,7 +2,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
-const SCOPES = 'pages_show_list,pages_read_engagement';
+// Request access to business-managed Pages alongside ordinary Pages.
+const SCOPES = 'pages_show_list,pages_read_engagement,business_management';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -51,36 +52,49 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const fetchPages = async (userToken: string) => {
-      const res = await fetch(
-        `${GRAPH}/me/accounts?fields=id,name,instagram_business_account{id}&limit=100&access_token=${encodeURIComponent(userToken)}`,
-      );
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload?.error?.message || 'Facebook Page lookup failed');
-      return (payload.data ?? []) as Array<{
-        id: string;
-        name: string;
-        access_token?: string;
-        instagram_business_account?: { id: string };
-      }>;
+    type FacebookPage = {
+      id: string;
+      name: string;
+      access_token?: string;
+      instagram_business_account?: { id: string };
+    };
+
+    const fetchPages = async (userToken: string): Promise<FacebookPage[]> => {
+      const pages: FacebookPage[] = [];
+      let after: string | undefined;
+      for (let pageNumber = 0; pageNumber < 10; pageNumber++) {
+        const url = new URL(`${GRAPH}/me/accounts`);
+        url.searchParams.set('fields', 'id,name,access_token,instagram_business_account{id}');
+        url.searchParams.set('limit', '100');
+        if (after) url.searchParams.set('after', after);
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${userToken}` } });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload?.error?.message || 'Facebook Page lookup failed');
+        if (!Array.isArray(payload.data)) throw new Error('Facebook returned an invalid Page list.');
+        pages.push(...payload.data as FacebookPage[]);
+        const nextAfter = payload.paging?.cursors?.after;
+        if (!payload.paging?.next || typeof nextAfter !== 'string' || nextAfter === after) return pages;
+        after = nextAfter;
+      }
+      throw new Error('Facebook returned too many Page results. Please contact Barber Launch support.');
     };
 
     if (action === 'getConnectUrl') {
       const state = crypto.randomUUID();
-      await admin.from('ad_social_tokens').upsert(
-        {
-          customer_id: customerId,
-          provider: 'facebook',
-          scopes: SCOPES,
-          oauth_state: state,
-          oauth_state_created_at: new Date().toISOString(),
-        },
-        { onConflict: 'customer_id' },
-      );
-      await admin.from('ad_social_connections').upsert(
+      await admin.from('ad_social_oauth_attempts')
+        .delete()
+        .eq('customer_id', customerId)
+        .lt('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString());
+      const { error: stateError } = await admin.from('ad_social_oauth_attempts').insert({
+        state,
+        customer_id: customerId,
+      });
+      if (stateError) return json({ error: 'Could not start Facebook connection. Please try again.' }, 500);
+      const { error: connectionError } = await admin.from('ad_social_connections').upsert(
         { customer_id: customerId, provider: 'facebook' },
         { onConflict: 'customer_id', ignoreDuplicates: true },
       );
+      if (connectionError) return json({ error: 'Could not prepare Facebook connection. Please try again.' }, 500);
       const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&response_type=code&scope=${encodeURIComponent(SCOPES)}`;
       return json({ ok: true, url, state });
     }
@@ -102,20 +116,21 @@ Deno.serve(async (req) => {
       const code = body?.code;
       if (typeof code !== 'string' || code.length < 4) return json({ error: 'Missing OAuth code' }, 400);
 
-      // The state must be the one we issued to THIS authenticated member, and still fresh (30 min).
-      const { data: pending } = await admin
-        .from('ad_social_tokens')
-        .select('oauth_state, oauth_state_created_at')
-        .eq('customer_id', customerId)
-        .maybeSingle();
       const state = typeof body?.state === 'string' ? body.state : '';
-      const issuedAt = pending?.oauth_state_created_at ? Date.parse(pending.oauth_state_created_at) : 0;
-      if (!pending?.oauth_state || !state || state !== pending.oauth_state) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(state)) {
         return json({ error: 'This Facebook connection link is no longer valid. Please start the connection again.' }, 400);
       }
-      if (!issuedAt || Date.now() - issuedAt > 30 * 60 * 1000) {
-        return json({ error: 'This Facebook connection link expired. Please start the connection again.' }, 400);
-      }
+      // The delete is the one-time claim. Two tabs cannot redeem the same state.
+      const { data: pending, error: stateError } = await admin
+        .from('ad_social_oauth_attempts')
+        .delete()
+        .eq('customer_id', customerId)
+        .eq('state', state)
+        .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+        .select('state')
+        .maybeSingle();
+      if (stateError) return json({ error: 'Could not verify this Facebook connection link.' }, 500);
+      if (!pending) return json({ error: 'This Facebook connection link expired or was already used. Please start again from Ads.' }, 400);
 
       const tokenRes = await fetch(
         `${GRAPH}/oauth/access_token?client_id=${appId}&client_secret=${encodeURIComponent(appSecret)}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${encodeURIComponent(code)}`,
@@ -141,19 +156,17 @@ Deno.serve(async (req) => {
         expiresIn = longPayload.expires_in ?? expiresIn;
       }
 
-      await admin.from('ad_social_tokens').upsert(
+      const { error: tokenSaveError } = await admin.from('ad_social_tokens').upsert(
         {
           customer_id: customerId,
           provider: 'facebook',
           user_access_token: userToken,
           user_token_expires_at: expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null,
           scopes: SCOPES,
-          // One-time use: the state cannot be replayed.
-          oauth_state: null,
-          oauth_state_created_at: null,
         },
         { onConflict: 'customer_id' },
       );
+      if (tokenSaveError) return json({ error: 'Could not save your Facebook connection. Please try again.' }, 500);
 
       const pages = await fetchPages(userToken);
       // Only public Page metadata is returned to the browser — never tokens.
@@ -216,6 +229,13 @@ Deno.serve(async (req) => {
       if (!selected) {
         return json({ error: 'Your selected Page is no longer available on your Facebook account.' }, 404);
       }
+      if (selected.access_token) {
+        const { error: tokenUpdateError } = await admin
+          .from('ad_social_tokens')
+          .update({ page_access_token: selected.access_token, facebook_page_id: selected.id })
+          .eq('customer_id', customerId);
+        if (tokenUpdateError) return json({ error: 'Could not refresh your Facebook Page access.' }, 500);
+      }
       const instagramId = selected.instagram_business_account?.id ?? null;
       const { error: syncError } = await admin
         .from('ad_social_connections')
@@ -241,12 +261,12 @@ Deno.serve(async (req) => {
     if (typeof pageId !== 'string' || !pageId) return json({ error: 'Missing facebookPageId' }, 400);
     const page = pages.find((p) => p.id === pageId);
     if (!page) return json({ error: 'That Page is not available on your Facebook account.' }, 403);
-
     if (page.access_token) {
-      await admin
+      const { error: tokenUpdateError } = await admin
         .from('ad_social_tokens')
         .update({ page_access_token: page.access_token, facebook_page_id: page.id })
         .eq('customer_id', customerId);
+      if (tokenUpdateError) return json({ error: 'Could not save your Facebook Page access.' }, 500);
     }
 
     const { error: upsertError } = await admin.from('ad_social_connections').upsert(
