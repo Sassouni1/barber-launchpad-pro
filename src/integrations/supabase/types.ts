@@ -498,6 +498,32 @@ export type Database = {
           },
         ]
       }
+      ad_social_oauth_attempts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          state: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          state: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_social_oauth_attempts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_social_tokens: {
         Row: {
           created_at: string

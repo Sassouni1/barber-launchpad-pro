@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Facebook, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
+import { adSocialErrorMessage } from '@/lib/adSocialError';
 
 export function FacebookConnectButton({
   showPageName = true,
@@ -24,7 +25,7 @@ export function FacebookConnectButton({
     });
     setLoading(false);
     if (error || !data?.url) {
-      toast.error(error?.message || data?.error || 'Could not start the Facebook connection.');
+      toast.error(await adSocialErrorMessage(data, error, 'Could not start the Facebook connection.'));
       return;
     }
     // Facebook refuses to load inside an iframe (and the Lovable preview is one),
