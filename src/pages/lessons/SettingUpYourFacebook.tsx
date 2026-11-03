@@ -53,7 +53,7 @@ export default function SettingUpYourFacebook() {
         <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
           <h2 className="font-display text-xl font-semibold">Facebook profile picture</h2>
           <p className="mt-1 text-sm text-muted-foreground">Download this before-and-after image and use it as your Page profile picture.</p>
-          <div className="mt-4 w-full max-w-xs overflow-hidden rounded-xl border border-border">
+          <div className="mt-4 w-full max-w-48 overflow-hidden rounded-xl border border-border">
             <img src={FACEBOOK_PROFILE_PICTURE_PATH} alt="Hair system before-and-after for the Facebook Page profile picture" className="block h-auto w-full" />
           </div>
           <div className="mt-4">
