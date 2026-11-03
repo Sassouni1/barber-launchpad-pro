@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsHeaders } from "../_shared/cors.ts";
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
 // Request access to business-managed Pages alongside ordinary Pages.

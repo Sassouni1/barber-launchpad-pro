@@ -1,7 +1,7 @@
 // Scheduled (~1 min) dispatcher for buyer shipping notifications queued by
 // future /newtimes tracking saves. Only processes rows already due; callers
 // cannot choose orders, recipients, or content.
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { relayCall } from '../_shared/barberLaunchGhlRelay.ts';
 import { emailDefinitelyNotSent, processQueueRow, RETRY_DELAY_MINUTES, smsDefinitelyNotSent, type Deps, type QueueRow } from '../_shared/buyerShippingNotifications.ts';
