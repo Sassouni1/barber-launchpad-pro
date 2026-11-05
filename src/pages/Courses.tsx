@@ -2560,7 +2560,6 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
       <Level1CertModal
         isOpen={isCertModalOpen}
         onClose={() => setIsCertModalOpen(false)}
-        openEditForm={needsDirectoryListing}
       />
       {courseType === "business" && showBusinessWelcome && (
         <BusinessMasteryWelcome onContinue={dismissBusinessWelcome} />

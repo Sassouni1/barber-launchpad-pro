@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { FileDownloadButton } from '@/components/ui/file-download-button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Download, Loader2, Award, Sparkles, ChevronDown, ChevronUp, MapPin, Building2, CheckCircle } from 'lucide-react';
+import { Loader2, Award, Sparkles, ChevronDown, ChevronUp, MapPin, Building2 } from 'lucide-react';
 import { useMarkCertificateDownloaded } from '@/hooks/useCertification';
 import { cn } from '@/lib/utils';
 
@@ -234,16 +235,6 @@ export function CertificationModal({
     }
   };
 
-
-  const handleDownload = () => {
-    if (certificateUrl) {
-      window.open(certificateUrl, '_blank');
-      setIsDownloaded(true);
-      if (courseId && certificationId) {
-        markDownloaded.mutate({ courseId, certificationId });
-      }
-    }
-  };
 
   const analysisMessages = [
     'Reviewing your quiz scores...',
@@ -571,23 +562,18 @@ export function CertificationModal({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
               </div>
               <div className="flex gap-3">
-                <Button
-                  className={cn(
-                    'flex-1',
-                    isDownloaded ? 'bg-green-600 hover:bg-green-700 text-white' : 'gold-gradient'
-                  )}
-                  onClick={handleDownload}
-                  disabled={markDownloaded.isPending}
-                >
-                  {markDownloaded.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : isDownloaded ? (
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                  ) : (
-                    <Download className="w-4 h-4 mr-2" />
-                  )}
-                  {isDownloaded ? 'Downloaded' : 'Download Certificate'}
-                </Button>
+                <FileDownloadButton
+                  url={certificateUrl}
+                  filename={`certificate-${name.trim().replace(/\s+/g, '-') || 'level1'}.png`}
+                  label={isDownloaded ? 'Downloaded' : 'Download Certificate'}
+                  className="flex-1"
+                  onDelivered={() => {
+                    setIsDownloaded(true);
+                    if (courseId && certificationId) {
+                      markDownloaded.mutate({ courseId, certificationId });
+                    }
+                  }}
+                />
                 <Button variant="outline" onClick={onClose}>
                   Close
                 </Button>

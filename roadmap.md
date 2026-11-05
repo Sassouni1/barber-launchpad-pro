@@ -1,5 +1,9 @@
 # Roadmap
 
+## Training certificate download repair
+- [x] Open the working Level 1 preview from training; use the shared file saver in the generation dialog, without changing certification eligibility or directory enrollment.
+- [x] Five file-saving regressions passed; signed-in desktop/phone training preview downloaded a verified existing PNG with certification/listing responses simulated and writes intercepted. Preview build passed; no member records changed, no publication. Actual member-specific eligibility and fresh certificate generation were not exercised.
+
 ## Member quiz detail note 1a56c9b5-84c0-4e0f-875f-f6e734b92c83
 - [x] Show all quizzes and every dated attempt, grouped by course, alongside the selected member's name and email; preserve member-only read scope and shared pass rule.
 - [x] Three focused tests and preview build passed; signed-in desktop/phone showed Suzie's 15 actual attempts with matching identity and dates, without overflow; no publication or member-data writes.
