@@ -11,6 +11,8 @@ import { openLevel1CertPanel } from "@/lib/level1CertNavigation";
 
 const LEVEL_1_CERT_PRINT_ITEM_ID = '013aecc9-4d6d-4ebc-a80d-8aee569b7980';
 const HAIR_SYSTEM_TRAINING_ITEM_ID = 'b251ecd8-60cc-42fd-ba66-d2b59408158a';
+const INSTAGRAM_BIO_ITEM_ID = 'b955bfb3-3e6e-4d59-a1a6-895de5cc9210';
+const INSTAGRAM_BIO_LESSON_ID = 'b1030000-0000-4000-8000-000000000103';
 
 export const DynamicTodoList = () => {
   const {
@@ -234,6 +236,14 @@ export const DynamicTodoList = () => {
                     <Link
                       to="/courses/hair-system"
                       state={{ openTrack: "hair-system" }}
+                      className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Click here
+                    </Link>
+                  ) : item.id === INSTAGRAM_BIO_ITEM_ID ? (
+                    <Link
+                      to={`/courses/lesson/${INSTAGRAM_BIO_LESSON_ID}`}
                       className="text-xs text-primary underline flex items-center gap-1 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
