@@ -5,7 +5,7 @@ import { useDynamicTodos } from "@/hooks/useDynamicTodos";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, PartyPopper, CheckCircle2, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { Sparkles, PartyPopper, CheckCircle2, Play, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export const DynamicTodoList = () => {
@@ -15,6 +15,7 @@ export const DynamicTodoList = () => {
     completedListsCount,
     totalLists,
     allListsCompleted,
+    allRegularCompleted,
     isOngoingList,
     isLoading,
     toggleItem,
@@ -128,52 +129,17 @@ export const DynamicTodoList = () => {
         </div>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Your To-Do List</h3>
-          {!viewingPast && <span className="text-xs text-primary font-medium">— Please complete these!</span>}
+          <h3 className="font-semibold text-foreground">
+            {isOngoingList && !viewingPast ? 'Ongoing Marketing' : 'Your To-Do List'}
+          </h3>
+          {!viewingPast && <span className="text-xs text-primary font-medium ml-1">— Please complete these!</span>}
         </div>
-        {!isOngoingList && (
-          <span className="text-xs text-muted-foreground">
-            {completedListsCount} / {totalLists} lists completed
-          </span>
-        )}
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          type="button"
-          aria-label="Previous list"
-          title="Previous list"
-          onClick={() => setPastOffset((offset) => Math.min(offset + 1, availableLists.length - 1))}
-          disabled={visibleOffset >= availableLists.length - 1}
-          className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-primary hover:bg-primary/20 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-        >
-          <ChevronLeft className="h-5 w-5" />
-          <span className="text-xs font-semibold">Back</span>
-        </button>
-        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
-          {!(isOngoingList && !viewingPast) && (
-            <span className="text-sm font-medium text-primary">List {visibleListNumber}:</span>
-          )}
-          <span className="text-sm font-semibold text-foreground">{visibleList.title}</span>
-        </div>
-        {visibleOffset > 0 && (
-          <button
-            type="button"
-            aria-label="Next list"
-            title="Next list"
-            onClick={() => setPastOffset((offset) => Math.max(0, offset - 1))}
-            className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-primary hover:bg-primary/20 shrink-0"
-          >
-            <span className="text-xs font-semibold">Next</span>
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        )}
-      </div>
-
-      {isBehindSchedule && !viewingPast && !isOngoingList && (
+      {isBehindSchedule && !isOngoingList && !viewingPast && (
         <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
           <p className="text-xs text-destructive">
@@ -182,25 +148,38 @@ export const DynamicTodoList = () => {
         </div>
       )}
 
-      <div className="space-y-4">
+      {visibleList ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            {(!isOngoingList || viewingPast) && (
+              <span className="text-sm font-medium text-primary">
+                List {visibleListNumber}:
+              </span>
+            )}
+            <span className="text-sm font-semibold text-foreground">{visibleList.title}</span>
+          </div>
+
           <div className="space-y-2">
             {visibleList.items.map((item) => (
               <div
                 key={item.id}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
               >
-                {viewingPast ? (
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                ) : (
-                  <Checkbox
-                    id={item.id}
-                    checked={item.completed}
-                    onCheckedChange={() => handleToggle(item.id, item.completed || false)}
-                    className="h-4 w-4"
-                  />
-                )}
+                <Checkbox
+                  id={item.id}
+                  checked={item.completed}
+                  onCheckedChange={() => handleToggle(item.id, item.completed || false)}
+                  className="h-4 w-4"
+                />
                 <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <label htmlFor={viewingPast ? undefined : item.id} className={`text-sm ${viewingPast || item.completed ? "text-muted-foreground" : "text-foreground cursor-pointer"} ${!viewingPast && item.completed ? "line-through cursor-pointer" : ""}`}>
+                  <label
+                    htmlFor={item.id}
+                    className={`text-sm cursor-pointer ${
+                      item.completed
+                        ? "line-through text-muted-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
                     {item.title}
                   </label>
                   {item.module_id && (
@@ -217,6 +196,7 @@ export const DynamicTodoList = () => {
             ))}
           </div>
 
+          {/* Progress bar for current list */}
           <div className="mt-4">
             <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>Progress</span>
@@ -238,6 +218,29 @@ export const DynamicTodoList = () => {
               />
             </div>
           </div>
+        </div>
+      ) : null}
+
+      <div className="mt-5 flex items-center justify-center gap-4 text-muted-foreground">
+        <button
+          type="button"
+          aria-label="Previous list"
+          onClick={() => setPastOffset((offset) => Math.min(offset + 1, availableLists.length - 1))}
+          disabled={visibleOffset >= availableLists.length - 1}
+          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <span className="text-sm">{completedListsCount}/{totalLists}</span>
+        <button
+          type="button"
+          aria-label="Next list"
+          onClick={() => setPastOffset((offset) => Math.max(0, offset - 1))}
+          disabled={visibleOffset === 0}
+          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
       </div>
     </div>
   );
