@@ -13,6 +13,7 @@ const LEVEL_1_CERT_PRINT_ITEM_ID = '013aecc9-4d6d-4ebc-a80d-8aee569b7980';
 const HAIR_SYSTEM_TRAINING_ITEM_ID = 'b251ecd8-60cc-42fd-ba66-d2b59408158a';
 const INSTAGRAM_BIO_ITEM_ID = 'b955bfb3-3e6e-4d59-a1a6-895de5cc9210';
 const INSTAGRAM_BIO_LESSON_ID = 'b1030000-0000-4000-8000-000000000103';
+const STRIPE_SETUP_ITEM_ID = 'f28d4ac3-87ca-4e27-9eb8-26549052108c';
 
 export const DynamicTodoList = () => {
   const {
@@ -244,6 +245,14 @@ export const DynamicTodoList = () => {
                   ) : item.id === INSTAGRAM_BIO_ITEM_ID ? (
                     <Link
                       to={`/courses/lesson/${INSTAGRAM_BIO_LESSON_ID}`}
+                      className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Click here
+                    </Link>
+                  ) : item.id === STRIPE_SETUP_ITEM_ID ? (
+                    <Link
+                      to="/my-links"
                       className="text-xs text-primary underline flex items-center gap-1 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
