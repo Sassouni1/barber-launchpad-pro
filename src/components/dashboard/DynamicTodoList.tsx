@@ -233,6 +233,7 @@ export const DynamicTodoList = () => {
                   {item.id === HAIR_SYSTEM_TRAINING_ITEM_ID ? (
                     <Link
                       to="/courses/hair-system"
+                      state={{ openTrack: "hair-system" }}
                       className="text-xs text-primary underline flex items-center gap-1 shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
