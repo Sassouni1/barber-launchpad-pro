@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { isListCompleteForProgression } from "@/lib/todoListProgression";
 
 interface DynamicTodoItem {
   id: string;
@@ -8,6 +9,8 @@ interface DynamicTodoItem {
   title: string;
   order_index: number;
   completed?: boolean;
+  created_at: string;
+  completed_at?: string | null;
   module_id: string | null;
 }
 
@@ -43,20 +46,19 @@ export const useDynamicTodos = () => {
       if (itemsError) throw itemsError;
 
       // Fetch user's progress
-      let progressData: { item_id: string; completed: boolean }[] = [];
+      let progressData: { item_id: string; completed: boolean; completed_at: string | null }[] = [];
       if (user) {
         const { data, error: progressError } = await supabase
           .from("user_dynamic_todo_progress")
-          .select("item_id, completed")
+          .select("item_id, completed, completed_at")
           .eq("user_id", user.id);
 
-        if (!progressError && data) {
-          progressData = data;
-        }
+        if (progressError) throw progressError;
+        progressData = data || [];
       }
 
       const progressMap = new Map(
-        progressData.map((p) => [p.item_id, p.completed])
+        progressData.map((p) => [p.item_id, p])
       );
 
       // Combine data
@@ -66,13 +68,14 @@ export const useDynamicTodos = () => {
           .filter((item) => item.list_id === list.id)
           .map((item) => ({
             ...item,
-            completed: progressMap.get(item.id) || false,
+            completed: progressMap.get(item.id)?.completed || false,
+            completed_at: progressMap.get(item.id)?.completed_at || null,
           })),
       }));
 
       return listsWithItems;
     },
-    enabled: true,
+    enabled: !!user,
   });
 
   const toggleItemMutation = useMutation({
@@ -152,11 +155,11 @@ export const useDynamicTodos = () => {
 
   // Find the current active list (first incomplete regular list)
   const currentRegularIndex = regularLists.findIndex(
-    (list) => !list.items.every((item) => item.completed)
+    (list) => !isListCompleteForProgression(list.items)
   );
 
   const allRegularCompleted = regularLists.length > 0 && regularLists.every(
-    (list) => list.items.every((item) => item.completed)
+    (list) => isListCompleteForProgression(list.items)
   );
 
   // If all regular lists done, show the ongoing list; otherwise show current regular list

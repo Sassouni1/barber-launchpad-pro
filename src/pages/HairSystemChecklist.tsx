@@ -11,6 +11,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { downloadBlob, fetchDownload } from '@/lib/fileDownloads';
+import { isListCompleteForProgression } from '@/lib/todoListProgression';
 
 interface ChecklistItem {
   id: string;
@@ -80,13 +81,14 @@ export default function HairSystemChecklist() {
 
       if (itemsError) throw itemsError;
 
-      let progressData: { item_id: string; completed: boolean }[] = [];
+      let progressData: { item_id: string; completed: boolean; completed_at: string | null }[] = [];
       if (user) {
         const { data, error: progressError } = await supabase
           .from('user_dynamic_todo_progress')
-          .select('item_id, completed')
+          .select('item_id, completed, completed_at')
           .eq('user_id', user.id);
-        if (!progressError && data) progressData = data;
+        if (progressError) throw progressError;
+        progressData = data || [];
       }
 
       const progressMap = new Map(progressData.map(p => [p.item_id, p.completed]));
@@ -100,7 +102,11 @@ export default function HairSystemChecklist() {
 
           const dynListsWithCompletion = regularDynLists.map(dl => {
             const dlItems = (itemsData || []).filter(item => item.list_id === dl.id);
-            const allCompleted = dlItems.length > 0 && dlItems.every(item => progressMap.get(item.id));
+            const allCompleted = dlItems.length > 0 && isListCompleteForProgression(dlItems.map(item => ({
+              ...item,
+              completed: progressMap.get(item.id) || false,
+              completed_at: progressData.find(progress => progress.item_id === item.id)?.completed_at || null,
+            })));
             return { ...dl, items: dlItems, allCompleted };
           });
 
