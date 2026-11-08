@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { downloadBlob, fetchDownload } from '@/lib/fileDownloads';
 import { isListCompleteForProgression } from '@/lib/todoListProgression';
 
+const MARKETING_FOUNDATIONS_START_ITEM_ID = 'fceefdf4-5359-4d80-af55-2e8cc8fe9ca6';
+
 interface ChecklistItem {
   id: string;
   list_id: string;
@@ -449,13 +451,14 @@ export default function HairSystemChecklist() {
                                     >
                                       {itemIdx + 1}. {item.title}
                                     </label>
-                                    {item.module_id && !isLocked && (
+                                    {(item.module_id || item.id === MARKETING_FOUNDATIONS_START_ITEM_ID) && !isLocked && (
                                       <Link
-                                        to={`/courses/lesson/${item.module_id}`}
+                                        to={item.id === MARKETING_FOUNDATIONS_START_ITEM_ID ? '/courses/business' : `/courses/lesson/${item.module_id}`}
+                                        state={item.id === MARKETING_FOUNDATIONS_START_ITEM_ID ? { openTrack: 'business' } : undefined}
                                         className="text-xs text-primary underline flex items-center gap-1 shrink-0"
                                       >
                                         <Play className="w-3 h-3" />
-                                        Watch
+                                        {item.id === MARKETING_FOUNDATIONS_START_ITEM_ID ? 'Open' : 'Watch'}
                                       </Link>
                                     )}
                                   </div>
@@ -537,13 +540,14 @@ export default function HairSystemChecklist() {
                                   >
                                     {idx + 1}. {item.title}
                                   </label>
-                                  {item.module_id && (
+                                  {(item.module_id || item.id === MARKETING_FOUNDATIONS_START_ITEM_ID) && (
                                     <Link
-                                      to={`/courses/lesson/${item.module_id}`}
+                                      to={item.id === MARKETING_FOUNDATIONS_START_ITEM_ID ? '/courses/business' : `/courses/lesson/${item.module_id}`}
+                                      state={item.id === MARKETING_FOUNDATIONS_START_ITEM_ID ? { openTrack: 'business' } : undefined}
                                       className="text-xs text-primary underline flex items-center gap-1 shrink-0"
                                     >
                                       <Play className="w-3 h-3" />
-                                      Watch
+                                      {item.id === MARKETING_FOUNDATIONS_START_ITEM_ID ? 'Open' : 'Watch'}
                                     </Link>
                                   )}
                                   {item.title.toLowerCase().includes('text client checklist') && (
