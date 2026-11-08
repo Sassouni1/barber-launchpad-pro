@@ -148,9 +148,10 @@ export const DynamicTodoList = () => {
           title="Previous list"
           onClick={() => setPastOffset((offset) => Math.min(offset + 1, availableLists.length - 1))}
           disabled={visibleOffset >= availableLists.length - 1}
-          className="p-2 rounded-md text-primary hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+          className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-primary hover:bg-primary/20 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
         >
           <ChevronLeft className="h-5 w-5" />
+          <span className="text-xs font-semibold">Back</span>
         </button>
         <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
           {!(isOngoingList && !viewingPast) && (
@@ -164,8 +165,9 @@ export const DynamicTodoList = () => {
             aria-label="Next list"
             title="Next list"
             onClick={() => setPastOffset((offset) => Math.max(0, offset - 1))}
-            className="p-2 rounded-md text-primary hover:bg-muted/50 shrink-0"
+            className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-primary hover:bg-primary/20 shrink-0"
           >
+            <span className="text-xs font-semibold">Next</span>
             <ChevronRight className="h-5 w-5" />
           </button>
         )}
