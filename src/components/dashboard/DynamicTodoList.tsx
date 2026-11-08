@@ -10,6 +10,7 @@ import confetti from "canvas-confetti";
 import { openLevel1CertPanel } from "@/lib/level1CertNavigation";
 
 const LEVEL_1_CERT_PRINT_ITEM_ID = '013aecc9-4d6d-4ebc-a80d-8aee569b7980';
+const HAIR_SYSTEM_TRAINING_ITEM_ID = 'b251ecd8-60cc-42fd-ba66-d2b59408158a';
 
 export const DynamicTodoList = () => {
   const {
@@ -229,7 +230,15 @@ export const DynamicTodoList = () => {
                   >
                     {item.title}
                   </label>
-                  {item.id === LEVEL_1_CERT_PRINT_ITEM_ID ? (
+                  {item.id === HAIR_SYSTEM_TRAINING_ITEM_ID ? (
+                    <Link
+                      to="/courses/hair-system"
+                      className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Click here
+                    </Link>
+                  ) : item.id === LEVEL_1_CERT_PRINT_ITEM_ID ? (
                     <button
                       type="button"
                       className="text-xs text-primary underline flex items-center gap-1 shrink-0"
