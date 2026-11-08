@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -53,6 +53,7 @@ import {
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
+import { OPEN_LEVEL_1_CERT_EVENT } from '@/lib/level1CertNavigation';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
 import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
 import {
@@ -267,6 +268,12 @@ interface SidebarProps {
 export function Sidebar({ isAdminView = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+
+  useEffect(() => {
+    const openCert = () => setIsCertModalOpen(true);
+    window.addEventListener(OPEN_LEVEL_1_CERT_EVENT, openCert);
+    return () => window.removeEventListener(OPEN_LEVEL_1_CERT_EVENT, openCert);
+  }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode, isManufacturer } = useAuth();

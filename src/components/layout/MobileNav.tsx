@@ -57,6 +57,7 @@ import {
 } from '@/components/ui/collapsible';
 import { Logo } from '@/components/ui/Logo';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
+import { OPEN_LEVEL_1_CERT_EVENT } from '@/lib/level1CertNavigation';
 import { LanguageToggle } from '@/lib/i18n/LocaleProvider';
 
 interface MobileNavProps {
@@ -117,6 +118,16 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const [impersonating, setImpersonating] = useState<string | null>(null);
   const { data: members = [], isLoading } = useMobileMembers();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const openCert = () => {
+      if (!window.matchMedia('(max-width: 767px)').matches) return;
+      setMenuOpen(false);
+      setIsCertModalOpen(true);
+    };
+    window.addEventListener(OPEN_LEVEL_1_CERT_EVENT, openCert);
+    return () => window.removeEventListener(OPEN_LEVEL_1_CERT_EVENT, openCert);
+  }, []);
 
   const [checklistsOpen, setChecklistsOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);

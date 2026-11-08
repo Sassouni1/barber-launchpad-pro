@@ -7,6 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, PartyPopper, CheckCircle2, Play, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import confetti from "canvas-confetti";
+import { openLevel1CertPanel } from "@/lib/level1CertNavigation";
+
+const LEVEL_1_CERT_PRINT_ITEM_ID = '013aecc9-4d6d-4ebc-a80d-8aee569b7980';
 
 export const DynamicTodoList = () => {
   const {
@@ -226,7 +229,18 @@ export const DynamicTodoList = () => {
                   >
                     {item.title}
                   </label>
-                  {item.module_id && (
+                  {item.id === LEVEL_1_CERT_PRINT_ITEM_ID ? (
+                    <button
+                      type="button"
+                      className="text-xs text-primary underline flex items-center gap-1 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openLevel1CertPanel();
+                      }}
+                    >
+                      Click here
+                    </button>
+                  ) : item.module_id && (
                     <Link
                       to={`/courses/lesson/${item.module_id}`}
                       className="text-xs text-primary underline flex items-center gap-1 shrink-0"
