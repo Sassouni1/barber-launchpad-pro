@@ -63,6 +63,7 @@ export const DynamicTodoList = () => {
   const visibleListNumber = viewingPast
     ? completedListsCount - visibleOffset + (currentList ? 1 : 0)
     : completedListsCount + 1;
+  const displayedListNumber = isOngoingList && !viewingPast ? totalLists : visibleListNumber;
 
   // Detect when list changes (completed a list)
   useEffect(() => {
@@ -155,7 +156,7 @@ export const DynamicTodoList = () => {
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <span className="text-sm">{completedListsCount}/{totalLists}</span>
+              <span className="text-sm">{displayedListNumber}/{totalLists}</span>
               <button
                 type="button"
                 aria-label="Next list"
