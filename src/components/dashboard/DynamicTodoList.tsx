@@ -11,6 +11,7 @@ import confetti from "canvas-confetti";
 export const DynamicTodoList = () => {
   const {
     currentList,
+    completedRegularLists,
     completedListsCount,
     totalLists,
     allListsCompleted,
@@ -98,7 +99,7 @@ export const DynamicTodoList = () => {
     );
   }
 
-  if (totalLists === 0 || (allListsCompleted && !currentList)) {
+  if (totalLists === 0 && !currentList) {
     return null;
   }
 
@@ -115,13 +116,13 @@ export const DynamicTodoList = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <Sparkles className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-foreground">
-            {isOngoingList ? 'Ongoing Marketing' : 'Your To-Do List'}
+            {isOngoingList ? 'Ongoing Marketing' : 'Your To-Do Lists'}
           </h3>
-          <span className="text-xs text-primary font-medium ml-1">— Please complete these!</span>
+          {currentList && <span className="text-xs text-primary font-medium">— Please complete these!</span>}
         </div>
         {!isOngoingList && (
           <span className="text-xs text-muted-foreground">
@@ -130,6 +131,7 @@ export const DynamicTodoList = () => {
         )}
       </div>
 
+      <div className="max-h-[min(70vh,42rem)] overflow-y-auto pr-2 space-y-6" aria-label="Current and past to-do lists">
       {isBehindSchedule && !isOngoingList && (
         <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
@@ -139,7 +141,7 @@ export const DynamicTodoList = () => {
         </div>
       )}
 
-      {allListsCompleted ? null : currentList ? (
+      {currentList ? (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             {!isOngoingList && (
@@ -211,6 +213,34 @@ export const DynamicTodoList = () => {
           </div>
         </div>
       ) : null}
+
+      {completedRegularLists.length > 0 && (
+        <div className="space-y-4 border-t border-border/50 pt-5">
+          <h4 className="text-sm font-semibold text-muted-foreground">Past lists</h4>
+          {completedRegularLists.map((list, index) => (
+            <div key={list.id} className="rounded-lg border border-border/50 bg-muted/20 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                <span>List {completedListsCount - index}: {list.title}</span>
+              </div>
+              <div className="space-y-2">
+                {list.items.map((item) => (
+                  <div key={item.id} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span>{item.title}</span>
+                    {item.module_id && (
+                      <Link to={`/courses/lesson/${item.module_id}`} className="text-xs text-primary underline shrink-0">
+                        Click here
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      </div>
     </div>
   );
 };

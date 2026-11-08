@@ -165,6 +165,7 @@ export const useDynamicTodos = () => {
     : (currentRegularIndex >= 0 ? regularLists[currentRegularIndex] : null);
   
   const completedListsCount = currentRegularIndex >= 0 ? currentRegularIndex : regularLists.length;
+  const completedRegularLists = regularLists.slice(0, completedListsCount).reverse();
   const totalLists = regularLists.length;
   // Never mark as "all completed" if there are ongoing lists
   const allListsCompleted = allRegularCompleted && ongoingLists.length === 0;
@@ -172,6 +173,7 @@ export const useDynamicTodos = () => {
   return {
     lists,
     currentList,
+    completedRegularLists,
     completedListsCount,
     totalLists,
     allListsCompleted,
