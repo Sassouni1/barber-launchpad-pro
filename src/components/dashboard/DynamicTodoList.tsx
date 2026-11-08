@@ -141,12 +141,31 @@ export const DynamicTodoList = () => {
 
       {visibleList && (
         <div className="mb-4">
-          <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>Progress</span>
-            <span>
-              {visibleList.items.filter((i) => i.completed).length} /{" "}
-              {visibleList.items.length}
+          <div className="flex items-center justify-between gap-3 mb-2 text-muted-foreground">
+            <span className="text-xs">
+              Progress {visibleList.items.filter((i) => i.completed).length}/{visibleList.items.length}
             </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Previous list"
+                onClick={() => setPastOffset((offset) => Math.min(offset + 1, availableLists.length - 1))}
+                disabled={visibleOffset >= availableLists.length - 1}
+                className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <span className="text-sm">{completedListsCount}/{totalLists}</span>
+              <button
+                type="button"
+                aria-label="Next list"
+                onClick={() => setPastOffset((offset) => Math.max(0, offset - 1))}
+                disabled={visibleOffset === 0}
+                className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
@@ -162,28 +181,6 @@ export const DynamicTodoList = () => {
           </div>
         </div>
       )}
-
-      <div className="mb-4 flex items-center justify-center gap-4 text-muted-foreground">
-        <button
-          type="button"
-          aria-label="Previous list"
-          onClick={() => setPastOffset((offset) => Math.min(offset + 1, availableLists.length - 1))}
-          disabled={visibleOffset >= availableLists.length - 1}
-          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <span className="text-sm">{completedListsCount}/{totalLists}</span>
-        <button
-          type="button"
-          aria-label="Next list"
-          onClick={() => setPastOffset((offset) => Math.max(0, offset - 1))}
-          disabled={visibleOffset === 0}
-          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
 
       {isBehindSchedule && !isOngoingList && !viewingPast && (
         <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
