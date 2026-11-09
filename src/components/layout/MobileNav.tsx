@@ -31,6 +31,7 @@ import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
 import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
 import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
+import { useMemberWebsite } from '@/hooks/useMemberWebsite';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import {
   Dialog,
@@ -106,7 +107,8 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const isNewAccount = useIsNewAccount();
   const { data: supportUnreadCount = 0 } = useSupportUnreadCount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
-  const { data: websiteEntitlement } = useWebsiteEditorEntitlement();
+  const { data: websiteEntitlement, isLoading: loadingWebsiteEntitlement } = useWebsiteEditorEntitlement();
+  const { data: memberWebsite, isLoading: loadingMemberWebsite } = useMemberWebsite();
   const restrictNav = isNewAccount && !allQuizzesPassed;
 
   
@@ -379,7 +381,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <button
                           className={cn(
                             'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
-                            ['/marketing', '/social-media-post', '/my-links', '/ads', '/business-card'].some(p => location.pathname.startsWith(p))
+                            ['/marketing', '/social-media-post', '/my-links', '/ads', '/business-card', '/my-website', '/website'].some(p => location.pathname.startsWith(p))
                               ? 'bg-primary/10 text-primary'
                               : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                           )}
@@ -415,6 +417,8 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         {websiteEntitlement && (
                           <NavRow to="/website" icon={Globe} label="Website Editor" onClick={closeMenu} />
                         )}
+                        {userIsAdmin && <NavRow to="/my-website?second=1" icon={Globe} label="Build Second Website" onClick={closeMenu} />}
+                        {!loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteEntitlement && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <NavRow to="/my-website" icon={Globe} label="My Website" onClick={closeMenu} />}
                       </CollapsibleContent>
                     </Collapsible>
 
