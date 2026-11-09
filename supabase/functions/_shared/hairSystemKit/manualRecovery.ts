@@ -1,21 +1,17 @@
-import { kitEmail, kitOrderRow, KIT_LOCATION, type KitEvidence } from './logic.ts';
-import { manualPreviewFacts, normalizeManualRequest, qualifyManualKit, type ManualRequest } from './manual.ts';
+import { manualFacts, manualIdentityKey, manualKitEmail, manualOrderRow, validateManualKit, type ManualKitInput } from './manual.ts';
 
-export type VerifiedGhlOrder = { id: string; locationId: string; contactId: string; productIds: string[];
-  paymentStatus: string; status: string; updatedAt: string };
 export type ManualDeps = {
-  readFresh: (input: ManualRequest) => Promise<{ evidence: KitEvidence; order: VerifiedGhlOrder }>;
-  checkExisting: (orderId: string, paymentId: string) => Promise<void>;
-  claim: (facts: ReturnType<typeof manualPreviewFacts>, adminId: string) => Promise<void>;
-  ensureRow: (row: ReturnType<typeof kitOrderRow>) => Promise<string>;
-  confirmVisible: (id: string, evidence: KitEvidence) => Promise<boolean>;
-  reserve: (location: string, orderId: string, rowId: string) => Promise<boolean>;
-  send: (email: ReturnType<typeof kitEmail>) => Promise<{ ok: boolean; messageId?: string | null }>;
-  finishDelivery: (orderId: string, status: 'sent' | 'uncertain', messageId: string | null) => Promise<void>;
-  finishClaim: (orderId: string, status: 'sent' | 'uncertain', messageId: string | null, rowId: string | null) => Promise<void>;
-  verifyResult: (orderId: string, rowId: string, status: 'sent' | 'uncertain', messageId: string | null) => Promise<boolean>;
+  checkExisting: (input: ManualKitInput, identityKey: string) => Promise<void>;
+  checkClaim: (identityKey: string) => Promise<boolean>;
+  claim: (facts: ReturnType<typeof manualFacts>, adminId: string) => Promise<boolean>;
+  createRow: (row: ReturnType<typeof manualOrderRow>) => Promise<string>;
+  verifyVisible: (rowId: string, row: ReturnType<typeof manualOrderRow>) => Promise<boolean>;
+  reserveDelivery: (identityKey: string, rowId: string) => Promise<boolean>;
+  send: (mail: ReturnType<typeof manualKitEmail>) => Promise<{ ok: boolean; messageId?: string | null }>;
+  finishDelivery: (identityKey: string, status: 'sent' | 'uncertain', messageId: string | null) => Promise<void>;
+  finishClaim: (identityKey: string, status: 'sent' | 'uncertain', messageId: string | null, rowId: string | null) => Promise<void>;
+  verifyResult: (identityKey: string, rowId: string, status: 'sent' | 'uncertain', messageId: string | null) => Promise<boolean>;
 };
-
 async function signature(secret: string, facts: unknown, expires: number) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const bytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(JSON.stringify([facts, expires]))));
@@ -28,51 +24,47 @@ function equalHex(a: string, b: string) {
   return difference === 0;
 }
 
-export async function manualKitRecovery(action: 'preview' | 'confirm', raw: ManualRequest, opts: {
-  adminId: string; secret: string; previewToken?: string; previewExpires?: number; confirmText?: string;
+export async function manualKitRecovery(action: 'preview' | 'confirm', input: ManualKitInput, opts: {
+  adminId: string; secret: string; previewToken?: string; previewExpires?: number;
 }, deps: ManualDeps) {
-  const input = normalizeManualRequest(raw);
-  const { evidence, order } = await deps.readFresh(input);
-  const reason = qualifyManualKit(evidence, input, order);
-  if (reason) return { status: 'blocked', reason };
-  await deps.checkExisting(input.order_id, input.payment_id);
-  const facts = manualPreviewFacts(evidence, input, order);
+  const invalid = validateManualKit(input);
+  if (invalid) return { status: 'blocked', reason: invalid };
+  const identityKey = await manualIdentityKey(input);
+  if (await deps.checkClaim(identityKey)) return { status: 'blocked', reason: 'prior_manual_claim_requires_reconciliation' };
+  await deps.checkExisting(input, identityKey);
+  const facts = manualFacts(input, identityKey);
   const bound = { ...facts, admin_id: opts.adminId };
   if (action === 'preview') {
     const expires = Date.now() + 5 * 60_000;
     return { status: 'ready', facts, preview_expires: expires,
       preview_token: await signature(opts.secret, bound, expires), writes: 0, outbound_messages: 0 };
   }
-  if (opts.confirmText !== 'SEND ONE KIT TO NEW TIMES' || !opts.previewExpires ||
+  if (!opts.previewExpires ||
     opts.previewExpires < Date.now() || opts.previewExpires > Date.now() + 5 * 60_000 ||
-    !equalHex(opts.previewToken ?? '', await signature(opts.secret, bound, opts.previewExpires))) {
+    !equalHex(opts.previewToken ?? '', await signature(opts.secret, bound, opts.previewExpires)))
     return { status: 'blocked', reason: 'preview_changed_or_expired' };
-  }
-  // Claim is permanent. Any failure after this point is held for reconciliation.
-  await deps.claim(facts, opts.adminId);
+  // Unique identity claim is inserted before the order and supplier send.
+  if (!await deps.claim(facts, opts.adminId)) return { status: 'blocked', reason: 'prior_manual_claim_requires_reconciliation' };
   let rowId: string | null = null;
   let reserved = false;
   try {
-    await deps.checkExisting(input.order_id, input.payment_id);
-    const row = kitOrderRow({ ...evidence, shipping: input.shipping });
-    row.order_details = { ...row.order_details, shipping_source: 'admin_confirmed',
-      manual_kit_recovery: { admin_id: opts.adminId, release_basis: input.release_basis,
-        address_evidence: input.address_evidence, reason: input.reason, verified_payment_minor: evidence.payment.receivedMinor,
-        ghl_payment_status: order.paymentStatus } } as typeof row.order_details;
-    rowId = await deps.ensureRow(row);
-    if (!await deps.confirmVisible(rowId, { ...evidence, shipping: input.shipping })) throw new Error('supplier_page_visibility_unverified');
-    reserved = await deps.reserve(KIT_LOCATION, input.order_id, rowId);
-    if (!reserved) throw new Error('existing_supplier_delivery');
-    const sent = await deps.send(kitEmail(input.order_id, { ...evidence, shipping: input.shipping }));
+    await deps.checkExisting(input, identityKey);
+    const row = manualOrderRow(input, opts.adminId, identityKey);
+    rowId = await deps.createRow(row);
+    if (!await deps.verifyVisible(rowId, row)) throw new Error('supplier_row_unverified');
+    reserved = await deps.reserveDelivery(identityKey, rowId);
+    if (!reserved) throw new Error('delivery_already_reserved');
+    const sent = await deps.send(manualKitEmail(input, rowId));
     const outcome = sent.ok && sent.messageId ? 'sent' : 'uncertain';
-    await deps.finishDelivery(input.order_id, outcome, sent.messageId ?? null);
-    await deps.finishClaim(input.order_id, outcome, sent.messageId ?? null, rowId);
-    if (!await deps.verifyResult(input.order_id, rowId, outcome, sent.messageId ?? null))
-      return { status: 'uncertain', reason: 'saved_result_unverified', order_id: input.order_id };
-    return { status: outcome, order_id: input.order_id, supplier_message_id: sent.messageId ?? null, row_id: rowId };
+    await deps.finishDelivery(identityKey, outcome, sent.messageId ?? null);
+    await deps.finishClaim(identityKey, outcome, sent.messageId ?? null, rowId);
+    if (!await deps.verifyResult(identityKey, rowId, outcome, sent.messageId ?? null))
+      return { status: 'uncertain', reason: 'saved_result_unverified' };
+    return { status: outcome, row_id: rowId, supplier_message_id: sent.messageId ?? null,
+      external_reference: facts.external_reference };
   } catch {
-    if (reserved) await deps.finishDelivery(input.order_id, 'uncertain', null).catch(() => {});
-    await deps.finishClaim(input.order_id, 'uncertain', null, rowId).catch(() => {});
-    return { status: 'uncertain', reason: 'manual_reconciliation_required', order_id: input.order_id };
+    if (reserved) await deps.finishDelivery(identityKey, 'uncertain', null).catch(() => {});
+    await deps.finishClaim(identityKey, 'uncertain', null, rowId).catch(() => {});
+    return { status: 'uncertain', reason: 'manual_reconciliation_required' };
   }
 }

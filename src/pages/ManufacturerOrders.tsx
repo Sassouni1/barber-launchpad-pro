@@ -587,7 +587,7 @@ export default function ManufacturerOrders({ adminView = false, hidePrivateDetai
   }, []);
 
   useEffect(() => {
-    if (!highlightedOrderId || isLoading || !orders?.some(order => order.id === highlightedOrderId)) return;
+    if (!highlightedOrderId || isLoading || !orders?.some(order => order.id === highlightedOrderId || order.external_order_id === highlightedOrderId)) return;
     if (lastScrolledOrderRef.current === highlightedOrderId) return;
     const frame = window.requestAnimationFrame(() => {
       const linkedOrder = document.getElementById('supplier-linked-order');
@@ -775,7 +775,7 @@ export default function ManufacturerOrders({ adminView = false, hidePrivateDetai
                 {section.list.length ? (
                   <div className="space-y-3">
                     {section.list.map((order, i) => (
-                      <OrderCard key={order.id} order={order} index={i + 1} isHighlighted={order.id === highlightedOrderId} isPast={section.title === 'Past Orders'} kitLabelPreview={previewKitLabelOnSierra && section.title === 'Current Orders' && order.customer_email?.toLowerCase() === 'sierrascreations@gmail.com'} {...cardProps} />
+                      <OrderCard key={order.id} order={order} index={i + 1} isHighlighted={order.id === highlightedOrderId || order.external_order_id === highlightedOrderId} isPast={section.title === 'Past Orders'} kitLabelPreview={previewKitLabelOnSierra && section.title === 'Current Orders' && order.customer_email?.toLowerCase() === 'sierrascreations@gmail.com'} {...cardProps} />
                     ))}
                   </div>
                 ) : (

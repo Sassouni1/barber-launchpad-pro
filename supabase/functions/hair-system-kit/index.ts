@@ -9,16 +9,16 @@ import { hairSystemStripeKey } from '../_shared/hairSystemFulfillment.ts';
 import { runManualKit } from '../_shared/hairSystemKit/manualServer.ts';
 import { authorizeKitAdmin } from '../_shared/hairSystemKit/manual.ts';
 
-const ManualAddress = z.object({ name: z.string().min(1).max(120), address1: z.string().min(1).max(120),
-  address2: z.string().max(120).optional(), city: z.string().min(1).max(120), state: z.string().min(1).max(120),
+const ManualAddress = z.object({ address1: z.string().min(1).max(120),
+  address2: z.string().max(120), city: z.string().min(1).max(120), state: z.string().min(1).max(120),
   postal_code: z.string().min(5).max(10), country: z.string().length(2) }).strict();
 const ManualBody = z.object({ action: z.enum(['manual_preview', 'manual_confirm']),
-  order_id: z.string().regex(/^[a-f0-9]{24}$/i), payment_id: z.string().regex(/^pi_[A-Za-z0-9]+$/),
-  contact_id: z.string().regex(/^[A-Za-z0-9]{20}$/), shipping: ManualAddress,
-  shipping_confirmed: z.literal(true), address_evidence: z.string().min(12).max(1000),
-  reason: z.string().min(12).max(1000), release_basis: z.enum(['fully_paid', 'installment_entitlement', 'admin_entitlement']),
+  request_key: z.string().uuid(), name: z.string().min(1).max(120),
+  email: z.string().email().max(254), phone: z.string().min(10).max(40), shipping: ManualAddress,
+  shipping_confirmed: z.literal(true), address_evidence: z.string().max(1000),
+  reason: z.string().max(1000), kit_notes: z.string().max(2000),
   preview_token: z.string().regex(/^[a-f0-9]{64}$/).optional(), preview_expires: z.number().int().optional(),
-  confirm_text: z.string().optional() }).strict();
+  }).strict();
 const Body = z.object({ action: z.enum(['diagnostics','dry_run']), order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict();
 const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), phone: z.string().max(40).optional() }).passthrough();
 async function validWebhookToken(value: string | null, secret: string): Promise<boolean> {
@@ -85,7 +85,7 @@ Deno.serve(async req => {
     try {
       const result = await runManualKit(db, manual.data.action === 'manual_preview' ? 'preview' : 'confirm', manual.data,
         { adminId: authorization.userId, secret: service, previewToken: manual.data.preview_token,
-          previewExpires: manual.data.preview_expires, confirmText: manual.data.confirm_text });
+          previewExpires: manual.data.preview_expires });
       return reply(result, result.status === 'blocked' ? 409 : result.status === 'uncertain' ? 503 : 200);
     } catch {
       // Provider bodies and addresses must never appear in logs or error responses.

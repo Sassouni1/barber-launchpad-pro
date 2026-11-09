@@ -1,17 +1,10 @@
-import { KIT_ENROLLMENT_OFFERS, KIT_LOCATION, KIT_STRIPE_APPLICATION, KIT_ITEMS, type KitEvidence } from './logic.ts';
+import { KIT_ITEMS } from './logic.ts';
 
-export type ManualAddress = { name: string; address1: string; address2?: string; city: string; state: string; postal_code: string; country: string };
-export type ManualRequest = {
-  order_id: string; payment_id: string; contact_id: string;
-  shipping: ManualAddress; shipping_confirmed: true; address_evidence: string;
-  reason: string; release_basis: 'fully_paid' | 'installment_entitlement' | 'admin_entitlement';
+export type ManualKitInput = {
+  request_key: string; name: string; email: string; phone: string;
+  shipping: { address1: string; address2: string; city: string; state: string; postal_code: string; country: string };
+  kit_notes: string; reason: string; address_evidence: string; shipping_confirmed: true;
 };
-
-/** Deployment scope is an explicit list of the individually approved GHL orders. */
-export function manualOrderInScope(orderId: string, configuredIds: string): boolean {
-  const ids = configuredIds.split(',').map(v => v.trim()).filter(Boolean);
-  return ids.length > 0 && ids.every(id => /^[a-f0-9]{24}$/i.test(id)) && ids.includes(orderId);
-}
 
 export async function authorizeKitAdmin(authHeader: string | null,
   readUser: (token: string) => Promise<string | null>, readAdmin: (userId: string) => Promise<boolean>) {
@@ -24,67 +17,63 @@ export async function authorizeKitAdmin(authHeader: string | null,
   return { ok: true as const, userId };
 }
 
-const clean = (s: string) => s.trim();
-export function normalizeManualRequest(input: ManualRequest): ManualRequest {
-  return { ...input, order_id: clean(input.order_id), payment_id: clean(input.payment_id), contact_id: clean(input.contact_id),
-    address_evidence: clean(input.address_evidence), reason: clean(input.reason), shipping: {
-      name: clean(input.shipping.name), address1: clean(input.shipping.address1), address2: clean(input.shipping.address2 ?? ''),
-      city: clean(input.shipping.city), state: clean(input.shipping.state), postal_code: clean(input.shipping.postal_code),
-      country: clean(input.shipping.country).toUpperCase(),
-    } };
+export const manualEmailKey = (email: string) => email.trim().toLowerCase();
+export const manualPhoneKey = (phone: string) => phone.replace(/\D/g, '');
+export const manualExternalReference = (requestKey: string) => `manual-kit:${requestKey}`;
+export async function manualIdentityKey(input: Pick<ManualKitInput, 'email' | 'phone'>) {
+  const bytes = new TextEncoder().encode(`${manualEmailKey(input.email)}\n${manualPhoneKey(input.phone)}`);
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return Array.from(hash, v => v.toString(16).padStart(2, '0')).join('');
 }
 
-/** Manual release never changes the automatic full-payment/cutover rule. */
-export function qualifyManualKit(e: KitEvidence, input: ManualRequest, ghlOrder: {
-  id: string; locationId: string; contactId: string; productIds: string[]; paymentStatus: string; status: string; updatedAt: string;
-}): string | null {
-  const offer = Object.entries(KIT_ENROLLMENT_OFFERS).find(([, value]) => value.description === e.order.description);
-  if (input.release_basis !== 'admin_entitlement' && (!offer || !ghlOrder.productIds.includes(offer[0])))
-    return 'membership_entitlement_unverified';
-  const businessStateAccepted = input.release_basis === 'admin_entitlement'
-    ? Boolean(ghlOrder.status && ghlOrder.paymentStatus)
-    : ['completed', 'partially_fulfilled'].includes(ghlOrder.status) &&
-      ['paid', 'partially_paid'].includes(ghlOrder.paymentStatus);
-  if (ghlOrder.id !== input.order_id || ghlOrder.locationId !== KIT_LOCATION || ghlOrder.contactId !== input.contact_id ||
-    !businessStateAccepted) return 'ghl_order_unverified';
-  const p = e.payment;
-  if (!Number.isFinite(Date.parse(e.order.createdAt)) || !Number.isFinite(Date.parse(e.order.paidAt)) ||
-    Date.parse(e.order.paidAt) < Date.parse(e.order.createdAt) || !Number.isFinite(Date.parse(ghlOrder.updatedAt)))
-    return 'purchase_timing_unverified';
-  if (e.order.id !== input.order_id || e.order.locationId !== KIT_LOCATION || p.id !== input.payment_id ||
-    p.orderId !== input.order_id || p.contactId !== input.contact_id || p.locationId !== KIT_LOCATION ||
-    p.application !== KIT_STRIPE_APPLICATION) return 'payment_linkage_unverified';
-  if (!/^pi_[A-Za-z0-9]+$/.test(p.id) || !/^(ch|py)_[A-Za-z0-9]+$/.test(p.chargeId) ||
-    !p.live || p.status !== 'succeeded' || p.chargeStatus !== 'succeeded' || !p.chargePaid || !p.chargeCaptured ||
-    p.disputed || p.refundedMinor !== 0 || p.currency !== 'usd' || !Number.isSafeInteger(p.receivedMinor) ||
-    p.receivedMinor <= 0 || p.chargeAmountMinor !== p.receivedMinor) return 'payment_not_cleared';
-  const threshold = offer?.[1].minimumReceivedMinor ?? Infinity;
-  if (input.release_basis === 'fully_paid' && (p.receivedMinor < threshold || ghlOrder.paymentStatus !== 'paid')) return 'not_fully_paid';
-  if (input.release_basis === 'installment_entitlement' && (p.receivedMinor >= threshold || p.receivedMinor < 80000 ||
-    ghlOrder.paymentStatus !== 'partially_paid')) return 'installment_entitlement_unverified';
-  if (input.shipping_confirmed !== true || input.reason.length < 12 || input.address_evidence.length < 12) return 'manual_confirmation_missing';
+export function validateManualKit(input: ManualKitInput): string | null {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.request_key)) return 'invalid_request_key';
+  if (!input.name.trim() || input.name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(manualEmailKey(input.email)) ||
+    input.email.length > 254 || manualPhoneKey(input.phone).length < 10 || manualPhoneKey(input.phone).length > 15 || input.phone.length > 40)
+    return 'customer_details_incomplete';
   const s = input.shipping;
-  if ([s.name, s.address1, s.city, s.state, s.postal_code, s.country].some(v => !v || v.length > 120) ||
-    s.address2!.length > 120 || s.country !== 'US' || !/^[0-9]{5}(?:-[0-9]{4})?$/.test(s.postal_code)) return 'shipping_incomplete';
-  // Existing payment shipping is authoritative. A manual address can fill a missing destination,
-  // but a disagreement requires separate human reconciliation before any supplier send.
-  for (const key of ['name','address1','address2','city','state','postal_code','country'] as const) {
-    if (e.shipping[key] && e.shipping[key].trim().toLowerCase() !== s[key]!.trim().toLowerCase()) return 'shipping_conflict';
-  }
-  if (!e.contact.email || !e.contact.phone) return 'contact_unverified';
-  if (Date.now() - Date.parse(e.readAt) > 30_000 || !Number.isFinite(Date.parse(e.readAt))) return 'payment_evidence_stale';
+  if ([s.address1, s.city, s.state, s.postal_code, s.country].some(v => !v.trim() || v.length > 120) ||
+    s.address2.length > 120 || !/^[0-9]{5}(?:-[0-9]{4})?$/.test(s.postal_code.trim()) || s.country.trim().toUpperCase() !== 'US')
+    return 'shipping_incomplete';
+  if (input.shipping_confirmed !== true || input.reason.length > 1000 ||
+    input.address_evidence.length > 1000 || input.kit_notes.length > 2000)
+    return 'manual_confirmation_missing';
   if (KIT_ITEMS.length !== 6) return 'kit_manifest_invalid';
   return null;
 }
 
-export function manualPreviewFacts(e: KitEvidence, input: ManualRequest,
-  ghlOrder: { updatedAt: string; paymentStatus: string; status: string; productIds: string[] }) {
-  return { order_id: input.order_id, payment_id: e.payment.id, charge_id: e.payment.chargeId,
-    contact_id: input.contact_id, contact_email: e.contact.email, contact_phone: e.contact.phone,
-    amount_received_minor: e.payment.receivedMinor,
-    purchase_description: e.order.description, release_basis: input.release_basis,
-    ghl_payment_status: ghlOrder.paymentStatus, ghl_order_status: ghlOrder.status,
-    ghl_product_ids: ghlOrder.productIds,
-    shipping: input.shipping, address_evidence: input.address_evidence, reason: input.reason,
-    ghl_updated_at: ghlOrder.updatedAt, supplier: 'sales30@newtimeshair.com', kit_items: KIT_ITEMS };
+export function manualFacts(input: ManualKitInput, identityKey: string) {
+  return { request_key: input.request_key, name: input.name, email: input.email, phone: input.phone,
+    shipping: input.shipping, kit_notes: input.kit_notes, reason: input.reason,
+    address_evidence: input.address_evidence, shipping_confirmed: input.shipping_confirmed,
+    identity_key: identityKey, external_reference: manualExternalReference(input.request_key),
+    kit_items: KIT_ITEMS, supplier: 'sales30@newtimeshair.com', supplier_subject: 'New Hair System Kit Order' };
+}
+export function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`).join(',')}}`;
+  return JSON.stringify(value);
+}
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
+}
+export function manualKitEmail(input: ManualKitInput, rowId: string) {
+  const s = input.shipping;
+  const address = [s.address1, s.address2, s.city, s.state, s.postal_code, s.country].filter(Boolean).join(', ');
+  const link = `https://member.thebarberlaunch.com/newtimes?order=${encodeURIComponent(rowId)}`;
+  const notes = input.kit_notes.trim() ? `<p>Kit notes: ${escapeHtml(input.kit_notes)}</p>` : '';
+  return { role: 'supplier', to: 'sales30@newtimeshair.com', subject: 'New Hair System Kit Order',
+    html: `<p>New order for ${escapeHtml(input.name)} at ${escapeHtml(address)}.</p>${notes}<p><a href="${escapeHtml(link)}">Click here to view order and add tracking details.</a></p>` };
+}
+
+export function manualOrderRow(input: ManualKitInput, adminId: string, identityKey: string) {
+  const facts = manualFacts(input, identityKey);
+  return { external_order_id: facts.external_reference, user_id: null, customer_name: input.name,
+    customer_email: input.email, payment_reference: null, status: 'pending', order_date: new Date().toISOString(),
+    order_details: { supplier_kit: true, manual_source: 'admin_entry', manual_identity_key: identityKey,
+      manual_request_key: input.request_key, manual_admin_id: adminId, manual_facts: facts,
+      full_name: input.name, phone: input.phone, shipping_address: { name: input.name, ...input.shipping },
+      kit_notes: input.kit_notes, notes: input.kit_notes,
+      order: { line_items: KIT_ITEMS.map(title => ({ title, quantity: 1 })) } } };
 }
