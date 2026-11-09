@@ -396,6 +396,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
               {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
+              {userIsAdmin && <SubNavItem to="/my-website?demo=1" icon={Globe} label="My Website Preview" />}
               {!loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteTemplate && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <SubNavItem to="/my-website" icon={Globe} label="My Website" />}
             </ExpandableNavItem>
 
