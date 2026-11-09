@@ -22,11 +22,13 @@ export async function runManualKit(db: SupabaseClient, action: 'preview' | 'conf
           .eq('location_id', KIT_LOCATION).eq('entitlement_key', identityKey),
       ]);
       if (duplicate.error || !duplicate.data || !Number.isSafeInteger(duplicate.data.matching_orders) ||
+          !Number.isSafeInteger(duplicate.data.manual_claims) ||
           !Number.isSafeInteger(duplicate.data.supplier_notifications) ||
           !Number.isSafeInteger(duplicate.data.delivery_records) || deliveries.error || !deliveries.data)
         throw new Error('duplicate_state_unavailable');
       if (deliveries.data.length) throw new Error('existing_delivery_requires_reconciliation');
-      if (duplicate.data.matching_orders > 0 || duplicate.data.supplier_notifications > 0 || duplicate.data.delivery_records > 0)
+      if (duplicate.data.matching_orders > 0 || duplicate.data.manual_claims > 0 ||
+          duplicate.data.supplier_notifications > 0 || duplicate.data.delivery_records > 0)
         throw new Error('existing_kit_requires_reconciliation');
     },
     claim: async (facts, adminId) => {

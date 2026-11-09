@@ -6,12 +6,16 @@ CREATE TABLE public.hair_system_kit_manual_recoveries (
   identity_key text NOT NULL UNIQUE,
   admin_id uuid NOT NULL,
   preview_facts jsonb NOT NULL,
+  email_key text GENERATED ALWAYS AS (lower(btrim(preview_facts->>'email'))) STORED,
+  phone_key text GENERATED ALWAYS AS (regexp_replace(coalesce(preview_facts->>'phone', ''), '[^0-9]', '', 'g')) STORED,
   status text NOT NULL DEFAULT 'reserved' CHECK (status IN ('reserved', 'sent', 'uncertain')),
   supplier_order_id uuid REFERENCES public.orders(id),
   supplier_message_id text,
   created_at timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz
 );
+CREATE UNIQUE INDEX hair_system_kit_manual_claim_email_unique ON public.hair_system_kit_manual_recoveries (email_key);
+CREATE UNIQUE INDEX hair_system_kit_manual_claim_phone_unique ON public.hair_system_kit_manual_recoveries (phone_key);
 ALTER TABLE public.hair_system_kit_manual_recoveries ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.hair_system_kit_manual_recoveries FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.hair_system_kit_manual_recoveries TO service_role;
@@ -56,6 +60,9 @@ LANGUAGE sql STABLE SET search_path = public AS $$
   )
   SELECT jsonb_build_object(
     'matching_orders', (SELECT count(*) FROM matching),
+    'manual_claims', (SELECT count(*) FROM public.hair_system_kit_manual_recoveries c
+      WHERE c.request_key <> _request_key AND
+        (c.email_key = lower(btrim(_email)) OR c.phone_key = regexp_replace(_phone, '[^0-9]', '', 'g'))),
     'supplier_notifications', (SELECT count(*) FROM public.order_notifications n JOIN matching m ON m.id = n.order_id WHERE n.channel = 'supplier_email'),
     'delivery_records', (SELECT count(*) FROM public.hair_system_kit_deliveries d JOIN matching m ON m.id = d.order_id)
   );

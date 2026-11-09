@@ -44,7 +44,11 @@ function fixture() {
            String(d.phone ?? '').replace(/\D/g, '') === args._phone.replace(/\D/g, '') ||
            o.external_order_id === `manual-kit:${args._request_key}`);
       });
-      return { data: { matching_orders: matches.length, supplier_notifications: 0, delivery_records: 0 }, error: null };
+      const claims = state.claims.filter(c => c.request_key !== args._request_key &&
+        (c.preview_facts.email.trim().toLowerCase() === args._email.trim().toLowerCase() ||
+         c.preview_facts.phone.replace(/\D/g, '') === args._phone.replace(/\D/g, '')));
+      return { data: { matching_orders: matches.length, manual_claims: claims.length,
+        supplier_notifications: 0, delivery_records: 0 }, error: null };
     },
     from(table) {
       const filters = []; let mutation = null;
@@ -98,12 +102,14 @@ test('adapter saves and verifies reordered jsonb, projects entered notes, and se
   assert.equal('manual_facts' in projection, false); assert.equal('address_evidence' in projection, false);
   assert.equal((await run(db, 'preview', request(), opts)).reason, 'prior_manual_claim_requires_reconciliation');
 });
-test('different browser UUID, legacy kit, prior delivery, or unavailable duplicate read block', async () => {
+test('different browser UUID, prior claim, legacy kit, prior delivery, or unavailable duplicate read block', async () => {
   const run = await loadAdapter();
-  for (const kind of ['manual', 'legacy', 'delivery', 'unavailable']) {
+  for (const kind of ['manual', 'claim', 'legacy', 'delivery', 'unavailable']) {
     const { state, db } = fixture();
     if (kind === 'manual') state.orders.push({ customer_email: request().email, order_details: { supplier_kit: true } });
     if (kind === 'legacy') state.orders.push({ customer_email: request().email, order_details: { kit_order: true } });
+    if (kind === 'claim') state.claims.push({ request_key: '22222222-2222-4222-8222-222222222222',
+      identity_key: 'different-phone', preview_facts: { email: request().email, phone: '9999999999' }, status: 'uncertain' });
     if (kind === 'delivery') state.deliveries.push({ location_id: 'JVBUuL3dVwZahuGay9T1',
       entitlement_key: createHash('sha256').update('fixture@example.com\n12125550100').digest('hex'), status: 'uncertain' });
     if (kind === 'unavailable') state.duplicateUnavailable = true;
