@@ -16,7 +16,7 @@ const ManualBody = z.object({ action: z.enum(['manual_preview', 'manual_confirm'
   order_id: z.string().regex(/^[a-f0-9]{24}$/i), payment_id: z.string().regex(/^pi_[A-Za-z0-9]+$/),
   contact_id: z.string().regex(/^[A-Za-z0-9]{20}$/), shipping: ManualAddress,
   shipping_confirmed: z.literal(true), address_evidence: z.string().min(12).max(1000),
-  reason: z.string().min(12).max(1000), release_basis: z.enum(['fully_paid', 'installment_entitlement']),
+  reason: z.string().min(12).max(1000), release_basis: z.enum(['fully_paid', 'installment_entitlement', 'admin_entitlement']),
   preview_token: z.string().regex(/^[a-f0-9]{64}$/).optional(), preview_expires: z.number().int().optional(),
   confirm_text: z.string().optional() }).strict();
 const Body = z.object({ action: z.enum(['diagnostics','dry_run']), order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict();

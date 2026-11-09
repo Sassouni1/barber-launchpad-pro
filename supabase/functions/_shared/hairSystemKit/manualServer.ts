@@ -5,7 +5,7 @@ import { KIT_LOCATION } from './logic.ts';
 import { readStripeEvidenceByPaymentIntent } from './readStripeEvidence.ts';
 import { kitStorage } from './storage.ts';
 import { manualKitRecovery, type VerifiedGhlOrder } from './manualRecovery.ts';
-import type { ManualRequest } from './manual.ts';
+import { manualOrderInScope, type ManualRequest } from './manual.ts';
 
 async function readGhlOrder(orderId: string): Promise<VerifiedGhlOrder> {
   const key = (Deno.env.get('GHL_API_KEY') ?? '').trim();
@@ -23,6 +23,8 @@ async function readGhlOrder(orderId: string): Promise<VerifiedGhlOrder> {
 
 export async function runManualKit(db: SupabaseClient, action: 'preview' | 'confirm', input: ManualRequest,
   opts: { adminId: string; secret: string; previewToken?: string; previewExpires?: number; confirmText?: string }) {
+  if (!manualOrderInScope(input.order_id, Deno.env.get('MANUAL_KIT_ALLOWED_ORDER_IDS') ?? ''))
+    return { status: 'blocked', reason: 'order_outside_manual_authorization' };
   const { data: hold, error: holdError } = await db.from('app_settings').select('value')
     .eq('key', 'hair_system_fulfillment_hold').maybeSingle();
   if (holdError || typeof hold?.value !== 'boolean' || hold.value === true) return { status: 'blocked', reason: 'fulfillment_hold_or_unknown' };

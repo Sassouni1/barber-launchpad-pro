@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-type Fields = { order_id: string; payment_id: string; contact_id: string; release_basis: 'fully_paid' | 'installment_entitlement';
+type Fields = { order_id: string; payment_id: string; contact_id: string; release_basis: 'fully_paid' | 'installment_entitlement' | 'admin_entitlement';
   shipping: { name: string; address1: string; address2: string; city: string; state: string; postal_code: string; country: string };
   address_evidence: string; reason: string; shipping_confirmed: boolean };
 const empty: Fields = { order_id: '', payment_id: '', contact_id: '', release_basis: 'fully_paid',
@@ -67,6 +67,7 @@ export function ManualKitRecovery() {
         onChange={e => change('release_basis', e.target.value)}>
         <option value="fully_paid">Full enrollment payment</option>
         <option value="installment_entitlement">Verified enrollment installment of at least $800</option>
+        <option value="admin_entitlement">Owner-approved manual entitlement for this exact order</option>
       </select></label>
     <div className="grid gap-3 sm:grid-cols-3">
       {(['name','address1','address2','city','state','postal_code','country'] as const).map(key =>

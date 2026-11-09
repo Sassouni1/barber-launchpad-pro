@@ -4,8 +4,14 @@ export type ManualAddress = { name: string; address1: string; address2?: string;
 export type ManualRequest = {
   order_id: string; payment_id: string; contact_id: string;
   shipping: ManualAddress; shipping_confirmed: true; address_evidence: string;
-  reason: string; release_basis: 'fully_paid' | 'installment_entitlement';
+  reason: string; release_basis: 'fully_paid' | 'installment_entitlement' | 'admin_entitlement';
 };
+
+/** Deployment scope is an explicit list of the individually approved GHL orders. */
+export function manualOrderInScope(orderId: string, configuredIds: string): boolean {
+  const ids = configuredIds.split(',').map(v => v.trim()).filter(Boolean);
+  return ids.length > 0 && ids.every(id => /^[a-f0-9]{24}$/i.test(id)) && ids.includes(orderId);
+}
 
 export async function authorizeKitAdmin(authHeader: string | null,
   readUser: (token: string) => Promise<string | null>, readAdmin: (userId: string) => Promise<boolean>) {
@@ -33,9 +39,14 @@ export function qualifyManualKit(e: KitEvidence, input: ManualRequest, ghlOrder:
   id: string; locationId: string; contactId: string; productIds: string[]; paymentStatus: string; status: string; updatedAt: string;
 }): string | null {
   const offer = Object.entries(KIT_ENROLLMENT_OFFERS).find(([, value]) => value.description === e.order.description);
-  if (!offer || !ghlOrder.productIds.includes(offer[0])) return 'membership_entitlement_unverified';
+  if (input.release_basis !== 'admin_entitlement' && (!offer || !ghlOrder.productIds.includes(offer[0])))
+    return 'membership_entitlement_unverified';
+  const businessStateAccepted = input.release_basis === 'admin_entitlement'
+    ? Boolean(ghlOrder.status && ghlOrder.paymentStatus)
+    : ['completed', 'partially_fulfilled'].includes(ghlOrder.status) &&
+      ['paid', 'partially_paid'].includes(ghlOrder.paymentStatus);
   if (ghlOrder.id !== input.order_id || ghlOrder.locationId !== KIT_LOCATION || ghlOrder.contactId !== input.contact_id ||
-    !['completed', 'partially_fulfilled'].includes(ghlOrder.status) || !['paid', 'partially_paid'].includes(ghlOrder.paymentStatus)) return 'ghl_order_unverified';
+    !businessStateAccepted) return 'ghl_order_unverified';
   const p = e.payment;
   if (!Number.isFinite(Date.parse(e.order.createdAt)) || !Number.isFinite(Date.parse(e.order.paidAt)) ||
     Date.parse(e.order.paidAt) < Date.parse(e.order.createdAt) || !Number.isFinite(Date.parse(ghlOrder.updatedAt)))
@@ -47,7 +58,7 @@ export function qualifyManualKit(e: KitEvidence, input: ManualRequest, ghlOrder:
     !p.live || p.status !== 'succeeded' || p.chargeStatus !== 'succeeded' || !p.chargePaid || !p.chargeCaptured ||
     p.disputed || p.refundedMinor !== 0 || p.currency !== 'usd' || !Number.isSafeInteger(p.receivedMinor) ||
     p.receivedMinor <= 0 || p.chargeAmountMinor !== p.receivedMinor) return 'payment_not_cleared';
-  const threshold = offer[1].minimumReceivedMinor;
+  const threshold = offer?.[1].minimumReceivedMinor ?? Infinity;
   if (input.release_basis === 'fully_paid' && (p.receivedMinor < threshold || ghlOrder.paymentStatus !== 'paid')) return 'not_fully_paid';
   if (input.release_basis === 'installment_entitlement' && (p.receivedMinor >= threshold || p.receivedMinor < 80000 ||
     ghlOrder.paymentStatus !== 'partially_paid')) return 'installment_entitlement_unverified';
@@ -66,11 +77,14 @@ export function qualifyManualKit(e: KitEvidence, input: ManualRequest, ghlOrder:
   return null;
 }
 
-export function manualPreviewFacts(e: KitEvidence, input: ManualRequest, ghlUpdatedAt: string) {
+export function manualPreviewFacts(e: KitEvidence, input: ManualRequest,
+  ghlOrder: { updatedAt: string; paymentStatus: string; status: string; productIds: string[] }) {
   return { order_id: input.order_id, payment_id: e.payment.id, charge_id: e.payment.chargeId,
     contact_id: input.contact_id, contact_email: e.contact.email, contact_phone: e.contact.phone,
     amount_received_minor: e.payment.receivedMinor,
     purchase_description: e.order.description, release_basis: input.release_basis,
+    ghl_payment_status: ghlOrder.paymentStatus, ghl_order_status: ghlOrder.status,
+    ghl_product_ids: ghlOrder.productIds,
     shipping: input.shipping, address_evidence: input.address_evidence, reason: input.reason,
-    ghl_updated_at: ghlUpdatedAt, supplier: 'sales30@newtimeshair.com', kit_items: KIT_ITEMS };
+    ghl_updated_at: ghlOrder.updatedAt, supplier: 'sales30@newtimeshair.com', kit_items: KIT_ITEMS };
 }

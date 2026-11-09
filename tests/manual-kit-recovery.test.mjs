@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { manualKitRecovery } from '../supabase/functions/_shared/hairSystemKit/manualRecovery.ts';
 import { KIT_ENROLLMENT_DESCRIPTION, KIT_2997_PRODUCT, KIT_ITEMS, KIT_LOCATION, KIT_STRIPE_APPLICATION } from '../supabase/functions/_shared/hairSystemKit/logic.ts';
-import { authorizeKitAdmin } from '../supabase/functions/_shared/hairSystemKit/manual.ts';
+import { authorizeKitAdmin, manualOrderInScope } from '../supabase/functions/_shared/hairSystemKit/manual.ts';
 
 const orderId = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const contactId = 'bbbbbbbbbbbbbbbbbbbb';
@@ -112,4 +112,20 @@ test('unverified persisted delivery never reports a confirmed supplier send', as
   const result = await manualKitRecovery('confirm', input(), { ...opts, previewToken: ready.preview_token,
     previewExpires: ready.preview_expires, confirmText: 'SEND ONE KIT TO NEW TIMES' }, h.deps);
   assert.equal(result.status, 'uncertain'); assert.equal(result.reason, 'saved_result_unverified'); assert.equal(h.state.sends, 1);
+});
+test('owner-approved manual entitlement bypasses business thresholds only for the scoped order', async () => {
+  assert.equal(manualOrderInScope(orderId, ''), false);
+  assert.equal(manualOrderInScope(orderId, 'cccccccccccccccccccccccc'), false);
+  assert.equal(manualOrderInScope(orderId, `${orderId},cccccccccccccccccccccccc`), true);
+  assert.equal(manualOrderInScope(orderId, `${orderId},*`), false);
+  const e = payment('pi_partial', 50000);
+  e.order.description = 'Owner-approved enrollment arrangement';
+  const g = order('unpaid'); g.productIds = []; g.status = 'pending';
+  const h = harness(e, g);
+  const request = input('pi_partial', 'admin_entitlement');
+  const ready = await manualKitRecovery('preview', request, opts, h.deps);
+  assert.equal(ready.status, 'ready');
+  assert.equal(ready.facts.amount_received_minor, 50000);
+  assert.equal(ready.facts.ghl_payment_status, 'unpaid');
+  assert.equal(h.state.writes, 0);
 });

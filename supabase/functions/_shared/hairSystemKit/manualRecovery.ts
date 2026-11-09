@@ -36,7 +36,7 @@ export async function manualKitRecovery(action: 'preview' | 'confirm', raw: Manu
   const reason = qualifyManualKit(evidence, input, order);
   if (reason) return { status: 'blocked', reason };
   await deps.checkExisting(input.order_id, input.payment_id);
-  const facts = manualPreviewFacts(evidence, input, order.updatedAt);
+  const facts = manualPreviewFacts(evidence, input, order);
   const bound = { ...facts, admin_id: opts.adminId };
   if (action === 'preview') {
     const expires = Date.now() + 5 * 60_000;
@@ -57,7 +57,8 @@ export async function manualKitRecovery(action: 'preview' | 'confirm', raw: Manu
     const row = kitOrderRow({ ...evidence, shipping: input.shipping });
     row.order_details = { ...row.order_details, shipping_source: 'admin_confirmed',
       manual_kit_recovery: { admin_id: opts.adminId, release_basis: input.release_basis,
-        address_evidence: input.address_evidence, reason: input.reason, verified_payment_minor: evidence.payment.receivedMinor } } as typeof row.order_details;
+        address_evidence: input.address_evidence, reason: input.reason, verified_payment_minor: evidence.payment.receivedMinor,
+        ghl_payment_status: order.paymentStatus } } as typeof row.order_details;
     rowId = await deps.ensureRow(row);
     if (!await deps.confirmVisible(rowId, { ...evidence, shipping: input.shipping })) throw new Error('supplier_page_visibility_unverified');
     reserved = await deps.reserve(KIT_LOCATION, input.order_id, rowId);

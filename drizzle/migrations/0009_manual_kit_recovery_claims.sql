@@ -6,7 +6,7 @@ CREATE TABLE public.hair_system_kit_manual_recoveries (
   ghl_order_id text NOT NULL,
   payment_id text NOT NULL,
   admin_id uuid NOT NULL,
-  release_basis text NOT NULL CHECK (release_basis IN ('fully_paid', 'installment_entitlement')),
+  release_basis text NOT NULL CHECK (release_basis IN ('fully_paid', 'installment_entitlement', 'admin_entitlement')),
   reason text NOT NULL,
   address_evidence text NOT NULL,
   preview_facts jsonb NOT NULL,
