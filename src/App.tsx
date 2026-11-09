@@ -66,6 +66,8 @@ import Refer, { ReferThankYou } from "./pages/Refer";
 import AffiliatesAdmin from "./pages/admin/AffiliatesAdmin";
 import HairSystemTestCheckout from "./pages/admin/HairSystemTestCheckout";
 import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import DataDeletion from "./pages/DataDeletion";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LocaleProvider } from "./lib/i18n/LocaleProvider";
@@ -107,6 +109,8 @@ const MemberApp = () => (
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/reset-password/*" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/data-deletion" element={<DataDeletion />} />
         <Route path="/agreement" element={<ProtectedRoute skipAgreementCheck><Agreement /></ProtectedRoute>} />
         <Route path="/auth" element={<Navigate to="/login" replace />} />
 
