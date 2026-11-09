@@ -176,23 +176,17 @@ export default function GuidedWebsiteBuilder() {
     <div className="grid grid-cols-5 gap-2" aria-label="Website setup progress">{stages.map((label, index) => <button key={label} type="button" disabled={index > furthestStep} onClick={() => setStep(index)} className={`rounded-lg border p-2 text-left text-xs sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 ${index === step ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}><span className="block font-bold">{index < step ? <Check className="inline h-4 w-4" /> : index + 1}</span>{label}</button>)}</div>
     <section className="rounded-xl border border-primary/25 bg-card p-5 sm:p-8">
       {step === 0 && <div className="space-y-5">
-        <div><h2 className="font-serif text-2xl">Choose your website design</h2><p className="text-muted-foreground">The full website is below. Scroll through it here, then switch designs or screen sizes to compare.</p></div>
-        <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Website templates">
-          {guidedTemplates.map(template => <button key={template.key} type="button" aria-pressed={answers.template === template.key} onClick={() => update('template', template.key)} className={`rounded-xl border p-4 text-left transition-colors ${answers.template === template.key ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/60'}`}><span className="block text-xs font-bold uppercase tracking-widest">{template.name}</span><span className="mt-1 block font-serif text-xl">{template.example}</span><span className="mt-1 block text-sm text-muted-foreground">{template.description}</span></button>)}
+        <div><h2 className="font-serif text-2xl">Choose your website design</h2><p className="text-muted-foreground">Scroll inside either website to explore it, or open Preview for a larger desktop or phone view.</p></div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {guidedTemplates.map(template => <article key={template.key} className={`overflow-hidden rounded-xl border bg-background ${answers.template === template.key ? 'border-primary' : 'border-border'}`}>
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3"><div><p className="text-xs font-bold uppercase tracking-widest text-primary">{template.name}</p><h3 className="font-serif text-xl">{template.example}</h3></div><span className="text-xs text-muted-foreground">Scroll inside ↓</span></div>
+            <iframe title={`${template.name} scrollable website preview`} src={template.url} loading="lazy" className="block h-[420px] w-full border-0 bg-white" />
+            <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border p-3">
+              <Button type="button" size="sm" variant="outline" onClick={() => { setPreviewDevice('desktop'); setPreviewTemplate(template.key); }}><ExternalLink className="mr-1 h-4 w-4" />Preview</Button>
+              <Button type="button" size="sm" variant={answers.template === template.key ? 'default' : 'secondary'} onClick={() => update('template', template.key)}>{answers.template === template.key ? 'Selected' : 'Select'}</Button>
+            </div>
+          </article>)}
         </div>
-        <div className="overflow-hidden rounded-xl border border-primary/30 bg-neutral-950">
-          <div className="flex flex-wrap items-center gap-2 border-b border-white/20 bg-card p-3">
-            <span className="mr-auto text-sm font-semibold">Viewing {guidedTemplates.find(template => template.key === answers.template)?.example}</span>
-            <Button type="button" size="sm" variant={previewDevice === 'desktop' ? 'default' : 'outline'} onClick={() => setPreviewDevice('desktop')}><Monitor className="mr-1 h-4 w-4" />Desktop</Button>
-            <Button type="button" size="sm" variant={previewDevice === 'mobile' ? 'default' : 'outline'} onClick={() => setPreviewDevice('mobile')}><Smartphone className="mr-1 h-4 w-4" />Phone</Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setPreviewTemplate(answers.template)}><ExternalLink className="mr-1 h-4 w-4" />Expand</Button>
-          </div>
-          <div className="flex h-[75dvh] min-h-[560px] justify-center overflow-hidden bg-neutral-900 p-2 sm:p-4">
-            <iframe key={`${answers.template}:${previewDevice}`} title={`${previewDevice} website template preview`} src={guidedTemplates.find(template => template.key === answers.template)?.url} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">Scroll inside the website above to see every section. The final draft with your own information appears at the review step.</p>
-        <Button type="button" onClick={next}>Use this design and continue<ArrowRight className="ml-2 h-4 w-4" /></Button>
       </div>}
       {step === 1 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" /><Field label="What name should we show for you?" value={answers.ownerName} onChange={value => update('ownerName', value)} placeholder="Your name" /><Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" /><Field label="What phone number should show on your site?" value={answers.phone} onChange={value => update('phone', value)} placeholder="Business phone number" /><p className="text-sm text-muted-foreground">We suggested the number on your account. You can change it here.</p><label className="block space-y-2"><span className="font-medium">What services do you want to show?</span><Textarea value={answers.services} onChange={e => update('services', e.target.value)} rows={5} placeholder="One service per line" /></label></div>}
       {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
@@ -213,7 +207,7 @@ export default function GuidedWebsiteBuilder() {
         </div>
       </DialogContent>
     </Dialog>
-    <div className="flex justify-between"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step > 0 && step < 4 && <Button onClick={next}>Continue<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
+    <div className="flex justify-between"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 4 && <Button onClick={next}>Continue<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
   </main></DashboardLayout>;
 }
 
