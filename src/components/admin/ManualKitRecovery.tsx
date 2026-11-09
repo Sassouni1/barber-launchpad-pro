@@ -81,7 +81,12 @@ export function ManualKitRecovery() {
     <Button disabled={busy} onClick={() => invoke('manual_preview')}>Review manual kit</Button>
     {preview && <div className="space-y-3 rounded-md border p-4 text-sm">
       <p className="font-semibold">Review before sending one supplier email</p>
-      <pre className="overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(preview.facts, null, 2)}</pre>
+      <p><strong>Buyer:</strong> {fields.name} · {fields.email} · {fields.phone}</p>
+      <p><strong>Ship to:</strong> {[fields.shipping.address1, fields.shipping.address2, fields.shipping.city,
+        fields.shipping.state, fields.shipping.postal_code, fields.shipping.country].filter(Boolean).join(', ')}</p>
+      <p><strong>Kit:</strong> {KIT_ITEMS.join(' · ')}</p>
+      {fields.kit_notes && <p><strong>Supplier notes:</strong> {fields.kit_notes}</p>}
+      <p><strong>Action:</strong> Create one kit order and email New Times Hair at sales30@newtimeshair.com.</p>
       <p>This review expires after five minutes.</p>
       <Button disabled={busy} onClick={() => invoke('manual_confirm')}>Create kit and send supplier email</Button>
     </div>}
