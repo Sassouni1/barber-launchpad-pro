@@ -6,7 +6,19 @@ import { KIT_ENROLLMENT_OFFERS, processKit } from './logic.ts';
 import { readStripeEvidence } from './readStripeEvidence.ts';
 import { kitStorage } from './storage.ts';
 import { hairSystemStripeKey } from '../_shared/hairSystemFulfillment.ts';
+import { runManualKit } from '../_shared/hairSystemKit/manualServer.ts';
+import { authorizeKitAdmin } from '../_shared/hairSystemKit/manual.ts';
 
+const ManualAddress = z.object({ name: z.string().min(1).max(120), address1: z.string().min(1).max(120),
+  address2: z.string().max(120).optional(), city: z.string().min(1).max(120), state: z.string().min(1).max(120),
+  postal_code: z.string().min(5).max(10), country: z.string().length(2) }).strict();
+const ManualBody = z.object({ action: z.enum(['manual_preview', 'manual_confirm']),
+  order_id: z.string().regex(/^[a-f0-9]{24}$/i), payment_id: z.string().regex(/^pi_[A-Za-z0-9]+$/),
+  contact_id: z.string().regex(/^[A-Za-z0-9]{20}$/), shipping: ManualAddress,
+  shipping_confirmed: z.literal(true), address_evidence: z.string().min(12).max(1000),
+  reason: z.string().min(12).max(1000), release_basis: z.enum(['fully_paid', 'installment_entitlement']),
+  preview_token: z.string().regex(/^[a-f0-9]{64}$/).optional(), preview_expires: z.number().int().optional(),
+  confirm_text: z.string().optional() }).strict();
 const Body = z.object({ action: z.enum(['diagnostics','dry_run']), order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict();
 const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), phone: z.string().max(40).optional() }).passthrough();
 async function validWebhookToken(value: string | null, secret: string): Promise<boolean> {
@@ -61,14 +73,26 @@ Deno.serve(async req => {
       (result.status === 'blocked' && 'reason' in result && ['fresh_stripe_reads_unavailable', 'supplier_page_visibility_unverified', 'supplier_delivery_not_attempted'].includes(result.reason ?? ''));
     return reply(result, temporaryFailure ? 503 : 200);
   }
-  const auth = req.headers.get('Authorization');
-  if (!auth?.startsWith('Bearer ')) return reply({ error: 'unauthorized' }, 401);
   const userClient = createClient(url, anon);
-  const { data: user, error: authError } = await userClient.auth.getUser(auth.slice(7));
-  if (authError || !user.user) return reply({ error: 'unauthorized' }, 401);
-  const { data: admin, error: roleError } = await db.rpc('has_role', { _user_id: user.user.id, _role: 'admin' });
-  if (roleError || admin !== true) return reply({ error: 'forbidden' }, 403);
-  const parsed = Body.safeParse(await req.json().catch(() => null));
+  const authorization = await authorizeKitAdmin(req.headers.get('Authorization'),
+    async token => { const { data, error } = await userClient.auth.getUser(token); return error ? null : data.user?.id ?? null; },
+    async userId => { const { data, error } = await db.rpc('has_role', { _user_id: userId, _role: 'admin' }); return !error && data === true; });
+  if (!authorization.ok) return reply({ error: authorization.status === 401 ? 'unauthorized' : 'forbidden' }, authorization.status);
+  const rawBody = await req.json().catch(() => null);
+  if (rawBody?.action === 'manual_preview' || rawBody?.action === 'manual_confirm') {
+    const manual = ManualBody.safeParse(rawBody);
+    if (!manual.success) return reply({ error: 'invalid_manual_request' }, 400);
+    try {
+      const result = await runManualKit(db, manual.data.action === 'manual_preview' ? 'preview' : 'confirm', manual.data,
+        { adminId: authorization.userId, secret: service, previewToken: manual.data.preview_token,
+          previewExpires: manual.data.preview_expires, confirmText: manual.data.confirm_text });
+      return reply(result, result.status === 'blocked' ? 409 : result.status === 'uncertain' ? 503 : 200);
+    } catch {
+      // Provider bodies and addresses must never appear in logs or error responses.
+      return reply({ error: 'manual_kit_reconciliation_required' }, 503);
+    }
+  }
+  const parsed = Body.safeParse(rawBody);
   if (!parsed.success || (parsed.data.action === 'dry_run' && !parsed.data.order_id)) return reply({ error: 'invalid_request' }, 400);
   const { data: gate, error } = await db.from('hair_system_kit_activation').select('enabled,activation_cutoff').eq('singleton', true).maybeSingle();
   if (error) return reply({ active: false, reason: 'activation_state_unavailable' }, 503);
