@@ -57,6 +57,7 @@ import GHLCallback from "./pages/GHLCallback";
 import FacebookCallback from "./pages/FacebookCallback";
 import Ads from "./pages/Ads";
 import WebsiteEditor from "./pages/WebsiteEditor";
+import GuidedWebsiteBuilder from "./pages/GuidedWebsiteBuilder";
 import FindASpecialist from "./pages/FindASpecialist";
 import Affiliates from "./pages/Affiliates";
 import ContentRewards from "./pages/ContentRewards";
@@ -135,6 +136,7 @@ const MemberApp = () => (
         <Route path="/ads" element={<ProtectedRoute><Ads /></ProtectedRoute>} />
         <Route path="/website-editor" element={<Navigate to="/website" replace />} />
         <Route path="/website" element={<ProtectedRoute><WebsiteEditor /></ProtectedRoute>} />
+        <Route path="/my-website" element={<ProtectedRoute><GuidedWebsiteBuilder /></ProtectedRoute>} />
 
         <Route path="/affiliates" element={<ProtectedRoute><Affiliates /></ProtectedRoute>} />
         <Route path="/content-rewards" element={<ProtectedRoute><ContentRewards /></ProtectedRoute>} />

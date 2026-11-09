@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/collapsible';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
+import { useMemberWebsite } from '@/hooks/useMemberWebsite';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { OPEN_LEVEL_1_CERT_EVENT } from '@/lib/level1CertNavigation';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
@@ -286,7 +287,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
   
   const { data: checklistLists = [] } = useChecklistLists();
-  const { data: websiteTemplate } = useWebsiteEditorEntitlement();
+  const { data: websiteTemplate, isLoading: loadingWebsiteEntitlement } = useWebsiteEditorEntitlement();
+  const { data: memberWebsite, isLoading: loadingMemberWebsite } = useMemberWebsite();
 
   const handleSignOut = async () => {
     try {
@@ -394,6 +396,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
               {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
+              {!loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteTemplate && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <SubNavItem to="/my-website" icon={Globe} label="My Website" />}
             </ExpandableNavItem>
 
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>

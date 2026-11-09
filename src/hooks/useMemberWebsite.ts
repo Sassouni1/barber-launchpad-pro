@@ -12,6 +12,7 @@ export interface MemberWebsite {
   live_url: string | null;
   deployment_status: string;
   published_at: string | null;
+  editor_drafts: Record<string, unknown> | null;
   cloudflare_registration_status: string;
   cloudflare_attachment_status: string;
   cloudflare_worker_domain_id: string | null;
