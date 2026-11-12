@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff, Mail } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
+import { resolvePostAuthPath } from '@/lib/metaReviewerLanding';
 
 interface LoginFormProps {
   showCreateLink?: boolean;
@@ -27,20 +28,27 @@ export function LoginForm({ showCreateLink = false, logAccessOnSuccess = false }
   const [showPassword, setShowPassword] = useState(false);
   const lastCheckedEmail = useRef('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromRef = useRef((location.state as { from?: Parameters<typeof resolvePostAuthPath>[1] } | null)?.from);
 
   const normalizedEmail = email.trim().toLowerCase();
 
 
   useEffect(() => {
+    const goAfterAuth = (user: Parameters<typeof resolvePostAuthPath>[0]) => {
+      const { path, state } = resolvePostAuthPath(user, fromRef.current);
+      navigate(path, { replace: true, state });
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user && event !== 'PASSWORD_RECOVERY') {
-        navigate('/dashboard', { replace: true });
+        goAfterAuth(session.user);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        navigate('/dashboard', { replace: true });
+        goAfterAuth(session.user);
       }
     });
 
