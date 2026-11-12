@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { formatServiceCity } from '@/lib/formatServiceCity';
+import { Loader2, Search } from 'lucide-react';
 
 type Answer = 'yes' | 'no' | '';
 type BusinessNameChoice = 'yes' | 'no' | 'help' | '';
@@ -663,7 +664,8 @@ export function BusinessSetupCard() {
               { value: 'Squire', label: 'Squire' }, { value: 'GlossGenius', label: 'GlossGenius' },
               { value: 'Other', label: 'Other / not sure' },
             ]} />
-          <Button id="find-booking-link" type="button" variant="outline" onClick={findBookingLink} disabled={searchingBooking}>
+          <Button id="find-booking-link" type="button" size="lg" className="w-full font-semibold shadow-sm sm:w-auto" onClick={findBookingLink} disabled={searchingBooking}>
+            {searchingBooking ? <Loader2 aria-hidden="true" className="animate-spin" /> : <Search aria-hidden="true" />}
             {searchingBooking ? bookingSearchAttempted && bookingSearchKey === bookingLookupKey && bookingCandidates.length
               ? 'Checking more pages…' : 'Searching…' : bookingSearchError ? 'Try again' : bookingSearchAttempted ? 'Search again' : 'Find my booking link'}
           </Button>
