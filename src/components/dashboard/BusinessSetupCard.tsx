@@ -25,6 +25,8 @@ type SetupDraft = {
   businessNameChoice: BusinessNameChoice; businessName: string;
   website: WebsiteStatus; websiteUrl: string; booking: Answer; bookingChoice: BookingChoice;
   bookingUrl: string; bookingPlatform: string;
+  bookingCandidates: BookingCandidate[]; bookingSearchKey: string;
+  bookingSearchAttempted: boolean; bookingSearchLocation: string;
 };
 const bookingResearchBridge = 'https://jbnsjjeimwpkwxkwmqwl.supabase.co/functions/v1/barber-launch-booking-bridge';
 
@@ -54,6 +56,19 @@ const validDraftUrl = (value: string) => {
     return ['http:', 'https:'].includes(parsed.protocol) && parsed.hostname.includes('.') ? parsed.href : null;
   } catch { return null; }
 };
+type BookingLookupInputs = Pick<SetupDraft, 'city' | 'workCity' | 'workState' | 'workStatus' | 'workplaceType' |
+  'website' | 'websiteUrl' | 'bookingPlatform' | 'businessNameChoice' | 'businessName'>;
+const lookupCityFor = (draft: BookingLookupInputs) => {
+  const ownsBusiness = draft.workStatus === 'barbershop_owner' || draft.workStatus === 'salon_owner';
+  const usesWorkAddress = ownsBusiness || ['barbershop', 'salon', 'suite'].includes(draft.workplaceType);
+  return usesWorkAddress ? formatServiceCity(`${draft.workCity.trim()}, ${draft.workState.trim()}`) : formatServiceCity(draft.city);
+};
+const lookupKeyFor = (draft: BookingLookupInputs) => JSON.stringify({
+  city: lookupCityFor(draft), website: draft.website === 'yes' ? normalizeUrl(draft.websiteUrl) : '',
+  platform: draft.bookingPlatform, workStatus: draft.workStatus,
+  businessName: (draft.workStatus === 'barbershop_owner' || draft.workStatus === 'salon_owner' || draft.businessNameChoice === 'yes')
+    ? draft.businessName.trim() : '',
+});
 const profileFields = (draft: SetupDraft) => {
   const ownsBarbershop = draft.workStatus === 'barbershop_owner';
   const ownsSalon = draft.workStatus === 'salon_owner';
@@ -82,7 +97,9 @@ const profileFields = (draft: SetupDraft) => {
     website_url: draft.website === 'yes' ? validDraftUrl(draft.websiteUrl) : null,
     booking_app_status: draft.booking || null,
     booking_link_status: draft.booking === 'yes' ? draft.bookingChoice || null : null,
-    booking_url: draft.booking === 'yes' ? validDraftUrl(draft.bookingUrl) : null,
+    booking_url: draft.booking === 'yes' &&
+      (draft.bookingChoice !== 'search' || !draft.bookingSearchKey || draft.bookingSearchKey === lookupKeyFor(draft))
+      ? validDraftUrl(draft.bookingUrl) : null,
     booking_platform: draft.booking === 'yes' ? draft.bookingPlatform || null : null,
   };
 };
@@ -153,6 +170,8 @@ export function BusinessSetupCard() {
   const [bookingSearchMessage, setBookingSearchMessage] = useState('');
   const [bookingSearchAttempted, setBookingSearchAttempted] = useState(false);
   const [bookingSearchKey, setBookingSearchKey] = useState('');
+  const [bookingSearchLocation, setBookingSearchLocation] = useState('');
+  const [bookingSearchError, setBookingSearchError] = useState('');
   const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [retryVersion, setRetryVersion] = useState(0);
   const readyToSync = useRef(false);
@@ -198,6 +217,7 @@ export function BusinessSetupCard() {
           booking: (data?.booking_app_status || '') as Answer,
           bookingChoice: (data?.booking_link_status || '') as BookingChoice,
           bookingUrl: data?.booking_url || '', bookingPlatform: data?.booking_platform || '',
+          bookingCandidates: [], bookingSearchKey: '', bookingSearchAttempted: false, bookingSearchLocation: '',
         };
         const remote = data?.business_setup_draft && typeof data.business_setup_draft === 'object' && !Array.isArray(data.business_setup_draft)
           ? data.business_setup_draft as Partial<SetupDraft> : null;
@@ -233,6 +253,13 @@ export function BusinessSetupCard() {
         setBookingChoice(draft.bookingChoice || '');
         setBookingUrl(draft.bookingUrl || '');
         setBookingPlatform(draft.bookingPlatform || '');
+        setBookingCandidates(Array.isArray(draft.bookingCandidates) ? draft.bookingCandidates.filter(candidate =>
+          candidate && typeof candidate.url === 'string' && /^https?:\/\//.test(candidate.url)).slice(0, 20) : []);
+        setBookingSearchKey(draft.bookingSearchKey || '');
+        setBookingSearchAttempted(!!draft.bookingSearchAttempted);
+        setBookingSearchLocation(draft.bookingSearchLocation || '');
+        setBookingSearchMessage(draft.bookingSearchAttempted
+          ? draft.bookingCandidates?.length ? 'Choose your booking page to save it.' : 'No reliable match found. You can leave a request for our team below.' : '');
         setComplete(!!data?.business_setup_completed_at && !needsWorkAddress && !needsOtherDescription);
         const remoteIsPending = !!remote && !!data.business_setup_draft_updated_at &&
           Date.parse(data.business_setup_draft_updated_at) > Date.parse(data.business_setup_completed_at || '');
@@ -247,7 +274,8 @@ export function BusinessSetupCard() {
     if (!user?.id || loading || !readyToSync.current || submitting.current || (complete && !editingComplete)) return;
     const draft: SetupDraft = { city, workStreet, workCity, workState, workPostalCode, workStatus,
       cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website, websiteUrl,
-      booking, bookingChoice, bookingUrl, bookingPlatform };
+      booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
+      bookingSearchAttempted, bookingSearchLocation };
     const snapshot = JSON.stringify(draft);
     latestDraft.current = snapshot;
     if (snapshot === lastSyncedDraft.current) return;
@@ -285,7 +313,8 @@ export function BusinessSetupCard() {
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
   }, [user?.id, loading, complete, editingComplete, city, workStreet, workCity, workState,
     workPostalCode, workStatus, cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website,
-    websiteUrl, booking, bookingChoice, bookingUrl, bookingPlatform, retryVersion]);
+    websiteUrl, booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
+    bookingSearchAttempted, bookingSearchLocation, retryVersion]);
 
   useEffect(() => { setInvalidFieldId(''); }, [city, workStreet, workCity, workState, workPostalCode,
     workStatus, cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName,
@@ -309,17 +338,13 @@ export function BusinessSetupCard() {
   const needsBookingSearchCity = !usesWorkAddress && !usesServiceCity && booking === 'yes' && bookingChoice === 'search';
   const bookingLookupCity = usesWorkAddress ? formatServiceCity(`${workCity.trim()}, ${workState.trim()}`)
     : usesServiceCity || needsBookingSearchCity ? formatServiceCity(city) : '';
-  const bookingLookupKey = JSON.stringify({ city: bookingLookupCity, website: website === 'yes' ? normalizeUrl(websiteUrl) : '',
-    platform: bookingPlatform, workStatus, businessName: (ownsBusiness || businessNameChoice === 'yes') ? businessName.trim() : '' });
+  const bookingLookupKey = lookupKeyFor({ city, workCity, workState, workStatus, workplaceType, website, websiteUrl,
+    bookingPlatform, businessNameChoice, businessName });
 
   useEffect(() => {
     if (loading) return;
     if (previousBookingLookupKey.current && previousBookingLookupKey.current !== bookingLookupKey && bookingChoice === 'search') {
       setBookingUrl('');
-      setBookingCandidates([]);
-      setBookingSearchAttempted(false);
-      setBookingSearchKey('');
-      setBookingSearchMessage('Your details changed. Search again to check the right booking page.');
     }
     previousBookingLookupKey.current = bookingLookupKey;
   }, [loading, bookingLookupKey, bookingChoice]);
@@ -354,11 +379,7 @@ export function BusinessSetupCard() {
     }
     if (!bookingPlatform) { revealField('booking-platform', 'Choose your booking app, or Other / not sure'); return; }
     setSearchingBooking(true);
-    setBookingSearchAttempted(false);
-    setBookingSearchKey('');
-    setBookingSearchMessage('');
-    setBookingCandidates([]);
-    setBookingUrl('');
+    setBookingSearchError('');
     try {
       const { data: session, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session.session?.access_token) throw new Error('Please sign in again before searching.');
@@ -374,13 +395,27 @@ export function BusinessSetupCard() {
       const candidates = Array.isArray(data?.candidates) ? data.candidates as BookingCandidate[] : [];
       setBookingSearchAttempted(true);
       setBookingSearchKey(bookingLookupKey);
+      setBookingSearchLocation(bookingLookupCity);
       setBookingCandidates(candidates);
+      setBookingUrl('');
       setBookingSearchMessage(candidates.length ? 'Choose your booking page to save it.' : 'No reliable match found. You can leave a request for our team below.');
     } catch (error) {
-      setBookingSearchMessage(error instanceof Error ? error.message : 'The search could not finish. Please try again.');
+      setBookingSearchError(error instanceof Error ? error.message : 'The search could not finish. Please try again.');
     } finally {
       setSearchingBooking(false);
     }
+  };
+
+  const enterBookingLinkManually = () => {
+    setBookingCandidates([]);
+    setBookingSearchAttempted(false);
+    setBookingSearchKey('');
+    setBookingSearchLocation('');
+    setBookingSearchMessage('');
+    setBookingSearchError('');
+    setBookingUrl('');
+    setBookingChoice('link');
+    requestAnimationFrame(() => document.getElementById('booking-url')?.focus());
   };
 
   const save = async () => {
@@ -416,7 +451,8 @@ export function BusinessSetupCard() {
     }
     const draft: SetupDraft = { city, workStreet, workCity, workState, workPostalCode, workStatus,
       cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website, websiteUrl,
-      booking, bookingChoice, bookingUrl, bookingPlatform };
+      booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
+      bookingSearchAttempted, bookingSearchLocation };
     setSaving(true);
     submitting.current = true;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
@@ -533,7 +569,10 @@ export function BusinessSetupCard() {
       </Select>
       {booking === 'yes' && <div className="space-y-3 pl-0 md:pl-2">
         <label htmlFor="booking-choice" className="block text-sm font-medium">How should we get your booking link?</label>
-        <Select value={bookingChoice} onValueChange={(value: BookingChoice) => { setBookingChoice(value); setBookingCandidates([]); setBookingSearchMessage(''); setBookingSearchAttempted(false); setBookingUrl(''); }}>
+        <Select value={bookingChoice} onValueChange={(value: BookingChoice) => {
+          if (value === 'link') { enterBookingLinkManually(); return; }
+          setBookingChoice(value); setBookingUrl('');
+        }}>
           <SelectTrigger id="booking-choice" className={selectTriggerClass} onPointerDown={(event) => makeRoomForMenu(event.currentTarget)} onKeyDown={(event) => { if (['Enter', ' ', 'ArrowDown'].includes(event.key)) makeRoomForMenu(event.currentTarget); }}>
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
@@ -552,7 +591,7 @@ export function BusinessSetupCard() {
               onBlur={() => setCity(formatServiceCity(city))} placeholder="e.g. Clearwater, Florida" />
           </div>}
           <SetupSelect id="booking-platform" label="Which booking app do you use?" value={bookingPlatform}
-            onChange={(value) => { setBookingPlatform(value); setBookingCandidates([]); setBookingSearchAttempted(false); setBookingUrl(''); }}
+            onChange={(value) => setBookingPlatform(value)}
             options={[
               { value: 'Booksy', label: 'Booksy' }, { value: 'Vagaro', label: 'Vagaro' },
               { value: 'TheCut', label: 'The Cut' }, { value: 'StyleSeat', label: 'StyleSeat' },
@@ -561,16 +600,18 @@ export function BusinessSetupCard() {
               { value: 'Other', label: 'Other / not sure' },
             ]} />
           <Button id="find-booking-link" type="button" variant="outline" onClick={findBookingLink} disabled={searchingBooking}>
-            {searchingBooking ? 'Searching…' : 'Find my booking link'}
+            {searchingBooking ? 'Searching…' : bookingSearchError ? 'Try again' : bookingSearchAttempted ? 'Search again' : 'Find my booking link'}
           </Button>
+          {bookingSearchError && <p role="alert" className="text-xs text-destructive">{bookingSearchError}</p>}
           {bookingSearchAttempted && bookingSearchKey !== bookingLookupKey
-            ? <p role="status" className="text-xs text-muted-foreground">Your details changed. Search again to check the right booking page.</p>
+            ? <p role="status" className="text-xs text-primary">These results are from your {bookingSearchLocation || 'previous'} search. Your details changed, so search again before choosing a page.</p>
             : bookingSearchMessage && <p role="status" className="text-xs text-muted-foreground">{bookingSearchMessage}</p>}
-          {bookingCandidates.length > 0 && bookingSearchKey === bookingLookupKey && <div id="booking-candidates" tabIndex={-1} className="space-y-2 rounded-lg" aria-label="Booking page matches">
+          {bookingCandidates.length > 0 && <div id="booking-candidates" tabIndex={-1} className="space-y-2 rounded-lg" aria-label="Booking page matches">
             {bookingCandidates.map(candidate => <button key={candidate.url} type="button"
               aria-pressed={bookingUrl === candidate.url}
+              disabled={bookingSearchKey !== bookingLookupKey}
               onClick={() => setBookingUrl(candidate.url)}
-              className={`block w-full rounded-lg border p-3 text-left text-sm ${bookingUrl === candidate.url ? 'border-primary bg-primary/10' : 'border-border bg-background/40'}`}>
+              className={`block w-full rounded-lg border p-3 text-left text-sm disabled:opacity-65 ${bookingUrl === candidate.url ? 'border-primary bg-primary/10' : 'border-border bg-background/40'}`}>
               <span className="block font-medium">{candidate.title || candidate.businessName || candidate.url}</span>
               {candidate.confidence === 'possible' && <span className="mt-1 block text-xs font-medium text-primary">Possible match — check the barber and location</span>}
               <span className="block text-xs text-muted-foreground break-all">{candidate.url}</span>
@@ -578,6 +619,9 @@ export function BusinessSetupCard() {
               {candidate.evidence && <span className="mt-1 block text-xs text-muted-foreground">{candidate.evidence}</span>}
             </button>)}
           </div>}
+          {bookingSearchAttempted && <Button type="button" variant="ghost" className="text-primary" onClick={enterBookingLinkManually}>
+            None of these are mine
+          </Button>}
         </div>}
       </div>}
     </div>
