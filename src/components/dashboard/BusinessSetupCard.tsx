@@ -29,6 +29,13 @@ type SetupDraft = {
   bookingSearchAttempted: boolean; bookingSearchLocation: string;
 };
 const bookingResearchBridge = 'https://jbnsjjeimwpkwxkwmqwl.supabase.co/functions/v1/barber-launch-booking-bridge';
+const mergeBookingCandidates = (primary: BookingCandidate[], secondary: BookingCandidate[]) => {
+  const found = new Map<string, BookingCandidate>();
+  for (const candidate of [...primary, ...secondary]) {
+    if (candidate?.url && !found.has(candidate.url)) found.set(candidate.url, candidate);
+  }
+  return [...found.values()].slice(0, 20);
+};
 
 const statusOptions: Array<{ value: WorkStatus; label: string }> = [
   { value: 'individual_barber', label: 'I am an individual barber' },
@@ -183,6 +190,9 @@ export function BusinessSetupCard() {
   const retryDelay = useRef(3000);
   const submitting = useRef(false);
   const previousBookingLookupKey = useRef('');
+  const bookingSearchRun = useRef(0);
+  const chosenBookingUrl = useRef('');
+  useEffect(() => { chosenBookingUrl.current = bookingUrl; }, [bookingUrl]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -378,44 +388,75 @@ export function BusinessSetupCard() {
       revealField(needsBookingSearchCity ? 'booking-search-city' : 'service-city', 'Enter your city and state before searching'); return;
     }
     if (!bookingPlatform) { revealField('booking-platform', 'Choose your booking app, or Other / not sure'); return; }
+    const run = ++bookingSearchRun.current;
     setSearchingBooking(true);
     setBookingSearchError('');
     try {
       const { data: session, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session.session?.access_token) throw new Error('Please sign in again before searching.');
-      const response = await fetch(bookingResearchBridge, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.session.access_token}` },
-        body: JSON.stringify({ city: bookingLookupCity, website: website === 'yes' ? normalizeUrl(websiteUrl) : '',
-          platform: bookingPlatform, scope: ownsBusiness ? 'shop' : 'individual',
-          businessName: (ownsBusiness || businessNameChoice === 'yes') ? businessName.trim() : '' }),
-      });
-      const data = await response.json();
-      if (!response.ok || data?.error) throw new Error(data?.error || 'The search could not finish. Please try again.');
-      const candidates = Array.isArray(data?.candidates) ? data.candidates as BookingCandidate[] : [];
-      setBookingSearchAttempted(true);
-      setBookingSearchKey(bookingLookupKey);
-      setBookingSearchLocation(bookingLookupCity);
-      setBookingCandidates(candidates);
-      setBookingUrl('');
-      // Keep the result through an immediate refresh, even before the debounced account save finishes.
+      const requestPhase = async (phase: 'quick' | 'deep') => {
+        const response = await fetch(bookingResearchBridge, {
+          method: 'POST', signal: AbortSignal.timeout(phase === 'quick' ? 22000 : 135000),
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.session.access_token}` },
+          body: JSON.stringify({ phase, city: bookingLookupCity, website: website === 'yes' ? normalizeUrl(websiteUrl) : '',
+            platform: bookingPlatform, scope: ownsBusiness ? 'shop' : 'individual',
+            businessName: (ownsBusiness || businessNameChoice === 'yes') ? businessName.trim() : '' }),
+        });
+        const data = await response.json();
+        if (!response.ok || data?.error) throw new Error(data?.error || 'The search could not finish. Please try again.');
+        return Array.isArray(data?.candidates) ? data.candidates as BookingCandidate[] : [];
+      };
+      const publishResults = (candidates: BookingCandidate[], message: string, clearSelection: boolean) => {
+        const selectedUrl = clearSelection ? '' : chosenBookingUrl.current;
+        chosenBookingUrl.current = selectedUrl;
+        setBookingSearchAttempted(true);
+        setBookingSearchKey(bookingLookupKey);
+        setBookingSearchLocation(bookingLookupCity);
+        setBookingCandidates(candidates);
+        if (clearSelection) setBookingUrl('');
+        setBookingSearchMessage(message);
+        // The account save is debounced; retain results even if the member refreshes immediately.
+        try {
+          const draft: SetupDraft = { city, workStreet, workCity, workState, workPostalCode, workStatus,
+            cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName,
+            website, websiteUrl, booking, bookingChoice, bookingUrl: selectedUrl, bookingPlatform,
+            bookingCandidates: candidates, bookingSearchKey: bookingLookupKey, bookingSearchAttempted: true,
+            bookingSearchLocation: bookingLookupCity };
+          localStorage.setItem(localDraftKey(user.id), JSON.stringify({ draft, updatedAt: new Date().toISOString() }));
+        } catch { /* The account autosave still runs. */ }
+      };
+      // Start the full Vlix research at once. The quick public booking matches can appear while it runs.
+      const deepRequest = requestPhase('deep').then(candidates => ({ candidates, error: null as Error | null }),
+        error => ({ candidates: [] as BookingCandidate[], error: error as Error }));
+      let quickCandidates: BookingCandidate[] = [];
       try {
-        const draft: SetupDraft = { city, workStreet, workCity, workState, workPostalCode, workStatus,
-          cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName,
-          website, websiteUrl, booking, bookingChoice, bookingUrl: '', bookingPlatform,
-          bookingCandidates: candidates, bookingSearchKey: bookingLookupKey, bookingSearchAttempted: true,
-          bookingSearchLocation: bookingLookupCity };
-        localStorage.setItem(localDraftKey(user.id), JSON.stringify({ draft, updatedAt: new Date().toISOString() }));
-      } catch { /* The account autosave still runs. */ }
-      setBookingSearchMessage(candidates.length ? 'Choose your booking page to save it.' : 'No reliable match found. You can leave a request for our team below.');
+        quickCandidates = await requestPhase('quick');
+        if (bookingSearchRun.current !== run) return;
+        if (quickCandidates.length) publishResults(quickCandidates,
+          'Initial booking matches are ready. Checking the full Vlix research for more pages…', true);
+        else setBookingSearchMessage('Checking the full Vlix research for booking pages…');
+      } catch {
+        if (bookingSearchRun.current !== run) return;
+        setBookingSearchMessage('The first pass did not finish. Full Vlix research is still running…');
+      }
+      const deep = await deepRequest;
+      if (bookingSearchRun.current !== run) return;
+      if (deep.error) {
+        setBookingSearchError(deep.error.message || 'Full research did not finish. Try again.');
+      } else {
+        const candidates = mergeBookingCandidates(deep.candidates, quickCandidates);
+        publishResults(candidates, candidates.length ? 'Choose your booking page to save it.'
+          : 'No reliable match found. You can enter your booking link instead.', !quickCandidates.length);
+      }
     } catch (error) {
-      setBookingSearchError(error instanceof Error ? error.message : 'The search could not finish. Please try again.');
+      if (bookingSearchRun.current === run) setBookingSearchError(error instanceof Error ? error.message : 'The search could not finish. Please try again.');
     } finally {
-      setSearchingBooking(false);
+      if (bookingSearchRun.current === run) setSearchingBooking(false);
     }
   };
 
   const enterBookingLinkManually = () => {
+    bookingSearchRun.current++;
     setBookingCandidates([]);
     setBookingSearchAttempted(false);
     setBookingSearchKey('');
@@ -609,7 +650,8 @@ export function BusinessSetupCard() {
               { value: 'Other', label: 'Other / not sure' },
             ]} />
           <Button id="find-booking-link" type="button" variant="outline" onClick={findBookingLink} disabled={searchingBooking}>
-            {searchingBooking ? 'Searching…' : bookingSearchError ? 'Try again' : bookingSearchAttempted ? 'Search again' : 'Find my booking link'}
+            {searchingBooking ? bookingSearchAttempted && bookingSearchKey === bookingLookupKey && bookingCandidates.length
+              ? 'Checking more pages…' : 'Searching…' : bookingSearchError ? 'Try again' : bookingSearchAttempted ? 'Search again' : 'Find my booking link'}
           </Button>
           {bookingSearchError && <p role="alert" className="text-xs text-destructive">{bookingSearchError}</p>}
           {bookingSearchAttempted && bookingSearchKey !== bookingLookupKey
