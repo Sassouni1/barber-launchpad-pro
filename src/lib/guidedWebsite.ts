@@ -23,7 +23,7 @@ export const emptyGuidedAnswers: GuidedWebsiteAnswers = {
 };
 
 export const guidedTemplates = [
-  { key: 'guided-charlotte' as const, name: 'Template 1', example: 'The Barber Studio', url: 'https://thebarberstudioca.com/', description: 'Warm, editorial, and focused on your story.' },
+  { key: 'guided-charlotte' as const, name: 'Template 1', example: 'Your Business Name', url: '/website-previews/template-1/index.html', description: 'Warm, editorial, and focused on your story.' },
   { key: 'guided-kait' as const, name: 'Template 2', example: 'The Men’s Grooming Suite', url: 'https://themensgroomingsuite.com/', description: 'Bold, dark, and focused on your services and work.' },
 ];
 
