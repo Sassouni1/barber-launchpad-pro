@@ -1,13 +1,20 @@
 // Barber Launch advertising access to a member's selected Facebook Page.
-// Requests only the ADVERTISE Page task for the Barber Launch business, and marks
-// access "granted" only after a Meta read confirms it. A successful OAuth login or a
-// successful POST alone never counts as granted.
+// Requests only the ADVERTISE Page task for the Barber Launch business.
+//
+// What Meta can actually confirm (official Business SDK):
+// - GET /{page-id}?fields=owner_business returns the owning Business.
+// - GET /{page-id}/agencies returns Business objects (id, name). It does NOT return
+//   permitted tasks or a request status, so a listing alone never proves ADVERTISE.
+// - POST /{page-id}/agencies {business, permitted_tasks:['ADVERTISE']} returns success.
+// "granted" therefore means either Barber Launch owns the Page, or Meta accepted our
+// ADVERTISE-only request for this exact Page and the Page currently lists Barber Launch
+// as a partner. A partner listing we did not create is "unverified", never granted.
 
 export const BARBER_LAUNCH_BUSINESS_ID = '1832826473434326';
 /** The only Page task Barber Launch ever requests. */
 export const PAGE_AD_TASKS: readonly string[] = Object.freeze(['ADVERTISE']);
 
-export type PageAdAccessStatus = 'unknown' | 'pending' | 'granted' | 'error';
+export type PageAdAccessStatus = 'unknown' | 'pending' | 'unverified' | 'granted' | 'error';
 
 export type GraphError = {
   message?: string;
@@ -19,12 +26,8 @@ export type GraphError = {
 
 export type GraphResult<T> = { ok: true; data: T } | { ok: false; status: number; error: GraphError };
 
-export type AgencyNode = {
-  id?: string;
-  name?: string;
-  access_status?: string;
-  permitted_tasks?: string[];
-};
+/** GET /{page-id}/agencies returns Business objects; only id and name are requested. */
+export type AgencyNode = { id?: string; name?: string };
 
 export type PageAccessGraph = {
   listAgencies: (pageId: string, pageToken: string) => Promise<GraphResult<AgencyNode[]>>;
@@ -33,17 +36,22 @@ export type PageAccessGraph = {
 };
 
 export type VerifyOutcome =
-  | { state: 'granted'; via: 'agency' | 'owner' }
+  | { state: 'granted'; via: 'owner' | 'agency' }
+  /** Listed as a partner, but Meta doesn't show its tasks and we have no accepted ADVERTISE request on record. */
+  | { state: 'partner_unverified' }
+  /** Meta accepted our ADVERTISE request earlier, but the Page doesn't list Barber Launch yet. */
   | { state: 'pending' }
   | { state: 'missing' }
   | { state: 'error'; error: GraphError };
 
 export type AccessOutcome = {
   status: PageAdAccessStatus;
-  /** Plain-language explanation for the member; null when access is confirmed. */
+  /** Plain-language explanation for the member; null when access is confirmed or not requested yet. */
   message: string | null;
-  /** True only when this call sent a new access request to Meta. */
+  /** True only when Meta accepted a new ADVERTISE-only request in this call. */
   requested: boolean;
+  /** Which Meta evidence confirmed access; set only when status is "granted". */
+  verifiedVia?: 'owner' | 'agency';
   metaError?: { code: number | null; message: string | null };
 };
 
@@ -73,36 +81,33 @@ export function describeGraphError(error: GraphError): string {
   return `Facebook couldn't confirm advertising access for this Page.${metaSaid(error)}`;
 }
 
-const upper = (value: unknown) => (typeof value === 'string' ? value.trim().toUpperCase() : '');
-
-/** Reads Barber Launch's entry from GET /{page-id}/agencies. */
-export function classifyAgencies(
-  agencies: AgencyNode[],
-  businessId = BARBER_LAUNCH_BUSINESS_ID,
-): 'granted' | 'pending' | 'missing' {
-  const entry = agencies.find((agency) => agency?.id === businessId);
-  if (!entry) return 'missing';
-  const tasks = Array.isArray(entry.permitted_tasks) ? entry.permitted_tasks.map(upper) : [];
-  const status = upper(entry.access_status);
-  if (status === 'PENDING') return 'pending';
-  if (status === 'CONFIRMED' && tasks.includes('ADVERTISE')) return 'granted';
-  // Listed with ADVERTISE but no status from Meta: unconfirmed, never granted.
-  if (!status && tasks.includes('ADVERTISE')) return 'pending';
-  // Confirmed without ADVERTISE, or another status: Barber Launch may request ADVERTISE.
-  return 'missing';
+/** True when GET /{page-id}/agencies lists the Barber Launch business. Says nothing about tasks. */
+export function listsBusiness(agencies: AgencyNode[], businessId = BARBER_LAUNCH_BUSINESS_ID): boolean {
+  return agencies.some((agency) => agency?.id === businessId);
 }
 
-/** Read-only check of whether Barber Launch can advertise for this Page. */
-export async function verifyPageAdAccess(graph: PageAccessGraph, pageId: string, pageToken: string): Promise<VerifyOutcome> {
-  const agencies = await graph.listAgencies(pageId, pageToken);
-  if (!agencies.ok) return { state: 'error', error: agencies.error };
-  const fromAgencies = classifyAgencies(agencies.data);
-  if (fromAgencies === 'granted') return { state: 'granted', via: 'agency' };
-  if (fromAgencies === 'pending') return { state: 'pending' };
-  // A Page the Barber Launch business already owns is not listed as an agency.
+/**
+ * Read-only check. Ownership is read first, because a Page Barber Launch owns may not
+ * list Barber Launch as its own agency and that must not depend on the agency read.
+ * `priorAccepted` is true only when Meta accepted our ADVERTISE request for this Page earlier.
+ */
+export async function verifyPageAdAccess(
+  graph: PageAccessGraph,
+  pageId: string,
+  pageToken: string,
+  priorAccepted: boolean,
+): Promise<VerifyOutcome> {
   const owner = await graph.getPageOwnerBusinessId(pageId, pageToken);
   if (owner.ok && owner.data === BARBER_LAUNCH_BUSINESS_ID) return { state: 'granted', via: 'owner' };
-  return { state: 'missing' };
+
+  const agencies = await graph.listAgencies(pageId, pageToken);
+  if (!agencies.ok) return { state: 'error', error: agencies.error };
+  if (listsBusiness(agencies.data)) {
+    return priorAccepted ? { state: 'granted', via: 'agency' } : { state: 'partner_unverified' };
+  }
+  // Not listed. Without a working owner read we can't rule out ownership, so stay unverified.
+  if (!owner.ok) return { state: 'error', error: owner.error };
+  return priorAccepted ? { state: 'pending' } : { state: 'missing' };
 }
 
 const PENDING_MESSAGE =
