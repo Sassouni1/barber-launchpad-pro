@@ -1,4 +1,5 @@
-export type PageAdAccessStatus = 'unknown' | 'pending' | 'granted' | 'error';
+/** unverified: Barber Launch is listed on the Page, but Meta can't show it has advertising access. */
+export type PageAdAccessStatus = 'unknown' | 'pending' | 'unverified' | 'granted' | 'error';
 
 export type PageAdAccessFields = {
   facebook_page_id?: string | null;
@@ -14,7 +15,7 @@ export type PageAdAccessView = {
   message: string | null;
 };
 
-const STATUSES: PageAdAccessStatus[] = ['unknown', 'pending', 'granted', 'error'];
+const STATUSES: PageAdAccessStatus[] = ['unknown', 'pending', 'unverified', 'granted', 'error'];
 
 /**
  * The saved access state only counts for the Page it was checked against.

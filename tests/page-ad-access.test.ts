@@ -27,4 +27,8 @@ describe('pageAdAccessFor', () => {
     const view = pageAdAccessFor({ ...base, page_ad_access_status: 'error', page_ad_access_error: 'Meta said: "x"' });
     expect(view).toEqual({ status: 'error', checkedAt: base.page_ad_access_checked_at, message: 'Meta said: "x"' });
   });
+
+  it('keeps unverified distinct from granted', () => {
+    expect(pageAdAccessFor({ ...base, page_ad_access_status: 'unverified' }).status).toBe('unverified');
+  });
 });
