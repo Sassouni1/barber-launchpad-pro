@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Loader2, RefreshCw, Send, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
 import { adSocialErrorMessage } from '@/lib/adSocialError';
-import { pageAdAccessFor } from '@/lib/pageAdAccess';
+import { canResendPageAdAccess, pageAdAccessFor } from '@/lib/pageAdAccess';
 
 const checkedLabel = (iso: string | null) => {
   if (!iso) return null;
@@ -20,7 +20,7 @@ export function PageAdAccessCard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: connection } = useAdSocialConnection();
-  const [busy, setBusy] = useState<'grant' | 'check' | null>(null);
+  const [busy, setBusy] = useState<'grant' | 'check' | 'retry' | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
 
   if (!connection?.facebook_page_id) return null;
@@ -28,12 +28,14 @@ export function PageAdAccessCard() {
   const pageName = connection.facebook_page_name || 'your Page';
   const checked = checkedLabel(access.checkedAt);
 
-  const run = async (kind: 'grant' | 'check') => {
+  const run = async (kind: 'grant' | 'check' | 'retry') => {
     setBusy(kind);
     setRequestError(null);
     try {
       const { data, error } = await supabase.functions.invoke('managed-ad-social', {
-        body: { action: kind === 'grant' ? 'grantPageAdAccess' : 'checkPageAdAccess' },
+        body: {
+          action: kind === 'grant' ? 'grantPageAdAccess' : kind === 'retry' ? 'retryPageAdAccess' : 'checkPageAdAccess',
+        },
       });
       if (error || data?.error) {
         setRequestError(await adSocialErrorMessage(data, error, 'Could not reach Facebook. Please try again.'));
@@ -56,6 +58,13 @@ export function PageAdAccessCard() {
     <Button size="sm" variant="outline" onClick={() => run('check')} disabled={!!busy}>
       {busy === 'check' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
       {busy === 'check' ? 'Checking…' : 'Check again'}
+    </Button>
+  );
+
+  const resendButton = (
+    <Button size="sm" variant="ghost" onClick={() => run('retry')} disabled={!!busy}>
+      {busy === 'retry' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+      {busy === 'retry' ? 'Sending…' : 'Send request again'}
     </Button>
   );
 
@@ -94,6 +103,7 @@ export function PageAdAccessCard() {
         {access.status === 'unknown' && grantButton('Give advertising access')}
         {access.status === 'error' && grantButton('Try again')}
         {(access.status === 'pending' || access.status === 'unverified' || access.status === 'granted') && checkButton}
+        {canResendPageAdAccess(access) && resendButton}
       </div>
       {checked && <p className="text-xs text-muted-foreground">{checked}</p>}
     </div>

@@ -13,6 +13,7 @@ export type AdSocialConnection = {
   page_ad_access_page_id?: string | null;
   page_ad_access_checked_at?: string | null;
   page_ad_access_error?: string | null;
+  page_ad_access_requested_at?: string | null;
 };
 
 
