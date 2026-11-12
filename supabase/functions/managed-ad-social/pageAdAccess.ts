@@ -86,8 +86,10 @@ export function classifyAgencies(
   const status = upper(entry.access_status);
   if (status === 'PENDING') return 'pending';
   if (status === 'CONFIRMED' && tasks.includes('ADVERTISE')) return 'granted';
-  // Listed, but not confirmed with ADVERTISE: never treat as granted.
-  return tasks.includes('ADVERTISE') ? 'pending' : 'missing';
+  // Listed with ADVERTISE but no status from Meta: unconfirmed, never granted.
+  if (!status && tasks.includes('ADVERTISE')) return 'pending';
+  // Confirmed without ADVERTISE, or another status: Barber Launch may request ADVERTISE.
+  return 'missing';
 }
 
 /** Read-only check of whether Barber Launch can advertise for this Page. */
