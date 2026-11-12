@@ -13,6 +13,8 @@
 export const BARBER_LAUNCH_BUSINESS_ID = '1832826473434326';
 /** The only Page task Barber Launch ever requests. */
 export const PAGE_AD_TASKS: readonly string[] = Object.freeze(['ADVERTISE']);
+/** A member may resend an accepted request only after Meta has had this long to list Barber Launch. */
+export const PAGE_AD_RETRY_AFTER_MS = 15 * 60 * 1000;
 
 export type PageAdAccessStatus = 'unknown' | 'pending' | 'unverified' | 'granted' | 'error';
 
@@ -117,6 +119,9 @@ export const PARTNER_UNVERIFIED_MESSAGE =
   "Barber Launch is already a partner on this Page, but Facebook doesn't show which access it has, so we can't confirm advertising access. " +
   'To fix it, remove Barber Launch from this Page\'s partners in Facebook settings, then press Check again and give access.';
 
+const RETRY_TOO_SOON_MESSAGE =
+  "Facebook accepted the request. If this Page still doesn't list Barber Launch after 15 minutes, you can send it again.";
+
 const metaErrorOf = (error: GraphError) => ({
   code: typeof error.code === 'number' ? error.code : null,
   message: typeof error.message === 'string' ? error.message : null,
@@ -159,9 +164,44 @@ export async function grantPageAdAccess(
   priorAccepted: boolean,
 ): Promise<AccessOutcome> {
   const before = await verifyPageAdAccess(graph, pageId, pageToken, priorAccepted);
-  // granted, partner_unverified, error: send nothing.
-  if (before.state !== 'missing' && before.state !== 'pending') return fromVerify(before, false);
+  // Only a Page with no Barber Launch ownership, listing or earlier accepted request gets a request.
+  // pending (already accepted earlier) is left alone; resending is a separate, delayed member action.
+  if (before.state !== 'missing') return fromVerify(before, false);
+  return sendAdvertiseRequest(graph, pageId, pageToken, priorAccepted);
+}
 
+/**
+ * Member-initiated resend after an accepted request still isn't listed by Meta.
+ * Requires an accepted request for this Page at least PAGE_AD_RETRY_AFTER_MS old, an owner read
+ * showing another or no owner, and a complete agency read with no Barber Launch listing, so an
+ * existing partner's tasks can never be changed. Any missing evidence sends nothing.
+ */
+export async function retryPageAdAccess(
+  graph: PageAccessGraph,
+  pageId: string,
+  pageToken: string,
+  acceptedAt: string | null,
+  now: number = Date.now(),
+): Promise<AccessOutcome> {
+  const acceptedMs = acceptedAt ? Date.parse(acceptedAt) : NaN;
+  if (!Number.isFinite(acceptedMs)) {
+    // Nothing accepted to retry: report the current state only.
+    return checkPageAdAccess(graph, pageId, pageToken, false);
+  }
+  if (now - acceptedMs < PAGE_AD_RETRY_AFTER_MS) {
+    return { status: 'pending', message: RETRY_TOO_SOON_MESSAGE, requested: false };
+  }
+  const before = await verifyPageAdAccess(graph, pageId, pageToken, true);
+  if (before.state !== 'pending') return fromVerify(before, false);
+  return sendAdvertiseRequest(graph, pageId, pageToken, true);
+}
+
+async function sendAdvertiseRequest(
+  graph: PageAccessGraph,
+  pageId: string,
+  pageToken: string,
+  priorAccepted: boolean,
+): Promise<AccessOutcome> {
   const added = await graph.addAgency(pageId, pageToken, BARBER_LAUNCH_BUSINESS_ID, PAGE_AD_TASKS);
   if (!added.ok) {
     // 3989: already assigned to this agency. 3946: already belongs to this business.

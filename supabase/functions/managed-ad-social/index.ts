@@ -5,10 +5,13 @@ import {
   createGraphClient,
   grantPageAdAccess,
   isFacebookId,
+  retryPageAdAccess,
   type AccessOutcome,
 } from "./pageAdAccess.ts";
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
+// Returned by the read-only functionVersion action so a deployment can be confirmed without side effects.
+const FUNCTION_VERSION = 'managed-ad-social/page-ad-access-retry-2026-11-12';
 // Request access to business-managed Pages alongside ordinary Pages.
 const SCOPES = 'pages_show_list,pages_read_engagement,business_management';
 
@@ -20,10 +23,10 @@ const json = (body: unknown, status = 200) =>
 
 type Action =
   | 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage' | 'skipInstagram'
-  | 'grantPageAdAccess' | 'checkPageAdAccess';
+  | 'grantPageAdAccess' | 'checkPageAdAccess' | 'retryPageAdAccess' | 'functionVersion';
 const ACTIONS: Action[] = [
   'getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage', 'skipInstagram',
-  'grantPageAdAccess', 'checkPageAdAccess',
+  'grantPageAdAccess', 'checkPageAdAccess', 'retryPageAdAccess', 'functionVersion',
 ];
 
 
@@ -49,6 +52,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body?.action as Action;
     if (!ACTIONS.includes(action)) return json({ error: 'Invalid action' }, 400);
+    // Read-only: no database or Facebook access.
+    if (action === 'functionVersion') return json({ ok: true, version: FUNCTION_VERSION });
 
     const appId = Deno.env.get('FACEBOOK_APP_ID');
     const appSecret = Deno.env.get('FACEBOOK_APP_SECRET');
@@ -270,7 +275,7 @@ Deno.serve(async (req) => {
     }
 
 
-    if (action === 'grantPageAdAccess' || action === 'checkPageAdAccess') {
+    if (action === 'grantPageAdAccess' || action === 'checkPageAdAccess' || action === 'retryPageAdAccess') {
       // Advertising access is always for this member's own selected Page; no Page ID is accepted from the browser.
       const { data: connection, error: connectionReadError } = await admin
         .from('ad_social_connections')
@@ -343,8 +348,11 @@ Deno.serve(async (req) => {
       }
 
       const graph = createGraphClient(GRAPH);
+      const acceptedAt = priorAccepted ? connection.page_ad_access_requested_at as string : null;
       const outcome = action === 'grantPageAdAccess'
         ? await grantPageAdAccess(graph, selectedPageId, stored.page_access_token, priorAccepted)
+        : action === 'retryPageAdAccess'
+        ? await retryPageAdAccess(graph, selectedPageId, stored.page_access_token, acceptedAt)
         : await checkPageAdAccess(graph, selectedPageId, stored.page_access_token, priorAccepted);
       return respond(outcome);
     }

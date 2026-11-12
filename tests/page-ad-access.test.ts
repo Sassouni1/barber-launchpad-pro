@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { pageAdAccessFor } from '../src/lib/pageAdAccess';
+import { canResendPageAdAccess, pageAdAccessFor } from '../src/lib/pageAdAccess';
 
 const base = {
   facebook_page_id: '111',
@@ -25,10 +25,19 @@ describe('pageAdAccessFor', () => {
 
   it('keeps the saved Meta explanation for errors', () => {
     const view = pageAdAccessFor({ ...base, page_ad_access_status: 'error', page_ad_access_error: 'Meta said: "x"' });
-    expect(view).toEqual({ status: 'error', checkedAt: base.page_ad_access_checked_at, message: 'Meta said: "x"' });
+    expect(view).toEqual({ status: 'error', checkedAt: base.page_ad_access_checked_at, message: 'Meta said: "x"', requestedAt: null });
   });
 
   it('keeps unverified distinct from granted', () => {
     expect(pageAdAccessFor({ ...base, page_ad_access_status: 'unverified' }).status).toBe('unverified');
+  });
+
+  it('offers a resend only for a pending request accepted at least 15 minutes ago', () => {
+    const accepted = Date.parse('2026-11-12T01:00:00.000Z');
+    const pending = pageAdAccessFor({ ...base, page_ad_access_status: 'pending', page_ad_access_requested_at: '2026-11-12T01:00:00.000Z' });
+    expect(canResendPageAdAccess(pending, accepted + 14 * 60 * 1000)).toBe(false);
+    expect(canResendPageAdAccess(pending, accepted + 15 * 60 * 1000)).toBe(true);
+    const unverified = pageAdAccessFor({ ...base, page_ad_access_status: 'unverified', page_ad_access_requested_at: '2026-11-12T01:00:00.000Z' });
+    expect(canResendPageAdAccess(unverified, accepted + 60 * 60 * 1000)).toBe(false);
   });
 });
