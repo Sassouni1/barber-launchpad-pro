@@ -57,7 +57,7 @@ const profileFields = (draft: SetupDraft) => {
   const ownsSalon = draft.workStatus === 'salon_owner';
   const ownsBusiness = ownsBarbershop || ownsSalon;
   const usesWorkAddress = ownsBusiness || ['barbershop', 'salon', 'suite'].includes(draft.workplaceType);
-  const usesServiceCity = !ownsBusiness && ['home', 'mobile'].includes(draft.workplaceType);
+  const usesServiceCity = !ownsBusiness && ['home', 'mobile', 'other'].includes(draft.workplaceType);
   const location = usesWorkAddress && draft.workCity.trim() && draft.workState.trim()
     ? formatServiceCity(`${draft.workCity.trim()}, ${draft.workState.trim()}`)
     : usesServiceCity && draft.city.trim() ? formatServiceCity(draft.city) : null;
@@ -294,7 +294,7 @@ export function BusinessSetupCard() {
   const ownsSalon = workStatus === 'salon_owner';
   const ownsBusiness = ownsBarbershop || ownsSalon;
   const usesWorkAddress = ownsBusiness || workplaceType === 'barbershop' || workplaceType === 'salon' || workplaceType === 'suite';
-  const usesServiceCity = !ownsBusiness && (workplaceType === 'home' || workplaceType === 'mobile');
+  const usesServiceCity = !ownsBusiness && (workplaceType === 'home' || workplaceType === 'mobile' || workplaceType === 'other');
   const needsBookingSearchCity = !usesWorkAddress && !usesServiceCity && booking === 'yes' && bookingChoice === 'search';
   const bookingLookupCity = usesWorkAddress ? formatServiceCity(`${workCity.trim()}, ${workState.trim()}`)
     : usesServiceCity || needsBookingSearchCity ? formatServiceCity(city) : '';
@@ -335,8 +335,13 @@ export function BusinessSetupCard() {
   };
 
   const findBookingLink = async () => {
-    if (!bookingLookupCity) { toast.error('Enter your city and state before searching'); return; }
-    if (!bookingPlatform) { toast.error('Choose your booking app, or Other / not sure'); return; }
+    if (usesWorkAddress && (!workCity.trim() || !workState.trim())) {
+      revealField(!workCity.trim() ? 'work-location-city' : 'work-location-state', 'Enter your city and state before searching'); return;
+    }
+    if (!bookingLookupCity) {
+      revealField(needsBookingSearchCity ? 'booking-search-city' : 'service-city', 'Enter your city and state before searching'); return;
+    }
+    if (!bookingPlatform) { revealField('booking-platform', 'Choose your booking app, or Other / not sure'); return; }
     setSearchingBooking(true);
     setBookingSearchAttempted(false);
     setBookingSearchKey('');

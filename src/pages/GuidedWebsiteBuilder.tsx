@@ -58,7 +58,7 @@ export default function GuidedWebsiteBuilder() {
       ? businessSetup.work_location_city && businessSetup.work_location_state
         ? formatServiceCity(`${businessSetup.work_location_city}, ${businessSetup.work_location_state}`)
         : ''
-      : ['home', 'mobile'].includes(businessSetup?.workplace_type || '')
+      : ['home', 'mobile', 'other'].includes(businessSetup?.workplace_type || '')
         ? formatServiceCity(businessSetup?.service_city || '')
         : '';
   const dashboardLocationKnown = !!dashboardCity;
