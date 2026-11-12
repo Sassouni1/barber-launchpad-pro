@@ -591,17 +591,17 @@ export function BusinessSetupCard() {
       <p className="text-sm font-medium">{ownsBarbershop ? 'What is the full address of your barbershop?' : ownsSalon ? 'What is the full address of your salon?' : 'What is the address of the location where you work?'}</p>
       <div className="space-y-2">
         <label htmlFor="work-location-street" className="block text-xs text-muted-foreground">Street address and suite number</label>
-        <Input id="work-location-street" autoComplete="street-address" value={workStreet} onChange={e => setWorkStreet(e.target.value)} placeholder="123 Main St, Suite 4" />
+        <Input id="work-location-street" autoComplete="street-address" value={workStreet} onChange={e => setWorkStreet(e.target.value)} placeholder="Your street address and suite number" />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_7rem_7rem]">
-        <div className="space-y-2"><label htmlFor="work-location-city" className="block text-xs text-muted-foreground">City</label><Input id="work-location-city" autoComplete="address-level2" value={workCity} onChange={e => setWorkCity(e.target.value)} placeholder="Clearwater" /></div>
-        <div className="space-y-2"><label htmlFor="work-location-state" className="block text-xs text-muted-foreground">State</label><Input id="work-location-state" autoComplete="address-level1" value={workState} onChange={e => setWorkState(e.target.value)} placeholder="Florida" /></div>
-        <div className="space-y-2"><label htmlFor="work-location-postal-code" className="block text-xs text-muted-foreground">ZIP code</label><Input id="work-location-postal-code" autoComplete="postal-code" inputMode="numeric" value={workPostalCode} onChange={e => setWorkPostalCode(e.target.value)} placeholder="33755" /></div>
+        <div className="space-y-2"><label htmlFor="work-location-city" className="block text-xs text-muted-foreground">City</label><Input id="work-location-city" autoComplete="address-level2" value={workCity} onChange={e => setWorkCity(e.target.value)} placeholder="Your city" /></div>
+        <div className="space-y-2"><label htmlFor="work-location-state" className="block text-xs text-muted-foreground">State</label><Input id="work-location-state" autoComplete="address-level1" value={workState} onChange={e => setWorkState(e.target.value)} placeholder="Your state" /></div>
+        <div className="space-y-2"><label htmlFor="work-location-postal-code" className="block text-xs text-muted-foreground">ZIP code</label><Input id="work-location-postal-code" autoComplete="postal-code" inputMode="numeric" value={workPostalCode} onChange={e => setWorkPostalCode(e.target.value)} placeholder="Your ZIP code" /></div>
       </div>
     </div>}
     {usesServiceCity && <div className="space-y-2">
       <label htmlFor="service-city" className="block text-sm font-medium">What city and state do you serve?</label>
-      <Input id="service-city" value={city} onChange={e => setCity(e.target.value)} onBlur={() => setCity(formatServiceCity(city))} placeholder="e.g. Clearwater, Florida" />
+      <Input id="service-city" value={city} onChange={e => setCity(e.target.value)} onBlur={() => setCity(formatServiceCity(city))} placeholder="Your city and state" />
     </div>}
     <div className="space-y-3">
       <label htmlFor="website-status" className="block text-sm font-medium">Do you currently have a website?</label>
@@ -652,7 +652,7 @@ export function BusinessSetupCard() {
           {needsBookingSearchCity && <div className="space-y-2">
             <label htmlFor="booking-search-city" className="block text-sm font-medium">What city and state should we search?</label>
             <Input id="booking-search-city" value={city} onChange={event => setCity(event.target.value)}
-              onBlur={() => setCity(formatServiceCity(city))} placeholder="e.g. Clearwater, Florida" />
+              onBlur={() => setCity(formatServiceCity(city))} placeholder="Your city and state" />
           </div>}
           <SetupSelect id="booking-platform" label="Which booking app do you use?" value={bookingPlatform}
             onChange={(value) => setBookingPlatform(value)}
