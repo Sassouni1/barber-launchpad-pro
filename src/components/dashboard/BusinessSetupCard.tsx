@@ -36,6 +36,20 @@ const mergeBookingCandidates = (primary: BookingCandidate[], secondary: BookingC
   }
   return [...found.values()].slice(0, 20);
 };
+const bookingAppForUrl = (value: string) => {
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    const apps: Array<[string, string]> = [
+      ['booksy.com', 'Booksy'], ['vagaro.com', 'Vagaro'], ['styleseat.com', 'StyleSeat'],
+      ['fresha.com', 'Fresha'], ['glossgenius.com', 'GlossGenius'], ['thecut.co', 'The Cut'],
+      ['getsquire.com', 'Squire'], ['squire.com', 'Squire'], ['square.site', 'Square'],
+      ['squareup.com', 'Square'], ['calendly.com', 'Calendly'],
+      ['acuityscheduling.com', 'Acuity Scheduling'], ['schedulicity.com', 'Schedulicity'],
+      ['setmore.com', 'Setmore'],
+    ];
+    return apps.find(([domain]) => host === domain || host.endsWith(`.${domain}`))?.[1] || host.replace(/^www\./, '');
+  } catch { return 'Booking site'; }
+};
 
 const statusOptions: Array<{ value: WorkStatus; label: string }> = [
   { value: 'individual_barber', label: 'I am an individual barber' },
@@ -663,7 +677,12 @@ export function BusinessSetupCard() {
               disabled={bookingSearchKey !== bookingLookupKey}
               onClick={() => setBookingUrl(candidate.url)}
               className={`block w-full rounded-lg border p-3 text-left text-sm disabled:opacity-65 ${bookingUrl === candidate.url ? 'border-primary bg-primary/10' : 'border-border bg-background/40'}`}>
-              <span className="block font-medium">{candidate.title || candidate.businessName || candidate.url}</span>
+              <span className="mb-1 flex flex-wrap items-center gap-2">
+                <span className="rounded border border-primary/45 bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
+                  {bookingAppForUrl(candidate.url)}
+                </span>
+                <span className="font-medium">{candidate.title || candidate.businessName || candidate.url}</span>
+              </span>
               {candidate.confidence === 'possible' && <span className="mt-1 block text-xs font-medium text-primary">Possible match — check the barber and location</span>}
               <span className="block text-xs text-muted-foreground break-all">{candidate.url}</span>
               {candidate.location && <span className="mt-1 block text-xs text-muted-foreground">{candidate.location}</span>}
