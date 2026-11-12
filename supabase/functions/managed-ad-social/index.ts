@@ -5,13 +5,14 @@ import {
   createGraphClient,
   grantPageAdAccess,
   isFacebookId,
+  probePageOwnership,
   retryPageAdAccess,
   type AccessOutcome,
 } from "./pageAdAccess.ts";
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
 // Returned by the read-only functionVersion action so a deployment can be confirmed without side effects.
-const FUNCTION_VERSION = 'managed-ad-social/page-ad-access-retry-2026-11-12';
+const FUNCTION_VERSION = 'managed-ad-social/page-owner-probe-2026-11-12';
 // Request access to business-managed Pages alongside ordinary Pages.
 const SCOPES = 'pages_show_list,pages_read_engagement,business_management';
 
@@ -23,10 +24,10 @@ const json = (body: unknown, status = 200) =>
 
 type Action =
   | 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage' | 'skipInstagram'
-  | 'grantPageAdAccess' | 'checkPageAdAccess' | 'retryPageAdAccess' | 'functionVersion';
+  | 'grantPageAdAccess' | 'checkPageAdAccess' | 'retryPageAdAccess' | 'functionVersion' | 'probePageOwnership';
 const ACTIONS: Action[] = [
   'getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage', 'skipInstagram',
-  'grantPageAdAccess', 'checkPageAdAccess', 'retryPageAdAccess', 'functionVersion',
+  'grantPageAdAccess', 'checkPageAdAccess', 'retryPageAdAccess', 'functionVersion', 'probePageOwnership',
 ];
 
 
@@ -204,6 +205,25 @@ Deno.serve(async (req) => {
       .select('user_access_token, page_access_token, facebook_page_id')
       .eq('customer_id', customerId)
       .maybeSingle();
+
+    if (action === 'probePageOwnership') {
+      // Read-only diagnostic on the member's own selected Page: no database writes, no POST to Meta.
+      const { data: connection, error: connectionReadError } = await admin
+        .from('ad_social_connections')
+        .select('facebook_page_id, connection_status')
+        .eq('customer_id', customerId)
+        .maybeSingle();
+      if (connectionReadError) return json({ error: 'Could not load your Facebook connection.' }, 500);
+      const pageIdToProbe = connection?.facebook_page_id;
+      if (connection?.connection_status !== 'connected' || !isFacebookId(pageIdToProbe)) {
+        return json({ error: 'Choose your Facebook Page first.' }, 400);
+      }
+      if (!stored?.page_access_token || stored.facebook_page_id !== pageIdToProbe) {
+        return json({ error: 'Your Page access is missing.' }, 400);
+      }
+      const probe = await probePageOwnership(GRAPH, pageIdToProbe, stored.page_access_token);
+      return json({ ok: true, version: FUNCTION_VERSION, pageId: pageIdToProbe, ...probe });
+    }
 
     if (!stored?.user_access_token) {
       await admin.from('ad_social_connections').upsert(

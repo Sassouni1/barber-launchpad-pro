@@ -287,3 +287,41 @@ export function createGraphClient(graphBase: string, fetchImpl: FetchLike = fetc
     },
   };
 }
+
+/** Sanitized result of one read-only Graph field read, for the ownership probe. */
+export type ProbeRead =
+  | { ok: true; businessId: string | null; businessName: string | null }
+  | { ok: false; status: number; code: number | null; message: string | null };
+
+/**
+ * Read-only diagnostic: which Page ownership fields does the live Graph endpoint accept for
+ * this member's Page token? Returns only business ids/names and Meta error codes, never tokens.
+ */
+export async function probePageOwnership(
+  graphBase: string,
+  pageId: string,
+  pageToken: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<{ fields: Record<string, ProbeRead>; agencies: { ok: boolean; count: number | null; listsBarberLaunch: boolean | null; code: number | null; message: string | null } }> {
+  const fields: Record<string, ProbeRead> = {};
+  for (const field of ['business', 'owner_business']) {
+    const url = new URL(`${graphBase}/${pageId}`);
+    url.searchParams.set('fields', field);
+    const res = await readGraph(
+      await fetchImpl(url, { headers: { Authorization: `Bearer ${pageToken}` } }),
+      (p) => p[field] as { id?: unknown; name?: unknown } | undefined,
+    );
+    fields[field] = res.ok
+      ? {
+        ok: true,
+        businessId: typeof res.data?.id === 'string' ? res.data.id : null,
+        businessName: typeof res.data?.name === 'string' ? res.data.name : null,
+      }
+      : { ok: false, status: res.status, ...metaErrorOf(res.error) };
+  }
+  const list = await createGraphClient(graphBase, fetchImpl).listAgencies(pageId, pageToken);
+  const agencies = list.ok
+    ? { ok: true, count: list.data.length, listsBarberLaunch: listsBusiness(list.data), code: null, message: null }
+    : { ok: false, count: null, listsBarberLaunch: null, ...metaErrorOf(list.error) };
+  return { fields, agencies };
+}
