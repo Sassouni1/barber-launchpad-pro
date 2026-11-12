@@ -8,6 +8,11 @@ export type AdSocialConnection = {
   facebook_page_name: string | null;
   instagram_business_account_id: string | null;
   instagram_skipped_at: string | null;
+  // Barber Launch advertising access to the selected Page (written only by the server).
+  page_ad_access_status?: string | null;
+  page_ad_access_page_id?: string | null;
+  page_ad_access_checked_at?: string | null;
+  page_ad_access_error?: string | null;
 };
 
 
@@ -25,7 +30,9 @@ export function useAdSocialConnection() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('ad_social_connections')
-        .select('connection_status, facebook_page_id, facebook_page_name, instagram_business_account_id, instagram_skipped_at')
+        // '*' keeps this read working whether or not the advertising-access columns exist yet;
+        // this table holds no tokens (those live in a server-only table).
+        .select('*')
         .eq('customer_id', user!.id)
         .maybeSingle();
       if (error) throw error;

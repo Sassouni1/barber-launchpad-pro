@@ -13,6 +13,8 @@ import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
 import { adSocialErrorMessage } from '@/lib/adSocialError';
 import { InstagramStatusCard } from '@/components/ads/InstagramStatusCard';
 import { CampaignResults } from '@/components/ads/CampaignResults';
+import { PageAdAccessCard } from '@/components/ads/PageAdAccessCard';
+import { pageAdAccessFor } from '@/lib/pageAdAccess';
 
 import { useAdSocialConnection } from '@/hooks/useAdSocialConnection';
 import { useAdBillingProfile } from '@/hooks/useAdBillingProfile';
@@ -61,10 +63,12 @@ export default function Ads() {
   const instagramConnected = !!connection?.instagram_business_account_id;
   const instagramSkipped = !!connection?.instagram_skipped_at;
   const instagramDecided = instagramConnected || instagramSkipped;
+  // Ready only after the server confirmed Barber Launch's advertising access with Meta for this Page.
+  const adAccessGranted = pageAdAccessFor(connection).status === 'granted';
   // Durable completion signal: a saved default payment method (not a $0 balance
   // and not an in-progress checkout attempt).
   const billingComplete = !!billingProfile?.default_payment_method_id;
-  const onboardingComplete = connected && instagramDecided && billingComplete;
+  const onboardingComplete = connected && adAccessGranted && instagramDecided && billingComplete;
   const [skipping, setSkipping] = useState(false);
 
   const { data: campaigns = [], isLoading, isError: campaignsError } = useQuery({
@@ -215,7 +219,12 @@ export default function Ads() {
         </div>
 
         <div className="glass-card rounded-xl p-5 space-y-4">
-          <StepHeader index={2} title="Connect your Instagram (optional)" done={instagramDecided} />
+          <StepHeader index={2} title="Give Barber Launch advertising access" done={adAccessGranted} />
+          <PageAdAccessCard />
+        </div>
+
+        <div className="glass-card rounded-xl p-5 space-y-4">
+          <StepHeader index={3} title="Connect your Instagram (optional)" done={instagramDecided} />
           {instagramConnected ? (
             <InstagramStatusCard />
           ) : (
@@ -243,7 +252,7 @@ export default function Ads() {
         </div>
 
         <div className="glass-card rounded-xl p-5 space-y-4">
-          <StepHeader index={3} title="Ad Billing" done={billingComplete} />
+          <StepHeader index={4} title="Ad Billing" done={billingComplete} />
           <CardSetupPanel embedded />
           {isLoading ? (
             <div className="text-sm text-muted-foreground">Loading campaigns…</div>

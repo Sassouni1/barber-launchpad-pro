@@ -63,7 +63,7 @@ export default function FacebookCallback() {
       toast.error(await adSocialErrorMessage(data, fnError, 'Could not save that Page.'));
       return;
     }
-    toast.success(`${page.name} is now your campaign Page.`);
+    toast.success(`${page.name} is now your campaign Page. Next, give Barber Launch advertising access.`);
     navigate('/ads', { replace: true });
   };
 
