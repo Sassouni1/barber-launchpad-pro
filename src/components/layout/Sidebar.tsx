@@ -42,6 +42,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
+import { isMetaReviewer } from '@/lib/metaReviewerLanding';
 
 
 import { Switch } from '@/components/ui/switch';
@@ -108,10 +109,12 @@ interface ExpandableNavItemProps {
   collapsed: boolean;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  forceOpen?: boolean;
 }
 
-function ExpandableNavItem({ icon: Icon, label, collapsed, children, defaultOpen = false }: ExpandableNavItemProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+function ExpandableNavItem({ icon: Icon, label, collapsed, children, defaultOpen = false, forceOpen = false }: ExpandableNavItemProps) {
+  const [openState, setIsOpen] = useState(defaultOpen);
+  const isOpen = forceOpen || openState;
   const location = useLocation();
   const isChildActive = React.Children.toArray(children).some((child: any) => {
     const to = child?.props?.to;
@@ -153,9 +156,10 @@ function ExpandableNavItem({ icon: Icon, label, collapsed, children, defaultOpen
   );
 }
 
-function SubNavItem({ to, icon: Icon, label }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string }) {
+function SubNavItem({ to, icon: Icon, label, emphasize = false }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; emphasize?: boolean }) {
   const location = useLocation();
   const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
+  const isEmphasized = emphasize && isActive;
 
   return (
     <NavLink
@@ -164,11 +168,16 @@ function SubNavItem({ to, icon: Icon, label }: { to: string; icon: React.Compone
         'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-300 group relative',
         isActive 
           ? 'bg-primary/10 text-primary border border-primary/30' 
-          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent'
+          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent',
+        isEmphasized && 'bg-primary/20 border-primary/70 gold-glow-subtle'
       )}
+      aria-current={isActive ? 'page' : undefined}
     >
       <Icon className={cn('w-4 h-4 flex-shrink-0 transition-all', isActive && 'text-primary')} />
-      <span className="font-medium text-sm">{label}</span>
+      <span className={cn('font-medium text-sm', isEmphasized && 'font-semibold')}>{label}</span>
+      {isEmphasized && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 gold-gradient rounded-r-full" />
+      )}
     </NavLink>
   );
 }
@@ -277,7 +286,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   }, []);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode, isManufacturer } = useAuth();
+  const { user, isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode, isManufacturer } = useAuth();
+  const reviewerOnAds = isMetaReviewer(user) && (location.pathname === '/ads' || location.pathname.startsWith('/ads/'));
   const isNewAccount = useIsNewAccount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
   const restrictNav = isNewAccount && !allQuizzesPassed;
@@ -389,11 +399,11 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
                 ))}
             </ExpandableNavItem>
 
-            <ExpandableNavItem icon={Megaphone} label="Growth Tools" collapsed={collapsed} defaultOpen>
+            <ExpandableNavItem icon={Megaphone} label="Growth Tools" collapsed={collapsed} defaultOpen forceOpen={reviewerOnAds}>
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
               <SubNavItem to="/social-media-post" icon={Megaphone} label="Content Library" />
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
-              <SubNavItem to="/ads" icon={Megaphone} label="Ads" />
+              <SubNavItem to="/ads" icon={Megaphone} label="Ads" emphasize={reviewerOnAds} />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
               {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
               {userIsAdmin && <SubNavItem to="/my-website?second=1" icon={Globe} label="Build Second Website" />}
