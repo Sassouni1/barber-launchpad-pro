@@ -3187,6 +3187,25 @@ export type Database = {
       }
       member_onboarding_profiles: {
         Row: {
+          business_setup_draft: Json | null
+          business_setup_draft_updated_at: string | null
+          business_owner_type: string | null
+          cuts_at_owned_business: boolean | null
+          currently_cutting: boolean | null
+          professional_role: string | null
+          workplace_type: string | null
+          other_professionals_count: string | null
+          service_city: string | null
+          work_location_street: string | null
+          work_location_city: string | null
+          work_location_state: string | null
+          work_location_postal_code: string | null
+          website_status: string | null
+          website_url: string | null
+          booking_app_status: string | null
+          booking_link_status: string | null
+          booking_url: string | null
+          business_setup_completed_at: string | null
           booking_method: string | null
           booking_platform: string | null
           business_name: string | null
@@ -3210,6 +3229,25 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          business_setup_draft?: Json | null
+          business_setup_draft_updated_at?: string | null
+          business_owner_type?: string | null
+          cuts_at_owned_business?: boolean | null
+          currently_cutting?: boolean | null
+          professional_role?: string | null
+          workplace_type?: string | null
+          other_professionals_count?: string | null
+          service_city?: string | null
+          work_location_street?: string | null
+          work_location_city?: string | null
+          work_location_state?: string | null
+          work_location_postal_code?: string | null
+          website_status?: string | null
+          website_url?: string | null
+          booking_app_status?: string | null
+          booking_link_status?: string | null
+          booking_url?: string | null
+          business_setup_completed_at?: string | null
           booking_method?: string | null
           booking_platform?: string | null
           business_name?: string | null
@@ -3233,6 +3271,25 @@ export type Database = {
           user_id: string
         }
         Update: {
+          business_setup_draft?: Json | null
+          business_setup_draft_updated_at?: string | null
+          business_owner_type?: string | null
+          cuts_at_owned_business?: boolean | null
+          currently_cutting?: boolean | null
+          professional_role?: string | null
+          workplace_type?: string | null
+          other_professionals_count?: string | null
+          service_city?: string | null
+          work_location_street?: string | null
+          work_location_city?: string | null
+          work_location_state?: string | null
+          work_location_postal_code?: string | null
+          website_status?: string | null
+          website_url?: string | null
+          booking_app_status?: string | null
+          booking_link_status?: string | null
+          booking_url?: string | null
+          business_setup_completed_at?: string | null
           booking_method?: string | null
           booking_platform?: string | null
           business_name?: string | null

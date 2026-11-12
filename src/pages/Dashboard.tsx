@@ -2,6 +2,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
 import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
+import { BusinessSetupCard } from '@/components/dashboard/BusinessSetupCard';
 
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 import { ContactSection } from '@/components/dashboard/ContactSection';
@@ -27,6 +28,7 @@ export default function Dashboard() {
         <WelcomeHero />
 
         <div className="space-y-6">
+          <BusinessSetupCard />
           <DynamicTodoList />
 
           <ContinueLearning />

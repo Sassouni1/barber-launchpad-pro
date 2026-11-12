@@ -15,3 +15,21 @@
 
 @media(max-width:900px){.header-inner{gap:16px}.systems-grid{grid-template-columns:1fr;gap:30px}.systems-copy{padding:0}.systems-collage .systems-collage-main{height:440px}.systems-collage img{height:220px}}
 @media(max-width:700px){.systems{padding:70px 0}.systems-grid{gap:28px}.systems-collage{gap:6px}.systems-collage .systems-collage-main{height:260px}.systems-collage img{height:135px}.systems h2{font-size:clamp(50px,11.5vw,70px)}.systems-copy>p:not(.eyebrow){font-size:14px}}
+
+.systems-grid{column-gap:4%;row-gap:22px}
+.systems-label{grid-column:1/-1;margin:0}
+.systems-collage img,
+.systems-collage .systems-collage-main{height:auto;object-fit:contain}
+@media(max-width:900px){.systems-grid{row-gap:24px}}
+@media(max-width:700px){.systems-collage img,.systems-collage .systems-collage-main{height:auto}}
+
+.systems-grid{display:block}
+.systems-copy{padding:0}
+.systems-copy .systems-label{margin:0 0 18px}
+.systems-collage{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto;align-items:start}
+.systems-collage .systems-collage-main{grid-column:auto}
+.systems-collage + p{margin-top:30px!important}
+@media(max-width:700px){
+  .systems-collage{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .systems-collage .systems-collage-main{grid-column:1/-1}
+}

@@ -60,6 +60,8 @@ import {
 } from "@/lib/i18n/spanishVideos";
 import { PhotoUploadSection } from "@/components/lesson/PhotoUploadSection";
 import { DirectoryEnrollmentLesson } from "@/components/lesson/DirectoryEnrollmentLesson";
+import { AnnouncementPostImage } from "@/components/lesson/AnnouncementPostImage";
+import { AnnouncementActionList } from "@/components/lesson/AnnouncementActionList";
 import { StripeSignupCard } from "@/components/lesson/StripeSignupCard";
 import {
   TrackedVimeoPlayer,
@@ -439,6 +441,17 @@ const SECOND_POST_FALLBACK_COPY = [
   "",
   "#HairSystem #HairReplacement #HairLossSolution #NonSurgicalHairReplacement #MensHair #BarberLife",
 ].join("\n");
+
+const prepareAnnouncementCaptionNotes = (content: string) => {
+  const captionSection = content.match(/\*\*Caption\*\*[\s\S]*/i)?.[0] ?? content;
+  return captionSection.replace(/\{copy:([\s\S]*?)\}/g, (_block, caption: string) => {
+    const withoutExtraDashes = caption
+      .replace(/\s*[—–]\s*/g, ", ")
+      .replace(/non-surgical|-/gi, (match) => match.toLowerCase() === "non-surgical" ? match : " ")
+      .trim();
+    return `{copy:${withoutExtraDashes}\n\n#HairSystems #HairUnits #HairReplacement}`;
+  });
+};
 
 // Helper function to render markdown-style notes content
 const renderNotesContent = (content: string, copyDownloadFileName?: string) => {
@@ -1015,7 +1028,8 @@ export default function Lesson() {
     isThirdPostSubLesson ||
     isFourthPostSubLesson ||
     ((!sublessonId || isSubLessonInFirstPostModule) && module.has_download);
-  const activeHasQuiz = sublessonId ? !!sublesson?.has_quiz : module.has_quiz;
+  const activeHasQuiz = !(!sublessonId && module.id === FIRST_POST_MODULE_ID) &&
+    (sublessonId ? !!sublesson?.has_quiz : module.has_quiz);
   const isOrderTrackingModule =
     !sublessonId && module.id === PLACING_ORDER_MODULE_ID;
   const allowsManualCompletion =
@@ -1027,13 +1041,16 @@ export default function Lesson() {
   const notesContent = sublessonId ? null : module.notes_content;
   const firstPostCopyDownloadFileName =
     module.id === FIRST_POST_MODULE_ID ? "first-post.txt" : undefined;
+  const isFirstPostMainLesson = !sublessonId && module.id === FIRST_POST_MODULE_ID;
   const activeFiles = isThirdPostSubLesson
     ? [THIRD_POST_VIDEO_FILE]
     : isSecondPostSubLesson
       ? [SECOND_POST_RESOURCE_FILE]
       : isFourthPostSubLesson
         ? FOURTH_POST_RESOURCE_FILES
-        : files;
+        : isFirstPostMainLesson
+          ? files.filter(file => file.file_name.toLowerCase() !== 'hair systems announcement.png')
+          : files;
   const previewFileType = previewFile?.file_type?.toLowerCase() || "";
   const previewIsImage = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(
     previewFileType,
@@ -1076,8 +1093,8 @@ export default function Lesson() {
         className="max-w-5xl mx-auto space-y-4 pb-8"
       >
         {/* Header */}
-        <div className="flex items-center justify-between animate-fade-up">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
+          <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
             <Button
               variant="ghost"
               className="gap-2"
@@ -1090,7 +1107,7 @@ export default function Lesson() {
               <ArrowLeft className="w-4 h-4" />
               Back to all training
             </Button>
-            <div>
+            <div className="min-w-0">
               <p
                 key={`${module.id}-${locale}-course`}
                 className="text-sm text-muted-foreground"
@@ -1101,7 +1118,7 @@ export default function Lesson() {
               </p>
               <h1
                 key={`${module.id}-${locale}-title`}
-                className="font-display text-3xl font-bold"
+                className="font-display text-3xl font-bold break-words"
                 data-no-translate
                 translate="no"
               >
@@ -1109,7 +1126,7 @@ export default function Lesson() {
               </h1>
             </div>
           </div>
-          {isCurrentLessonCompleted ? (
+          {!isFirstPostMainLesson && (isCurrentLessonCompleted ? (
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
               <CheckCircle2 className="w-5 h-5" />
               <span className="text-sm font-medium">
@@ -1125,8 +1142,25 @@ export default function Lesson() {
               <CheckCircle2 className="w-4 h-4 mr-2" />
               {localizeCourseUi("Mark Complete", locale)}
             </Button>
-          ) : null}
+          ) : null)}
         </div>
+
+        {isFirstPostMainLesson && user?.id && <AnnouncementActionList userId={user.id} />}
+
+        {isFirstPostMainLesson && (
+          <section className="rounded-2xl border border-border/50 bg-secondary/20 p-4 sm:p-6" aria-labelledby="announcement-about-title">
+            <h2 id="announcement-about-title" className="font-display text-xl font-semibold mb-3">About this task</h2>
+            <div className="max-w-3xl space-y-3 text-sm leading-relaxed text-foreground/80 sm:text-base">
+              <p>Here we are going to be sharing your very first announcement to allow others to know that you are now offering hair systems.</p>
+              <p>The key is that we truly do want to share this everywhere.</p>
+              <p>This isn't just about getting clients. This is also about ensuring that when we do start running ads, people see hair system content already on your page.</p>
+            </div>
+          </section>
+        )}
+
+        {!sublessonId && module.id === FIRST_POST_MODULE_ID && user?.id && (
+          <AnnouncementPostImage userId={user.id} />
+        )}
 
         {/* Video Player - only show if video exists and not a special lesson */}
         {displayVideoUrl?.trim() &&
@@ -1640,9 +1674,11 @@ export default function Lesson() {
                 </h2>
               </div>
             )}
-            <div className="prose prose-invert prose-sm max-w-none">
+            {isFirstPostMainLesson ? <div className="prose prose-invert prose-sm max-w-none">
+                {renderNotesContent(prepareAnnouncementCaptionNotes(notesContent), firstPostCopyDownloadFileName)}
+            </div> : <div className="prose prose-invert prose-sm max-w-none">
               {renderNotesContent(notesContent, firstPostCopyDownloadFileName)}
-            </div>
+            </div>}
           </div>
         )}
 

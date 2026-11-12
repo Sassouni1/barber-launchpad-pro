@@ -9,6 +9,7 @@ import { FontUploader } from '@/components/admin/FontUploader';
 
 import { GHLIntegration } from '@/components/admin/GHLIntegration';
 import { HairSystemReconciliation } from '@/components/admin/HairSystemReconciliation';
+import { BookingLookupRequests } from '@/components/admin/BookingLookupRequests';
 
 
 import { Switch } from '@/components/ui/switch';
@@ -68,6 +69,8 @@ export default function AdminDashboard() {
           </div>
           <ArrowUpRight className="ml-auto h-5 w-5 text-muted-foreground" />
         </Link>
+
+        <BookingLookupRequests />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
