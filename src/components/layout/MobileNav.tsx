@@ -34,6 +34,7 @@ import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
 import { useMemberWebsite } from '@/hooks/useMemberWebsite';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { isMetaReviewer, markReviewerMenuShown, shouldAutoOpenReviewerMenu } from '@/lib/metaReviewerLanding';
+import { canAccessMyWebsite } from '@/lib/myWebsiteAccess';
 import {
   Dialog,
   DialogContent,
@@ -435,11 +436,10 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Digital Business Card</span>
                         </NavLink>
-                        {websiteEntitlement && (
-                          <NavRow to="/website" icon={Globe} label="Website Editor" onClick={closeMenu} />
+                        {canAccessMyWebsite(user?.id) && websiteEntitlement && (
+                          <NavRow to="/website" icon={Globe} label="My Website" onClick={closeMenu} />
                         )}
-                        {userIsAdmin && <NavRow to="/my-website?second=1" icon={Globe} label="Build Second Website" onClick={closeMenu} />}
-                        {!loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteEntitlement && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <NavRow to="/my-website" icon={Globe} label="My Website" onClick={closeMenu} />}
+                        {canAccessMyWebsite(user?.id) && !loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteEntitlement && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <NavRow to="/my-website" icon={Globe} label="My Website" onClick={closeMenu} />}
                       </CollapsibleContent>
                     </Collapsible>
 

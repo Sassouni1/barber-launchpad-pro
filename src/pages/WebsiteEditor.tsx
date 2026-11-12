@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { WebsiteEditorShell } from '@/components/website/WebsiteEditorShell';
 import { useWebsiteEditorEntitlement, useWebsiteTemplate } from '@/hooks/useWebsiteEditor';
+import { canAccessMyWebsite } from '@/lib/myWebsiteAccess';
 
 /**
  * The single member Website Editor route.
@@ -16,6 +17,10 @@ export default function WebsiteEditor() {
   const { user } = useAuth();
   const { data: entitlement, isLoading: loadingEntitlement } = useWebsiteEditorEntitlement();
   const { data: template, isLoading: loadingTemplate } = useWebsiteTemplate(entitlement?.templateKey);
+
+  if (!canAccessMyWebsite(user?.id)) {
+    return <DashboardLayout><div className="mx-auto max-w-xl p-6"><h1 className="font-serif text-3xl">My Website is unavailable</h1></div></DashboardLayout>;
+  }
 
   if (loadingEntitlement || (entitlement && loadingTemplate)) {
     return (

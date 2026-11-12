@@ -43,6 +43,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
 import { isMetaReviewer } from '@/lib/metaReviewerLanding';
+import { canAccessMyWebsite } from '@/lib/myWebsiteAccess';
 
 
 import { Switch } from '@/components/ui/switch';
@@ -404,9 +405,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" emphasize={reviewerOnAds} />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
-              {websiteTemplate && <SubNavItem to="/website" icon={Globe} label="Website Editor" />}
-              {userIsAdmin && <SubNavItem to="/my-website?second=1" icon={Globe} label="Build Second Website" />}
-              {!loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteTemplate && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <SubNavItem to="/my-website" icon={Globe} label="My Website" />}
+              {canAccessMyWebsite(user?.id) && websiteTemplate && <SubNavItem to="/website" icon={Globe} label="My Website" />}
+              {canAccessMyWebsite(user?.id) && !loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteTemplate && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <SubNavItem to="/my-website" icon={Globe} label="My Website" />}
             </ExpandableNavItem>
 
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
