@@ -5,6 +5,8 @@ import {
   createGraphClient,
   grantPageAdAccess,
   listsBusiness,
+  PAGE_AD_RETRY_AFTER_MS,
+  retryPageAdAccess,
   type AgencyNode,
   type GraphResult,
   type PageAccessGraph,
@@ -191,4 +193,54 @@ Deno.test("HTTP adapter keeps Meta's error code and message", async () => {
     new Response(JSON.stringify({ error: { code: 368, message: "blocked" } }), { status: 400 });
   const out = await createGraphClient("https://graph.facebook.com/v19.0", fetchStub).listAgencies(PAGE, TOKEN);
   assertEquals(out, { ok: false, status: 400, error: { code: 368, message: "blocked" } });
+});
+
+Deno.test("a pending accepted request is never re-sent by grant or check", async () => {
+  const { graph, calls } = fakeGraph({ agencies: [none] });
+  assertEquals((await grantPageAdAccess(graph, PAGE, TOKEN, true)).status, "pending");
+  assertEquals((await checkPageAdAccess(graph, PAGE, TOKEN, true)).status, "pending");
+  assertEquals(calls.adds.length, 0);
+});
+
+const ACCEPTED = "2026-11-12T01:00:00.000Z";
+const at = (ms: number) => Date.parse(ACCEPTED) + ms;
+
+Deno.test("retry before 15 minutes sends nothing and reads nothing", async () => {
+  const { graph, calls } = fakeGraph({ agencies: [none] });
+  const out = await retryPageAdAccess(graph, PAGE, TOKEN, ACCEPTED, at(PAGE_AD_RETRY_AFTER_MS - 1));
+  assertEquals(out.status, "pending");
+  assertEquals(calls.adds.length + calls.agencyReads + calls.ownerReads, 0);
+});
+
+Deno.test("retry after 15 minutes resends only ADVERTISE when Barber Launch is still not listed", async () => {
+  const { graph, calls } = fakeGraph({ agencies: [none, listed] });
+  const out = await retryPageAdAccess(graph, PAGE, TOKEN, ACCEPTED, at(PAGE_AD_RETRY_AFTER_MS));
+  assertEquals(calls.adds, [{ pageId: PAGE, businessId: BARBER_LAUNCH_BUSINESS_ID, tasks: ["ADVERTISE"] }]);
+  assertEquals(out.status, "granted");
+  assertEquals(out.requested, true);
+});
+
+Deno.test("retry never POSTs when Barber Launch is listed or owns the Page", async () => {
+  const listedNow = fakeGraph({ agencies: [listed] });
+  assertEquals((await retryPageAdAccess(listedNow.graph, PAGE, TOKEN, ACCEPTED, at(PAGE_AD_RETRY_AFTER_MS))).status, "granted");
+  const owned = fakeGraph({ agencies: [none], owner: { ok: true, data: BARBER_LAUNCH_BUSINESS_ID } });
+  assertEquals((await retryPageAdAccess(owned.graph, PAGE, TOKEN, ACCEPTED, at(PAGE_AD_RETRY_AFTER_MS))).status, "granted");
+  assertEquals(listedNow.calls.adds.length + owned.calls.adds.length, 0);
+});
+
+Deno.test("retry fails closed on incomplete evidence: failed owner or agency read sends nothing", async () => {
+  const ownerFails = fakeGraph({ agencies: [none], owner: { ok: false, status: 400, error: { code: 100, message: "x" } } });
+  assertEquals((await retryPageAdAccess(ownerFails.graph, PAGE, TOKEN, ACCEPTED, at(PAGE_AD_RETRY_AFTER_MS))).status, "error");
+  const agenciesFail = fakeGraph({ agencies: [readFails] });
+  assertEquals((await retryPageAdAccess(agenciesFail.graph, PAGE, TOKEN, ACCEPTED, at(PAGE_AD_RETRY_AFTER_MS))).status, "error");
+  assertEquals(ownerFails.calls.adds.length + agenciesFail.calls.adds.length, 0);
+});
+
+Deno.test("retry with no accepted request on record sends nothing", async () => {
+  for (const acceptedAt of [null, "not-a-date"]) {
+    const { graph, calls } = fakeGraph({ agencies: [none] });
+    const out = await retryPageAdAccess(graph, PAGE, TOKEN, acceptedAt, at(PAGE_AD_RETRY_AFTER_MS * 10));
+    assertEquals(out.status, "unknown");
+    assertEquals(calls.adds.length, 0);
+  }
 });
