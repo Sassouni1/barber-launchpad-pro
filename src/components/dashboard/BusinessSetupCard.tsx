@@ -366,7 +366,8 @@ export function BusinessSetupCard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.session.access_token}` },
         body: JSON.stringify({ city: bookingLookupCity, website: website === 'yes' ? normalizeUrl(websiteUrl) : '',
-          platform: bookingPlatform, scope: ownsBusiness ? 'shop' : 'individual' }),
+          platform: bookingPlatform, scope: ownsBusiness ? 'shop' : 'individual',
+          businessName: (ownsBusiness || businessNameChoice === 'yes') ? businessName.trim() : '' }),
       });
       const data = await response.json();
       if (!response.ok || data?.error) throw new Error(data?.error || 'The search could not finish. Please try again.');

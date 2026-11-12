@@ -141,9 +141,11 @@ Deno.serve(async request => {
     const city = typeof input.city === 'string' ? input.city.trim() : '';
     const websiteText = typeof input.website === 'string' ? input.website.trim() : '';
     const platform = typeof input.platform === 'string' ? input.platform.trim() : '';
+    const currentBusinessName = typeof input.businessName === 'string' ? input.businessName.trim() : null;
     const scope = input.scope === 'shop' ? 'shop' : 'individual';
     const website = publicWebsite(websiteText);
-    if (!city || city.length > 160 || websiteText.length > 1000 || website === null || platform.length > 80)
+    if (!city || city.length > 160 || websiteText.length > 1000 || website === null || platform.length > 80 ||
+        (currentBusinessName !== null && currentBusinessName.length > 160))
       return json({ error: 'Enter a valid city, website, and booking app.' }, 400);
     const [{ data: profile, error: profileError }, { data: onboarding, error: onboardingError }] = await Promise.all([
       db.from('profiles').select('full_name').eq('id', auth.user.id).maybeSingle(),
@@ -151,7 +153,7 @@ Deno.serve(async request => {
     ]);
     if (profileError || onboardingError) return json({ error: 'Could not read your member profile.' }, 502);
     const name = String(profile?.full_name || auth.user.user_metadata?.full_name || '').trim().slice(0, 160);
-    const businessName = String(onboarding?.business_name || '').trim().slice(0, 160);
+    const businessName = currentBusinessName ?? String(onboarding?.business_name || '').trim().slice(0, 160);
     if (!name && !businessName) return json({ error: 'Add your name to your profile before searching.' }, 400);
     const supplement = Promise.allSettled([fuzzyBookingMatches(name || businessName, businessName, city, website || ''), websiteBookingMatches(website || '')]);
     const body = JSON.stringify({
