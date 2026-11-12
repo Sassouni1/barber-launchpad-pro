@@ -111,62 +111,83 @@ export async function verifyPageAdAccess(
 }
 
 const PENDING_MESSAGE =
-  "Request sent. Meta hasn't confirmed it yet. If Facebook asks you to approve Barber Launch, approve it, then press Check again.";
+  "Facebook accepted the request, but this Page doesn't show Barber Launch as a partner yet. Wait a minute, then press Check again.";
+
+export const PARTNER_UNVERIFIED_MESSAGE =
+  "Barber Launch is already a partner on this Page, but Facebook doesn't show which access it has, so we can't confirm advertising access. " +
+  'To fix it, remove Barber Launch from this Page\'s partners in Facebook settings, then press Check again and give access.';
 
 const metaErrorOf = (error: GraphError) => ({
   code: typeof error.code === 'number' ? error.code : null,
   message: typeof error.message === 'string' ? error.message : null,
 });
 
-/** Read-only check (no request is sent to Meta). */
-export async function checkPageAdAccess(graph: PageAccessGraph, pageId: string, pageToken: string): Promise<AccessOutcome> {
-  const current = await verifyPageAdAccess(graph, pageId, pageToken);
-  if (current.state === 'granted') return { status: 'granted', message: null, requested: false };
-  if (current.state === 'pending') return { status: 'pending', message: PENDING_MESSAGE, requested: false };
-  if (current.state === 'missing') {
-    return { status: 'unknown', message: "Barber Launch doesn't have advertising access to this Page yet.", requested: false };
+function fromVerify(current: VerifyOutcome, requested: boolean): AccessOutcome {
+  switch (current.state) {
+    case 'granted':
+      return { status: 'granted', message: null, requested, verifiedVia: current.via };
+    case 'partner_unverified':
+      return { status: 'unverified', message: PARTNER_UNVERIFIED_MESSAGE, requested };
+    case 'pending':
+      return { status: 'pending', message: PENDING_MESSAGE, requested };
+    case 'missing':
+      return { status: 'unknown', message: null, requested };
+    case 'error':
+      return { status: 'error', message: describeGraphError(current.error), requested, metaError: metaErrorOf(current.error) };
   }
-  return { status: 'error', message: describeGraphError(current.error), requested: false, metaError: metaErrorOf(current.error) };
+}
+
+/** Read-only check (no request is sent to Meta). */
+export async function checkPageAdAccess(
+  graph: PageAccessGraph,
+  pageId: string,
+  pageToken: string,
+  priorAccepted: boolean,
+): Promise<AccessOutcome> {
+  return fromVerify(await verifyPageAdAccess(graph, pageId, pageToken, priorAccepted), false);
 }
 
 /**
- * Idempotent grant: read first, request ADVERTISE only when Barber Launch has no
- * access or request yet, then read again. Only a confirmed read returns "granted".
+ * Member-initiated grant. Reads first and sends the ADVERTISE-only request only when
+ * Barber Launch neither owns nor is listed on the Page and both reads succeeded.
+ * An existing partner listing is never re-requested, so its tasks are never overwritten.
  */
-export async function grantPageAdAccess(graph: PageAccessGraph, pageId: string, pageToken: string): Promise<AccessOutcome> {
-  const before = await verifyPageAdAccess(graph, pageId, pageToken);
-  if (before.state === 'granted') return { status: 'granted', message: null, requested: false };
-  if (before.state === 'pending') return { status: 'pending', message: PENDING_MESSAGE, requested: false };
-  if (before.state === 'error') {
-    // Without a working read we cannot avoid duplicates or confirm anything, so send nothing.
-    return { status: 'error', message: describeGraphError(before.error), requested: false, metaError: metaErrorOf(before.error) };
-  }
+export async function grantPageAdAccess(
+  graph: PageAccessGraph,
+  pageId: string,
+  pageToken: string,
+  priorAccepted: boolean,
+): Promise<AccessOutcome> {
+  const before = await verifyPageAdAccess(graph, pageId, pageToken, priorAccepted);
+  // granted, partner_unverified, error: send nothing.
+  if (before.state !== 'missing' && before.state !== 'pending') return fromVerify(before, false);
 
   const added = await graph.addAgency(pageId, pageToken, BARBER_LAUNCH_BUSINESS_ID, PAGE_AD_TASKS);
-  let requested = false;
   if (!added.ok) {
     // 3989: already assigned to this agency. 3946: already belongs to this business.
-    const alreadyThere = added.error.code === 3989 || added.error.code === 3946;
-    if (!alreadyThere) {
-      return { status: 'error', message: describeGraphError(added.error), requested: false, metaError: metaErrorOf(added.error) };
+    // Neither says which tasks Barber Launch has, so only a fresh read can decide, without new acceptance.
+    if (added.error.code === 3989 || added.error.code === 3946) {
+      const after = await verifyPageAdAccess(graph, pageId, pageToken, priorAccepted);
+      if (after.state === 'missing') return { status: 'unverified', message: PARTNER_UNVERIFIED_MESSAGE, requested: false };
+      return fromVerify(after, false);
     }
-  } else if (added.data?.success !== true) {
+    return { status: 'error', message: describeGraphError(added.error), requested: false, metaError: metaErrorOf(added.error) };
+  }
+  if (added.data?.success !== true) {
     return { status: 'error', message: "Facebook didn't accept the advertising access request. Please try again.", requested: false };
-  } else {
-    requested = true;
   }
 
-  const after = await verifyPageAdAccess(graph, pageId, pageToken);
-  if (after.state === 'granted') return { status: 'granted', message: null, requested };
+  // Meta accepted an ADVERTISE-only request for this Page; confirm the partner listing exists.
+  const after = await verifyPageAdAccess(graph, pageId, pageToken, true);
   if (after.state === 'error') {
     return {
       status: 'pending',
-      message: `Request sent, but we couldn't confirm it with Facebook yet. ${describeGraphError(after.error)}`,
-      requested,
+      message: `Facebook accepted the request, but we couldn't confirm it yet. ${describeGraphError(after.error)}`,
+      requested: true,
       metaError: metaErrorOf(after.error),
     };
   }
-  return { status: 'pending', message: PENDING_MESSAGE, requested };
+  return fromVerify(after, true);
 }
 
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
@@ -189,7 +210,8 @@ export function createGraphClient(graphBase: string, fetchImpl: FetchLike = fetc
       let after: string | undefined;
       for (let i = 0; i < 5; i++) {
         const url = new URL(`${graphBase}/${pageId}/agencies`);
-        url.searchParams.set('fields', 'id,name,access_status,permitted_tasks');
+        // Business objects only define id/name here; tasks and request status are not returned.
+        url.searchParams.set('fields', 'id,name');
         url.searchParams.set('limit', '100');
         if (after) url.searchParams.set('after', after);
         const result = await readGraph(await fetchImpl(url, { headers: auth(pageToken) }), (p) => p);
@@ -202,14 +224,16 @@ export function createGraphClient(graphBase: string, fetchImpl: FetchLike = fetc
         if (!paging?.next || typeof nextAfter !== 'string' || nextAfter === after) return { ok: true, data: all };
         after = nextAfter;
       }
-      return { ok: true, data: all };
+      // Never decide from a partial list.
+      return { ok: false, status: 502, error: { message: 'Facebook returned too many partners to check.' } };
     },
     async getPageOwnerBusinessId(pageId, pageToken) {
       const url = new URL(`${graphBase}/${pageId}`);
-      url.searchParams.set('fields', 'business');
+      // owner_business is the Page's owning Business (PageFields in the official SDK).
+      url.searchParams.set('fields', 'owner_business');
       return readGraph(await fetchImpl(url, { headers: auth(pageToken) }), (p) => {
-        const business = p.business as { id?: unknown } | undefined;
-        return typeof business?.id === 'string' ? business.id : null;
+        const owner = p.owner_business as { id?: unknown } | undefined;
+        return typeof owner?.id === 'string' ? owner.id : null;
       });
     },
     async addAgency(pageId, pageToken, businessId, tasks) {
