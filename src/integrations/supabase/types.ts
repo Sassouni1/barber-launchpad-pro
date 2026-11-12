@@ -459,6 +459,11 @@ export type Database = {
           instagram_business_account_id: string | null
           instagram_skipped_at: string | null
           last_synced_at: string | null
+          page_ad_access_checked_at: string | null
+          page_ad_access_error: string | null
+          page_ad_access_page_id: string | null
+          page_ad_access_requested_at: string | null
+          page_ad_access_status: string
           provider: string
           updated_at: string
         }
@@ -472,6 +477,11 @@ export type Database = {
           instagram_business_account_id?: string | null
           instagram_skipped_at?: string | null
           last_synced_at?: string | null
+          page_ad_access_checked_at?: string | null
+          page_ad_access_error?: string | null
+          page_ad_access_page_id?: string | null
+          page_ad_access_requested_at?: string | null
+          page_ad_access_status?: string
           provider?: string
           updated_at?: string
         }
@@ -485,6 +495,11 @@ export type Database = {
           instagram_business_account_id?: string | null
           instagram_skipped_at?: string | null
           last_synced_at?: string | null
+          page_ad_access_checked_at?: string | null
+          page_ad_access_error?: string | null
+          page_ad_access_page_id?: string | null
+          page_ad_access_requested_at?: string | null
+          page_ad_access_status?: string
           provider?: string
           updated_at?: string
         }
