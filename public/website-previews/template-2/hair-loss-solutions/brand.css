@@ -1,0 +1,43 @@
+:root {
+  --dark: #24313b;
+  --gold: #c4a26a;
+  --brand-gradient: radial-gradient(ellipse 115% 180% at 22% -45%, #4b5963 0%, #394650 53%, #24313b 100%);
+}
+
+.nav { background: #000; }
+.site-footer { background: #000; }
+
+.cta-stack a,
+.gallery-cta a,
+#consultation-form button {
+  background: #c4a26a;
+}
+
+.cta-stack a:hover,
+.cta-stack a:focus-visible,
+#consultation-form button:hover,
+#consultation-form button:focus-visible {
+  background: #b58e50;
+}
+
+.video-card iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+
+.lead-modal__dialog {
+  border-color: #dfe7eb;
+}
+
+.monique .split img {
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: center;
+}
+
+.brand-wordmark { display:flex; flex-direction:column; color:#fff; font:600 23px/1.1 Oswald,sans-serif; letter-spacing:.08em; text-decoration:none; }
+.brand-wordmark span { margin-top:6px; color:#cfb276; font:500 12px/1.2 Barlow,sans-serif; letter-spacing:.1em; }
+@media(max-width:900px) { .brand-wordmark { font-size:18px; } .brand-wordmark span { font-size:10px; } }
+

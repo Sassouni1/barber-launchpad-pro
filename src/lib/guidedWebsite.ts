@@ -24,7 +24,7 @@ export const emptyGuidedAnswers: GuidedWebsiteAnswers = {
 
 export const guidedTemplates = [
   { key: 'guided-charlotte' as const, name: 'Template 1', example: 'Your Business Name', url: '/website-previews/template-1/index.html', description: 'Warm, editorial, and focused on your story.' },
-  { key: 'guided-kait' as const, name: 'Template 2', example: 'The Men’s Grooming Suite', url: 'https://themensgroomingsuite.com/', description: 'Bold, dark, and focused on your services and work.' },
+  { key: 'guided-kait' as const, name: 'Template 2', example: 'Your Business Name', url: '/website-previews/template-2/index.html', description: 'Bold, dark, and focused on your services and work.' },
 ];
 
 const escape = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);

@@ -1,0 +1,325 @@
+.hero {
+  background-color: #2f2927;
+  background-image:
+    linear-gradient(rgba(47, 41, 39, .7), rgba(47, 41, 39, .7)),
+    url('https://themensgroomingsuite.com/hair-loss-solutions/assets/5500f45071bc258c.png');
+}
+.video-card img {
+  height: auto;
+  object-fit: contain;
+}
+.nav nav { gap: 0; }
+.nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.cta-stack { gap: 20px; }
+.cta-stack a {
+  display: flex;
+  min-height: 57px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  border: 1px solid rgba(0, 0, 0, .2);
+  border-radius: 3px;
+  background: #c4a26a;
+  color: #fff;
+  font: 700 16px/1 Barlow, sans-serif;
+  text-align: center;
+}
+.cta-stack strong { text-align: center; }
+.hero .cta-stack {
+  width: 1130px;
+  max-width: calc(100vw - 150px);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+.success {
+  color: #45413f;
+  background-color: #fff;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, .2)),
+    url('https://themensgroomingsuite.com/hair-loss-solutions/assets/22a5da03cae71bf7.jpeg');
+}
+.success .cta-stack { display: none; }
+.before-grid img {
+  height: auto;
+  object-fit: contain;
+}
+.gallery-section {
+  background-color: #fff;
+  background-image: url('https://themensgroomingsuite.com/hair-loss-solutions/assets/22a5da03cae71bf7.jpeg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.gallery {
+  gap: 48px 40px;
+}
+.gallery img {
+  height: auto;
+  object-fit: contain;
+}
+.gallery-cta {
+  width: 1130px;
+  max-width: calc(100vw - 150px);
+  margin-top: 121px;
+}
+.gallery-cta a { background: #c4a26a; }
+.gallery-cta strong,
+.benefits-cta strong,
+.steps .cta-stack strong { color: #4a4a4a; }
+.benefits { background: #fff; }
+.what {
+  height: 848px;
+  padding: 0;
+  background: #fff;
+}
+.what-intro {
+  padding-top: 64px;
+  text-align: center;
+}
+.what-intro h2,
+.benefits h2 {
+  margin: 0 0 12px;
+  color: #6a6a6a;
+  font: 700 35px/1.3 Montserrat, sans-serif;
+}
+.what-intro > p {
+  max-width: 985px;
+  margin: 0 auto;
+  color: #6a6a6a;
+  font: 400 21px/1.3 Montserrat, sans-serif;
+}
+.what-detail {
+  display: grid;
+  grid-template-columns: 520px minmax(0, 1fr);
+  gap: 40px;
+  margin-top: 35px;
+}
+.what-card {
+  display: flex;
+  min-height: 542px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 25px 0;
+  background: #f7f7f7;
+}
+.what-detail img {
+  width: 100%;
+  height: auto;
+  margin-top: 20px;
+  object-fit: contain;
+  border-radius: 3px;
+}
+.what-card h3,
+.benefit h3 {
+  margin: 0 0 11px;
+  color: #6a6a6a;
+  font: 700 30px/1.3 Montserrat, sans-serif;
+}
+.what-card p,
+.benefit p {
+  margin: 0;
+  font: 400 21px/1.3 Montserrat, sans-serif;
+}
+.what-card p { color: #000; }
+.benefit p {
+  color: #6a6a6a;
+  font: 400 20px/1.3 Montserrat, sans-serif;
+}
+.benefits {
+  height: auto;
+  padding: 0;
+  padding-bottom: 70px;
+  background: #fff;
+}
+.benefits-heading {
+  width: 66.25%;
+  margin: 0 auto;
+  padding-top: 70px;
+  text-align: center;
+}
+.benefits-heading h2 {
+  margin: 0;
+  padding: 20px 0 17px;
+  border-top: 1px solid #777;
+  border-bottom: 1px solid #222;
+}
+.benefits-layout {
+  display: grid;
+  width: 86%;
+  grid-template-columns: 525px minmax(0, 1fr);
+  gap: 70px;
+  margin: 86px auto 0;
+  align-items: start;
+}
+.benefits-layout > img {
+  display: block;
+  width: 525px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 3px;
+}
+.benefits-layout > div { width: min(505px, 100%); }
+.monique img {
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+}
+.monique > .rail > h2 { text-align: center; }
+.benefit h3 { margin-top: 18px; }
+.benefit p { margin-bottom: 16px; }
+.benefits-cta {
+  width: 1130px;
+  max-width: calc(100vw - 150px);
+  margin-top: 28px;
+}
+.steps {
+  color: #000;
+  background-color: #fff;
+  background-image: url('https://themensgroomingsuite.com/hair-loss-solutions/assets/22a5da03cae71bf7.jpeg');
+}
+.steps-grid article { background: transparent; border-color: transparent; }
+.steps {
+  padding-top: 81px;
+  text-align: left;
+}
+.steps .rail { max-width: 1000px; }
+.steps h2 {
+  margin: 0 0 13px 90px;
+  color: #4a4a4a;
+  font: 500 35px/1.3 Montserrat, sans-serif;
+}
+.steps-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 33px;
+  margin: 0 0 0 0;
+}
+.steps-grid article {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  gap: 11px;
+  align-items: start;
+  min-height: 0;
+  padding: 0 0 0 0;
+}
+.steps-grid article img {
+  display: block;
+  width: 208px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 3px;
+}
+.steps-grid b {
+  display: block;
+  padding-top: 2px;
+  color: #4a4a4a;
+  font: 700 30px/1.22 Barlow, sans-serif;
+}
+.steps-grid p {
+  margin: 3px 0 0;
+  color: #555;
+  font: 400 21px/1.24 Barlow, sans-serif;
+}
+.steps .cta-stack {
+  display: grid;
+  width: 1108px;
+  max-width: calc(100vw - 172px);
+  margin: 22px 0 0 50%;
+  transform: translateX(-50%);
+}
+.steps .cta-stack a {
+  min-height: 57px;
+  padding: 0 20px;
+  font-size: 16px;
+}
+.steps .cta-stack strong { font-size: 20px; }
+.site-footer {
+  height: auto;
+  min-height: 101px;
+  flex-direction: column;
+  gap: 9px;
+  padding: 22px 20px;
+  text-align: center;
+}
+.site-footer address { font-style: normal; }
+.site-footer a { color: inherit; text-decoration: none; }
+.lead-modal { position: fixed; z-index: 1000; inset: 0; display: none; align-items: center; justify-content: center; padding: 24px; }
+.lead-modal.is-open { display: flex; }
+.lead-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.72); }
+.lead-modal__dialog { position: relative; z-index: 1; width: min(710px, 100%); padding: 50px 42px 40px; border: 10px solid #e9f1f8; background: #fff; box-shadow: 0 14px 40px rgba(0,0,0,.36); }
+.lead-modal__dialog header { margin: 0 0 26px; text-align: center; }
+.lead-modal__dialog h2 { margin: 0 0 3px; color: #111; font: 700 36px/1.05 Oswald, sans-serif; }
+.lead-modal__dialog header p { margin: 0; color: #111; font: 500 24px/1.1 Oswald, sans-serif; }
+.lead-modal__close { position: absolute; top: -17px; right: -17px; display: grid; width: 32px; height: 32px; place-items: center; padding: 0 0 3px; border: 3px solid #fff; border-radius: 50%; background: #222; box-shadow: 0 1px 4px rgba(0,0,0,.45); color: #fff; cursor: pointer; font: 700 25px/1 Arial, sans-serif; }
+#consultation-form { display: grid; gap: 18px; }
+#consultation-form label { display: grid; gap: 8px; color: #222; font: 500 16px/1.2 Barlow, sans-serif; }
+#consultation-form input { width: 100%; height: 46px; border: 1px solid #a7a7a7; border-radius: 4px; background: #fff; color: #222; font: 400 16px/1.2 Barlow, sans-serif; padding: 0 14px; }
+#consultation-form button { height: 46px; border: 0; border-radius: 4px; background: #c4a26a; color: #fff; cursor: pointer; font: 500 17px/1 Barlow, sans-serif; }
+#consultation-form button:hover, #consultation-form button:focus-visible { background: #b58e50; }
+.form-note { margin: -5px 0 0; color: #666; font: 400 13px/1.3 Barlow, sans-serif; text-align: center; }
+.form-status { min-height: 18px; margin: -8px 0 0; color: #333; font: 500 14px/1.3 Barlow, sans-serif; text-align: center; }
+body.modal-open { overflow: hidden; }
+@media (min-width: 901px) and (max-width: 1100px) {
+  .steps h2 {
+    font-size: 31px;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 900px) {
+  .steps { text-align: left; }
+  .steps h2 { margin-left: 0; }
+  .steps-grid article { grid-template-columns: 1fr; }
+  .steps-grid article img { margin-inline: auto; }
+  .what { height: auto; padding: 58px 0; }
+  .what-detail { grid-template-columns: 1fr; }
+  .what-detail img { margin-top: 0; }
+  .before-grid img,
+  .gallery img { aspect-ratio: auto; }
+  .benefits-heading,
+  .benefits-layout { width: calc(100% - 40px); }
+  .benefits-layout { grid-template-columns: 1fr; }
+  .benefits-layout > img { width: 100%; height: auto; }
+  .benefits-layout > div { width: auto; }
+  .hero .cta-stack,
+  .gallery-cta,
+  .benefits-cta,
+  .steps .cta-stack {
+    width: auto;
+    max-width: none;
+    margin-left: 0;
+    transform: none;
+  }
+  .lead-modal { padding: 14px; align-items: flex-start; overflow-y: auto; }
+  .lead-modal__dialog { margin: 20px 0; padding: 42px 22px 28px; border-width: 7px; }
+  .lead-modal__dialog h2 { font-size: 30px; }
+  .lead-modal__dialog header p { font-size: 20px; }
+}
+
+/* Match the gallery consultation CTA to the mobile photo column. */
+@media (max-width: 900px) {
+  .gallery-cta { width: calc(100% - 40px); margin-right: auto; margin-left: auto; }
+  .monique .split img { order: -1; }
+}
+
+/* Keep the two intended hero headline lines within narrow phone screens. */
+@media (max-width: 600px) {
+  .hero h1 { font-size: 6.6vw; line-height: 1.15; letter-spacing: 0; }
+  .hero-sub { font-size: min(5.1vw, 22px); }
+}
+
+/* Let the hero end shortly after its consultation CTA at every breakpoint. */
+.hero { height: auto; min-height: 0; }
+.hero-inner { padding-bottom: 64px; }
+@media (max-width: 900px) { .hero-inner { padding-bottom: 48px; } }
+
+/* Keep the first gallery row inside its section with a consistent row gap. */
+.success { height: auto; padding-bottom: 24px; }
+
+/* Continue the photo grid into its CTA without oversized fixed section space. */
+.gallery-section { min-height: 0; }
+.gallery-cta { margin-top: 48px; }

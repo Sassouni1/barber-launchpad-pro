@@ -1,0 +1,7 @@
+@media (min-width: 901px) {
+  .what { height: 848px; }
+  .benefits { height: 1127px; }
+  .monique { height: 839px; }
+  .faq { height: 539px; overflow: hidden; }
+  .faq details[open] p { display: none; }
+}
