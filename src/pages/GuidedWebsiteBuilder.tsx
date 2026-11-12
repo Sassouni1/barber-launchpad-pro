@@ -13,7 +13,7 @@ import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { emptyGuidedAnswers, guidedTemplates, guidedWebsitePages, instagramUrl, normalizedWebUrl, type GuidedTemplate, type GuidedWebsiteAnswers } from '@/lib/guidedWebsite';
 import { formatServiceCity } from '@/lib/formatServiceCity';
-import { canAccessMyWebsite } from '@/lib/myWebsiteAccess';
+import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
 
 const stages = ['Choose a look', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
@@ -207,7 +207,7 @@ export default function GuidedWebsiteBuilder() {
     finally { setBusy(''); }
   };
 
-  if (!canAccessMyWebsite(user?.id)) return <DashboardLayout><div className="mx-auto max-w-xl p-6"><h1 className="font-serif text-3xl">My Website is unavailable</h1></div></DashboardLayout>;
+  if (!canAccessMyWebsite(user?.id) && !(secondMode && canAccessSecondWebsite(user?.email, isAdmin))) return <DashboardLayout><div className="mx-auto max-w-xl p-6"><h1 className="font-serif text-3xl">My Website is unavailable</h1></div></DashboardLayout>;
   if (loadingWebsite || loadingEntitlement || loadingProfile || loadingBusinessSetup || !hydrated) return <DashboardLayout><div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div></DashboardLayout>;
   if (!previewOnly && (entitlement || (website && !isGuided(website.template_key)))) return <DashboardLayout><div className="mx-auto max-w-xl p-6"><h1 className="font-serif text-3xl">Your website is already set up</h1><p className="mt-3 text-muted-foreground">Your existing website and editor are unchanged.</p>{entitlement ? <a className="mt-5 inline-block text-primary underline" href="/website">Open your Website Editor</a> : website?.live_url ? <a className="mt-5 inline-block text-primary underline" href={website.live_url} target="_blank" rel="noreferrer">View your website</a> : null}</div></DashboardLayout>;
 

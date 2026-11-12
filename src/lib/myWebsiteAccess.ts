@@ -6,3 +6,6 @@ const MY_WEBSITE_MEMBER_IDS = new Set([
 
 export const canAccessMyWebsite = (userId: string | undefined) =>
   !!userId && MY_WEBSITE_MEMBER_IDS.has(userId);
+
+export const canAccessSecondWebsite = (email: string | undefined, isAdmin: boolean) =>
+  isAdmin && email?.trim().toLowerCase() === 'chris@invasiondigitalmedia.com';
