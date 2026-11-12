@@ -1,5 +1,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from "../_shared/cors.ts";
+import {
+  checkPageAdAccess,
+  createGraphClient,
+  grantPageAdAccess,
+  isFacebookId,
+  type AccessOutcome,
+} from "./pageAdAccess.ts";
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
 // Request access to business-managed Pages alongside ordinary Pages.
@@ -11,8 +18,13 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-type Action = 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage' | 'skipInstagram';
-const ACTIONS: Action[] = ['getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage', 'skipInstagram'];
+type Action =
+  | 'getConnectUrl' | 'completeConnection' | 'listPages' | 'selectPage' | 'syncPage' | 'skipInstagram'
+  | 'grantPageAdAccess' | 'checkPageAdAccess';
+const ACTIONS: Action[] = [
+  'getConnectUrl', 'completeConnection', 'listPages', 'selectPage', 'syncPage', 'skipInstagram',
+  'grantPageAdAccess', 'checkPageAdAccess',
+];
 
 
 Deno.serve(async (req) => {
@@ -57,6 +69,8 @@ Deno.serve(async (req) => {
       name: string;
       access_token?: string;
       instagram_business_account?: { id: string };
+      // The member's own tasks on this Page, e.g. MANAGE, ADVERTISE.
+      tasks?: string[];
     };
 
     const fetchPages = async (userToken: string): Promise<FacebookPage[]> => {
@@ -64,7 +78,7 @@ Deno.serve(async (req) => {
       let after: string | undefined;
       for (let pageNumber = 0; pageNumber < 10; pageNumber++) {
         const url = new URL(`${GRAPH}/me/accounts`);
-        url.searchParams.set('fields', 'id,name,access_token,instagram_business_account{id}');
+        url.searchParams.set('fields', 'id,name,access_token,tasks,instagram_business_account{id}');
         url.searchParams.set('limit', '100');
         if (after) url.searchParams.set('after', after);
         const res = await fetch(url, { headers: { Authorization: `Bearer ${userToken}` } });
@@ -182,7 +196,7 @@ Deno.serve(async (req) => {
 
     const { data: stored } = await admin
       .from('ad_social_tokens')
-      .select('user_access_token')
+      .select('user_access_token, page_access_token, facebook_page_id')
       .eq('customer_id', customerId)
       .maybeSingle();
 
@@ -256,11 +270,94 @@ Deno.serve(async (req) => {
     }
 
 
+    if (action === 'grantPageAdAccess' || action === 'checkPageAdAccess') {
+      // Advertising access is always for this member's own selected Page; no Page ID is accepted from the browser.
+      const { data: connection, error: connectionReadError } = await admin
+        .from('ad_social_connections')
+        .select('facebook_page_id, connection_status')
+        .eq('customer_id', customerId)
+        .maybeSingle();
+      if (connectionReadError) return json({ error: 'Could not load your Facebook connection. Please try again.' }, 500);
+      const selectedPageId = connection?.facebook_page_id;
+      if (connection?.connection_status !== 'connected' || !isFacebookId(selectedPageId)) {
+        return json({ error: 'Choose your Facebook Page first.' }, 400);
+      }
+
+      const checkedAt = new Date().toISOString();
+      const respond = async (outcome: AccessOutcome) => {
+        // Scoped to the same selected Page, so a Page switch mid-request cannot inherit this result.
+        const { data: saved, error: saveError } = await admin
+          .from('ad_social_connections')
+          .update({
+            page_ad_access_status: outcome.status,
+            page_ad_access_page_id: selectedPageId,
+            page_ad_access_checked_at: checkedAt,
+            page_ad_access_error: outcome.message,
+          })
+          .eq('customer_id', customerId)
+          .eq('facebook_page_id', selectedPageId)
+          .select('customer_id');
+        if (saveError || !Array.isArray(saved) || saved.length !== 1) {
+          return json({ error: 'Could not save the advertising access result. Please try again.' }, 500);
+        }
+        if (outcome.metaError) {
+          console.warn('page_ad_access_meta_error', { action, code: outcome.metaError.code, message: outcome.metaError.message });
+        }
+        return json({
+          ok: true,
+          access: {
+            status: outcome.status,
+            message: outcome.message,
+            checkedAt,
+            requested: outcome.requested,
+            metaError: outcome.metaError ?? null,
+          },
+        });
+      };
+
+      const selected = pages.find((p) => p.id === selectedPageId);
+      if (!selected) {
+        return respond({
+          status: 'error',
+          message: 'This Page is no longer on your Facebook account. Reconnect Facebook and choose your Page again.',
+          requested: false,
+        });
+      }
+      if (Array.isArray(selected.tasks) && !selected.tasks.includes('MANAGE')) {
+        return respond({
+          status: 'error',
+          message: "You need full control of this Page on Facebook to give Barber Launch access. Ask the Page's admin to connect it, or get full control and try again.",
+          requested: false,
+        });
+      }
+      if (!stored.page_access_token || stored.facebook_page_id !== selectedPageId) {
+        return respond({
+          status: 'error',
+          message: 'Your Page access is missing. Reconnect Facebook, choose your Page again, then try again.',
+          requested: false,
+        });
+      }
+
+      const graph = createGraphClient(GRAPH);
+      const outcome = action === 'grantPageAdAccess'
+        ? await grantPageAdAccess(graph, selectedPageId, stored.page_access_token)
+        : await checkPageAdAccess(graph, selectedPageId, stored.page_access_token);
+      return respond(outcome);
+    }
+
     // selectPage — the Page must belong to this member's own Facebook account.
     const pageId = body?.facebookPageId;
     if (typeof pageId !== 'string' || !pageId) return json({ error: 'Missing facebookPageId' }, 400);
     const page = pages.find((p) => p.id === pageId);
     if (!page) return json({ error: 'That Page is not available on your Facebook account.' }, 403);
+    const { data: previous, error: previousError } = await admin
+      .from('ad_social_connections')
+      .select('facebook_page_id')
+      .eq('customer_id', customerId)
+      .maybeSingle();
+    if (previousError) return json({ error: 'Could not load your Facebook connection. Please try again.' }, 500);
+    // A different Page starts over: advertising access must be granted and confirmed for it again.
+    const pageChanged = previous?.facebook_page_id !== page.id;
     if (page.access_token) {
       const { error: tokenUpdateError } = await admin
         .from('ad_social_tokens')
@@ -277,7 +374,14 @@ Deno.serve(async (req) => {
         facebook_page_name: page.name,
         instagram_business_account_id: page.instagram_business_account?.id ?? null,
         ...(page.instagram_business_account?.id ? { instagram_skipped_at: null } : {}),
-
+        ...(pageChanged
+          ? {
+            page_ad_access_status: 'unknown',
+            page_ad_access_page_id: null,
+            page_ad_access_checked_at: null,
+            page_ad_access_error: null,
+          }
+          : {}),
         connection_status: 'connected',
         connected_at: new Date().toISOString(),
         last_synced_at: new Date().toISOString(),
