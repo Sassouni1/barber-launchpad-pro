@@ -45,15 +45,15 @@ export default function GuidedWebsiteBuilder() {
     refetchInterval: 10_000,
     queryFn: async () => {
       const { data, error } = await supabase.from('member_onboarding_profiles')
-        .select('service_city,work_location_city,work_location_state,business_owner_type,cuts_at_owned_business,workplace_type,business_setup_completed_at,business_setup_draft')
+        .select('service_city,work_location_city,work_location_state,business_name,business_owner_type,professional_role,cuts_at_owned_business,workplace_type,business_setup_completed_at,business_setup_draft,business_setup_draft_updated_at')
         .eq('user_id', user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
   });
-  const dashboardUsesWorkAddress = businessSetup?.business_owner_type === 'barbershop' || businessSetup?.business_owner_type === 'salon'
-    ? businessSetup.cuts_at_owned_business === true
-    : ['barbershop', 'salon', 'suite'].includes(businessSetup?.workplace_type || '');
+  const dashboardUsesWorkAddress = businessSetup?.business_owner_type === 'barbershop' ||
+    businessSetup?.business_owner_type === 'salon' ||
+    ['barbershop', 'salon', 'suite'].includes(businessSetup?.workplace_type || '');
   const dashboardCity = dashboardUsesWorkAddress
       ? businessSetup.work_location_city && businessSetup.work_location_state
         ? formatServiceCity(`${businessSetup.work_location_city}, ${businessSetup.work_location_state}`)
@@ -62,7 +62,11 @@ export default function GuidedWebsiteBuilder() {
         ? formatServiceCity(businessSetup?.service_city || '')
         : '';
   const dashboardLocationKnown = !!dashboardCity;
-  const dashboardLocationBeingEdited = !!businessSetup?.business_setup_draft;
+  const dashboardLocationBeingEdited = !!businessSetup?.business_setup_draft_updated_at &&
+    (!businessSetup.business_setup_completed_at ||
+      Date.parse(businessSetup.business_setup_draft_updated_at) > Date.parse(businessSetup.business_setup_completed_at));
+  const dashboardNameKnown = !!businessSetup && !!(businessSetup.business_owner_type || businessSetup.professional_role || businessSetup.business_setup_draft || businessSetup.business_setup_completed_at);
+  const dashboardBrandName = businessSetup?.business_name?.trim() || profile?.full_name?.trim() || '';
   const [answers, setAnswers] = useState<GuidedWebsiteAnswers>(emptyGuidedAnswers);
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(0);
@@ -87,6 +91,7 @@ export default function GuidedWebsiteBuilder() {
       try {
         const saved = JSON.parse(localStorage.getItem(`guided-second-site:${user.id}`) || 'null') as Partial<GuidedWebsiteAnswers> | null;
         setAnswers({ ...emptyGuidedAnswers, businessName: profile?.business_name || '', ownerName: profile?.full_name || '', phone: profile?.phone || '', ...saved,
+          ...(dashboardNameKnown ? { businessName: dashboardBrandName } : {}),
           city: dashboardLocationKnown ? dashboardCity : dashboardLocationBeingEdited ? '' : saved?.city || [profile?.business_city, profile?.business_state].filter(Boolean).join(', ') });
       } catch { setAnswers(emptyGuidedAnswers); }
       setHydrated(true);
@@ -97,12 +102,16 @@ export default function GuidedWebsiteBuilder() {
     const restored = saved ? readAnswers(user.id) : { ...emptyGuidedAnswers, ...remote };
     setAnswers({ ...restored,
       ownerName: restored.ownerName || profile?.full_name || '',
-      businessName: restored.businessName || profile?.business_name || '',
+      businessName: dashboardNameKnown ? dashboardBrandName : restored.businessName || profile?.business_name || '',
       city: dashboardLocationKnown ? dashboardCity : dashboardLocationBeingEdited ? '' : restored.city || [profile?.business_city, profile?.business_state].filter(Boolean).join(', '),
       phone: restored.phone || profile?.phone || '',
     });
     setHydrated(true);
-  }, [user, loadingWebsite, loadingProfile, loadingBusinessSetup, hydrated, website, profile, businessSetup, demoMode, secondMode, dashboardLocationKnown, dashboardLocationBeingEdited, dashboardCity]);
+  }, [user, loadingWebsite, loadingProfile, loadingBusinessSetup, hydrated, website, profile, businessSetup, demoMode, secondMode, dashboardLocationKnown, dashboardLocationBeingEdited, dashboardCity, dashboardNameKnown, dashboardBrandName]);
+  useEffect(() => {
+    if (hydrated && !demoMode && dashboardNameKnown)
+      setAnswers(current => current.businessName === dashboardBrandName ? current : { ...current, businessName: dashboardBrandName });
+  }, [dashboardBrandName, dashboardNameKnown, hydrated, demoMode]);
   useEffect(() => {
     if (hydrated && !demoMode && (dashboardLocationKnown || dashboardLocationBeingEdited))
       setAnswers(current => current.city === dashboardCity ? current : { ...current, city: dashboardCity });
