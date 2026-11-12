@@ -208,11 +208,11 @@ export function BusinessSetupCard() {
           workCity: data?.work_location_city || '', workState: data?.work_location_state || '',
           workPostalCode: data?.work_location_postal_code || '',
           workStatus: statusFromProfile(owner, (data?.professional_role || '') as ProfessionalRole),
-          businessNameChoice: data?.business_name ? 'yes' : data?.business_setup_completed_at ? 'no' : '', businessName: data?.business_name || '',
           cutsAtOwnedBusiness: data?.cuts_at_owned_business == null ? '' : data.cuts_at_owned_business ? 'yes' : 'no',
           teamSize: (data?.other_professionals_count || '') as TeamSize,
           workplaceType: data?.currently_cutting === false && owner === 'none' ? 'not_cutting' : (data?.workplace_type || '') as WorkplaceType,
           workplaceOtherDescription: savedOtherDescription,
+          businessNameChoice: data?.business_name ? 'yes' : data?.business_setup_completed_at ? 'no' : '', businessName: data?.business_name || '',
           website: (data?.website_status || '') as WebsiteStatus, websiteUrl: data?.website_url || '',
           booking: (data?.booking_app_status || '') as Answer,
           bookingChoice: (data?.booking_link_status || '') as BookingChoice,
@@ -398,6 +398,15 @@ export function BusinessSetupCard() {
       setBookingSearchLocation(bookingLookupCity);
       setBookingCandidates(candidates);
       setBookingUrl('');
+      // Keep the result through an immediate refresh, even before the debounced account save finishes.
+      try {
+        const draft: SetupDraft = { city, workStreet, workCity, workState, workPostalCode, workStatus,
+          cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName,
+          website, websiteUrl, booking, bookingChoice, bookingUrl: '', bookingPlatform,
+          bookingCandidates: candidates, bookingSearchKey: bookingLookupKey, bookingSearchAttempted: true,
+          bookingSearchLocation: bookingLookupCity };
+        localStorage.setItem(localDraftKey(user.id), JSON.stringify({ draft, updatedAt: new Date().toISOString() }));
+      } catch { /* The account autosave still runs. */ }
       setBookingSearchMessage(candidates.length ? 'Choose your booking page to save it.' : 'No reliable match found. You can leave a request for our team below.');
     } catch (error) {
       setBookingSearchError(error instanceof Error ? error.message : 'The search could not finish. Please try again.');
