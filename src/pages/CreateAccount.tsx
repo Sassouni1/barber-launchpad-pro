@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { Checkbox } from '@/components/ui/checkbox';
+import { resolvePostAuthPath } from '@/lib/metaReviewerLanding';
 
 export default function CreateAccount() {
   const [loading, setLoading] = useState(false);
@@ -21,17 +22,24 @@ export default function CreateAccount() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromRef = useRef((location.state as { from?: Parameters<typeof resolvePostAuthPath>[1] } | null)?.from);
 
   useEffect(() => {
+    const goAfterAuth = (user: Parameters<typeof resolvePostAuthPath>[0]) => {
+      const { path, state } = resolvePostAuthPath(user, fromRef.current);
+      navigate(path, { replace: true, state });
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        navigate('/dashboard', { replace: true });
+        goAfterAuth(session.user);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        navigate('/dashboard', { replace: true });
+        goAfterAuth(session.user);
       }
     });
 

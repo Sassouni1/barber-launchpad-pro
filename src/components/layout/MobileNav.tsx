@@ -33,6 +33,7 @@ import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
 import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
 import { useMemberWebsite } from '@/hooks/useMemberWebsite';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
+import { isMetaReviewer, markReviewerMenuShown, shouldAutoOpenReviewerMenu } from '@/lib/metaReviewerLanding';
 import {
   Dialog,
   DialogContent,
@@ -103,7 +104,8 @@ function NavRow({ to, icon: Icon, label, onClick, dataTour }: { to: string; icon
 export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin: userIsAdmin, isManufacturer } = useAuth();
+  const { user, isAdmin: userIsAdmin, isManufacturer } = useAuth();
+  const reviewerOnAds = isMetaReviewer(user) && location.pathname === '/ads';
   const isNewAccount = useIsNewAccount();
   const { data: supportUnreadCount = 0 } = useSupportUnreadCount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
@@ -137,6 +139,22 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const [bonusEarningsOpen, setBonusEarningsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const { data: checklistLists = [] } = useChecklistLists();
+
+  // Meta reviewer only: keep Growth Tools expanded on /ads, and open the menu
+  // once on the first narrow-screen landing after sign-in. Dismissal is normal.
+  useEffect(() => {
+    if (reviewerOnAds) setMarketingOpen(true);
+  }, [reviewerOnAds]);
+
+  useEffect(() => {
+    const storage = typeof window !== 'undefined' ? window.sessionStorage : null;
+    if (!user || !shouldAutoOpenReviewerMenu({ user, pathname: location.pathname, state: location.state, storage })) return;
+    // Marked shown on first landing (any width) so refresh/back never reopens it.
+    markReviewerMenuShown(user.id, storage);
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    setMarketingOpen(true);
+    setMenuOpen(true);
+  }, [user, location.pathname, location.state]);
 
   const handleSignOut = async () => {
     try {
@@ -406,9 +424,12 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">My Links</span>
                         </NavLink>
-                        <NavLink to="/ads" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
+                        <NavLink to="/ads" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50', isActive && reviewerOnAds && 'relative bg-primary/20 border border-primary/70 gold-glow-subtle font-semibold')}>
                           <Megaphone className="w-4 h-4" />
                           <span className="font-medium">Ads</span>
+                          {reviewerOnAds && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 gold-gradient rounded-r-full" />
+                          )}
                         </NavLink>
                         <NavLink to="/business-card" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <CreditCard className="w-4 h-4" />
