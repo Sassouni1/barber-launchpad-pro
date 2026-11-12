@@ -171,7 +171,6 @@ function SubNavItem({ to, icon: Icon, label, emphasize = false }: { to: string; 
           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent',
         isEmphasized && 'bg-primary/20 border-primary/70 gold-glow-subtle'
       )}
-      aria-current={isActive ? 'page' : undefined}
     >
       <Icon className={cn('w-4 h-4 flex-shrink-0 transition-all', isActive && 'text-primary')} />
       <span className={cn('font-medium text-sm', isEmphasized && 'font-semibold')}>{label}</span>
