@@ -4,7 +4,9 @@ import {
   checkPageAdAccess,
   createGraphClient,
   grantPageAdAccess,
+  isOwnerFieldUnreadable,
   listsBusiness,
+  OWNED_UNVERIFIED_MESSAGE,
   PAGE_AD_RETRY_AFTER_MS,
   retryPageAdAccess,
   type AgencyNode,
@@ -145,20 +147,20 @@ Deno.test("listsBusiness only matches the exact Barber Launch business id", () =
   assertEquals(listsBusiness([{ id: "999" }, { name: "Barber Launch" }]), false);
 });
 
-Deno.test("HTTP adapter reads only supported fields: agencies id,name and Page owner_business", async () => {
+Deno.test("HTTP adapter reads only supported fields: agencies id,name and Page business", async () => {
   const urls: string[] = [];
   const fetchStub = async (input: string | URL) => {
     urls.push(String(input));
     const url = new URL(String(input));
     if (url.pathname.endsWith("/agencies")) return new Response(JSON.stringify({ data: [{ id: BARBER_LAUNCH_BUSINESS_ID, name: "BL" }] }), { status: 200 });
-    return new Response(JSON.stringify({ id: PAGE, owner_business: { id: BARBER_LAUNCH_BUSINESS_ID, name: "BL" } }), { status: 200 });
+    return new Response(JSON.stringify({ id: PAGE, business: { id: BARBER_LAUNCH_BUSINESS_ID, name: "BL" } }), { status: 200 });
   };
   const client = createGraphClient("https://graph.facebook.com/v19.0", fetchStub);
   assertEquals(await client.listAgencies(PAGE, TOKEN), { ok: true, data: [{ id: BARBER_LAUNCH_BUSINESS_ID, name: "BL" }] });
   assertEquals(await client.getPageOwnerBusinessId(PAGE, TOKEN), { ok: true, data: BARBER_LAUNCH_BUSINESS_ID });
   assertEquals(new URL(urls[0]).searchParams.get("fields"), "id,name");
-  assertEquals(new URL(urls[1]).searchParams.get("fields"), "owner_business");
-  assertEquals(urls.some((u) => u.includes("access_status") || u.includes("permitted_tasks")), false);
+  assertEquals(new URL(urls[1]).searchParams.get("fields"), "business");
+  assertEquals(urls.some((u) => u.includes("owner_business") || u.includes("access_status") || u.includes("permitted_tasks")), false);
 });
 
 Deno.test("HTTP adapter fails closed when the partner list is longer than it reads", async () => {
@@ -243,4 +245,77 @@ Deno.test("retry with no accepted request on record sends nothing", async () => 
     assertEquals(out.status, "unknown");
     assertEquals(calls.adds.length, 0);
   }
+});
+
+// Regression: live Graph rejected fields=owner_business on Chris's Barber Launch Page (2026-11-12).
+const OWNER_FIELD_100: GraphResult<string | null> = {
+  ok: false,
+  status: 400,
+  error: { code: 100, message: "(#100) Tried accessing nonexisting field (owner_business)" },
+};
+
+Deno.test("(#100) nonexisting owner field is 'unreadable'; token and rate errors are not", () => {
+  assertEquals(isOwnerFieldUnreadable(OWNER_FIELD_100.ok ? {} : OWNER_FIELD_100.error), true);
+  assertEquals(isOwnerFieldUnreadable({ code: 190, message: "expired" }), false);
+  assertEquals(isOwnerFieldUnreadable({ code: 4, message: "rate" }), false);
+  assertEquals(isOwnerFieldUnreadable({ code: 100, message: "Invalid parameter" }), false);
+});
+
+Deno.test("(#100) owner field + complete agency list without Barber Launch: one ADVERTISE POST, granted only once listed", async () => {
+  const { graph, calls } = fakeGraph({ agencies: [none, listed], owner: OWNER_FIELD_100 });
+  const out = await grantPageAdAccess(graph, PAGE, TOKEN, false);
+  assertEquals(calls.adds, [{ pageId: PAGE, businessId: BARBER_LAUNCH_BUSINESS_ID, tasks: ["ADVERTISE"] }]);
+  assertEquals(out.status, "granted");
+  assertEquals(out.verifiedVia, "agency");
+  assertEquals(out.requested, true);
+});
+
+Deno.test("(#100) owner field never grants: not listed after POST stays pending", async () => {
+  const { graph } = fakeGraph({ agencies: [none, none], owner: OWNER_FIELD_100 });
+  const out = await grantPageAdAccess(graph, PAGE, TOKEN, false);
+  assertEquals(out.status, "pending");
+  assertEquals(out.verifiedVia, undefined);
+});
+
+Deno.test("(#100) owner field + failed agency read sends nothing", async () => {
+  const { graph, calls } = fakeGraph({ agencies: [readFails], owner: OWNER_FIELD_100 });
+  const out = await grantPageAdAccess(graph, PAGE, TOKEN, false);
+  assertEquals(out.status, "error");
+  assertEquals(calls.adds.length, 0);
+});
+
+Deno.test("(#100) owner field on check is read-only and not granted", async () => {
+  const { graph, calls } = fakeGraph({ agencies: [none], owner: OWNER_FIELD_100 });
+  const out = await checkPageAdAccess(graph, PAGE, TOKEN, false);
+  assertEquals(out.status, "unknown");
+  assertEquals(calls.adds.length, 0);
+});
+
+Deno.test("already-owned duplicate (3946) with unreadable owner is unverified, never granted", async () => {
+  const { graph } = fakeGraph({
+    agencies: [none, none],
+    owner: OWNER_FIELD_100,
+    add: { ok: false, status: 400, error: { code: 3946, message: "already belongs" } },
+  });
+  const out = await grantPageAdAccess(graph, PAGE, TOKEN, false);
+  assertEquals(out.status, "unverified");
+  assertEquals(out.message, OWNED_UNVERIFIED_MESSAGE);
+  assertEquals(out.requested, false);
+});
+
+Deno.test("Page business read showing Barber Launch is granted via owner with no POST (live shape)", async () => {
+  const fetchStub = async (input: string | URL, init?: RequestInit) => {
+    const url = new URL(String(input));
+    if (init?.method === "POST") throw new Error("must not POST");
+    if (url.pathname.endsWith("/agencies")) return new Response(JSON.stringify({ data: [{ id: "111", name: "Other" }] }), { status: 200 });
+    if (url.searchParams.get("fields") === "business") {
+      return new Response(JSON.stringify({ id: PAGE, business: { id: BARBER_LAUNCH_BUSINESS_ID, name: "Invasion Digital Media" } }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ error: { code: 100, message: "(#100) Tried accessing nonexisting field (owner_business)" } }), { status: 400 });
+  };
+  const graph = createGraphClient("https://graph.facebook.com/v19.0", fetchStub);
+  const out = await grantPageAdAccess(graph, PAGE, TOKEN, false);
+  assertEquals(out.status, "granted");
+  assertEquals(out.verifiedVia, "owner");
+  assertEquals(out.requested, false);
 });
