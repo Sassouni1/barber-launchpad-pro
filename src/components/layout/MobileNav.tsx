@@ -149,13 +149,12 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   useEffect(() => {
     const storage = typeof window !== 'undefined' ? window.sessionStorage : null;
     if (!user || !shouldAutoOpenReviewerMenu({ user, pathname: location.pathname, state: location.state, storage })) return;
+    // Marked shown on first landing (any width) so refresh/back never reopens it.
     markReviewerMenuShown(user.id, storage);
-    // Drop the one-time landing marker so back/refresh never reopens the menu.
-    navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null });
     if (!window.matchMedia('(max-width: 767px)').matches) return;
     setMarketingOpen(true);
     setMenuOpen(true);
-  }, [user, location.pathname, location.search, location.hash, location.state, navigate]);
+  }, [user, location.pathname, location.state]);
 
   const handleSignOut = async () => {
     try {
