@@ -76,7 +76,12 @@ export function PageAdAccessCard() {
       )}
 
       {access.status === 'pending' && (
-        <p className="text-sm text-foreground">{access.message ?? "Request sent. Meta hasn't confirmed it yet."}</p>
+        <p className="text-sm text-foreground">{access.message ?? "Request sent. Facebook hasn't confirmed it yet."}</p>
+      )}
+      {access.status === 'unverified' && (
+        <p className="text-sm text-foreground">
+          {access.message ?? "Facebook can't confirm that Barber Launch has advertising access to this Page yet."}
+        </p>
       )}
       {access.status === 'error' && (
         <p className="text-sm text-destructive" role="alert">
@@ -88,7 +93,7 @@ export function PageAdAccessCard() {
       <div className="flex flex-wrap items-center gap-2">
         {access.status === 'unknown' && grantButton('Give advertising access')}
         {access.status === 'error' && grantButton('Try again')}
-        {(access.status === 'pending' || access.status === 'granted') && checkButton}
+        {(access.status === 'pending' || access.status === 'unverified' || access.status === 'granted') && checkButton}
       </div>
       {checked && <p className="text-xs text-muted-foreground">{checked}</p>}
     </div>

@@ -1,13 +1,20 @@
 // Barber Launch advertising access to a member's selected Facebook Page.
-// Requests only the ADVERTISE Page task for the Barber Launch business, and marks
-// access "granted" only after a Meta read confirms it. A successful OAuth login or a
-// successful POST alone never counts as granted.
+// Requests only the ADVERTISE Page task for the Barber Launch business.
+//
+// What Meta can actually confirm (official Business SDK):
+// - GET /{page-id}?fields=owner_business returns the owning Business.
+// - GET /{page-id}/agencies returns Business objects (id, name). It does NOT return
+//   permitted tasks or a request status, so a listing alone never proves ADVERTISE.
+// - POST /{page-id}/agencies {business, permitted_tasks:['ADVERTISE']} returns success.
+// "granted" therefore means either Barber Launch owns the Page, or Meta accepted our
+// ADVERTISE-only request for this exact Page and the Page currently lists Barber Launch
+// as a partner. A partner listing we did not create is "unverified", never granted.
 
 export const BARBER_LAUNCH_BUSINESS_ID = '1832826473434326';
 /** The only Page task Barber Launch ever requests. */
 export const PAGE_AD_TASKS: readonly string[] = Object.freeze(['ADVERTISE']);
 
-export type PageAdAccessStatus = 'unknown' | 'pending' | 'granted' | 'error';
+export type PageAdAccessStatus = 'unknown' | 'pending' | 'unverified' | 'granted' | 'error';
 
 export type GraphError = {
   message?: string;
@@ -19,12 +26,8 @@ export type GraphError = {
 
 export type GraphResult<T> = { ok: true; data: T } | { ok: false; status: number; error: GraphError };
 
-export type AgencyNode = {
-  id?: string;
-  name?: string;
-  access_status?: string;
-  permitted_tasks?: string[];
-};
+/** GET /{page-id}/agencies returns Business objects; only id and name are requested. */
+export type AgencyNode = { id?: string; name?: string };
 
 export type PageAccessGraph = {
   listAgencies: (pageId: string, pageToken: string) => Promise<GraphResult<AgencyNode[]>>;
@@ -33,17 +36,22 @@ export type PageAccessGraph = {
 };
 
 export type VerifyOutcome =
-  | { state: 'granted'; via: 'agency' | 'owner' }
+  | { state: 'granted'; via: 'owner' | 'agency' }
+  /** Listed as a partner, but Meta doesn't show its tasks and we have no accepted ADVERTISE request on record. */
+  | { state: 'partner_unverified' }
+  /** Meta accepted our ADVERTISE request earlier, but the Page doesn't list Barber Launch yet. */
   | { state: 'pending' }
   | { state: 'missing' }
   | { state: 'error'; error: GraphError };
 
 export type AccessOutcome = {
   status: PageAdAccessStatus;
-  /** Plain-language explanation for the member; null when access is confirmed. */
+  /** Plain-language explanation for the member; null when access is confirmed or not requested yet. */
   message: string | null;
-  /** True only when this call sent a new access request to Meta. */
+  /** True only when Meta accepted a new ADVERTISE-only request in this call. */
   requested: boolean;
+  /** Which Meta evidence confirmed access; set only when status is "granted". */
+  verifiedVia?: 'owner' | 'agency';
   metaError?: { code: number | null; message: string | null };
 };
 
@@ -73,95 +81,113 @@ export function describeGraphError(error: GraphError): string {
   return `Facebook couldn't confirm advertising access for this Page.${metaSaid(error)}`;
 }
 
-const upper = (value: unknown) => (typeof value === 'string' ? value.trim().toUpperCase() : '');
-
-/** Reads Barber Launch's entry from GET /{page-id}/agencies. */
-export function classifyAgencies(
-  agencies: AgencyNode[],
-  businessId = BARBER_LAUNCH_BUSINESS_ID,
-): 'granted' | 'pending' | 'missing' {
-  const entry = agencies.find((agency) => agency?.id === businessId);
-  if (!entry) return 'missing';
-  const tasks = Array.isArray(entry.permitted_tasks) ? entry.permitted_tasks.map(upper) : [];
-  const status = upper(entry.access_status);
-  if (status === 'PENDING') return 'pending';
-  if (status === 'CONFIRMED' && tasks.includes('ADVERTISE')) return 'granted';
-  // Listed with ADVERTISE but no status from Meta: unconfirmed, never granted.
-  if (!status && tasks.includes('ADVERTISE')) return 'pending';
-  // Confirmed without ADVERTISE, or another status: Barber Launch may request ADVERTISE.
-  return 'missing';
+/** True when GET /{page-id}/agencies lists the Barber Launch business. Says nothing about tasks. */
+export function listsBusiness(agencies: AgencyNode[], businessId = BARBER_LAUNCH_BUSINESS_ID): boolean {
+  return agencies.some((agency) => agency?.id === businessId);
 }
 
-/** Read-only check of whether Barber Launch can advertise for this Page. */
-export async function verifyPageAdAccess(graph: PageAccessGraph, pageId: string, pageToken: string): Promise<VerifyOutcome> {
-  const agencies = await graph.listAgencies(pageId, pageToken);
-  if (!agencies.ok) return { state: 'error', error: agencies.error };
-  const fromAgencies = classifyAgencies(agencies.data);
-  if (fromAgencies === 'granted') return { state: 'granted', via: 'agency' };
-  if (fromAgencies === 'pending') return { state: 'pending' };
-  // A Page the Barber Launch business already owns is not listed as an agency.
+/**
+ * Read-only check. Ownership is read first, because a Page Barber Launch owns may not
+ * list Barber Launch as its own agency and that must not depend on the agency read.
+ * `priorAccepted` is true only when Meta accepted our ADVERTISE request for this Page earlier.
+ */
+export async function verifyPageAdAccess(
+  graph: PageAccessGraph,
+  pageId: string,
+  pageToken: string,
+  priorAccepted: boolean,
+): Promise<VerifyOutcome> {
   const owner = await graph.getPageOwnerBusinessId(pageId, pageToken);
   if (owner.ok && owner.data === BARBER_LAUNCH_BUSINESS_ID) return { state: 'granted', via: 'owner' };
-  return { state: 'missing' };
+
+  const agencies = await graph.listAgencies(pageId, pageToken);
+  if (!agencies.ok) return { state: 'error', error: agencies.error };
+  if (listsBusiness(agencies.data)) {
+    return priorAccepted ? { state: 'granted', via: 'agency' } : { state: 'partner_unverified' };
+  }
+  // Not listed. Without a working owner read we can't rule out ownership, so stay unverified.
+  if (!owner.ok) return { state: 'error', error: owner.error };
+  return priorAccepted ? { state: 'pending' } : { state: 'missing' };
 }
 
 const PENDING_MESSAGE =
-  "Request sent. Meta hasn't confirmed it yet. If Facebook asks you to approve Barber Launch, approve it, then press Check again.";
+  "Facebook accepted the request, but this Page doesn't show Barber Launch as a partner yet. Wait a minute, then press Check again.";
+
+export const PARTNER_UNVERIFIED_MESSAGE =
+  "Barber Launch is already a partner on this Page, but Facebook doesn't show which access it has, so we can't confirm advertising access. " +
+  'To fix it, remove Barber Launch from this Page\'s partners in Facebook settings, then press Check again and give access.';
 
 const metaErrorOf = (error: GraphError) => ({
   code: typeof error.code === 'number' ? error.code : null,
   message: typeof error.message === 'string' ? error.message : null,
 });
 
-/** Read-only check (no request is sent to Meta). */
-export async function checkPageAdAccess(graph: PageAccessGraph, pageId: string, pageToken: string): Promise<AccessOutcome> {
-  const current = await verifyPageAdAccess(graph, pageId, pageToken);
-  if (current.state === 'granted') return { status: 'granted', message: null, requested: false };
-  if (current.state === 'pending') return { status: 'pending', message: PENDING_MESSAGE, requested: false };
-  if (current.state === 'missing') {
-    return { status: 'unknown', message: "Barber Launch doesn't have advertising access to this Page yet.", requested: false };
+function fromVerify(current: VerifyOutcome, requested: boolean): AccessOutcome {
+  switch (current.state) {
+    case 'granted':
+      return { status: 'granted', message: null, requested, verifiedVia: current.via };
+    case 'partner_unverified':
+      return { status: 'unverified', message: PARTNER_UNVERIFIED_MESSAGE, requested };
+    case 'pending':
+      return { status: 'pending', message: PENDING_MESSAGE, requested };
+    case 'missing':
+      return { status: 'unknown', message: null, requested };
+    case 'error':
+      return { status: 'error', message: describeGraphError(current.error), requested, metaError: metaErrorOf(current.error) };
   }
-  return { status: 'error', message: describeGraphError(current.error), requested: false, metaError: metaErrorOf(current.error) };
+}
+
+/** Read-only check (no request is sent to Meta). */
+export async function checkPageAdAccess(
+  graph: PageAccessGraph,
+  pageId: string,
+  pageToken: string,
+  priorAccepted: boolean,
+): Promise<AccessOutcome> {
+  return fromVerify(await verifyPageAdAccess(graph, pageId, pageToken, priorAccepted), false);
 }
 
 /**
- * Idempotent grant: read first, request ADVERTISE only when Barber Launch has no
- * access or request yet, then read again. Only a confirmed read returns "granted".
+ * Member-initiated grant. Reads first and sends the ADVERTISE-only request only when
+ * Barber Launch neither owns nor is listed on the Page and both reads succeeded.
+ * An existing partner listing is never re-requested, so its tasks are never overwritten.
  */
-export async function grantPageAdAccess(graph: PageAccessGraph, pageId: string, pageToken: string): Promise<AccessOutcome> {
-  const before = await verifyPageAdAccess(graph, pageId, pageToken);
-  if (before.state === 'granted') return { status: 'granted', message: null, requested: false };
-  if (before.state === 'pending') return { status: 'pending', message: PENDING_MESSAGE, requested: false };
-  if (before.state === 'error') {
-    // Without a working read we cannot avoid duplicates or confirm anything, so send nothing.
-    return { status: 'error', message: describeGraphError(before.error), requested: false, metaError: metaErrorOf(before.error) };
-  }
+export async function grantPageAdAccess(
+  graph: PageAccessGraph,
+  pageId: string,
+  pageToken: string,
+  priorAccepted: boolean,
+): Promise<AccessOutcome> {
+  const before = await verifyPageAdAccess(graph, pageId, pageToken, priorAccepted);
+  // granted, partner_unverified, error: send nothing.
+  if (before.state !== 'missing' && before.state !== 'pending') return fromVerify(before, false);
 
   const added = await graph.addAgency(pageId, pageToken, BARBER_LAUNCH_BUSINESS_ID, PAGE_AD_TASKS);
-  let requested = false;
   if (!added.ok) {
     // 3989: already assigned to this agency. 3946: already belongs to this business.
-    const alreadyThere = added.error.code === 3989 || added.error.code === 3946;
-    if (!alreadyThere) {
-      return { status: 'error', message: describeGraphError(added.error), requested: false, metaError: metaErrorOf(added.error) };
+    // Neither says which tasks Barber Launch has, so only a fresh read can decide, without new acceptance.
+    if (added.error.code === 3989 || added.error.code === 3946) {
+      const after = await verifyPageAdAccess(graph, pageId, pageToken, priorAccepted);
+      if (after.state === 'missing') return { status: 'unverified', message: PARTNER_UNVERIFIED_MESSAGE, requested: false };
+      return fromVerify(after, false);
     }
-  } else if (added.data?.success !== true) {
+    return { status: 'error', message: describeGraphError(added.error), requested: false, metaError: metaErrorOf(added.error) };
+  }
+  if (added.data?.success !== true) {
     return { status: 'error', message: "Facebook didn't accept the advertising access request. Please try again.", requested: false };
-  } else {
-    requested = true;
   }
 
-  const after = await verifyPageAdAccess(graph, pageId, pageToken);
-  if (after.state === 'granted') return { status: 'granted', message: null, requested };
+  // Meta accepted an ADVERTISE-only request for this Page; confirm the partner listing exists.
+  const after = await verifyPageAdAccess(graph, pageId, pageToken, true);
   if (after.state === 'error') {
     return {
       status: 'pending',
-      message: `Request sent, but we couldn't confirm it with Facebook yet. ${describeGraphError(after.error)}`,
-      requested,
+      message: `Facebook accepted the request, but we couldn't confirm it yet. ${describeGraphError(after.error)}`,
+      requested: true,
       metaError: metaErrorOf(after.error),
     };
   }
-  return { status: 'pending', message: PENDING_MESSAGE, requested };
+  return fromVerify(after, true);
 }
 
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
@@ -184,7 +210,8 @@ export function createGraphClient(graphBase: string, fetchImpl: FetchLike = fetc
       let after: string | undefined;
       for (let i = 0; i < 5; i++) {
         const url = new URL(`${graphBase}/${pageId}/agencies`);
-        url.searchParams.set('fields', 'id,name,access_status,permitted_tasks');
+        // Business objects only define id/name here; tasks and request status are not returned.
+        url.searchParams.set('fields', 'id,name');
         url.searchParams.set('limit', '100');
         if (after) url.searchParams.set('after', after);
         const result = await readGraph(await fetchImpl(url, { headers: auth(pageToken) }), (p) => p);
@@ -197,14 +224,16 @@ export function createGraphClient(graphBase: string, fetchImpl: FetchLike = fetc
         if (!paging?.next || typeof nextAfter !== 'string' || nextAfter === after) return { ok: true, data: all };
         after = nextAfter;
       }
-      return { ok: true, data: all };
+      // Never decide from a partial list.
+      return { ok: false, status: 502, error: { message: 'Facebook returned too many partners to check.' } };
     },
     async getPageOwnerBusinessId(pageId, pageToken) {
       const url = new URL(`${graphBase}/${pageId}`);
-      url.searchParams.set('fields', 'business');
+      // owner_business is the Page's owning Business (PageFields in the official SDK).
+      url.searchParams.set('fields', 'owner_business');
       return readGraph(await fetchImpl(url, { headers: auth(pageToken) }), (p) => {
-        const business = p.business as { id?: unknown } | undefined;
-        return typeof business?.id === 'string' ? business.id : null;
+        const owner = p.owner_business as { id?: unknown } | undefined;
+        return typeof owner?.id === 'string' ? owner.id : null;
       });
     },
     async addAgency(pageId, pageToken, businessId, tasks) {

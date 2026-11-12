@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
       // Advertising access is always for this member's own selected Page; no Page ID is accepted from the browser.
       const { data: connection, error: connectionReadError } = await admin
         .from('ad_social_connections')
-        .select('facebook_page_id, connection_status')
+        .select('facebook_page_id, connection_status, page_ad_access_page_id, page_ad_access_requested_at')
         .eq('customer_id', customerId)
         .maybeSingle();
       if (connectionReadError) return json({ error: 'Could not load your Facebook connection. Please try again.' }, 500);
@@ -282,6 +282,8 @@ Deno.serve(async (req) => {
       if (connection?.connection_status !== 'connected' || !isFacebookId(selectedPageId)) {
         return json({ error: 'Choose your Facebook Page first.' }, 400);
       }
+      // Meta accepted our ADVERTISE-only request for this exact Page on an earlier call.
+      const priorAccepted = connection.page_ad_access_page_id === selectedPageId && !!connection.page_ad_access_requested_at;
 
       const checkedAt = new Date().toISOString();
       const respond = async (outcome: AccessOutcome) => {
@@ -293,6 +295,7 @@ Deno.serve(async (req) => {
             page_ad_access_page_id: selectedPageId,
             page_ad_access_checked_at: checkedAt,
             page_ad_access_error: outcome.message,
+            ...(outcome.requested ? { page_ad_access_requested_at: checkedAt } : {}),
           })
           .eq('customer_id', customerId)
           .eq('facebook_page_id', selectedPageId)
@@ -310,6 +313,7 @@ Deno.serve(async (req) => {
             message: outcome.message,
             checkedAt,
             requested: outcome.requested,
+            verifiedVia: outcome.verifiedVia ?? null,
             metaError: outcome.metaError ?? null,
           },
         });
@@ -340,8 +344,8 @@ Deno.serve(async (req) => {
 
       const graph = createGraphClient(GRAPH);
       const outcome = action === 'grantPageAdAccess'
-        ? await grantPageAdAccess(graph, selectedPageId, stored.page_access_token)
-        : await checkPageAdAccess(graph, selectedPageId, stored.page_access_token);
+        ? await grantPageAdAccess(graph, selectedPageId, stored.page_access_token, priorAccepted)
+        : await checkPageAdAccess(graph, selectedPageId, stored.page_access_token, priorAccepted);
       return respond(outcome);
     }
 
@@ -380,6 +384,7 @@ Deno.serve(async (req) => {
             page_ad_access_page_id: null,
             page_ad_access_checked_at: null,
             page_ad_access_error: null,
+            page_ad_access_requested_at: null,
           }
           : {}),
         connection_status: 'connected',
