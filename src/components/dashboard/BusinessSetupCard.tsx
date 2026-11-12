@@ -159,6 +159,7 @@ export function BusinessSetupCard() {
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryDelay = useRef(3000);
   const submitting = useRef(false);
+  const previousBookingLookupKey = useRef('');
 
   useEffect(() => {
     if (!user?.id) return;
@@ -289,6 +290,29 @@ export function BusinessSetupCard() {
     return () => { field.classList.remove(...classes); field.removeAttribute('aria-invalid'); };
   }, [invalidFieldId]);
 
+  const ownsBarbershop = workStatus === 'barbershop_owner';
+  const ownsSalon = workStatus === 'salon_owner';
+  const ownsBusiness = ownsBarbershop || ownsSalon;
+  const usesWorkAddress = ownsBusiness || workplaceType === 'barbershop' || workplaceType === 'salon' || workplaceType === 'suite';
+  const usesServiceCity = !ownsBusiness && (workplaceType === 'home' || workplaceType === 'mobile');
+  const needsBookingSearchCity = !usesWorkAddress && !usesServiceCity && booking === 'yes' && bookingChoice === 'search';
+  const bookingLookupCity = usesWorkAddress ? formatServiceCity(`${workCity.trim()}, ${workState.trim()}`)
+    : usesServiceCity || needsBookingSearchCity ? formatServiceCity(city) : '';
+  const bookingLookupKey = JSON.stringify({ city: bookingLookupCity, website: website === 'yes' ? normalizeUrl(websiteUrl) : '',
+    platform: bookingPlatform, workStatus, businessName: (ownsBusiness || businessNameChoice === 'yes') ? businessName.trim() : '' });
+
+  useEffect(() => {
+    if (loading) return;
+    if (previousBookingLookupKey.current && previousBookingLookupKey.current !== bookingLookupKey && bookingChoice === 'search') {
+      setBookingUrl('');
+      setBookingCandidates([]);
+      setBookingSearchAttempted(false);
+      setBookingSearchKey('');
+      setBookingSearchMessage('Your details changed. Search again to check the right booking page.');
+    }
+    previousBookingLookupKey.current = bookingLookupKey;
+  }, [loading, bookingLookupKey, bookingChoice]);
+
   if (!user || loading) return null;
 
   if (complete && !editingComplete) return <section className="glass-card rounded-xl p-5 md:p-7" aria-labelledby="business-setup-title">
@@ -299,14 +323,6 @@ export function BusinessSetupCard() {
     </div>
   </section>;
 
-  const ownsBarbershop = workStatus === 'barbershop_owner';
-  const ownsSalon = workStatus === 'salon_owner';
-  const ownsBusiness = ownsBarbershop || ownsSalon;
-  const usesWorkAddress = ownsBusiness || workplaceType === 'barbershop' || workplaceType === 'salon' || workplaceType === 'suite';
-  const usesServiceCity = !ownsBusiness && (workplaceType === 'home' || workplaceType === 'mobile');
-  const bookingLookupCity = usesWorkAddress ? formatServiceCity(`${workCity.trim()}, ${workState.trim()}`)
-    : usesServiceCity ? formatServiceCity(city) : '';
-  const bookingLookupKey = JSON.stringify({ city: bookingLookupCity, website: website === 'yes' ? normalizeUrl(websiteUrl) : '', platform: bookingPlatform });
 
   const revealField = (id: string, message = 'Please answer this question before saving') => {
     setInvalidFieldId(id);
@@ -363,15 +379,17 @@ export function BusinessSetupCard() {
       usesWorkAddress && !workState.trim() && 'work-location-state',
       usesWorkAddress && !workPostalCode.trim() && 'work-location-postal-code',
       usesServiceCity && !city.trim() && 'service-city',
+      needsBookingSearchCity && !city.trim() && 'booking-search-city',
       !website && 'website-status',
       website === 'yes' && !websiteUrl.trim() && 'website-url',
       !booking && 'booking-app-status',
       booking === 'yes' && !bookingChoice && 'booking-choice',
       booking === 'yes' && bookingChoice === 'link' && !bookingUrl.trim() && 'booking-url',
       booking === 'yes' && bookingChoice === 'search' && !bookingPlatform && 'booking-platform',
-      booking === 'yes' && bookingChoice === 'search' && !bookingSearchAttempted && !bookingUrl.trim() && 'find-booking-link',
+      booking === 'yes' && bookingChoice === 'search' &&
+        ((!bookingSearchAttempted && !bookingUrl.trim()) || (bookingSearchAttempted && bookingSearchKey !== bookingLookupKey)) && 'find-booking-link',
       booking === 'yes' && bookingChoice === 'search' && bookingCandidates.length > 0 &&
-        (!bookingUrl.trim() || bookingSearchKey !== bookingLookupKey) && 'booking-candidates',
+        !bookingUrl.trim() && 'booking-candidates',
     ].find((id): id is string => typeof id === 'string');
     if (firstMissing) { revealField(firstMissing); return; }
     if (website === 'yes' && !validDraftUrl(websiteUrl)) { revealField('website-url', 'Enter a valid website URL'); return; }
@@ -386,7 +404,10 @@ export function BusinessSetupCard() {
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     await autosaveQueue.current;
     const { error } = await supabase.from('member_onboarding_profiles').upsert({
-      user_id: user.id, ...profileFields(draft), business_setup_draft: { businessNameChoice: draft.businessNameChoice },
+      user_id: user.id, ...profileFields(draft), business_setup_draft: {
+        businessNameChoice: draft.businessNameChoice,
+        ...(needsBookingSearchCity ? { city: formatServiceCity(draft.city) } : {}),
+      },
       business_setup_draft_updated_at: null,
       business_setup_completed_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
@@ -501,6 +522,11 @@ export function BusinessSetupCard() {
         {bookingChoice === 'link' && <div><label htmlFor="booking-url" className="mb-2 block text-sm text-muted-foreground">Your booking link</label><Input id="booking-url" type="url" value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} placeholder="booking-app.com/your-name" /></div>}
         {bookingChoice === 'search' && <div className="space-y-3">
           <p className="text-xs text-muted-foreground">We’ll search using your name and city. Your website helps confirm the right page.</p>
+          {needsBookingSearchCity && <div className="space-y-2">
+            <label htmlFor="booking-search-city" className="block text-sm font-medium">What city and state should we search?</label>
+            <Input id="booking-search-city" value={city} onChange={event => setCity(event.target.value)}
+              onBlur={() => setCity(formatServiceCity(city))} placeholder="e.g. Clearwater, Florida" />
+          </div>}
           <SetupSelect id="booking-platform" label="Which booking app do you use?" value={bookingPlatform}
             onChange={(value) => { setBookingPlatform(value); setBookingCandidates([]); setBookingSearchAttempted(false); setBookingUrl(''); }}
             options={[
@@ -513,8 +539,10 @@ export function BusinessSetupCard() {
           <Button id="find-booking-link" type="button" variant="outline" onClick={findBookingLink} disabled={searchingBooking}>
             {searchingBooking ? 'Searching…' : 'Find my booking link'}
           </Button>
-          {bookingSearchMessage && <p role="status" className="text-xs text-muted-foreground">{bookingSearchMessage}</p>}
-          {bookingCandidates.length > 0 && <div id="booking-candidates" tabIndex={-1} className="space-y-2 rounded-lg" aria-label="Booking page matches">
+          {bookingSearchAttempted && bookingSearchKey !== bookingLookupKey
+            ? <p role="status" className="text-xs text-muted-foreground">Your details changed. Search again to check the right booking page.</p>
+            : bookingSearchMessage && <p role="status" className="text-xs text-muted-foreground">{bookingSearchMessage}</p>}
+          {bookingCandidates.length > 0 && bookingSearchKey === bookingLookupKey && <div id="booking-candidates" tabIndex={-1} className="space-y-2 rounded-lg" aria-label="Booking page matches">
             {bookingCandidates.map(candidate => <button key={candidate.url} type="button"
               aria-pressed={bookingUrl === candidate.url}
               onClick={() => setBookingUrl(candidate.url)}
