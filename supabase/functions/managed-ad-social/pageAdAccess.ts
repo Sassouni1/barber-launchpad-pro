@@ -2,7 +2,10 @@
 // Requests only the ADVERTISE Page task for the Barber Launch business.
 //
 // What Meta can actually confirm (official Business SDK):
-// - GET /{page-id}?fields=owner_business returns the owning Business.
+// - GET /{page-id}?fields=business returns the owning Business. (owner_business is in SDK field
+//   lists but the live Graph endpoint rejects it with "(#100) Tried accessing nonexisting field".)
+//   If the owner field is unreadable, ownership is treated as unknown: never granted from it, and
+//   it doesn't block a request when the complete agency list shows no Barber Launch listing.
 // - GET /{page-id}/agencies returns Business objects (id, name). It does NOT return
 //   permitted tasks or a request status, so a listing alone never proves ADVERTISE.
 // - POST /{page-id}/agencies {business, permitted_tasks:['ADVERTISE']} returns success.
@@ -83,6 +86,16 @@ export function describeGraphError(error: GraphError): string {
   return `Facebook couldn't confirm advertising access for this Page.${metaSaid(error)}`;
 }
 
+/**
+ * True when Meta refused the owner field itself (unsupported/nonexisting field or a permission
+ * error), so ownership is unknown. Token, rate-limit and block errors are not included: those fail closed.
+ */
+export function isOwnerFieldUnreadable(error: GraphError): boolean {
+  const code = typeof error.code === 'number' ? error.code : null;
+  if (code === 100) return /nonexisting field|unknown field|cannot query field/i.test(error.message ?? '');
+  return code === 10 || (code !== null && code >= 200 && code < 300);
+}
+
 /** True when GET /{page-id}/agencies lists the Barber Launch business. Says nothing about tasks. */
 export function listsBusiness(agencies: AgencyNode[], businessId = BARBER_LAUNCH_BUSINESS_ID): boolean {
   return agencies.some((agency) => agency?.id === businessId);
@@ -107,8 +120,9 @@ export async function verifyPageAdAccess(
   if (listsBusiness(agencies.data)) {
     return priorAccepted ? { state: 'granted', via: 'agency' } : { state: 'partner_unverified' };
   }
-  // Not listed. Without a working owner read we can't rule out ownership, so stay unverified.
-  if (!owner.ok) return { state: 'error', error: owner.error };
+  // Not listed. An owner field Meta refuses means ownership is unknown, which never grants access
+  // but doesn't block a request either. Any other owner read failure stays an error.
+  if (!owner.ok && !isOwnerFieldUnreadable(owner.error)) return { state: 'error', error: owner.error };
   return priorAccepted ? { state: 'pending' } : { state: 'missing' };
 }
 
@@ -118,6 +132,10 @@ const PENDING_MESSAGE =
 export const PARTNER_UNVERIFIED_MESSAGE =
   "Barber Launch is already a partner on this Page, but Facebook doesn't show which access it has, so we can't confirm advertising access. " +
   'To fix it, remove Barber Launch from this Page\'s partners in Facebook settings, then press Check again and give access.';
+
+export const OWNED_UNVERIFIED_MESSAGE =
+  "Facebook says this Page already belongs to Barber Launch's business, but we couldn't read that ownership to confirm it. " +
+  'Press Check again in a few minutes.';
 
 const RETRY_TOO_SOON_MESSAGE =
   "Facebook accepted the request. If this Page still doesn't list Barber Launch after 15 minutes, you can send it again.";
@@ -207,8 +225,12 @@ async function sendAdvertiseRequest(
     // 3989: already assigned to this agency. 3946: already belongs to this business.
     // Neither says which tasks Barber Launch has, so only a fresh read can decide, without new acceptance.
     if (added.error.code === 3989 || added.error.code === 3946) {
+      // 3946 is Meta saying the Page is already Barber Launch's; only a successful owner read can confirm it.
       const after = await verifyPageAdAccess(graph, pageId, pageToken, priorAccepted);
-      if (after.state === 'missing') return { status: 'unverified', message: PARTNER_UNVERIFIED_MESSAGE, requested: false };
+      if (after.state === 'missing' || after.state === 'pending') {
+        const message = added.error.code === 3946 ? OWNED_UNVERIFIED_MESSAGE : PARTNER_UNVERIFIED_MESSAGE;
+        return { status: 'unverified', message, requested: false, metaError: metaErrorOf(added.error) };
+      }
       return fromVerify(after, false);
     }
     return { status: 'error', message: describeGraphError(added.error), requested: false, metaError: metaErrorOf(added.error) };
@@ -269,10 +291,10 @@ export function createGraphClient(graphBase: string, fetchImpl: FetchLike = fetc
     },
     async getPageOwnerBusinessId(pageId, pageToken) {
       const url = new URL(`${graphBase}/${pageId}`);
-      // owner_business is the Page's owning Business (PageFields in the official SDK).
-      url.searchParams.set('fields', 'owner_business');
+      // business is the Page's owning Business; verified live. owner_business is rejected with (#100).
+      url.searchParams.set('fields', 'business');
       return readGraph(await fetchImpl(url, { headers: auth(pageToken) }), (p) => {
-        const owner = p.owner_business as { id?: unknown } | undefined;
+        const owner = p.business as { id?: unknown } | undefined;
         return typeof owner?.id === 'string' ? owner.id : null;
       });
     },
