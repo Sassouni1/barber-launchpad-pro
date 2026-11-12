@@ -3194,6 +3194,7 @@ export type Database = {
           currently_cutting: boolean | null
           professional_role: string | null
           workplace_type: string | null
+          workplace_other_description: string | null
           other_professionals_count: string | null
           service_city: string | null
           work_location_street: string | null
@@ -3236,6 +3237,7 @@ export type Database = {
           currently_cutting?: boolean | null
           professional_role?: string | null
           workplace_type?: string | null
+          workplace_other_description?: string | null
           other_professionals_count?: string | null
           service_city?: string | null
           work_location_street?: string | null
@@ -3278,6 +3280,7 @@ export type Database = {
           currently_cutting?: boolean | null
           professional_role?: string | null
           workplace_type?: string | null
+          workplace_other_description?: string | null
           other_professionals_count?: string | null
           service_city?: string | null
           work_location_street?: string | null
