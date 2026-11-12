@@ -51,6 +51,19 @@ const bookingAppForUrl = (value: string) => {
     return apps.find(([domain]) => host === domain || host.endsWith(`.${domain}`))?.[1] || host.replace(/^www\./, '');
   } catch { return 'Booking site'; }
 };
+const bookingDisplayTitle = (candidate: BookingCandidate) => {
+  const title = candidate.title?.trim() || '';
+  if (title && !/^(?:en-us\/)?\d+_[a-z0-9_-]+$/i.test(title)) return title;
+  try {
+    const page = new URL(candidate.url);
+    if (/(^|\.)booksy\.com$/i.test(page.hostname)) {
+      const slug = page.pathname.match(/^\/en-us\/\d+_([^/]+)/i)?.[1]
+        ?.replace(/_(?:barber-shop|hair-salon|beauty-salon|nail-salon|spa)(?:_|$).*/i, '');
+      if (slug) return slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+    }
+  } catch { /* Use the supplied business name below. */ }
+  return candidate.businessName || `Book on ${bookingAppForUrl(candidate.url)}`;
+};
 
 const statusOptions: Array<{ value: WorkStatus; label: string }> = [
   { value: 'individual_barber', label: 'I am an individual barber' },
@@ -683,7 +696,7 @@ export function BusinessSetupCard() {
                 <span className="rounded border border-primary/45 bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
                   {bookingAppForUrl(candidate.url)}
                 </span>
-                <span className="font-medium">{candidate.title || candidate.businessName || candidate.url}</span>
+                <span className="font-medium">{bookingDisplayTitle(candidate)}</span>
               </span>
               {candidate.confidence === 'possible' && <span className="mt-1 block text-xs font-medium text-primary">Possible match — check the barber and location</span>}
               <span className="block text-xs text-muted-foreground break-all">{candidate.url}</span>
