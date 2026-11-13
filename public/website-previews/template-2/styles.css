@@ -168,5 +168,5 @@ footer p { margin:0; font:400 15px/1 Roboto,sans-serif; }
   .service-head .script { font-size:clamp(23px,7vw,34px); white-space:nowrap; }
   .philosophy-script { font-size:40px; line-height:.9; }
   .philosophy h2 { font-size:36px; line-height:1.05; }
-  .meet-copy h2 { font-size:clamp(26px,7.5vw,34px); line-height:1.1; }
+  .meet-copy h2 { font-size:23px; line-height:1.1; }
 }
