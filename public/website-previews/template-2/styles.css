@@ -136,7 +136,7 @@ footer p { margin:0; font:400 15px/1 Roboto,sans-serif; }
     background:linear-gradient(to bottom,rgba(17,17,17,.03) 0%,rgba(17,17,17,.06) 31%,rgba(17,17,17,.76) 56%,#171717 71%);
   }
   .hero-content { padding:350px 0 52px; }
-  .hero-content.hero-content-kait { padding-top:275px; }
+  .hero-content.hero-content-kait { padding-top:200px; }
   .hero-script { max-width:310px; margin-bottom:14px; font-size:clamp(21px,5.5vw,24px); }
   .hero h1 { max-width:350px; font-size:clamp(38px,10.5vw,44px); line-height:1.02; }
   .hero .eyebrow { margin:18px 0 22px; font-size:22px; }
