@@ -164,3 +164,6 @@ footer p { margin:0; font:400 15px/1 Roboto,sans-serif; }
   .work-reel { padding-top:64px !important; }
   .work-reel::after { top:29%; width:42px; height:42px; font-size:20px; }
 }
+@media (max-width:600px) {
+  .philosophy h2 { font-size:36px; line-height:1.05; }
+}
