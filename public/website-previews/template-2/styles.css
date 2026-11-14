@@ -169,7 +169,7 @@ footer p { margin:0; font:400 15px/1 Roboto,sans-serif; }
   .service-head .script { font-size:50px; white-space:nowrap; }
   .philosophy-script { font-size:40px; line-height:.9; }
   .philosophy h2 { font-size:32px; line-height:1.05; }
-  .service-card:first-child p { font-size:16px; }
+  .service-card p { font-size:16px; }
   .meet-copy h2 { font-size:23px; line-height:1.1; }
   .rates h2 { font-size:32px; line-height:1.1; }
 }
