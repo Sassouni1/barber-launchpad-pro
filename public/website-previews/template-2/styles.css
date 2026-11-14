@@ -167,6 +167,7 @@ footer p { margin:0; font:400 15px/1 Roboto,sans-serif; }
 @media (max-width:600px) {
   .service-head { height:260px; }
   .service-head .script { font-size:50px; white-space:nowrap; }
+  .work-head h2 { font-size:30px; }
   .philosophy-script { font-size:40px; line-height:.9; }
   .philosophy h2 { font-size:32px; line-height:1.05; }
   .service-card p { font-size:16px; }
