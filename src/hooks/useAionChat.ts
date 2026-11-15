@@ -29,6 +29,7 @@ export function useAionConversations() {
       const { data, error } = await supabase
         .from('aion_conversations')
         .select('*')
+        .eq('user_id', user!.id)
         .order('updated_at', { ascending: false });
       if (error) throw error;
       return data as AionConversation[];

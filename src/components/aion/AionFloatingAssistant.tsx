@@ -49,7 +49,8 @@ export function AionFloatingAssistant() {
     typeof window === 'undefined' ? null : window.localStorage.getItem(CONVERSATION_KEY)
   ));
   const [isStarting, setIsStarting] = useState(false);
-  const { data: dbMessages = [], isLoading: messagesLoading } = useAionMessages(activeId);
+  const ownedActiveId = conversations.some((conversation) => conversation.id === activeId) ? activeId : null;
+  const { data: dbMessages = [], isLoading: messagesLoading } = useAionMessages(ownedActiveId);
 
   const isMemberPath = MEMBER_PATHS.some((path) => (
     location.pathname === path || location.pathname.startsWith(`${path}/`)
@@ -166,14 +167,14 @@ export function AionFloatingAssistant() {
           </header>
 
           <div className="min-h-0 flex-1 p-3">
-            {conversationsLoading || messagesLoading || isStarting || !activeId ? (
+            {conversationsLoading || messagesLoading || isStarting || !ownedActiveId ? (
               <div className="flex h-full items-center justify-center text-muted-foreground">
                 <Loader2 className="mr-2 size-5 animate-spin text-primary" /> Opening Aion…
               </div>
             ) : (
               <AionChat
-                key={activeId}
-                conversationId={activeId}
+                key={ownedActiveId}
+                conversationId={ownedActiveId}
                 initialMessages={chatMessages.length > 0 ? chatMessages : undefined}
                 onFirstUserMessage={handleFirstUserMessage}
               />
