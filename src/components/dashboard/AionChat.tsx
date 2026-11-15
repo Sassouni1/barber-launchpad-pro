@@ -45,6 +45,8 @@ const IMAGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/aion-genera
 
 const IMAGE_VERB = /\b(generate|create|make|design|render|produce|build|show)\b/i;
 const IMAGE_NOUN = /\b(image|images|photo|photos|picture|pictures|graphic|graphics|visual|visuals|flyer|flyers|poster|posters|creative|creatives)\b/i;
+const IMAGE_FOLLOW_UP = /\b(again|another|variation|version|redo|regenerate|fix|change|adjust|flip|rotate|upside.down|backwards|wrong|incorrect|darker|lighter|too\s+\w+)\b/i;
+const LEAKED_IMAGE_TOOL = /"action"\s*:\s*"dalle\.text2im"|"thought"\s*:/i;
 
 function isImageRequest(text: string): boolean {
   return IMAGE_VERB.test(text) && IMAGE_NOUN.test(text);
@@ -54,6 +56,18 @@ function detectAspect(text: string): 'square' | 'portrait' | 'landscape' {
   if (/\b(story|stories|reel|reels|vertical|portrait|9:16)\b/i.test(text)) return 'portrait';
   if (/\b(wide|banner|landscape|horizontal|16:9)\b/i.test(text)) return 'landscape';
   return 'square';
+}
+
+function isLeakedImageTool(text: string): boolean {
+  return LEAKED_IMAGE_TOOL.test(text);
+}
+
+function imageRevision(feedback: string): string {
+  // A member describing what is wrong with the previous result is asking us to correct it.
+  if (/\b(?:hair system|system)\s+is\s+upside.down\b/i.test(feedback)) {
+    return 'Correct the previous image: show the hair system right side up, in its natural orientation as worn on the head. Do not show it upside down.';
+  }
+  return feedback;
 }
 
 
@@ -227,8 +241,23 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
       try { await saveAionMessage(conversationId, 'user', text.trim()); } catch { /* ignore */ }
     }
 
-    // Explicit image request → go straight to the image engine
-    if (isImageRequest(text)) {
+    const lastImageIndex = messages.map(m => m.messageType === 'image' && Boolean((m.metadata as ImageMeta)?.imagePrompt)).lastIndexOf(true);
+    const lastImage = lastImageIndex >= 0 ? messages[lastImageIndex] : null;
+    const revisingImage = Boolean(lastImage && IMAGE_FOLLOW_UP.test(text));
+    const priorFeedback = revisingImage
+      ? messages.slice(lastImageIndex + 1).filter(m => m.role === 'user' && IMAGE_FOLLOW_UP.test(m.content)).map(m => imageRevision(m.content))
+      : [];
+    const originalPrompt = (lastImage?.metadata as ImageMeta | undefined)?.imagePrompt || '';
+    const imagePrompt = revisingImage
+      ? `${originalPrompt}\n\nCreate a corrected variation of this image. ${[...priorFeedback, imageRevision(text)].join(' ')}\nPreserve the original requested format and exact marketing text.`.slice(0, 2000)
+      : text.trim();
+    const originalMeta = lastImage?.metadata as ImageMeta | undefined;
+    const imageAspect = originalMeta?.width && originalMeta?.height
+      ? originalMeta.height > originalMeta.width ? 'portrait' : originalMeta.width > originalMeta.height ? 'landscape' : 'square'
+      : detectAspect(imagePrompt);
+
+    // Explicit image requests and revisions of the last generated image use the image engine.
+    if (isImageRequest(text) || revisingImage) {
       try {
         const { supabase } = await import('@/integrations/supabase/client');
         const { data: { session } } = await supabase.auth.getSession();
@@ -242,7 +271,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
         const resp = await fetch(IMAGE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify({ prompt: text.trim(), conversationId, aspect: detectAspect(text) }),
+          body: JSON.stringify({ prompt: imagePrompt, conversationId, aspect: imageAspect }),
         });
         const result = await resp.json().catch(() => ({ success: false, error: 'Image generation failed.' }));
 
@@ -259,7 +288,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
         const metadata: ImageMeta = {
           imageUrl: result.url,
           imageId: result.id,
-          imagePrompt: result.prompt || text.trim(),
+          imagePrompt: result.prompt || imagePrompt,
           provider: result.provider,
           model: result.model,
           width: result.width,
@@ -284,6 +313,8 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
     let assistantSoFar = '';
     const upsert = (chunk: string) => {
       assistantSoFar += chunk;
+      // Hold JSON-shaped model output until it can be checked. Tool instructions are not chat replies.
+      if (assistantSoFar.trimStart().startsWith('{')) return;
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.role === 'assistant' && prev.length > 1 && prev[prev.length - 2]?.role === 'user') {
@@ -294,7 +325,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
     };
 
     const allMessages = [...messages, userMsg]
-      .filter(m => m.messageType !== 'image')
+      .filter(m => m.messageType !== 'image' && !isLeakedImageTool(m.content))
       .map(m => ({ role: m.role, content: m.content }));
 
 
@@ -305,10 +336,16 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
         onDelta: upsert,
         onDone: async () => {
           setLoading(false);
+          const safeReply = isLeakedImageTool(assistantSoFar)
+            ? 'The image did not render. Ask me to generate it again.'
+            : assistantSoFar;
+          if (assistantSoFar.trimStart().startsWith('{')) {
+            setMessages(prev => [...prev, { role: 'assistant', content: safeReply }]);
+          }
           // Save assistant message to DB
-          if (conversationId && assistantSoFar) {
+          if (conversationId && safeReply) {
             try {
-              await saveAionMessage(conversationId, 'assistant', assistantSoFar);
+              await saveAionMessage(conversationId, 'assistant', safeReply);
               queryClient.invalidateQueries({ queryKey: ['aion-messages', conversationId] });
             } catch { /* ignore */ }
           }
@@ -363,7 +400,7 @@ export function AionChat({ conversationId, initialMessages, initialMessage, onIn
                       </div>
                     </div>
                   ) : (
-                    <MessageResponse className="prose-sm prose-invert [&>p]:my-3 [&_li]:my-1">{m.content}</MessageResponse>
+                    <MessageResponse className="prose-sm prose-invert [&>p]:my-3 [&_li]:my-1">{isLeakedImageTool(m.content) ? 'The image did not render. Ask me to generate it again.' : m.content}</MessageResponse>
                   )
                 ) : (
                   m.content
