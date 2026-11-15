@@ -49,7 +49,11 @@ export function useAionConversations() {
       if (error) throw error;
       return data as AionConversation;
     },
-    onSuccess: () => {
+    onSuccess: (conversation) => {
+      queryClient.setQueryData<AionConversation[]>(['aion-conversations', user!.id], (current = []) => [
+        conversation,
+        ...current.filter((item) => item.id !== conversation.id),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['aion-conversations'] });
     },
   });
