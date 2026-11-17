@@ -18,6 +18,7 @@ import { AD_META_STAGE_LABEL, adMetaStage, canCreateOrLink, needsMetaCheck, draf
 
 type Campaign = {
   id: string; customer_id: string; name: string; objective: string; status: string;
+  member_visible: boolean;
   daily_budget_cents: number; funded_cents: number; spent_cents: number;
   meta_ad_account_id: string; meta_campaign_id: string | null; landing_page_url: string | null; created_at: string;
   meta_create_status: string | null; meta_create_error: string | null;
@@ -107,6 +108,16 @@ export default function AdsManager() {
     const { error } = await (supabase as any).from('ad_campaigns').update({ status, ...timestamps }).eq('id', campaign.id);
     if (error) return toast.error(error.message);
     toast.success(`${campaign.name} marked ${status} locally. Nothing changed in Meta.`);
+    refresh();
+  };
+
+  const updateMemberVisibility = async (campaign: Campaign, memberVisible: boolean) => {
+    const { error } = await (supabase as any).from('ad_campaigns')
+      .update({ member_visible: memberVisible })
+      .eq('id', campaign.id)
+      .eq('meta_ad_account_id', BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID);
+    if (error) return toast.error(error.message);
+    toast.success(memberVisible ? 'Campaign is visible to this member.' : 'Campaign is hidden from this member.');
     refresh();
   };
 
@@ -205,6 +216,7 @@ export default function AdsManager() {
               {c.meta_campaign_id && <>
                 <Button size="sm" variant="outline" onClick={() => runRowAction(c, 'refreshMetaStatus')} disabled={!!busy}>{isBusy('refreshMetaStatus') ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Refresh status'}</Button>
                 <Button size="sm" variant="outline" onClick={() => runRowAction(c, 'adminSync')} disabled={!!busy}>{isBusy('adminSync') ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Sync results'}</Button>
+                {official && <Button size="sm" variant="outline" onClick={() => updateMemberVisibility(c, !c.member_visible)}>{c.member_visible ? 'Hide from member' : 'Show to member'}</Button>}
               </>}
               {c.status === 'active'
                 ? <Button size="sm" variant="ghost" onClick={() => updateLocalStatus(c, 'paused')} title="Local registry only. Does not change Meta."><Pause className="w-3.5 h-3.5 mr-1" />Local pause</Button>
