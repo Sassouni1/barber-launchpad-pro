@@ -304,12 +304,26 @@ export type Database = {
           funded_cents: number
           id: string
           landing_page_url: string | null
+          last_metrics_sync_at: string | null
+          last_metrics_sync_attempt_at: string | null
+          last_metrics_sync_error: string | null
           launched_at: string | null
           lifetime_budget_cents: number | null
           member_visible: boolean
           meta_ad_account_id: string
           meta_campaign_id: string | null
+          meta_campaign_status: string | null
+          meta_create_attempt_id: string | null
+          meta_create_error: string | null
+          meta_create_started_at: string | null
+          meta_create_status: string | null
+          meta_created_at: string | null
+          meta_effective_status: string | null
+          meta_linked_at: string | null
+          meta_linked_by: string | null
+          meta_metrics_30d: Json | null
           meta_page_id: string | null
+          meta_status_checked_at: string | null
           name: string
           objective: string
           paused_at: string | null
@@ -329,12 +343,26 @@ export type Database = {
           funded_cents?: number
           id?: string
           landing_page_url?: string | null
+          last_metrics_sync_at?: string | null
+          last_metrics_sync_attempt_at?: string | null
+          last_metrics_sync_error?: string | null
           launched_at?: string | null
           lifetime_budget_cents?: number | null
           member_visible?: boolean
           meta_ad_account_id: string
           meta_campaign_id?: string | null
+          meta_campaign_status?: string | null
+          meta_create_attempt_id?: string | null
+          meta_create_error?: string | null
+          meta_create_started_at?: string | null
+          meta_create_status?: string | null
+          meta_created_at?: string | null
+          meta_effective_status?: string | null
+          meta_linked_at?: string | null
+          meta_linked_by?: string | null
+          meta_metrics_30d?: Json | null
           meta_page_id?: string | null
+          meta_status_checked_at?: string | null
           name: string
           objective?: string
           paused_at?: string | null
@@ -354,12 +382,26 @@ export type Database = {
           funded_cents?: number
           id?: string
           landing_page_url?: string | null
+          last_metrics_sync_at?: string | null
+          last_metrics_sync_attempt_at?: string | null
+          last_metrics_sync_error?: string | null
           launched_at?: string | null
           lifetime_budget_cents?: number | null
           member_visible?: boolean
           meta_ad_account_id?: string
           meta_campaign_id?: string | null
+          meta_campaign_status?: string | null
+          meta_create_attempt_id?: string | null
+          meta_create_error?: string | null
+          meta_create_started_at?: string | null
+          meta_create_status?: string | null
+          meta_created_at?: string | null
+          meta_effective_status?: string | null
+          meta_linked_at?: string | null
+          meta_linked_by?: string | null
+          meta_metrics_30d?: Json | null
           meta_page_id?: string | null
+          meta_status_checked_at?: string | null
           name?: string
           objective?: string
           paused_at?: string | null
@@ -2667,7 +2709,8 @@ export type Database = {
       hair_system_kit_deliveries: {
         Row: {
           completed_at: string | null
-          ghl_order_id: string
+          entitlement_key: string | null
+          ghl_order_id: string | null
           id: string
           location_id: string
           message_id: string | null
@@ -2678,7 +2721,8 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
-          ghl_order_id: string
+          entitlement_key?: string | null
+          ghl_order_id?: string | null
           id?: string
           location_id: string
           message_id?: string | null
@@ -2689,7 +2733,8 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
-          ghl_order_id?: string
+          entitlement_key?: string | null
+          ghl_order_id?: string | null
           id?: string
           location_id?: string
           message_id?: string | null
@@ -2702,6 +2747,59 @@ export type Database = {
           {
             foreignKeyName: "hair_system_kit_deliveries_order_id_fkey"
             columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hair_system_kit_manual_recoveries: {
+        Row: {
+          admin_id: string
+          completed_at: string | null
+          created_at: string
+          email_key: string | null
+          id: string
+          identity_key: string
+          phone_key: string | null
+          preview_facts: Json
+          request_key: string
+          status: string
+          supplier_message_id: string | null
+          supplier_order_id: string | null
+        }
+        Insert: {
+          admin_id: string
+          completed_at?: string | null
+          created_at?: string
+          email_key?: string | null
+          id?: string
+          identity_key: string
+          phone_key?: string | null
+          preview_facts: Json
+          request_key: string
+          status?: string
+          supplier_message_id?: string | null
+          supplier_order_id?: string | null
+        }
+        Update: {
+          admin_id?: string
+          completed_at?: string | null
+          created_at?: string
+          email_key?: string | null
+          id?: string
+          identity_key?: string
+          phone_key?: string | null
+          preview_facts?: Json
+          request_key?: string
+          status?: string
+          supplier_message_id?: string | null
+          supplier_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hair_system_kit_manual_recoveries_supplier_order_id_fkey"
+            columns: ["supplier_order_id"]
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
@@ -5344,6 +5442,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      manual_kit_duplicate_state: {
+        Args: {
+          _address1: string
+          _email: string
+          _name: string
+          _phone: string
+          _postal_code: string
+          _request_key: string
+        }
+        Returns: Json
+      }
       mark_support_messages_read: {
         Args: { p_conversation_id: string }
         Returns: undefined
@@ -5389,6 +5498,10 @@ export type Database = {
         Returns: undefined
       }
       verify_buyer_shipping_cron_token: {
+        Args: { _token: string }
+        Returns: boolean
+      }
+      verify_managed_ad_reporting_cron_token: {
         Args: { _token: string }
         Returns: boolean
       }
