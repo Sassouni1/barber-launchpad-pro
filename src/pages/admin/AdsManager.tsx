@@ -43,7 +43,7 @@ const SPECIAL_CATEGORIES = [
   { value: 'FINANCIAL_PRODUCTS_SERVICES', label: 'Financial products & services' },
   { value: 'ISSUES_ELECTIONS_POLITICS', label: 'Social issues, elections or politics' },
 ];
-const EMPTY_FORM = { customer_id: '', name: '', objective: 'lead_generation', daily_budget: '5', landing_page_url: '', audience_notes: '' };
+const EMPTY_FORM = { customer_id: '', name: '', objective: 'lead_generation', daily_budget: '10', landing_page_url: '', audience_notes: '' };
 
 const STAGE_VARIANT: Record<AdMetaStage, 'secondary' | 'outline' | 'default' | 'success' | 'destructive'> = {
   local_draft: 'outline', meta_creating: 'secondary', meta_unknown: 'destructive', meta_failed: 'destructive',
@@ -81,6 +81,8 @@ export default function AdsManager() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.customer_id || !form.name) return toast.error('Choose a customer and campaign name.');
+    const dailyBudgetCents = draftDailyBudgetCents(form.daily_budget);
+    if (dailyBudgetCents === null) return toast.error('Daily budget must be at least $10, or $0 if not set yet.');
     setSaving(true);
     const { error } = await (supabase as any).from('ad_campaigns').insert({
       customer_id: form.customer_id,
@@ -89,7 +91,7 @@ export default function AdsManager() {
       landing_page_url: form.landing_page_url || null,
       audience_notes: form.audience_notes || null,
       meta_ad_account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID,
-      daily_budget_cents: Math.round(Number(form.daily_budget || 0) * 100),
+      daily_budget_cents: dailyBudgetCents,
       created_by: user?.id,
       status: 'draft',
     });
@@ -143,7 +145,7 @@ export default function AdsManager() {
             <div className="md:col-span-2"><Label>Customer</Label><select required value={form.customer_id} onChange={e => setForm({ ...form, customer_id: e.target.value })} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Select a Barber Launch member</option>{customers.map(c => <option key={c.id} value={c.id}>{c.business_name || c.full_name || c.email} · {c.email}</option>)}</select></div>
             <div><Label>Campaign name</Label><Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Local hair systems leads" /></div>
             <div><Label>Objective</Label><select value={form.objective} onChange={e => setForm({ ...form, objective: e.target.value })} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="lead_generation">Lead generation</option><option value="messages">Messages</option><option value="traffic">Traffic</option><option value="sales">Sales</option></select></div>
-            <div><Label>Daily budget (USD)</Label><Input required type="number" min="0" step="0.01" value={form.daily_budget} onChange={e => setForm({ ...form, daily_budget: e.target.value })} /></div>
+            <div><Label>Daily budget (USD, min $10)</Label><Input required type="number" min="0" step="0.01" value={form.daily_budget} onChange={e => setForm({ ...form, daily_budget: e.target.value })} /></div>
             <div><Label>Meta ad account</Label><p className="mt-1 flex h-10 items-center rounded-md border border-input bg-muted/30 px-3 text-sm">Barber Launch Official · {BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID}</p></div>
             <div className="md:col-span-2"><Label>Landing page URL</Label><Input type="url" value={form.landing_page_url} onChange={e => setForm({ ...form, landing_page_url: e.target.value })} placeholder="https://…" /></div>
             <div className="md:col-span-2"><Label>Audience / campaign notes</Label><Textarea value={form.audience_notes} onChange={e => setForm({ ...form, audience_notes: e.target.value })} placeholder="Location, offer, audience, creative direction…" /></div>

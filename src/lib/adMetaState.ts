@@ -64,3 +64,11 @@ export const canCreateOrLink = (c: AdMetaFields) =>
 /** Only an unfinished attempt needs the read-only Meta check. */
 export const needsMetaCheck = (c: AdMetaFields) =>
   !c.meta_campaign_id && (c.meta_create_status === 'creating' || c.meta_create_status === 'unknown');
+
+// Mirrors the ad_campaigns_min_daily_budget database rule: $0 (no budget yet) or at least $10/day.
+export const MIN_DAILY_BUDGET_CENTS = 1000;
+export function draftDailyBudgetCents(input: string): number | null {
+  const cents = Math.round(Number(input || 0) * 100);
+  if (!Number.isFinite(cents) || cents < 0) return null;
+  return cents === 0 || cents >= MIN_DAILY_BUDGET_CENTS ? cents : null;
+}
