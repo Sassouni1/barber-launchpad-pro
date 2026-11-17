@@ -2806,6 +2806,63 @@ export type Database = {
           },
         ]
       }
+      hair_system_manual_individual_claims: {
+        Row: {
+          admin_id: string
+          completed_at: string | null
+          created_at: string
+          fingerprint: string
+          id: string
+          preview_facts: Json
+          repeat_of_order_id: string | null
+          request_key: string
+          status: string
+          supplier_message_id: string | null
+          supplier_order_id: string | null
+        }
+        Insert: {
+          admin_id: string
+          completed_at?: string | null
+          created_at?: string
+          fingerprint: string
+          id?: string
+          preview_facts: Json
+          repeat_of_order_id?: string | null
+          request_key: string
+          status?: string
+          supplier_message_id?: string | null
+          supplier_order_id?: string | null
+        }
+        Update: {
+          admin_id?: string
+          completed_at?: string | null
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          preview_facts?: Json
+          repeat_of_order_id?: string | null
+          request_key?: string
+          status?: string
+          supplier_message_id?: string | null
+          supplier_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hair_system_manual_individual_claims_repeat_of_order_id_fkey"
+            columns: ["repeat_of_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hair_system_manual_individual_claims_supplier_order_id_fkey"
+            columns: ["supplier_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hair_system_test_drafts: {
         Row: {
           admin_user_id: string
@@ -5441,6 +5498,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      manual_individual_duplicate_state: {
+        Args: {
+          _address1: string
+          _fingerprint: string
+          _name: string
+          _postal_code: string
+          _repeat_of: string
+          _request_key: string
+          _variant: string
+        }
+        Returns: Json
       }
       manual_kit_duplicate_state: {
         Args: {
