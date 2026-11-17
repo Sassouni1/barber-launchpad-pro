@@ -7,6 +7,7 @@ import {
   createAgencyClient,
   deliveryState,
   insightsBelongTo,
+  normalizeAgencyToken,
   parseSpecialAdDeclaration,
   summarizeInsight,
   type MetaCampaign,
@@ -106,4 +107,13 @@ Deno.test("an empty insights answer is 'no delivery', never zero-filled results"
   assertEquals(summarizeInsight([], "2026-10-19", "2026-11-17").has_delivery, false);
   const s = summarizeInsight([{ reach: "120", impressions: "300", spend: "12.34", actions: [{ action_type: "lead", value: "2" }] }], "a", "b");
   assertEquals([s.reach, s.impressions, s.spend_cents, s.leads, s.has_delivery], [120, 300, 1234, 2, true]);
+});
+
+Deno.test("a pasted server token is cleaned of whitespace, quotes and a Bearer prefix", () => {
+  assertEquals(normalizeAgencyToken("  EAAabc\n"), "EAAabc");
+  assertEquals(normalizeAgencyToken("Bearer EAAabc"), "EAAabc");
+  assertEquals(normalizeAgencyToken('"EAAabc"'), "EAAabc");
+  assertEquals(normalizeAgencyToken("EAA ab\nc"), "EAAabc");
+  assertEquals(normalizeAgencyToken("   "), null);
+  assertEquals(normalizeAgencyToken(undefined), null);
 });
