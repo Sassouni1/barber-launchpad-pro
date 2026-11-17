@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertTriangle, CheckCircle2, Link2, Loader2, Megaphone, Pause, Play, Plus, RefreshCw, Search, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
-import { AD_META_STAGE_LABEL, adMetaStage, canCreateOrLink, needsMetaCheck, type AdMetaStage } from '@/lib/adMetaState';
+import { AD_META_STAGE_LABEL, adMetaStage, canCreateOrLink, needsMetaCheck, draftDailyBudgetCents, type AdMetaStage } from '@/lib/adMetaState';
 
 type Campaign = {
   id: string; customer_id: string; name: string; objective: string; status: string;
