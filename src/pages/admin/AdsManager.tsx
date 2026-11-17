@@ -144,7 +144,7 @@ export default function AdsManager() {
     </div>
 
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="glass-card rounded-xl p-5 space-y-2">
+      <div className="glass-card rounded-xl p-5 space-y-2 min-w-0">
         <div className="flex items-center justify-between gap-2"><p className="text-sm font-medium">Barber Launch Official · server connection</p>
           <Button size="sm" variant="ghost" onClick={() => refetchAgency()} aria-label="Recheck Meta connection"><RefreshCw className="w-3.5 h-3.5" /></Button></div>
         {agencyLoading ? <p className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Checking…</p>
@@ -153,7 +153,7 @@ export default function AdsManager() {
           : agency.reachable ? <p className="text-xs text-muted-foreground flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />Meta confirmed access to {agency.account?.name ?? 'the account'} ({agency.account_id}){agency.account?.currency ? ` · ${agency.account.currency}` : ''}.</p>
           : <p className="text-xs text-destructive flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />{agency.message ?? 'Meta refused the server token.'}</p>}
       </div>
-      <div className="glass-card rounded-xl p-5 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-medium">Facebook Page identity</p><p className="text-xs text-muted-foreground mt-1">Connect the Facebook Page your campaigns will run from.</p></div><FacebookConnectButton /></div>
+      <div className="glass-card rounded-xl p-5 flex flex-wrap items-center justify-between gap-3 min-w-0"><div><p className="text-sm font-medium">Facebook Page identity</p><p className="text-xs text-muted-foreground mt-1">Connect the Facebook Page your campaigns will run from.</p></div><FacebookConnectButton /></div>
     </div>
 
     <div className="grid gap-4 md:grid-cols-3"><Metric icon={Megaphone} label="Campaigns" value={campaigns.length} /><Metric icon={Play} label="Delivering in Meta" value={delivering} /><Metric icon={WalletCards} label="Unallocated funded media" value={money(funded)} /></div>
