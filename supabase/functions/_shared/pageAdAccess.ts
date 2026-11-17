@@ -108,6 +108,11 @@ export function listsBusiness(agencies: AgencyNode[], businessId = BARBER_LAUNCH
   return agencies.some((agency) => agency?.id === businessId);
 }
 
+/** Meta returns PROFILE_PLUS_ADVERTISE for some newer Pages instead of ADVERTISE. */
+export function hasPageAdvertisingTask(tasks: string[]): boolean {
+  return tasks.some((task) => task === 'ADVERTISE' || task === 'PROFILE_PLUS_ADVERTISE' || task === 'PROFILE_PLUS_FULL_CONTROL');
+}
+
 /**
  * Read-only check. Ownership is read first (an owned Page may not list its owner as an agency),
  * then Barber Launch's own client_pages tasks (the only task proof), then the Page's agency list.
@@ -123,7 +128,7 @@ export async function verifyPageAdAccess(
   if (owner.ok && owner.data === BARBER_LAUNCH_BUSINESS_ID) return { state: 'granted', via: 'owner' };
 
   const tasks = await graph.listClientPageTasks(pageId);
-  if (tasks.ok && Array.isArray(tasks.data) && tasks.data.includes('ADVERTISE')) {
+  if (tasks.ok && Array.isArray(tasks.data) && hasPageAdvertisingTask(tasks.data)) {
     return { state: 'granted', via: 'client_tasks' };
   }
   // Barber Launch already has tasks on this Page, but not ADVERTISE: never send a request that could change them.
