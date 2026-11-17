@@ -12,12 +12,12 @@ export type ManualDeps = {
   finishClaim: (identityKey: string, status: 'sent' | 'uncertain', messageId: string | null, rowId: string | null) => Promise<void>;
   verifyResult: (identityKey: string, rowId: string, status: 'sent' | 'uncertain', messageId: string | null) => Promise<boolean>;
 };
-async function signature(secret: string, facts: unknown, expires: number) {
+export async function signature(secret: string, facts: unknown, expires: number) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const bytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(JSON.stringify([facts, expires]))));
   return Array.from(bytes, v => v.toString(16).padStart(2, '0')).join('');
 }
-function equalHex(a: string, b: string) {
+export function equalHex(a: string, b: string) {
   if (!/^[a-f0-9]{64}$/.test(a) || b.length !== a.length) return false;
   let difference = 0;
   for (let i = 0; i < a.length; i++) difference |= a.charCodeAt(i) ^ b.charCodeAt(i);

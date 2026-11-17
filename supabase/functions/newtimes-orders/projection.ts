@@ -21,6 +21,10 @@ export function publicOrderDetails(raw: unknown): Record<string, unknown> {
   const out: Record<string, unknown> = pickText(d, TOP_TEXT);
   if (d.kit_order === true) out.kit_order = true;
   if (d.supplier_kit === true) out.supplier_kit = true;
+  if (d.manual_individual === true) {
+    out.manual_individual = true;
+    if (typeof d.manual_supplier_cost_cents === 'number') out.manual_supplier_cost_cents = d.manual_supplier_cost_cents;
+  }
   const locationMode = shippingLocations(d);
   if (locationMode) out[SHIPPING_LOCATIONS_KEY] = locationMode;
   for (const k of ['order_number', 'total_orders']) if (typeof d[k] === 'number' || typeof d[k] === 'string') out[k] = d[k];

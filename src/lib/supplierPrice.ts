@@ -4,7 +4,7 @@ export const SUPPLIER_PRICES = { lace: 175, skin: 160, kit: 345 } as const;
 
 export type SupplierPrice =
   | { kind: 'lace' | 'skin' | 'kit'; amount: number; label: string }
-  | { kind: 'review'; amount: null; label: 'Price needs review' };
+  | { kind: 'review'; amount: null; label: 'Price needs review' | 'Cost unknown' };
 
 type Data = Record<string, unknown>;
 const obj = (v: unknown): Data => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Data) : {});
@@ -13,6 +13,12 @@ const REVIEW: SupplierPrice = { kind: 'review', amount: null, label: 'Price need
 
 export function supplierPriceFor(orderDetails: unknown): SupplierPrice {
   const details = obj(orderDetails);
+  if (details.manual_individual === true) {
+    const cents = details.manual_supplier_cost_cents;
+    return typeof cents === 'number' && Number.isSafeInteger(cents) && cents >= 0
+      ? { kind: 'skin', amount: cents / 100, label: `$${(cents / 100).toFixed(2)}` }
+      : { kind: 'review', amount: null, label: 'Cost unknown' };
+  }
   const kitFlag = details.kit_order === true || details.supplier_kit === true;
   if (kitFlag) {
     return { kind: 'kit', amount: SUPPLIER_PRICES.kit, label: '$345' };
