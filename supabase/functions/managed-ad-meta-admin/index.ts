@@ -209,7 +209,11 @@ async function reconcile(db: Db, agency: AgencyClient, adminId: string, local: L
 
 /* ----------------------------------- link ---------------------------------- */
 
-async function linkContext(db: Db, agency: AgencyClient, body: Record<string, unknown>) {
+type LinkContext =
+  | { error: Response }
+  | { local: Local; campaign: MetaCampaign; customer: { id: string; full_name: string | null; business_name: string | null; email: string | null } | null };
+
+async function linkContext(db: Db, agency: AgencyClient, body: Record<string, unknown>): Promise<LinkContext> {
   const local = await loadLocal(db, body.campaign_id);
   if (!local) return { error: json({ error: 'Campaign not found.' }, 404) };
   if (local.meta_campaign_id) return { error: json({ error: 'This local campaign is already linked to a Meta campaign.' }, 409) };
