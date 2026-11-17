@@ -12,7 +12,7 @@ import {
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
 // Returned by the read-only functionVersion action so a deployment can be confirmed without side effects.
-const FUNCTION_VERSION = 'managed-ad-social/page-owner-business-field-2026-11-12';
+const FUNCTION_VERSION = 'managed-ad-social/client-page-task-proof-2026-11-17';
 // Request access to business-managed Pages alongside ordinary Pages.
 const SCOPES = 'pages_show_list,pages_read_engagement,business_management';
 
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
       if (!stored?.page_access_token || stored.facebook_page_id !== pageIdToProbe) {
         return json({ error: 'Your Page access is missing.' }, 400);
       }
-      const probe = await probePageOwnership(GRAPH, pageIdToProbe, stored.page_access_token);
+      const probe = await probePageOwnership(GRAPH, pageIdToProbe, stored.page_access_token, fetch, Deno.env.get('META_ADS_ACCESS_TOKEN'));
       return json({ ok: true, version: FUNCTION_VERSION, pageId: pageIdToProbe, ...probe });
     }
 
@@ -367,7 +367,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      const graph = createGraphClient(GRAPH);
+      // Barber Launch's server-only token reads its own client_pages task list; it never leaves the server.
+      const graph = createGraphClient(GRAPH, fetch, Deno.env.get('META_ADS_ACCESS_TOKEN'));
       const acceptedAt = priorAccepted ? connection.page_ad_access_requested_at as string : null;
       const outcome = action === 'grantPageAdAccess'
         ? await grantPageAdAccess(graph, selectedPageId, stored.page_access_token, priorAccepted)

@@ -119,7 +119,7 @@ test('different browser UUID, prior claim, legacy kit, prior delivery, or unavai
 });
 test('migration journal includes the manual claim and database protection', async () => {
   const journal = JSON.parse(await readFile('drizzle/migrations/meta/_journal.json', 'utf8'));
-  assert.equal(journal.entries.at(-1).tag, '0009_manual_kit_recovery_claims');
+  assert.ok(journal.entries.some((entry) => entry.tag === '0009_manual_kit_recovery_claims'));
   const sql = await readFile('drizzle/migrations/0009_manual_kit_recovery_claims.sql', 'utf8');
   assert.match(sql, /protect_manual_kit_facts_before_write/);
   assert.match(sql, /supplier_kit' IS DISTINCT/);

@@ -95,3 +95,13 @@
 - [x] Admin-only test checkout + test webhook + capture sink tables; live webhook now rejects test events
 - [x] Hosted test checkout uses verified affiliate test key fallback (account-checked)
 - [ ] Optional: HAIR_SYSTEM_STRIPE_TEST_WEBHOOK_SECRET + test endpoint for automatic webhook testing
+
+## Meta Ads connection (Barber Launch Official 2895514127400266)
+- [x] Admin: create PAUSED Meta campaign for a local draft (idempotent, re-checks Page access, no spend)
+- [x] Admin: link existing PAUSED campaign after Meta confirms account/status; preview account, ID, status, customer
+- [x] Reporting sync bound to linked Official campaigns; member results with honest empty/error states and last update
+- [x] Admin states: local draft vs Meta PAUSED vs ACTIVE; "Mark ready (local)" labeled local-only
+- [x] Page access needs Meta task proof (client_pages) or ownership; deployed
+- [ ] Server Meta token (META_ADS_ACCESS_TOKEN, system user with ads_management/ads_read/business_management) — waiting on Chris
+- [ ] After token: live-check client_pages response, create/link one PAUSED campaign, sync, then optional scheduled sync
+- [ ] Publish frontend after Chris reviews the preview

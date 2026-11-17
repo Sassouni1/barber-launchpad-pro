@@ -304,12 +304,26 @@ export type Database = {
           funded_cents: number
           id: string
           landing_page_url: string | null
+          last_metrics_sync_at: string | null
+          last_metrics_sync_attempt_at: string | null
+          last_metrics_sync_error: string | null
           launched_at: string | null
           lifetime_budget_cents: number | null
           member_visible: boolean
           meta_ad_account_id: string
           meta_campaign_id: string | null
+          meta_campaign_status: string | null
+          meta_create_attempt_id: string | null
+          meta_create_error: string | null
+          meta_create_started_at: string | null
+          meta_create_status: string | null
+          meta_created_at: string | null
+          meta_effective_status: string | null
+          meta_linked_at: string | null
+          meta_linked_by: string | null
+          meta_metrics_30d: Json | null
           meta_page_id: string | null
+          meta_status_checked_at: string | null
           name: string
           objective: string
           paused_at: string | null
@@ -329,12 +343,26 @@ export type Database = {
           funded_cents?: number
           id?: string
           landing_page_url?: string | null
+          last_metrics_sync_at?: string | null
+          last_metrics_sync_attempt_at?: string | null
+          last_metrics_sync_error?: string | null
           launched_at?: string | null
           lifetime_budget_cents?: number | null
           member_visible?: boolean
           meta_ad_account_id: string
           meta_campaign_id?: string | null
+          meta_campaign_status?: string | null
+          meta_create_attempt_id?: string | null
+          meta_create_error?: string | null
+          meta_create_started_at?: string | null
+          meta_create_status?: string | null
+          meta_created_at?: string | null
+          meta_effective_status?: string | null
+          meta_linked_at?: string | null
+          meta_linked_by?: string | null
+          meta_metrics_30d?: Json | null
           meta_page_id?: string | null
+          meta_status_checked_at?: string | null
           name: string
           objective?: string
           paused_at?: string | null
@@ -354,12 +382,26 @@ export type Database = {
           funded_cents?: number
           id?: string
           landing_page_url?: string | null
+          last_metrics_sync_at?: string | null
+          last_metrics_sync_attempt_at?: string | null
+          last_metrics_sync_error?: string | null
           launched_at?: string | null
           lifetime_budget_cents?: number | null
           member_visible?: boolean
           meta_ad_account_id?: string
           meta_campaign_id?: string | null
+          meta_campaign_status?: string | null
+          meta_create_attempt_id?: string | null
+          meta_create_error?: string | null
+          meta_create_started_at?: string | null
+          meta_create_status?: string | null
+          meta_created_at?: string | null
+          meta_effective_status?: string | null
+          meta_linked_at?: string | null
+          meta_linked_by?: string | null
+          meta_metrics_30d?: Json | null
           meta_page_id?: string | null
+          meta_status_checked_at?: string | null
           name?: string
           objective?: string
           paused_at?: string | null
@@ -2667,7 +2709,8 @@ export type Database = {
       hair_system_kit_deliveries: {
         Row: {
           completed_at: string | null
-          ghl_order_id: string
+          entitlement_key: string | null
+          ghl_order_id: string | null
           id: string
           location_id: string
           message_id: string | null
@@ -2678,7 +2721,8 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
-          ghl_order_id: string
+          entitlement_key?: string | null
+          ghl_order_id?: string | null
           id?: string
           location_id: string
           message_id?: string | null
@@ -2689,7 +2733,8 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
-          ghl_order_id?: string
+          entitlement_key?: string | null
+          ghl_order_id?: string | null
           id?: string
           location_id?: string
           message_id?: string | null
@@ -2702,6 +2747,59 @@ export type Database = {
           {
             foreignKeyName: "hair_system_kit_deliveries_order_id_fkey"
             columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hair_system_kit_manual_recoveries: {
+        Row: {
+          admin_id: string
+          completed_at: string | null
+          created_at: string
+          email_key: string | null
+          id: string
+          identity_key: string
+          phone_key: string | null
+          preview_facts: Json
+          request_key: string
+          status: string
+          supplier_message_id: string | null
+          supplier_order_id: string | null
+        }
+        Insert: {
+          admin_id: string
+          completed_at?: string | null
+          created_at?: string
+          email_key?: string | null
+          id?: string
+          identity_key: string
+          phone_key?: string | null
+          preview_facts: Json
+          request_key: string
+          status?: string
+          supplier_message_id?: string | null
+          supplier_order_id?: string | null
+        }
+        Update: {
+          admin_id?: string
+          completed_at?: string | null
+          created_at?: string
+          email_key?: string | null
+          id?: string
+          identity_key?: string
+          phone_key?: string | null
+          preview_facts?: Json
+          request_key?: string
+          status?: string
+          supplier_message_id?: string | null
+          supplier_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hair_system_kit_manual_recoveries_supplier_order_id_fkey"
+            columns: ["supplier_order_id"]
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
@@ -3187,33 +3285,22 @@ export type Database = {
       }
       member_onboarding_profiles: {
         Row: {
-          business_setup_draft: Json | null
-          business_setup_draft_updated_at: string | null
-          business_owner_type: string | null
-          cuts_at_owned_business: boolean | null
-          currently_cutting: boolean | null
-          professional_role: string | null
-          workplace_type: string | null
-          workplace_other_description: string | null
-          other_professionals_count: string | null
-          service_city: string | null
-          work_location_street: string | null
-          work_location_city: string | null
-          work_location_state: string | null
-          work_location_postal_code: string | null
-          website_status: string | null
-          website_url: string | null
           booking_app_status: string | null
           booking_link_status: string | null
-          booking_url: string | null
-          business_setup_completed_at: string | null
           booking_method: string | null
           booking_platform: string | null
+          booking_url: string | null
           business_name: string | null
+          business_owner_type: string | null
+          business_setup_completed_at: string | null
+          business_setup_draft: Json | null
+          business_setup_draft_updated_at: string | null
           business_types: string[]
           completed_at: string | null
           created_at: string
+          currently_cutting: boolean | null
           custom_services: string[]
+          cuts_at_owned_business: boolean | null
           guidance_requested: boolean
           hours_text: string | null
           instagram_handle: string | null
@@ -3224,39 +3311,39 @@ export type Database = {
           name_brainstorm_result: string | null
           name_help_requested: boolean
           other_business_type: string | null
+          other_professionals_count: string | null
           photo_url: string | null
+          professional_role: string | null
+          service_city: string | null
           services: string[]
           updated_at: string
           user_id: string
+          website_status: string | null
+          website_url: string | null
+          work_location_city: string | null
+          work_location_postal_code: string | null
+          work_location_state: string | null
+          work_location_street: string | null
+          workplace_other_description: string | null
+          workplace_type: string | null
         }
         Insert: {
-          business_setup_draft?: Json | null
-          business_setup_draft_updated_at?: string | null
-          business_owner_type?: string | null
-          cuts_at_owned_business?: boolean | null
-          currently_cutting?: boolean | null
-          professional_role?: string | null
-          workplace_type?: string | null
-          workplace_other_description?: string | null
-          other_professionals_count?: string | null
-          service_city?: string | null
-          work_location_street?: string | null
-          work_location_city?: string | null
-          work_location_state?: string | null
-          work_location_postal_code?: string | null
-          website_status?: string | null
-          website_url?: string | null
           booking_app_status?: string | null
           booking_link_status?: string | null
-          booking_url?: string | null
-          business_setup_completed_at?: string | null
           booking_method?: string | null
           booking_platform?: string | null
+          booking_url?: string | null
           business_name?: string | null
+          business_owner_type?: string | null
+          business_setup_completed_at?: string | null
+          business_setup_draft?: Json | null
+          business_setup_draft_updated_at?: string | null
           business_types?: string[]
           completed_at?: string | null
           created_at?: string
+          currently_cutting?: boolean | null
           custom_services?: string[]
+          cuts_at_owned_business?: boolean | null
           guidance_requested?: boolean
           hours_text?: string | null
           instagram_handle?: string | null
@@ -3267,39 +3354,39 @@ export type Database = {
           name_brainstorm_result?: string | null
           name_help_requested?: boolean
           other_business_type?: string | null
+          other_professionals_count?: string | null
           photo_url?: string | null
+          professional_role?: string | null
+          service_city?: string | null
           services?: string[]
           updated_at?: string
           user_id: string
-        }
-        Update: {
-          business_setup_draft?: Json | null
-          business_setup_draft_updated_at?: string | null
-          business_owner_type?: string | null
-          cuts_at_owned_business?: boolean | null
-          currently_cutting?: boolean | null
-          professional_role?: string | null
-          workplace_type?: string | null
-          workplace_other_description?: string | null
-          other_professionals_count?: string | null
-          service_city?: string | null
-          work_location_street?: string | null
-          work_location_city?: string | null
-          work_location_state?: string | null
-          work_location_postal_code?: string | null
           website_status?: string | null
           website_url?: string | null
+          work_location_city?: string | null
+          work_location_postal_code?: string | null
+          work_location_state?: string | null
+          work_location_street?: string | null
+          workplace_other_description?: string | null
+          workplace_type?: string | null
+        }
+        Update: {
           booking_app_status?: string | null
           booking_link_status?: string | null
-          booking_url?: string | null
-          business_setup_completed_at?: string | null
           booking_method?: string | null
           booking_platform?: string | null
+          booking_url?: string | null
           business_name?: string | null
+          business_owner_type?: string | null
+          business_setup_completed_at?: string | null
+          business_setup_draft?: Json | null
+          business_setup_draft_updated_at?: string | null
           business_types?: string[]
           completed_at?: string | null
           created_at?: string
+          currently_cutting?: boolean | null
           custom_services?: string[]
+          cuts_at_owned_business?: boolean | null
           guidance_requested?: boolean
           hours_text?: string | null
           instagram_handle?: string | null
@@ -3310,10 +3397,21 @@ export type Database = {
           name_brainstorm_result?: string | null
           name_help_requested?: boolean
           other_business_type?: string | null
+          other_professionals_count?: string | null
           photo_url?: string | null
+          professional_role?: string | null
+          service_city?: string | null
           services?: string[]
           updated_at?: string
           user_id?: string
+          website_status?: string | null
+          website_url?: string | null
+          work_location_city?: string | null
+          work_location_postal_code?: string | null
+          work_location_state?: string | null
+          work_location_street?: string | null
+          workplace_other_description?: string | null
+          workplace_type?: string | null
         }
         Relationships: [
           {
@@ -5344,6 +5442,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      manual_kit_duplicate_state: {
+        Args: {
+          _address1: string
+          _email: string
+          _name: string
+          _phone: string
+          _postal_code: string
+          _request_key: string
+        }
+        Returns: Json
+      }
       mark_support_messages_read: {
         Args: { p_conversation_id: string }
         Returns: undefined
@@ -5389,6 +5498,10 @@ export type Database = {
         Returns: undefined
       }
       verify_buyer_shipping_cron_token: {
+        Args: { _token: string }
+        Returns: boolean
+      }
+      verify_managed_ad_reporting_cron_token: {
         Args: { _token: string }
         Returns: boolean
       }
