@@ -73,7 +73,6 @@ export default function Ads() {
 
   const { data: campaigns = [], isLoading, isError: campaignsError } = useQuery({
     queryKey: ['member-ad-campaigns'],
-    enabled: connected,
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('managed-ad-campaigns', {
         body: { action: 'getDashboard' },
@@ -157,6 +156,18 @@ export default function Ads() {
               <FacebookConnectButton />
             )}
           </div>
+
+          {campaigns.length > 0 && (
+            <div className="glass-card rounded-xl p-5 space-y-4">
+              <h2 className="font-medium">Your campaign results</h2>
+              {campaigns.map((campaign) => (
+                <div key={campaign.id} className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{campaign.name}</p>
+                  <CampaignResults campaignId={campaign.id} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </DashboardLayout>
     );
