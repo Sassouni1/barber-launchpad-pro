@@ -72,7 +72,8 @@ export default function Ads() {
   const [skipping, setSkipping] = useState(false);
 
   const { data: campaigns = [], isLoading, isError: campaignsError } = useQuery({
-    queryKey: ['member-ad-campaigns'],
+    queryKey: ['member-ad-campaigns', user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('managed-ad-campaigns', {
         body: { action: 'getDashboard' },
