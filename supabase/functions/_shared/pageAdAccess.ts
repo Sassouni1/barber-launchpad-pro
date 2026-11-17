@@ -18,6 +18,14 @@ import { normalizeAgencyToken } from './metaAgency.ts';
 export const BARBER_LAUNCH_BUSINESS_ID = '1832826473434326';
 /** The only Page task Barber Launch ever requests. */
 export const PAGE_AD_TASKS: readonly string[] = Object.freeze(['ADVERTISE']);
+/**
+ * Task names in a client_pages read that prove advertising access. Meta's newer Page access model
+ * reports partner Ads access as PROFILE_PLUS_ADVERTISE, and full control includes advertising.
+ * Only proof: requests still send ADVERTISE alone.
+ */
+export const ADVERTISING_PROOF_TASKS: readonly string[] = Object.freeze(['ADVERTISE', 'PROFILE_PLUS_ADVERTISE', 'PROFILE_PLUS_FULL_CONTROL']);
+export const hasAdvertisingTask = (tasks: readonly unknown[]): boolean =>
+  tasks.some((task) => typeof task === 'string' && ADVERTISING_PROOF_TASKS.includes(task));
 /** A member may resend an accepted request only after Meta has had this long to list Barber Launch. */
 export const PAGE_AD_RETRY_AFTER_MS = 15 * 60 * 1000;
 /** Error code used locally when the server-only Barber Launch token is not configured. */
@@ -123,7 +131,7 @@ export async function verifyPageAdAccess(
   if (owner.ok && owner.data === BARBER_LAUNCH_BUSINESS_ID) return { state: 'granted', via: 'owner' };
 
   const tasks = await graph.listClientPageTasks(pageId);
-  if (tasks.ok && Array.isArray(tasks.data) && tasks.data.includes('ADVERTISE')) {
+  if (tasks.ok && Array.isArray(tasks.data) && hasAdvertisingTask(tasks.data)) {
     return { state: 'granted', via: 'client_tasks' };
   }
   // Barber Launch already has tasks on this Page, but not ADVERTISE: never send a request that could change them.

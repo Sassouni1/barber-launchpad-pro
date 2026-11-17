@@ -365,3 +365,29 @@ Deno.test("Page business read showing Barber Launch is granted via owner with no
   assertEquals(out.verifiedVia, "owner");
   assertEquals(out.requested, false);
 });
+
+Deno.test("Vault Trading Academy live shape: client_pages tasks [PROFILE_PLUS_ADVERTISE] is granted, no POST", async () => {
+  // Exact live response for Page 691048774091891: clientTasks {listed:true, tasks:["PROFILE_PLUS_ADVERTISE"]}.
+  const { graph, calls } = fakeGraph({ agencies: [listed], tasks: [{ ok: true, data: ["PROFILE_PLUS_ADVERTISE"] }] });
+  const out = await grantPageAdAccess(graph, "691048774091891", TOKEN, false);
+  assertEquals(out.status, "granted");
+  assertEquals(out.verifiedVia, "client_tasks");
+  assertEquals(calls.adds.length, 0);
+  const checked = await checkPageAdAccess(graph, "691048774091891", TOKEN, false);
+  assertEquals(checked.status, "granted");
+});
+
+Deno.test("PROFILE_PLUS_FULL_CONTROL counts as advertising proof; other PROFILE_PLUS tasks never do", async () => {
+  const full = await checkPageAdAccess(fakeGraph({ agencies: [listed], tasks: [{ ok: true, data: ["PROFILE_PLUS_FULL_CONTROL"] }] }).graph, PAGE, TOKEN, false);
+  assertEquals(full.status, "granted");
+  const { graph, calls } = fakeGraph({ agencies: [listed], tasks: [{ ok: true, data: ["PROFILE_PLUS_ANALYZE", "PROFILE_PLUS_CREATE_CONTENT"] }] });
+  const other = await grantPageAdAccess(graph, PAGE, TOKEN, false);
+  assertEquals(other.status, "unverified");
+  assertEquals(other.message, PARTNER_NO_ADVERTISE_MESSAGE);
+  assertEquals(calls.adds.length, 0);
+});
+
+Deno.test("a failed client_pages read is never treated as PROFILE_PLUS_ADVERTISE proof", async () => {
+  const out = await checkPageAdAccess(fakeGraph({ agencies: [listed], tasks: [tokenMissing] }).graph, PAGE, TOKEN, false);
+  assertEquals(out.status === "granted", false);
+});
