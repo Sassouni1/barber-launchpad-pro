@@ -63,8 +63,6 @@ export type AccessOutcome = {
   verifiedVia?: 'owner' | 'client_tasks';
   /** Error from the member's own Page token; safe to show the member. */
   metaError?: { code: number | null; message: string | null };
-  /** Error from Barber Launch's server token; logged only, never returned to the member. */
-  serverIssue?: { code: number | null; message: string | null };
 };
 
 export const isFacebookId = (value: unknown): value is string =>
