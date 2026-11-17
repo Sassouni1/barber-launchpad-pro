@@ -82,7 +82,17 @@ export default function AdsManager() {
     e.preventDefault();
     if (!form.customer_id || !form.name) return toast.error('Choose a customer and campaign name.');
     setSaving(true);
-    const { error } = await (supabase as any).from('ad_campaigns').insert({ ...form, meta_ad_account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID, daily_budget_cents: Math.round(Number(form.daily_budget || 0) * 100), created_by: user?.id, status: 'draft' });
+    const { error } = await (supabase as any).from('ad_campaigns').insert({
+      customer_id: form.customer_id,
+      name: form.name,
+      objective: form.objective,
+      landing_page_url: form.landing_page_url || null,
+      audience_notes: form.audience_notes || null,
+      meta_ad_account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID,
+      daily_budget_cents: Math.round(Number(form.daily_budget || 0) * 100),
+      created_by: user?.id,
+      status: 'draft',
+    });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success('Local draft saved. Nothing was created in Meta.');
