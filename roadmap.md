@@ -107,3 +107,4 @@
 - [ ] First real "Create PAUSED in Meta" press by Chris (not run by agent: it would add a campaign in Meta)
 - [ ] Live ADVERTISE grant from a Page Barber Launch doesn't own (needs a real external member)
 - [ ] Publish frontend after Chris reviews the preview
+- [ ] Recognize PROFILE_PLUS_ADVERTISE / PROFILE_PLUS_FULL_CONTROL as advertising proof (Vault Trading Academy Page 691048774091891); test + deploy managed-ad-social
