@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { adMetaStage, canCreateOrLink, needsMetaCheck } from '../src/lib/adMetaState';
+import { adMetaStage, canCreateOrLink, needsMetaCheck, draftDailyBudgetCents } from '../src/lib/adMetaState';
 
 describe('adMetaStage', () => {
   it('a local status never reads as a Meta campaign without a stored Meta ID', () => {
@@ -22,5 +22,15 @@ describe('create/link controls', () => {
     }
     expect(canCreateOrLink({ meta_create_status: 'failed' })).toBe(true);
     expect(canCreateOrLink({ meta_campaign_id: '120', meta_create_status: 'created' })).toBe(false);
+  });
+});
+
+describe('draftDailyBudgetCents', () => {
+  it('accepts $0 or at least $10/day, matching the database minimum', () => {
+    expect(draftDailyBudgetCents('10')).toBe(1000);
+    expect(draftDailyBudgetCents('0')).toBe(0);
+    expect(draftDailyBudgetCents('9.99')).toBeNull();
+    expect(draftDailyBudgetCents('5')).toBeNull();
+    expect(draftDailyBudgetCents('-1')).toBeNull();
   });
 });
