@@ -7,6 +7,7 @@ import { readStripeEvidence } from './readStripeEvidence.ts';
 import { kitStorage } from './storage.ts';
 import { hairSystemStripeKey } from '../_shared/hairSystemFulfillment.ts';
 import { runManualKit } from '../_shared/hairSystemKit/manualServer.ts';
+import { runManualIndividual } from '../_shared/hairSystemKit/manualIndividualServer.ts';
 import { authorizeKitAdmin } from '../_shared/hairSystemKit/manual.ts';
 
 const ManualAddress = z.object({ address1: z.string().min(1).max(120),
@@ -19,6 +20,15 @@ const ManualBody = z.object({ action: z.enum(['manual_preview', 'manual_confirm'
   reason: z.string().max(1000), kit_notes: z.string().max(2000),
   preview_token: z.string().regex(/^[a-f0-9]{64}$/).optional(), preview_expires: z.number().int().optional(),
   }).strict();
+const IndividualBody = z.object({ action: z.enum(['individual_preview', 'individual_confirm']),
+  request_key: z.string().uuid(), name: z.string().min(1).max(120),
+  email: z.union([z.literal(''), z.string().email().max(254)]), phone: z.string().max(40),
+  shipping: ManualAddress, item: z.string().min(1).max(240), variant: z.string().min(1).max(240),
+  quantity: z.literal(1), supplier_cost_cents: z.number().int().min(0).max(1_000_000).nullable(),
+  notes: z.string().max(2000), shipping_confirmed: z.literal(true),
+  repeat_of_order_id: z.string().uuid().nullable(), repeat_confirmed: z.boolean(),
+  preview_token: z.string().regex(/^[a-f0-9]{64}$/).optional(), preview_expires: z.number().int().optional(),
+}).strict();
 const Body = z.object({ action: z.enum(['diagnostics','dry_run']), order_id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict();
 const WebhookBody = z.object({ order_id: z.string().regex(/^[a-f0-9]{24}$/i), phone: z.string().max(40).optional() }).passthrough();
 async function validWebhookToken(value: string | null, secret: string): Promise<boolean> {
@@ -79,6 +89,18 @@ Deno.serve(async req => {
     async userId => { const { data, error } = await db.rpc('has_role', { _user_id: userId, _role: 'admin' }); return !error && data === true; });
   if (!authorization.ok) return reply({ error: authorization.status === 401 ? 'unauthorized' : 'forbidden' }, authorization.status);
   const rawBody = await req.json().catch(() => null);
+  if (rawBody?.action === 'individual_preview' || rawBody?.action === 'individual_confirm') {
+    const individual = IndividualBody.safeParse(rawBody);
+    if (!individual.success) return reply({ error: 'invalid_individual_request' }, 400);
+    try {
+      const result = await runManualIndividual(db, individual.data.action === 'individual_preview' ? 'preview' : 'confirm', individual.data,
+        { adminId: authorization.userId, secret: service, previewToken: individual.data.preview_token,
+          previewExpires: individual.data.preview_expires });
+      return reply(result, result.status === 'blocked' ? 409 : result.status === 'uncertain' ? 503 : 200);
+    } catch {
+      return reply({ error: 'manual_individual_reconciliation_required' }, 503);
+    }
+  }
   if (rawBody?.action === 'manual_preview' || rawBody?.action === 'manual_confirm') {
     const manual = ManualBody.safeParse(rawBody);
     if (!manual.success) return reply({ error: 'invalid_manual_request' }, 400);

@@ -78,6 +78,13 @@
       "when": 1794909257712,
       "tag": "0010_ad_campaigns_meta_link_state",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794931200000,
+      "tag": "0011_manual_individual_orders",
+      "breakpoints": true
     }
   ]
 }

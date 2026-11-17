@@ -23,6 +23,7 @@ import { useSupplierCompletion, useAdditionalTracking, useShippingLocations } fr
 import { changeExtraPackage, extraPackages, reopenTrackingDetails, type ExtraChange } from '../../supabase/functions/_shared/supplierTracking';
 import { shippingLocationUpdate, shippingLocations, shipmentProgress, type ShippingLocations } from '../../supabase/functions/_shared/supplierShippingLocations';
 import { ManualKitRecovery } from '@/components/admin/ManualKitRecovery';
+import { ManualIndividualOrder } from '@/components/admin/ManualIndividualOrder';
 
 import { supplierOrderSection, isSupplierCompleted } from '../../supabase/functions/_shared/supplierOrderLifecycle';
 
@@ -748,7 +749,7 @@ export default function ManufacturerOrders({ adminView = false, hidePrivateDetai
           </div>
         </div>
 
-        {adminView && isAdmin && <ManualKitRecovery />}
+        {adminView && isAdmin && <><ManualIndividualOrder /><ManualKitRecovery /></>}
 
         {isLoading ? (
           <div className="flex justify-center py-12">
