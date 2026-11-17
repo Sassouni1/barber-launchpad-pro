@@ -50,7 +50,7 @@ async function logEvent(db: Db, local: Local, eventType: string, adminId: string
 
 /* ---------------------------------- create --------------------------------- */
 
-async function createPaused(db: Db, agency: AgencyClient, adminId: string, body: Record<string, unknown>) {
+async function createPaused(db: Db, agency: AgencyClient, adminId: string, body: Record<string, unknown>): Promise<Response> {
   const local = await loadLocal(db, body.campaign_id);
   if (!local) return json({ error: 'Campaign not found.' }, 404);
 
@@ -165,7 +165,7 @@ async function createPaused(db: Db, agency: AgencyClient, adminId: string, body:
 
 /* --------------------------------- reconcile -------------------------------- */
 
-async function reconcile(db: Db, agency: AgencyClient, adminId: string, local: Local) {
+async function reconcile(db: Db, agency: AgencyClient, adminId: string, local: Local): Promise<Response> {
   if (local.meta_campaign_id) return json({ ok: true, already: true, meta_campaign_id: local.meta_campaign_id });
   if (local.meta_create_status !== 'creating' && local.meta_create_status !== 'unknown') {
     return json({ error: 'There is no unfinished Meta create to check for this draft.' }, 409);
@@ -236,7 +236,7 @@ async function linkContext(db: Db, agency: AgencyClient, body: Record<string, un
   return { local, campaign: campaign.data, customer };
 }
 
-async function previewLink(db: Db, agency: AgencyClient, body: Record<string, unknown>) {
+async function previewLink(db: Db, agency: AgencyClient, body: Record<string, unknown>): Promise<Response> {
   const ctx = await linkContext(db, agency, body);
   if ('error' in ctx) return ctx.error;
   const account = await agency.readAdAccount();
@@ -262,7 +262,7 @@ async function previewLink(db: Db, agency: AgencyClient, body: Record<string, un
   });
 }
 
-async function confirmLink(db: Db, agency: AgencyClient, adminId: string, body: Record<string, unknown>) {
+async function confirmLink(db: Db, agency: AgencyClient, adminId: string, body: Record<string, unknown>): Promise<Response> {
   const ctx = await linkContext(db, agency, body);
   if ('error' in ctx) return ctx.error;
   // The admin confirms the exact customer shown in the preview.
@@ -294,7 +294,7 @@ async function confirmLink(db: Db, agency: AgencyClient, adminId: string, body: 
 
 /* ---------------------------------- status --------------------------------- */
 
-async function refreshMetaStatus(db: Db, agency: AgencyClient, body: Record<string, unknown>) {
+async function refreshMetaStatus(db: Db, agency: AgencyClient, body: Record<string, unknown>): Promise<Response> {
   const local = await loadLocal(db, body.campaign_id);
   if (!local) return json({ error: 'Campaign not found.' }, 404);
   if (!local.meta_campaign_id) return json({ error: 'This campaign is a local draft only; nothing to read from Meta.' }, 409);
@@ -308,7 +308,7 @@ async function refreshMetaStatus(db: Db, agency: AgencyClient, body: Record<stri
   return json({ ok: true, status: campaign.data.status, effective_status: campaign.data.effective_status, checked_at: now });
 }
 
-async function connectionStatus(token: string | undefined) {
+async function connectionStatus(token: string | undefined): Promise<Response> {
   if (!token) {
     return json({ ok: true, configured: false, account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID, message: 'No server Meta token is configured yet.' });
   }
