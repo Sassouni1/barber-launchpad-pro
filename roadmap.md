@@ -102,6 +102,8 @@
 - [x] Reporting sync bound to linked Official campaigns; member results with honest empty/error states and last update
 - [x] Admin states: local draft vs Meta PAUSED vs ACTIVE; "Mark ready (local)" labeled local-only
 - [x] Page access needs Meta task proof (client_pages) or ownership; deployed
-- [ ] Server Meta token (META_ADS_ACCESS_TOKEN, system user with ads_management/ads_read/business_management) — waiting on Chris
-- [ ] After token: live-check client_pages response, create/link one PAUSED campaign, sync, then optional scheduled sync
+- [x] Server Meta token saved; account, permissions, client_pages, link, status and results reads verified live (temporary drafts removed)
+- [x] Hourly results sync scheduled (server-held token)
+- [ ] First real "Create PAUSED in Meta" press by Chris (not run by agent: it would add a campaign in Meta)
+- [ ] Live ADVERTISE grant from a Page Barber Launch doesn't own (needs a real external member)
 - [ ] Publish frontend after Chris reviews the preview

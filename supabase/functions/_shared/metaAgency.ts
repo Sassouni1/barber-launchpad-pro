@@ -344,6 +344,23 @@ export function createAgencyClient(rawToken: string, fetchImpl: FetchLike = fetc
     },
 
     /** Read-only: campaigns in Barber Launch Official whose name carries this exact marker. */
+    /** Read-only: campaigns in Barber Launch Official, for the admin link picker. */
+    listCampaigns(): Promise<MetaResult<MetaCampaign[]>> {
+      const url = new URL(`${base}/act_${BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID}/campaigns`);
+      url.searchParams.set('fields', CAMPAIGN_FIELDS);
+      url.searchParams.set('limit', '100');
+      return paged(url, asCampaign, 3);
+    },
+
+    /** Read-only: permissions granted to the server token's user. */
+    async readGrantedPermissions(): Promise<MetaResult<string[]>> {
+      const url = new URL(`${base}/me/permissions`);
+      url.searchParams.set('limit', '200');
+      return call(fetchImpl, url, { headers }, (p) => (Array.isArray(p.data) ? p.data : [])
+        .filter((row: Record<string, unknown>) => row?.status === 'granted' && typeof row.permission === 'string')
+        .map((row: Record<string, unknown>) => String(row.permission)));
+    },
+
     async findCampaignsByMarker(marker: string): Promise<MetaResult<MetaCampaign[]>> {
       const url = new URL(`${base}/act_${BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID}/campaigns`);
       url.searchParams.set('fields', CAMPAIGN_FIELDS);

@@ -320,11 +320,26 @@ async function connectionStatus(token: string | undefined): Promise<Response> {
   if (agencyTokenProblem(token) === 'invalid') {
     return json({ ok: true, configured: true, reachable: false, account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID, message: "The saved server Meta token isn't a valid access token (it contains characters Meta tokens never have). Re-enter it." });
   }
-  const account = await createAgencyClient(token).readAdAccount();
+  const agency = createAgencyClient(token);
+  const account = await agency.readAdAccount();
   if (!account.ok) {
     return json({ ok: true, configured: true, reachable: false, account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID, message: describeMetaError(account.error) });
   }
-  return json({ ok: true, configured: true, reachable: true, account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID, account: account.data });
+  const [permissions, campaigns] = await Promise.all([agency.readGrantedPermissions(), agency.listCampaigns()]);
+  const needed = ['ads_management', 'ads_read', 'business_management'];
+  return json({
+    ok: true,
+    configured: true,
+    reachable: true,
+    account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID,
+    account: account.data,
+    permissions: permissions.ok
+      ? { readable: true, missing: needed.filter((p) => !permissions.data.includes(p)) }
+      : { readable: false, message: describeMetaError(permissions.error) },
+    campaigns: campaigns.ok
+      ? campaigns.data.map((c) => ({ id: c.id, name: c.name, status: c.status, effective_status: c.effective_status }))
+      : null,
+  });
 }
 
 /* --------------------------------- handler --------------------------------- */
