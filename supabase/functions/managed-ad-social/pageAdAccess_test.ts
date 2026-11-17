@@ -87,6 +87,14 @@ Deno.test("ADVERTISE in client_pages grants even an existing partnership, with n
   assertEquals(calls.adds.length, 0);
 });
 
+Deno.test("new Page advertising task confirms existing Ads partner access without another request", async () => {
+  const { graph, calls } = fakeGraph({ agencies: [listed], tasks: [{ ok: true, data: ["PROFILE_PLUS_ADVERTISE"] }] });
+  const out = await grantPageAdAccess(graph, PAGE, TOKEN, false);
+  assertEquals(out.status, "granted");
+  assertEquals(out.verifiedVia, "client_tasks");
+  assertEquals(calls.adds.length, 0);
+});
+
 Deno.test("existing Barber Launch tasks without ADVERTISE are never overwritten by a request", async () => {
   for (const agencies of [listed, none]) {
     const { graph, calls } = fakeGraph({ agencies: [agencies], tasks: [analyzeOnly] });
