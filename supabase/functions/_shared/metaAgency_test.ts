@@ -8,6 +8,7 @@ import {
   deliveryState,
   insightsBelongTo,
   normalizeAgencyToken,
+  agencyTokenProblem,
   parseSpecialAdDeclaration,
   summarizeInsight,
   type MetaCampaign,
@@ -116,4 +117,10 @@ Deno.test("a pasted server token is cleaned of whitespace, quotes and a Bearer p
   assertEquals(normalizeAgencyToken("EAA ab\nc"), "EAAabc");
   assertEquals(normalizeAgencyToken("   "), null);
   assertEquals(normalizeAgencyToken(undefined), null);
+});
+
+Deno.test("a token with characters Meta never issues is reported as invalid, not sent", () => {
+  assertEquals(agencyTokenProblem("EAAabc123_-"), null);
+  assertEquals(agencyTokenProblem("EAAabc…"), "invalid");
+  assertEquals(agencyTokenProblem("  "), "missing");
 });

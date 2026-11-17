@@ -243,6 +243,13 @@ export function normalizeAgencyToken(raw: string | null | undefined): string | n
   return token.length > 0 ? token : null;
 }
 
+/** Meta access tokens are plain URL-safe text; anything else can't be sent in a request header. */
+export function agencyTokenProblem(raw: string | null | undefined): 'missing' | 'invalid' | null {
+  const token = normalizeAgencyToken(raw);
+  if (!token) return 'missing';
+  return /^[A-Za-z0-9_\-.|]+$/.test(token) ? null : 'invalid';
+}
+
 async function call<T>(fetchImpl: FetchLike, url: string | URL, init: RequestInit, pick: (p: Record<string, unknown>) => T): Promise<MetaResult<T>> {
   let res: Response;
   try {
