@@ -4,7 +4,7 @@ const corsHeaders = {
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import forge from "npm:node-forge@1.3.1";
-import JSZip from "npm:jszip@3.10.1";
+import JSZip from "npm:jszip@3.10.2";
 import { CARD_BASE_URL, normalizeWebsiteUrl, normalizeInstagramUrl, normalizeInstagramHandle } from "../_shared/cardLinks.ts";
 
 // Apple WWDR G4 intermediate certificate (PEM)
@@ -36,7 +36,7 @@ pU8RBWk6z/Kf
 -----END CERTIFICATE-----`;
 
 async function sha1Hex(data: Uint8Array): Promise<string> {
-  const hash = await crypto.subtle.digest("SHA-1", data);
+  const hash = await crypto.subtle.digest("SHA-1", data as BufferSource);
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
     }
     const pkpassBuffer = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
 
-    return new Response(pkpassBuffer, {
+    return new Response(pkpassBuffer as BodyInit, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/vnd.apple.pkpass",

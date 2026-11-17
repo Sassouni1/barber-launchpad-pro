@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +22,7 @@ function getSupabase() {
   return createClient(url, key);
 }
 
-async function requireAdmin(req: Request, supabaseUrl: string, anonKey: string, serviceClient: ReturnType<typeof createClient>) {
+async function requireAdmin(req: Request, supabaseUrl: string, anonKey: string, serviceClient: SupabaseClient<any, any, any>) {
   const authorization = req.headers.get("Authorization");
   if (!authorization?.startsWith("Bearer ")) {
     throw new HttpError(401, "Authentication required");

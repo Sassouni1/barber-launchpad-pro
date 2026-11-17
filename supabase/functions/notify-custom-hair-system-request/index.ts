@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient as BaseSupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,7 +17,7 @@ const GHL_HEADERS = (apiKey: string) => ({
   Version: "2021-07-28",
 });
 
-type SupabaseClient = ReturnType<typeof createClient>;
+type SupabaseClient = BaseSupabaseClient<any, any, any>;
 
 type GhlTokenRecord = {
   id: string;
