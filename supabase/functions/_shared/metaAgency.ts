@@ -234,11 +234,29 @@ export function describeMetaError(error: MetaError): string {
 
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
+/** Tolerates a pasted token with surrounding whitespace, quotes or a "Bearer " prefix. */
+export function normalizeAgencyToken(raw: string | null | undefined): string | null {
+  if (typeof raw !== 'string') return null;
+  let token = raw.trim().replace(/^bearer\s+/i, '').trim();
+  if (/^(["']).*\1$/.test(token)) token = token.slice(1, -1).trim();
+  token = token.replace(/\s+/g, '');
+  return token.length > 0 ? token : null;
+}
+
+/** Meta access tokens are plain URL-safe text; anything else can't be sent in a request header. */
+export function agencyTokenProblem(raw: string | null | undefined): 'missing' | 'invalid' | null {
+  const token = normalizeAgencyToken(raw);
+  if (!token) return 'missing';
+  return /^[A-Za-z0-9_\-.|]+$/.test(token) ? null : 'invalid';
+}
+
 async function call<T>(fetchImpl: FetchLike, url: string | URL, init: RequestInit, pick: (p: Record<string, unknown>) => T): Promise<MetaResult<T>> {
   let res: Response;
   try {
     res = await fetchImpl(url, init);
-  } catch {
+  } catch (err) {
+    // Log only the error class: some runtime messages echo header values.
+    console.error('Meta request threw', err instanceof Error ? err.name : typeof err);
     return { ok: false, status: 0, error: { message: 'Could not reach Meta.' }, definitive: false };
   }
   const payload = await res.json().catch(() => null) as Record<string, unknown> | null;
@@ -263,8 +281,8 @@ const asCampaign = (p: Record<string, unknown>): MetaCampaign => ({
 
 export type AgencyClient = ReturnType<typeof createAgencyClient>;
 
-export function createAgencyClient(token: string, fetchImpl: FetchLike = fetch, base = META_GRAPH_BASE) {
-  const headers = { Authorization: `Bearer ${token}` };
+export function createAgencyClient(rawToken: string, fetchImpl: FetchLike = fetch, base = META_GRAPH_BASE) {
+  const headers = { Authorization: `Bearer ${normalizeAgencyToken(rawToken) ?? ''}` };
 
   async function paged<T>(first: URL, map: (row: Record<string, unknown>) => T, maxPages = 10): Promise<MetaResult<T[]>> {
     const all: T[] = [];

@@ -13,6 +13,8 @@
 // - POST /{page-id}/agencies {business, permitted_tasks:['ADVERTISE']} returns success. A success,
 //   a listing, or OAuth success alone is never a grant.
 
+import { normalizeAgencyToken } from './metaAgency.ts';
+
 export const BARBER_LAUNCH_BUSINESS_ID = '1832826473434326';
 /** The only Page task Barber Launch ever requests. */
 export const PAGE_AD_TASKS: readonly string[] = Object.freeze(['ADVERTISE']);
@@ -297,7 +299,8 @@ async function readGraph<T>(res: Response, pick: (payload: Record<string, unknow
 async function fetchGraph<T>(fetchImpl: FetchLike, url: string | URL, init: RequestInit | undefined, pick: (p: Record<string, unknown>) => T): Promise<GraphResult<T>> {
   try {
     return await readGraph(await fetchImpl(url, init), pick);
-  } catch {
+  } catch (err) {
+    console.error('Facebook request threw', err instanceof Error ? err.name : typeof err);
     return { ok: false, status: 0, error: { message: 'Could not reach Facebook.' } };
   }
 }
@@ -306,7 +309,8 @@ async function fetchGraph<T>(fetchImpl: FetchLike, url: string | URL, init: Requ
  * Real Graph API adapter. Tokens travel only in the Authorization header.
  * `agencyToken` is Barber Launch's server-only token, used only for its own client_pages list.
  */
-export function createGraphClient(graphBase: string, fetchImpl: FetchLike = fetch, agencyToken?: string | null): PageAccessGraph {
+export function createGraphClient(graphBase: string, fetchImpl: FetchLike = fetch, rawAgencyToken?: string | null): PageAccessGraph {
+  const agencyToken = normalizeAgencyToken(rawAgencyToken);
   const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
   return {
     async listAgencies(pageId, pageToken) {

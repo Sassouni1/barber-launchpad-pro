@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from "../_shared/cors.ts";
 import {
   AGENCY_TOKEN_ENV,
+  agencyTokenProblem,
   BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID,
   buildPausedCampaignBody,
   campaignMarker,
@@ -315,6 +316,9 @@ async function refreshMetaStatus(db: Db, agency: AgencyClient, body: Record<stri
 async function connectionStatus(token: string | undefined): Promise<Response> {
   if (!token) {
     return json({ ok: true, configured: false, account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID, message: 'No server Meta token is configured yet.' });
+  }
+  if (agencyTokenProblem(token) === 'invalid') {
+    return json({ ok: true, configured: true, reachable: false, account_id: BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID, message: "The saved server Meta token isn't a valid access token (it contains characters Meta tokens never have). Re-enter it." });
   }
   const account = await createAgencyClient(token).readAdAccount();
   if (!account.ok) {
