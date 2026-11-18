@@ -3579,6 +3579,108 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_agency_credential_status: {
+        Row: {
+          action_required: string | null
+          data_access_expires_at: string | null
+          expires_at: string | null
+          id: number
+          last_checked_at: string | null
+          last_error_code: number | null
+          last_error_message: string | null
+          last_healthy_at: string | null
+          last_renewal_attempt_at: string | null
+          last_renewed_at: string | null
+          renewable: boolean | null
+          scopes: string[]
+          state: string
+          token_source: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_required?: string | null
+          data_access_expires_at?: string | null
+          expires_at?: string | null
+          id?: number
+          last_checked_at?: string | null
+          last_error_code?: number | null
+          last_error_message?: string | null
+          last_healthy_at?: string | null
+          last_renewal_attempt_at?: string | null
+          last_renewed_at?: string | null
+          renewable?: boolean | null
+          scopes?: string[]
+          state?: string
+          token_source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_required?: string | null
+          data_access_expires_at?: string | null
+          expires_at?: string | null
+          id?: number
+          last_checked_at?: string | null
+          last_error_code?: number | null
+          last_error_message?: string | null
+          last_healthy_at?: string | null
+          last_renewal_attempt_at?: string | null
+          last_renewed_at?: string | null
+          renewable?: boolean | null
+          scopes?: string[]
+          state?: string
+          token_source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meta_agency_credentials: {
+        Row: {
+          ad_account_id: string
+          app_id: string
+          business_id: string
+          created_at: string
+          data_access_expires_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          scopes: string[]
+          secret_id: string
+          source: string
+          superseded_at: string | null
+          verified_at: string
+        }
+        Insert: {
+          ad_account_id: string
+          app_id: string
+          business_id: string
+          created_at?: string
+          data_access_expires_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          scopes?: string[]
+          secret_id: string
+          source: string
+          superseded_at?: string | null
+          verified_at?: string
+        }
+        Update: {
+          ad_account_id?: string
+          app_id?: string
+          business_id?: string
+          created_at?: string
+          data_access_expires_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          scopes?: string[]
+          secret_id?: string
+          source?: string
+          superseded_at?: string | null
+          verified_at?: string
+        }
+        Relationships: []
+      }
       module_files: {
         Row: {
           created_at: string
@@ -5526,6 +5628,17 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: undefined
       }
+      meta_agency_activate_credential: {
+        Args: {
+          _app_id: string
+          _data_access_expires_at: string
+          _expires_at: string
+          _scopes: string[]
+          _secret_id: string
+          _source: string
+        }
+        Returns: string
+      }
       order_tracking_keys: {
         Args: { _details: Json; _primary: string }
         Returns: string[]
@@ -5571,6 +5684,10 @@ export type Database = {
         Returns: boolean
       }
       verify_managed_ad_reporting_cron_token: {
+        Args: { _token: string }
+        Returns: boolean
+      }
+      verify_meta_agency_credential_cron_token: {
         Args: { _token: string }
         Returns: boolean
       }

@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from "../_shared/cors.ts";
+import { getAgencyToken } from '../_shared/metaAgencyCredential.ts';
 import {
   checkPageAdAccess,
   createGraphClient,
@@ -221,7 +222,7 @@ Deno.serve(async (req) => {
       if (!stored?.page_access_token || stored.facebook_page_id !== pageIdToProbe) {
         return json({ error: 'Your Page access is missing.' }, 400);
       }
-      const probe = await probePageOwnership(GRAPH, pageIdToProbe, stored.page_access_token, fetch, Deno.env.get('META_ADS_ACCESS_TOKEN'));
+      const probe = await probePageOwnership(GRAPH, pageIdToProbe, stored.page_access_token, fetch, await getAgencyToken(admin));
       return json({ ok: true, version: FUNCTION_VERSION, pageId: pageIdToProbe, ...probe });
     }
 
@@ -368,7 +369,7 @@ Deno.serve(async (req) => {
       }
 
       // Barber Launch's server-only token reads its own client_pages task list; it never leaves the server.
-      const graph = createGraphClient(GRAPH, fetch, Deno.env.get('META_ADS_ACCESS_TOKEN'));
+      const graph = createGraphClient(GRAPH, fetch, await getAgencyToken(admin));
       const acceptedAt = priorAccepted ? connection.page_ad_access_requested_at as string : null;
       const outcome = action === 'grantPageAdAccess'
         ? await grantPageAdAccess(graph, selectedPageId, stored.page_access_token, priorAccepted)

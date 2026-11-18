@@ -2,6 +2,7 @@
 // Creates PAUSED campaign shells and links existing PAUSED campaigns; never activates, budgets or spends.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from "../_shared/cors.ts";
+import { getAgencyToken } from '../_shared/metaAgencyCredential.ts';
 import {
   AGENCY_TOKEN_ENV,
   agencyTokenProblem,
@@ -84,7 +85,7 @@ async function createPaused(db: Db, agency: AgencyClient, adminId: string, body:
   }
   const priorAccepted = connection?.page_ad_access_page_id === saved.pageId && !!connection?.page_ad_access_requested_at;
   const live = await checkPageAdAccess(
-    createGraphClient(META_GRAPH_BASE, fetch, Deno.env.get(AGENCY_TOKEN_ENV)),
+    createGraphClient(META_GRAPH_BASE, fetch, await getAgencyToken(db)),
     saved.pageId,
     pageTokens.page_access_token,
     priorAccepted,
@@ -367,7 +368,7 @@ Deno.serve(async (req) => {
     if (!ACTIONS.includes(action)) return json({ error: 'Invalid action' }, 400);
     if (action === 'functionVersion') return json({ ok: true, version: FUNCTION_VERSION });
 
-    const token = Deno.env.get(AGENCY_TOKEN_ENV);
+    const token = await getAgencyToken(db);
     if (action === 'status') return await connectionStatus(token);
     if (!token) {
       return json({ error: 'The Barber Launch server Meta token (ads_management) is not configured, so nothing was sent to Meta.', code: 'token_missing' }, 503);

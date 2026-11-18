@@ -85,6 +85,13 @@
       "when": 1794931200000,
       "tag": "0011_manual_individual_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794965123153,
+      "tag": "0012_meta_agency_credential_lifecycle",
+      "breakpoints": true
     }
   ]
 }

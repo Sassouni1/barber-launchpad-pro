@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertTriangle, CheckCircle2, Link2, Loader2, Megaphone, Pause, Play, Plus, RefreshCw, Search, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
 import { FacebookConnectButton } from '@/components/ads/FacebookConnectButton';
+import { MetaAgencyTokenHealth } from '@/components/admin/MetaAgencyTokenHealth';
 import { AD_META_STAGE_LABEL, adMetaStage, canCreateOrLink, needsMetaCheck, draftDailyBudgetCents, type AdMetaStage } from '@/lib/adMetaState';
 
 type Campaign = {
@@ -165,6 +166,7 @@ export default function AdsManager() {
         </DialogContent>
       </Dialog>
     </div>
+    <MetaAgencyTokenHealth />
 
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="glass-card rounded-xl p-5 space-y-2 min-w-0">

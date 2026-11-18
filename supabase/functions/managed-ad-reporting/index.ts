@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from "../_shared/cors.ts";
+import { getAgencyToken } from '../_shared/metaAgencyCredential.ts';
 import {
   AGENCY_TOKEN_ENV,
   BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID,
@@ -102,7 +103,7 @@ async function syncOne(db: SupabaseClient, agency: AgencyClient, campaign: SyncC
 }
 
 async function runSync(onlyCampaignId?: string) {
-  const token = Deno.env.get(AGENCY_TOKEN_ENV);
+  const token = await getAgencyToken(admin());
   if (!token) {
     return json({ status: 'unavailable', reason: 'not_configured', message: 'The server Meta token is not configured. No reporting data was written.' });
   }
@@ -142,7 +143,7 @@ async function getResults(customerId: string, campaignId: string) {
   if (campaignError) return json({ error: 'Could not load results.' }, 500);
   if (!campaign) return json({ error: 'Campaign not found' }, 404);
 
-  const configured = !!Deno.env.get(AGENCY_TOKEN_ENV);
+  const configured = !!(await getAgencyToken(db));
   const lastSyncedAt = campaign.last_metrics_sync_at ?? null;
   // The member sees that a sync failed, never Meta's raw error text.
   const syncFailed = !!campaign.last_metrics_sync_error;
