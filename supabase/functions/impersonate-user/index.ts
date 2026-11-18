@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = '2';
+const VERSION = '3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     });
 
     if (linkError || !linkData) {
-      console.error('Link generation error:', linkError);
+      console.error('[impersonate] Link generation failed');
       return new Response(JSON.stringify({ error: 'Failed to generate login link' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -75,7 +75,6 @@ Deno.serve(async (req) => {
 
     // Extract the token_hash from the action link URL
     const actionLink = linkData.properties?.action_link;
-    console.log('[impersonate] action_link:', actionLink);
 
     const url = new URL(actionLink!);
     const tokenHash = url.searchParams.get('token');
@@ -103,13 +102,13 @@ Deno.serve(async (req) => {
     console.log('[impersonate] verify status:', verifyResponse.status);
 
     if (!verifyResponse.ok || !tokenData.access_token) {
-      console.error('[impersonate] verify error:', tokenData);
+      console.error('[impersonate] Session verification failed');
       return new Response(JSON.stringify({ error: tokenData.error_description || tokenData.msg || 'Failed to create session' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[impersonate] Admin ${caller.email} -> ${targetUser.user.email} SUCCESS`);
+    console.log('[impersonate] Session created successfully');
 
     return new Response(JSON.stringify({
       success: true,
@@ -120,7 +119,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[impersonate] Request failed');
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
