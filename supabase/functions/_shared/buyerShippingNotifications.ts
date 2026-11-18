@@ -56,7 +56,7 @@ export function orderReference(order: ShipOrder): string {
   if (order.external_order_id) return String(order.external_order_id);
   return order.id.slice(0, 8).toUpperCase();
 }
-const firstName = (order: ShipOrder) => String(objectDetails(order.order_details).full_name ?? order.customer_name ?? '').trim().split(/\s+/)[0] || '';
+const firstName = (order: ShipOrder, verifiedName?: string) => String(verifiedName ?? objectDetails(order.order_details).full_name ?? order.customer_name ?? '').trim().split(/\s+/)[0] || '';
 const pkgText = (p: Pkg) => `${p.number}${p.carrier && p.carrier !== 'Other' ? ` (${p.carrier})` : ''}${p.url ? ` ${p.url}` : ''}`;
 
 export function buildShippingSms(pkgs: Pkg[], kit: boolean, isUpdate: boolean): string {
@@ -69,9 +69,9 @@ export function buildShippingSms(pkgs: Pkg[], kit: boolean, isUpdate: boolean): 
   return `${lead} ${label} ${body} ${STOP_FOOTER}`;
 }
 
-export function buildShippingEmail(order: ShipOrder, pkgs: Pkg[], kit: boolean, isUpdate: boolean) {
+export function buildShippingEmail(order: ShipOrder, pkgs: Pkg[], kit: boolean, isUpdate: boolean, verifiedName?: string) {
   const subject = kit ? KIT_SUBJECT : REGULAR_SUBJECT;
-  const name = firstName(order);
+  const name = firstName(order, verifiedName);
   const ref = orderReference(order);
   const headline = isUpdate ? 'Another package is on its way' : kit ? 'Your hair system kit is on its way' : 'Your hair system has shipped';
   const intro = isUpdate ? 'Another package from your order has shipped. Tracking details are below.'
@@ -104,10 +104,40 @@ export function buildShippingEmail(order: ShipOrder, pkgs: Pkg[], kit: boolean, 
   return { subject, html, text };
 }
 
+/** Immutable, server-only buyer recipient binding for an existing manual individual order. */
+export type ManualRecipientBinding = {
+  order_id: string; profile_id: string; ghl_contact_id: string;
+  verified_name: string; verified_email: string; verified_phone: string; verified_at: string;
+};
+export type MemberProfile = { full_name: string | null; email: string | null; phone: string | null };
+export type VerifiedRecipient = { name: string; email: string; phone: string };
+
+export const isManualIndividualOrder = (details: unknown) => {
+  const d = objectDetails(details);
+  return d.manual_individual === true && d.manual_source === 'admin_entry' && !isKitOrder(d);
+};
+
+/** The binding is usable only while the linked membership profile still matches it exactly. */
+export function verifyManualRecipient(orderId: string, b: ManualRecipientBinding, profile: MemberProfile | null): { ok: true; recipient: VerifiedRecipient } | { ok: false; reason: string } {
+  if (b.order_id !== orderId) return { ok: false, reason: 'manual_recipient_binding_mismatch' };
+  if (!/^\+[1-9]\d{7,14}$/.test(b.verified_phone) || !validEmail(b.verified_email) || b.verified_email !== b.verified_email.trim().toLowerCase() || !b.verified_name || b.verified_name !== b.verified_name.trim()) {
+    return { ok: false, reason: 'manual_recipient_binding_invalid' };
+  }
+  if (!profile) return { ok: false, reason: 'manual_recipient_profile_missing' };
+  if (String(profile.full_name ?? '').trim() !== b.verified_name) return { ok: false, reason: 'manual_recipient_name_conflict' };
+  if (String(profile.email ?? '').trim().toLowerCase() !== b.verified_email) return { ok: false, reason: 'manual_recipient_email_conflict' };
+  if (normalizePhone(profile.phone) !== b.verified_phone) return { ok: false, reason: 'manual_recipient_phone_conflict' };
+  return { ok: true, recipient: { name: b.verified_name, email: b.verified_email, phone: b.verified_phone } };
+}
+
 export type SendOutcome = { ok: true; messageId: string | null } | { ok: false; reason: string; definitelyNotSent: boolean };
 export type Deps = {
   readOrder(id: string): Promise<ShipOrder | null>;
   profilePhone(userId: string, email: string): Promise<string | null>;
+  /** Throws on read failure; null when no binding exists. */
+  manualRecipientBinding(orderId: string): Promise<ManualRecipientBinding | null>;
+  /** Throws on read failure; null when the profile no longer exists. */
+  memberProfile(profileId: string): Promise<MemberProfile | null>;
   notified(orderId: string, channel: Channel, excludeId: string): Promise<{ keys: Set<string>; anySent: boolean }>;
   claimChannel(row: QueueRow, channel: Channel, keys: string[]): Promise<boolean>;
   finishChannel(row: QueueRow, channel: Channel, patch: { status: 'sent' | 'skipped' | 'retry' | 'failed' | 'uncertain'; reason?: string | null; recipient?: string | null; messageId?: string | null; keys?: string[] }): Promise<void>;
@@ -141,10 +171,38 @@ export async function processQueueRow(deps: Deps, row: QueueRow): Promise<Record
   }
   const kit = isKitOrder(order.order_details);
   const details = objectDetails(order.order_details);
-  const name = String(details.full_name ?? order.customer_name ?? '').trim();
-  const email = String(order.customer_email ?? '').trim().toLowerCase();
+  let name = String(details.full_name ?? order.customer_name ?? '').trim();
+  let email = String(order.customer_email ?? '').trim().toLowerCase();
   const results: Record<string, string> = {};
   const lastAttempt = row.attempts >= MAX_ATTEMPTS;
+
+  // Existing manual individual orders may lack buyer contact fields on the
+  // protected order row. Only then, use the immutable recipient binding, and
+  // only while its linked membership profile still matches exactly.
+  let verified: VerifiedRecipient | null = null;
+  const orderPhone = normalizePhone(typeof details.phone === 'string' ? details.phone : null);
+  if (isManualIndividualOrder(details) && (!validEmail(email) || !orderPhone)) {
+    let check: { ok: true; recipient: VerifiedRecipient } | { ok: false; reason: string } | null;
+    try {
+      const binding = await deps.manualRecipientBinding(order.id);
+      check = binding ? verifyManualRecipient(order.id, binding, await deps.memberProfile(binding.profile_id)) : null;
+    } catch {
+      // Nothing was claimed or sent; retry later, then stop without sending.
+      await deps.finishRow(row, lastAttempt ? 'suppressed' : 'retry', 'manual_recipient_read_failed');
+      return { row: lastAttempt ? 'suppressed' : 'retry' };
+    }
+    if (check && check.ok) {
+      const r = check.recipient;
+      if ((validEmail(email) && email !== r.email) || (orderPhone && orderPhone !== r.phone)) check = { ok: false, reason: 'manual_recipient_order_conflict' };
+      else verified = r;
+    }
+    if (check && !check.ok) {
+      await deps.finishRow(row, 'suppressed', check.reason);
+      return { row: 'suppressed' };
+    }
+    if (verified) { name = verified.name; email = verified.email; }
+    // No binding: fall through; both channels skip for missing buyer contact.
+  }
 
   for (const channel of ['email', 'sms'] as Channel[]) {
     const prior = await deps.notified(order.id, channel, row.id);
@@ -155,13 +213,13 @@ export async function processQueueRow(deps: Deps, row: QueueRow): Promise<Record
     try {
       if (channel === 'email') {
         if (!validEmail(email)) { await deps.finishChannel(row, channel, { status: 'skipped', reason: 'no_buyer_email', keys }); results[channel] = 'skipped'; continue; }
-        const msg = buildShippingEmail(order, pkgs, kit, prior.anySent);
+        const msg = buildShippingEmail(order, pkgs, kit, prior.anySent, verified?.name);
         const r = await deps.sendEmail({ to: email, name, ...msg });
         results[channel] = await settle(deps, row, channel, r, email, keys, lastAttempt);
       } else {
         // The SMS relay requires a valid buyer email; skip clearly instead of risking an ambiguous relay result.
         if (!validEmail(email)) { await deps.finishChannel(row, channel, { status: 'skipped', reason: 'sms_requires_valid_buyer_email', keys }); results[channel] = 'skipped'; continue; }
-        let phone = normalizePhone(typeof details.phone === 'string' ? details.phone : null);
+        let phone = verified ? verified.phone : orderPhone;
         if (!phone && order.user_id && email) phone = normalizePhone(await deps.profilePhone(order.user_id, email));
         if (!phone) { await deps.finishChannel(row, channel, { status: 'skipped', reason: 'no_valid_buyer_phone', keys }); results[channel] = 'skipped'; continue; }
         if (details.sms_consent === false || details.sms_opt_in === false) { await deps.finishChannel(row, channel, { status: 'skipped', reason: 'customer_declined_sms', recipient: phone, keys }); results[channel] = 'skipped'; continue; }

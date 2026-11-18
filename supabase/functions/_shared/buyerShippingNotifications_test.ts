@@ -1,18 +1,22 @@
 import { assert, assertEquals, assertStringIncludes } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { buildShippingEmail, buildShippingSms, KIT_SUBJECT, processQueueRow, QUEUE_DELAY_MINUTES, REGULAR_SUBJECT, type Channel, type Deps, type QueueRow, type ShipOrder } from './buyerShippingNotifications.ts';
+import { buildShippingEmail, buildShippingSms, KIT_SUBJECT, MAX_ATTEMPTS, processQueueRow, QUEUE_DELAY_MINUTES, REGULAR_SUBJECT, type Channel, type Deps, type ManualRecipientBinding, type MemberProfile, type QueueRow, type ShipOrder } from './buyerShippingNotifications.ts';
 
 const base = (over: Partial<ShipOrder> = {}, details: Record<string, unknown> = {}): ShipOrder => ({
   id: '11111111-1111-1111-1111-111111111111', status: 'processing', customer_email: 'Buyer@Example.com', customer_name: 'Jamie Buyer', user_id: null,
   tracking_number: '7777 1111', tracking_url: null, order_details: { phone: '727-555-0100', supplier_tracking_carrier: 'FedEx', ...details }, ...over,
 });
 
-function harness(order: ShipOrder | null, opts: { optedOut?: boolean; emailResult?: any; smsResult?: any } = {}) {
+type ManualOpts = { binding?: ManualRecipientBinding | null | 'error'; profile?: MemberProfile | null | 'error' };
+function harness(order: ShipOrder | null, opts: { optedOut?: boolean; emailResult?: any; smsResult?: any } & ManualOpts = {}) {
+  const manualReads = { binding: 0, profile: 0 };
   const channels = new Map<string, { status: string; keys: string[]; notificationId: string; channel: Channel }>();
   const sent: { channel: Channel; body: any }[] = [];
   const rows: Record<string, string> = {};
   const deps: Deps = {
     readOrder: async () => order,
     profilePhone: async () => null,
+    manualRecipientBinding: async () => { manualReads.binding++; if (opts.binding === 'error') throw new Error('read'); return opts.binding ?? null; },
+    memberProfile: async () => { manualReads.profile++; if (opts.profile === 'error') throw new Error('read'); return opts.profile ?? null; },
     notified: async (_o, channel, excludeId) => {
       const r = [...channels.values()].filter(c => c.channel === channel && c.notificationId !== excludeId && ['sent', 'sending', 'uncertain'].includes(c.status));
       return { keys: new Set(r.flatMap(c => c.keys)), anySent: r.some(c => c.status === 'sent') };
@@ -29,7 +33,7 @@ function harness(order: ShipOrder | null, opts: { optedOut?: boolean; emailResul
     sendEmail: async (i) => { sent.push({ channel: 'email', body: i }); return opts.emailResult ?? { ok: true, messageId: 'e1' }; },
     sendSms: async (i) => { sent.push({ channel: 'sms', body: i }); return opts.smsResult ?? { ok: true, messageId: 's1' }; },
   };
-  return { deps, sent, rows, channels };
+  return { deps, sent, rows, channels, manualReads };
 }
 const row = (id: string, keys: string[], attempts = 1): QueueRow => ({ id, order_id: '11111111-1111-1111-1111-111111111111', new_keys: keys, attempts });
 
@@ -144,4 +148,97 @@ Deno.test('SMS is skipped with a clear reason before the relay when buyer email 
     assertEquals(h.sent.length, 0);
     assertEquals(h.channels.get('n1:sms')?.status, 'skipped');
   }
+});
+
+// ---- Existing manual individual orders: immutable verified recipient binding (synthetic data only) ----
+const manualOrder = (details: Record<string, unknown> = {}, over: Partial<ShipOrder> = {}) => base({ customer_email: '', customer_name: 'Sample Salon (Owner Q)', ...over },
+  { phone: '', manual_source: 'admin_entry', manual_individual: true, supplier_kit: false, full_name: 'Sample Salon (Owner Q)', ...details });
+const binding: ManualRecipientBinding = {
+  order_id: '11111111-1111-1111-1111-111111111111', profile_id: '22222222-2222-2222-2222-222222222222', ghl_contact_id: 'AbCdEfGhIjKlMnOpQrSt',
+  verified_name: 'Quinn Sample', verified_email: 'quinn.sample@example.com', verified_phone: '+15555550123', verified_at: '2026-11-18T00:00:00Z',
+};
+const matchingProfile: MemberProfile = { full_name: 'Quinn Sample', email: ' Quinn.Sample@Example.com ', phone: '555-555-0123' };
+
+Deno.test('manual order without buyer contact: both channels use the verified recipient exactly once, with verified name', async () => {
+  const h = harness(manualOrder(), { binding, profile: matchingProfile });
+  const r = await processQueueRow(h.deps, row('n1', ['77771111']));
+  assertEquals(r.email, 'sent'); assertEquals(r.sms, 'sent');
+  const email = h.sent.find(s => s.channel === 'email')!.body;
+  assertEquals(email.to, 'quinn.sample@example.com'); assertEquals(email.name, 'Quinn Sample');
+  assertStringIncludes(email.html, 'Hi Quinn,'); assert(!email.html.includes('Hi Sample,'));
+  const sms = h.sent.find(s => s.channel === 'sms')!.body;
+  assertEquals(sms.phone, '+15555550123'); assertEquals(sms.email, 'quinn.sample@example.com'); assertEquals(sms.name, 'Quinn Sample');
+  await processQueueRow(h.deps, row('n1', ['77771111']));
+  await processQueueRow(h.deps, row('n2', ['77771111']));
+  assertEquals(h.sent.map(s => s.channel).sort(), ['email', 'sms']);
+});
+
+Deno.test('manual order with no binding sends nothing', async () => {
+  const h = harness(manualOrder(), { binding: null });
+  await processQueueRow(h.deps, row('n1', ['77771111']));
+  assertEquals(h.sent.length, 0); assertEquals(h.manualReads.profile, 0);
+  assertEquals(h.channels.get('n1:email')?.status, 'skipped'); assertEquals(h.channels.get('n1:sms')?.status, 'skipped');
+});
+
+Deno.test('unreadable binding or profile sends nothing: retries, then stops on the last attempt', async () => {
+  for (const o of [{ binding: 'error' as const }, { binding, profile: 'error' as const }]) {
+    const h = harness(manualOrder(), o);
+    assertEquals((await processQueueRow(h.deps, row('n1', ['77771111']))).row, 'retry');
+    assertEquals(h.rows.n1, 'retry'); assertEquals(h.channels.size, 0);
+    assertEquals((await processQueueRow(h.deps, row('n1', ['77771111'], MAX_ATTEMPTS))).row, 'suppressed');
+    assertEquals(h.sent.length, 0);
+  }
+});
+
+Deno.test('conflicting or missing profile, or conflicting order contact, sends nothing', async () => {
+  const cases: [ShipOrder, MemberProfile | null][] = [
+    [manualOrder(), { ...matchingProfile, full_name: 'Quinn Samples' }],
+    [manualOrder(), { ...matchingProfile, email: 'other@example.com' }],
+    [manualOrder(), { ...matchingProfile, phone: '555-555-0199' }],
+    [manualOrder(), { ...matchingProfile, phone: null }],
+    [manualOrder(), null],
+    [manualOrder({ phone: '555-555-0100' }), matchingProfile],
+    [manualOrder({}, { customer_email: 'someone.else@example.com' }), matchingProfile],
+  ];
+  for (const [order, profile] of cases) {
+    const h = harness(order, { binding, profile });
+    assertEquals((await processQueueRow(h.deps, row('n1', ['77771111']))).row, 'suppressed');
+    assertEquals(h.sent.length, 0); assertEquals(h.channels.size, 0); assertEquals(h.rows.n1, 'suppressed');
+  }
+  const wrongOrder = harness(manualOrder(), { binding: { ...binding, order_id: '33333333-3333-3333-3333-333333333333' }, profile: matchingProfile });
+  await processQueueRow(wrongOrder.deps, row('n1', ['77771111']));
+  assertEquals(wrongOrder.sent.length, 0);
+});
+
+Deno.test('non-manual and kit orders never read bindings and keep existing behavior', async () => {
+  const regular = harness(base(), { binding, profile: matchingProfile });
+  await processQueueRow(regular.deps, row('n1', ['77771111']));
+  assertEquals(regular.manualReads.binding, 0);
+  assertEquals(regular.sent.find(s => s.channel === 'email')!.body.to, 'buyer@example.com');
+  assertEquals(regular.sent.find(s => s.channel === 'sms')!.body.phone, '+17275550100');
+  const blank = harness(base({ customer_email: '' }, { phone: '' }), { binding, profile: matchingProfile });
+  await processQueueRow(blank.deps, row('n1', ['77771111']));
+  assertEquals(blank.manualReads.binding, 0); assertEquals(blank.sent.length, 0);
+  const kit = harness(manualOrder({ supplier_kit: true }), { binding, profile: matchingProfile });
+  await processQueueRow(kit.deps, row('n1', ['77771111']));
+  assertEquals(kit.manualReads.binding, 0); assertEquals(kit.sent.length, 0);
+});
+
+Deno.test('manual order with complete buyer contact does not need the binding', async () => {
+  const h = harness(manualOrder({ phone: '727-555-0100' }, { customer_email: 'buyer@example.com' }), { binding: 'error' });
+  await processQueueRow(h.deps, row('n1', ['77771111']));
+  assertEquals(h.manualReads.binding, 0); assertEquals(h.sent.length, 2);
+});
+
+Deno.test('recipient binding table: service-role read only, no app access, immutable, manual orders only', () => {
+  const sql = Deno.readTextFileSync(new URL('../../../drizzle/migrations/0013_manual_order_buyer_recipients.sql', import.meta.url));
+  assertStringIncludes(sql, 'order_id uuid PRIMARY KEY REFERENCES public.orders(id)');
+  assertStringIncludes(sql, 'REVOKE ALL ON public.manual_order_buyer_recipients FROM PUBLIC, anon, authenticated, service_role;');
+  assertStringIncludes(sql, 'GRANT SELECT ON public.manual_order_buyer_recipients TO service_role;');
+  assert(!/GRANT\s+(INSERT|UPDATE|DELETE|ALL)/i.test(sql));
+  assert(!/CREATE POLICY/i.test(sql));
+  assertStringIncludes(sql, 'ENABLE ROW LEVEL SECURITY');
+  assertStringIncludes(sql, 'BEFORE INSERT OR UPDATE OR DELETE ON public.manual_order_buyer_recipients');
+  assertStringIncludes(sql, 'BEFORE TRUNCATE ON public.manual_order_buyer_recipients');
+  assertStringIncludes(sql, "order_details->>'manual_individual' = 'true'");
 });

@@ -3248,6 +3248,50 @@ export type Database = {
           },
         ]
       }
+      manual_order_buyer_recipients: {
+        Row: {
+          created_at: string
+          ghl_contact_id: string
+          order_id: string
+          profile_id: string
+          verification_source: string
+          verified_at: string
+          verified_email: string
+          verified_name: string
+          verified_phone: string
+        }
+        Insert: {
+          created_at?: string
+          ghl_contact_id: string
+          order_id: string
+          profile_id: string
+          verification_source: string
+          verified_at: string
+          verified_email: string
+          verified_name: string
+          verified_phone: string
+        }
+        Update: {
+          created_at?: string
+          ghl_contact_id?: string
+          order_id?: string
+          profile_id?: string
+          verification_source?: string
+          verified_at?: string
+          verified_email?: string
+          verified_name?: string
+          verified_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_order_buyer_recipients_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_audience_settings: {
         Row: {
           created_at: string

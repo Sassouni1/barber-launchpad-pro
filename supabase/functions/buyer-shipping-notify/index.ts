@@ -10,7 +10,9 @@ const url = Deno.env.get('SUPABASE_URL');
 const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 if (!url || !key) throw new Error('Backend configuration unavailable');
 const db = createClient(url, key, { auth: { persistSession: false } });
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+// Exposed as a response header so deployments can be verified without a dispatch.
+const FUNCTION_VERSION = 'buyer-shipping-notify/2026-11-18-manual-recipient';
+const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Function-Version': FUNCTION_VERSION } });
 const now = () => new Date().toISOString();
 
 const deps: Deps = {
@@ -23,6 +25,17 @@ const deps: Deps = {
     const { data } = await db.from('profiles').select('phone, email').eq('id', userId).maybeSingle();
     // Only when the linked profile is clearly the same buyer.
     return data && String(data.email ?? '').trim().toLowerCase() === email ? data.phone : null;
+  },
+  async manualRecipientBinding(orderId) {
+    const { data, error } = await db.from('manual_order_buyer_recipients')
+      .select('order_id, profile_id, ghl_contact_id, verified_name, verified_email, verified_phone, verified_at').eq('order_id', orderId).maybeSingle();
+    if (error) throw new Error('manual_recipient_binding_read_failed');
+    return data;
+  },
+  async memberProfile(profileId) {
+    const { data, error } = await db.from('profiles').select('full_name, email, phone').eq('id', profileId).maybeSingle();
+    if (error) throw new Error('manual_recipient_profile_read_failed');
+    return data;
   },
   async notified(orderId, channel, excludeId) {
     const { data, error } = await db.from('buyer_shipping_notification_channels').select('status, tracking_keys')
