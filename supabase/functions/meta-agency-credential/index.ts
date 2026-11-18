@@ -5,7 +5,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { AGENCY_TOKEN_ENV } from '../_shared/metaAgency.ts';
 import { loadActiveAgencyToken, runAgencyHealthCheck, type StatusPatch } from '../_shared/metaAgencyCredential.ts';
 
-const FUNCTION_VERSION = 'meta-agency-credential/2026-11-18';
+const FUNCTION_VERSION = 'meta-agency-credential/2026-11-18-data-access';
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 const admin = () => createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

@@ -1,10 +1,10 @@
 import { assertEquals, assert } from 'jsr:@std/assert@1';
-import { runAgencyHealthCheck, verifyAgencyToken, getAgencyToken, type StatusPatch } from './metaAgencyCredential.ts';
+import { runAgencyHealthCheck, verifyAgencyToken, getAgencyToken, ROTATE_ACTION, type StatusPatch } from './metaAgencyCredential.ts';
 
 const NOW = new Date('2026-11-18T00:00:00Z');
 const sec = (d: Date) => Math.floor(d.getTime() / 1000);
 const days = (n: number) => new Date(NOW.getTime() + n * 86_400_000);
-type Tok = { valid: boolean; app?: string; exp: Date | null; scopes?: string[]; sub?: number; account?: boolean; pages?: boolean };
+type Tok = { valid: boolean; app?: string; exp: Date | null; da?: Date; scopes?: string[]; sub?: number; account?: boolean; pages?: boolean };
 
 function meta(tokens: Record<string, Tok>, exchange: Record<string, string | null> = {}) {
   const calls: string[] = [];
@@ -17,7 +17,7 @@ function meta(tokens: Record<string, Tok>, exchange: Record<string, string | nul
       const t = tokens[url.searchParams.get('input_token')!];
       if (!t) return body({ data: { is_valid: false, error: { code: 190, subcode: 460 } } });
       return body({ data: { is_valid: t.valid, app_id: t.app ?? 'APP', scopes: t.scopes ?? ['business_management', 'ads_read', 'ads_management'],
-        expires_at: t.exp ? sec(t.exp) : 0, error: t.valid ? undefined : { code: 190, error_subcode: t.sub ?? 463 } } });
+        expires_at: t.exp ? sec(t.exp) : 0, data_access_expires_at: t.da ? sec(t.da) : undefined, error: t.valid ? undefined : { code: 190, error_subcode: t.sub ?? 463 } } });
     }
     if (url.pathname.endsWith('/oauth/access_token')) {
       const next = exchange[url.searchParams.get('fb_exchange_token')!];
@@ -146,4 +146,70 @@ Deno.test('verifyAgencyToken only calls the configured business and ad account',
   const r = await verifyAgencyToken(m.f, 'T', 'APP', 'SECRET', NOW);
   assert(r.ok);
   assert(m.calls.every((p) => /debug_token|act_2895514127400266|1832826473434326\/client_pages/.test(p)));
+});
+
+const at = (ms: number) => new Date(NOW.getTime() + ms);
+const DAYMS = 86_400_000;
+
+Deno.test('guidance is for Chris\'s Barber Launch app USER token, never a system user, and not perpetual', () => {
+  assert(ROTATE_ACTION.includes('User Token') && ROTATE_ACTION.includes('2148309075723966') && ROTATE_ACTION.includes('META_ADS_ACCESS_TOKEN'));
+  assert(!/system[- ]user/i.test(ROTATE_ACTION));
+  assert(/not automatic or permanent/.test(ROTATE_ACTION));
+});
+
+Deno.test('null token expiry: data access 21 days + 1s away is healthy with no action', async () => {
+  const { d } = deps(meta({ T: { valid: true, exp: null, da: at(21 * DAYMS + 1000) } }), 'T', 'T');
+  const r = await runAgencyHealthCheck(d);
+  assertEquals(r.state, 'healthy');
+  assertEquals(r.action_required, null);
+});
+
+Deno.test('null token expiry: data access exactly 21 days away warns as expiring with the date and user-token steps', async () => {
+  const da = at(21 * DAYMS);
+  const { d, stored } = deps(meta({ T: { valid: true, exp: null, da } }), 'T', 'T');
+  const r = await runAgencyHealthCheck(d);
+  assertEquals(r.state, 'expiring');
+  assert(r.action_required?.includes(da.toISOString()) && r.action_required.includes(ROTATE_ACTION));
+  assertEquals(r.last_error_message, null);
+  assertEquals(stored.length, 0);
+});
+
+Deno.test('data access ending at or after now is a clear expired failure; nothing promoted', async () => {
+  for (const da of [at(0), at(-1000)]) {
+    const { d, stored } = deps(meta({ T: { valid: true, exp: null, da } }), 'T', null);
+    const r = await runAgencyHealthCheck(d);
+    assertEquals(r.state, 'expired');
+    assert(r.last_error_message?.includes('data access') && r.last_error_message.includes(da.toISOString()));
+    assertEquals(r.action_required, ROTATE_ACTION);
+    assertEquals(stored.length, 0);
+  }
+  const { d } = deps(meta({ T: { valid: true, exp: null, da: at(1000) } }), 'T', 'T');
+  assertEquals((await runAgencyHealthCheck(d)).state, 'expiring');
+});
+
+Deno.test('re-authorized short-lived secret replaces the working token only via a verified, at-least-as-long exchange', async () => {
+  const m = meta({ CUR: { valid: true, exp: null, da: days(10) }, NEW: { valid: true, exp: at(3_600_000), da: days(90) },
+    NEXT: { valid: true, exp: null, da: days(90) } }, { NEW: 'NEXT' });
+  const { d, stored } = deps(m, 'NEW', 'CUR');
+  const r = await runAgencyHealthCheck(d);
+  assertEquals(stored, [{ token: 'NEXT', source: 'exchange' }]);
+  assertEquals(r.state, 'healthy');
+  assertEquals(r.action_required, null);
+  assertEquals(r.data_access_expires_at, days(90).toISOString());
+});
+
+Deno.test('re-authorization whose exchange fails keeps the working token and the warning', async () => {
+  const m = meta({ CUR: { valid: true, exp: null, da: days(10) }, NEW: { valid: true, exp: at(3_600_000), da: days(90) } }, {});
+  const { d, stored } = deps(m, 'NEW', 'CUR');
+  const r = await runAgencyHealthCheck(d);
+  assertEquals(stored.length, 0);
+  assertEquals(r.state, 'expiring');
+  assert(r.action_required?.includes(days(10).toISOString()));
+});
+
+Deno.test('renewal failure near the data-access deadline mentions that date', async () => {
+  const { d } = deps(meta({ CUR: { valid: true, exp: days(10), da: days(5) } }, {}), 'CUR', 'CUR');
+  const r = await runAgencyHealthCheck(d);
+  assertEquals(r.state, 'renewal_failed');
+  assert(r.action_required?.includes(days(5).toISOString()) && r.action_required.includes(ROTATE_ACTION));
 });

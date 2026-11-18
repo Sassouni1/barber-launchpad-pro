@@ -69,6 +69,10 @@ export async function verifyAgencyToken(
   const scopes = Array.isArray(data.scopes) ? data.scopes.filter((s): s is string => typeof s === 'string') : [];
   const missing = REQUIRED_SCOPES.filter((s) => !scopes.includes(s));
   if (missing.length) return fail('invalid', null, `The agency token is missing permissions: ${missing.join(', ')}.`);
+  const dataAccessExpiresAt = toDate(data.data_access_expires_at);
+  if (dataAccessExpiresAt && dataAccessExpiresAt <= now) {
+    return fail('expired', null, `Meta data access for this token ended on ${dataAccessExpiresAt.toISOString()}; Meta will not return business or ad account data until the app is re-authorized.`);
+  }
 
   const auth = { Authorization: `Bearer ${token}` };
   const acct = new URL(`${base}/act_${BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID}`);
@@ -88,7 +92,7 @@ export async function verifyAgencyToken(
     const { code, sub } = errOf(c.body);
     return fail(code === 190 ? classify(code, sub) : 'invalid', code, 'The agency token cannot read the business client Page list.');
   }
-  return { ok: true, appId, scopes, expiresAt, dataAccessExpiresAt: toDate(data.data_access_expires_at) };
+  return { ok: true, appId, scopes, expiresAt, dataAccessExpiresAt };
 }
 
 /** Meta's documented long-lived exchange. Returns only the new token string or null. */
@@ -104,6 +108,10 @@ export async function exchangeAgencyToken(fetchImpl: FetchLike, raw: string, app
 }
 
 const later = (a: Date | null, b: Date | null) => (a === null ? true : b === null ? false : a > b);
+/** a lasts at least as long as b (null = no expiry reported). */
+const atLeast = (a: Date | null, b: Date | null) => a === null || (b !== null && a >= b);
+/** Strictly later known data-access deadline. */
+const laterKnown = (a: Date | null, b: Date | null) => a !== null && b !== null && a > b;
 
 export type StatusPatch = {
   state: 'healthy' | 'expiring' | 'renewal_failed' | 'expired' | 'revoked' | 'missing' | 'invalid' | 'check_failed';
@@ -132,8 +140,20 @@ export type HealthDeps = {
   saveStatus: (patch: StatusPatch) => Promise<void>;
 };
 
+// The configured credential is Chris's own USER token for The Barber Launch app, not a system-user token.
 export const ROTATE_ACTION =
-  'Generate a new Barber Launch system-user token (business 1832826473434326, with business_management and ads_read/ads_management, assigned the Barber Launch Official ad account) and save it as META_ADS_ACCESS_TOKEN in Project Settings → Secrets, then press Check now.';
+  'Chris: in Meta Graph API Explorer choose The Barber Launch app (2148309075723966), generate a new User Token signed in as yourself with business_management, ads_read, ads_management and pages_show_list, then replace META_ADS_ACCESS_TOKEN in Project Settings → Secrets and press Check now. Re-authorizing starts a new Meta data-access window (about 90 days); this must be repeated before each window ends — renewal is not automatic or permanent.';
+
+/** Marks a healthy status as expiring when the token or its Meta data-access window ends within the alert window. */
+function withExpiryWarning(patch: StatusPatch, info: Extract<Inspection, { ok: true }>, now: Date): StatusPatch {
+  const within = (d: Date | null) => !!d && d.getTime() - now.getTime() <= ALERT_BEFORE_DAYS * DAY;
+  const notes: string[] = [];
+  if (within(info.expiresAt)) notes.push(`The agency token expires on ${info.expiresAt!.toISOString()}.`);
+  if (within(info.dataAccessExpiresAt)) notes.push(`Meta data access for this token ends on ${info.dataAccessExpiresAt!.toISOString()}.`);
+  if (!notes.length) return patch;
+  const action = `${notes.join(' ')} ${ROTATE_ACTION}`;
+  return patch.state === 'healthy' ? { ...patch, state: 'expiring', action_required: action } : { ...patch, action_required: action };
+}
 
 /** One health/renewal pass. Never deactivates a working token; a failed renewal keeps the current one. */
 export async function runAgencyHealthCheck(deps: HealthDeps): Promise<StatusPatch> {
@@ -159,6 +179,20 @@ export async function runAgencyHealthCheck(deps: HealthDeps): Promise<StatusPatc
     await deps.store(envNorm, 'manual_secret', envResult);
     current = { token: envNorm, info: envResult, source: 'stored' };
   }
+  let reauthorizedAt: string | undefined;
+  if (envResult?.ok && envNorm && current && current.token !== envNorm
+    && laterKnown(envResult.dataAccessExpiresAt, current.info.dataAccessExpiresAt)) {
+    // A fresh re-authorization (later data-access window) with a shorter-lived token: exchange it first and
+    // replace the working token only if the verified replacement lasts at least as long.
+    const ex = await exchangeAgencyToken(deps.fetch, envNorm, deps.appId, deps.appSecret);
+    const next = ex.ok ? await verifyAgencyToken(deps.fetch, ex.token, deps.appId, deps.appSecret, now) : null;
+    if (ex.ok && next?.ok && atLeast(next.expiresAt, current.info.expiresAt)
+      && laterKnown(next.dataAccessExpiresAt, current.info.dataAccessExpiresAt)) {
+      await deps.store(ex.token, 'exchange', next);
+      current = { token: ex.token, info: next, source: 'stored' };
+      reauthorizedAt = checkedAt;
+    }
+  }
 
   if (!current) {
     const failures = [storedResult, envResult, !active && !envNorm ? fail('missing', null, 'No agency token is configured.') : null].filter((r): r is Exclude<Inspection, { ok: true }> => !!r && !r.ok);
@@ -175,7 +209,8 @@ export async function runAgencyHealthCheck(deps: HealthDeps): Promise<StatusPatc
   const msLeft = info.expiresAt ? info.expiresAt.getTime() - now.getTime() : Infinity;
   const ok: StatusPatch = { ...base, state: 'healthy', token_source: current.source, scopes: info.scopes,
     expires_at: info.expiresAt?.toISOString() ?? null, data_access_expires_at: info.dataAccessExpiresAt?.toISOString() ?? null,
-    last_healthy_at: checkedAt, last_error_code: null, last_error_message: null, action_required: null };
+    last_healthy_at: checkedAt, last_error_code: null, last_error_message: null, action_required: null,
+    ...(reauthorizedAt ? { renewable: true, last_renewal_attempt_at: reauthorizedAt, last_renewed_at: reauthorizedAt } : {}) };
 
   if (msLeft <= RENEW_BEFORE_DAYS * DAY) {
     ok.last_renewal_attempt_at = checkedAt;
@@ -183,21 +218,21 @@ export async function runAgencyHealthCheck(deps: HealthDeps): Promise<StatusPatc
     const next = ex.ok ? await verifyAgencyToken(deps.fetch, ex.token, deps.appId, deps.appSecret, now) : null;
     if (ex.ok && next?.ok && later(next.expiresAt, info.expiresAt)) {
       await deps.store(ex.token, 'exchange', next);
-      const patch: StatusPatch = { ...ok, renewable: true, last_renewed_at: checkedAt, scopes: next.scopes,
-        expires_at: next.expiresAt?.toISOString() ?? null, data_access_expires_at: next.dataAccessExpiresAt?.toISOString() ?? null };
+      const patch = withExpiryWarning({ ...ok, renewable: true, last_renewed_at: checkedAt, scopes: next.scopes,
+        expires_at: next.expiresAt?.toISOString() ?? null, data_access_expires_at: next.dataAccessExpiresAt?.toISOString() ?? null }, next, now);
       await deps.saveStatus(patch);
       return patch;
     }
-    const patch: StatusPatch = { ...ok, state: 'renewal_failed', renewable: false,
+    const patch: StatusPatch = withExpiryWarning({ ...ok, state: 'renewal_failed', renewable: false,
       last_error_code: ex.ok ? (next && !next.ok ? next.code : null) : ex.code,
       last_error_message: ex.ok ? 'Meta issued a replacement that did not pass verification or did not extend expiry; the current token was kept.' : 'Meta refused to renew the agency token; the current token was kept.',
-      action_required: ROTATE_ACTION };
+      action_required: ROTATE_ACTION }, info, now);
     await deps.saveStatus(patch);
     return patch;
   }
-  if (msLeft <= ALERT_BEFORE_DAYS * DAY) ok.state = 'expiring';
-  await deps.saveStatus(ok);
-  return ok;
+  const final = withExpiryWarning(ok, info, now);
+  await deps.saveStatus(final);
+  return final;
 }
 
 type DbLike = {
