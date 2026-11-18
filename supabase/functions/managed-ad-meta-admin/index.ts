@@ -22,7 +22,7 @@ import {
 import { checkPageAdAccess, createGraphClient } from "../_shared/pageAdAccess.ts";
 import { createGate, reconcileDecision, savedPageAccessGranted, type LocalCampaign } from "./logic.ts";
 
-const FUNCTION_VERSION = 'managed-ad-meta-admin/paused-create-link-2026-11-17';
+const FUNCTION_VERSION = 'managed-ad-meta-admin/user-token-guidance-2026-11-18';
 const LOCAL_FIELDS = 'id,customer_id,name,objective,status,meta_ad_account_id,meta_campaign_id,meta_create_status,meta_create_started_at,meta_create_attempt_id';
 
 const json = (body: unknown, status = 200) =>

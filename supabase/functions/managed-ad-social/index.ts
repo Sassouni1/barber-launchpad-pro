@@ -13,7 +13,7 @@ import {
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
 // Returned by the read-only functionVersion action so a deployment can be confirmed without side effects.
-const FUNCTION_VERSION = 'managed-ad-social/profile-plus-advertise-2026-11-17';
+const FUNCTION_VERSION = 'managed-ad-social/user-token-guidance-2026-11-18';
 // Request access to business-managed Pages alongside ordinary Pages.
 const SCOPES = 'pages_show_list,pages_read_engagement,business_management';
 

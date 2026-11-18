@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
   BARBER_LAUNCH_OFFICIAL_AD_ACCOUNT_ID,
   buildPausedCampaignBody,
@@ -123,4 +123,12 @@ Deno.test("a token with characters Meta never issues is reported as invalid, not
   assertEquals(agencyTokenProblem("EAAabc123_-"), null);
   assertEquals(agencyTokenProblem("EAAabc…"), "invalid");
   assertEquals(agencyTokenProblem("  "), "missing");
+});
+
+Deno.test('expired-token (190) guidance is for Chris\'s Barber Launch app USER token, never a system user', async () => {
+  const { describeMetaError } = await import('./metaAgency.ts');
+  const msg = describeMetaError({ code: 190, message: 'Error validating access token' });
+  assert(msg.includes('User Token') && msg.includes('2148309075723966') && msg.includes('META_ADS_ACCESS_TOKEN'));
+  assert(!/system[- ]user/i.test(msg));
+  assert(msg.includes('(code 190)'));
 });

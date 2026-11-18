@@ -1,5 +1,5 @@
 // Barber Launch's own (agency) Meta Marketing API access. Server-only.
-// The token in META_ADS_ACCESS_TOKEN belongs to a Barber Launch system user; it never leaves the server
+// The token in META_ADS_ACCESS_TOKEN is Chris's USER token for The Barber Launch app; it never leaves the server
 // and is never sent to members or admins. Every campaign operation is confined to the
 // Barber Launch Official ad account, and nothing here can activate delivery or set a budget.
 
@@ -215,12 +215,16 @@ export function insightsBelongTo(rows: InsightRow[], metaCampaignId: string, acc
   );
 }
 
+/** Re-authorization steps for the configured credential (Chris's USER token); matches metaAgencyCredential guidance. */
+export const AGENCY_TOKEN_REAUTH_STEPS =
+  'Chris: in Meta Graph API Explorer choose The Barber Launch app (2148309075723966), generate a new User Token as yourself with business_management, ads_read, ads_management and pages_show_list, replace META_ADS_ACCESS_TOKEN in Project Settings → Secrets, then press Check now on Admin → Ads. Renewal is not automatic or permanent.';
+
 /** Admin-facing description of a Meta error. Contains Meta's words, never a token. */
 export function describeMetaError(error: MetaError): string {
   const code = typeof error.code === 'number' ? error.code : null;
   const said = (error.error_user_msg || error.message || '').trim();
   const suffix = said ? ` Meta said: "${said}"${code !== null ? ` (code ${code})` : ''}` : '';
-  if (code === 190) return `The Barber Launch Meta token is invalid or expired. Generate a new system user token.${suffix}`;
+  if (code === 190) return `The Barber Launch Meta token is invalid or expired. ${AGENCY_TOKEN_REAUTH_STEPS}${suffix}`;
   if (code === 10 || (code !== null && code >= 200 && code < 300)) {
     return `The Barber Launch Meta token lacks permission for this (needs ads_management/ads_read and the ad account assigned).${suffix}`;
   }

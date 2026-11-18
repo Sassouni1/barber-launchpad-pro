@@ -20,7 +20,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-const FUNCTION_VERSION = 'managed-ad-reporting/linked-campaign-sync-2026-11-17';
+const FUNCTION_VERSION = 'managed-ad-reporting/user-token-guidance-2026-11-18';
 const RANGE_DAYS = 30;
 
 const toInt = (v: unknown) => {
