@@ -52,7 +52,8 @@ export function manufacturerOrderView(input: { orderDetails: unknown; customerNa
   const details = obj(input.orderDetails);
   const order = obj(details.order);
   const isKit = details.kit_order === true || details.supplier_kit === true;
-  const shipping = isKit && Object.keys(obj(details.shipping_address)).length
+  const isManualIndividual = details.manual_individual === true;
+  const shipping = (isKit || isManualIndividual) && Object.keys(obj(details.shipping_address)).length
     ? obj(details.shipping_address)
     : obj(details.shipping);
   const sourceItems = Array.isArray(order.line_items) ? order.line_items : Array.isArray(details.line_items) ? details.line_items : [];
@@ -74,7 +75,8 @@ export function manufacturerOrderView(input: { orderDetails: unknown; customerNa
     [text(shipping.zip) || text(shipping.postal_code), text(shipping.country)].filter(Boolean).join(' '),
   ].filter(Boolean);
   const curl = first(details, ['Curl Pattern', 'Curl Pattern — only if needed']);
-  const specs = isKit ? [] : SPEC_FIELDS.filter(field => field.label !== 'Salon service requested' || first(details, [...field.keys])).map(field => ({
+  const specs = isKit ? [] : SPEC_FIELDS.filter(field => (isManualIndividual || field.label === 'Salon service requested')
+    ? Boolean(first(details, [...field.keys])) : true).map(field => ({
     label: field.label,
     value: field.label === 'Curl pattern' && curl === 'Standard' ? 'Standard · 3.0 CM'
       : field.label === 'Curl pattern' && curl === 'Extra straight' ? 'Extra straight · 4.0 CM'

@@ -63,3 +63,47 @@ test('managed backend kit row displays its confirmed shipping and manifest', () 
   assert.deepEqual(view.shippingAddress, ['123 Main', 'Unit 2', 'Tampa, FL', '33601 US']);
   assert.deepEqual(view.specs, []);
 });
+
+for (const [index, color] of ['#2', '#2 FRO', 'dark black'].entries()) {
+  test(`manual individual ${color} displays saved shipping and only entered specs`, () => {
+    const address1 = `${100 + index} Synthetic Street`;
+    const view = manufacturerOrderView({ customerName: 'Synthetic Salon', customerEmail: '', orderDetails: {
+      manual_individual: true, order_type: 'hair_system',
+      shipping_address: { address1, address2: 'Suite Test', city: 'Test City', state: 'OR', postal_code: '97005', country: 'US' },
+      'Choose Color': color, 'Lace or Skin': 'skin',
+      'Hair Length': '', 'Choose Density': 'N/A', 'Curl Pattern': '   ',
+    } });
+    assert.equal(view.isKit, false);
+    assert.deepEqual(view.shippingAddress, [address1, 'Suite Test', 'Test City, OR', '97005 US']);
+    assert.deepEqual(view.specs, [
+      { label: 'Hair color', value: color },
+      { label: 'Base (lace or skin)', value: 'skin' },
+    ]);
+    assert.equal(view.phone, '');
+    assert.equal(view.email, '');
+    assert.equal(view.shippingMethod, '');
+  });
+}
+
+test('manual individual keeps optional specs when actually entered', () => {
+  const view = manufacturerOrderView({ customerName: 'Synthetic Salon', customerEmail: '', orderDetails: {
+    manual_individual: true, 'Hair Length': '14" hair', 'Choose Density': '90%', 'Curl Pattern': 'Custom curl',
+  } });
+  assert.deepEqual(view.specs, [
+    { label: 'Hair length', value: '14" hair' },
+    { label: 'Density', value: '90%' },
+    { label: 'Curl pattern', value: 'Custom curl' },
+  ]);
+});
+
+test('manual projection requires the exact boolean flag and preserves paid-checkout display', () => {
+  const view = manufacturerOrderView({ customerName: 'Synthetic Salon', customerEmail: '', orderDetails: {
+    manual_individual: 'true',
+    shipping_address: { address1: 'Ignored manual address' },
+    shipping: { address_1: 'Stored checkout address' },
+  } });
+  assert.deepEqual(view.shippingAddress, ['Stored checkout address']);
+  assert.equal(view.specs.find(spec => spec.label === 'Hair length')?.value, 'Not provided');
+  assert.equal(view.specs.find(spec => spec.label === 'Density')?.value, 'Not provided');
+  assert.equal(view.specs.find(spec => spec.label === 'Curl pattern')?.value, 'Not provided');
+});
