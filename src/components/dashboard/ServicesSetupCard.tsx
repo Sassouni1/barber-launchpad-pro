@@ -128,7 +128,7 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
         {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
         Import from my booking page
       </Button>}
-      <Button type="button" variant="outline" onClick={startManual} disabled={importing} className="h-11">
+      <Button type="button" onClick={startManual} disabled={importing} className="h-11">
         {currentBookingUrl ? 'Add them myself' : 'Add my services'}
       </Button>
     </div>}
