@@ -221,19 +221,29 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
     {services.length > 0 && <div className="space-y-3">
       <h4 className="font-semibold">Your selected services and prices</h4>
       <div className="hidden grid-cols-[minmax(0,1fr)_110px_110px_40px] gap-2 px-1 text-xs text-muted-foreground sm:grid">
-        <span>Service</span><span>Price</span><span>Length</span><span />
+        <span>Service</span><span>Price</span><span>Duration</span><span />
       </div>
-      {services.map((service, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_40px] gap-2 rounded-lg border border-border p-3 sm:grid-cols-[minmax(0,1fr)_110px_110px_40px] sm:border-0 sm:p-0">
-        <Input aria-label="Service name" value={service.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Service name" />
-        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 sm:order-last" aria-label={`Remove ${service.name || 'service'}`} onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
-        <div className="relative">
-          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-foreground">$</span>
-          <Input aria-label="Price in dollars" inputMode="decimal" value={service.price}
-            onChange={e => update(index, 'price', priceAmount(e.target.value))}
-            onBlur={() => { if (service.price && Number.isFinite(Number(service.price))) update(index, 'price', Number(service.price).toFixed(2)); }}
-            placeholder="0.00" className="pl-7" />
+      {services.map((service, index) => <div key={index} className="space-y-2 rounded-lg border border-border p-3 sm:grid sm:grid-cols-[minmax(0,1fr)_110px_110px_40px] sm:gap-2 sm:space-y-0 sm:border-0 sm:p-0">
+        <div className="flex items-center gap-2 sm:contents">
+          <Input aria-label="Service name" value={service.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Service name" className="min-w-0 flex-1" />
+          <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 sm:order-last" aria-label={`Remove ${service.name || 'service'}`} onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
         </div>
-        <Input aria-label="Length" value={service.duration} onChange={e => update(index, 'duration', e.target.value)} placeholder="Length" />
+        <div className="grid grid-cols-2 gap-2 sm:contents">
+          <div className="space-y-1 sm:space-y-0">
+            <span className="block text-xs text-muted-foreground sm:hidden">Price</span>
+            <div className="relative">
+              <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-foreground">$</span>
+              <Input aria-label="Price in dollars" inputMode="decimal" value={service.price}
+                onChange={e => update(index, 'price', priceAmount(e.target.value))}
+                onBlur={() => { if (service.price && Number.isFinite(Number(service.price))) update(index, 'price', Number(service.price).toFixed(2)); }}
+                placeholder="0.00" className="pl-7" />
+            </div>
+          </div>
+          <div className="space-y-1 sm:space-y-0">
+            <span className="block text-xs text-muted-foreground sm:hidden">Duration (minutes)</span>
+            <Input aria-label="Duration in minutes" value={service.duration} onChange={e => update(index, 'duration', e.target.value)} placeholder="Minutes" />
+          </div>
+        </div>
       </div>)}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         {currentBookingUrl && <Button type="button" variant="ghost" onClick={importFromBooking} disabled={importing} className="h-11 text-primary">
