@@ -29,6 +29,8 @@ type SetupDraft = {
   bookingCandidates: BookingCandidate[]; bookingSearchKey: string;
   bookingSearchAttempted: boolean; bookingSearchLocation: string;
 };
+// Members created on or after this date must complete the first setup step; earlier members get an optional prompt.
+const SETUP_REQUIRED_FROM = '2026-11-19T16:00:00Z';
 const bookingResearchBridge = 'https://jbnsjjeimwpkwxkwmqwl.supabase.co/functions/v1/barber-launch-booking-bridge';
 const mergeBookingCandidates = (primary: BookingCandidate[], secondary: BookingCandidate[]) => {
   const found = new Map<string, BookingCandidate>();
@@ -181,6 +183,8 @@ export function BusinessSetupCard() {
   const [saving, setSaving] = useState(false);
   const [complete, setComplete] = useState(false);
   const [editingComplete, setEditingComplete] = useState(false);
+  // Members who joined before the setup step became required see a small "update your profile" prompt instead of the full form.
+  const [profileOpen, setProfileOpen] = useState(false);
   const [city, setCity] = useState('');
   const [workStreet, setWorkStreet] = useState('');
   const [workCity, setWorkCity] = useState('');
@@ -388,6 +392,17 @@ export function BusinessSetupCard() {
   }, [loading, bookingLookupKey, bookingChoice]);
 
   if (!user || loading) return null;
+
+  const isNewMember = !!user.created_at && Date.parse(user.created_at) >= Date.parse(SETUP_REQUIRED_FROM);
+  if (!complete && !isNewMember && !profileOpen) return <section className="glass-card rounded-xl p-5 md:p-6" aria-labelledby="business-setup-title">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 id="business-setup-title" className="text-lg font-semibold text-foreground">Update your business profile</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Add where you work and your booking app so we can set things up for you.</p>
+      </div>
+      <Button type="button" variant="outline" onClick={() => setProfileOpen(true)}>Update profile</Button>
+    </div>
+  </section>;
 
   if (complete && !editingComplete) return <section className="glass-card rounded-xl p-5 md:p-7" aria-labelledby="business-setup-title">
     <p className="text-xs font-semibold uppercase tracking-widest text-primary">First step complete</p>
