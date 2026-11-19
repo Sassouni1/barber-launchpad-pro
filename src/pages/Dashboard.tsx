@@ -24,26 +24,25 @@ export default function Dashboard() {
     }
   }, [location.hash]);
   const { user, isAdmin } = useAuth();
+  const profileOnly = location.hash === '#profile';
   // Services setup is limited to the website-builder accounts until the flow is released.
   const showServicesSetup = canAccessSecondWebsite(user?.email, isAdmin) || canAccessMyWebsite(user?.id);
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Disabled: <ShippingNotification /> */}
-        <WelcomeHero />
+        {!profileOnly && <WelcomeHero />}
 
         <div className="space-y-6">
           <div id="profile" className="scroll-mt-20"><BusinessSetupCard showServicesSetup={showServicesSetup} /></div>
-          <DynamicTodoList />
-
-          <ContinueLearning />
-
-          
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AionChatCard />
-            <ContactSection />
-          </div>
+          {!profileOnly && <>
+            <DynamicTodoList />
+            <ContinueLearning />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AionChatCard />
+              <ContactSection />
+            </div>
+          </>}
 
         </div>
       </div>
