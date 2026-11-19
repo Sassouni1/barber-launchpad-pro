@@ -250,7 +250,6 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                 <NavRow to="/newtimes" icon={Package} label="Orders" onClick={closeMenu} />
                 {userIsAdmin && (
                   <>
-                    <NavRow to="/dashboard#profile" icon={User} label="My Profile" onClick={closeMenu} />
                     <div className="border-t border-border my-2" />
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">Switch View</p>
                     <button
@@ -523,6 +522,8 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         </NavLink>
                       </CollapsibleContent>
                     </Collapsible>
+
+                    <NavRow to="/dashboard#profile" icon={User} label="My Profile" onClick={closeMenu} />
 
                     <div className="border-t border-border my-2" />
 
