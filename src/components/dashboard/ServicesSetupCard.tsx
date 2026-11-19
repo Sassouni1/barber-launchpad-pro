@@ -1,18 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { Download, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 export type MemberService = { name: string; price: string; duration: string; description: string };
 
-// Starting list for members without a booking page. Prices stay blank until the member sets them.
-const COMMON_SERVICES = [
-  'Haircut', 'Skin fade', 'Beard trim and lineup', 'Haircut and beard', 'Hot towel shave', 'Kids haircut',
-  'Hair system consultation', 'Hair system install', 'Hair system maintenance',
+// Keep the service names and order from the existing business onboarding checklist.
+const SERVICE_GROUPS = [
+  { title: "Men's & kids' services", services: ["Men's Cuts", 'Kids Cuts', 'Beards', 'Hot Towel Shaves', 'Eyebrows', 'Facial Waxing', 'Perms', 'Haircut', 'Skin Fade', 'Fade', 'Beard Trim', 'Haircut & Beard', 'Line Up'] },
+  { title: "Women's services", services: ['Balayage', 'Color', 'Highlights', 'Haircuts and Trims', 'Perms', 'Brazilian Blowout', 'Keratin Treatment', 'Hair Extensions', 'Halos', "Women's Toppers"] },
+  { title: 'Hair systems', services: ['Hair System Consultation', 'Hair System Install', 'Hair System Maintenance', 'Hair System Retouch'] },
 ];
+const SERVICE_OPTIONS = Array.from(new Set(SERVICE_GROUPS.flatMap(group => group.services))).sort((a, b) => a.localeCompare(b));
+const draftKey = (userId: string) => `barber-launch:services-draft:${userId}`;
 
 const emptyService = (name = ''): MemberService => ({ name, price: '', duration: '', description: '' });
 const cleanList = (value: unknown): MemberService[] => (Array.isArray(value) ? value : [])
@@ -32,7 +35,15 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
   const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [customService, setCustomService] = useState('');
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [retryVersion, setRetryVersion] = useState(0);
+  const lastSaved = useRef('');
+  const latest = useRef('');
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queue = useRef<Promise<void>>(Promise.resolve());
   const currentBookingUrl = bookingUrlOverride ?? bookingUrl;
 
   useEffect(() => {
@@ -43,14 +54,58 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
       .eq('user_id', user.id).maybeSingle()
       .then(({ data }) => {
         if (!active) return;
+        const remoteServices = cleanList(data?.service_menu);
+        const remoteSource = (data?.services_source as 'booking' | 'manual' | null) || '';
+        lastSaved.current = JSON.stringify({ services: remoteServices, source: remoteSource });
+        let draft: { services?: MemberService[]; source?: 'booking' | 'manual' | ''; updatedAt?: string } | null = null;
+        try { draft = JSON.parse(localStorage.getItem(draftKey(user.id)) || 'null'); } catch { /* Use the account copy. */ }
+        const useDraft = !!draft?.updatedAt && Date.parse(draft.updatedAt) > Date.parse(data?.services_confirmed_at || '1970-01-01T00:00:00Z');
         setBookingUrl(data?.booking_url || '');
-        setServices(cleanList(data?.service_menu));
-        setSource((data?.services_source as 'booking' | 'manual' | null) || '');
+        setServices(useDraft && Array.isArray(draft?.services) ? draft.services : remoteServices);
+        setSource(useDraft ? draft?.source || '' : remoteSource);
         setConfirmedAt(data?.services_confirmed_at || null);
+        setShowPicker(useDraft || remoteServices.length > 0);
         setLoading(false);
       });
     return () => { active = false; };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || loading) return;
+    const snapshot = JSON.stringify({ services, source });
+    latest.current = snapshot;
+    if (snapshot === lastSaved.current) return;
+    try { localStorage.setItem(draftKey(user.id), JSON.stringify({ services, source, updatedAt: new Date().toISOString() })); }
+    catch { /* Server autosave remains available. */ }
+    setSyncStatus('saving');
+    if (timer.current) clearTimeout(timer.current);
+    if (retryTimer.current) clearTimeout(retryTimer.current);
+    timer.current = setTimeout(() => {
+      queue.current = queue.current.catch(() => {}).then(async () => {
+        const savedAt = new Date().toISOString();
+        try {
+          const { error } = await supabase.from('member_onboarding_profiles').upsert({
+            user_id: user.id, service_menu: cleanList(services), services_source: source || 'manual',
+            services_confirmed_at: cleanList(services).length ? savedAt : null,
+          }, { onConflict: 'user_id' });
+          if (error) throw error;
+          lastSaved.current = snapshot;
+          if (latest.current === snapshot) {
+            try { localStorage.removeItem(draftKey(user.id)); } catch { /* The account save succeeded. */ }
+            setConfirmedAt(cleanList(services).length ? savedAt : null);
+            setSyncStatus('saved');
+          }
+        } catch {
+          if (latest.current !== snapshot) return;
+          setSyncStatus('error');
+          retryTimer.current = setTimeout(() => setRetryVersion(value => value + 1), 3000);
+        }
+      });
+    }, 500);
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [user?.id, loading, services, source, retryVersion]);
+
+  useEffect(() => () => { if (retryTimer.current) clearTimeout(retryTimer.current); }, []);
 
   const importFromBooking = async () => {
     setImporting(true);
@@ -71,14 +126,15 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
       const found = cleanList(result?.services);
       if (!found.length) {
         setImportMessage('We couldn’t find services on your booking page. Add them below.');
-        if (!services.length) setServices(COMMON_SERVICES.map(name => emptyService(name)));
+        setShowPicker(true);
         setSource('manual');
         return;
       }
       setServices(found);
+      setShowPicker(true);
       setSource('booking');
       setConfirmedAt(null);
-      setImportMessage(`We found ${found.length} service${found.length === 1 ? '' : 's'} on your booking page. Check them and save.`);
+      setImportMessage(`We found ${found.length} service${found.length === 1 ? '' : 's'} on your booking page. Review or edit them; changes save automatically.`);
     } catch (error) {
       setImportMessage(error instanceof Error ? error.message : 'Could not read your booking page.');
     } finally {
@@ -87,8 +143,22 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
   };
 
   const startManual = () => {
-    setServices(COMMON_SERVICES.map(name => emptyService(name)));
+    setShowPicker(true);
     setSource('manual');
+  };
+
+  const toggleService = (name: string) => {
+    setServices(list => list.some(item => item.name === name)
+      ? list.filter(item => item.name !== name)
+      : [...list, emptyService(name)]);
+    setConfirmedAt(null);
+  };
+
+  const addCustomService = () => {
+    const name = customService.trim();
+    if (!name) return;
+    if (!services.some(item => item.name.toLowerCase() === name.toLowerCase())) setServices(list => [...list, emptyService(name)]);
+    setCustomService('');
     setConfirmedAt(null);
   };
 
@@ -97,24 +167,6 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
     setConfirmedAt(null);
   };
   const remove = (index: number) => { setServices(list => list.filter((_, i) => i !== index)); setConfirmedAt(null); };
-  const add = () => { setServices(list => [...list, emptyService()]); setConfirmedAt(null); };
-
-  const save = async () => {
-    if (!user?.id) return;
-    const list = cleanList(services);
-    if (!list.length) { toast.error('Add at least one service.'); return; }
-    setSaving(true);
-    const now = new Date().toISOString();
-    const { error } = await supabase.from('member_onboarding_profiles').upsert({
-      user_id: user.id, service_menu: list, services_source: source || 'manual', services_confirmed_at: now,
-    }, { onConflict: 'user_id' });
-    setSaving(false);
-    if (error) { toast.error('Could not save your services. Please try again.'); return; }
-    setServices(list);
-    setConfirmedAt(now);
-    toast.success('Services saved');
-  };
-
   if (!user || loading) return null;
 
   return <div className="space-y-5 border-t border-border pt-6" aria-labelledby="services-setup-title">
@@ -123,7 +175,7 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
       <p className="text-sm text-muted-foreground">These go on your website. {currentBookingUrl ? 'We can read them from your booking page.' : 'Add the services you offer and what you charge.'}</p>
     </div>
 
-    {!services.length && <div className="flex flex-col gap-2 sm:flex-row">
+    {!showPicker && <div className="flex flex-col gap-2 sm:flex-row">
       {currentBookingUrl && <Button type="button" onClick={importFromBooking} disabled={importing} className="h-11">
         {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
         Import from my booking page
@@ -134,7 +186,35 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
     </div>}
     {importMessage && <p className="text-sm text-muted-foreground" role="status">{importMessage}</p>}
 
+    {showPicker && <div className="space-y-4 rounded-lg border border-border p-4">
+      <div>
+        <h4 className="font-semibold text-foreground">Choose your services</h4>
+        <p className="text-sm text-muted-foreground">{services.length} selected. Turn on every service you offer; changes save automatically.</p>
+      </div>
+      <div className="space-y-2">
+        {SERVICE_OPTIONS.map(name => {
+          const selected = services.some(service => service.name === name);
+          return <div key={name} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+            <span className="text-sm font-medium">{name}</span>
+            <div className="flex shrink-0 items-center gap-3">
+              <span className="text-xs text-muted-foreground">{selected ? 'Selected' : 'Not offered'}</span>
+              <Switch checked={selected} onCheckedChange={() => toggleService(name)} aria-label={`${selected ? 'Remove' : 'Add'} ${name}`} />
+            </div>
+          </div>;
+        })}
+      </div>
+      <div className="space-y-2">
+        <label htmlFor="custom-service" className="block text-sm font-semibold">Anything else?</label>
+        <div className="flex gap-2">
+          <Input id="custom-service" value={customService} onChange={event => setCustomService(event.target.value)}
+            onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addCustomService(); } }} placeholder="Add a custom service" />
+          <Button type="button" onClick={addCustomService} aria-label="Add custom service"><Plus className="h-4 w-4" /></Button>
+        </div>
+      </div>
+    </div>}
+
     {services.length > 0 && <div className="space-y-3">
+      <h4 className="font-semibold">Your selected services and prices</h4>
       <div className="hidden grid-cols-[minmax(0,1fr)_110px_110px_40px] gap-2 px-1 text-xs text-muted-foreground sm:grid">
         <span>Service</span><span>Price</span><span>Length</span><span />
       </div>
@@ -145,16 +225,16 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
         <Input aria-label="Length" value={service.duration} onChange={e => update(index, 'duration', e.target.value)} placeholder="Length" />
       </div>)}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Button type="button" variant="outline" onClick={add} className="h-11"><Plus className="mr-2 h-4 w-4" />Add a service</Button>
         {currentBookingUrl && <Button type="button" variant="ghost" onClick={importFromBooking} disabled={importing} className="h-11 text-primary">
           {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Re-import from booking page
         </Button>}
       </div>
     </div>}
 
-    {services.length > 0 && <div className="flex flex-wrap items-center gap-3">
-      <Button onClick={save} disabled={saving} className="h-11">{saving ? 'Saving…' : confirmedAt ? 'Saved' : 'Save my services'}</Button>
-      {confirmedAt && <span className="text-sm text-muted-foreground">These will show on your website.</span>}
-    </div>}
+    <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
+      {syncStatus === 'saving' ? 'Saving your services…' : syncStatus === 'saved' ? 'Services saved automatically.'
+        : syncStatus === 'error' ? 'Could not sync yet. Your choices are saved in this browser; retrying automatically.'
+        : confirmedAt ? 'Services saved to your account.' : 'Your service choices save automatically.'}
+    </p>
   </div>;
 }
