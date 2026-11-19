@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { formatServiceCity } from '@/lib/formatServiceCity';
-import { Loader2, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Search } from 'lucide-react';
 import { ServicesSetupCard } from './ServicesSetupCard';
 
 type Answer = 'yes' | 'no' | '';
@@ -575,8 +575,8 @@ export function BusinessSetupCard({ showServicesSetup = false }: { showServicesS
   };
 
   return <section className="glass-card rounded-xl p-5 md:p-7 space-y-6" aria-labelledby="business-setup-title">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0 flex-1">
+    <div className="space-y-4">
+      <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-primary">First step</p>
         <h2 id="business-setup-title" className="mt-1 text-xl md:text-2xl font-semibold text-foreground">{profileCollapsed ? 'Update your business profile' : 'Tell us about your status as a hair professional'}</h2>
         {!profileCollapsed && <p className="mt-1 text-sm text-muted-foreground">This helps us set up your local marketing and booking links.</p>}
@@ -586,7 +586,8 @@ export function BusinessSetupCard({ showServicesSetup = false }: { showServicesS
             : 'Your answers save automatically as you type.'}
         </p>
       </div>
-      <Button type="button" variant="outline" onClick={() => setProfileCollapsed(value => !value)}>
+      <Button type="button" className="w-full font-semibold sm:w-auto" onClick={() => setProfileCollapsed(value => !value)}>
+        {profileCollapsed ? <ChevronDown aria-hidden="true" className="mr-2 h-4 w-4" /> : <ChevronUp aria-hidden="true" className="mr-2 h-4 w-4" />}
         {profileCollapsed ? 'Expand profile' : 'Collapse profile'}
       </Button>
     </div>
