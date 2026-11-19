@@ -3390,9 +3390,6 @@ export type Database = {
           booking_link_status: string | null
           booking_method: string | null
           booking_platform: string | null
-          service_menu: Json
-          services_confirmed_at: string | null
-          services_source: string | null
           booking_url: string | null
           business_name: string | null
           business_owner_type: string | null
@@ -3436,9 +3433,6 @@ export type Database = {
           booking_link_status?: string | null
           booking_method?: string | null
           booking_platform?: string | null
-          service_menu?: Json
-          services_confirmed_at?: string | null
-          services_source?: string | null
           booking_url?: string | null
           business_name?: string | null
           business_owner_type?: string | null
@@ -3482,9 +3476,6 @@ export type Database = {
           booking_link_status?: string | null
           booking_method?: string | null
           booking_platform?: string | null
-          service_menu?: Json
-          services_confirmed_at?: string | null
-          services_source?: string | null
           booking_url?: string | null
           business_name?: string | null
           business_owner_type?: string | null
