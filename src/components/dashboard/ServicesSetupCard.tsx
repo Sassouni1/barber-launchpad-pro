@@ -3,8 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Download, Loader2, Plus, Trash2 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
+import { Check, Download, Loader2, Plus, Trash2 } from 'lucide-react';
 
 export type MemberService = { name: string; price: string; duration: string; description: string };
 
@@ -14,7 +13,6 @@ const SERVICE_GROUPS = [
   { title: "Women's services", services: ['Balayage', 'Color', 'Highlights', 'Haircuts and Trims', 'Perms', 'Brazilian Blowout', 'Keratin Treatment', 'Hair Extensions', 'Halos', "Women's Toppers"] },
   { title: 'Hair systems', services: ['Hair System Consultation', 'Hair System Install', 'Hair System Maintenance', 'Hair System Retouch'] },
 ];
-const SERVICE_OPTIONS = Array.from(new Set(SERVICE_GROUPS.flatMap(group => group.services))).sort((a, b) => a.localeCompare(b));
 const draftKey = (userId: string) => `barber-launch:services-draft:${userId}`;
 
 const emptyService = (name = ''): MemberService => ({ name, price: '', duration: '', description: '' });
@@ -186,23 +184,24 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
     </div>}
     {importMessage && <p className="text-sm text-muted-foreground" role="status">{importMessage}</p>}
 
-    {showPicker && <div className="space-y-4 rounded-lg border border-border p-4">
+    {showPicker && <div className="space-y-6 rounded-lg border border-border p-4">
       <div>
         <h4 className="font-semibold text-foreground">Choose your services</h4>
-        <p className="text-sm text-muted-foreground">{services.length} selected. Turn on every service you offer; changes save automatically.</p>
+        <p className="text-sm text-muted-foreground">{services.length} selected. Check every service you offer; changes save automatically.</p>
       </div>
-      <div className="space-y-2">
-        {SERVICE_OPTIONS.map(name => {
-          const selected = services.some(service => service.name === name);
-          return <div key={name} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
-            <span className="text-sm font-medium">{name}</span>
-            <div className="flex shrink-0 items-center gap-3">
-              <span className="text-xs text-muted-foreground">{selected ? 'Selected' : 'Not offered'}</span>
-              <Switch checked={selected} onCheckedChange={() => toggleService(name)} aria-label={`${selected ? 'Remove' : 'Add'} ${name}`} />
-            </div>
-          </div>;
-        })}
-      </div>
+      {SERVICE_GROUPS.map(group => <div key={group.title} className="space-y-3">
+        <h4 className="font-semibold text-foreground">{group.title}</h4>
+        <div className="flex flex-wrap gap-2">
+          {group.services.map(name => {
+            const selected = services.some(service => service.name === name);
+            return <button key={`${group.title}-${name}`} type="button" onClick={() => toggleService(name)} aria-pressed={selected}
+              className={`rounded-full border px-3 py-2 text-sm transition-colors ${selected
+                ? 'border-primary bg-primary/15 text-foreground' : 'border-border text-muted-foreground hover:border-primary/50'}`}>
+              {selected && <Check className="mr-1 inline h-3.5 w-3.5 text-primary" />}{name}
+            </button>;
+          })}
+        </div>
+      </div>)}
       <div className="space-y-2">
         <label htmlFor="custom-service" className="block text-sm font-semibold">Anything else?</label>
         <div className="flex gap-2">
