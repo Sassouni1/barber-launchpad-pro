@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { emptyGuidedAnswers, guidedTemplates, guidedWebsitePages, instagramUrl, normalizedWebUrl, type GuidedTemplate, type GuidedWebsiteAnswers } from '@/lib/guidedWebsite';
 import { formatServiceCity } from '@/lib/formatServiceCity';
 import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
+import { TemplatePicker, templateDisplayName } from '@/components/website/TemplatePicker';
 
 const stages = ['Choose a look', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
@@ -70,10 +71,35 @@ export default function GuidedWebsiteBuilder() {
   const dashboardBrandName = businessSetup?.business_name?.trim() || profile?.full_name?.trim() || '';
   const [answers, setAnswers] = useState<GuidedWebsiteAnswers>(emptyGuidedAnswers);
   const [hydrated, setHydrated] = useState(false);
+  // Services the member confirmed on the dashboard (imported from their booking page or added by hand).
+  // Read separately so the builder keeps working if the services columns are not deployed yet.
+  const { data: savedServices } = useQuery({
+    queryKey: ['guided-website-services', user?.id], enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('member_onboarding_profiles')
+        .select('service_menu,services_confirmed_at').eq('user_id', user!.id).maybeSingle();
+      return error ? null : data;
+    },
+  });
+  const dashboardServicesText = savedServices?.services_confirmed_at && Array.isArray(savedServices.service_menu)
+    ? (savedServices.service_menu as Array<{ name?: string; price?: string }>)
+      .filter(service => service?.name?.trim())
+      .map(service => service.price?.trim() ? `${service.name!.trim()} — ${service.price.trim()}` : service.name!.trim())
+      .join('\n')
+    : '';
+  useEffect(() => {
+    if (!hydrated || !dashboardServicesText) return;
+    setAnswers(current => current.services.trim() && current.services !== emptyGuidedAnswers.services
+      ? current : { ...current, services: dashboardServicesText });
+  }, [hydrated, dashboardServicesText]);
   const [step, setStep] = useState(0);
   const [furthestStep, setFurthestStep] = useState(0);
   const [previewPage, setPreviewPage] = useState<'/' | '/hair-loss-solutions/'>('/');
   const [previewTemplate, setPreviewTemplate] = useState<GuidedTemplate | null>(null);
+  // Second-website picker starts with nothing chosen so the member makes a real choice.
+  const [templateChosen, setTemplateChosen] = useState(false);
+  const pickerMode = secondMode;
+  const needsTemplateChoice = pickerMode && step === 0 && !templateChosen;
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
@@ -122,6 +148,7 @@ export default function GuidedWebsiteBuilder() {
   const update = <K extends keyof GuidedWebsiteAnswers>(key: K, value: GuidedWebsiteAnswers[K]) => setAnswers(current => ({ ...current, [key]: value }));
 
   const next = () => {
+    if (needsTemplateChoice) { toast.error('Pick a design to continue.'); return; }
     if (step === 1 && (!answers.businessName.trim() || !answers.city.trim() || !answers.phone.trim())) {
       toast.error('Add your business name, city, and phone number.'); return;
     }
@@ -215,7 +242,12 @@ export default function GuidedWebsiteBuilder() {
     <div><p className="text-xs font-bold uppercase tracking-[.22em] text-primary">My Website</p><h1 className="mt-2 font-serif text-3xl sm:text-4xl">{secondMode ? 'Build your second website' : 'Let’s build your website'}</h1><p className="mt-2 text-muted-foreground">Answer a few questions. We’ll build a draft you can review before publishing.</p>{demoMode && <p className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm text-primary">Admin preview only. Your answers will not save or publish, and your existing website will not change.</p>}{secondMode && <p className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm text-primary">Second-site draft. Your answers are saved in this browser. Your current website will not change, and this draft cannot publish yet.</p>}</div>
     <div className="grid grid-cols-5 gap-2" aria-label="Website setup progress">{stages.map((label, index) => <button key={label} type="button" disabled={index > furthestStep} onClick={() => setStep(index)} className={`rounded-lg border p-2 text-left text-xs sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 ${index === step ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}><span className="block font-bold">{index < step ? <Check className="inline h-4 w-4" /> : index + 1}</span>{label}</button>)}</div>
     <section className="rounded-xl border border-primary/25 bg-card p-5 sm:p-8">
-      {step === 0 && <div className="space-y-5">
+      {step === 0 && pickerMode && <TemplatePicker
+        selected={templateChosen ? answers.template : null}
+        onChoose={key => { update('template', key); setTemplateChosen(true); }}
+        onPreview={key => { setPreviewDevice(window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'mobile'); setPreviewTemplate(key); }}
+      />}
+      {step === 0 && !pickerMode && <div className="space-y-5">
         <div><h2 className="font-serif text-2xl">Choose your website design</h2><p className="text-muted-foreground">Scroll inside either website to explore it, or open Preview for a larger desktop or phone view.</p></div>
         <div className="grid gap-5 lg:grid-cols-2">
           {guidedTemplates.map(template => <article key={template.key} className={`overflow-hidden rounded-xl border bg-background ${answers.template === template.key ? 'border-primary' : 'border-border'}`}>
@@ -234,20 +266,20 @@ export default function GuidedWebsiteBuilder() {
       {step === 4 && <div className="space-y-5"><div><h2 className="font-serif text-2xl">Review your website</h2><p className="text-muted-foreground">Your answers built this preview. Check the details and photos before publishing.</p></div><div className="flex gap-2"><Button type="button" variant={previewPage === '/' ? 'default' : 'outline'} onClick={() => setPreviewPage('/')}>Home</Button><Button type="button" variant={previewPage !== '/' ? 'default' : 'outline'} onClick={() => setPreviewPage('/hair-loss-solutions/')}>Hair Systems</Button></div><iframe key={`${answers.template}:${previewPage}`} title="Your website preview" srcDoc={pages[previewPage]} className="h-[65vh] w-full rounded-lg border bg-white" />{!previewOnly && <div className="flex flex-wrap gap-3"><Button disabled={!!busy} variant="outline" onClick={() => void save()}>{busy === 'Saving draft' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save draft</Button><Button disabled={!!busy} onClick={() => void publish()}>{busy === 'Publishing' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Publish website</Button></div>}{publishedUrl && <a href={publishedUrl} target="_blank" rel="noreferrer" className="text-primary underline">Open your live website <ExternalLink className="inline h-4 w-4" /></a>}</div>}
     </section>
     <Dialog open={!!previewTemplate} onOpenChange={open => { if (!open) setPreviewTemplate(null); }}>
-      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 rounded-none border-0 p-0 sm:max-w-none">
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 rounded-none border-0 p-0 sm:max-w-none [&>button:last-child]:top-[max(1.1rem,calc(env(safe-area-inset-top)+0.6rem))]">
         <DialogTitle className="sr-only">Full website template preview</DialogTitle>
-        <div className="flex flex-wrap items-center gap-2 border-b bg-background px-4 py-3 pr-12">
-          <span className="mr-auto font-semibold">{guidedTemplates.find(template => template.key === previewTemplate)?.example}</span>
-          <Button type="button" size="sm" variant={previewDevice === 'desktop' ? 'default' : 'outline'} onClick={() => setPreviewDevice('desktop')}><Monitor className="mr-1 h-4 w-4" />Desktop</Button>
-          <Button type="button" size="sm" variant={previewDevice === 'mobile' ? 'default' : 'outline'} onClick={() => setPreviewDevice('mobile')}><Smartphone className="mr-1 h-4 w-4" />Phone</Button>
-          <Button type="button" size="sm" onClick={() => { if (previewTemplate) update('template', previewTemplate); setPreviewTemplate(null); }}>Choose this design</Button>
+        <div className="flex items-center gap-2 border-b bg-background px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] pr-12 sm:flex-wrap sm:px-4 sm:pb-3 sm:pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <Button type="button" size="lg" variant="outline" className="h-11 shrink-0 border-2 px-3 font-semibold sm:px-4" onClick={() => setPreviewTemplate(null)}><ArrowLeft className="mr-1.5 h-5 w-5" />Back<span className="hidden sm:inline">&nbsp;to designs</span></Button><span className="mr-auto hidden text-sm text-muted-foreground sm:inline">Previewing <strong className="text-foreground">{pickerMode && previewTemplate ? templateDisplayName(previewTemplate) : guidedTemplates.find(template => template.key === previewTemplate)?.name}</strong></span>
+          <Button type="button" size="sm" className="hidden sm:inline-flex" variant={previewDevice === 'desktop' ? 'default' : 'outline'} onClick={() => setPreviewDevice('desktop')}><Monitor className="mr-1 h-4 w-4" />Desktop</Button>
+          <Button type="button" size="sm" className="hidden sm:inline-flex" variant={previewDevice === 'mobile' ? 'default' : 'outline'} onClick={() => setPreviewDevice('mobile')}><Smartphone className="mr-1 h-4 w-4" />Phone</Button>
+          <Button type="button" size="sm" className="ml-auto h-11 sm:ml-0 sm:h-9" onClick={() => { if (previewTemplate) { update('template', previewTemplate); setTemplateChosen(true); } setPreviewTemplate(null); }}>Choose this design</Button>
         </div>
         <div className="flex min-h-0 flex-1 justify-center overflow-hidden bg-neutral-900 p-2 sm:p-4">
           {previewTemplate && <iframe key={`${previewTemplate}:${previewDevice}`} title={`Full ${previewDevice} website preview`} src={guidedTemplates.find(template => template.key === previewTemplate)?.url} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />}
         </div>
       </DialogContent>
     </Dialog>
-    <div className="flex justify-between"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 4 && <Button onClick={next}>Continue<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
+    <div className="flex justify-between"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 4 && <Button onClick={next} disabled={needsTemplateChoice}>{pickerMode && step === 0 && templateChosen ? `Continue with ${templateDisplayName(answers.template)}` : 'Continue'}<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
   </main></DashboardLayout>;
 }
 
