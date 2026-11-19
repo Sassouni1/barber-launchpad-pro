@@ -99,6 +99,13 @@
       "when": 1794995541024,
       "tag": "0013_manual_order_buyer_recipients",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795107263188,
+      "tag": "0014_member_services",
+      "breakpoints": true
     }
   ]
 }

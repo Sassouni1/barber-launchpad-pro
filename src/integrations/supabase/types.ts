@@ -3416,7 +3416,10 @@ export type Database = {
           photo_url: string | null
           professional_role: string | null
           service_city: string | null
+          service_menu: Json
           services: string[]
+          services_confirmed_at: string | null
+          services_source: string | null
           updated_at: string
           user_id: string
           website_status: string | null
@@ -3459,7 +3462,10 @@ export type Database = {
           photo_url?: string | null
           professional_role?: string | null
           service_city?: string | null
+          service_menu?: Json
           services?: string[]
+          services_confirmed_at?: string | null
+          services_source?: string | null
           updated_at?: string
           user_id: string
           website_status?: string | null
@@ -3502,7 +3508,10 @@ export type Database = {
           photo_url?: string | null
           professional_role?: string | null
           service_city?: string | null
+          service_menu?: Json
           services?: string[]
+          services_confirmed_at?: string | null
+          services_source?: string | null
           updated_at?: string
           user_id?: string
           website_status?: string | null
