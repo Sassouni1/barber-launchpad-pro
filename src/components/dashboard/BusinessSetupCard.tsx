@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { formatServiceCity } from '@/lib/formatServiceCity';
 import { ChevronDown, ChevronUp, Loader2, Search } from 'lucide-react';
 import { ServicesSetupCard } from './ServicesSetupCard';
+import { useLocation } from 'react-router-dom';
 
 type Answer = 'yes' | 'no' | '';
 type BusinessNameChoice = 'yes' | 'no' | 'help' | '';
@@ -180,6 +181,7 @@ function SetupSelect({ id, label, value, onChange, options }: {
 
 export function BusinessSetupCard({ showServicesSetup = false }: { showServicesSetup?: boolean }) {
   const { user } = useAuth();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -187,6 +189,12 @@ export function BusinessSetupCard({ showServicesSetup = false }: { showServicesS
   // Members who joined before the setup step became required see a small "update your profile" prompt instead of the full form.
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileCollapsed, setProfileCollapsed] = useState(false);
+  useEffect(() => {
+    if (location.hash !== '#profile') return;
+    setProfileOpen(true);
+    setEditingComplete(true);
+    setProfileCollapsed(false);
+  }, [location.hash]);
   const [city, setCity] = useState('');
   const [workStreet, setWorkStreet] = useState('');
   const [workCity, setWorkCity] = useState('');

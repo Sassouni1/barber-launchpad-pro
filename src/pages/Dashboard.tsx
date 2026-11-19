@@ -16,8 +16,8 @@ export default function Dashboard() {
   const location = useLocation();
 
   useEffect(() => {
-    if (location.hash === '#contact') {
-      const el = document.getElementById('contact');
+    if (location.hash === '#contact' || location.hash === '#profile') {
+      const el = document.getElementById(location.hash.slice(1));
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -33,7 +33,7 @@ export default function Dashboard() {
         <WelcomeHero />
 
         <div className="space-y-6">
-          <BusinessSetupCard showServicesSetup={showServicesSetup} />
+          <div id="profile" className="scroll-mt-20"><BusinessSetupCard showServicesSetup={showServicesSetup} /></div>
           <DynamicTodoList />
 
           <ContinueLearning />

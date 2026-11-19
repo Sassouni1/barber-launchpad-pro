@@ -32,6 +32,7 @@ import {
   MapPin,
   Shield,
   Globe,
+  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
@@ -80,7 +81,8 @@ interface NavItemProps {
 
 function NavItem({ to, icon: Icon, label, collapsed, dataTour }: NavItemProps) {
   const location = useLocation();
-  const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
+  const isActive = to === '/dashboard#profile' ? location.pathname === '/dashboard' && location.hash === '#profile'
+    : (location.pathname === to || location.pathname.startsWith(to + '/')) && !(to === '/dashboard' && location.hash === '#profile');
 
   return (
     <NavLink
@@ -437,6 +439,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
 
             <div className="my-2 border-t border-sidebar-border" />
 
+            <NavItem to="/dashboard#profile" icon={User} label="My Profile" collapsed={collapsed} />
             <ExpandableNavItem icon={Phone} label="Get Support" collapsed={collapsed}>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule a 1-on-1 Call" />
               <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />

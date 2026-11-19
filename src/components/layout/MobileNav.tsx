@@ -82,19 +82,22 @@ function useMobileMembers() {
 }
 
 function NavRow({ to, icon: Icon, label, onClick, dataTour }: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; onClick?: () => void; dataTour?: string }) {
+  const location = useLocation();
   return (
     <NavLink
       to={to}
       data-tour={dataTour}
       onClick={onClick}
-      className={({ isActive }) =>
-        cn(
+      className={({ isActive }) => {
+        const active = to === '/dashboard#profile' ? location.pathname === '/dashboard' && location.hash === '#profile'
+          : to === '/dashboard' ? isActive && location.hash !== '#profile' : isActive;
+        return cn(
           'flex items-center gap-3 w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
-          isActive
+          active
             ? 'bg-primary/10 text-primary'
             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-        )
-      }
+        );
+      }}
     >
       <Icon className="w-5 h-5" />
       <span>{label}</span>
@@ -247,6 +250,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                 <NavRow to="/newtimes" icon={Package} label="Orders" onClick={closeMenu} />
                 {userIsAdmin && (
                   <>
+                    <NavRow to="/dashboard#profile" icon={User} label="My Profile" onClick={closeMenu} />
                     <div className="border-t border-border my-2" />
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-1">Switch View</p>
                     <button
