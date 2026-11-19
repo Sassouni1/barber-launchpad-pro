@@ -32,7 +32,7 @@ type SetupDraft = {
   bookingSearchAttempted: boolean; bookingSearchLocation: string;
 };
 // Members created on or after this date must complete the first setup step; earlier members get an optional prompt.
-const SETUP_REQUIRED_FROM = '2026-11-19T16:00:00Z';
+export const SETUP_REQUIRED_FROM = '2026-11-19T16:00:00Z';
 const bookingResearchBridge = 'https://jbnsjjeimwpkwxkwmqwl.supabase.co/functions/v1/barber-launch-booking-bridge';
 const mergeBookingCandidates = (primary: BookingCandidate[], secondary: BookingCandidate[]) => {
   const found = new Map<string, BookingCandidate>();

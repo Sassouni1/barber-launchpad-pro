@@ -4,7 +4,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
 import { DynamicTodoList } from '@/components/dashboard/DynamicTodoList';
-import { BusinessSetupCard } from '@/components/dashboard/BusinessSetupCard';
+import { BusinessSetupCard, SETUP_REQUIRED_FROM } from '@/components/dashboard/BusinessSetupCard';
 
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 import { ContactSection } from '@/components/dashboard/ContactSection';
@@ -25,8 +25,9 @@ export default function Dashboard() {
   }, [location.hash]);
   const { user, isAdmin } = useAuth();
   const profileOnly = location.hash === '#profile';
+  const isNewMember = !!user?.created_at && Date.parse(user.created_at) >= Date.parse(SETUP_REQUIRED_FROM);
   const [profileEditing, setProfileEditing] = useState(false);
-  const hideDashboardSections = profileOnly || profileEditing;
+  const hideDashboardSections = profileOnly || (isNewMember && profileEditing);
   // Services setup is limited to the website-builder accounts until the flow is released.
   const showServicesSetup = canAccessSecondWebsite(user?.email, isAdmin) || canAccessMyWebsite(user?.id);
   return (
@@ -36,7 +37,9 @@ export default function Dashboard() {
         {!hideDashboardSections && <WelcomeHero />}
 
         <div className="space-y-6">
-          <div id="profile" className="scroll-mt-20"><BusinessSetupCard showServicesSetup={showServicesSetup} onExpandedChange={setProfileEditing} /></div>
+          <div id="profile" hidden={!profileOnly && !isNewMember} className="scroll-mt-20">
+            <BusinessSetupCard showServicesSetup={showServicesSetup} onExpandedChange={setProfileEditing} />
+          </div>
           {!hideDashboardSections && <>
             <DynamicTodoList />
             <ContinueLearning />
