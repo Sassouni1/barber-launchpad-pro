@@ -182,14 +182,16 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
 
   useEffect(() => {
     const url = normalizedBookingUrl(currentBookingUrl);
-    if (loading || !user?.id || !url || services.length || importing || autoAttemptedUrl.current === url) return;
+    if (loading || !user?.id || !url || importing || autoAttemptedUrl.current === url) return;
+    // Existing selections stay put on page load; a newly chosen booking page still enriches them.
+    if (services.length && normalizedBookingUrl(bookingUrl) === url) return;
     const timer = setTimeout(() => {
       if (latestBookingUrl.current !== url) return;
       autoAttemptedUrl.current = url;
       void importFromBooking();
     }, 1000);
     return () => clearTimeout(timer);
-  }, [currentBookingUrl, loading, user?.id, services.length, importing]);
+  }, [currentBookingUrl, bookingUrl, loading, user?.id, services.length, importing]);
 
   const startManual = () => {
     setShowPicker(true);
