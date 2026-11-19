@@ -107,9 +107,9 @@ export function ServicesSetupCard() {
 
   if (!user || loading) return null;
 
-  return <section className="glass-card rounded-xl p-5 md:p-7 space-y-5" aria-labelledby="services-setup-title">
+  return <div className="space-y-5 border-t border-border pt-6" aria-labelledby="services-setup-title">
     <div className="space-y-1">
-      <h2 id="services-setup-title" className="font-serif text-2xl">Your services and prices</h2>
+      <h3 id="services-setup-title" className="font-serif text-xl md:text-2xl">Your services and prices</h3>
       <p className="text-sm text-muted-foreground">These go on your website. {bookingUrl ? 'We can read them from your booking page.' : 'Add the services you offer and what you charge.'}</p>
     </div>
 
@@ -146,5 +146,5 @@ export function ServicesSetupCard() {
       <Button onClick={save} disabled={saving} className="h-11">{saving ? 'Saving…' : confirmedAt ? 'Saved' : 'Save my services'}</Button>
       {confirmedAt && <span className="text-sm text-muted-foreground">These will show on your website.</span>}
     </div>}
-  </section>;
+  </div>;
 }

@@ -34,8 +34,10 @@ export default function Dashboard() {
         <WelcomeHero />
 
         <div className="space-y-6">
-          <BusinessSetupCard />
-          {showServicesSetup && <ServicesSetupCard />}
+          <section className="glass-card rounded-xl p-5 md:p-7 space-y-6" aria-label="Business profile">
+            <BusinessSetupCard />
+            {showServicesSetup && <ServicesSetupCard />}
+          </section>
           <DynamicTodoList />
 
           <ContinueLearning />
