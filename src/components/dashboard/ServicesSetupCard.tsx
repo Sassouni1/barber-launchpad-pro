@@ -22,11 +22,18 @@ const priceAmount = (value: unknown) => {
   const dot = digits.indexOf('.');
   return dot === -1 ? digits.slice(0, 9) : `${digits.slice(0, dot).slice(0, 9)}.${digits.slice(dot + 1).replace(/\./g, '').slice(0, 2)}`;
 };
+const durationMinutes = (value: unknown) => {
+  const raw = String(value ?? '').trim();
+  const hours = raw.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)/i);
+  const minutes = raw.match(/(\d+)\s*(?:minutes?|mins?|m)/i);
+  if (hours) return String(Math.round(Number(hours[1]) * 60 + Number(minutes?.[1] || 0))).slice(0, 4);
+  return (raw.match(/\d+/)?.[0] || '').slice(0, 4);
+};
 const cleanList = (value: unknown): MemberService[] => (Array.isArray(value) ? value : [])
   .map(item => item && typeof item === 'object' ? item as Record<string, unknown> : {})
   .map(item => ({
     name: String(item.name || '').slice(0, 120), price: priceAmount(item.price),
-    duration: String(item.duration || '').slice(0, 40), description: String(item.description || '').slice(0, 400),
+    duration: durationMinutes(item.duration), description: String(item.description || '').slice(0, 400),
   }))
   .filter(item => item.name.trim());
 
@@ -228,7 +235,7 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
           <Input aria-label="Service name" value={service.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Service name" className="min-w-0 flex-1" />
           <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 sm:order-last" aria-label={`Remove ${service.name || 'service'}`} onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
         </div>
-        <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-2 sm:contents">
+        <div className="grid w-full max-w-[248px] grid-cols-2 gap-2 sm:contents">
           <div className="space-y-1 sm:space-y-0">
             <span className="block text-xs text-muted-foreground sm:hidden">Price</span>
             <div className="relative">
@@ -241,7 +248,8 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
           </div>
           <div className="space-y-1 sm:space-y-0">
             <span className="block text-xs text-muted-foreground sm:hidden">Duration (minutes)</span>
-            <Input aria-label="Duration in minutes" value={service.duration} onChange={e => update(index, 'duration', e.target.value)} placeholder="Minutes" />
+            <Input aria-label="Duration in minutes" type="text" inputMode="numeric" pattern="[0-9]*" value={service.duration}
+              onFocus={e => e.currentTarget.select()} onChange={e => update(index, 'duration', durationMinutes(e.target.value))} placeholder="Minutes" />
           </div>
         </div>
       </div>)}
