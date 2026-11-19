@@ -13,3 +13,14 @@
 .button-hair-loss{background:var(--warm);color:#171715;line-height:1.45;font-size:10px;letter-spacing:.1em}
 .button-hair-loss:hover{background:#ad8e6e;color:#171715}
 @media(max-width:700px){.hero-button-stack{width:min(100%,360px)}}
+
+/* Keep the sample hero readable without letting the long headline dominate. */
+.hero-copy{max-width:680px}
+.hero h1{font-size:clamp(48px,5vw,76px);line-height:1.05}
+.hero h1 em{font-size:.78em}
+.hero-lede{font-size:15px;max-width:480px;margin:24px 0 28px}
+@media(max-width:700px){
+  .hero h1{font-size:clamp(38px,8vw,54px)}
+  .hero h1 em{font-size:.72em}
+  .hero-lede{font-size:14px;line-height:1.55}
+}
