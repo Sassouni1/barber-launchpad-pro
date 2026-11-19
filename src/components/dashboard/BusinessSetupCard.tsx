@@ -186,6 +186,7 @@ export function BusinessSetupCard({ showServicesSetup = false }: { showServicesS
   const [editingComplete, setEditingComplete] = useState(false);
   // Members who joined before the setup step became required see a small "update your profile" prompt instead of the full form.
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profileCollapsed, setProfileCollapsed] = useState(false);
   const [city, setCity] = useState('');
   const [workStreet, setWorkStreet] = useState('');
   const [workCity, setWorkCity] = useState('');
@@ -574,16 +575,22 @@ export function BusinessSetupCard({ showServicesSetup = false }: { showServicesS
   };
 
   return <section className="glass-card rounded-xl p-5 md:p-7 space-y-6" aria-labelledby="business-setup-title">
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-widest text-primary">First step</p>
-      <h2 id="business-setup-title" className="mt-1 text-xl md:text-2xl font-semibold text-foreground">Tell us about your status as a hair professional</h2>
-      <p className="mt-1 text-sm text-muted-foreground">This helps us set up your local marketing and booking links.</p>
-      <p className="mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">
-        {draftStatus === 'saving' ? 'Saving your answers…' : draftStatus === 'saved' ? 'Answers saved to your account.'
-          : draftStatus === 'error' ? 'Could not sync yet. Your answers are saved in this browser; retrying automatically.'
-          : 'Your answers save automatically as you type.'}
-      </p>
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary">First step</p>
+        <h2 id="business-setup-title" className="mt-1 text-xl md:text-2xl font-semibold text-foreground">{profileCollapsed ? 'Update your business profile' : 'Tell us about your status as a hair professional'}</h2>
+        {!profileCollapsed && <p className="mt-1 text-sm text-muted-foreground">This helps us set up your local marketing and booking links.</p>}
+        <p className="mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">
+          {draftStatus === 'saving' ? 'Saving your answers…' : draftStatus === 'saved' ? 'Answers saved to your account.'
+            : draftStatus === 'error' ? 'Could not sync yet. Your answers are saved in this browser; retrying automatically.'
+            : 'Your answers save automatically as you type.'}
+        </p>
+      </div>
+      <Button type="button" variant="outline" onClick={() => setProfileCollapsed(value => !value)}>
+        {profileCollapsed ? 'Expand profile' : 'Collapse profile'}
+      </Button>
     </div>
+    <div hidden={profileCollapsed} className="space-y-6">
     <SetupSelect id="work-status" label="Select an option" value={workStatus}
       onChange={(value) => {
         const nextIsOwner = value === 'barbershop_owner' || value === 'salon_owner';
@@ -728,5 +735,6 @@ export function BusinessSetupCard({ showServicesSetup = false }: { showServicesS
     </div>
     {showServicesSetup && <ServicesSetupCard bookingUrlOverride={booking === 'yes' ? bookingUrl : ''} />}
     <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save and continue'}</Button>
+    </div>
   </section>;
 }
