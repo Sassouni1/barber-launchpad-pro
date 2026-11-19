@@ -16,10 +16,16 @@ const SERVICE_GROUPS = [
 const draftKey = (userId: string) => `barber-launch:services-draft:${userId}`;
 
 const emptyService = (name = ''): MemberService => ({ name, price: '', duration: '', description: '' });
+const priceAmount = (value: unknown) => {
+  const firstAmount = String(value ?? '').match(/(?:\d[\d,.]*|\.\d*)/)?.[0] || '';
+  const digits = (firstAmount.startsWith('.') ? `0${firstAmount}` : firstAmount).replace(/,/g, '');
+  const dot = digits.indexOf('.');
+  return dot === -1 ? digits.slice(0, 9) : `${digits.slice(0, dot).slice(0, 9)}.${digits.slice(dot + 1).replace(/\./g, '').slice(0, 2)}`;
+};
 const cleanList = (value: unknown): MemberService[] => (Array.isArray(value) ? value : [])
   .map(item => item && typeof item === 'object' ? item as Record<string, unknown> : {})
   .map(item => ({
-    name: String(item.name || '').slice(0, 120), price: String(item.price || '').slice(0, 40),
+    name: String(item.name || '').slice(0, 120), price: priceAmount(item.price),
     duration: String(item.duration || '').slice(0, 40), description: String(item.description || '').slice(0, 400),
   }))
   .filter(item => item.name.trim());
@@ -220,7 +226,13 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
       {services.map((service, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_40px] gap-2 rounded-lg border border-border p-3 sm:grid-cols-[minmax(0,1fr)_110px_110px_40px] sm:border-0 sm:p-0">
         <Input aria-label="Service name" value={service.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Service name" />
         <Button type="button" variant="ghost" size="icon" className="h-10 w-10 sm:order-last" aria-label={`Remove ${service.name || 'service'}`} onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
-        <Input aria-label="Price" value={service.price} onChange={e => update(index, 'price', e.target.value)} placeholder="Price" />
+        <div className="relative">
+          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-foreground">$</span>
+          <Input aria-label="Price in dollars" inputMode="decimal" value={service.price}
+            onChange={e => update(index, 'price', priceAmount(e.target.value))}
+            onBlur={() => { if (service.price && Number.isFinite(Number(service.price))) update(index, 'price', Number(service.price).toFixed(2)); }}
+            placeholder="0.00" className="pl-7" />
+        </div>
         <Input aria-label="Length" value={service.duration} onChange={e => update(index, 'duration', e.target.value)} placeholder="Length" />
       </div>)}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
