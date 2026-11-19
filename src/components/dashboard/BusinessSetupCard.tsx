@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 import { toast } from 'sonner';
 import { formatServiceCity } from '@/lib/formatServiceCity';
 import { Loader2, Search } from 'lucide-react';
+import { ServicesSetupCard } from './ServicesSetupCard';
 
 type Answer = 'yes' | 'no' | '';
 type BusinessNameChoice = 'yes' | 'no' | 'help' | '';
@@ -177,7 +178,7 @@ function SetupSelect({ id, label, value, onChange, options }: {
   </div>;
 }
 
-export function BusinessSetupCard() {
+export function BusinessSetupCard({ showServicesSetup = false }: { showServicesSetup?: boolean }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -394,7 +395,7 @@ export function BusinessSetupCard() {
   if (!user || loading) return null;
 
   const isNewMember = !!user.created_at && Date.parse(user.created_at) >= Date.parse(SETUP_REQUIRED_FROM);
-  if (!complete && !isNewMember && !profileOpen) return <div aria-labelledby="business-setup-title">
+  if (!complete && !isNewMember && !profileOpen) return <section className="glass-card rounded-xl p-5 md:p-7" aria-labelledby="business-setup-title">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 id="business-setup-title" className="text-lg font-semibold text-foreground">Update your business profile</h2>
@@ -402,15 +403,15 @@ export function BusinessSetupCard() {
       </div>
       <Button type="button" variant="outline" onClick={() => setProfileOpen(true)}>Update profile</Button>
     </div>
-  </div>;
+  </section>;
 
-  if (complete && !editingComplete) return <div aria-labelledby="business-setup-title">
+  if (complete && !editingComplete) return <section className="glass-card rounded-xl p-5 md:p-7" aria-labelledby="business-setup-title">
     <p className="text-xs font-semibold uppercase tracking-widest text-primary">First step complete</p>
     <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
       <h2 id="business-setup-title" className="text-xl font-semibold text-foreground">Your business details are saved</h2>
       <Button type="button" variant="outline" onClick={() => setEditingComplete(true)}>Edit answers</Button>
     </div>
-  </div>;
+  </section>;
 
 
   const revealField = (id: string, message = 'Please answer this question before saving') => {
@@ -572,7 +573,7 @@ export function BusinessSetupCard() {
     toast.success('Business details saved');
   };
 
-  return <div className="space-y-6" aria-labelledby="business-setup-title">
+  return <section className="glass-card rounded-xl p-5 md:p-7 space-y-6" aria-labelledby="business-setup-title">
     <div>
       <p className="text-xs font-semibold uppercase tracking-widest text-primary">First step</p>
       <h2 id="business-setup-title" className="mt-1 text-xl md:text-2xl font-semibold text-foreground">Tell us about your status as a hair professional</h2>
@@ -725,6 +726,7 @@ export function BusinessSetupCard() {
         </div>}
       </div>}
     </div>
+    {showServicesSetup && <ServicesSetupCard bookingUrlOverride={booking === 'yes' ? bookingUrl : ''} />}
     <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save and continue'}</Button>
-  </div>;
+  </section>;
 }

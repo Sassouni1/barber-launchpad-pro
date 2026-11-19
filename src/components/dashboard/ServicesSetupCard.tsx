@@ -23,7 +23,7 @@ const cleanList = (value: unknown): MemberService[] => (Array.isArray(value) ? v
   }))
   .filter(item => item.name.trim());
 
-export function ServicesSetupCard() {
+export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?: string }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [bookingUrl, setBookingUrl] = useState('');
@@ -33,6 +33,7 @@ export function ServicesSetupCard() {
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const currentBookingUrl = bookingUrlOverride ?? bookingUrl;
 
   useEffect(() => {
     if (!user?.id) return;
@@ -55,6 +56,15 @@ export function ServicesSetupCard() {
     setImporting(true);
     setImportMessage('Reading your booking page. This can take up to a minute…');
     try {
+      if (bookingUrlOverride !== undefined && user?.id) {
+        const { data: profile, error: profileError } = await supabase.from('member_onboarding_profiles')
+          .select('booking_url').eq('user_id', user.id).maybeSingle();
+        const savedUrl = String(profile?.booking_url || '').replace(/\/$/, '');
+        if (profileError || savedUrl !== currentBookingUrl.replace(/\/$/, '')) {
+          setImportMessage('Wait for your booking link to finish saving, then try again.');
+          return;
+        }
+      }
       // Runs the same import + price pass Vlix onboarding uses (see supabase/functions/member-service-import).
       const { data: result, error } = await supabase.functions.invoke('member-service-import', { body: {} });
       if (error) throw new Error((await error.context?.json?.().catch(() => null))?.error || 'Could not read your booking page.');
@@ -110,16 +120,16 @@ export function ServicesSetupCard() {
   return <div className="space-y-5 border-t border-border pt-6" aria-labelledby="services-setup-title">
     <div className="space-y-1">
       <h3 id="services-setup-title" className="font-serif text-xl md:text-2xl">Your services and prices</h3>
-      <p className="text-sm text-muted-foreground">These go on your website. {bookingUrl ? 'We can read them from your booking page.' : 'Add the services you offer and what you charge.'}</p>
+      <p className="text-sm text-muted-foreground">These go on your website. {currentBookingUrl ? 'We can read them from your booking page.' : 'Add the services you offer and what you charge.'}</p>
     </div>
 
     {!services.length && <div className="flex flex-col gap-2 sm:flex-row">
-      {bookingUrl && <Button type="button" onClick={importFromBooking} disabled={importing} className="h-11">
+      {currentBookingUrl && <Button type="button" onClick={importFromBooking} disabled={importing} className="h-11">
         {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
         Import from my booking page
       </Button>}
       <Button type="button" variant="outline" onClick={startManual} disabled={importing} className="h-11">
-        {bookingUrl ? 'Add them myself' : 'Add my services'}
+        {currentBookingUrl ? 'Add them myself' : 'Add my services'}
       </Button>
     </div>}
     {importMessage && <p className="text-sm text-muted-foreground" role="status">{importMessage}</p>}
@@ -136,7 +146,7 @@ export function ServicesSetupCard() {
       </div>)}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Button type="button" variant="outline" onClick={add} className="h-11"><Plus className="mr-2 h-4 w-4" />Add a service</Button>
-        {bookingUrl && <Button type="button" variant="ghost" onClick={importFromBooking} disabled={importing} className="h-11 text-primary">
+        {currentBookingUrl && <Button type="button" variant="ghost" onClick={importFromBooking} disabled={importing} className="h-11 text-primary">
           {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Re-import from booking page
         </Button>}
       </div>

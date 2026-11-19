@@ -1,4 +1,3 @@
-import { ServicesSetupCard } from '@/components/dashboard/ServicesSetupCard';
 import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -34,10 +33,7 @@ export default function Dashboard() {
         <WelcomeHero />
 
         <div className="space-y-6">
-          <section className="glass-card rounded-xl p-5 md:p-7 space-y-6" aria-label="Business profile">
-            <BusinessSetupCard />
-            {showServicesSetup && <ServicesSetupCard />}
-          </section>
+          <BusinessSetupCard showServicesSetup={showServicesSetup} />
           <DynamicTodoList />
 
           <ContinueLearning />
