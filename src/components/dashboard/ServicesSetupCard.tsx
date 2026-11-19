@@ -228,7 +228,7 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
           <Input aria-label="Service name" value={service.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Service name" className="min-w-0 flex-1" />
           <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 sm:order-last" aria-label={`Remove ${service.name || 'service'}`} onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:contents">
+        <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-2 sm:contents">
           <div className="space-y-1 sm:space-y-0">
             <span className="block text-xs text-muted-foreground sm:hidden">Price</span>
             <div className="relative">
