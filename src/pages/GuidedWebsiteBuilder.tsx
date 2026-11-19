@@ -15,7 +15,7 @@ import { emptyGuidedAnswers, guidedTemplates, guidedWebsitePages, instagramUrl, 
 import { formatServiceCity } from '@/lib/formatServiceCity';
 import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
 import { TemplatePicker, templateDisplayName } from '@/components/website/TemplatePicker';
-import { populateTemplateServices } from '@/lib/guidedTemplatePreview';
+import { personalizedTemplateHtml } from '@/lib/guidedTemplatePreview';
 
 const stages = ['Choose a look', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
@@ -95,6 +95,22 @@ export default function GuidedWebsiteBuilder() {
     : '';
   const previewServicesText = secondMode && dashboardServicesText ? dashboardServicesText
     : answers.services !== emptyGuidedAnswers.services ? answers.services : dashboardServicesText;
+  const { data: templateSources } = useQuery({
+    queryKey: ['guided-website-template-sources'],
+    queryFn: async () => {
+      const entries = await Promise.all(guidedTemplates.map(async template => {
+        const response = await fetch(template.url);
+        if (!response.ok) throw new Error(`Could not load ${template.name} preview.`);
+        return [template.key, await response.text()] as const;
+      }));
+      return Object.fromEntries(entries) as Record<GuidedTemplate, string>;
+    },
+    staleTime: Infinity,
+  });
+  const personalizedPreviews = useMemo(() => templateSources && Object.fromEntries(guidedTemplates.map(template => [
+    template.key, personalizedTemplateHtml(templateSources[template.key], template.key, previewServicesText,
+      new URL(template.url, window.location.origin).href),
+  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText]);
   useEffect(() => {
     if (!hydrated || !dashboardServicesText) return;
     setAnswers(current => {
@@ -263,7 +279,7 @@ export default function GuidedWebsiteBuilder() {
         <div className="grid gap-5 lg:grid-cols-2">
           {guidedTemplates.map(template => <article key={template.key} className={`overflow-hidden rounded-xl border bg-background ${answers.template === template.key ? 'border-primary' : 'border-border'}`}>
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3"><div><p className="text-xs font-bold uppercase tracking-widest text-primary">{template.name}</p><h3 className="font-serif text-xl">{template.example}</h3></div><span className="text-xs text-muted-foreground">Scroll inside ↓</span></div>
-            <iframe key={`${template.key}:${previewServicesText}`} title={`${template.name} scrollable website preview`} src={template.url} loading="lazy" onLoad={event => populateTemplateServices(event.currentTarget, template.key, previewServicesText)} className="block h-[420px] w-full border-0 bg-white" />
+            <iframe key={`${template.key}:${previewServicesText}`} title={`${template.name} scrollable website preview`} src={personalizedPreviews ? undefined : template.url} srcDoc={personalizedPreviews?.[template.key]} loading="lazy" className="block h-[420px] w-full border-0 bg-white" />
             <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border p-3">
               <Button type="button" size="sm" variant="outline" onClick={() => { setPreviewDevice('desktop'); setPreviewTemplate(template.key); }}><ExternalLink className="mr-1 h-4 w-4" />Preview</Button>
               <Button type="button" size="sm" variant={answers.template === template.key ? 'default' : 'secondary'} onClick={() => update('template', template.key)}>{answers.template === template.key ? 'Selected' : 'Select'}</Button>
@@ -286,7 +302,7 @@ export default function GuidedWebsiteBuilder() {
           <Button type="button" size="sm" className="ml-auto h-11 sm:ml-0 sm:h-9" onClick={() => { if (previewTemplate) { update('template', previewTemplate); setTemplateChosen(true); } setPreviewTemplate(null); }}>Choose this design</Button>
         </div>
         <div className="flex min-h-0 flex-1 justify-center overflow-hidden bg-neutral-900 p-2 sm:p-4">
-          {previewTemplate && <iframe key={`${previewTemplate}:${previewDevice}:${previewServicesText}`} title={`Full ${previewDevice} website preview`} src={guidedTemplates.find(template => template.key === previewTemplate)?.url} onLoad={event => populateTemplateServices(event.currentTarget, previewTemplate, previewServicesText)} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />}
+          {previewTemplate && <iframe key={`${previewTemplate}:${previewDevice}:${previewServicesText}`} title={`Full ${previewDevice} website preview`} src={personalizedPreviews ? undefined : guidedTemplates.find(template => template.key === previewTemplate)?.url} srcDoc={personalizedPreviews?.[previewTemplate]} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />}
         </div>
       </DialogContent>
     </Dialog>

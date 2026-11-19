@@ -1,16 +1,18 @@
 import { parseGuidedServices, type GuidedTemplate } from './guidedWebsite';
 
-// The design examples are static files. Replace their sample menu inside each same-origin
-// iframe so the full design preview shows the member's actual saved service menu.
-export function populateTemplateServices(frame: HTMLIFrameElement, template: GuidedTemplate, serviceText: string) {
+// Build the iframe document before loading it. Preview frames may be isolated from their
+// parent, so changing their DOM after load is unreliable.
+export function personalizedTemplateHtml(html: string, template: GuidedTemplate, serviceText: string, baseUrl: string) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const base = doc.createElement('base');
+  base.href = baseUrl;
+  doc.head.prepend(base);
   const services = parseGuidedServices(serviceText);
-  if (!services.length) return;
-  const doc = frame.contentDocument;
-  if (!doc) return;
+  if (!services.length) return `<!doctype html>${doc.documentElement.outerHTML}`;
 
   if (template === 'guided-charlotte') {
     const list = doc.querySelector('#service-list');
-    if (!list) return;
+    if (!list) return `<!doctype html>${doc.documentElement.outerHTML}`;
     const rows = services.map((service, index) => {
       const row = doc.createElement('article');
       row.className = 'service';
@@ -41,11 +43,11 @@ export function populateTemplateServices(frame: HTMLIFrameElement, template: Gui
     list.replaceChildren(...rows);
     const note = doc.querySelector('.price-note');
     if (note) note.textContent = 'Services and prices from your profile.';
-    return;
+    return `<!doctype html>${doc.documentElement.outerHTML}`;
   }
 
   const rates = doc.querySelector('.price-list');
-  if (!rates) return;
+  if (!rates) return `<!doctype html>${doc.documentElement.outerHTML}`;
   const rows = services.map(service => {
     const row = doc.createElement('p');
     const label = doc.createElement('span');
@@ -69,4 +71,5 @@ export function populateTemplateServices(frame: HTMLIFrameElement, template: Gui
     if (title) title.textContent = service.name;
     if (description) description.textContent = service.price || '';
   });
+  return `<!doctype html>${doc.documentElement.outerHTML}`;
 }
