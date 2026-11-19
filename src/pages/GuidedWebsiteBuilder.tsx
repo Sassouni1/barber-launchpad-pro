@@ -84,7 +84,11 @@ export default function GuidedWebsiteBuilder() {
   const dashboardServicesText = savedServices?.services_confirmed_at && Array.isArray(savedServices.service_menu)
     ? (savedServices.service_menu as Array<{ name?: string; price?: string }>)
       .filter(service => service?.name?.trim())
-      .map(service => service.price?.trim() ? `${service.name!.trim()} — ${service.price.trim()}` : service.name!.trim())
+      .map(service => {
+        const name = service.name!.trim();
+        const price = String(service.price || '').trim();
+        return price ? `${name} — ${/^\d+(?:\.\d{1,2})?$/.test(price) ? `$${price}` : price}` : name;
+      })
       .join('\n')
     : '';
   useEffect(() => {
