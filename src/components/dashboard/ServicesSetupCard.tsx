@@ -215,14 +215,6 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
           })}
         </div>
       </div>)}
-      <div className="space-y-2">
-        <label htmlFor="custom-service" className="block text-sm font-semibold">Anything else?</label>
-        <div className="flex gap-2">
-          <Input id="custom-service" value={customService} onChange={event => setCustomService(event.target.value)}
-            onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addCustomService(); } }} placeholder="Add a custom service" />
-          <Button type="button" onClick={addCustomService} aria-label="Add custom service"><Plus className="h-4 w-4" /></Button>
-        </div>
-      </div>
     </div>}
 
     {services.length > 0 && <div className="space-y-3">
@@ -253,12 +245,19 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
           </div>
         </div>
       </div>)}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        {currentBookingUrl && <Button type="button" variant="ghost" onClick={importFromBooking} disabled={importing} className="h-11 text-primary">
-          {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Re-import from booking page
-        </Button>}
+    </div>}
+
+    {showPicker && <div className="space-y-2">
+      <label htmlFor="custom-service" className="block text-sm font-semibold">Anything else?</label>
+      <div className="flex gap-2">
+        <Input id="custom-service" value={customService} onChange={event => setCustomService(event.target.value)}
+          onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addCustomService(); } }} placeholder="Add a custom service" />
+        <Button type="button" onClick={addCustomService} aria-label="Add custom service"><Plus className="h-4 w-4" /></Button>
       </div>
     </div>}
+    {services.length > 0 && currentBookingUrl && <Button type="button" variant="ghost" onClick={importFromBooking} disabled={importing} className="h-11 text-primary">
+      {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}Re-import from booking page
+    </Button>}
 
     <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
       {syncStatus === 'saving' ? 'Saving your services…' : syncStatus === 'saved' ? 'Services saved automatically.'
