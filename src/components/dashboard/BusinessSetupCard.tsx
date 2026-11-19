@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { formatServiceCity } from '@/lib/formatServiceCity';
-import { ArrowLeft, ChevronDown, Loader2, Search } from 'lucide-react';
+import { ArrowLeft, Loader2, Search } from 'lucide-react';
 import { ServicesSetupCard } from './ServicesSetupCard';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -606,9 +606,9 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
             : 'Your answers save automatically as you type.'}
         </p>
       </div>
-      <Button type="button" className="w-auto font-semibold" onClick={profileCollapsed ? () => setProfileCollapsed(false) : exitProfile}>
-        {profileCollapsed ? <ChevronDown aria-hidden="true" className="mr-2 h-4 w-4" /> : <ArrowLeft aria-hidden="true" className="mr-2 h-4 w-4" />}
-        {profileCollapsed ? 'Continue profile' : 'Back to Dashboard'}
+      <Button type="button" variant={profileCollapsed ? 'outline' : 'default'} className="w-auto font-semibold" onClick={profileCollapsed ? () => setProfileCollapsed(false) : exitProfile}>
+        {!profileCollapsed && <ArrowLeft aria-hidden="true" className="mr-2 h-4 w-4" />}
+        {profileCollapsed ? 'Update profile' : 'Back to Dashboard'}
       </Button>
     </div>
     <div hidden={profileCollapsed} className="space-y-6">
