@@ -249,10 +249,10 @@ body.stay-faded-home{margin:0;background:#050208;color:#fbf7ff;font-family:Inter
 @media (max-width:560px){
   .sf-home-hero h1{font-size:clamp(2.2rem,9vw,3rem)}
   .sf-home-hero h2{font-size:clamp(2.1rem,8.5vw,3rem)}
-  .sf-home-header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:.65rem;padding:.75rem 1rem}
+  .sf-home-header{display:grid;grid-template-columns:2.5rem minmax(0,1fr) auto;align-items:center;gap:.35rem;padding:.6rem .5rem}
   .sf-home-header .hs-brand{min-width:0;gap:.5rem}
   .sf-home-header .hs-brand img{flex:none;width:2.5rem;height:2.5rem}
   .sf-home-header .hs-brand>span{display:none}
-  .sf-home-header .sf-menu-toggle{grid-column:2;grid-row:1;justify-self:end;font-size:.9rem}
-  .sf-home-header .hs-mobile-cta{grid-column:1/-1;grid-row:2;justify-content:center;width:100%;min-width:0;font-size:.8rem}
+  .sf-home-header .sf-menu-toggle{grid-column:3;grid-row:1;justify-self:end;padding:.5rem .6rem;font-size:.8rem}
+  .sf-home-header .hs-mobile-cta{grid-column:2;grid-row:1;justify-content:center;width:100%;min-width:0;padding:.5rem .25rem;font-size:.72rem}
 }
