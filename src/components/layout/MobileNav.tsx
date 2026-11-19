@@ -30,11 +30,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
 import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
-import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
-import { useMemberWebsite } from '@/hooks/useMemberWebsite';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { isMetaReviewer, markReviewerMenuShown, shouldAutoOpenReviewerMenu } from '@/lib/metaReviewerLanding';
-import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
+import { canAccessSecondWebsite, myWebsiteMenuPath } from '@/lib/myWebsiteAccess';
 import {
   Dialog,
   DialogContent,
@@ -113,8 +111,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const isNewAccount = useIsNewAccount();
   const { data: supportUnreadCount = 0 } = useSupportUnreadCount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
-  const { data: websiteEntitlement, isLoading: loadingWebsiteEntitlement } = useWebsiteEditorEntitlement();
-  const { data: memberWebsite, isLoading: loadingMemberWebsite } = useMemberWebsite();
+  const websiteMenuPath = myWebsiteMenuPath(user?.id);
   const restrictNav = isNewAccount && !allQuizzesPassed;
 
   
@@ -439,10 +436,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <CreditCard className="w-4 h-4" />
                           <span className="font-medium">Digital Business Card</span>
                         </NavLink>
-                        {canAccessMyWebsite(user?.id) && websiteEntitlement && (
-                          <NavRow to="/website" icon={Globe} label="My Website" onClick={closeMenu} />
-                        )}
-                        {canAccessMyWebsite(user?.id) && !loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteEntitlement && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <NavRow to="/my-website" icon={Globe} label="My Website" onClick={closeMenu} />}
+                        {websiteMenuPath && <NavRow to={websiteMenuPath} icon={Globe} label="My Website" onClick={closeMenu} />}
                         {canAccessSecondWebsite(user?.email, userIsAdmin) && <NavRow to="/my-website?second=1" icon={Globe} label="Build Second Website" onClick={closeMenu} />}
                       </CollapsibleContent>
                     </Collapsible>

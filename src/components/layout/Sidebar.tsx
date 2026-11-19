@@ -44,7 +44,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
 import { isMetaReviewer } from '@/lib/metaReviewerLanding';
-import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
+import { canAccessSecondWebsite, myWebsiteMenuPath } from '@/lib/myWebsiteAccess';
 
 
 import { Switch } from '@/components/ui/switch';
@@ -54,8 +54,6 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
-import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
-import { useMemberWebsite } from '@/hooks/useMemberWebsite';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { OPEN_LEVEL_1_CERT_EVENT } from '@/lib/level1CertNavigation';
 import { ViewSwitcher } from '@/components/layout/ViewSwitcher';
@@ -299,8 +297,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
   
   const { data: checklistLists = [] } = useChecklistLists();
-  const { data: websiteTemplate, isLoading: loadingWebsiteEntitlement } = useWebsiteEditorEntitlement();
-  const { data: memberWebsite, isLoading: loadingMemberWebsite } = useMemberWebsite();
+  const websiteMenuPath = myWebsiteMenuPath(user?.id);
 
   const handleSignOut = async () => {
     try {
@@ -407,8 +404,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" emphasize={reviewerOnAds} />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
-              {canAccessMyWebsite(user?.id) && websiteTemplate && <SubNavItem to="/website" icon={Globe} label="My Website" />}
-              {canAccessMyWebsite(user?.id) && !loadingWebsiteEntitlement && !loadingMemberWebsite && !websiteTemplate && (!memberWebsite || memberWebsite.template_key === 'guided-charlotte' || memberWebsite.template_key === 'guided-kait') && <SubNavItem to="/my-website" icon={Globe} label="My Website" />}
+              {websiteMenuPath && <SubNavItem to={websiteMenuPath} icon={Globe} label="My Website" />}
               {canAccessSecondWebsite(user?.email, userIsAdmin) && <SubNavItem to="/my-website?second=1" icon={Globe} label="Build Second Website" />}
             </ExpandableNavItem>
 
