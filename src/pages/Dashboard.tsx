@@ -1,4 +1,3 @@
-import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WelcomeHero } from '@/components/dashboard/WelcomeHero';
@@ -23,13 +22,11 @@ export default function Dashboard() {
       }
     }
   }, [location.hash]);
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const profileOnly = location.hash === '#profile';
   const isNewMember = !!user?.created_at && Date.parse(user.created_at) >= Date.parse(SETUP_REQUIRED_FROM);
   const [profileEditing, setProfileEditing] = useState(false);
   const hideDashboardSections = profileOnly || (isNewMember && profileEditing);
-  // Services setup is limited to the website-builder accounts until the flow is released.
-  const showServicesSetup = canAccessSecondWebsite(user?.email, isAdmin) || canAccessMyWebsite(user?.id);
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-8">
@@ -38,7 +35,7 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <div id="profile" hidden={!profileOnly && !isNewMember} className="scroll-mt-20">
-            <BusinessSetupCard showServicesSetup={showServicesSetup} onExpandedChange={setProfileEditing} />
+            <BusinessSetupCard showServicesSetup onExpandedChange={setProfileEditing} />
           </div>
           {!hideDashboardSections && <>
             <DynamicTodoList />

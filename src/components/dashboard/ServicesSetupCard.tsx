@@ -14,6 +14,12 @@ const SERVICE_GROUPS = [
   { title: 'Hair systems', services: ['Hair System Consultation', 'Hair System Install', 'Hair System Maintenance', 'Hair System Retouch'] },
 ];
 const draftKey = (userId: string) => `barber-launch:services-draft:${userId}`;
+const normalizedBookingUrl = (value: string) => {
+  try {
+    const url = new URL(/^https?:\/\//i.test(value.trim()) ? value.trim() : `https://${value.trim()}`);
+    return ['http:', 'https:'].includes(url.protocol) && url.hostname.includes('.') ? url.href.replace(/\/$/, '') : '';
+  } catch { return ''; }
+};
 
 const emptyService = (name = ''): MemberService => ({ name, price: '', duration: '', description: '' });
 const priceAmount = (value: unknown) => {
@@ -55,7 +61,10 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
+  const autoAttemptedUrl = useRef('');
+  const latestBookingUrl = useRef('');
   const currentBookingUrl = bookingUrlOverride ?? bookingUrl;
+  latestBookingUrl.current = normalizedBookingUrl(currentBookingUrl);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -119,21 +128,28 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
   useEffect(() => () => { if (retryTimer.current) clearTimeout(retryTimer.current); }, []);
 
   const importFromBooking = async () => {
+    const requestedUrl = normalizedBookingUrl(currentBookingUrl);
+    if (!requestedUrl) return;
     setImporting(true);
     setImportMessage('Reading your booking page. This can take up to a minute…');
     try {
       if (bookingUrlOverride !== undefined && user?.id) {
-        const { data: profile, error: profileError } = await supabase.from('member_onboarding_profiles')
-          .select('booking_url').eq('user_id', user.id).maybeSingle();
-        const savedUrl = String(profile?.booking_url || '').replace(/\/$/, '');
-        if (profileError || savedUrl !== currentBookingUrl.replace(/\/$/, '')) {
-          setImportMessage('Wait for your booking link to finish saving, then try again.');
-          return;
+        let saved = false;
+        // The profile autosaves first; the import function reads its saved booking URL.
+        for (let attempt = 0; attempt < 12; attempt++) {
+          if (latestBookingUrl.current !== requestedUrl) return;
+          const { data: profile, error: profileError } = await supabase.from('member_onboarding_profiles')
+            .select('booking_url').eq('user_id', user.id).maybeSingle();
+          if (profileError) throw profileError;
+          if (normalizedBookingUrl(profile?.booking_url || '') === requestedUrl) { saved = true; break; }
+          await new Promise(resolve => setTimeout(resolve, 400));
         }
+        if (!saved) { setImportMessage('Your booking link could not sync yet. Please try again.'); return; }
       }
       // Runs the same import + price pass Vlix onboarding uses (see supabase/functions/member-service-import).
       const { data: result, error } = await supabase.functions.invoke('member-service-import', { body: {} });
       if (error) throw new Error((await error.context?.json?.().catch(() => null))?.error || 'Could not read your booking page.');
+      if (latestBookingUrl.current !== requestedUrl) return;
       const found = cleanList(result?.services);
       if (!found.length) {
         setImportMessage('We couldn’t find services on your booking page. Add them below.');
@@ -141,7 +157,18 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
         setSource('manual');
         return;
       }
-      setServices(found);
+      setServices(existing => {
+        const byName = new Set(existing.map(service => service.name.trim().toLowerCase()));
+        const imported = new Map(found.map(service => [service.name.trim().toLowerCase(), service]));
+        return [
+          ...existing.map(service => {
+            const match = imported.get(service.name.trim().toLowerCase());
+            return match ? { ...service, price: service.price || match.price,
+              duration: service.duration || match.duration, description: service.description || match.description } : service;
+          }),
+          ...found.filter(service => !byName.has(service.name.trim().toLowerCase())),
+        ];
+      });
       setShowPicker(true);
       setSource('booking');
       setConfirmedAt(null);
@@ -152,6 +179,17 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
       setImporting(false);
     }
   };
+
+  useEffect(() => {
+    const url = normalizedBookingUrl(currentBookingUrl);
+    if (loading || !user?.id || !url || services.length || importing || autoAttemptedUrl.current === url) return;
+    const timer = setTimeout(() => {
+      if (latestBookingUrl.current !== url) return;
+      autoAttemptedUrl.current = url;
+      void importFromBooking();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [currentBookingUrl, loading, user?.id, services.length, importing]);
 
   const startManual = () => {
     setShowPicker(true);
@@ -187,9 +225,8 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
     </div>
 
     {!showPicker && <div className="flex flex-col gap-2 sm:flex-row">
-      {currentBookingUrl && <Button type="button" onClick={importFromBooking} disabled={importing} className="h-11">
-        {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-        Import from my booking page
+      {currentBookingUrl && !importing && autoAttemptedUrl.current === normalizedBookingUrl(currentBookingUrl) && <Button type="button" variant="outline" onClick={importFromBooking} className="h-11">
+        <Download className="mr-2 h-4 w-4" />Try import again
       </Button>}
       <Button type="button" onClick={startManual} disabled={importing} className="h-11">
         {currentBookingUrl ? 'Add them myself' : 'Add my services'}
