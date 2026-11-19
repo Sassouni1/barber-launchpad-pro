@@ -179,7 +179,10 @@ function SetupSelect({ id, label, value, onChange, options }: {
   </div>;
 }
 
-export function BusinessSetupCard({ showServicesSetup = false }: { showServicesSetup?: boolean }) {
+export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange }: {
+  showServicesSetup?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+}) {
   const { user } = useAuth();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -401,9 +404,11 @@ export function BusinessSetupCard({ showServicesSetup = false }: { showServicesS
     previousBookingLookupKey.current = bookingLookupKey;
   }, [loading, bookingLookupKey, bookingChoice]);
 
-  if (!user || loading) return null;
+  const isNewMember = !!user?.created_at && Date.parse(user.created_at) >= Date.parse(SETUP_REQUIRED_FROM);
+  const formExpanded = !!user && !loading && !profileCollapsed && (complete ? editingComplete : isNewMember || profileOpen);
+  useEffect(() => { onExpandedChange?.(formExpanded); }, [formExpanded, onExpandedChange]);
 
-  const isNewMember = !!user.created_at && Date.parse(user.created_at) >= Date.parse(SETUP_REQUIRED_FROM);
+  if (!user || loading) return null;
   if (!complete && !isNewMember && !profileOpen) return <section className="glass-card rounded-xl p-5 md:p-7" aria-labelledby="business-setup-title">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
