@@ -29,6 +29,7 @@ function bookingUrl(value: string) {
     const url = new URL(value);
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
     if (url.username || url.password || url.port || !bookingHost.test(url.hostname)) return '';
+    if (/(^|\.)fresha\.com$/i.test(url.hostname) && url.pathname.startsWith('/lvp/')) return '';
     url.hash = '';
     return url.href.replace(/\/$/, '');
   } catch { return ''; }
@@ -37,6 +38,9 @@ function bookingIdentity(value: string) {
   const parsed = new URL(value);
   const booksy = /(^|\.)booksy\.com$/i.test(parsed.hostname) && parsed.pathname.match(/^\/en-us\/(\d+)_/i);
   return booksy ? `booksy:${booksy[1]}` : `${parsed.origin}${parsed.pathname}`.toLowerCase().replace(/\/$/, '');
+}
+function bookableEvidence(value: string) {
+  return !/\b(?:not affiliated|not partnered|call[- ]to[- ]book|no online booking)\b/i.test(value);
 }
 function domainBusinessName(website: string) {
   if (!website) return '';
@@ -138,10 +142,42 @@ Deno.serve(async request => {
     const raw = await request.text();
     if (raw.length > 3000) return json({ error: 'Request too large.' }, 413);
     const input = JSON.parse(raw) as Record<string, unknown>;
+    if (input.action === 'import_services') {
+      // Only the booking page the member saved in their business setup can be imported.
+      const { data: saved, error: savedError } = await db.from('member_onboarding_profiles')
+        .select('booking_url').eq('user_id', auth.user.id).maybeSingle();
+      if (savedError) return json({ error: 'Could not read your member profile.' }, 502);
+      const page = bookingUrl(String(saved?.booking_url || ''));
+      if (!page) return json({ error: 'Save your booking page first.' }, 400);
+      const importBody = JSON.stringify({ action: 'barber_import', memberId: auth.user.id, url: page });
+      const importTime = String(Math.floor(Date.now() / 1000));
+      const importKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+      const importDigest = await crypto.subtle.sign('HMAC', importKey, new TextEncoder().encode(`${importTime}.${importBody}`));
+      const importSignature = Array.from(new Uint8Array(importDigest), byte => byte.toString(16).padStart(2, '0')).join('');
+      const imported = await fetch(`${vlixUrl}/functions/v1/profile-research`, {
+        method: 'POST', signal: AbortSignal.timeout(150000),
+        headers: { 'Content-Type': 'application/json', 'x-barber-launch-timestamp': importTime,
+          'x-barber-launch-signature': importSignature },
+        body: importBody,
+      });
+      const importResult = await imported.json().catch(() => ({}));
+      if (!imported.ok) return json({ error: importResult?.error || 'Could not read your booking page.' }, imported.status);
+      const services = (Array.isArray(importResult?.services) ? importResult.services : []).slice(0, 60)
+        .map((service: Record<string, unknown>) => ({
+          name: String(service.name || '').trim().slice(0, 120),
+          price: String(service.price || '').trim().slice(0, 40),
+          duration: String(service.duration || '').trim().slice(0, 40),
+          description: String(service.description || '').trim().slice(0, 2000),
+          source: String(service.source || page),
+        })).filter((service: { name: string }) => service.name);
+      return json({ services, source: page });
+    }
     const city = typeof input.city === 'string' ? input.city.trim() : '';
     const websiteText = typeof input.website === 'string' ? input.website.trim() : '';
     const platform = typeof input.platform === 'string' ? input.platform.trim() : '';
     const currentBusinessName = typeof input.businessName === 'string' ? input.businessName.trim() : null;
+    const phase = input.phase === 'quick' || input.phase === 'deep' ? input.phase : 'full';
     const scope = input.scope === 'shop' ? 'shop' : 'individual';
     const website = publicWebsite(websiteText);
     if (!city || city.length > 160 || websiteText.length > 1000 || website === null || platform.length > 80 ||
@@ -155,7 +191,16 @@ Deno.serve(async request => {
     const name = String(profile?.full_name || auth.user.user_metadata?.full_name || '').trim().slice(0, 160);
     const businessName = currentBusinessName ?? String(onboarding?.business_name || '').trim().slice(0, 160);
     if (!name && !businessName) return json({ error: 'Add your name to your profile before searching.' }, 400);
-    const supplement = Promise.allSettled([fuzzyBookingMatches(name || businessName, businessName, city, website || ''), websiteBookingMatches(website || '')]);
+    const supplement = phase === 'deep' ? null : Promise.allSettled([
+      fuzzyBookingMatches(name || businessName, businessName, city, website || ''), websiteBookingMatches(website || ''),
+    ]);
+    if (phase === 'quick') {
+      const candidates = new Map<string, BookingCandidate>();
+      for (const item of await supplement!) if (item.status === 'fulfilled') for (const candidate of item.value) {
+        candidates.set(bookingIdentity(candidate.url), candidate);
+      }
+      return json({ candidates: [...candidates.values()].slice(0, 20), phase: 'quick' });
+    }
     const body = JSON.stringify({
       action: 'barber_booking', memberId: auth.user.id, name: name || businessName,
       businessName, city, website, bookingPlatform: /^(other|not sure|other \/ not sure)$/i.test(platform) ? '' : platform, scope,
@@ -166,23 +211,24 @@ Deno.serve(async request => {
     const digest = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${timestamp}.${body}`));
     const signature = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
     const response = await fetch(`${vlixUrl}/functions/v1/profile-research`, {
-      method: 'POST', signal: AbortSignal.timeout(125000),
+      method: 'POST', signal: AbortSignal.timeout(195000),
       headers: { 'Content-Type': 'application/json', 'x-barber-launch-timestamp': timestamp,
         'x-barber-launch-signature': signature },
       body,
     });
     const result = await response.json();
     if (!response.ok) return json({ error: result?.error || 'Booking research could not finish.' }, response.status);
-    const extra = await supplement;
+    const extra = supplement ? await supplement : [];
     const candidates = new Map<string, BookingCandidate>();
-    const identityNames = [name, businessName, domainBusinessName(website || '')]
-      .map(compact).filter(value => value.length >= 4);
     if (Array.isArray(result?.candidates)) for (const candidate of result.candidates as Array<Record<string, unknown>>) {
       const url = bookingUrl(String(candidate.url || ''));
-      if (url && identityNames.some(value => compact(`${candidate.title || ''} ${url}`).includes(value))) candidates.set(bookingIdentity(url), { url, title: String(candidate.title || ''), evidence: String(candidate.description || ''),
+      // Vlix has already source-checked this match, including any evidenced
+      // connection to another shop whose name does not match the member's.
+      if (url && candidate.confidence === 'confirmed' && bookableEvidence(String(candidate.description || ''))) candidates.set(bookingIdentity(url), { url, title: String(candidate.title || ''), evidence: String(candidate.description || ''),
         businessName: String(candidate.businessName || ''), location: String(candidate.location || ''), confidence: 'confirmed' });
     }
     for (const item of extra) if (item.status === 'fulfilled') for (const candidate of item.value) {
+      if (!bookableEvidence(candidate.evidence)) continue;
       const identity = bookingIdentity(candidate.url);
       if (!candidates.has(identity)) candidates.set(identity, candidate);
     }
