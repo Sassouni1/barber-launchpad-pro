@@ -29,6 +29,13 @@ export const guidedTemplates = [
 
 const escape = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 
+export function parseGuidedServices(value: string): Array<{ name: string; price: string }> {
+  return value.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+    const priced = line.match(/^(.*?)\s+[—–-]\s+(\$\d+(?:\.\d{1,2})?)$/);
+    return priced ? { name: priced[1].trim(), price: priced[2] } : { name: line, price: '' };
+  });
+}
+
 export function normalizedWebUrl(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -53,10 +60,7 @@ export function guidedWebsitePages(answers: GuidedWebsiteAnswers, siteSlug: stri
   const instagram = instagramUrl(answers.instagram);
   const ctaHref = booking ?? phoneHref;
   const ctaText = booking ? 'Book a consultation' : 'Call about a consultation';
-  const services = answers.services.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
-    const priced = line.match(/^(.*?)\s+[—–-]\s+(\$\d+(?:\.\d{1,2})?)$/);
-    return priced ? { name: priced[1].trim(), price: priced[2] } : { name: line, price: '' };
-  });
+  const services = parseGuidedServices(answers.services);
   const photoUrls = answers.photos.filter(url => /^https:\/\//i.test(url)).slice(0, 6);
   const light = answers.template === 'guided-charlotte';
   const siteRoot = `/${encodeURIComponent(siteSlug)}/`;
