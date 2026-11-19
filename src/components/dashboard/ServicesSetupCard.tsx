@@ -22,11 +22,18 @@ const priceAmount = (value: unknown) => {
   const dot = digits.indexOf('.');
   return dot === -1 ? digits.slice(0, 9) : `${digits.slice(0, dot).slice(0, 9)}.${digits.slice(dot + 1).replace(/\./g, '').slice(0, 2)}`;
 };
+const durationMinutes = (value: unknown) => {
+  const raw = String(value ?? '').trim();
+  const hours = raw.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)/i);
+  const minutes = raw.match(/(\d+)\s*(?:minutes?|mins?|m)/i);
+  if (hours) return String(Math.round(Number(hours[1]) * 60 + Number(minutes?.[1] || 0))).slice(0, 4);
+  return (raw.match(/\d+/)?.[0] || '').slice(0, 4);
+};
 const cleanList = (value: unknown): MemberService[] => (Array.isArray(value) ? value : [])
   .map(item => item && typeof item === 'object' ? item as Record<string, unknown> : {})
   .map(item => ({
     name: String(item.name || '').slice(0, 120), price: priceAmount(item.price),
-    duration: String(item.duration || '').slice(0, 40), description: String(item.description || '').slice(0, 400),
+    duration: durationMinutes(item.duration), description: String(item.description || '').slice(0, 400),
   }))
   .filter(item => item.name.trim());
 
@@ -220,20 +227,30 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
 
     {services.length > 0 && <div className="space-y-3">
       <h4 className="font-semibold">Your selected services and prices</h4>
-      <div className="hidden grid-cols-[minmax(0,1fr)_110px_40px] gap-2 px-1 text-xs text-muted-foreground sm:grid">
-        <span>Service</span><span>Price</span><span />
+      <div className="hidden grid-cols-[minmax(0,1fr)_110px_110px_40px] gap-2 px-1 text-xs text-muted-foreground sm:grid">
+        <span>Service</span><span>Price</span><span>Duration</span><span />
       </div>
-      {services.map((service, index) => <div key={index} className="space-y-2 rounded-lg border border-border p-3 sm:grid sm:grid-cols-[minmax(0,1fr)_110px_40px] sm:gap-2 sm:space-y-0 sm:border-0 sm:p-0">
+      {services.map((service, index) => <div key={index} className="space-y-2 rounded-lg border border-border p-3 sm:grid sm:grid-cols-[minmax(0,1fr)_110px_110px_40px] sm:gap-2 sm:space-y-0 sm:border-0 sm:p-0">
         <div className="flex items-center gap-2 sm:contents">
           <Input aria-label="Service name" value={service.name} onChange={e => update(index, 'name', e.target.value)} placeholder="Service name" className="min-w-0 flex-1" />
           <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 sm:order-last" aria-label={`Remove ${service.name || 'service'}`} onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
         </div>
-        <div className="relative w-full max-w-[120px] sm:max-w-none">
-          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-foreground">$</span>
-          <Input aria-label="Price in dollars" inputMode="decimal" value={service.price}
-            onChange={e => update(index, 'price', priceAmount(e.target.value))}
-            onBlur={() => { if (service.price && Number.isFinite(Number(service.price))) update(index, 'price', Number(service.price).toFixed(2)); }}
-            placeholder="0.00" className="pl-7" />
+        <div className="grid w-full max-w-[248px] grid-cols-2 gap-2 sm:contents">
+          <div className="space-y-1 sm:space-y-0">
+            <span className="block whitespace-nowrap text-xs text-muted-foreground sm:hidden">Price</span>
+            <div className="relative">
+              <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-foreground">$</span>
+              <Input aria-label="Price in dollars" inputMode="decimal" value={service.price}
+                onChange={e => update(index, 'price', priceAmount(e.target.value))}
+                onBlur={() => { if (service.price && Number.isFinite(Number(service.price))) update(index, 'price', Number(service.price).toFixed(2)); }}
+                placeholder="0.00" className="pl-7" />
+            </div>
+          </div>
+          <div className="space-y-1 sm:space-y-0">
+            <span className="block whitespace-nowrap text-xs text-muted-foreground sm:hidden">Duration</span>
+            <Input aria-label="Duration in minutes" type="text" inputMode="numeric" pattern="[0-9]*" value={service.duration}
+              onFocus={e => e.currentTarget.select()} onChange={e => update(index, 'duration', durationMinutes(e.target.value))} placeholder="Min" />
+          </div>
         </div>
       </div>)}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
