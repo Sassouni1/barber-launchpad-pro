@@ -2,7 +2,10 @@ import { parseGuidedServices, type GuidedTemplate } from './guidedWebsite';
 
 // Build the iframe document before loading it. Preview frames may be isolated from their
 // parent, so changing their DOM after load is unreliable.
-export function personalizedTemplateHtml(html: string, template: GuidedTemplate, serviceText: string, baseUrl: string) {
+export function personalizedTemplateHtml(
+  html: string, template: GuidedTemplate, serviceText: string, baseUrl: string,
+  serviceDetails: Array<{ name: string; description?: string }> = [],
+) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const base = doc.createElement('base');
   base.href = baseUrl;
@@ -62,14 +65,31 @@ export function personalizedTemplateHtml(html: string, template: GuidedTemplate,
     return row;
   });
   rates.replaceChildren(...rows);
-  doc.querySelectorAll('.service-card').forEach((card, index) => {
+  const descriptions = new Map(serviceDetails.map(service => [service.name.trim().toLowerCase(), service.description?.trim() || '']));
+  const cards = Array.from(doc.querySelectorAll('.service-card'));
+  const [cutImage, shaveImage, systemsImage] = cards.map(card => card.querySelector('img')?.getAttribute('src') || '');
+  cards.forEach((card, index) => {
     const service = services[index];
     (card as HTMLElement).hidden = !service;
     if (!service) return;
     const title = card.querySelector('h3');
     const description = card.querySelector('p');
+    const image = card.querySelector('img');
     if (title) title.textContent = service.name;
-    if (description) description.textContent = service.price || '';
+    if (description) description.textContent = descriptions.get(service.name.toLowerCase()) ||
+      (/kid|child|junior/i.test(service.name) ? 'A haircut for younger clients, tailored to their style.'
+        : /beard|shav/i.test(service.name) ? 'Beard and facial hair grooming tailored to your preferred look.'
+          : /cut|fade|trim/i.test(service.name) ? 'A haircut shaped to the style and finish you want.'
+            : /highlight|color|balayage/i.test(service.name) ? 'Personalized color work for the look you want.'
+              : /system|replacement|topper/i.test(service.name) ? 'A hair system service tailored to your style and coverage goals.'
+                : `Ask about ${service.name.toLowerCase()} and what to expect at your appointment.`);
+    if (image) {
+      const matchingImage = /beard|shav/i.test(service.name) ? shaveImage
+        : /system|replacement|topper/i.test(service.name) ? systemsImage
+          : /cut|fade|trim/i.test(service.name) ? cutImage : '';
+      if (matchingImage) image.setAttribute('src', matchingImage);
+      image.setAttribute('alt', service.name);
+    }
   });
   return `<!doctype html>${doc.documentElement.outerHTML}`;
 }

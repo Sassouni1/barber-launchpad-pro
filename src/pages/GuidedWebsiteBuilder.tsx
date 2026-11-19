@@ -109,8 +109,9 @@ export default function GuidedWebsiteBuilder() {
   });
   const personalizedPreviews = useMemo(() => templateSources && Object.fromEntries(guidedTemplates.map(template => [
     template.key, personalizedTemplateHtml(templateSources[template.key], template.key, previewServicesText,
-      new URL(template.url, window.location.origin).href),
-  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText]);
+      new URL(template.url, window.location.origin).href,
+      (savedServices?.service_menu as Array<{ name: string; description?: string }> | null) || []),
+  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu]);
   useEffect(() => {
     if (!hydrated || !dashboardServicesText) return;
     setAnswers(current => {
