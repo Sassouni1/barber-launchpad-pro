@@ -78,20 +78,39 @@ const PRINT_CSS = `
   #${PRINT_ROOT_ID}.safari-portrait img{position:absolute;top:50%;left:50%;width:9.5in;height:7.5in;max-width:none;max-height:none;transform:translate(-50%,-50%) rotate(90deg)}
 }`;
 
+const LETTER_PORTRAIT_PRINT_CSS = `
+#${PRINT_ROOT_ID}{display:none}
+@media print{
+  @page{size:letter portrait;margin:0}
+  html,body{margin:0!important;padding:0!important;height:auto!important;overflow:visible!important;background:#fff!important}
+  body>*:not(#${PRINT_ROOT_ID}){display:none!important}
+  #${PRINT_ROOT_ID}{display:block!important;box-sizing:border-box;width:8.5in;height:11in;margin:0;padding:0;page-break-inside:avoid;break-inside:avoid}
+  #${PRINT_ROOT_ID}>svg{display:block;width:8.5in;height:11in;margin:0}
+}`;
+
 export function printPreparedImage(img: HTMLImageElement, title = 'Certificate') {
-  document.getElementById(PRINT_ROOT_ID)?.remove();
-  if (!document.getElementById(PRINT_STYLE_ID)) {
-    const style = document.createElement('style');
-    style.id = PRINT_STYLE_ID;
-    style.textContent = PRINT_CSS;
-    document.head.appendChild(style);
-  }
-  const root = document.createElement('div');
-  root.id = PRINT_ROOT_ID;
-  if (isSafari) root.className = 'safari-portrait';
   const copy = img.cloneNode() as HTMLImageElement;
   copy.alt = title;
-  root.appendChild(copy);
+  printElement(copy, title, PRINT_CSS, isSafari ? 'safari-portrait' : '');
+}
+
+export function printSvgOnLetter(svg: SVGSVGElement, title: string) {
+  printElement(svg.cloneNode(true) as SVGSVGElement, title, LETTER_PORTRAIT_PRINT_CSS);
+}
+
+function printElement(content: HTMLElement | SVGElement, title: string, css: string, rootClass = '') {
+  document.getElementById(PRINT_ROOT_ID)?.remove();
+  let style = document.getElementById(PRINT_STYLE_ID) as HTMLStyleElement | null;
+  if (!style) {
+    style = document.createElement('style');
+    style.id = PRINT_STYLE_ID;
+    document.head.appendChild(style);
+  }
+  style.textContent = css;
+  const root = document.createElement('div');
+  root.id = PRINT_ROOT_ID;
+  root.className = rootClass;
+  root.appendChild(content);
   document.body.appendChild(root);
 
   const previousTitle = document.title;
