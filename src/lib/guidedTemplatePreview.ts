@@ -7,7 +7,7 @@ import { template2ServiceContent } from './template2ServiceCatalog';
 export function personalizedTemplateHtml(
   html: string, template: GuidedTemplate, serviceText: string, baseUrl: string,
   serviceDetails: Array<{ name: string; description?: string; duration?: string }> = [],
-  role?: string, siteRoot?: string, answers?: GuidedWebsiteAnswers,
+  role?: string, siteRoot?: string, answers?: GuidedWebsiteAnswers, businessOwnerType?: string | null,
 ) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   // Resolve template assets without a <base>, which would redirect #services links away from the member site.
@@ -26,6 +26,8 @@ export function personalizedTemplateHtml(
     const name = answers?.businessName.trim() || 'Your Business Name';
     const owner = answers?.ownerName.trim() || 'Your Name';
     const city = answers?.city.trim() || 'Your City';
+    const isShopOwner = businessOwnerType === 'barbershop' || businessOwnerType === 'salon';
+    const shopLabel = businessOwnerType === 'salon' ? 'salon' : 'shop';
     const phone = answers?.phone.trim() || '';
     const bookingUrl = answers?.hasBookingApp ? normalizedWebUrl(answers.bookingUrl) : null;
     const bookingHref = bookingUrl || (phone ? `tel:${phone.replace(/[^+\d]/g, '')}` : '#visit');
@@ -42,7 +44,7 @@ export function personalizedTemplateHtml(
       doc.querySelector('meta[name="description"]')?.setAttribute('content', `${name} in ${city}. Explore services and book an appointment.`);
       doc.querySelector('.wordmark')?.setAttribute('aria-label', `${name} home`);
       setText('.wordmark span', name);
-      setText('.wordmark small', `${owner} · ${city}`);
+      setText('.wordmark small', isShopOwner ? city : `${owner} · ${city}`);
       const heroLocation = doc.querySelector('.hero .eyebrow');
       if (heroLocation) {
         const line = heroLocation.querySelector('.line');
@@ -51,16 +53,19 @@ export function personalizedTemplateHtml(
       const heroSide = doc.querySelector('.hero-side');
       if (heroSide) heroSide.replaceChildren(doc.createTextNode(`${name} `), Object.assign(doc.createElement('span'), { textContent: ' / ' }), doc.createTextNode(city));
       setText('.hero-lede', `Haircuts, grooming, and personal care at ${name}. Come as you are. Leave feeling like your best self.`);
-      setText('.intro-copy p:first-child', `Meet ${owner} at ${name}. Explore the services available in ${city} and find the right appointment for you.`);
+      setText('.intro-copy p:first-child', isShopOwner
+        ? `Explore the services at ${name} in ${city} and find the right appointment for you.`
+        : `Meet ${owner} at ${name}. Explore the services available in ${city} and find the right appointment for you.`);
       setText('.intro-copy p:nth-child(2)', `From your first visit to your next appointment, see the services and prices below before you book.`);
       setText('.intro-copy p:nth-child(3)', `Questions about a service? Get in touch and we can help you choose where to start.`);
       setText('.intro-copy .underlined', 'More about the studio ↗');
       setText('.services .section-heading > p', 'Explore the services available at this business and see prices where provided.');
-      if (/stylist|salon/i.test(role || '')) setText('.intro .eyebrow', '01 / MEET YOUR STYLIST');
+      if (isShopOwner) setText('.intro .eyebrow', `01 / ABOUT THE ${shopLabel.toUpperCase()}`);
+      else if (/stylist|salon/i.test(role || '')) setText('.intro .eyebrow', '01 / MEET YOUR STYLIST');
       setText('.systems-copy .button', 'Book a consultation ↗');
       setText('#systems-title em', `${city}.`);
       setText('.footer-grid strong', name);
-      setText('.footer-grid > div:first-child span', `${owner} · ${city}`);
+      setText('.footer-grid > div:first-child span', isShopOwner ? city : `${owner} · ${city}`);
       setText('.footer-grid > div:last-child span', `© ${name}`);
       const instagram = instagramUrl(answers.instagram);
       const footerLinks = doc.querySelector('.footer-grid > div:nth-child(2)');
@@ -215,7 +220,7 @@ export function personalizedTemplateHtml(
   return `<!doctype html>${doc.documentElement.outerHTML}`;
 }
 
-export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, answers: GuidedWebsiteAnswers, siteRoot?: string) {
+export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, answers: GuidedWebsiteAnswers, siteRoot?: string, businessOwnerType?: string | null) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   doc.querySelectorAll<HTMLLinkElement | HTMLScriptElement | HTMLImageElement | HTMLSourceElement>('link[href], script[src], img[src], video[poster], source[src]').forEach(element => {
     const attribute = element.hasAttribute('href') ? 'href' : element.hasAttribute('poster') ? 'poster' : 'src';
@@ -225,6 +230,8 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
   const name = answers.businessName.trim() || 'Your Business Name';
   const owner = answers.ownerName.trim() || 'Your Name';
   const city = answers.city.trim() || 'Your City';
+  const isShopOwner = businessOwnerType === 'barbershop' || businessOwnerType === 'salon';
+  const shopLabel = businessOwnerType === 'salon' ? 'salon' : 'shop';
   const replacements: Record<string, string> = {
     'YOUR BUSINESS NAME': name.toUpperCase(), 'Your Business Name': name,
     'YOUR CITY, YOUR STATE': city.toUpperCase(), 'Your City, Your State': city,
@@ -237,6 +244,14 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
     let value = node.textContent || '';
     for (const [placeholder, actual] of Object.entries(replacements)) value = value.replaceAll(placeholder, actual);
     node.textContent = value;
+  }
+  if (isShopOwner) {
+    const about = doc.querySelector('#your-barber h2');
+    if (about) about.innerHTML = `ABOUT<br><em>OUR ${shopLabel.toUpperCase()}.</em>`;
+    const aboutLabel = doc.querySelector('#your-barber .eyebrow');
+    if (aboutLabel) aboutLabel.textContent = `07 / ABOUT OUR ${shopLabel.toUpperCase()}`;
+    const footerLocation = doc.querySelector('.footer-grid > div:first-child span');
+    if (footerLocation) footerLocation.textContent = city;
   }
   doc.title = `Hair Loss Solutions | ${name}`;
   doc.querySelector('meta[name="description"]')?.setAttribute('content', `Explore hair systems and hair loss solutions at ${name} in ${city}.`);

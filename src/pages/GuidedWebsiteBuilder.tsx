@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useMemberWebsite, uploadWebsiteImage } from '@/hooks/useMemberWebsite';
+import { useBusinessCard } from '@/hooks/useBusinessCard';
 import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { emptyGuidedAnswers, guidedTemplates, guidedWebsitePages, instagramUrl, normalizedWebUrl, type GuidedTemplate, type GuidedWebsiteAnswers } from '@/lib/guidedWebsite';
@@ -34,6 +35,7 @@ export default function GuidedWebsiteBuilder() {
   const secondMode = isAdmin && new URLSearchParams(window.location.search).get('second') === '1';
   const previewOnly = demoMode || secondMode;
   const { data: website, isLoading: loadingWebsite, refetch } = useMemberWebsite();
+  const { data: businessCard, isLoading: loadingBusinessCard } = useBusinessCard();
   const { data: entitlement, isLoading: loadingEntitlement } = useWebsiteEditorEntitlement();
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ['guided-website-profile', user?.id], enabled: !!user?.id,
@@ -70,7 +72,16 @@ export default function GuidedWebsiteBuilder() {
       Date.parse(businessSetup.business_setup_draft_updated_at) > Date.parse(businessSetup.business_setup_completed_at));
   const dashboardNameKnown = !!businessSetup && !!(businessSetup.business_owner_type || businessSetup.professional_role || businessSetup.business_setup_draft || businessSetup.business_setup_completed_at);
   const dashboardBrandName = businessSetup?.business_name?.trim() || profile?.full_name?.trim() || '';
+  const metadata = user?.user_metadata || {};
+  const metadataName = [metadata.full_name, metadata.name, metadata.fullName]
+    .find(value => typeof value === 'string' && value.trim()) as string | undefined;
+  const metadataParts = [metadata.first_name || metadata.given_name, metadata.last_name || metadata.family_name]
+    .filter((value): value is string => typeof value === 'string' && !!value.trim()).join(' ').trim();
+  const accountPersonName = [businessCard?.first_name, businessCard?.last_name].filter(Boolean).join(' ').trim()
+    || profile?.full_name?.trim() || metadataName?.trim() || metadataParts;
+  const isBusinessOwner = businessSetup?.business_owner_type === 'barbershop' || businessSetup?.business_owner_type === 'salon';
   const [answers, setAnswers] = useState<GuidedWebsiteAnswers>(emptyGuidedAnswers);
+  const websiteAnswers = useMemo(() => ({ ...answers, ownerName: isBusinessOwner ? '' : answers.ownerName.trim() || accountPersonName }), [answers, isBusinessOwner, accountPersonName]);
   const [hydrated, setHydrated] = useState(false);
   // Services the member confirmed on the dashboard (imported from their booking page or added by hand).
   // Read separately so the builder keeps working if the services columns are not deployed yet.
@@ -112,8 +123,8 @@ export default function GuidedWebsiteBuilder() {
   });
   const personalizedPreviews = useMemo(() => templateSources && Object.fromEntries(guidedTemplates.map(template => [
     template.key, personalizedTemplateHtml(templateSources[template.key], template.key, previewServicesText,
-      new URL(template.url, window.location.origin).href, serviceDetails, serviceRole, undefined, answers),
-  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu, serviceRole, answers]);
+      new URL(template.url, window.location.origin).href, serviceDetails, serviceRole, undefined, websiteAnswers, businessSetup?.business_owner_type),
+  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu, serviceRole, websiteAnswers, businessSetup?.business_owner_type]);
   useEffect(() => {
     if (!hydrated || !dashboardServicesText) return;
     setAnswers(current => {
@@ -152,17 +163,17 @@ export default function GuidedWebsiteBuilder() {
       const template = guidedTemplates.find(item => item.key === answers.template)!;
       generated['/'] = personalizedTemplateHtml(templateSources[answers.template], answers.template, previewServicesText,
         new URL(template.url, window.location.origin).href,
-        serviceDetails, serviceRole, undefined, answers);
+        serviceDetails, serviceRole, undefined, websiteAnswers, businessSetup?.business_owner_type);
       if (answers.template === 'guided-charlotte') generated['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
         templateSources['guided-charlotte-hair'],
         new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
-        answers);
+        websiteAnswers, undefined, businessSetup?.business_owner_type);
     }
     return generated;
-  }, [answers, siteSlug, templateSources, previewServicesText, savedServices?.service_menu, serviceRole]);
+  }, [answers, siteSlug, templateSources, previewServicesText, savedServices?.service_menu, serviceRole, websiteAnswers, businessSetup?.business_owner_type]);
 
   useEffect(() => {
-    if (!user || loadingWebsite || loadingProfile || loadingBusinessSetup || hydrated) return;
+    if (!user || loadingWebsite || loadingProfile || loadingBusinessSetup || loadingBusinessCard || hydrated) return;
     if (demoMode) {
       setAnswers({ ...emptyGuidedAnswers, businessName: 'Your Barber Studio', ownerName: 'Your Name', city: 'Your City', phone: '(555) 123-4567' });
       setHydrated(true);
@@ -171,7 +182,8 @@ export default function GuidedWebsiteBuilder() {
     if (secondMode) {
       try {
         const saved = JSON.parse(localStorage.getItem(`guided-second-site:${user.id}`) || 'null') as Partial<GuidedWebsiteAnswers> | null;
-        setAnswers({ ...emptyGuidedAnswers, businessName: profile?.business_name || '', ownerName: profile?.full_name || '', phone: profile?.phone || '', ...saved,
+        setAnswers({ ...emptyGuidedAnswers, businessName: profile?.business_name || '', phone: profile?.phone || '', ...saved,
+          ownerName: isBusinessOwner ? '' : saved?.ownerName?.trim() || accountPersonName,
           ...(dashboardNameKnown ? { businessName: dashboardBrandName } : {}),
           city: dashboardLocationKnown ? dashboardCity : dashboardLocationBeingEdited ? '' : saved?.city || [profile?.business_city, profile?.business_state].filter(Boolean).join(', ') });
       } catch { setAnswers(emptyGuidedAnswers); }
@@ -182,13 +194,13 @@ export default function GuidedWebsiteBuilder() {
     const remote = isGuided(website?.template_key) ? website?.editor_drafts?.guided as Partial<GuidedWebsiteAnswers> | undefined : undefined;
     const restored = saved ? readAnswers(user.id) : { ...emptyGuidedAnswers, ...remote };
     setAnswers({ ...restored,
-      ownerName: restored.ownerName || profile?.full_name || '',
+      ownerName: isBusinessOwner ? '' : restored.ownerName?.trim() || accountPersonName,
       businessName: dashboardNameKnown ? dashboardBrandName : restored.businessName || profile?.business_name || '',
       city: dashboardLocationKnown ? dashboardCity : dashboardLocationBeingEdited ? '' : restored.city || [profile?.business_city, profile?.business_state].filter(Boolean).join(', '),
       phone: restored.phone || profile?.phone || '',
     });
     setHydrated(true);
-  }, [user, loadingWebsite, loadingProfile, loadingBusinessSetup, hydrated, website, profile, businessSetup, demoMode, secondMode, dashboardLocationKnown, dashboardLocationBeingEdited, dashboardCity, dashboardNameKnown, dashboardBrandName]);
+  }, [user, loadingWebsite, loadingProfile, loadingBusinessSetup, loadingBusinessCard, hydrated, website, profile, businessSetup, demoMode, secondMode, dashboardLocationKnown, dashboardLocationBeingEdited, dashboardCity, dashboardNameKnown, dashboardBrandName, accountPersonName, isBusinessOwner]);
   useEffect(() => {
     if (hydrated && !demoMode && dashboardNameKnown)
       setAnswers(current => current.businessName === dashboardBrandName ? current : { ...current, businessName: dashboardBrandName });
@@ -283,11 +295,11 @@ export default function GuidedWebsiteBuilder() {
       const template = guidedTemplates.find(item => item.key === answers.template)!;
       publishedPages['/'] = personalizedTemplateHtml(templateSources![answers.template], answers.template, previewServicesText,
         new URL(template.url, window.location.origin).href,
-        serviceDetails, serviceRole, `/${site.site_slug}/`, answers);
+        serviceDetails, serviceRole, `/${site.site_slug}/`, websiteAnswers, businessSetup?.business_owner_type);
       if (answers.template === 'guided-charlotte') publishedPages['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
         templateSources!['guided-charlotte-hair'],
         new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
-        answers, `/${site.site_slug}/`);
+        websiteAnswers, `/${site.site_slug}/`, businessSetup?.business_owner_type);
       const { error } = await supabase.from('member_websites').update({
         published_pages: publishedPages as unknown as never, live_url: liveUrl,
         deployment_status: 'published', published_at: new Date().toISOString(), template_key: answers.template,
@@ -324,7 +336,7 @@ export default function GuidedWebsiteBuilder() {
           </article>)}
         </div>
       </div>}
-      {step === 1 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" /><Field label="What name should we show for you?" value={answers.ownerName} onChange={value => update('ownerName', value)} placeholder="Your name" />{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<Field label="What phone number should show on your site?" value={answers.phone} onChange={value => update('phone', value)} placeholder="Business phone number" /><p className="text-sm text-muted-foreground">We suggested the number on your account. You can change it here.</p><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
+      {step === 1 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" />{!isBusinessOwner && <Field label="What name should we show for you?" value={answers.ownerName} onChange={value => update('ownerName', value)} placeholder="Your name" />}{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<Field label="What phone number should show on your site?" value={answers.phone} onChange={value => update('phone', value)} placeholder="Business phone number" /><p className="text-sm text-muted-foreground">We suggested the number on your account. You can change it here.</p><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
       {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
       {step === 3 && answers.template === 'guided-charlotte' && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Social profile</h2><p className="text-muted-foreground">Design 1 keeps its existing editorial photography. Your services appear as a text list without individual photos.</p><label className="block space-y-2"><span className="font-medium">Instagram handle or profile link (optional)</span><Input value={answers.instagram} onChange={event => update('instagram', event.target.value)} placeholder="@yourname" /></label></div>}
       {step === 3 && answers.template !== 'guided-charlotte' && <div className="max-w-2xl space-y-5"><h2 className="font-serif text-2xl">Show your work</h2><p>Do you have an Instagram with a few haircuts or hair systems?</p><YesNo value={answers.hasInstagram} onChange={value => update('hasInstagram', value)} />{answers.hasInstagram && <Field label="Instagram handle or profile link" value={answers.instagram} onChange={value => update('instagram', value)} placeholder="@yourname" />}<Field label="Public page to find your photos (optional)" value={answers.photoSourceUrl} onChange={value => update('photoSourceUrl', value)} placeholder="Your website, portfolio, or Instagram link" /><Button type="button" variant="outline" disabled={!!busy} onClick={findPhotos}><Sparkles className="mr-2 h-4 w-4" />Find photos</Button>{suggestions.length > 0 && <div><p className="mb-3 text-sm text-muted-foreground">Select only photos that belong to you. Nothing is added automatically.</p><div className="grid grid-cols-3 gap-2">{suggestions.map(url => <button type="button" key={url} aria-pressed={answers.photos.includes(url)} onClick={() => update('photos', answers.photos.includes(url) ? answers.photos.filter(item => item !== url) : [...answers.photos, url].slice(0, 6))} className={`relative overflow-hidden rounded-lg border-2 ${answers.photos.includes(url) ? 'border-primary' : 'border-transparent'}`}><img src={url} alt="Suggested work photo" className="h-28 w-full object-cover" />{answers.photos.includes(url) && <Check className="absolute right-2 top-2 h-5 w-5 rounded-full bg-primary p-1 text-black" />}</button>)}</div></div>}<label className="block cursor-pointer rounded-lg border border-dashed border-primary/50 p-5 text-center"><ImagePlus className="mx-auto mb-2 h-6 w-6 text-primary" />Upload your own photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={e => void uploadPhotos(e.target.files)} /></label>{answers.photos.length > 0 && <div className="grid grid-cols-3 gap-2">{answers.photos.map(url => <button key={url} type="button" onClick={() => update('photos', answers.photos.filter(item => item !== url))} className="relative"><img src={url} alt="Selected work photo" className="h-28 w-full rounded-lg object-cover" /><span className="absolute bottom-1 right-1 rounded bg-black/80 px-2 py-1 text-xs text-white">Remove</span></button>)}</div>}</div>}
@@ -341,7 +353,7 @@ export default function GuidedWebsiteBuilder() {
         </div>
         <div className="flex min-h-0 flex-1 justify-center overflow-hidden bg-neutral-900 p-2 sm:p-4">
           {previewTemplate && <iframe key={`${previewTemplate}:${previewTemplatePage}:${previewDevice}:${previewServicesText}`} title={`Full ${previewDevice} website preview`} src={personalizedPreviews ? undefined : guidedTemplates.find(template => template.key === previewTemplate)?.url} srcDoc={previewTemplate === 'guided-charlotte' && previewTemplatePage === '/hair-loss-solutions/' && templateSources
-            ? personalizedTemplateOneHairHtml(templateSources['guided-charlotte-hair'], new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href, answers)
+            ? personalizedTemplateOneHairHtml(templateSources['guided-charlotte-hair'], new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href, websiteAnswers, undefined, businessSetup?.business_owner_type)
             : personalizedPreviews?.[previewTemplate]} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />}
         </div>
       </DialogContent>
