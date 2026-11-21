@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { countOwnUnreadSupportReplies, fetchOwnSupportConversationId } from '@/lib/supportUnread';
 
 export interface SupportConversation {
   id: string;
@@ -265,34 +266,45 @@ export function useMarkSupportMessagesRead(conversationId?: string) {
   });
 }
 
+/**
+ * Unread team replies in the signed-in user's OWN support conversation. Enabled for
+ * admins too (e.g. "View: Member"), but always scoped to their own conversation id, so
+ * no one ever counts other members' messages.
+ */
 export function useSupportUnreadCount() {
   const { user, isAdmin } = useAuth();
+  const queryClient = useQueryClient();
+  const channelSuffix = useRef(Math.random().toString(36).slice(2)).current;
+
+  const { data: conversationId = null, isFetched: conversationFetched } = useQuery({
+    queryKey: ['support-unread', user?.id, 'own-conversation'],
+    enabled: !!user,
+    queryFn: () => fetchOwnSupportConversationId(supportDb, user!.id),
+  });
 
   const query = useQuery({
-    queryKey: ['support-unread', user?.id],
-    enabled: !!user && !isAdmin,
-    queryFn: async () => {
-      const { count, error } = await supportDb
-        .from('support_messages')
-        .select('id', { count: 'exact', head: true })
-        .neq('sender_id', user!.id)
-        .is('read_by_member_at', null);
-      if (error) throw error;
-      return count || 0;
-    },
+    queryKey: ['support-unread', user?.id, conversationId],
+    enabled: !!user && conversationFetched,
+    queryFn: () => countOwnUnreadSupportReplies(supportDb, user!.id, conversationId),
   });
-  const { refetch } = query;
 
   useEffect(() => {
-    if (!user || isAdmin) return;
+    if (!user || !conversationFetched) return;
+    // With a conversation, listen only to it. Without one yet, only a non-admin can listen
+    // broadly (row-level access limits them to their own rows); admins wait for a refetch.
+    if (!conversationId && isAdmin) return;
     const channel = supabase
-      .channel(`support-badge-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, () => {
-        refetch();
-      })
+      .channel(`support-badge-${user.id}-${channelSuffix}`)
+      .on(
+        'postgres_changes',
+        conversationId
+          ? { event: '*', schema: 'public', table: 'support_messages', filter: `conversation_id=eq.${conversationId}` }
+          : { event: '*', schema: 'public', table: 'support_messages' },
+        () => { queryClient.invalidateQueries({ queryKey: ['support-unread', user.id] }); },
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [isAdmin, refetch, user]);
+  }, [channelSuffix, conversationFetched, conversationId, isAdmin, queryClient, user]);
 
   return query;
 }

@@ -8,6 +8,7 @@ import { BusinessSetupCard, SETUP_REQUIRED_FROM } from '@/components/dashboard/B
 import { ShippingNotification } from '@/components/dashboard/ShippingNotification';
 import { ContactSection } from '@/components/dashboard/ContactSection';
 import { AionChatCard } from '@/components/dashboard/AionChatCard';
+import { SupportReplyNotice } from '@/components/dashboard/SupportReplyNotice';
 import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -33,6 +34,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Disabled: <ShippingNotification /> */}
         {!hideDashboardSections && <WelcomeHero />}
+        {!profileOnly && <SupportReplyNotice />}
 
         <div className="space-y-6">
           <div id="profile" hidden={!profileOnly && !isNewMember} className="scroll-mt-20">
