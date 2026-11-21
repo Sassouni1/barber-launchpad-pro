@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ImagePlus, Loader2, Paperclip, Pencil, Send, SmilePlus, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ImagePlus, Loader2, Pencil, Send, SmilePlus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -24,12 +24,17 @@ interface SupportThreadProps {
   title: string;
   description?: string;
   participantName?: string;
+  /** 'member' = asynchronous "leave a question" layout for the member /support page; 'chat' = admin inbox. */
+  variant?: 'chat' | 'member';
 }
 
 const reactionChoices = ['👍', '❤️', '😂', '🎉', '👀', '🙏'];
 
-export function SupportThread({ conversationId, title, description, participantName = 'Barber Launch Support' }: SupportThreadProps) {
+export function SupportThread({ conversationId, title, description, participantName = 'Barber Launch Support', variant = 'chat' }: SupportThreadProps) {
   const { user, isAdmin } = useAuth();
+  const isMemberLayout = variant === 'member';
+  const [sentConfirmation, setSentConfirmation] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
   const [body, setBody] = useState('');
   const [image, setImage] = useState<File>();
   const [imagePreview, setImagePreview] = useState<string>();
@@ -83,8 +88,14 @@ export function SupportThread({ conversationId, title, description, participantN
   }, [messages, user?.id]);
 
   useEffect(() => {
+    if (isMemberLayout) {
+      // Scroll only the message list so the page heading stays in view.
+      const list = listRef.current;
+      if (list) list.scrollTop = list.scrollHeight;
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages.length]);
+  }, [messages.length, isMemberLayout]);
 
   useEffect(() => {
     if (!image) {
@@ -108,6 +119,10 @@ export function SupportThread({ conversationId, title, description, participantN
       await sendMessage.mutateAsync({ body: message, image });
       setBody('');
       setImage(undefined);
+      if (isMemberLayout) {
+        setSentConfirmation(true);
+        toast.success('Question sent to the Barber Launch team.');
+      }
     } catch (error: any) {
       toast.error(error?.message || 'Your message could not be sent.');
     }
@@ -166,20 +181,29 @@ export function SupportThread({ conversationId, title, description, participantN
   };
 
   return (
-    <section className="flex h-[calc(100dvh-3.5rem)] min-h-[420px] flex-col overflow-hidden bg-card md:h-[calc(100dvh-8rem)] md:rounded-2xl md:border md:border-border md:shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+    <section className={cn(
+      'flex flex-col overflow-hidden bg-card',
+      isMemberLayout
+        ? 'rounded-2xl border border-border shadow-[0_18px_50px_hsl(var(--background)/0.35)]'
+        : 'h-[calc(100dvh-3.5rem)] min-h-[420px] md:h-[calc(100dvh-8rem)] md:rounded-2xl md:border md:border-border md:shadow-[0_18px_50px_rgba(0,0,0,0.18)]',
+    )}>
       <header className="flex items-center gap-3 border-b border-border bg-background/75 px-4 py-3 backdrop-blur">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-black text-primary-foreground">BL</div>
+        {!isMemberLayout && <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-black text-primary-foreground">BL</div>}
         <div className="min-w-0">
           <h2 className="font-semibold leading-5">{title}</h2>
           {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto py-3">
+      <div ref={listRef} className={cn('overflow-y-auto py-3', isMemberLayout ? 'max-h-[min(52dvh,520px)] min-h-[160px]' : 'min-h-0 flex-1')}>
         {isLoading ? (
           <div className="flex h-full items-center justify-center text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading messages…</div>
         ) : messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center px-8 text-center text-sm text-muted-foreground">This is your private conversation with Barber Launch. Send a message whenever you need help.</div>
+          <div className="flex h-full min-h-[136px] items-center justify-center px-8 text-center text-sm text-muted-foreground">
+            {isMemberLayout
+              ? 'No questions yet. Write your question below and the Barber Launch team will reply right here.'
+              : 'This is your private conversation with Barber Launch. Send a message whenever you need help.'}
+          </div>
         ) : messages.map((message, index) => {
           const isMine = message.sender_id === user?.id;
           const previous = messages[index - 1];
@@ -257,38 +281,85 @@ export function SupportThread({ conversationId, title, description, participantN
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={submit} className="border-t border-border bg-background/90 p-3 backdrop-blur">
-        {image && <div className="mb-2 flex items-center gap-2 rounded-xl bg-secondary/55 p-2">
-          {imagePreview && <img src={imagePreview} alt="Selected image preview" className="h-12 w-12 rounded-lg object-cover" />}
-          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{image.name}</span>
-          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setImage(undefined)} disabled={sendMessage.isPending} aria-label="Remove attached image"><X className="h-4 w-4" /></Button>
-        </div>}
-        <div className="flex gap-2">
+      {isMemberLayout ? (
+        <form onSubmit={submit} className="border-t border-border bg-background/60 p-4 md:p-5">
+          {sentConfirmation && (
+            <div role="status" className="mb-4 flex items-start gap-3 rounded-xl border border-success/40 bg-success/10 p-3 text-sm">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+              <div>
+                <p className="font-semibold text-foreground">Question sent to the Barber Launch team</p>
+                <p className="mt-0.5 text-muted-foreground">A team member will reply in this conversation. When they do, a badge appears on Message Support in the menu.</p>
+              </div>
+            </div>
+          )}
+          <label htmlFor="support-question" className="text-sm font-semibold text-foreground">Your question</label>
+          <p className="mb-2 mt-0.5 text-xs text-muted-foreground">Include details like the lesson, order, or screen you need help with. You can attach a photo.</p>
+          {image && <div className="mb-2 flex items-center gap-2 rounded-xl bg-secondary/55 p-2">
+            {imagePreview && <img src={imagePreview} alt="Selected image preview" className="h-12 w-12 rounded-lg object-cover" />}
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{image.name}</span>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setImage(undefined)} disabled={sendMessage.isPending} aria-label="Remove attached image"><X className="h-4 w-4" /></Button>
+          </div>}
           <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={chooseImage} />
-          <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onClick={() => imageInputRef.current?.click()} disabled={!conversationId || sendMessage.isPending} aria-label="Attach image"><ImagePlus className="h-5 w-5" /></Button>
           <Textarea
-            aria-label="Support message"
+            id="support-question"
             value={body}
-            onChange={(event) => setBody(event.target.value)}
-            placeholder="Message Barber Launch…"
-            className="min-h-11 resize-none rounded-xl bg-secondary/55"
-            rows={1}
+            onChange={(event) => { setBody(event.target.value); if (sentConfirmation) setSentConfirmation(false); }}
+            placeholder="Type your question for the Barber Launch team…"
+            className="min-h-28 resize-y rounded-xl bg-secondary/55 text-base md:text-sm"
+            rows={4}
             maxLength={4000}
             disabled={!conversationId || sendMessage.isPending}
             onFocus={primeMessageSounds}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
+              if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
                 event.preventDefault();
                 event.currentTarget.form?.requestSubmit();
               }
             }}
           />
-          <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onPointerDown={primeMessageSounds} disabled={!conversationId || sendMessage.isPending || (!body.trim() && !image)}>
-            {sendMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            <span className="sr-only">Send message</span>
-          </Button>
-        </div>
-      </form>
+          <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Button type="button" variant="outline" className="h-11 gap-2 rounded-xl" onClick={() => imageInputRef.current?.click()} disabled={!conversationId || sendMessage.isPending}>
+              <ImagePlus className="h-4 w-4" />Attach photo
+            </Button>
+            <Button type="submit" className="h-12 gap-2 rounded-xl px-6 text-base font-semibold sm:h-11 sm:text-sm" onPointerDown={primeMessageSounds} disabled={!conversationId || sendMessage.isPending || (!body.trim() && !image)}>
+              {sendMessage.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Sending…</> : <><Send className="h-4 w-4" />Send question</>}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <form onSubmit={submit} className="border-t border-border bg-background/90 p-3 backdrop-blur">
+          {image && <div className="mb-2 flex items-center gap-2 rounded-xl bg-secondary/55 p-2">
+            {imagePreview && <img src={imagePreview} alt="Selected image preview" className="h-12 w-12 rounded-lg object-cover" />}
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{image.name}</span>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setImage(undefined)} disabled={sendMessage.isPending} aria-label="Remove attached image"><X className="h-4 w-4" /></Button>
+          </div>}
+          <div className="flex gap-2">
+            <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={chooseImage} />
+            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onClick={() => imageInputRef.current?.click()} disabled={!conversationId || sendMessage.isPending} aria-label="Attach image"><ImagePlus className="h-5 w-5" /></Button>
+            <Textarea
+              aria-label="Support message"
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              placeholder="Message Barber Launch…"
+              className="min-h-11 resize-none rounded-xl bg-secondary/55"
+              rows={1}
+              maxLength={4000}
+              disabled={!conversationId || sendMessage.isPending}
+              onFocus={primeMessageSounds}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+            />
+            <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onPointerDown={primeMessageSounds} disabled={!conversationId || sendMessage.isPending || (!body.trim() && !image)}>
+              {sendMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <span className="sr-only">Send message</span>
+            </Button>
+          </div>
+        </form>
+      )}
 
       <AttachmentLightbox url={lightbox?.url} alt={lightbox?.alt || 'Attached image'} onClose={() => setLightbox(undefined)} />
     </section>
