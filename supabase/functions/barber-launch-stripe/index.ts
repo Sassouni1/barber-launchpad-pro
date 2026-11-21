@@ -1,6 +1,17 @@
 // Barber Launch Pro — Stripe Connect + Payment Links backend
 // Actions: getStatus | startOnboarding | syncPaymentLinks
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  creationMethodParams,
+  customLinkMethodMode,
+  DYNAMIC_UPDATE_PARAMS,
+  needsDynamicMigration,
+  storedMethodTypes,
+  stripeConfirmsDynamic,
+  summarizePayOverTime,
+} from "./paymentMethods.ts";
+
+const FUNCTION_VERSION = "barber-launch-stripe/2026-11-21-dynamic-pay-later";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -238,7 +249,29 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .order("amount_cents", { ascending: true });
 
-      return jsonResponse({ account: account ?? null, links: links ?? [], requirements });
+      // Best-effort read of the connected account's payment method settings so the UI can
+      // say honestly which pay-over-time methods Stripe will offer. Never fails the status.
+      let payOverTime: ReturnType<typeof summarizePayOverTime> = null;
+      if (account?.stripe_account_id && account?.charges_enabled) {
+        try {
+          const configs = await stripeFetch("/payment_method_configurations?limit=20", {
+            method: "GET",
+            secret: stripeSecret,
+            stripeAccount: account.stripe_account_id,
+          });
+          payOverTime = summarizePayOverTime(configs?.data);
+        } catch (e) {
+          console.error("Could not read payment method settings", (e as Error)?.message);
+        }
+      }
+
+      return jsonResponse({
+        account: account ?? null,
+        links: links ?? [],
+        requirements,
+        payOverTime,
+        version: FUNCTION_VERSION,
+      });
     }
 
 
@@ -401,8 +434,7 @@ Deno.serve(async (req) => {
           body: {
             "line_items[0][price]": price.id,
             "line_items[0][quantity]": 1,
-            "payment_method_types[0]": "card",
-            "payment_method_types[1]": "klarna",
+            ...creationMethodParams("dynamic"),
             ...collectionFields(true),
             "metadata[user_id]": userId,
             "metadata[template_key]": preset.template_key,
@@ -424,7 +456,7 @@ Deno.serve(async (req) => {
             stripe_payment_link_id: link.id,
             url: link.url,
             active: true,
-            payment_method_types: ["card", "klarna"],
+            payment_method_types: storedMethodTypes("dynamic"),
           })
           .select()
           .single();
@@ -451,6 +483,39 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Move active one-time links that list klarna to Stripe dynamic methods. The row is
+      // updated only after Stripe returns the link with dynamic methods.
+      const { data: methodCandidates } = await admin
+        .from("barber_launch_payment_links")
+        .select("id, stripe_payment_link_id, payment_method_types, recurring_interval, active")
+        .eq("user_id", userId)
+        .eq("stripe_account_id", accountId)
+        .eq("active", true);
+      const methodUpdates = { eligible: 0, updated: 0, failed: 0 };
+      for (const l of methodCandidates ?? []) {
+        if (!l.stripe_payment_link_id || !needsDynamicMigration(l)) continue;
+        methodUpdates.eligible++;
+        try {
+          const updatedLink = await stripeFetch(`/payment_links/${l.stripe_payment_link_id}`, {
+            secret: stripeSecret,
+            stripeAccount: accountId,
+            body: DYNAMIC_UPDATE_PARAMS,
+          });
+          if (!stripeConfirmsDynamic(updatedLink)) {
+            throw new Error("Stripe did not confirm dynamic payment methods");
+          }
+          const { error: rowError } = await admin
+            .from("barber_launch_payment_links")
+            .update({ payment_method_types: storedMethodTypes("dynamic") })
+            .eq("id", l.id)
+            .eq("user_id", userId);
+          if (rowError) throw new Error("Link updated in Stripe but not saved");
+          methodUpdates.updated++;
+        } catch (e) {
+          methodUpdates.failed++;
+          console.error("Payment method update failed", l.stripe_payment_link_id, (e as Error)?.message);
+        }
+      }
 
 
       const { data: links } = await admin
@@ -459,7 +524,7 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .order("amount_cents", { ascending: true });
 
-      return jsonResponse({ created: created.length, links: links ?? [] });
+      return jsonResponse({ created: created.length, methodUpdates, links: links ?? [], version: FUNCTION_VERSION });
     }
 
     if (action === "syncAllLinkCollection") {
@@ -516,8 +581,9 @@ Deno.serve(async (req) => {
       let intervalCount = Math.round(Number(body?.intervalCount ?? 1));
       if (!Number.isFinite(intervalCount) || intervalCount < 1) intervalCount = 1;
 
-      // Klarna cannot be used for recurring subscriptions.
-      const allowKlarna = !isRecurring && body?.allowKlarna !== false;
+      // Recurring links and unchecked custom links are card-only; otherwise Stripe dynamic
+      // methods (card + eligible Klarna/Afterpay/Affirm per the account's settings).
+      const methodMode = customLinkMethodMode(body, isRecurring);
 
       if (!name || name.length > 120) {
         return jsonResponse({ error: "Enter a name (1-120 characters)." }, 400);
@@ -537,7 +603,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      const methods = allowKlarna ? ["card", "klarna"] : ["card"];
       const templateKey = `custom_${Date.now()}`;
 
       const product = await stripeFetch("/products", {
@@ -579,9 +644,7 @@ Deno.serve(async (req) => {
           ? { "subscription_data[metadata][display_name]": name }
           : {}),
       };
-      methods.forEach((m, i) => {
-        linkBody[`payment_method_types[${i}]`] = m;
-      });
+      Object.assign(linkBody, creationMethodParams(methodMode));
 
       const link = await stripeFetch("/payment_links", {
         secret: stripeSecret,
@@ -601,7 +664,7 @@ Deno.serve(async (req) => {
         stripe_payment_link_id: link.id,
         url: link.url,
         active: true,
-        payment_method_types: methods,
+        payment_method_types: storedMethodTypes(methodMode),
         recurring_interval: interval,
         recurring_interval_count: interval ? intervalCount : null,
       });
@@ -612,7 +675,7 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .order("amount_cents", { ascending: true });
 
-      return jsonResponse({ links: links ?? [] });
+      return jsonResponse({ links: links ?? [], version: FUNCTION_VERSION });
     }
 
     // Member's own connected-account balance, including instant-available funds.

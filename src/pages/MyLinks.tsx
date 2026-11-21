@@ -133,6 +133,24 @@ function formatMoney(cents: number, currency = 'usd') {
   }).format(cents / 100);
 }
 
+type PayOverTimeState = 'on' | 'needs_activation' | 'off';
+type PayOverTime = Partial<Record<'klarna' | 'afterpay_clearpay' | 'affirm', PayOverTimeState>>;
+
+const PAY_OVER_TIME_LABELS: Array<[keyof PayOverTime, string]> = [
+  ['klarna', 'Klarna'],
+  ['afterpay_clearpay', 'Afterpay'],
+  ['affirm', 'Affirm'],
+];
+
+// 'dynamic' = Stripe decides from the member's payment method settings and checkout eligibility.
+function paymentMethodsLabel(types?: string[] | null) {
+  if (!types?.length) return 'Payment methods not recorded';
+  if (types.includes('dynamic')) return 'Card + eligible pay over time (per your Stripe settings)';
+  return types
+    .map((t) => (t === 'card' ? 'Card' : t === 'klarna' ? 'Klarna' : t))
+    .join(' + ');
+}
+
 function formatMoneyExact(cents: number, currency = 'usd') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -160,7 +178,8 @@ export default function MyLinks() {
   const [customOpen, setCustomOpen] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customAmount, setCustomAmount] = useState('');
-  const [customKlarna, setCustomKlarna] = useState(true);
+  const [customPayOverTime, setCustomPayOverTime] = useState(true);
+  const [payOverTime, setPayOverTime] = useState<PayOverTime | null>(null);
   const [customPhone, setCustomPhone] = useState(true);
   const [customInterval, setCustomInterval] = useState<
     'one_time' | 'day' | 'week' | 'month'
@@ -354,6 +373,7 @@ export default function MyLinks() {
       setRequirements(data.requirements ?? null);
 
       setLinks(data.links ?? []);
+      setPayOverTime(data.payOverTime ?? null);
       setBackendUnavailable(false);
 
       // Auto-create the preset payment links the first time the account is ready.
@@ -409,11 +429,23 @@ export default function MyLinks() {
     try {
       const data = await invoke('syncPaymentLinks');
       setLinks(data.links ?? []);
-      toast.success(
-        data.created
-          ? `Created ${data.created} payment link${data.created === 1 ? '' : 's'}`
-          : 'All payment links are up to date'
-      );
+      const created = Number(data.created) || 0;
+      const updated = Number(data.methodUpdates?.updated) || 0;
+      const failed = Number(data.methodUpdates?.failed) || 0;
+      const plural = (n: number) => `${n} link${n === 1 ? '' : 's'}`;
+      if (failed > 0) {
+        toast.error(
+          `${failed} ${failed === 1 ? 'link' : 'links'} could not be switched to pay-over-time options` +
+            (updated ? ` (${plural(updated)} updated)` : '') +
+            '. Tap Sync Links to try again.'
+        );
+      } else {
+        const parts = [
+          created ? `Created ${plural(created)}` : '',
+          updated ? `Updated ${plural(updated)} to eligible pay-over-time options` : '',
+        ].filter(Boolean);
+        toast.success(parts.length ? parts.join(' · ') : 'All payment links are up to date');
+      }
     } catch (e: any) {
       if (e?.message !== 'BACKEND_UNAVAILABLE') {
         toast.error(e?.message || 'Could not sync payment links');
@@ -438,7 +470,8 @@ export default function MyLinks() {
       const data = await invoke('createCustomLink', {
         name: customName.trim(),
         amountCents: Math.round(amount * 100),
-        allowKlarna: customKlarna,
+        allowPayOverTime: customPayOverTime,
+        allowKlarna: customPayOverTime,
         collectPhone: customPhone,
         interval: customInterval,
         intervalCount: 1,
@@ -452,7 +485,7 @@ export default function MyLinks() {
       setCustomOpen(false);
       setCustomName('');
       setCustomAmount('');
-      setCustomKlarna(true);
+      setCustomPayOverTime(true);
       setCustomPhone(true);
       setCustomInterval('one_time');
     } catch (e: any) {
@@ -529,8 +562,8 @@ export default function MyLinks() {
               <CardContent className="space-y-4">
                 {!account && (
                   <p className="text-sm text-muted-foreground">
-                    Create your own Stripe account to start accepting card and Klarna
-                    payments. Funds go directly to your bank.
+                    Create your own Stripe account to start accepting card and eligible
+                    pay-over-time payments. Funds go directly to your bank.
                   </p>
                 )}
 
@@ -1104,6 +1137,36 @@ export default function MyLinks() {
                   </p>
                 ) : (
                   <div className="space-y-2">
+                    <div className="rounded-lg border border-border bg-card/40 p-3 text-xs text-muted-foreground space-y-1">
+                      <p>
+                        One-time links offer card plus the pay-over-time options (Klarna,
+                        Afterpay, Affirm) that Stripe approves for your account and the
+                        purchase qualifies for. Some may need to be turned on or approved
+                        in your Stripe payment method settings first.
+                      </p>
+                      {payOverTime && (
+                        <p>
+                          Your Stripe settings:{' '}
+                          {PAY_OVER_TIME_LABELS.map(([key, label], i) => (
+                            <span key={key}>
+                              {i > 0 && ' · '}
+                              {label}{' '}
+                              <span
+                                className={
+                                  payOverTime[key] === 'on' ? 'text-primary font-medium' : ''
+                                }
+                              >
+                                {payOverTime[key] === 'on'
+                                  ? 'on'
+                                  : payOverTime[key] === 'needs_activation'
+                                    ? 'needs activation'
+                                    : 'off'}
+                              </span>
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                    </div>
                     {links.map((l) => (
                       <div
                         key={l.id}
@@ -1130,10 +1193,7 @@ export default function MyLinks() {
                               ? `/${l.recurring_interval === 'month' ? 'mo' : l.recurring_interval === 'week' ? 'wk' : 'day'}`
                               : ''}{' '}
                             ·{' '}
-                            {(l.payment_method_types?.length
-                              ? l.payment_method_types
-                              : ['card', 'klarna']
-                            ).join(' + ')}
+                            {paymentMethodsLabel(l.payment_method_types)}
                           </div>
 
                           {l.url && (
@@ -1340,21 +1400,27 @@ export default function MyLinks() {
                       : customInterval === 'week'
                         ? 'week'
                         : 'day'}{' '}
-                    until they cancel. Recurring plans are card only (Klarna isn't
-                    supported for subscriptions).
+                    until they cancel. Recurring plans are card only (pay-over-time
+                    options aren't offered for subscriptions).
                   </p>
                 )}
               </div>
               {customInterval === 'one_time' && (
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="custom-klarna"
-                    checked={customKlarna}
-                    onCheckedChange={(v) => setCustomKlarna(!!v)}
-                  />
-                  <Label htmlFor="custom-klarna" className="font-normal">
-                    Allow Klarna (pay over time)
-                  </Label>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="custom-pay-over-time"
+                      checked={customPayOverTime}
+                      onCheckedChange={(v) => setCustomPayOverTime(!!v)}
+                    />
+                    <Label htmlFor="custom-pay-over-time" className="font-normal">
+                      Allow eligible pay-over-time methods (Klarna, Afterpay, Affirm)
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">
+                    Only the options turned on in your Stripe account that the purchase
+                    qualifies for will show. Unchecked = card only.
+                  </p>
                 </div>
               )}
               <div className="flex items-center gap-2">
