@@ -63,30 +63,9 @@ export function ReviewSignCustomizer() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border border-white/10 bg-[#101216] p-5 sm:p-7 md:p-8" aria-labelledby="review-stand-title">
-        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          <span className="rounded-full bg-gradient-to-r from-[#f6d778] to-[#c99635] px-3 py-1 text-xs font-bold tracking-[0.16em] text-black">STEP 1</span>
-          <h2 id="review-stand-title" className="font-display text-2xl font-semibold text-white sm:text-3xl">Order your sign holder</h2>
-        </div>
-        <div className="mt-5 grid items-center gap-5 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] sm:gap-8">
-          <div className="relative mx-auto h-36 w-44 sm:h-40" aria-hidden="true">
-            <div className="absolute bottom-3 left-2 h-5 w-40 -skew-x-12 rounded-sm border border-white/30 bg-gradient-to-r from-white/5 via-white/15 to-white/5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]" />
-            <div className="absolute bottom-6 left-10 h-32 w-24 -skew-x-6 rounded-sm border border-white/45 bg-gradient-to-br from-white/20 via-white/[0.03] to-white/10 shadow-[inset_2px_0_0_rgba(255,255,255,0.22),0_12px_22px_rgba(0,0,0,0.25)]" />
-            <div className="absolute bottom-7 left-12 h-28 w-20 -skew-x-6 border border-white/15" />
-          </div>
-          <div className="space-y-4 sm:border-l sm:border-white/10 sm:pl-8">
-            <p className="text-lg font-medium text-white">5 × 7 magnetic acrylic stand <span className="text-white/55">· 2-pack</span></p>
-            <p className="text-sm leading-relaxed text-white/55">Display the finished review sign at your station.</p>
-            <a href={STAND_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#d9ad4a] px-5 py-2.5 font-semibold text-[#efc86a] transition-colors hover:bg-[#d9ad4a]/10">
-              View on Amazon <ExternalLink className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      </section>
-
       <section className="rounded-2xl border border-white/10 bg-[#101216] p-5 sm:p-7 md:p-8" aria-labelledby="review-sign-title">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          <span className="rounded-full bg-gradient-to-r from-[#f6d778] to-[#c99635] px-3 py-1 text-xs font-bold tracking-[0.16em] text-black">STEP 2</span>
+          <span className="rounded-full bg-gradient-to-r from-[#f6d778] to-[#c99635] px-3 py-1 text-xs font-bold tracking-[0.16em] text-black">STEP 1</span>
           <h2 id="review-sign-title" className="font-display text-2xl font-semibold text-white sm:text-3xl">Make your review sign</h2>
         </div>
 
@@ -136,6 +115,28 @@ export function ReviewSignCustomizer() {
       </section>
 
       <p className="flex items-center gap-2 px-1 text-sm text-white/55"><Printer className="h-4 w-4 text-[#d9ad4a]" /> Print at 100% size and trim to 5 × 7 inches.</p>
+
+      <section className="rounded-2xl border border-white/10 bg-[#101216] p-5 sm:p-7 md:p-8" aria-labelledby="review-stand-title">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <span className="rounded-full bg-gradient-to-r from-[#f6d778] to-[#c99635] px-3 py-1 text-xs font-bold tracking-[0.16em] text-black">STEP 2</span>
+          <h2 id="review-stand-title" className="font-display text-2xl font-semibold text-white sm:text-3xl">Order your sign holder</h2>
+        </div>
+        <div className="mt-5 grid items-center gap-5 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] sm:gap-8">
+          <div className="relative mx-auto h-36 w-44 sm:h-40" aria-hidden="true">
+            <div className="absolute bottom-3 left-2 h-5 w-40 -skew-x-12 rounded-sm border border-white/30 bg-gradient-to-r from-white/5 via-white/15 to-white/5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]" />
+            <div className="absolute bottom-6 left-10 h-32 w-24 -skew-x-6 rounded-sm border border-white/45 bg-gradient-to-br from-white/20 via-white/[0.03] to-white/10 shadow-[inset_2px_0_0_rgba(255,255,255,0.22),0_12px_22px_rgba(0,0,0,0.25)]" />
+            <div className="absolute bottom-7 left-12 h-28 w-20 -skew-x-6 border border-white/15" />
+          </div>
+          <div className="space-y-4 sm:border-l sm:border-white/10 sm:pl-8">
+            <p className="text-lg font-medium text-white">5 × 7 magnetic acrylic stand <span className="text-white/55">· 2-pack</span></p>
+            <p className="text-sm leading-relaxed text-white/55">Display the finished review sign at your station.</p>
+            <a href={STAND_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#d9ad4a] px-5 py-2.5 font-semibold text-[#efc86a] transition-colors hover:bg-[#d9ad4a]/10">
+              View on Amazon <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       {qrUrl && <QRCodeCanvas ref={qrCanvasRef} value={qrUrl} size={1024} level="M" includeMargin className="hidden" aria-hidden="true" />}
     </div>
   );
