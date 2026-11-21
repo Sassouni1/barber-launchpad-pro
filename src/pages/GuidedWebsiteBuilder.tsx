@@ -86,9 +86,13 @@ export default function GuidedWebsiteBuilder() {
   const accountPersonName = preferredClientName || profile?.full_name?.trim()
     || [businessCard?.first_name, businessCard?.last_name].filter(Boolean).join(' ').trim()
     || metadataName?.trim() || metadataParts;
+  const accountPhone = profile ? profile.phone?.trim() || '' : businessCard?.phone?.trim() || '';
   const isBusinessOwner = businessSetup?.business_owner_type === 'barbershop' || businessSetup?.business_owner_type === 'salon';
   const [answers, setAnswers] = useState<GuidedWebsiteAnswers>(emptyGuidedAnswers);
-  const websiteAnswers = useMemo(() => ({ ...answers, ownerName: isBusinessOwner ? '' : accountPersonName || savedPersonName(answers.ownerName) }), [answers, isBusinessOwner, accountPersonName]);
+  const websiteAnswers = useMemo(() => ({ ...answers,
+    ownerName: isBusinessOwner ? '' : accountPersonName || savedPersonName(answers.ownerName),
+    phone: demoMode ? answers.phone : profile ? accountPhone : accountPhone || answers.phone,
+  }), [answers, isBusinessOwner, accountPersonName, accountPhone, demoMode, profile]);
   const [hydrated, setHydrated] = useState(false);
   // Services the member confirmed on the dashboard (imported from their booking page or added by hand).
   // Read separately so the builder keeps working if the services columns are not deployed yet.
@@ -189,8 +193,8 @@ export default function GuidedWebsiteBuilder() {
     if (secondMode) {
       try {
         const saved = JSON.parse(localStorage.getItem(`guided-second-site:${user.id}`) || 'null') as Partial<GuidedWebsiteAnswers> | null;
-        setAnswers({ ...emptyGuidedAnswers, businessName: profile?.business_name || '', phone: profile?.phone || '', ...saved,
-          ownerName: isBusinessOwner ? '' : accountPersonName || savedPersonName(saved?.ownerName),
+        setAnswers({ ...emptyGuidedAnswers, businessName: profile?.business_name || '', phone: accountPhone, ...saved,
+          ownerName: isBusinessOwner ? '' : accountPersonName || savedPersonName(saved?.ownerName), phone: profile ? accountPhone : accountPhone || saved?.phone || '',
           ...(dashboardNameKnown ? { businessName: dashboardBrandName } : {}),
           city: dashboardLocationKnown ? dashboardCity : dashboardLocationBeingEdited ? '' : saved?.city || [profile?.business_city, profile?.business_state].filter(Boolean).join(', ') });
       } catch { setAnswers(emptyGuidedAnswers); }
@@ -204,10 +208,10 @@ export default function GuidedWebsiteBuilder() {
       ownerName: isBusinessOwner ? '' : accountPersonName || savedPersonName(restored.ownerName),
       businessName: dashboardNameKnown ? dashboardBrandName : restored.businessName || profile?.business_name || '',
       city: dashboardLocationKnown ? dashboardCity : dashboardLocationBeingEdited ? '' : restored.city || [profile?.business_city, profile?.business_state].filter(Boolean).join(', '),
-      phone: restored.phone || profile?.phone || '',
+      phone: profile ? accountPhone : accountPhone || restored.phone || '',
     });
     setHydrated(true);
-  }, [user, loadingWebsite, loadingProfile, loadingBusinessSetup, loadingBusinessCard, hydrated, website, profile, businessSetup, demoMode, secondMode, dashboardLocationKnown, dashboardLocationBeingEdited, dashboardCity, dashboardNameKnown, dashboardBrandName, accountPersonName, isBusinessOwner]);
+  }, [user, loadingWebsite, loadingProfile, loadingBusinessSetup, loadingBusinessCard, hydrated, website, profile, businessSetup, demoMode, secondMode, dashboardLocationKnown, dashboardLocationBeingEdited, dashboardCity, dashboardNameKnown, dashboardBrandName, accountPersonName, accountPhone, isBusinessOwner]);
   useEffect(() => {
     if (hydrated && !demoMode && dashboardNameKnown)
       setAnswers(current => current.businessName === dashboardBrandName ? current : { ...current, businessName: dashboardBrandName });
@@ -222,7 +226,7 @@ export default function GuidedWebsiteBuilder() {
 
   const next = () => {
     if (needsTemplateChoice) { toast.error('Pick a design to continue.'); return; }
-    if (step === 1 && (!answers.businessName.trim() || !answers.city.trim() || !answers.phone.trim())) {
+    if (step === 1 && (!answers.businessName.trim() || !answers.city.trim() || !websiteAnswers.phone.trim())) {
       toast.error('Add your business name, city, and phone number.'); return;
     }
     if (step === 2) {
@@ -266,7 +270,7 @@ export default function GuidedWebsiteBuilder() {
   const saveDraft = async () => {
     if (previewOnly) throw new Error('This preview cannot save to your existing website.');
     if (!user) throw new Error('Sign in to save your website.');
-    const data = { guided: answers } as unknown as never;
+    const data = { guided: websiteAnswers } as unknown as never;
     if (website) {
       if (!isGuided(website.template_key) || website.custom_domain) throw new Error('This account already has a website. Your existing site was left untouched.');
       const { error } = await supabase.from('member_websites').update({ editor_drafts: data, template_key: answers.template }).eq('id', website.id).eq('user_id', user.id);
@@ -291,7 +295,7 @@ export default function GuidedWebsiteBuilder() {
   const publish = async () => {
     if (previewOnly) { toast.info('This is a preview. Nothing will be published.'); return; }
     if (!templateSources?.[answers.template]) { toast.error('Wait for the website template to load before publishing.'); return; }
-    if (!answers.businessName.trim() || !answers.city.trim() || !answers.phone.trim() || answers.hasBookingApp === null || (answers.hasBookingApp && !normalizedWebUrl(answers.bookingUrl)) || (!answers.hasBookingApp && !answers.hours.trim())) {
+    if (!answers.businessName.trim() || !answers.city.trim() || !websiteAnswers.phone.trim() || answers.hasBookingApp === null || (answers.hasBookingApp && !normalizedWebUrl(answers.bookingUrl)) || (!answers.hasBookingApp && !answers.hours.trim())) {
       toast.error('Complete your business and booking details before publishing.'); return;
     }
     setBusy('Publishing');
@@ -343,7 +347,7 @@ export default function GuidedWebsiteBuilder() {
           </article>)}
         </div>
       </div>}
-      {step === 1 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" />{!isBusinessOwner && <div className="space-y-2"><label htmlFor="website-client-name" className="block font-medium">Name clients will see</label><Input id="website-client-name" value={websiteAnswers.ownerName} readOnly aria-readonly="true" placeholder="Add your name in My Profile" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div>}{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<Field label="What phone number should show on your site?" value={answers.phone} onChange={value => update('phone', value)} placeholder="Business phone number" /><p className="text-sm text-muted-foreground">We suggested the number on your account. You can change it here.</p><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
+      {step === 1 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" />{!isBusinessOwner && <div className="space-y-2"><label htmlFor="website-client-name" className="block font-medium">Name clients will see</label><Input id="website-client-name" value={websiteAnswers.ownerName} readOnly aria-readonly="true" placeholder="Add your name in My Profile" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div>}{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<div className="space-y-2"><label htmlFor="website-client-phone" className="block font-medium">Phone number clients should use</label><Input id="website-client-phone" type="tel" value={websiteAnswers.phone} readOnly aria-readonly="true" placeholder="Add your phone number in My Profile" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
       {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
       {step === 3 && answers.template === 'guided-charlotte' && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Social profile</h2><p className="text-muted-foreground">Design 1 keeps its existing editorial photography. Your services appear as a text list without individual photos.</p><label className="block space-y-2"><span className="font-medium">Instagram handle or profile link (optional)</span><Input value={answers.instagram} onChange={event => update('instagram', event.target.value)} placeholder="@yourname" /></label></div>}
       {step === 3 && answers.template !== 'guided-charlotte' && <div className="max-w-2xl space-y-5"><h2 className="font-serif text-2xl">Show your work</h2><p>Do you have an Instagram with a few haircuts or hair systems?</p><YesNo value={answers.hasInstagram} onChange={value => update('hasInstagram', value)} />{answers.hasInstagram && <Field label="Instagram handle or profile link" value={answers.instagram} onChange={value => update('instagram', value)} placeholder="@yourname" />}<Field label="Public page to find your photos (optional)" value={answers.photoSourceUrl} onChange={value => update('photoSourceUrl', value)} placeholder="Your website, portfolio, or Instagram link" /><Button type="button" variant="outline" disabled={!!busy} onClick={findPhotos}><Sparkles className="mr-2 h-4 w-4" />Find photos</Button>{suggestions.length > 0 && <div><p className="mb-3 text-sm text-muted-foreground">Select only photos that belong to you. Nothing is added automatically.</p><div className="grid grid-cols-3 gap-2">{suggestions.map(url => <button type="button" key={url} aria-pressed={answers.photos.includes(url)} onClick={() => update('photos', answers.photos.includes(url) ? answers.photos.filter(item => item !== url) : [...answers.photos, url].slice(0, 6))} className={`relative overflow-hidden rounded-lg border-2 ${answers.photos.includes(url) ? 'border-primary' : 'border-transparent'}`}><img src={url} alt="Suggested work photo" className="h-28 w-full object-cover" />{answers.photos.includes(url) && <Check className="absolute right-2 top-2 h-5 w-5 rounded-full bg-primary p-1 text-black" />}</button>)}</div></div>}<label className="block cursor-pointer rounded-lg border border-dashed border-primary/50 p-5 text-center"><ImagePlus className="mx-auto mb-2 h-6 w-6 text-primary" />Upload your own photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={e => void uploadPhotos(e.target.files)} /></label>{answers.photos.length > 0 && <div className="grid grid-cols-3 gap-2">{answers.photos.map(url => <button key={url} type="button" onClick={() => update('photos', answers.photos.filter(item => item !== url))} className="relative"><img src={url} alt="Selected work photo" className="h-28 w-full rounded-lg object-cover" /><span className="absolute bottom-1 right-1 rounded bg-black/80 px-2 py-1 text-xs text-white">Remove</span></button>)}</div>}</div>}

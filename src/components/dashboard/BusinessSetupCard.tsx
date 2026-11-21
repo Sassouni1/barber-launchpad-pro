@@ -22,7 +22,7 @@ type WorkplaceType = 'barbershop' | 'salon' | 'suite' | 'home' | 'mobile' | 'oth
 type WorkStatus = 'individual_barber' | 'individual_stylist' | 'barbershop_owner' | 'salon_owner' | '';
 type TeamSize = 'none' | 'one' | 'two_to_five' | 'six_to_ten' | 'eleven_plus' | '';
 type SetupDraft = {
-  fullName: string; differentClientName: Answer; clientDisplayName: string;
+  fullName: string; differentClientName: Answer; clientDisplayName: string; clientPhone: string;
   city: string; workStreet: string; workCity: string; workState: string; workPostalCode: string;
   workStatus: WorkStatus; cutsAtOwnedBusiness: Answer; teamSize: TeamSize; workplaceType: WorkplaceType;
   workplaceOtherDescription: string;
@@ -204,6 +204,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
   const [fullName, setFullName] = useState('');
   const [differentClientName, setDifferentClientName] = useState<Answer>('');
   const [clientDisplayName, setClientDisplayName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
   const [workStreet, setWorkStreet] = useState('');
   const [workCity, setWorkCity] = useState('');
   const [workState, setWorkState] = useState('');
@@ -250,8 +251,8 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
     Promise.all([supabase.from('member_onboarding_profiles')
       .select('service_city, work_location_street, work_location_city, work_location_state, work_location_postal_code, business_name, business_owner_type, cuts_at_owned_business, currently_cutting, professional_role, workplace_type, workplace_other_description, other_professionals_count, website_status, website_url, booking_app_status, booking_link_status, booking_url, booking_platform, business_setup_completed_at, business_setup_draft, business_setup_draft_updated_at')
       .eq('user_id', user.id).maybeSingle(),
-      supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
-      (supabase as any).from('business_cards').select('first_name,last_name').eq('user_id', user.id).maybeSingle()])
+      supabase.from('profiles').select('full_name,phone').eq('id', user.id).maybeSingle(),
+      (supabase as any).from('business_cards').select('first_name,last_name,phone').eq('user_id', user.id).maybeSingle()])
       .then(([{ data, error }, { data: account, error: accountError }, { data: businessCard }]) => {
         if (!active) return;
         if (error || accountError) { toast.error('Could not load your business setup'); setLoading(false); return; }
@@ -267,7 +268,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
         const owner = (data?.business_owner_type || '') as OwnerType;
         const storedDraft: SetupDraft = {
           fullName: account?.full_name || [businessCard?.first_name, businessCard?.last_name].filter(Boolean).join(' ') || [user.user_metadata?.first_name, user.user_metadata?.last_name].filter(Boolean).join(' ') || user.user_metadata?.full_name || '',
-          differentClientName: 'no', clientDisplayName: '',
+          differentClientName: 'no', clientDisplayName: '', clientPhone: account?.phone || businessCard?.phone || '',
           city: data?.service_city || '', workStreet: data?.work_location_street || '',
           workCity: data?.work_location_city || '', workState: data?.work_location_state || '',
           workPostalCode: data?.work_location_postal_code || '',
@@ -302,6 +303,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
         setFullName(draft.fullName || '');
         setDifferentClientName(draft.differentClientName || 'no');
         setClientDisplayName(draft.clientDisplayName || '');
+        setClientPhone(draft.clientPhone || '');
         setCity(draft.city || '');
         setWorkStreet(draft.workStreet || '');
         setWorkCity(draft.workCity || '');
@@ -339,7 +341,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
 
   useEffect(() => {
     if (!user?.id || loading || !readyToSync.current || submitting.current || (complete && !editingComplete)) return;
-    const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, city, workStreet, workCity, workState, workPostalCode, workStatus,
+    const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, clientPhone, city, workStreet, workCity, workState, workPostalCode, workStatus,
       cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website, websiteUrl,
       booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
       bookingSearchAttempted, bookingSearchLocation };
@@ -361,7 +363,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
       autosaveQueue.current = autosaveQueue.current.catch(() => {}).then(async () => {
         if (submitting.current) return;
         try {
-          const { error: nameError } = await supabase.from('profiles').update({ full_name: draft.fullName.trim() || null }).eq('id', user.id);
+          const { error: nameError } = await supabase.from('profiles').update({ full_name: draft.fullName.trim() || null, phone: draft.clientPhone.trim() || null }).eq('id', user.id);
           if (nameError) { scheduleRetry(); return; }
           const { error } = await supabase.from('member_onboarding_profiles').upsert({
             user_id: user.id, ...profileFields(draft), business_setup_draft: draft,
@@ -380,7 +382,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
       });
     }, 500);
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
-  }, [user?.id, loading, complete, editingComplete, fullName, differentClientName, clientDisplayName, city, workStreet, workCity, workState,
+  }, [user?.id, loading, complete, editingComplete, fullName, differentClientName, clientDisplayName, clientPhone, city, workStreet, workCity, workState,
     workPostalCode, workStatus, cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website,
     websiteUrl, booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
     bookingSearchAttempted, bookingSearchLocation, retryVersion]);
@@ -579,7 +581,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
     if (booking === 'yes' && bookingUrl.trim() && !validDraftUrl(bookingUrl)) {
       revealField(bookingChoice === 'search' ? 'booking-candidates' : 'booking-url', 'Enter a valid booking URL'); return;
     }
-    const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, city, workStreet, workCity, workState, workPostalCode, workStatus,
+    const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, clientPhone, city, workStreet, workCity, workState, workPostalCode, workStatus,
       cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website, websiteUrl,
       booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
       bookingSearchAttempted, bookingSearchLocation };
@@ -587,11 +589,11 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
     submitting.current = true;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     await autosaveQueue.current;
-    const { error: nameError } = await supabase.from('profiles').update({ full_name: draft.fullName.trim() || null }).eq('id', user.id);
-    if (nameError) { setSaving(false); submitting.current = false; setDraftStatus('error'); toast.error('Could not save your name. Please try again.'); return; }
+    const { error: nameError } = await supabase.from('profiles').update({ full_name: draft.fullName.trim() || null, phone: draft.clientPhone.trim() || null }).eq('id', user.id);
+    if (nameError) { setSaving(false); submitting.current = false; setDraftStatus('error'); toast.error('Could not save your contact details. Please try again.'); return; }
     const { error } = await supabase.from('member_onboarding_profiles').upsert({
       user_id: user.id, ...profileFields(draft), business_setup_draft: {
-        fullName: draft.fullName.trim(), differentClientName: draft.differentClientName,
+        fullName: draft.fullName.trim(), differentClientName: draft.differentClientName, clientPhone: draft.clientPhone.trim(),
         clientDisplayName: draft.differentClientName === 'yes' ? draft.clientDisplayName.trim() : '',
         businessNameChoice: draft.businessNameChoice,
         ...(needsBookingSearchCity ? { city: formatServiceCity(draft.city) } : {}),
@@ -642,6 +644,11 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
       <label htmlFor="client-display-name" className="block text-sm font-medium">What personal name should clients see?</label>
       <Input id="client-display-name" value={clientDisplayName} onChange={event => setClientDisplayName(event.target.value)} placeholder="Your nickname or preferred name" />
     </div>}
+    <div className="space-y-2">
+      <label htmlFor="client-phone" className="block text-sm font-medium">Phone number clients should use</label>
+      <Input id="client-phone" type="tel" autoComplete="tel" value={clientPhone} onChange={event => setClientPhone(event.target.value)} placeholder="Your phone number" />
+      <p className="text-xs text-muted-foreground">Filled from the number you entered when you signed up. You can change it here.</p>
+    </div>
     <SetupSelect id="work-status" label="Select an option" value={workStatus}
       onChange={(value) => {
         const nextIsOwner = value === 'barbershop_owner' || value === 'salon_owner';
