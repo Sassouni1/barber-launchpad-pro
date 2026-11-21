@@ -2038,7 +2038,7 @@ export default function Lesson() {
                         `/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`,
                       )
                     }
-                    disabled={!nextModule}
+                    disabled={!nextModule || isFirstPostMainLesson && !announcementActionsComplete}
                   >
                     Next Lesson
                     <ArrowRight className="w-4 h-4 ml-2" />
