@@ -97,12 +97,16 @@ export function ReviewSignCustomizer() {
           <div className="mx-auto aspect-[5/7] w-full max-w-[390px] overflow-hidden rounded-xl bg-white shadow-[0_18px_45px_rgba(0,0,0,0.4)]" aria-label="Review sign preview">
             <svg ref={signSvgRef} viewBox="0 0 500 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Printable review sign design" className="block h-full w-full bg-white">
               <rect width="500" height="700" fill="#fff" />
-              <g stroke="#101010" strokeWidth="3" strokeLinecap="round" fill="none">
-                <path d="M233 47 L267 91 M267 47 L233 91" />
-                <circle cx="232" cy="94" r="7" />
-                <circle cx="268" cy="94" r="7" />
+              <g fill="#101010">
+                <path d="M233 49 C239 57 246 68 252 79 L248 82 C244 73 238 60 233 49Z" />
+                <path d="M267 49 C261 57 254 68 248 79 L252 82 C256 73 262 60 267 49Z" />
               </g>
-              <circle cx="250" cy="70" r="2.5" fill="#101010" />
+              <g fill="none" stroke="#101010" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M249 80 L239 93 M251 80 L261 93" />
+                <circle cx="237" cy="99" r="7.5" />
+                <circle cx="263" cy="99" r="7.5" />
+              </g>
+              <circle cx="250" cy="79" r="2.2" fill="#fff" />
               {wrapSignName(name).map((line, index, lines) => (
                 <text key={`${line}-${index}`} x="250" y={lines.length === 1 ? 151 : 137 + index * 28} textAnchor="middle" fill="#111" fontFamily="Arial, Helvetica, sans-serif" fontSize={line.length > 26 ? 20 : line.length > 19 ? 24 : 30} letterSpacing="1.3" fontWeight="500">{line}</text>
               ))}
