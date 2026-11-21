@@ -1044,6 +1044,7 @@ export default function Lesson() {
   const firstPostCopyDownloadFileName =
     module.id === FIRST_POST_MODULE_ID ? "first-post.txt" : undefined;
   const isFirstPostMainLesson = !sublessonId && module.id === FIRST_POST_MODULE_ID;
+  const isGettingReviewsLesson = !sublessonId && module.id === GETTING_REVIEWS_MODULE_ID;
   const activeFiles = isThirdPostSubLesson
     ? [THIRD_POST_VIDEO_FILE]
     : isSecondPostSubLesson
@@ -1095,8 +1096,8 @@ export default function Lesson() {
         className="max-w-5xl mx-auto space-y-4 pb-8"
       >
         {/* Header */}
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
-          <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <div className={`flex flex-col items-start gap-3 sm:flex-row sm:justify-between animate-fade-up ${isGettingReviewsLesson ? "sm:items-start" : "sm:items-center"}`}>
+          <div className={`flex min-w-0 flex-col items-start gap-2 ${isGettingReviewsLesson ? "sm:gap-3" : "sm:flex-row sm:items-center sm:gap-4"}`}>
             <Button
               variant="ghost"
               className="gap-2"
@@ -1116,16 +1117,17 @@ export default function Lesson() {
                 data-no-translate
                 translate="no"
               >
-                {localizedCourseName}
+                {isGettingReviewsLesson ? "Business Mastery  /  Marketing Foundations" : localizedCourseName}
               </p>
               <h1
                 key={`${module.id}-${locale}-title`}
-                className="font-display text-3xl font-bold break-words"
+                className={`font-display font-bold break-words ${isGettingReviewsLesson ? "text-4xl sm:text-5xl" : "text-3xl"}`}
                 data-no-translate
                 translate="no"
               >
                 {localizedModuleTitle}
               </h1>
+              {isGettingReviewsLesson && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/60 sm:text-base">Make it easy for clients to leave a Google review with a simple, professional sign.</p>}
             </div>
           </div>
           {!isFirstPostMainLesson && (isCurrentLessonCompleted ? (
@@ -1225,7 +1227,7 @@ export default function Lesson() {
         )}
 
         {/* Tabs - Hide on mobile since we show inline content */}
-        {!isMobile && (
+        {!isMobile && !isGettingReviewsLesson && (
           <div
             className="flex flex-wrap items-center gap-2 animate-fade-up"
             style={{ animationDelay: "0.2s" }}
@@ -1663,7 +1665,7 @@ export default function Lesson() {
         )}
 
         {/* Notes Section - only show if there are notes */}
-        {notesContent && (
+        {notesContent && !isGettingReviewsLesson && (
           <div
             className="glass-card p-4 md:p-6 rounded-2xl animate-fade-up"
             style={{ animationDelay: "0.4s" }}
@@ -1684,8 +1686,16 @@ export default function Lesson() {
           </div>
         )}
 
-        {!sublessonId && module.id === GETTING_REVIEWS_MODULE_ID && (
+        {isGettingReviewsLesson && (
           <ReviewSignCustomizer />
+        )}
+
+        {isGettingReviewsLesson && !isMobile && nextModule && (
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => navigate(`/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`)}>
+              Next Lesson <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         )}
 
         {isMobile && nextModule && !(module as any).is_directory_enrollment && (
