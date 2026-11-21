@@ -4837,6 +4837,62 @@ export type Database = {
           },
         ]
       }
+      support_message_sms_alerts: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          conversation_id: string
+          created_at: string
+          dispatch_request_id: number | null
+          last_error: string | null
+          member_id: string
+          message_created_at: string
+          message_id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          dispatch_request_id?: number | null
+          last_error?: string | null
+          member_id: string
+          message_created_at: string
+          message_id: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          dispatch_request_id?: number | null
+          last_error?: string | null
+          member_id?: string
+          message_created_at?: string
+          message_id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_message_sms_alerts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_messages: {
         Row: {
           attachment_mime_type: string | null
@@ -5623,6 +5679,30 @@ export type Database = {
         Args: { _channel: string; _event_id: string; _order_id: string }
         Returns: string
       }
+      claim_support_message_sms_alert: {
+        Args: { _message_id: string }
+        Returns: {
+          attempts: number
+          claimed_at: string | null
+          conversation_id: string
+          created_at: string
+          dispatch_request_id: number | null
+          last_error: string | null
+          member_id: string
+          message_created_at: string
+          message_id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "support_message_sms_alerts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_old_marketing_images: { Args: never; Returns: undefined }
       complete_current_user_password_reset: { Args: never; Returns: boolean }
       current_user_requires_password_reset: { Args: never; Returns: boolean }
@@ -5728,6 +5808,11 @@ export type Database = {
         Args: { encryption_key: string; token_value: string }
         Returns: string
       }
+      support_message_sms_alert_missing: { Args: never; Returns: number }
+      support_message_sms_alert_retry_candidates: {
+        Args: { _limit: number }
+        Returns: string[]
+      }
       unsend_support_message: {
         Args: { p_message_id: string }
         Returns: undefined
@@ -5741,6 +5826,10 @@ export type Database = {
         Returns: boolean
       }
       verify_meta_agency_credential_cron_token: {
+        Args: { _token: string }
+        Returns: boolean
+      }
+      verify_support_sms_alert_token: {
         Args: { _token: string }
         Returns: boolean
       }

@@ -112,3 +112,7 @@
 ## Agency Meta token lifecycle
 - [x] Server-only encrypted credential store, centralized token reader for social/meta-admin/reporting, verified renewal, 6-hourly health check, admin status panel; 13 new + 54 existing tests pass; deployed.
 - [ ] Blocked on Chris: save a fresh system-user token as META_ADS_ACCESS_TOKEN in Project Settings → Secrets, then press Check now on /admin/ads.
+
+## Support inbox SMS alert to Chris
+- [x] Member-only insert trigger + message-ID ledger + notify-support-message (same GHL alert path, Barber Launch location check); admin status/retry; admin inbox opens ?conversation= link.
+- [x] Deployed; rollback rehearsal (member yes, admin reply/reaction/edit no, single claim); live test message from Chris's test member sent once (GHL message hA40V5lQGBAMwmeXjoqf), replay did not resend. Frontend link change unpublished.

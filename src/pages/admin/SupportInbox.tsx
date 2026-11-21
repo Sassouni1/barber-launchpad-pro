@@ -5,6 +5,7 @@ import { SupportThread } from '@/components/support/SupportThread';
 import { useSupportMessages, type SupportConversation } from '@/hooks/useSupportMessages';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 type MemberProfile = { id: string; full_name: string | null; email: string | null };
@@ -49,12 +50,17 @@ function InboxPreview({ conversation, selected, onSelect }: { conversation: Supp
 
 export default function SupportInbox() {
   const { data: conversations = [], isLoading } = useSupportInbox();
+  const [searchParams] = useSearchParams();
+  const linkedId = searchParams.get('conversation');
   const [activeId, setActiveId] = useState<string>();
   const active = useMemo(() => conversations.find((conversation) => conversation.id === activeId) || conversations[0], [activeId, conversations]);
 
   useEffect(() => {
-    if (!activeId && conversations[0]) setActiveId(conversations[0].id);
-  }, [activeId, conversations]);
+    if (activeId || !conversations[0]) return;
+    // Support alert texts link straight to a thread via ?conversation=<id>.
+    const linked = linkedId ? conversations.find((conversation) => conversation.id === linkedId) : undefined;
+    setActiveId((linked || conversations[0]).id);
+  }, [activeId, conversations, linkedId]);
 
   return (
     <DashboardLayout isAdminView>
