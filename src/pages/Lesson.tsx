@@ -1,6 +1,6 @@
 import { FileDownloadButton } from "@/components/ui/file-download-button";
 import { downloadBlob } from "@/lib/fileDownloads";
-import { moduleCompletionProgressKey } from "@/lib/moduleCompletion";
+import { moduleCompletionProgressKey, sublessonCompletionProgressKey } from "@/lib/moduleCompletion";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -675,7 +675,7 @@ export default function Lesson() {
 
   // Hooks for the active lesson surface. Sub-lessons should not inherit parent files/quizzes/homework.
   const { data: files = [] } = useModuleFiles(module?.id);
-  const { data: questions = [] } = useQuizQuestions(quizScope);
+  const { data: questions = [], isLoading: quizQuestionsLoading, isError: quizQuestionsError } = useQuizQuestions(quizScope);
   const { data: attempts = [] } = useQuizAttempts(quizScope);
   const { data: existingSubmission } = useHomeworkSubmission(
     sublessonId ? undefined : module?.id,
@@ -788,13 +788,24 @@ export default function Lesson() {
     queryKey: ["sublesson-completion", sublessonId, user?.id],
     queryFn: async () => {
       if (!sublessonId || !user?.id) return null;
-      const { data } = await supabase
+      if (sublessonId === THIRD_POST_SUBLESSON_ID || sublessonId === FOURTH_POST_SUBLESSON_ID) {
+        const { data, error } = await supabase
+          .from("user_training_progress")
+          .select("completed")
+          .eq("user_id", user.id)
+          .eq("game_type", sublessonCompletionProgressKey(sublessonId))
+          .maybeSingle();
+        if (error) throw error;
+        return data?.completed ? { lesson_id: sublessonId } : null;
+      }
+      const { data, error } = await supabase
         .from("user_progress")
         .select("lesson_id")
         .eq("user_id", user.id)
         .eq("lesson_id", sublessonId)
         .eq("completed", true)
         .maybeSingle();
+      if (error) throw error;
       return data;
     },
     enabled: !!sublessonId && !!user?.id,
@@ -810,15 +821,26 @@ export default function Lesson() {
     setIsMarkingComplete(true);
     try {
       if (sublessonId) {
-        const { error } = await supabase.from("user_progress").upsert(
-          {
-            user_id: user.id,
-            lesson_id: sublessonId,
-            completed: true,
-            completed_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id,lesson_id" },
-        );
+        const isVirtualPost = sublessonId === THIRD_POST_SUBLESSON_ID || sublessonId === FOURTH_POST_SUBLESSON_ID;
+        const { error } = isVirtualPost
+          ? await supabase.from("user_training_progress").upsert(
+              {
+                user_id: user.id,
+                game_type: sublessonCompletionProgressKey(sublessonId),
+                completed: true,
+                completed_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id,game_type" },
+            )
+          : await supabase.from("user_progress").upsert(
+              {
+                user_id: user.id,
+                lesson_id: sublessonId,
+                completed: true,
+                completed_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id,lesson_id" },
+            );
         if (error) throw error;
       } else {
         if (!module?.id) return;
@@ -866,31 +888,48 @@ export default function Lesson() {
     }
   }, [module?.id, queryClient, sublessonId, user?.id]);
 
-  const unmarkReviewComplete = useCallback(async () => {
-    if (!user?.id || module?.id !== GETTING_REVIEWS_MODULE_ID) return;
+  const unmarkModuleComplete = useCallback(async () => {
+    if (!user?.id || !module?.id) return;
     setIsMarkingComplete(true);
     try {
-      const { data, error } = await supabase
-        .from("user_training_progress")
-        .update({ completed: false, completed_at: null })
-        .eq("user_id", user.id)
-        .eq("game_type", moduleCompletionProgressKey(module.id))
-        .select("id");
-      if (error) throw error;
-      if (!data?.length) throw new Error("Review lesson completion was not found");
+      if (sublessonId === THIRD_POST_SUBLESSON_ID || sublessonId === FOURTH_POST_SUBLESSON_ID || !sublessonId && lessonCompletionData?.lessons.length === 0) {
+        const progressKey = sublessonId
+          ? sublessonCompletionProgressKey(sublessonId)
+          : moduleCompletionProgressKey(module.id);
+        const { data, error } = await supabase
+          .from("user_training_progress")
+          .update({ completed: false, completed_at: null })
+          .eq("user_id", user.id)
+          .eq("game_type", progressKey)
+          .select("id");
+        if (error) throw error;
+        if (!data?.length) throw new Error("Completion record was not found");
+      } else {
+        const lessonIds = sublessonId ? [sublessonId] : lessonCompletionData?.lessons || [];
+        if (!lessonIds.length) throw new Error("Lesson records were not found");
+        const { data, error } = await supabase
+          .from("user_progress")
+          .update({ completed: false, completed_at: null })
+          .eq("user_id", user.id)
+          .in("lesson_id", lessonIds)
+          .select("id");
+        if (error) throw error;
+        if (data?.length !== lessonIds.length) throw new Error("Some completion records were not updated");
+      }
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sublesson-completion", sublessonId, user.id] }),
         queryClient.invalidateQueries({ queryKey: ["lesson-completion", module.id, user.id] }),
         queryClient.invalidateQueries({ queryKey: ["completed-modules", user.id] }),
         queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] }),
       ]);
       toast.success("Lesson marked as incomplete.");
     } catch (error) {
-      console.error("Failed to unmark review lesson", error);
+      console.error("Failed to unmark lesson", error);
       toast.error("Could not update your progress. Please try again.");
     } finally {
       setIsMarkingComplete(false);
     }
-  }, [module?.id, queryClient, user?.id]);
+  }, [lessonCompletionData?.lessons, module?.id, queryClient, sublessonId, user?.id]);
 
   const { locale } = useLocale();
 
@@ -1088,7 +1127,7 @@ export default function Lesson() {
   const isOrderTrackingModule =
     !sublessonId && module.id === PLACING_ORDER_MODULE_ID;
   const allowsManualCompletion =
-    !activeHasQuiz &&
+    (!activeHasQuiz || !quizQuestionsLoading && !quizQuestionsError && questions.length === 0) &&
     !isOrderTrackingModule &&
     !(module as any).is_certification_requirement &&
     !(module as any).is_directory_enrollment;
@@ -1191,8 +1230,8 @@ export default function Lesson() {
                   {localizeCourseUi("Completed", locale)}
                 </span>
               </div>
-              {isGettingReviewsLesson && (
-                <Button onClick={unmarkReviewComplete} disabled={isMarkingComplete} variant="ghost" size="sm">
+              {allowsManualCompletion && (
+                <Button onClick={unmarkModuleComplete} disabled={isMarkingComplete} variant="ghost" size="sm">
                   {locale === "es" ? "Deshacer" : "Undo"}
                 </Button>
               )}

@@ -1,10 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, ImageOff, X, ZoomIn } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, Copy, ImageOff, X, ZoomIn } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { moduleCompletionProgressKey } from '@/lib/moduleCompletion';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   YELP_SECTIONS,
   YELP_STEPS,
@@ -15,6 +20,7 @@ import {
 const RED_ACCENT = 'text-primary';
 const RED_BG = 'bg-primary text-primary-foreground';
 const RED_BORDER = 'border-primary/30';
+const YELP_MODULE_ID = 'ae190000-0000-4000-8000-000000000001';
 
 type FilterValue = 'all' | YelpStepSection;
 
@@ -144,6 +150,58 @@ function VideoBlock() {
 
 export default function SettingUpYourYelp() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [savingCompletion, setSavingCompletion] = useState(false);
+  const { data: isCompleted = false } = useQuery({
+    queryKey: ['yelp-completion', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { data, error } = await supabase
+        .from('user_training_progress')
+        .select('completed')
+        .eq('user_id', user.id)
+        .eq('game_type', moduleCompletionProgressKey(YELP_MODULE_ID))
+        .maybeSingle();
+      if (error) throw error;
+      return !!data?.completed;
+    },
+  });
+  const setLessonCompleted = async (completed: boolean) => {
+    if (!user?.id) return;
+    setSavingCompletion(true);
+    try {
+      if (completed) {
+        const { error } = await supabase.from('user_training_progress').upsert({
+          user_id: user.id,
+          game_type: moduleCompletionProgressKey(YELP_MODULE_ID),
+          completed: true,
+          completed_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,game_type' });
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from('user_training_progress')
+          .update({ completed: false, completed_at: null })
+          .eq('user_id', user.id)
+          .eq('game_type', moduleCompletionProgressKey(YELP_MODULE_ID))
+          .select('id');
+        if (error) throw error;
+        if (!data?.length) throw new Error('Completion record was not found');
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['yelp-completion', user.id] }),
+        queryClient.invalidateQueries({ queryKey: ['completed-modules', user.id] }),
+        queryClient.invalidateQueries({ queryKey: ['user-progress', user.id] }),
+      ]);
+      toast.success(completed ? 'Lesson marked as complete!' : 'Lesson marked as incomplete.');
+    } catch (error) {
+      console.error('Failed to update Yelp lesson completion', error);
+      toast.error('Could not save your progress. Please try again.');
+    } finally {
+      setSavingCompletion(false);
+    }
+  };
   const [filter, setFilter] = useState<FilterValue>('all');
   const [zoomStep, setZoomStep] = useState<YelpStep | null>(null);
   const [copiedTemplateId, setCopiedTemplateId] = useState<string | null>(null);
@@ -173,6 +231,21 @@ export default function SettingUpYourYelp() {
             <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
               Build a Yelp listing that shows regular hair services while positioning hair systems as the main high-value offer.
             </p>
+            <div className="mt-4 flex items-center gap-2">
+              {isCompleted ? (
+                <>
+                  <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-2 text-green-500">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span className="text-sm font-medium">Completed</span>
+                  </div>
+                  <Button variant="ghost" size="sm" disabled={savingCompletion} onClick={() => void setLessonCompleted(false)}>Undo</Button>
+                </>
+              ) : (
+                <Button className="gold-gradient" size="sm" disabled={savingCompletion} onClick={() => void setLessonCompleted(true)}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />Mark Complete
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
