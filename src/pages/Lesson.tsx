@@ -1374,6 +1374,7 @@ export default function Lesson() {
             {nextModule && !(module as any).is_directory_enrollment && (
               <Button
                 variant="outline"
+                disabled={isFirstPostMainLesson && !announcementActionsComplete}
                 onClick={() =>
                   navigate(
                     `/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`,
@@ -1809,6 +1810,7 @@ export default function Lesson() {
           <div className="animate-fade-up" style={{ animationDelay: "0.5s" }}>
             <Button
               className="w-full gold-gradient text-primary-foreground font-semibold"
+              disabled={isFirstPostMainLesson && !announcementActionsComplete}
               onClick={() =>
                 navigate(
                   `/courses/${nextModule.courseCategory}/lesson/${nextModule.id}`,
