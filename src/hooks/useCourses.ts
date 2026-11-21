@@ -17,6 +17,7 @@ const WHAT_IS_A_LEAD_MODULE_ID = "a15b0533-2ec1-429f-8a57-fde4cbd32d98";
 const PRINTING_POSTER_MODULE_ID = "01ae1c1b-ff79-48a0-b809-1d2c63b01f48";
 const GOOGLE_PROFILE_MODULE_ID = "0647eba3-0765-4998-80ba-7ae3a71e579d";
 const YELP_MODULE_ID = "ae190000-0000-4000-8000-000000000001";
+const GETTING_REVIEWS_MODULE_ID = "ae190000-0000-4000-8000-000000000002";
 const SETTING_UP_SOCIAL_MEDIA_PT1_MODULE_ID =
   "2d31d834-e497-4559-8d6b-cb139e95e368";
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
@@ -41,6 +42,27 @@ export type ModuleWithLessons = Module & {
 
 export type CourseWithModules = Course & {
   modules: ModuleWithLessons[];
+};
+
+const GETTING_REVIEWS_MODULE: ModuleWithLessons = {
+  id: GETTING_REVIEWS_MODULE_ID,
+  course_id: MARKETING_FOUNDATIONS_COURSE_ID,
+  title: "Getting Reviews",
+  description: "",
+  video_url: null,
+  duration: "",
+  has_download: false,
+  has_homework: false,
+  has_quiz: false,
+  is_certification_requirement: false,
+  certification_photo_type: null,
+  is_directory_enrollment: false,
+  is_published: true,
+  notes_content: null,
+  order_index: 14,
+  created_at: "",
+  updated_at: "",
+  lessons: [],
 };
 
 const SOCIAL_MEDIA_101_MODULE: ModuleWithLessons = {
@@ -197,6 +219,7 @@ const positionMarketingFoundationsModules = (
     PRINTING_POSTER_MODULE_ID,
     GOOGLE_PROFILE_MODULE_ID,
     YELP_MODULE_ID,
+    GETTING_REVIEWS_MODULE_ID,
     SOCIAL_MEDIA_101_MODULE_ID,
     SETTING_UP_INSTAGRAM_MODULE_ID,
     FIRST_POST_MODULE_ID,
@@ -204,7 +227,10 @@ const positionMarketingFoundationsModules = (
   ];
   const orderedModules = orderedModuleIds
     .map((moduleId) =>
-      moduleId === SOCIAL_MEDIA_101_MODULE_ID
+      moduleId === GETTING_REVIEWS_MODULE_ID
+        ? modules.find((module) => module.id === moduleId) ||
+          GETTING_REVIEWS_MODULE
+        : moduleId === SOCIAL_MEDIA_101_MODULE_ID
         ? modules.find((module) => module.id === moduleId) ||
           SOCIAL_MEDIA_101_MODULE
         : moduleId === SETTING_UP_INSTAGRAM_MODULE_ID
