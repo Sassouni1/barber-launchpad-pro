@@ -15,7 +15,7 @@ import { emptyGuidedAnswers, guidedTemplates, guidedWebsitePages, instagramUrl, 
 import { formatServiceCity } from '@/lib/formatServiceCity';
 import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
 import { TemplatePicker, templateDisplayName } from '@/components/website/TemplatePicker';
-import { personalizedTemplateHtml } from '@/lib/guidedTemplatePreview';
+import { personalizedTemplateHtml, personalizedTemplateOneHairHtml } from '@/lib/guidedTemplatePreview';
 
 const stages = ['Choose a look', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
@@ -93,9 +93,8 @@ export default function GuidedWebsiteBuilder() {
       })
       .join('\n')
     : '';
-  const previewServicesText = secondMode && dashboardServicesText ? dashboardServicesText
-    : answers.services !== emptyGuidedAnswers.services ? answers.services : dashboardServicesText;
-  const serviceDetails = (savedServices?.service_menu as Array<{ name: string; description?: string }> | null) || [];
+  const previewServicesText = dashboardServicesText || (answers.services === 'Haircuts\nHair systems' ? '' : answers.services);
+  const serviceDetails = (savedServices?.service_menu as Array<{ name: string; description?: string; duration?: string }> | null) || [];
   const serviceRole = businessSetup?.professional_role || businessSetup?.business_owner_type || '';
   const { data: templateSources } = useQuery({
     queryKey: ['guided-website-template-sources'],
@@ -105,19 +104,20 @@ export default function GuidedWebsiteBuilder() {
         if (!response.ok) throw new Error(`Could not load ${template.name} preview.`);
         return [template.key, await response.text()] as const;
       }));
-      return Object.fromEntries(entries) as Record<GuidedTemplate, string>;
+      const hairResponse = await fetch('/website-previews/template-1/hair-loss-solutions/index.html');
+      if (!hairResponse.ok) throw new Error('Could not load the Classic hair systems page.');
+      return { ...Object.fromEntries(entries), 'guided-charlotte-hair': await hairResponse.text() } as Record<GuidedTemplate | 'guided-charlotte-hair', string>;
     },
     staleTime: Infinity,
   });
   const personalizedPreviews = useMemo(() => templateSources && Object.fromEntries(guidedTemplates.map(template => [
     template.key, personalizedTemplateHtml(templateSources[template.key], template.key, previewServicesText,
-      new URL(template.url, window.location.origin).href, serviceDetails, serviceRole),
-  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu, serviceRole]);
+      new URL(template.url, window.location.origin).href, serviceDetails, serviceRole, undefined, answers),
+  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu, serviceRole, answers]);
   useEffect(() => {
     if (!hydrated || !dashboardServicesText) return;
     setAnswers(current => {
       if (current.services === dashboardServicesText) return current;
-      if (!secondMode && current.services.trim() && current.services !== emptyGuidedAnswers.services) return current;
       return { ...current, services: dashboardServicesText };
     });
   }, [hydrated, dashboardServicesText, secondMode]);
@@ -125,6 +125,18 @@ export default function GuidedWebsiteBuilder() {
   const [furthestStep, setFurthestStep] = useState(0);
   const [previewPage, setPreviewPage] = useState<'/' | '/hair-loss-solutions/'>('/');
   const [previewTemplate, setPreviewTemplate] = useState<GuidedTemplate | null>(null);
+  const [previewTemplatePage, setPreviewTemplatePage] = useState<'/' | '/hair-loss-solutions/'>('/');
+  useEffect(() => {
+    const onPageRequest = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'guided-template-page') return;
+      const page = event.data.page;
+      if (page !== '/' && page !== '/hair-loss-solutions/') return;
+      if (previewTemplate === 'guided-charlotte') setPreviewTemplatePage(page);
+      else if (!previewTemplate && step === 4 && answers.template === 'guided-charlotte') setPreviewPage(page);
+    };
+    window.addEventListener('message', onPageRequest);
+    return () => window.removeEventListener('message', onPageRequest);
+  }, [previewTemplate, step, answers.template]);
   // Second-website picker starts with nothing chosen so the member makes a real choice.
   const [templateChosen, setTemplateChosen] = useState(false);
   const pickerMode = secondMode;
@@ -136,10 +148,15 @@ export default function GuidedWebsiteBuilder() {
   const siteSlug = secondMode ? `second-site-preview-${user?.id.slice(0, 8) || 'demo'}` : website?.site_slug ?? `site-${user?.id.slice(0, 8) || 'preview'}`;
   const pages = useMemo(() => {
     const generated = guidedWebsitePages(answers, siteSlug);
-    if (answers.template === 'guided-kait' && templateSources?.['guided-kait']) {
-      generated['/'] = personalizedTemplateHtml(templateSources['guided-kait'], 'guided-kait', previewServicesText,
-        new URL('/website-previews/template-2/index.html', window.location.origin).href,
-        serviceDetails, serviceRole);
+    if (templateSources?.[answers.template]) {
+      const template = guidedTemplates.find(item => item.key === answers.template)!;
+      generated['/'] = personalizedTemplateHtml(templateSources[answers.template], answers.template, previewServicesText,
+        new URL(template.url, window.location.origin).href,
+        serviceDetails, serviceRole, undefined, answers);
+      if (answers.template === 'guided-charlotte') generated['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
+        templateSources['guided-charlotte-hair'],
+        new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
+        answers);
     }
     return generated;
   }, [answers, siteSlug, templateSources, previewServicesText, savedServices?.service_menu, serviceRole]);
@@ -194,7 +211,7 @@ export default function GuidedWebsiteBuilder() {
       if (answers.hasBookingApp && !normalizedWebUrl(answers.bookingUrl)) { toast.error('Enter a valid booking link.'); return; }
       if (!answers.hasBookingApp && !answers.hours.trim()) { toast.error('Add your hours of operation.'); return; }
     }
-    if (step === 3 && answers.hasInstagram && answers.instagram.trim() && !instagramUrl(answers.instagram)) {
+    if (step === 3 && answers.instagram.trim() && !instagramUrl(answers.instagram)) {
       toast.error('Enter a valid Instagram handle or profile link.'); return;
     }
     setStep(current => { const nextStep = Math.min(4, current + 1); setFurthestStep(previous => Math.max(previous, nextStep)); return nextStep; });
@@ -254,7 +271,7 @@ export default function GuidedWebsiteBuilder() {
 
   const publish = async () => {
     if (previewOnly) { toast.info('This is a preview. Nothing will be published.'); return; }
-    if (answers.template === 'guided-kait' && !templateSources?.['guided-kait']) { toast.error('Wait for the website template to load before publishing.'); return; }
+    if (!templateSources?.[answers.template]) { toast.error('Wait for the website template to load before publishing.'); return; }
     if (!answers.businessName.trim() || !answers.city.trim() || !answers.phone.trim() || answers.hasBookingApp === null || (answers.hasBookingApp && !normalizedWebUrl(answers.bookingUrl)) || (!answers.hasBookingApp && !answers.hours.trim())) {
       toast.error('Complete your business and booking details before publishing.'); return;
     }
@@ -263,11 +280,14 @@ export default function GuidedWebsiteBuilder() {
       const site = await saveDraft();
       const liveUrl = `https://sites.thebarberlaunch.com/${site.site_slug}`;
       const publishedPages = { ...pages };
-      if (answers.template === 'guided-kait') {
-        publishedPages['/'] = personalizedTemplateHtml(templateSources!['guided-kait'], 'guided-kait', previewServicesText,
-          new URL('/website-previews/template-2/index.html', window.location.origin).href,
-          serviceDetails, serviceRole, `/${site.site_slug}/`);
-      }
+      const template = guidedTemplates.find(item => item.key === answers.template)!;
+      publishedPages['/'] = personalizedTemplateHtml(templateSources![answers.template], answers.template, previewServicesText,
+        new URL(template.url, window.location.origin).href,
+        serviceDetails, serviceRole, `/${site.site_slug}/`, answers);
+      if (answers.template === 'guided-charlotte') publishedPages['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
+        templateSources!['guided-charlotte-hair'],
+        new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
+        answers, `/${site.site_slug}/`);
       const { error } = await supabase.from('member_websites').update({
         published_pages: publishedPages as unknown as never, live_url: liveUrl,
         deployment_status: 'published', published_at: new Date().toISOString(), template_key: answers.template,
@@ -289,7 +309,7 @@ export default function GuidedWebsiteBuilder() {
       {step === 0 && pickerMode && <TemplatePicker
         selected={templateChosen ? answers.template : null}
         onChoose={key => { update('template', key); setTemplateChosen(true); }}
-        onPreview={key => { setPreviewDevice(window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'mobile'); setPreviewTemplate(key); }}
+        onPreview={key => { setPreviewDevice(window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'mobile'); setPreviewTemplatePage('/'); setPreviewTemplate(key); }}
       />}
       {step === 0 && !pickerMode && <div className="space-y-5">
         <div><h2 className="font-serif text-2xl">Choose your website design</h2><p className="text-muted-foreground">Scroll inside either website to explore it, or open Preview for a larger desktop or phone view.</p></div>
@@ -298,15 +318,16 @@ export default function GuidedWebsiteBuilder() {
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3"><div><p className="text-xs font-bold uppercase tracking-widest text-primary">{template.name}</p><h3 className="font-serif text-xl">{template.example}</h3></div><span className="text-xs text-muted-foreground">Scroll inside ↓</span></div>
             <iframe key={`${template.key}:${previewServicesText}`} title={`${template.name} scrollable website preview`} src={personalizedPreviews ? undefined : template.url} srcDoc={personalizedPreviews?.[template.key]} loading="lazy" className="block h-[420px] w-full border-0 bg-white" />
             <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border p-3">
-              <Button type="button" size="sm" variant="outline" onClick={() => { setPreviewDevice('desktop'); setPreviewTemplate(template.key); }}><ExternalLink className="mr-1 h-4 w-4" />Preview</Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => { setPreviewDevice('desktop'); setPreviewTemplatePage('/'); setPreviewTemplate(template.key); }}><ExternalLink className="mr-1 h-4 w-4" />Preview</Button>
               <Button type="button" size="sm" variant={answers.template === template.key ? 'default' : 'secondary'} onClick={() => update('template', template.key)}>{answers.template === template.key ? 'Selected' : 'Select'}</Button>
             </div>
           </article>)}
         </div>
       </div>}
-      {step === 1 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" /><Field label="What name should we show for you?" value={answers.ownerName} onChange={value => update('ownerName', value)} placeholder="Your name" />{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<Field label="What phone number should show on your site?" value={answers.phone} onChange={value => update('phone', value)} placeholder="Business phone number" /><p className="text-sm text-muted-foreground">We suggested the number on your account. You can change it here.</p><label className="block space-y-2"><span className="font-medium">What services do you want to show?</span><Textarea value={answers.services} onChange={e => update('services', e.target.value)} readOnly={secondMode && !!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{secondMode && !!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
+      {step === 1 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" /><Field label="What name should we show for you?" value={answers.ownerName} onChange={value => update('ownerName', value)} placeholder="Your name" />{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<Field label="What phone number should show on your site?" value={answers.phone} onChange={value => update('phone', value)} placeholder="Business phone number" /><p className="text-sm text-muted-foreground">We suggested the number on your account. You can change it here.</p><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
       {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
-      {step === 3 && <div className="max-w-2xl space-y-5"><h2 className="font-serif text-2xl">Show your work</h2><p>Do you have an Instagram with a few haircuts or hair systems?</p><YesNo value={answers.hasInstagram} onChange={value => update('hasInstagram', value)} />{answers.hasInstagram && <Field label="Instagram handle or profile link" value={answers.instagram} onChange={value => update('instagram', value)} placeholder="@yourname" />}<Field label="Public page to find your photos (optional)" value={answers.photoSourceUrl} onChange={value => update('photoSourceUrl', value)} placeholder="Your website, portfolio, or Instagram link" /><Button type="button" variant="outline" disabled={!!busy} onClick={findPhotos}><Sparkles className="mr-2 h-4 w-4" />Find photos</Button>{suggestions.length > 0 && <div><p className="mb-3 text-sm text-muted-foreground">Select only photos that belong to you. Nothing is added automatically.</p><div className="grid grid-cols-3 gap-2">{suggestions.map(url => <button type="button" key={url} aria-pressed={answers.photos.includes(url)} onClick={() => update('photos', answers.photos.includes(url) ? answers.photos.filter(item => item !== url) : [...answers.photos, url].slice(0, 6))} className={`relative overflow-hidden rounded-lg border-2 ${answers.photos.includes(url) ? 'border-primary' : 'border-transparent'}`}><img src={url} alt="Suggested work photo" className="h-28 w-full object-cover" />{answers.photos.includes(url) && <Check className="absolute right-2 top-2 h-5 w-5 rounded-full bg-primary p-1 text-black" />}</button>)}</div></div>}<label className="block cursor-pointer rounded-lg border border-dashed border-primary/50 p-5 text-center"><ImagePlus className="mx-auto mb-2 h-6 w-6 text-primary" />Upload your own photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={e => void uploadPhotos(e.target.files)} /></label>{answers.photos.length > 0 && <div className="grid grid-cols-3 gap-2">{answers.photos.map(url => <button key={url} type="button" onClick={() => update('photos', answers.photos.filter(item => item !== url))} className="relative"><img src={url} alt="Selected work photo" className="h-28 w-full rounded-lg object-cover" /><span className="absolute bottom-1 right-1 rounded bg-black/80 px-2 py-1 text-xs text-white">Remove</span></button>)}</div>}</div>}
+      {step === 3 && answers.template === 'guided-charlotte' && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Social profile</h2><p className="text-muted-foreground">Design 1 keeps its existing editorial photography. Your services appear as a text list without individual photos.</p><label className="block space-y-2"><span className="font-medium">Instagram handle or profile link (optional)</span><Input value={answers.instagram} onChange={event => update('instagram', event.target.value)} placeholder="@yourname" /></label></div>}
+      {step === 3 && answers.template !== 'guided-charlotte' && <div className="max-w-2xl space-y-5"><h2 className="font-serif text-2xl">Show your work</h2><p>Do you have an Instagram with a few haircuts or hair systems?</p><YesNo value={answers.hasInstagram} onChange={value => update('hasInstagram', value)} />{answers.hasInstagram && <Field label="Instagram handle or profile link" value={answers.instagram} onChange={value => update('instagram', value)} placeholder="@yourname" />}<Field label="Public page to find your photos (optional)" value={answers.photoSourceUrl} onChange={value => update('photoSourceUrl', value)} placeholder="Your website, portfolio, or Instagram link" /><Button type="button" variant="outline" disabled={!!busy} onClick={findPhotos}><Sparkles className="mr-2 h-4 w-4" />Find photos</Button>{suggestions.length > 0 && <div><p className="mb-3 text-sm text-muted-foreground">Select only photos that belong to you. Nothing is added automatically.</p><div className="grid grid-cols-3 gap-2">{suggestions.map(url => <button type="button" key={url} aria-pressed={answers.photos.includes(url)} onClick={() => update('photos', answers.photos.includes(url) ? answers.photos.filter(item => item !== url) : [...answers.photos, url].slice(0, 6))} className={`relative overflow-hidden rounded-lg border-2 ${answers.photos.includes(url) ? 'border-primary' : 'border-transparent'}`}><img src={url} alt="Suggested work photo" className="h-28 w-full object-cover" />{answers.photos.includes(url) && <Check className="absolute right-2 top-2 h-5 w-5 rounded-full bg-primary p-1 text-black" />}</button>)}</div></div>}<label className="block cursor-pointer rounded-lg border border-dashed border-primary/50 p-5 text-center"><ImagePlus className="mx-auto mb-2 h-6 w-6 text-primary" />Upload your own photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={e => void uploadPhotos(e.target.files)} /></label>{answers.photos.length > 0 && <div className="grid grid-cols-3 gap-2">{answers.photos.map(url => <button key={url} type="button" onClick={() => update('photos', answers.photos.filter(item => item !== url))} className="relative"><img src={url} alt="Selected work photo" className="h-28 w-full rounded-lg object-cover" /><span className="absolute bottom-1 right-1 rounded bg-black/80 px-2 py-1 text-xs text-white">Remove</span></button>)}</div>}</div>}
       {step === 4 && <div className="space-y-5"><div><h2 className="font-serif text-2xl">Review your website</h2><p className="text-muted-foreground">Your answers built this preview. Check the details and photos before publishing.</p></div><div className="flex gap-2"><Button type="button" variant={previewPage === '/' ? 'default' : 'outline'} onClick={() => setPreviewPage('/')}>Home</Button><Button type="button" variant={previewPage !== '/' ? 'default' : 'outline'} onClick={() => setPreviewPage('/hair-loss-solutions/')}>Hair Systems</Button></div><iframe key={`${answers.template}:${previewPage}`} title="Your website preview" srcDoc={pages[previewPage]} className="h-[65vh] w-full rounded-lg border bg-white" />{!previewOnly && <div className="flex flex-wrap gap-3"><Button disabled={!!busy} variant="outline" onClick={() => void save()}>{busy === 'Saving draft' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save draft</Button><Button disabled={!!busy} onClick={() => void publish()}>{busy === 'Publishing' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Publish website</Button></div>}{publishedUrl && <a href={publishedUrl} target="_blank" rel="noreferrer" className="text-primary underline">Open your live website <ExternalLink className="inline h-4 w-4" /></a>}</div>}
     </section>
     <Dialog open={!!previewTemplate} onOpenChange={open => { if (!open) setPreviewTemplate(null); }}>
@@ -319,7 +340,9 @@ export default function GuidedWebsiteBuilder() {
           <Button type="button" size="sm" className="ml-auto h-11 sm:ml-0 sm:h-9" onClick={() => { if (previewTemplate) { update('template', previewTemplate); setTemplateChosen(true); } setPreviewTemplate(null); }}>Choose this design</Button>
         </div>
         <div className="flex min-h-0 flex-1 justify-center overflow-hidden bg-neutral-900 p-2 sm:p-4">
-          {previewTemplate && <iframe key={`${previewTemplate}:${previewDevice}:${previewServicesText}`} title={`Full ${previewDevice} website preview`} src={personalizedPreviews ? undefined : guidedTemplates.find(template => template.key === previewTemplate)?.url} srcDoc={personalizedPreviews?.[previewTemplate]} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />}
+          {previewTemplate && <iframe key={`${previewTemplate}:${previewTemplatePage}:${previewDevice}:${previewServicesText}`} title={`Full ${previewDevice} website preview`} src={personalizedPreviews ? undefined : guidedTemplates.find(template => template.key === previewTemplate)?.url} srcDoc={previewTemplate === 'guided-charlotte' && previewTemplatePage === '/hair-loss-solutions/' && templateSources
+            ? personalizedTemplateOneHairHtml(templateSources['guided-charlotte-hair'], new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href, answers)
+            : personalizedPreviews?.[previewTemplate]} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />}
         </div>
       </DialogContent>
     </Dialog>

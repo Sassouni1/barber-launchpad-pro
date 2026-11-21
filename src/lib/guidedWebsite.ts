@@ -19,7 +19,7 @@ export type GuidedWebsiteAnswers = {
 export const emptyGuidedAnswers: GuidedWebsiteAnswers = {
   template: 'guided-charlotte', businessName: '', ownerName: '', city: '', phone: '',
   hasBookingApp: null, bookingUrl: '', hours: '', hasInstagram: null, instagram: '', photoSourceUrl: '',
-  services: 'Haircuts\nHair systems', photos: [],
+  services: '', photos: [],
 };
 
 export const guidedTemplates = [
