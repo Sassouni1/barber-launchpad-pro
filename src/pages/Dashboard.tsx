@@ -36,7 +36,7 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <div id="profile" hidden={!profileOnly && !isNewMember} className="scroll-mt-20">
-            {profileOnly && <Link to="/dashboard" className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+            {profileOnly && !profileEditing && <Link to="/dashboard" className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />Back to dashboard
             </Link>}
             <BusinessSetupCard showServicesSetup onExpandedChange={setProfileEditing} />
