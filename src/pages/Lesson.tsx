@@ -817,9 +817,14 @@ export default function Lesson() {
     ? !!sublessonCompletion
     : isModuleCompleted;
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+  const [announcementActionsComplete, setAnnouncementActionsComplete] = useState(false);
 
   const markModuleComplete = useCallback(async () => {
     if (!user?.id) return;
+    if (!sublessonId && module?.id === FIRST_POST_MODULE_ID && !announcementActionsComplete) {
+      toast.error("Please complete these actions to move on.");
+      return;
+    }
     setIsMarkingComplete(true);
     try {
       if (sublessonId) {
@@ -888,7 +893,7 @@ export default function Lesson() {
     } finally {
       setIsMarkingComplete(false);
     }
-  }, [module?.id, queryClient, sublessonId, user?.id]);
+  }, [announcementActionsComplete, module?.id, queryClient, sublessonId, user?.id]);
 
   const unmarkModuleComplete = useCallback(async () => {
     if (!user?.id || !module?.id) return;
@@ -1241,7 +1246,7 @@ export default function Lesson() {
           ) : allowsManualCompletion ? (
             <Button
               onClick={markModuleComplete}
-              disabled={isMarkingComplete}
+              disabled={isMarkingComplete || isFirstPostMainLesson && !announcementActionsComplete}
               className="gold-gradient"
               size="sm"
             >
@@ -1251,7 +1256,7 @@ export default function Lesson() {
           ) : null}
         </div>
 
-        {isFirstPostMainLesson && user?.id && <AnnouncementActionList userId={user.id} />}
+        {isFirstPostMainLesson && user?.id && <AnnouncementActionList userId={user.id} onCompletionChange={setAnnouncementActionsComplete} />}
 
         {isFirstPostMainLesson && (
           <section className="rounded-2xl border border-border/50 bg-secondary/20 p-4 sm:p-6" aria-labelledby="announcement-about-title">

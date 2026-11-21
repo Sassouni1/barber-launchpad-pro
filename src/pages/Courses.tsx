@@ -1250,6 +1250,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                 const pct = total
                   ? Math.round((displayedDone / total) * 100)
                   : 0;
+                const businessComplete = !isHair && total > 0 && displayedDone === total;
                 const trackDescription = businessLocked
                   ? "We recommend finishing Hair System Training first."
                   : needsDatabaseListing
@@ -1276,6 +1277,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         ? "border-warning/80 bg-warning/10 shadow-lg shadow-warning/20 hover:border-warning"
                         : businessLocked
                           ? "border-border/50 bg-muted/20 opacity-65 hover:border-primary/40 hover:bg-muted/30"
+                        : businessComplete
+                          ? "border-success-soft/60 bg-success-soft/[0.06] shadow-lg shadow-success-soft/10"
                         : "border-border/80 bg-card/80 shadow-lg shadow-black/40 hover:border-primary/50",
                       "min-h-[184px]",
                     )}
@@ -1298,13 +1301,15 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                             ? "Action step"
                             : certificationComplete
                             ? "Certified"
+                            : businessComplete
+                            ? "Completed"
                             : isHair
                               ? "Certification"
                               : "Business Growth"}
                         </span>
                         {needsDatabaseListing ? (
                           <AlertTriangle className="h-5 w-5 animate-pulse text-warning" />
-                        ) : certificationComplete ? (
+                        ) : certificationComplete || businessComplete ? (
                           <CheckCircle2 className="h-5 w-5 text-success-soft" />
                         ) : isHair ? (
                           <BookOpen className="h-5 w-5 text-muted-foreground" />
@@ -1336,18 +1341,20 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         >
                           <div className="flex h-full w-full items-center justify-center rounded-full bg-card">
                             <span className="font-sans text-xl font-semibold tabular-nums tracking-tight gold-text">
-                              {pct}%
+                              {isHair ? `${pct}%` : businessComplete ? <CheckCircle2 className="h-7 w-7 text-success-soft" /> : `${displayedDone}/${total}`}
                             </span>
                           </div>
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 font-sans text-sm font-semibold gold-text">
-                            {certificationComplete && (
+                            {(certificationComplete || businessComplete) && (
                               <CheckCircle2 className="h-4 w-4 text-success-soft" />
                             )}
                             <span>
                               {certificationComplete
                                 ? "You are certified"
+                                : businessComplete
+                                ? "Completed"
                                 : `${displayedDone} of ${total} lessons`}
                             </span>
                           </div>
@@ -1742,6 +1749,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
               const pct = total
                 ? Math.round((displayedDone / total) * 100)
                 : 0;
+              const businessComplete = !isHair && total > 0 && displayedDone === total;
               const description = businessLocked
                 ? "We recommend finishing Hair System Training first."
                 : needsDatabaseListing
@@ -1772,6 +1780,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       ? "border-warning/80 bg-warning/10 shadow-lg shadow-warning/15"
                       : businessLocked
                         ? "border-border/50 bg-muted/20 opacity-65 hover:border-primary/50 hover:bg-muted/30"
+                      : businessComplete
+                        ? "border-success-soft/60 bg-success-soft/[0.06] shadow-lg shadow-success-soft/10"
                       : "border-border/80 bg-card/70 shadow-lg shadow-black/20",
                   )}
                 >
@@ -1793,6 +1803,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                           ? "Action step"
                           : certificationComplete
                             ? "Certified"
+                          : businessComplete
+                            ? "Completed"
                             : isHair
                               ? "Certification"
                               : "Business Growth"}
@@ -1804,7 +1816,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                         {description}
                       </p>
                     </div>
-                    {certificationComplete ? (
+                    {certificationComplete || businessComplete ? (
                       <CheckCircle2 className="h-6 w-6 shrink-0 text-success-soft" />
                     ) : (
                       <ArrowRight className="h-6 w-6 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
@@ -1816,7 +1828,7 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                     }}>
                       <div className="flex h-full w-full items-center justify-center rounded-full bg-card">
                         <span className="font-sans text-xl font-semibold tabular-nums gold-text">
-                          {pct}%
+                          {isHair ? `${pct}%` : businessComplete ? <CheckCircle2 className="h-7 w-7 text-success-soft" /> : `${displayedDone}/${total}`}
                         </span>
                       </div>
                     </div>
@@ -1824,6 +1836,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                       <div className="font-sans text-sm font-semibold gold-text">
                         {certificationComplete
                           ? "You are certified"
+                          : businessComplete
+                          ? "Completed"
                           : `${displayedDone} of ${total} lessons`}
                       </div>
                       {certificationComplete && (

@@ -8,7 +8,7 @@ const actions = [
   'Share it on your Facebook business page.',
 ];
 
-export function AnnouncementActionList({ userId }: { userId: string }) {
+export function AnnouncementActionList({ userId, onCompletionChange }: { userId: string; onCompletionChange?: (complete: boolean) => void }) {
   const storageKey = `barber-launch:announcement-action-list:v2:${userId}`;
   const [checked, setChecked] = useState<boolean[]>(() => {
     try {
@@ -22,8 +22,15 @@ export function AnnouncementActionList({ userId }: { userId: string }) {
     localStorage.setItem(storageKey, JSON.stringify(checked));
   }, [checked, storageKey]);
 
-  return <section className="glass-card rounded-2xl p-4 md:p-6" aria-labelledby="announcement-action-list-title">
+  const complete = checked.every(Boolean);
+
+  useEffect(() => {
+    onCompletionChange?.(complete);
+  }, [complete, onCompletionChange]);
+
+  return <section className={`glass-card rounded-2xl border p-4 md:p-6 ${complete ? 'border-success-soft/50 bg-success-soft/[0.04]' : 'border-destructive/70 bg-destructive/[0.07]'}`} aria-labelledby="announcement-action-list-title">
     <h2 id="announcement-action-list-title" className="font-display text-xl font-semibold mb-4">Your Action List</h2>
+    {!complete && <p className="mb-4 text-sm font-semibold text-destructive">Please complete these actions to move on.</p>}
     <ul className="space-y-3">
       {actions.map((action, index) => {
         const id = `announcement-action-${index}`;
