@@ -495,7 +495,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
         setBookingSearchMessage(message);
         // The account save is debounced; retain results even if the member refreshes immediately.
         try {
-          const draft: SetupDraft = { city, workStreet, workCity, workState, workPostalCode, workStatus,
+          const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, clientPhone, publicPhone, publicPhoneTouched, city, workStreet, workCity, workState, workPostalCode, workStatus,
             cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName,
             website, websiteUrl, booking, bookingChoice, bookingUrl: selectedUrl, bookingPlatform,
             bookingCandidates: candidates, bookingSearchKey: bookingLookupKey, bookingSearchAttempted: true,

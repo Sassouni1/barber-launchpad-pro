@@ -242,7 +242,7 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
   while (walker.nextNode()) {
     const node = walker.currentNode;
     let value = node.textContent || '';
-    for (const [placeholder, actual] of Object.entries(replacements)) value = value.replaceAll(placeholder, actual);
+    for (const [placeholder, actual] of Object.entries(replacements)) value = value.split(placeholder).join(actual);
     node.textContent = value;
   }
   if (isShopOwner) {
