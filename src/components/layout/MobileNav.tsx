@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
+import { SupportNewPill } from '@/components/layout/SupportUnreadMarker';
 import { useTrainingGamesUnlocked } from '@/hooks/useTrainingGamesUnlocked';
 import { useChecklistLists } from '@/hooks/useChecklistLists';
 import { isMetaReviewer, markReviewerMenuShown, shouldAutoOpenReviewerMenu } from '@/lib/metaReviewerLanding';
@@ -544,7 +545,10 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                             <Phone className="w-5 h-5" />
                             <span>Get Support</span>
                           </div>
-                          <ChevronDown className={cn('w-4 h-4 transition-transform', supportOpen && 'rotate-180')} />
+                          <span className="flex items-center gap-2">
+                            <SupportNewPill count={supportUnreadCount} />
+                            <ChevronDown className={cn('w-4 h-4 transition-transform', supportOpen && 'rotate-180')} />
+                          </span>
                         </button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="pl-4 space-y-1 mt-1">

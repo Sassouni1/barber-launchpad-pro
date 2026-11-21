@@ -43,6 +43,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsNewAccount } from '@/hooks/useIsNewAccount';
 import { useSupportUnreadCount } from '@/hooks/useSupportMessages';
+import { SupportIconCount, SupportNewPill } from '@/components/layout/SupportUnreadMarker';
 import { isMetaReviewer } from '@/lib/metaReviewerLanding';
 import { canAccessSecondWebsite, myWebsiteMenuPath } from '@/lib/myWebsiteAccess';
 
@@ -111,9 +112,11 @@ interface ExpandableNavItemProps {
   children: React.ReactNode;
   defaultOpen?: boolean;
   forceOpen?: boolean;
+  /** Unread team Support replies (Get Support only). */
+  supportUnreadCount?: number;
 }
 
-function ExpandableNavItem({ icon: Icon, label, collapsed, children, defaultOpen = false, forceOpen = false }: ExpandableNavItemProps) {
+function ExpandableNavItem({ icon: Icon, label, collapsed, children, defaultOpen = false, forceOpen = false, supportUnreadCount = 0 }: ExpandableNavItemProps) {
   const [openState, setIsOpen] = useState(defaultOpen);
   const isOpen = forceOpen || openState;
   const location = useLocation();
@@ -133,16 +136,22 @@ function ExpandableNavItem({ icon: Icon, label, collapsed, children, defaultOpen
         )}
       >
         <div className="flex items-center gap-3">
-          <Icon className={cn('w-5 h-5 flex-shrink-0 transition-all', isChildActive && 'text-primary')} />
+          <span className="relative flex-shrink-0">
+            <Icon className={cn('w-5 h-5 flex-shrink-0 transition-all', isChildActive && 'text-primary')} />
+            {collapsed && <SupportIconCount count={supportUnreadCount} />}
+          </span>
           {!collapsed && (
             <span className="font-medium text-sm">{label}</span>
           )}
         </div>
         {!collapsed && (
-          <ChevronDown className={cn(
-            'w-4 h-4 transition-transform duration-200',
-            isOpen && 'rotate-180'
-          )} />
+          <span className="flex items-center gap-2">
+            <SupportNewPill count={supportUnreadCount} />
+            <ChevronDown className={cn(
+              'w-4 h-4 transition-transform duration-200',
+              isOpen && 'rotate-180'
+            )} />
+          </span>
         )}
         {isChildActive && (
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 gold-gradient rounded-r-full" />
@@ -182,9 +191,8 @@ function SubNavItem({ to, icon: Icon, label, emphasize = false }: { to: string; 
   );
 }
 
-function MessageSupportSubNavItem() {
+function MessageSupportSubNavItem({ unreadCount }: { unreadCount: number }) {
   const location = useLocation();
-  const { data: unreadCount = 0 } = useSupportUnreadCount();
   const to = '/support';
   const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
 
@@ -287,6 +295,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin: userIsAdmin, isAdminModeActive, toggleAdminMode, isManufacturer } = useAuth();
+  const { data: supportUnreadCount = 0 } = useSupportUnreadCount();
   const reviewerOnAds = isMetaReviewer(user) && (location.pathname === '/ads' || location.pathname.startsWith('/ads/'));
   const isNewAccount = useIsNewAccount();
   const { unlocked: allQuizzesPassed } = useTrainingGamesUnlocked();
@@ -436,10 +445,10 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
             <div className="my-2 border-t border-sidebar-border" />
 
             <NavItem to="/dashboard#profile" icon={User} label="My Profile" collapsed={collapsed} />
-            <ExpandableNavItem icon={Phone} label="Get Support" collapsed={collapsed}>
+            <ExpandableNavItem icon={Phone} label="Get Support" collapsed={collapsed} supportUnreadCount={supportUnreadCount}>
               <SubNavItem to="/schedule-call" icon={CalendarCheck} label="Schedule a 1-on-1 Call" />
               <SubNavItem to="/aion" icon={Bot} label="Ask Aion AI" />
-              <MessageSupportSubNavItem />
+              <MessageSupportSubNavItem unreadCount={supportUnreadCount} />
             </ExpandableNavItem>
           </>
         )}
