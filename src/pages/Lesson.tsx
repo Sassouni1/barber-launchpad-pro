@@ -750,7 +750,9 @@ export default function Lesson() {
         .eq("module_id", module.id);
       if (lessonsError) throw lessonsError;
       const lessonIds = (lessons || []).map((l) => l.id);
-      if (lessonIds.length === 0) {
+      // The first Announcement Post is the module page itself. Its later
+      // posts are separate sub-lessons and must keep independent progress.
+      if (lessonIds.length === 0 || module.id === FIRST_POST_MODULE_ID) {
         const { data, error } = await supabase
           .from("user_training_progress")
           .select("completed")
@@ -758,7 +760,7 @@ export default function Lesson() {
           .eq("game_type", moduleCompletionProgressKey(module.id))
           .maybeSingle();
         if (error) throw error;
-        return { lessons: lessonIds, completedIds: new Set<string>(), manualCompleted: !!data?.completed };
+        return { lessons: [], completedIds: new Set<string>(), manualCompleted: !!data?.completed };
       }
       const { data: progress, error: progressError } = await supabase
         .from("user_progress")
@@ -849,7 +851,7 @@ export default function Lesson() {
           .select("id")
           .eq("module_id", module.id);
         if (lessonsError) throw lessonsError;
-        if (!lessons?.length) {
+        if (!lessons?.length || module.id === FIRST_POST_MODULE_ID) {
           const { error } = await supabase.from("user_training_progress").upsert(
             {
               user_id: user.id,
@@ -1222,7 +1224,7 @@ export default function Lesson() {
               {isGettingReviewsLesson && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/60 sm:text-base">Make it easy for clients to leave a Google review with a simple, professional sign.</p>}
             </div>
           </div>
-          {!isFirstPostMainLesson && (isCurrentLessonCompleted ? (
+          {isCurrentLessonCompleted ? (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-500">
                 <CheckCircle2 className="w-5 h-5" />
@@ -1246,7 +1248,7 @@ export default function Lesson() {
               <CheckCircle2 className="w-4 h-4 mr-2" />
               {localizeCourseUi("Mark Complete", locale)}
             </Button>
-          ) : null)}
+          ) : null}
         </div>
 
         {isFirstPostMainLesson && user?.id && <AnnouncementActionList userId={user.id} />}
