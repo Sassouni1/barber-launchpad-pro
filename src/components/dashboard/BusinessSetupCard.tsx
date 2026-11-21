@@ -635,12 +635,12 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
       <label htmlFor="profile-full-name" className="block text-sm font-medium">Your name</label>
       <Input id="profile-full-name" autoComplete="name" value={fullName} onChange={event => setFullName(event.target.value)} placeholder="Your first and last name" />
     </div>
-    <SetupSelect id="different-client-name" label="Do you use a different name with clients?" value={differentClientName}
+    <SetupSelect id="different-client-name" label="Do clients call you by a nickname or another personal name?" value={differentClientName}
       onChange={value => setDifferentClientName(value as Answer)}
-      options={[{ value: 'no', label: 'No, use my name above' }, { value: 'yes', label: 'Yes' }]} />
+      options={[{ value: 'no', label: 'No, use my name above' }, { value: 'yes', label: 'Yes, I use another personal name' }]} />
     {differentClientName === 'yes' && <div className="space-y-2">
-      <label htmlFor="client-display-name" className="block text-sm font-medium">Name clients should see</label>
-      <Input id="client-display-name" value={clientDisplayName} onChange={event => setClientDisplayName(event.target.value)} placeholder="Your preferred name" />
+      <label htmlFor="client-display-name" className="block text-sm font-medium">What personal name should clients see?</label>
+      <Input id="client-display-name" value={clientDisplayName} onChange={event => setClientDisplayName(event.target.value)} placeholder="Your nickname or preferred name" />
     </div>}
     <SetupSelect id="work-status" label="Select an option" value={workStatus}
       onChange={(value) => {
