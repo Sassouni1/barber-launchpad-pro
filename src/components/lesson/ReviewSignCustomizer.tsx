@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { CheckCircle2, Download, ExternalLink, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { useBusinessCard } from "@/hooks/useBusinessCard";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,16 +36,26 @@ function starPoints(cx: number, cy: number): string {
 }
 
 export function ReviewSignCustomizer() {
+  const { user } = useAuth();
   const { data: card, isLoading } = useBusinessCard();
-  const [name, setName] = useState("");
+  const { data: profileBusinessName, isLoading: profileLoading } = useQuery({
+    queryKey: ["review-sign-profile-business-name", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const setup = await supabase.from("member_onboarding_profiles").select("business_name").eq("user_id", user!.id).maybeSingle();
+      if (setup.error) throw setup.error;
+      if (setup.data?.business_name?.trim()) return setup.data.business_name.trim();
+      const profile = await supabase.from("profiles").select("business_name").eq("id", user!.id).maybeSingle();
+      if (profile.error) throw profile.error;
+      return profile.data?.business_name?.trim() || "";
+    },
+  });
+  const [editedName, setEditedName] = useState<string | null>(null);
+  const name = editedName ?? (profileLoading ? "" : profileBusinessName || "");
   const [downloading, setDownloading] = useState(false);
   const signSvgRef = useRef<SVGSVGElement>(null);
   const qrUrl = card?.short_code ? `${CARD_BASE}${card.short_code}` : "";
   const hasReviewLink = Boolean(card?.google_review_url?.trim());
-
-  useEffect(() => {
-    if (card?.business_name) setName((current) => current || card.business_name);
-  }, [card?.business_name]);
 
   const handleDownload = async () => {
     const cleanName = name.trim();
@@ -135,7 +148,7 @@ export function ReviewSignCustomizer() {
               <Input
                 id="review-sign-name"
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => setEditedName(event.target.value)}
                 maxLength={55}
                 placeholder="Type the name to show on your sign"
                 className="h-12 border-white/20 bg-[#1b1d23] text-base text-white placeholder:text-white/35"
