@@ -8,7 +8,12 @@ const actions = [
   'Share it on your Facebook business page.',
 ];
 
-export function AnnouncementActionList({ userId, onCompletionChange }: { userId: string; onCompletionChange?: (complete: boolean) => void }) {
+export function AnnouncementActionList({ userId, onCompletionChange, showIncompleteWarning = false, onActionChange }: {
+  userId: string;
+  onCompletionChange?: (complete: boolean) => void;
+  showIncompleteWarning?: boolean;
+  onActionChange?: () => void;
+}) {
   const storageKey = `barber-launch:announcement-action-list:v2:${userId}`;
   const [checked, setChecked] = useState<boolean[]>(() => {
     try {
@@ -28,9 +33,11 @@ export function AnnouncementActionList({ userId, onCompletionChange }: { userId:
     onCompletionChange?.(complete);
   }, [complete, onCompletionChange]);
 
-  return <section className={`glass-card rounded-2xl border p-4 md:p-6 ${complete ? 'border-success-soft/50 bg-success-soft/[0.04]' : 'border-destructive/70 bg-destructive/[0.07]'}`} aria-labelledby="announcement-action-list-title">
+  const showWarning = showIncompleteWarning && !complete;
+
+  return <section className={`glass-card rounded-2xl p-4 md:p-6 ${showWarning ? 'border border-destructive/70 bg-destructive/[0.07]' : ''}`} aria-labelledby="announcement-action-list-title">
     <h2 id="announcement-action-list-title" className="font-display text-xl font-semibold mb-4">Your Action List</h2>
-    {!complete && <p className="mb-4 text-sm font-semibold text-destructive">Please complete these actions to move on.</p>}
+    {showWarning && <p className="mb-4 text-sm font-semibold text-destructive">Please complete these actions to move on.</p>}
     <ul className="space-y-3">
       {actions.map((action, index) => {
         const id = `announcement-action-${index}`;
@@ -38,7 +45,10 @@ export function AnnouncementActionList({ userId, onCompletionChange }: { userId:
           <Checkbox
             id={id}
             checked={checked[index]}
-            onCheckedChange={(value) => setChecked(current => current.map((item, itemIndex) => itemIndex === index ? value === true : item))}
+            onCheckedChange={(value) => {
+              setChecked(current => current.map((item, itemIndex) => itemIndex === index ? value === true : item));
+              onActionChange?.();
+            }}
             className="mt-0.5 h-5 w-5 shrink-0 rounded-full border-primary/80 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
           />
           <label htmlFor={id} className="cursor-pointer text-sm sm:text-base leading-relaxed">{action}</label>

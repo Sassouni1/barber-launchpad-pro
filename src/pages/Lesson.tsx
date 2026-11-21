@@ -818,11 +818,12 @@ export default function Lesson() {
     : isModuleCompleted;
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
   const [announcementActionsComplete, setAnnouncementActionsComplete] = useState(false);
+  const [showAnnouncementActionWarning, setShowAnnouncementActionWarning] = useState(false);
 
   const markModuleComplete = useCallback(async () => {
     if (!user?.id) return;
     if (!sublessonId && module?.id === FIRST_POST_MODULE_ID && !announcementActionsComplete) {
-      toast.error("Please complete these actions to move on.");
+      setShowAnnouncementActionWarning(true);
       return;
     }
     setIsMarkingComplete(true);
@@ -1246,7 +1247,7 @@ export default function Lesson() {
           ) : allowsManualCompletion ? (
             <Button
               onClick={markModuleComplete}
-              disabled={isMarkingComplete || isFirstPostMainLesson && !announcementActionsComplete}
+              disabled={isMarkingComplete}
               className="gold-gradient"
               size="sm"
             >
@@ -1256,7 +1257,14 @@ export default function Lesson() {
           ) : null}
         </div>
 
-        {isFirstPostMainLesson && user?.id && <AnnouncementActionList userId={user.id} onCompletionChange={setAnnouncementActionsComplete} />}
+        {isFirstPostMainLesson && user?.id && (
+          <AnnouncementActionList
+            userId={user.id}
+            onCompletionChange={setAnnouncementActionsComplete}
+            showIncompleteWarning={showAnnouncementActionWarning}
+            onActionChange={() => setShowAnnouncementActionWarning(false)}
+          />
+        )}
 
         {isFirstPostMainLesson && (
           <section className="rounded-2xl border border-border/50 bg-secondary/20 p-4 sm:p-6" aria-labelledby="announcement-about-title">
