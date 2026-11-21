@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQRLinks, useCreateQRLink, useUpdateQRLink, useDeleteQRLink, QRLink } from '@/hooks/useQRLinks';
 import { usePosterTemplate } from '@/hooks/usePosterTemplate';
 import { toast } from 'sonner';
-import { Download, Pencil, Trash2, QrCode, Check, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Download, Pencil, Trash2, QrCode, Check, X, Loader2 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -217,12 +217,12 @@ function QRLinkCard({ link, posterUrl, qrX, qrY, qrSize }: {
     <div className="space-y-5">
       {/* Destination URL — always visible */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Your Website / Link</Label>
+        <Label className="text-sm font-medium">QR destination link</Label>
         <div className="flex gap-2">
           <Input
             value={editUrl}
             onChange={e => { setEditUrl(e.target.value); setEditing(true); }}
-            placeholder="https://instagram.com/yourbiz"
+            placeholder="Paste your Google review link"
             className="bg-secondary/50 flex-1"
           />
           {editing && (
@@ -265,7 +265,7 @@ export default function QRCodes() {
     let dest = url.trim();
     if (!/^https?:\/\//i.test(dest)) dest = 'https://' + dest;
     try {
-      await createMutation.mutateAsync({ label: 'My QR Code', destination_url: dest });
+      await createMutation.mutateAsync({ label: 'Google Reviews', destination_url: dest });
       toast.success('QR code created!');
       setUrl('');
     } catch { toast.error('Failed to create QR code'); }
@@ -285,20 +285,10 @@ export default function QRCodes() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
-            <QrCode className="w-8 h-8 text-primary" /> QR Poster
+            <QrCode className="w-8 h-8 text-primary" /> QR Section
           </h1>
-          <p className="text-muted-foreground mt-1">Generate your QR code poster — update where it links anytime without reprinting.</p>
+          <p className="text-muted-foreground mt-1">Set the destination for your QR code. For your review sign, use your Google review link. You can update where it points later without reprinting.</p>
         </div>
-
-        {/* No poster template warning */}
-        {!posterUrl && (
-          <Card className="glass-card border-border/50">
-            <CardContent className="p-8 text-center space-y-3">
-              <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground opacity-40" />
-              <p className="text-muted-foreground">No poster template has been set up yet. Ask your admin to upload one.</p>
-            </CardContent>
-          </Card>
-        )}
 
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -344,11 +334,11 @@ export default function QRCodes() {
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="qr-url">Your Website / Link</Label>
-                  <Input id="qr-url" placeholder="https://instagram.com/yourbiz" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
+              <Input id="qr-url" placeholder="Paste your Google review link" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
                 </div>
                 <Button type="submit" disabled={createMutation.isPending || !url.trim()}>
                   {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
-                  Generate QR Poster
+                  Create QR Code
                 </Button>
               </form>
             </CardContent>

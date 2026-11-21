@@ -63,6 +63,7 @@ import { DirectoryEnrollmentLesson } from "@/components/lesson/DirectoryEnrollme
 import { AnnouncementPostImage } from "@/components/lesson/AnnouncementPostImage";
 import { AnnouncementActionList } from "@/components/lesson/AnnouncementActionList";
 import { StripeSignupCard } from "@/components/lesson/StripeSignupCard";
+import { ReviewSignCustomizer } from "@/components/lesson/ReviewSignCustomizer";
 import {
   TrackedVimeoPlayer,
   type VimeoWatchProgress,
@@ -598,6 +599,7 @@ const renderNotesContent = (content: string, copyDownloadFileName?: string) => {
 };
 
 const YELP_MODULE_ID = "ae190000-0000-4000-8000-000000000001";
+const GETTING_REVIEWS_MODULE_ID = "ae190000-0000-4000-8000-000000000002";
 
 export default function Lesson() {
   const navigate = useNavigate();
@@ -1680,6 +1682,10 @@ export default function Lesson() {
               {renderNotesContent(notesContent, firstPostCopyDownloadFileName)}
             </div>}
           </div>
+        )}
+
+        {!sublessonId && module.id === GETTING_REVIEWS_MODULE_ID && (
+          <ReviewSignCustomizer />
         )}
 
         {isMobile && nextModule && !(module as any).is_directory_enrollment && (

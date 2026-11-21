@@ -19,6 +19,7 @@ import TemplateSubmissions from "./pages/admin/TemplateSubmissions";
 import Feedback from "./pages/admin/Feedback";
 import DirectoryAdmin from "./pages/admin/DirectoryAdmin";
 import QRCodesAdmin from "./pages/admin/QRCodes";
+import QRCodes from "./pages/QRCodes";
 import AccessLog from "./pages/admin/AccessLog";
 import AionConversations from "./pages/admin/AionConversations";
 import AdsManager from "./pages/admin/AdsManager";
@@ -163,6 +164,7 @@ const MemberApp = () => (
         <Route path="/business-card" element={<ProtectedRoute><BusinessCardSetup /></ProtectedRoute>} />
         <Route path="/find-a-pro" element={<FindASpecialist />} />
         <Route path="/my-links" element={<ProtectedRoute><MyLinks /></ProtectedRoute>} />
+        <Route path="/qr-codes" element={<ProtectedRoute><QRCodes /></ProtectedRoute>} />
         <Route path="/newtimes" element={<ManufacturerOrders />} />
         <Route path="/new-times-web" element={<ManufacturerOrders hidePrivateDetails />} />
 
