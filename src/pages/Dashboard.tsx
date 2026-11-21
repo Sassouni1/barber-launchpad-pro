@@ -9,7 +9,8 @@ import { ShippingNotification } from '@/components/dashboard/ShippingNotificatio
 import { ContactSection } from '@/components/dashboard/ContactSection';
 import { AionChatCard } from '@/components/dashboard/AionChatCard';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function Dashboard() {
   const location = useLocation();
@@ -35,6 +36,9 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <div id="profile" hidden={!profileOnly && !isNewMember} className="scroll-mt-20">
+            {profileOnly && <Link to="/dashboard" className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />Back to dashboard
+            </Link>}
             <BusinessSetupCard showServicesSetup onExpandedChange={setProfileEditing} />
           </div>
           {!hideDashboardSections && <>
