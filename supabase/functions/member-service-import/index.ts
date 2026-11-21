@@ -68,7 +68,7 @@ Deno.serve(async request => {
       price: (service.versions?.length ? servicePriceLabel(service.versions[0]) : servicePriceLabel(service))
         .replace('Price not found', '').slice(0, 40),
       duration: minutesLabel(service.duration || ''),
-      description: (service.description || '').slice(0, 400),
+      description: (service.description || '').trim().slice(0, 207).trimEnd(),
     })).filter(service => service.name.trim());
 
     console.info('member service import', JSON.stringify({

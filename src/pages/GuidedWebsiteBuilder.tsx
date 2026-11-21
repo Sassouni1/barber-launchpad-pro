@@ -83,7 +83,7 @@ export default function GuidedWebsiteBuilder() {
       return error ? null : data;
     },
   });
-  const dashboardServicesText = savedServices?.services_confirmed_at && Array.isArray(savedServices.service_menu)
+  const dashboardServicesText = Array.isArray(savedServices?.service_menu)
     ? (savedServices.service_menu as Array<{ name?: string; price?: string }>)
       .filter(service => service?.name?.trim())
       .map(service => {
@@ -95,6 +95,8 @@ export default function GuidedWebsiteBuilder() {
     : '';
   const previewServicesText = secondMode && dashboardServicesText ? dashboardServicesText
     : answers.services !== emptyGuidedAnswers.services ? answers.services : dashboardServicesText;
+  const serviceDetails = (savedServices?.service_menu as Array<{ name: string; description?: string }> | null) || [];
+  const serviceRole = businessSetup?.professional_role || businessSetup?.business_owner_type || '';
   const { data: templateSources } = useQuery({
     queryKey: ['guided-website-template-sources'],
     queryFn: async () => {
@@ -109,9 +111,8 @@ export default function GuidedWebsiteBuilder() {
   });
   const personalizedPreviews = useMemo(() => templateSources && Object.fromEntries(guidedTemplates.map(template => [
     template.key, personalizedTemplateHtml(templateSources[template.key], template.key, previewServicesText,
-      new URL(template.url, window.location.origin).href,
-      (savedServices?.service_menu as Array<{ name: string; description?: string }> | null) || []),
-  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu]);
+      new URL(template.url, window.location.origin).href, serviceDetails, serviceRole),
+  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu, serviceRole]);
   useEffect(() => {
     if (!hydrated || !dashboardServicesText) return;
     setAnswers(current => {
@@ -133,7 +134,15 @@ export default function GuidedWebsiteBuilder() {
   const [busy, setBusy] = useState('');
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const siteSlug = secondMode ? `second-site-preview-${user?.id.slice(0, 8) || 'demo'}` : website?.site_slug ?? `site-${user?.id.slice(0, 8) || 'preview'}`;
-  const pages = useMemo(() => guidedWebsitePages(answers, siteSlug), [answers, siteSlug]);
+  const pages = useMemo(() => {
+    const generated = guidedWebsitePages(answers, siteSlug);
+    if (answers.template === 'guided-kait' && templateSources?.['guided-kait']) {
+      generated['/'] = personalizedTemplateHtml(templateSources['guided-kait'], 'guided-kait', previewServicesText,
+        new URL('/website-previews/template-2/index.html', window.location.origin).href,
+        serviceDetails, serviceRole);
+    }
+    return generated;
+  }, [answers, siteSlug, templateSources, previewServicesText, savedServices?.service_menu, serviceRole]);
 
   useEffect(() => {
     if (!user || loadingWebsite || loadingProfile || loadingBusinessSetup || hydrated) return;
@@ -245,6 +254,7 @@ export default function GuidedWebsiteBuilder() {
 
   const publish = async () => {
     if (previewOnly) { toast.info('This is a preview. Nothing will be published.'); return; }
+    if (answers.template === 'guided-kait' && !templateSources?.['guided-kait']) { toast.error('Wait for the website template to load before publishing.'); return; }
     if (!answers.businessName.trim() || !answers.city.trim() || !answers.phone.trim() || answers.hasBookingApp === null || (answers.hasBookingApp && !normalizedWebUrl(answers.bookingUrl)) || (!answers.hasBookingApp && !answers.hours.trim())) {
       toast.error('Complete your business and booking details before publishing.'); return;
     }
@@ -252,8 +262,14 @@ export default function GuidedWebsiteBuilder() {
     try {
       const site = await saveDraft();
       const liveUrl = `https://sites.thebarberlaunch.com/${site.site_slug}`;
+      const publishedPages = { ...pages };
+      if (answers.template === 'guided-kait') {
+        publishedPages['/'] = personalizedTemplateHtml(templateSources!['guided-kait'], 'guided-kait', previewServicesText,
+          new URL('/website-previews/template-2/index.html', window.location.origin).href,
+          serviceDetails, serviceRole, `/${site.site_slug}/`);
+      }
       const { error } = await supabase.from('member_websites').update({
-        published_pages: pages as unknown as never, live_url: liveUrl,
+        published_pages: publishedPages as unknown as never, live_url: liveUrl,
         deployment_status: 'published', published_at: new Date().toISOString(), template_key: answers.template,
       }).eq('id', site.id).eq('user_id', user!.id);
       if (error) throw error;

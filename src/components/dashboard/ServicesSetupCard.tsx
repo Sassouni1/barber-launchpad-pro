@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, Download, Loader2, Plus, Trash2 } from 'lucide-react';
+import { limitServiceDescription } from '@/lib/serviceDescription';
 
 export type MemberService = { name: string; price: string; duration: string; description: string };
 
 // Keep the service names and order from the existing business onboarding checklist.
 const SERVICE_GROUPS = [
-  { title: "Men's & kids' services", services: ["Men's Cuts", 'Kids Cuts', 'Beards', 'Hot Towel Shaves', 'Eyebrows', 'Facial Waxing', 'Perms', 'Haircut', 'Skin Fade', 'Fade', 'Beard Trim', 'Haircut & Beard', 'Line Up'] },
+  { title: "Men's & kids' services", services: ["Men's Cuts", 'Kids Cuts', 'Beards', 'Hot Towel Shaves', 'Eyebrows', 'Facial Waxing', 'Perms', 'Haircut', 'Skin Fade', 'Fade', 'Beard Trim', 'Haircut & Beard'] },
   { title: "Women's services", services: ['Balayage', 'Color', 'Highlights', 'Haircuts and Trims', 'Perms', 'Brazilian Blowout', 'Keratin Treatment', 'Hair Extensions', 'Halos', "Women's Toppers"] },
   { title: 'Hair systems', services: ['Hair System Consultation', 'Hair System Install', 'Hair System Maintenance', 'Hair System Retouch'] },
 ];
@@ -39,7 +40,7 @@ const cleanList = (value: unknown): MemberService[] => (Array.isArray(value) ? v
   .map(item => item && typeof item === 'object' ? item as Record<string, unknown> : {})
   .map(item => ({
     name: String(item.name || '').slice(0, 120), price: priceAmount(item.price),
-    duration: durationMinutes(item.duration), description: String(item.description || '').slice(0, 400),
+    duration: durationMinutes(item.duration), description: limitServiceDescription(item.description),
   }))
   .filter(item => item.name.trim());
 
@@ -81,7 +82,7 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
         try { draft = JSON.parse(localStorage.getItem(draftKey(user.id)) || 'null'); } catch { /* Use the account copy. */ }
         const useDraft = !!draft?.updatedAt && Date.parse(draft.updatedAt) > Date.parse(data?.services_confirmed_at || '1970-01-01T00:00:00Z');
         setBookingUrl(data?.booking_url || '');
-        setServices(useDraft && Array.isArray(draft?.services) ? draft.services : remoteServices);
+        setServices(useDraft && Array.isArray(draft?.services) ? cleanList(draft.services) : remoteServices);
         setSource(useDraft ? draft?.source || '' : remoteSource);
         setConfirmedAt(data?.services_confirmed_at || null);
         setShowPicker(useDraft || remoteServices.length > 0);
@@ -214,7 +215,7 @@ export function ServicesSetupCard({ bookingUrlOverride }: { bookingUrlOverride?:
   };
 
   const update = (index: number, field: keyof MemberService, value: string) => {
-    setServices(list => list.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    setServices(list => list.map((item, i) => i === index ? { ...item, [field]: field === 'description' ? limitServiceDescription(value) : value } : item));
     setConfirmedAt(null);
   };
   const remove = (index: number) => { setServices(list => list.filter((_, i) => i !== index)); setConfirmedAt(null); };

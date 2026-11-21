@@ -1,17 +1,26 @@
 import { parseGuidedServices, type GuidedTemplate } from './guidedWebsite';
+import { limitServiceDescription } from './serviceDescription';
+import { template2ServiceContent } from './template2ServiceCatalog';
 
 // Build the iframe document before loading it. Preview frames may be isolated from their
 // parent, so changing their DOM after load is unreliable.
 export function personalizedTemplateHtml(
   html: string, template: GuidedTemplate, serviceText: string, baseUrl: string,
   serviceDetails: Array<{ name: string; description?: string }> = [],
+  role?: string, siteRoot?: string,
 ) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const base = doc.createElement('base');
-  base.href = baseUrl;
-  doc.head.prepend(base);
+  // Resolve template assets without a <base>, which would redirect #services links away from the member site.
+  doc.querySelectorAll<HTMLLinkElement | HTMLScriptElement | HTMLImageElement>('link[href], script[src], img[src]').forEach(element => {
+    const attribute = element.hasAttribute('href') ? 'href' : 'src';
+    const value = element.getAttribute(attribute) || '';
+    if (value && !/^(?:https?:|data:|#)/i.test(value)) element.setAttribute(attribute, new URL(value, baseUrl).href);
+  });
+  doc.querySelectorAll<HTMLAnchorElement>('a[href="index.html"]').forEach(link => { link.href = siteRoot || '#'; });
+  doc.querySelectorAll<HTMLAnchorElement>('a[href="hair-loss-solutions/index.html"]').forEach(link => {
+    link.href = siteRoot ? `${siteRoot}hair-loss-solutions/` : new URL('hair-loss-solutions/index.html', baseUrl).href;
+  });
   const services = parseGuidedServices(serviceText);
-  if (!services.length) return `<!doctype html>${doc.documentElement.outerHTML}`;
 
   if (template === 'guided-charlotte') {
     const list = doc.querySelector('#service-list');
@@ -51,6 +60,11 @@ export function personalizedTemplateHtml(
 
   const rates = doc.querySelector('.price-list');
   if (!rates) return `<!doctype html>${doc.documentElement.outerHTML}`;
+  if (!services.length) {
+    doc.querySelector('.services')?.remove();
+    doc.querySelector('.rates')?.remove();
+    return `<!doctype html>${doc.documentElement.outerHTML}`;
+  }
   const rows = services.map(service => {
     const row = doc.createElement('p');
     const label = doc.createElement('span');
@@ -60,36 +74,40 @@ export function personalizedTemplateHtml(
     label.append(link);
     const leader = doc.createElement('i');
     const price = doc.createElement('b');
-    price.textContent = service.price;
+    price.textContent = service.price || 'Ask for price';
     row.append(label, leader, price);
     return row;
   });
   rates.replaceChildren(...rows);
-  const descriptions = new Map(serviceDetails.map(service => [service.name.trim().toLowerCase(), service.description?.trim() || '']));
-  const cards = Array.from(doc.querySelectorAll('.service-card'));
-  const [cutImage, shaveImage, systemsImage] = cards.map(card => card.querySelector('img')?.getAttribute('src') || '');
-  cards.forEach((card, index) => {
-    const service = services[index];
-    (card as HTMLElement).hidden = !service;
-    if (!service) return;
-    const title = card.querySelector('h3');
-    const description = card.querySelector('p');
-    const image = card.querySelector('img');
-    if (title) title.textContent = service.name;
-    if (description) description.textContent = descriptions.get(service.name.toLowerCase()) ||
-      (/kid|child|junior/i.test(service.name) ? 'A haircut for younger clients, tailored to their style.'
-        : /beard|shav/i.test(service.name) ? 'Beard and facial hair grooming tailored to your preferred look.'
-          : /cut|fade|trim/i.test(service.name) ? 'A haircut shaped to the style and finish you want.'
-            : /highlight|color|balayage/i.test(service.name) ? 'Personalized color work for the look you want.'
-              : /system|replacement|topper/i.test(service.name) ? 'A hair system service tailored to your style and coverage goals.'
-                : `Ask about ${service.name.toLowerCase()} and what to expect at your appointment.`);
-    if (image) {
-      const matchingImage = /beard|shav/i.test(service.name) ? shaveImage
-        : /system|replacement|topper/i.test(service.name) ? systemsImage
-          : /cut|fade|trim/i.test(service.name) ? cutImage : '';
-      if (matchingImage) image.setAttribute('src', matchingImage);
-      image.setAttribute('alt', service.name);
+  const descriptions = new Map(serviceDetails.map(service => [service.name.trim().toLowerCase(), limitServiceDescription(service.description)]));
+  const cards = doc.querySelector('.cards');
+  if (!cards) return `<!doctype html>${doc.documentElement.outerHTML}`;
+  const cardRows = services.map(service => {
+    const content = template2ServiceContent(service.name, role);
+    const card = doc.createElement('article');
+    card.className = 'service-card';
+    if (content?.image) {
+      const image = doc.createElement('img');
+      image.src = new URL(`service-images/${content.image}`, baseUrl).href;
+      image.alt = service.name;
+      image.loading = 'lazy';
+      card.append(image);
+    } else {
+      const placeholder = doc.createElement('div');
+      placeholder.className = 'service-image-placeholder';
+      placeholder.setAttribute('aria-hidden', 'true');
+      card.append(placeholder);
     }
+    const body = doc.createElement('div');
+    const title = doc.createElement('h3');
+    title.textContent = service.name;
+    const description = doc.createElement('p');
+    description.textContent = descriptions.get(service.name.toLowerCase()) || content?.description ||
+      `Ask about ${service.name.toLowerCase()} and what to expect at your appointment.`;
+    body.append(title, description);
+    card.append(body);
+    return card;
   });
+  cards.replaceChildren(...cardRows);
   return `<!doctype html>${doc.documentElement.outerHTML}`;
 }
