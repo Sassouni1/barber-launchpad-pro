@@ -104,7 +104,7 @@ export default function Agreement() {
               <section className="space-y-3">
                 <h2 className="text-lg font-semibold gold-text">Purpose of the Agreement</h2>
                 <p>
-                  Client has paid $1,997 to enroll in an educational program focused on launching a business 
+                  Client has paid $2,997 to enroll in an educational program focused on launching a business
                   in the hair systems industry. Barber Launch agrees to provide training, instruction, and 
                   related services under the terms laid out in this Agreement.
                 </p>
