@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import { CheckCircle2, Download, ExternalLink, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { useBusinessCard } from "@/hooks/useBusinessCard";
@@ -8,15 +8,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const SIGN_IMAGE = "/lesson-assets/getting-reviews-sign-base.png";
 const CARD_BASE = "https://member.thebarberlaunch.com/card/";
 const STAND_URL = "https://www.amazon.com/dp/B0GYRJHY38?th=1";
+
+function wrapSignName(value: string): string[] {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return ["YOUR NAME"];
+  const lines = [""];
+  for (const word of words) {
+    const current = lines[lines.length - 1];
+    if (current && `${current} ${word}`.length > 26 && lines.length < 2) lines.push(word);
+    else lines[lines.length - 1] = current ? `${current} ${word}` : word;
+  }
+  return lines;
+}
+
+function starPoints(cx: number, cy: number): string {
+  return Array.from({ length: 10 }, (_, index) => {
+    const angle = -Math.PI / 2 + index * Math.PI / 5;
+    const radius = index % 2 === 0 ? 17 : 7.4;
+    return `${cx + Math.cos(angle) * radius},${cy + Math.sin(angle) * radius}`;
+  }).join(" ");
+}
 
 export function ReviewSignCustomizer() {
   const { data: card, isLoading } = useBusinessCard();
   const [name, setName] = useState("");
   const [downloading, setDownloading] = useState(false);
-  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+  const signSvgRef = useRef<SVGSVGElement>(null);
   const qrUrl = card?.short_code ? `${CARD_BASE}${card.short_code}` : "";
   const hasReviewLink = Boolean(card?.google_review_url?.trim());
 
@@ -26,30 +45,35 @@ export function ReviewSignCustomizer() {
 
   const handleDownload = async () => {
     const cleanName = name.trim();
-    if (!cleanName || !qrUrl || !qrCanvasRef.current) return;
+    if (!cleanName || !qrUrl || !signSvgRef.current) return;
     setDownloading(true);
     try {
-      const background = new Image();
-      await new Promise<void>((resolve, reject) => {
-        background.onload = () => resolve();
-        background.onerror = () => reject(new Error("Sign image could not be loaded"));
-        background.src = SIGN_IMAGE;
-      });
-
+      const sign = signSvgRef.current.cloneNode(true) as SVGSVGElement;
+      sign.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      sign.setAttribute("width", "500");
+      sign.setAttribute("height", "700");
+      const svgUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(sign)], { type: "image/svg+xml;charset=utf-8" }));
+      const image = new Image();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          image.onload = () => resolve();
+          image.onerror = () => reject(new Error("Review sign could not be rendered"));
+          image.src = svgUrl;
+        });
+      } finally {
+        URL.revokeObjectURL(svgUrl);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = 3000;
+      canvas.height = 4200;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Review sign canvas unavailable");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
       const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF({ orientation: "portrait", unit: "in", format: [5, 7] });
-      const backgroundWidth = 7 * background.naturalWidth / background.naturalHeight;
-      pdf.addImage(background, "PNG", (5 - backgroundWidth) / 2, 0, backgroundWidth, 7);
-      pdf.setFont("helvetica", "bold");
-      let fontSize = 20;
-      pdf.setFontSize(fontSize);
-      while (fontSize > 10 && pdf.getTextWidth(cleanName) > 4.2) {
-        fontSize -= 1;
-        pdf.setFontSize(fontSize);
-      }
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(cleanName, 2.5, 0.95, { align: "center" });
-      pdf.addImage(qrCanvasRef.current.toDataURL("image/png"), "PNG", 1.35, 1.6, 2.3, 2.3);
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 5, 7);
       const fileName = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "review";
       pdf.save(`${fileName}-review-sign.pdf`);
       toast.success("Review sign downloaded");
@@ -70,18 +94,27 @@ export function ReviewSignCustomizer() {
         </div>
 
         <div className="mt-6 grid items-start gap-7 sm:grid-cols-2 sm:gap-7">
-          <div className="relative mx-auto aspect-[5/7] w-full max-w-[390px] overflow-hidden rounded-xl bg-white shadow-[0_18px_45px_rgba(0,0,0,0.4)]" aria-label="Review sign preview">
-            <img src={SIGN_IMAGE} alt="Printable review sign design" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute left-[8%] top-[11%] w-[84%] break-words text-center font-semibold leading-tight text-black" style={{ fontSize: "clamp(16px, 3vw, 29px)" }}>
-              {name.trim() || <span className="text-gray-400">Your name or business name</span>}
-            </div>
-            <div className="absolute left-[27%] top-[22.9%] flex aspect-square w-[46%] items-center justify-center bg-white">
+          <div className="mx-auto aspect-[5/7] w-full max-w-[390px] overflow-hidden rounded-xl bg-white shadow-[0_18px_45px_rgba(0,0,0,0.4)]" aria-label="Review sign preview">
+            <svg ref={signSvgRef} viewBox="0 0 500 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Printable review sign design" className="block h-full w-full bg-white">
+              <rect width="500" height="700" fill="#fff" />
+              <g stroke="#101010" strokeWidth="3" strokeLinecap="round" fill="none">
+                <path d="M233 47 L267 91 M267 47 L233 91" />
+                <circle cx="232" cy="94" r="7" />
+                <circle cx="268" cy="94" r="7" />
+              </g>
+              <circle cx="250" cy="70" r="2.5" fill="#101010" />
+              {wrapSignName(name).map((line, index, lines) => (
+                <text key={`${line}-${index}`} x="250" y={lines.length === 1 ? 151 : 137 + index * 28} textAnchor="middle" fill="#111" fontFamily="Arial, Helvetica, sans-serif" fontSize={line.length > 26 ? 20 : line.length > 19 ? 24 : 30} letterSpacing="1.3" fontWeight="500">{line}</text>
+              ))}
               {qrUrl ? (
-                <QRCodeSVG value={qrUrl} size={1024} level="M" includeMargin className="h-full w-full" />
+                <QRCodeSVG x={137} y={197} value={qrUrl} size={226} level="M" includeMargin bgColor="#ffffff" fgColor="#000000" />
               ) : (
-                <span className="px-3 text-center text-xs text-gray-400">Your QR code appears here</span>
+                <text x="250" y="314" textAnchor="middle" fill="#aaa" fontFamily="Arial, Helvetica, sans-serif" fontSize="17">Your QR code appears here</text>
               )}
-            </div>
+              <text x="250" y="475" textAnchor="middle" fill="#111" fontFamily="Arial, Helvetica, sans-serif" fontSize="25">Scan to leave a review on</text>
+              <text x="250" y="558" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontSize="58" fontWeight="500" letterSpacing="-2"><tspan fill="#4285F4">G</tspan><tspan fill="#EA4335">o</tspan><tspan fill="#FBBC05">o</tspan><tspan fill="#4285F4">g</tspan><tspan fill="#34A853">l</tspan><tspan fill="#EA4335">e</tspan></text>
+              {[170, 210, 250, 290, 330].map((cx) => <polygon key={cx} points={starPoints(cx, 600)} fill="#fbbc05" />)}
+            </svg>
           </div>
 
           <div className="space-y-6 sm:pt-6">
@@ -137,7 +170,6 @@ export function ReviewSignCustomizer() {
         </div>
       </section>
 
-      {qrUrl && <QRCodeCanvas ref={qrCanvasRef} value={qrUrl} size={1024} level="M" includeMargin className="hidden" aria-hidden="true" />}
     </div>
   );
 }
