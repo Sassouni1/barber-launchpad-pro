@@ -606,10 +606,10 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
             : 'Your answers save automatically as you type.'}
         </p>
       </div>
-      <Button type="button" variant={profileCollapsed ? 'outline' : 'default'} className="w-auto font-semibold" onClick={profileCollapsed ? () => setProfileCollapsed(false) : exitProfile}>
-        {!profileCollapsed && <ArrowLeft aria-hidden="true" className="mr-2 h-4 w-4" />}
-        {profileCollapsed ? 'Update profile' : 'Back to Dashboard'}
-      </Button>
+      {profileCollapsed ? <Button type="button" variant="outline" className="w-auto font-semibold" onClick={() => setProfileCollapsed(false)}>Update profile</Button>
+        : <button type="button" onClick={exitProfile} className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <ArrowLeft aria-hidden="true" className="h-4 w-4" />Dashboard
+        </button>}
     </div>
     <div hidden={profileCollapsed} className="space-y-6">
     <SetupSelect id="work-status" label="Select an option" value={workStatus}
