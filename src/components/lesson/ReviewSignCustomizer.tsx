@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 
 const SIGN_IMAGE = "/lesson-assets/getting-reviews-sign-base.png";
 const CARD_BASE = "https://member.thebarberlaunch.com/card/";
-const STAND_URL = "https://www.amazon.com/dp/B0C5DPRYX5?th=1";
+const STAND_URL = "https://www.amazon.com/dp/B0GYRJHY38?th=1";
 
 export function ReviewSignCustomizer() {
   const { data: card, isLoading } = useBusinessCard();
@@ -37,18 +37,19 @@ export function ReviewSignCustomizer() {
       });
 
       const { jsPDF } = await import("jspdf");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "in", format: "letter" });
-      pdf.addImage(background, "PNG", 0, 0, 8.5, 11);
+      const pdf = new jsPDF({ orientation: "portrait", unit: "in", format: [5, 7] });
+      const backgroundWidth = 7 * background.naturalWidth / background.naturalHeight;
+      pdf.addImage(background, "PNG", (5 - backgroundWidth) / 2, 0, backgroundWidth, 7);
       pdf.setFont("helvetica", "bold");
-      let fontSize = 31;
+      let fontSize = 20;
       pdf.setFontSize(fontSize);
-      while (fontSize > 15 && pdf.getTextWidth(cleanName) > 6.8) {
+      while (fontSize > 10 && pdf.getTextWidth(cleanName) > 4.2) {
         fontSize -= 1;
         pdf.setFontSize(fontSize);
       }
       pdf.setTextColor(0, 0, 0);
-      pdf.text(cleanName, 4.25, 1.5, { align: "center" });
-      pdf.addImage(qrCanvasRef.current.toDataURL("image/png"), "PNG", 2.45, 2.52, 3.6, 3.6);
+      pdf.text(cleanName, 2.5, 0.95, { align: "center" });
+      pdf.addImage(qrCanvasRef.current.toDataURL("image/png"), "PNG", 1.35, 1.6, 2.3, 2.3);
       const fileName = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "review";
       pdf.save(`${fileName}-review-sign.pdf`);
       toast.success("Review sign downloaded");
@@ -70,11 +71,11 @@ export function ReviewSignCustomizer() {
         <div className="mt-5 grid items-center gap-5 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] sm:gap-8">
           <div className="relative mx-auto h-36 w-44 sm:h-40" aria-hidden="true">
             <div className="absolute bottom-3 left-2 h-5 w-40 -skew-x-12 rounded-sm border border-white/30 bg-gradient-to-r from-white/5 via-white/15 to-white/5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]" />
-            <div className="absolute bottom-6 left-9 h-32 w-28 -skew-x-6 rounded-sm border border-white/45 bg-gradient-to-br from-white/20 via-white/[0.03] to-white/10 shadow-[inset_2px_0_0_rgba(255,255,255,0.22),0_12px_22px_rgba(0,0,0,0.25)]" />
-            <div className="absolute bottom-7 left-11 h-28 w-24 -skew-x-6 border border-white/15" />
+            <div className="absolute bottom-6 left-10 h-32 w-24 -skew-x-6 rounded-sm border border-white/45 bg-gradient-to-br from-white/20 via-white/[0.03] to-white/10 shadow-[inset_2px_0_0_rgba(255,255,255,0.22),0_12px_22px_rgba(0,0,0,0.25)]" />
+            <div className="absolute bottom-7 left-12 h-28 w-20 -skew-x-6 border border-white/15" />
           </div>
           <div className="space-y-4 sm:border-l sm:border-white/10 sm:pl-8">
-            <p className="text-lg font-medium text-white">8.5 × 11 acrylic stand <span className="text-white/55">· 2-pack</span></p>
+            <p className="text-lg font-medium text-white">5 × 7 magnetic acrylic stand <span className="text-white/55">· 2-pack</span></p>
             <p className="text-sm leading-relaxed text-white/55">Display the finished review sign at your station.</p>
             <a href={STAND_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#d9ad4a] px-5 py-2.5 font-semibold text-[#efc86a] transition-colors hover:bg-[#d9ad4a]/10">
               View on Amazon <ExternalLink className="h-4 w-4" />
@@ -90,12 +91,12 @@ export function ReviewSignCustomizer() {
         </div>
 
         <div className="mt-6 grid items-start gap-7 sm:grid-cols-2 sm:gap-7">
-          <div className="relative mx-auto w-full max-w-[390px] overflow-hidden rounded-xl bg-white shadow-[0_18px_45px_rgba(0,0,0,0.4)]" aria-label="Review sign preview">
-            <img src={SIGN_IMAGE} alt="Printable review sign design" className="block w-full" />
+          <div className="relative mx-auto aspect-[5/7] w-full max-w-[390px] overflow-hidden rounded-xl bg-white shadow-[0_18px_45px_rgba(0,0,0,0.4)]" aria-label="Review sign preview">
+            <img src={SIGN_IMAGE} alt="Printable review sign design" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute left-[8%] top-[11%] w-[84%] break-words text-center font-semibold leading-tight text-black" style={{ fontSize: "clamp(16px, 3vw, 29px)" }}>
               {name.trim() || <span className="text-gray-400">Your name or business name</span>}
             </div>
-            <div className="absolute left-[29%] top-[22.9%] flex aspect-square w-[42.35%] items-center justify-center bg-white">
+            <div className="absolute left-[27%] top-[22.9%] flex aspect-square w-[46%] items-center justify-center bg-white">
               {qrUrl ? (
                 <QRCodeSVG value={qrUrl} size={1024} level="M" includeMargin className="h-full w-full" />
               ) : (
@@ -134,7 +135,7 @@ export function ReviewSignCustomizer() {
         </div>
       </section>
 
-      <p className="flex items-center gap-2 px-1 text-sm text-white/55"><Printer className="h-4 w-4 text-[#d9ad4a]" /> Print at actual size on 8.5 × 11 paper.</p>
+      <p className="flex items-center gap-2 px-1 text-sm text-white/55"><Printer className="h-4 w-4 text-[#d9ad4a]" /> Print at 100% size and trim to 5 × 7 inches.</p>
       {qrUrl && <QRCodeCanvas ref={qrCanvasRef} value={qrUrl} size={1024} level="M" includeMargin className="hidden" aria-hidden="true" />}
     </div>
   );
