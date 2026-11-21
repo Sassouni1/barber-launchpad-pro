@@ -253,7 +253,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
       .select('service_city, work_location_street, work_location_city, work_location_state, work_location_postal_code, business_name, business_owner_type, cuts_at_owned_business, currently_cutting, professional_role, workplace_type, workplace_other_description, other_professionals_count, website_status, website_url, booking_app_status, booking_link_status, booking_url, booking_platform, business_setup_completed_at, business_setup_draft, business_setup_draft_updated_at')
       .eq('user_id', user.id).maybeSingle(),
       supabase.from('profiles').select('full_name,phone').eq('id', user.id).maybeSingle(),
-      (supabase as any).from('business_cards').select('first_name,last_name').eq('user_id', user.id).maybeSingle()])
+      (supabase as any).from('business_cards').select('first_name,last_name,phone').eq('user_id', user.id).maybeSingle()])
       .then(([{ data, error }, { data: account, error: accountError }, { data: businessCard }]) => {
         if (!active) return;
         if (error || accountError) { toast.error('Could not load your business setup'); setLoading(false); return; }
@@ -269,7 +269,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
         const owner = (data?.business_owner_type || '') as OwnerType;
         const storedDraft: SetupDraft = {
           fullName: account?.full_name || [businessCard?.first_name, businessCard?.last_name].filter(Boolean).join(' ') || [user.user_metadata?.first_name, user.user_metadata?.last_name].filter(Boolean).join(' ') || user.user_metadata?.full_name || '',
-          differentClientName: 'no', clientDisplayName: '', clientPhone: account?.phone || '', publicPhone: '',
+          differentClientName: 'no', clientDisplayName: '', clientPhone: account?.phone || businessCard?.phone || '', publicPhone: '',
           city: data?.service_city || '', workStreet: data?.work_location_street || '',
           workCity: data?.work_location_city || '', workState: data?.work_location_state || '',
           workPostalCode: data?.work_location_postal_code || '',
@@ -304,7 +304,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
         setFullName(draft.fullName || '');
         setDifferentClientName(draft.differentClientName || 'no');
         setClientDisplayName(draft.clientDisplayName || '');
-        setClientPhone(draft.clientPhone || '');
+        setClientPhone(draft.clientPhone || account?.phone || businessCard?.phone || '');
         setPublicPhone(draft.publicPhone || '');
         setCity(draft.city || '');
         setWorkStreet(draft.workStreet || '');
