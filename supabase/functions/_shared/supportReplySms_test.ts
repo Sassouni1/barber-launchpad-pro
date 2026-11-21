@@ -1,7 +1,7 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   buildSupportReplySms, locationNumbers, normalizeUsPhone, providerMessageFacts, recipientCheck, replyEligibility,
-  sendSupportReplySms, SUPPORT_REPLY_FROM_NUMBER, SUPPORT_REPLY_LOCATION_ID,
+  sendSupportReplySms, senderInLocation, SUPPORT_REPLY_FROM_NUMBER, SUPPORT_REPLY_LOCATION_ID,
 } from "./supportReplySms.ts";
 
 const member = "11111111-1111-1111-1111-111111111111";
@@ -78,4 +78,34 @@ Deno.test("provider facts and location numbers parse", () => {
     { status: "delivered", direction: "outbound", from: "+17276076347", to: "+15555550123", error: null });
   assertEquals(providerMessageFacts({ status: "sent" }).from, null);
   assertEquals(locationNumbers({ numbers: [{ phoneNumber: "+1 727 607 6347" }, { phoneNumber: "bad" }] }), ["+17276076347"]);
+});
+
+Deno.test("location numbers: live nested GHL shape and direct list shapes", () => {
+  const live = { status: "success", data: { numbers: [{ phoneNumber: "+17278003741" }, { phoneNumber: "+17276076347" }] } };
+  assertEquals(locationNumbers(live), ["+17278003741", "+17276076347"]);
+  assert(locationNumbers(live).includes(SUPPORT_REPLY_FROM_NUMBER));
+  assertEquals(locationNumbers({ data: [{ phoneNumber: "+17276076347" }] }), ["+17276076347"]);
+  assertEquals(locationNumbers({ phoneNumbers: [{ number: "727-607-6347" }] }), ["+17276076347"]);
+  assertEquals(locationNumbers([{ phoneNumber: "+17276076347" }, "+17278003741"]), ["+17276076347", "+17278003741"]);
+  // Readable list without the 607 number -> not present (caller skips the send).
+  assert(!locationNumbers({ status: "success", data: { numbers: [{ phoneNumber: "+17278003741" }] } }).includes(SUPPORT_REPLY_FROM_NUMBER));
+  assertEquals(locationNumbers({ status: "success", data: {} }), []);
+  assertEquals(locationNumbers(null), []);
+});
+
+Deno.test("senderInLocation reads the live nested shape; unreadable stays null (pinned sender)", async () => {
+  const access = [{ accessToken: "t", locationId: SUPPORT_REPLY_LOCATION_ID }];
+  const nested = (nums: string[]) => (async () => new Response(JSON.stringify({ status: "success", data: { numbers: nums.map((phoneNumber) => ({ phoneNumber })) } }), { status: 200 })) as typeof fetch;
+  assertEquals(await senderInLocation(access, nested(["+17278003741", "+17276076347"])), true);
+  assertEquals(await senderInLocation(access, nested(["+17278003741"])), false);
+  assertEquals(await senderInLocation(access, (async () => new Response("no", { status: 403 })) as typeof fetch), null);
+  assertEquals(await senderInLocation(access, (async () => { throw new Error("net"); }) as typeof fetch), null);
+  assertEquals(await senderInLocation([{ accessToken: "t", locationId: "other" }], nested(["+17276076347"])), null);
+});
+
+Deno.test("no time-window suppression: every new team reply is texted (dedupe is by message ID only)", () => {
+  const src = Deno.readTextFileSync(new URL("../notify-support-reply/index.ts", import.meta.url));
+  assert(!/COALESCE_MINUTES|recent_unread_notice/.test(src));
+  assert(!/recent_unread_notice|COALESCE_MINUTES/.test(Deno.readTextFileSync(new URL("./supportReplySms.ts", import.meta.url))));
+  assert(src.includes('rpc("claim_support_reply_sms"'));
 });

@@ -4,17 +4,18 @@
 // Callers cannot choose recipient or content: the reply, conversation, sender
 // role and member are re-read here, the phone must match both the member's
 // profile and their Barber Launch GHL contact, and the ledger claim allows one
-// send per reply. Admins (user_roles) can read status, retry, diagnose the
+// send per reply. Every new team reply gets its own text (no time-window
+// suppression). Admins (user_roles) can read status, retry, diagnose the
 // sender and verify a recorded provider message.
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { getGhlAccess } from "../_shared/ghlMessaging.ts";
 import {
-  buildSupportReplySms, COALESCE_MINUTES, findContactByEmail, maskPhone, readProviderMessage, recipientCheck,
+  buildSupportReplySms, findContactByEmail, maskPhone, readProviderMessage, recipientCheck,
   replyEligibility, sendSupportReplySms, senderInLocation, SUPPORT_REPLY_FROM_NUMBER, SUPPORT_REPLY_LOCATION_ID, type GhlAccess,
 } from "../_shared/supportReplySms.ts";
 
-const FUNCTION_VERSION = "notify-support-reply/2026-11-21-v1";
+const FUNCTION_VERSION = "notify-support-reply/2026-11-21-v2";
 const url = Deno.env.get("SUPABASE_URL");
 const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 if (!url || !key) throw new Error("Backend configuration unavailable");
@@ -85,16 +86,7 @@ async function processMessage(messageId: string): Promise<string> {
   const { data: mismatch } = await db.from(TABLE).select("message_id").eq("sender_verified", false).limit(1);
   if ((mismatch ?? []).length) return skip("sender_mismatch_halt");
 
-  // 3. Don't stack texts: an earlier texted reply in the last few minutes that is still unread covers this one.
-  const since = new Date(Date.now() - COALESCE_MINUTES * 60_000).toISOString();
-  const { data: recent } = await db.from(TABLE).select("message_id").eq("conversation_id", row.conversation_id)
-    .eq("status", "sent").gte("sent_at", since).neq("message_id", messageId);
-  if ((recent ?? []).length) {
-    const { data: unread } = await db.from("support_messages").select("id").in("id", recent!.map((r) => r.message_id)).is("read_by_member_at", null).limit(1);
-    if ((unread ?? []).length) return skip("recent_unread_notice");
-  }
-
-  // 4. Recipient: member profile phone == phone on their Barber Launch GHL contact (found by email), not DND/opted out.
+  // 3. Recipient: member profile phone == phone on their Barber Launch GHL contact (found by email), not DND/opted out.
   const { data: profile } = await db.from("profiles").select("email, phone").eq("id", row.member_id).maybeSingle();
   let access: GhlAccess;
   try { access = await sendAccess(); } catch (e) { return fail(`ghl_access:${e instanceof Error ? e.message : e}`); }
@@ -112,7 +104,7 @@ async function processMessage(messageId: string): Promise<string> {
   const who = recipientCheck(profile ? { email: profile.email, phone: profile.phone } : null, contact, localOptOut);
   if (!who.ok) return skip(who.reason, { recipient_last4: who.phone ? who.phone.slice(-4) : null, ghl_contact_id: contact?.id ?? null });
 
-  // 5. Sender: the 607 number must not be contradicted by the location's number list (when readable); every send pins it.
+  // 4. Sender: the 607 number must not be contradicted by the location's number list (when readable); every send pins it.
   const accesses = await readAccesses();
   const senderOk = await senderInLocation(accesses);
   if (senderOk === false) return skip("sender_number_not_in_location");

@@ -8,8 +8,6 @@ export const SUPPORT_REPLY_LOCATION_ID = RELAY_LOCATION_ID;
 /** The Barber Launch number already used for Chris's Support alerts. Every send pins it. */
 export const SUPPORT_REPLY_FROM_NUMBER = "+17276076347";
 export const SUPPORT_PAGE_URL = "https://member.thebarberlaunch.com/support";
-/** A second team reply inside this window, while the earlier texted reply is still unread, is not texted again. */
-export const COALESCE_MINUTES = 15;
 const GHL_BASE = "https://services.leadconnectorhq.com";
 
 /** Private: never includes the reply text, names, or conversation details. */
@@ -77,13 +75,28 @@ export function recipientCheck(
   return { ok: true, phone, contactId: contact.id };
 }
 
-/** Phone numbers listed for the location (phone-system API shapes vary slightly). */
+/**
+ * Phone numbers listed for the location. Accepts the live GHL shape
+ * {status, data: {numbers: [{phoneNumber}]}} and direct lists
+ * ({numbers: [...]}, {phoneNumbers: [...]}, {data: [...]}, or a bare array).
+ */
 export function locationNumbers(payload: unknown): string[] {
-  const p = (payload ?? {}) as Record<string, unknown>;
-  const list = (p.numbers ?? p.phoneNumbers ?? p.data ?? []) as unknown[];
-  if (!Array.isArray(list)) return [];
+  const asRecord = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
+  const pickList = (v: unknown): unknown[] | null => {
+    if (Array.isArray(v)) return v;
+    const r = asRecord(v);
+    if (!r) return null;
+    for (const k of ["numbers", "phoneNumbers"]) if (Array.isArray(r[k])) return r[k] as unknown[];
+    return null;
+  };
+  const root = asRecord(payload);
+  const list = pickList(payload) ?? (root ? pickList(root.data) : null) ?? [];
   return list
-    .map((n) => (typeof n === "string" ? n : (n as Record<string, unknown>)?.phoneNumber ?? (n as Record<string, unknown>)?.number))
+    .map((n) => {
+      if (typeof n === "string") return n;
+      const r = asRecord(n);
+      return r?.phoneNumber ?? r?.number ?? null;
+    })
     .map((n) => normalizeUsPhone(typeof n === "string" ? n : null))
     .filter((n): n is string => !!n);
 }
