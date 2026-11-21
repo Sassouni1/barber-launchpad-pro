@@ -1,5 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { revealInScrollParent } from '@/lib/revealInScroll';
 import { Bot, CreditCard, Menu, ChevronDown, ChevronRight, CalendarCheck, Award } from 'lucide-react';
 import { 
   LayoutDashboard, 
@@ -148,6 +149,12 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const [marketingOpen, setMarketingOpen] = useState(false);
   const [bonusEarningsOpen, setBonusEarningsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const supportSectionRef = useRef<HTMLDivElement>(null);
+  // Opening Get Support near the bottom of the menu: scroll the menu (not the page) so all choices show.
+  const handleSupportOpenChange = (open: boolean) => {
+    setSupportOpen(open);
+    if (open) requestAnimationFrame(() => requestAnimationFrame(() => revealInScrollParent(supportSectionRef.current)));
+  };
   const { data: checklistLists = [] } = useChecklistLists();
 
   // Meta reviewer only: keep Growth Tools expanded on /ads, and open the menu
@@ -531,7 +538,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                     <div className="border-t border-border my-2" />
 
                     {/* Get Support */}
-                    <Collapsible open={supportOpen} onOpenChange={setSupportOpen}>
+                    <Collapsible ref={supportSectionRef} open={supportOpen} onOpenChange={handleSupportOpenChange}>
                       <CollapsibleTrigger asChild>
                         <button
                           className={cn(
