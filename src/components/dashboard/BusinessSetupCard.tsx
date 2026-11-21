@@ -22,7 +22,7 @@ type WorkplaceType = 'barbershop' | 'salon' | 'suite' | 'home' | 'mobile' | 'oth
 type WorkStatus = 'individual_barber' | 'individual_stylist' | 'barbershop_owner' | 'salon_owner' | '';
 type TeamSize = 'none' | 'one' | 'two_to_five' | 'six_to_ten' | 'eleven_plus' | '';
 type SetupDraft = {
-  fullName: string; differentClientName: Answer; clientDisplayName: string; clientPhone: string; publicPhone: string;
+  fullName: string; differentClientName: Answer; clientDisplayName: string; clientPhone: string; publicPhone: string; publicPhoneTouched?: boolean;
   city: string; workStreet: string; workCity: string; workState: string; workPostalCode: string;
   workStatus: WorkStatus; cutsAtOwnedBusiness: Answer; teamSize: TeamSize; workplaceType: WorkplaceType;
   workplaceOtherDescription: string;
@@ -206,6 +206,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
   const [clientDisplayName, setClientDisplayName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [publicPhone, setPublicPhone] = useState('');
+  const [publicPhoneTouched, setPublicPhoneTouched] = useState(false);
   const [workStreet, setWorkStreet] = useState('');
   const [workCity, setWorkCity] = useState('');
   const [workState, setWorkState] = useState('');
@@ -305,7 +306,8 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
         setDifferentClientName(draft.differentClientName || 'no');
         setClientDisplayName(draft.clientDisplayName || '');
         setClientPhone(draft.clientPhone || account?.phone || businessCard?.phone || '');
-        setPublicPhone(draft.publicPhone || '');
+        setPublicPhone(draft.publicPhone || (draft.publicPhoneTouched ? '' : draft.clientPhone || account?.phone || businessCard?.phone || ''));
+        setPublicPhoneTouched(!!draft.publicPhoneTouched);
         setCity(draft.city || '');
         setWorkStreet(draft.workStreet || '');
         setWorkCity(draft.workCity || '');
@@ -343,7 +345,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
 
   useEffect(() => {
     if (!user?.id || loading || !readyToSync.current || submitting.current || (complete && !editingComplete)) return;
-    const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, clientPhone, publicPhone, city, workStreet, workCity, workState, workPostalCode, workStatus,
+    const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, clientPhone, publicPhone, publicPhoneTouched, city, workStreet, workCity, workState, workPostalCode, workStatus,
       cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website, websiteUrl,
       booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
       bookingSearchAttempted, bookingSearchLocation };
@@ -384,7 +386,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
       });
     }, 500);
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
-  }, [user?.id, loading, complete, editingComplete, fullName, differentClientName, clientDisplayName, clientPhone, publicPhone, city, workStreet, workCity, workState,
+  }, [user?.id, loading, complete, editingComplete, fullName, differentClientName, clientDisplayName, clientPhone, publicPhone, publicPhoneTouched, city, workStreet, workCity, workState,
     workPostalCode, workStatus, cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website,
     websiteUrl, booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
     bookingSearchAttempted, bookingSearchLocation, retryVersion]);
@@ -583,7 +585,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
     if (booking === 'yes' && bookingUrl.trim() && !validDraftUrl(bookingUrl)) {
       revealField(bookingChoice === 'search' ? 'booking-candidates' : 'booking-url', 'Enter a valid booking URL'); return;
     }
-    const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, clientPhone, publicPhone, city, workStreet, workCity, workState, workPostalCode, workStatus,
+    const draft: SetupDraft = { fullName, differentClientName, clientDisplayName, clientPhone, publicPhone, publicPhoneTouched, city, workStreet, workCity, workState, workPostalCode, workStatus,
       cutsAtOwnedBusiness, teamSize, workplaceType, workplaceOtherDescription, businessNameChoice, businessName, website, websiteUrl,
       booking, bookingChoice, bookingUrl, bookingPlatform, bookingCandidates, bookingSearchKey,
       bookingSearchAttempted, bookingSearchLocation };
@@ -595,7 +597,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
     if (nameError) { setSaving(false); submitting.current = false; setDraftStatus('error'); toast.error('Could not save your contact details. Please try again.'); return; }
     const { error } = await supabase.from('member_onboarding_profiles').upsert({
       user_id: user.id, ...profileFields(draft), business_setup_draft: {
-        fullName: draft.fullName.trim(), differentClientName: draft.differentClientName, clientPhone: draft.clientPhone.trim(), publicPhone: draft.publicPhone.trim(),
+        fullName: draft.fullName.trim(), differentClientName: draft.differentClientName, clientPhone: draft.clientPhone.trim(), publicPhone: draft.publicPhone.trim(), publicPhoneTouched: draft.publicPhoneTouched,
         clientDisplayName: draft.differentClientName === 'yes' ? draft.clientDisplayName.trim() : '',
         businessNameChoice: draft.businessNameChoice,
         ...(needsBookingSearchCity ? { city: formatServiceCity(draft.city) } : {}),
@@ -653,7 +655,7 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
     </div>
     <div className="space-y-2">
       <label htmlFor="public-phone" className="block text-sm font-medium">Number clients should see</label>
-      <Input id="public-phone" type="tel" value={publicPhone} onChange={event => setPublicPhone(event.target.value)} placeholder="Public business number" />
+      <Input id="public-phone" type="tel" value={publicPhone} onChange={event => { setPublicPhone(event.target.value); setPublicPhoneTouched(true); }} placeholder="Public business number" />
       <p className="text-xs text-muted-foreground">This is the number shown on your website. Leave it blank if you do not want a number shown.</p>
     </div>
     <SetupSelect id="work-status" label="Select an option" value={workStatus}
