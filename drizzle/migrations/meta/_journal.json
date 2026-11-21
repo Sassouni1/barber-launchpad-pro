@@ -113,6 +113,13 @@
       "when": 1795260351695,
       "tag": "0015_support_message_sms_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795298848578,
+      "tag": "0016_support_reply_sms_notifications",
+      "breakpoints": true
     }
   ]
 }

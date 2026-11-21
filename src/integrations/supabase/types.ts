@@ -4966,6 +4966,86 @@ export type Database = {
           },
         ]
       }
+      support_reply_sms_notifications: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          conversation_id: string
+          created_at: string
+          dispatch_request_id: number | null
+          from_number: string | null
+          ghl_contact_id: string | null
+          last_error: string | null
+          member_id: string
+          message_created_at: string
+          message_id: string
+          provider_from: string | null
+          provider_message_id: string | null
+          provider_status: string | null
+          recipient_last4: string | null
+          sender_id: string
+          sender_verified: boolean | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          dispatch_request_id?: number | null
+          from_number?: string | null
+          ghl_contact_id?: string | null
+          last_error?: string | null
+          member_id: string
+          message_created_at: string
+          message_id: string
+          provider_from?: string | null
+          provider_message_id?: string | null
+          provider_status?: string | null
+          recipient_last4?: string | null
+          sender_id: string
+          sender_verified?: boolean | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          dispatch_request_id?: number | null
+          from_number?: string | null
+          ghl_contact_id?: string | null
+          last_error?: string | null
+          member_id?: string
+          message_created_at?: string
+          message_id?: string
+          provider_from?: string | null
+          provider_message_id?: string | null
+          provider_status?: string | null
+          recipient_last4?: string | null
+          sender_id?: string
+          sender_verified?: boolean | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_reply_sms_notifications_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "support_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       todo_subtasks: {
         Row: {
           created_at: string
@@ -5703,6 +5783,38 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_support_reply_sms: {
+        Args: { _message_id: string }
+        Returns: {
+          attempts: number
+          claimed_at: string | null
+          conversation_id: string
+          created_at: string
+          dispatch_request_id: number | null
+          from_number: string | null
+          ghl_contact_id: string | null
+          last_error: string | null
+          member_id: string
+          message_created_at: string
+          message_id: string
+          provider_from: string | null
+          provider_message_id: string | null
+          provider_status: string | null
+          recipient_last4: string | null
+          sender_id: string
+          sender_verified: boolean | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          verified_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "support_reply_sms_notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_old_marketing_images: { Args: never; Returns: undefined }
       complete_current_user_password_reset: { Args: never; Returns: boolean }
       current_user_requires_password_reset: { Args: never; Returns: boolean }
@@ -5813,6 +5925,11 @@ export type Database = {
         Args: { _limit: number }
         Returns: string[]
       }
+      support_reply_sms_missing: { Args: never; Returns: number }
+      support_reply_sms_retry_candidates: {
+        Args: { _limit: number }
+        Returns: string[]
+      }
       unsend_support_message: {
         Args: { p_message_id: string }
         Returns: undefined
@@ -5826,6 +5943,10 @@ export type Database = {
         Returns: boolean
       }
       verify_meta_agency_credential_cron_token: {
+        Args: { _token: string }
+        Returns: boolean
+      }
+      verify_support_reply_sms_token: {
         Args: { _token: string }
         Returns: boolean
       }
