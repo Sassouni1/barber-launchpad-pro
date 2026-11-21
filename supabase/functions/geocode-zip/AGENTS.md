@@ -1,0 +1,1 @@
+- geocode-zip uses Zippopotam first and an exact-match, US-only Nominatim fallback only when the primary misses or is down; 404 only when neither finds the ZIP, and both down is a 503 (never "not found") — keeps valid ZIPs searchable without mislabeling outages. search_specialists clamps the acos argument because exact coordinate matches overflow 1.

@@ -117,6 +117,9 @@ export async function searchSpecialists(zip: string, radius = 50): Promise<Speci
     search_lng: longitude,
     radius_miles: radius,
   });
-  if (error) throw error;
+  if (error) {
+    console.error("Specialist search failed", error.message);
+    throw new Error("Specialist search is temporarily unavailable. Please try again.");
+  }
   return (data || []) as SpecialistSearchResult[];
 }

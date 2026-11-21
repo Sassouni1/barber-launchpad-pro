@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, MapPin, Instagram, Calendar, Phone } from "lucide-react";
+import { Search, MapPin, Instagram, Calendar, Phone, AlertTriangle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { searchSpecialists, SpecialistSearchResult } from "@/hooks/useSpecialistDirectory";
@@ -10,24 +10,31 @@ const FindASpecialist = () => {
   const [results, setResults] = useState<SpecialistSearchResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  // A failed lookup/search is shown as a retryable error, never as "no specialists nearby".
+  const [searchError, setSearchError] = useState<string | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const runSearch = async () => {
     if (!/^\d{5}$/.test(zip)) {
       toast.error("Please enter a valid 5-digit ZIP code");
       return;
     }
     setLoading(true);
     setSearched(true);
+    setSearchError(null);
     try {
       const data = await searchSpecialists(zip);
       setResults(data);
     } catch (err: any) {
-      toast.error(err.message || "Search failed");
-      setResults([]);
+      setResults(null);
+      setSearchError(err?.message || "Search is temporarily unavailable. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runSearch();
   };
 
   return (
@@ -70,7 +77,19 @@ const FindASpecialist = () => {
           </div>
         )}
 
-        {searched && results && results.length === 0 && !loading && (
+        {searched && searchError && !loading && (
+          <div role="alert" className="text-center py-16">
+            <AlertTriangle className="h-10 w-10 mx-auto mb-4 text-destructive" aria-hidden="true" />
+            <h2 className="text-2xl font-semibold text-foreground mb-2">We couldn't finish that search</h2>
+            <p className="text-muted-foreground mb-6">{searchError}</p>
+            <Button type="button" variant="outline" onClick={() => void runSearch()}>
+              <RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" />
+              Try again
+            </Button>
+          </div>
+        )}
+
+        {searched && !searchError && results && results.length === 0 && !loading && (
           <div className="text-center py-16">
             <h2 className="text-2xl font-semibold text-foreground mb-2">No specialists nearby yet</h2>
             <p className="text-muted-foreground">
