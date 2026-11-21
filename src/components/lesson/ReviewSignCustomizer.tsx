@@ -18,11 +18,13 @@ export function ReviewSignCustomizer() {
   const [downloading, setDownloading] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const availableLinks = links.filter(
-    (link) => link.destination_url && link.destination_url !== "https://example.com",
+    (link) =>
+      link.destination_url &&
+      link.destination_url !== "https://example.com" &&
+      (/review/i.test(link.label) || /(?:google\.com|g\.page|maps\.app\.goo\.gl)/i.test(link.destination_url)),
   );
   const selectedLink =
     availableLinks.find((link) => link.id === selectedId) ??
-    availableLinks.find((link) => /review/i.test(link.label)) ??
     availableLinks[0];
   const qrUrl = selectedLink ? `${REDIRECT_BASE}${selectedLink.short_code}` : "";
 
@@ -104,7 +106,7 @@ export function ReviewSignCustomizer() {
         </p>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {isLoading ? "Loading your QR code…" : <>Set up your Google review link in the <Link className="text-primary underline" to="/qr-codes">QR Section</Link> first.</>}
+          {isLoading ? "Loading your QR code…" : <>Add a Google review QR code in the <Link className="text-primary underline" to="/qr-codes">QR Section</Link> first. Your other QR codes will stay as they are.</>}
         </p>
       )}
 
