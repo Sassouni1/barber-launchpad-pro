@@ -51,20 +51,7 @@ export function AnnouncementActionList({ userId, onCompletionChange, showIncompl
             }}
             className="mt-0.5 h-5 w-5 shrink-0 rounded-full border-primary/80 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
           />
-          <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer text-sm sm:text-base leading-relaxed">{action}</label>
-          {checked[index] && (
-            <button
-              type="button"
-              aria-label={`Uncheck ${action}`}
-              onClick={() => {
-                setChecked(current => current.map((item, itemIndex) => itemIndex === index ? false : item));
-                onActionChange?.();
-              }}
-              className="shrink-0 rounded px-1 py-0.5 text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              Uncheck
-            </button>
-          )}
+          <label htmlFor={id} className="cursor-pointer text-sm sm:text-base leading-relaxed">{action}</label>
         </li>;
       })}
     </ul>
