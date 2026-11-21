@@ -108,7 +108,7 @@ export function ReviewSignCustomizer() {
               </g>
               <circle cx="250" cy="79" r="2.2" fill="#fff" />
               {wrapSignName(name).map((line, index, lines) => (
-                <text key={`${line}-${index}`} x="250" y={lines.length === 1 ? 156 : 137 + index * 28} textAnchor="middle" fill="#111" fontFamily="Arial, Helvetica, sans-serif" fontSize={line.length > 26 ? 20 : line.length > 19 ? 24 : 30} letterSpacing="1.3" fontWeight="700">{line}</text>
+                <text key={`${line}-${index}`} x="250" y={lines.length === 1 ? 156 : 137 + index * 28} textAnchor="middle" fill="#111" fontFamily="Arial, Helvetica, sans-serif" fontSize={line.length > 26 ? 23 : line.length > 19 ? 27 : 33} letterSpacing="1.3" fontWeight="700">{line}</text>
               ))}
               {qrUrl ? (
                 <QRCodeSVG x={137} y={197} value={qrUrl} size={226} level="M" includeMargin bgColor="#ffffff" fgColor="#000000" />
