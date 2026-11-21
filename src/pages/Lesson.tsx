@@ -1715,7 +1715,7 @@ export default function Lesson() {
         )}
 
         {/* Desktop: Tab Content */}
-        {!isMobile && (
+        {!isMobile && !isGettingReviewsLesson && (
           <div
             className="glass-card p-6 rounded-2xl animate-fade-up"
             style={{ animationDelay: "0.3s" }}
