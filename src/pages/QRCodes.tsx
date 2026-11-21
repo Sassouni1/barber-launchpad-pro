@@ -5,10 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useQRLinks, useCreateQRLink, useUpdateQRLink, QRLink } from '@/hooks/useQRLinks';
+import { useQRLinks, useCreateQRLink, useUpdateQRLink, useDeleteQRLink, QRLink } from '@/hooks/useQRLinks';
 import { usePosterTemplate } from '@/hooks/usePosterTemplate';
 import { toast } from 'sonner';
-import { Download, QrCode, Check, X, Loader2 } from 'lucide-react';
+import { Download, Pencil, Trash2, QrCode, Check, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const BASE_URL = 'https://member.thebarberlaunch.com';
 
@@ -192,6 +196,7 @@ function QRLinkCard({ link, posterUrl, qrX, qrY, qrSize }: {
   const [editLabel, setEditLabel] = useState(link.label);
   const [editUrl, setEditUrl] = useState(link.destination_url);
   const updateMutation = useUpdateQRLink();
+  const deleteMutation = useDeleteQRLink();
 
   const handleSave = async () => {
     try {
@@ -201,17 +206,23 @@ function QRLinkCard({ link, posterUrl, qrX, qrY, qrSize }: {
     } catch { toast.error('Failed to update'); }
   };
 
+  const handleDelete = async () => {
+    try {
+      await deleteMutation.mutateAsync(link.id);
+      toast.success('QR code deleted');
+    } catch { toast.error('Failed to delete'); }
+  };
+
   return (
     <div className="space-y-5">
-      <h2 className="font-semibold">{link.label}</h2>
       {/* Destination URL — always visible */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">QR destination link</Label>
+        <Label className="text-sm font-medium">Your Website / Link</Label>
         <div className="flex gap-2">
           <Input
             value={editUrl}
             onChange={e => { setEditUrl(e.target.value); setEditing(true); }}
-            placeholder="Paste your Google review link"
+            placeholder="https://instagram.com/yourbiz"
             className="bg-secondary/50 flex-1"
           />
           {editing && (
@@ -242,12 +253,11 @@ export default function QRCodes() {
   const { data: links = [], isLoading } = useQRLinks();
   const { data: poster } = usePosterTemplate();
   const createMutation = useCreateQRLink();
+  const deleteMutation = useDeleteQRLink();
   const [url, setUrl] = useState('');
 
   const posterUrl = poster?.image_url ?? null;
-  const hasReviewLink = links.some(
-    (link) => /review/i.test(link.label) && link.destination_url !== 'https://example.com',
-  );
+  const existingLink = links[0] ?? null;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,10 +265,18 @@ export default function QRCodes() {
     let dest = url.trim();
     if (!/^https?:\/\//i.test(dest)) dest = 'https://' + dest;
     try {
-      await createMutation.mutateAsync({ label: 'Google Reviews', destination_url: dest });
+      await createMutation.mutateAsync({ label: 'My QR Code', destination_url: dest });
       toast.success('QR code created!');
       setUrl('');
     } catch { toast.error('Failed to create QR code'); }
+  };
+
+  const handleRedo = async () => {
+    if (!existingLink) return;
+    try {
+      await deleteMutation.mutateAsync(existingLink.id);
+      toast.success('QR code removed — create a new one below');
+    } catch { toast.error('Failed to remove QR code'); }
   };
 
   return (
@@ -267,50 +285,74 @@ export default function QRCodes() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-3">
-            <QrCode className="w-8 h-8 text-primary" /> QR Section
+            <QrCode className="w-8 h-8 text-primary" /> QR Poster
           </h1>
-          <p className="text-muted-foreground mt-1">Set the destination for your QR code. For your review sign, use your Google review link. You can update where it points later without reprinting.</p>
+          <p className="text-muted-foreground mt-1">Generate your QR code poster — update where it links anytime without reprinting.</p>
         </div>
+
+        {/* No poster template warning */}
+        {!posterUrl && (
+          <Card className="glass-card border-border/50">
+            <CardContent className="p-8 text-center space-y-3">
+              <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground opacity-40" />
+              <p className="text-muted-foreground">No poster template has been set up yet. Ask your admin to upload one.</p>
+            </CardContent>
+          </Card>
+        )}
 
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
+        ) : existingLink ? (
+          <Card className="glass-card border-border/50">
+            <CardContent className="p-6">
+              <QRLinkCard
+                link={existingLink}
+                posterUrl={posterUrl}
+                qrX={poster?.qr_x ?? 50}
+                qrY={poster?.qr_y ?? 50}
+                qrSize={poster?.qr_size ?? 15}
+              />
+              <div className="flex justify-end mt-4">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <Trash2 className="w-4 h-4 mr-1" /> Start Over
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Start over?</AlertDialogTitle>
+                      <AlertDialogDescription>This will delete your current QR code. Anyone who already scanned it will see "Link Not Found". You can create a new one right after.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleRedo}>Delete &amp; Start Over</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
-          <>
-            {links.map((link) => (
-              <Card key={link.id} className="glass-card border-border/50">
-                <CardContent className="p-6">
-                  <QRLinkCard
-                    link={link}
-                    posterUrl={posterUrl}
-                    qrX={poster?.qr_x ?? 50}
-                    qrY={poster?.qr_y ?? 50}
-                    qrSize={poster?.qr_size ?? 15}
-                  />
-                </CardContent>
-              </Card>
-            ))}
-            {!hasReviewLink && (
           <Card className="glass-card border-primary/20">
             <CardHeader>
-              <CardTitle className="text-lg">Add a Google review QR code</CardTitle>
+              <CardTitle className="text-lg">Create Your QR Code</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="qr-url">Google review link</Label>
-                  <Input id="qr-url" placeholder="Paste your Google review link" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
+                  <Label htmlFor="qr-url">Your Website / Link</Label>
+                  <Input id="qr-url" placeholder="https://instagram.com/yourbiz" value={url} onChange={e => setUrl(e.target.value)} className="bg-secondary/50" />
                 </div>
                 <Button type="submit" disabled={createMutation.isPending || !url.trim()}>
                   {createMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <QrCode className="w-4 h-4 mr-2" />}
-                  Create QR Code
+                  Generate QR Poster
                 </Button>
               </form>
             </CardContent>
           </Card>
-            )}
-          </>
         )}
       </div>
     </DashboardLayout>

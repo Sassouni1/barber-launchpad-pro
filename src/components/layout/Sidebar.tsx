@@ -402,7 +402,6 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/marketing" icon={Megaphone} label="AI Social Media" />
               <SubNavItem to="/social-media-post" icon={Megaphone} label="Content Library" />
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
-              <SubNavItem to="/qr-codes" icon={QrCode} label="QR Section" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" emphasize={reviewerOnAds} />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
               {websiteMenuPath && <SubNavItem to={websiteMenuPath} icon={Globe} label="My Website" />}

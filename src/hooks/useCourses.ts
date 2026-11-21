@@ -59,7 +59,7 @@ const GETTING_REVIEWS_MODULE: ModuleWithLessons = {
   is_directory_enrollment: false,
   is_published: true,
   notes_content:
-    "**1. Order your review sign stand**\nOrder this 8.5 × 11 acrylic tabletop stand for the review sign at your station. The linked listing is a 2-pack.\n[Order the stand on Amazon](https://www.amazon.com/dp/B0C5DPRYX5?th=1)\n\n**2. Make and print your review sign**\nEnter your name or business name below, use your QR code from the QR Section, then download and print the sign at 8.5 × 11 inches. Slide the printed sign into the stand.",
+    "**1. Order your review sign stand**\nOrder this 8.5 × 11 acrylic tabletop stand for the review sign at your station. The linked listing is a 2-pack.\n[Order the stand on Amazon](https://www.amazon.com/dp/B0C5DPRYX5?th=1)\n\n**2. Make and print your review sign**\nEnter your name or business name below. The QR code from your Digital Business Card is added automatically. Download and print the sign at 8.5 × 11 inches, then slide it into the stand.",
   order_index: 14,
   created_at: "",
   updated_at: "",

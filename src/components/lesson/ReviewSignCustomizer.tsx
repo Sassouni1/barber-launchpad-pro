@@ -3,35 +3,25 @@ import { Link } from "react-router-dom";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
-import { useQRLinks } from "@/hooks/useQRLinks";
+import { useBusinessCard } from "@/hooks/useBusinessCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const SIGN_IMAGE = "/lesson-assets/getting-reviews-sign-base.png";
-const REDIRECT_BASE = "https://member.thebarberlaunch.com/r.html?c=";
+const CARD_BASE = "https://member.thebarberlaunch.com/card/";
 
 export function ReviewSignCustomizer() {
-  const { data: links = [], isLoading } = useQRLinks();
+  const { data: card, isLoading } = useBusinessCard();
   const [name, setName] = useState("");
-  const [selectedId, setSelectedId] = useState("");
   const [downloading, setDownloading] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
-  const availableLinks = links.filter(
-    (link) =>
-      link.destination_url &&
-      link.destination_url !== "https://example.com",
-  );
-  const selectedLink =
-    availableLinks.find((link) => link.id === selectedId) ??
-    availableLinks.find((link) => /review/i.test(link.label)) ??
-    availableLinks.find((link) => link.label === "My QR Code") ??
-    availableLinks[0];
-  const qrUrl = selectedLink ? `${REDIRECT_BASE}${selectedLink.short_code}` : "";
+  const qrUrl = card?.short_code ? `${CARD_BASE}${card.short_code}` : "";
+  const hasReviewLink = Boolean(card?.google_review_url?.trim());
 
   const handleDownload = async () => {
     const cleanName = name.trim();
-    if (!cleanName || !selectedLink || !qrCanvasRef.current) return;
+    if (!cleanName || !qrUrl || !qrCanvasRef.current) return;
     setDownloading(true);
     try {
       const background = new Image();
@@ -70,7 +60,7 @@ export function ReviewSignCustomizer() {
       <div>
         <h2 className="font-display text-xl font-semibold">Make your review sign</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Enter your name or business name. Your QR code from the QR Section will be added to the printed sign.
+          Enter your name or business name. The QR code from Share Your Card is added automatically.
         </p>
       </div>
 
@@ -85,29 +75,17 @@ export function ReviewSignCustomizer() {
         />
       </div>
 
-      {availableLinks.length > 1 && (
-        <div className="space-y-2">
-          <Label htmlFor="review-sign-qr">QR code</Label>
-          <select
-            id="review-sign-qr"
-            value={selectedLink?.id ?? ""}
-            onChange={(event) => setSelectedId(event.target.value)}
-            className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            {availableLinks.map((link) => (
-              <option key={link.id} value={link.id}>{link.label}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {selectedLink ? (
+      {qrUrl && hasReviewLink ? (
         <p className="text-xs text-muted-foreground break-all">
-          QR destination: {selectedLink.destination_url}. Make sure this opens your Google review page. <Link className="text-primary underline" to="/qr-codes">Edit in QR Section</Link>
+          QR destination: {qrUrl}. Clients can open your card and tap its Google review link.
+        </p>
+      ) : qrUrl ? (
+        <p className="text-sm text-muted-foreground">
+          Your card QR is ready. Add your Google review link to the <Link className="text-primary underline" to="/business-card">Digital Business Card</Link> before displaying this Google review sign to customers.
         </p>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {isLoading ? "Loading your QR code…" : <>Create a QR code in the <Link className="text-primary underline" to="/qr-codes">QR Section</Link> first.</>}
+          {isLoading ? "Loading your business card QR code…" : <>Create your <Link className="text-primary underline" to="/business-card">Digital Business Card</Link> first.</>}
         </p>
       )}
 
@@ -126,7 +104,7 @@ export function ReviewSignCustomizer() {
       </div>
 
       {qrUrl && <QRCodeCanvas ref={qrCanvasRef} value={qrUrl} size={1024} level="M" includeMargin className="absolute opacity-0 pointer-events-none" aria-hidden="true" />}
-      <Button onClick={handleDownload} disabled={!name.trim() || !selectedLink || downloading} className="w-full sm:w-auto">
+      <Button onClick={handleDownload} disabled={!name.trim() || !qrUrl || downloading} className="w-full sm:w-auto">
         <Download className="w-4 h-4 mr-2" /> {downloading ? "Preparing PDF…" : "Download 8.5 × 11 sign"}
       </Button>
     </section>
