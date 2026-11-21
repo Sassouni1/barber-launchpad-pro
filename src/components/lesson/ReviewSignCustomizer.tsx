@@ -135,7 +135,7 @@ export function ReviewSignCustomizer() {
       </section>
 
       <p className="flex items-center gap-2 px-1 text-sm text-white/55"><Printer className="h-4 w-4 text-[#d9ad4a]" /> Print at actual size on 8.5 × 11 paper.</p>
-      {qrUrl && <QRCodeCanvas ref={qrCanvasRef} value={qrUrl} size={1024} level="M" includeMargin className="absolute opacity-0 pointer-events-none" aria-hidden="true" />}
+      {qrUrl && <QRCodeCanvas ref={qrCanvasRef} value={qrUrl} size={1024} level="M" includeMargin className="hidden" aria-hidden="true" />}
     </div>
   );
 }
