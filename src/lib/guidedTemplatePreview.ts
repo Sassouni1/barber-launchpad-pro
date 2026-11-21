@@ -228,9 +228,9 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
     if (value && !/^(?:https?:|data:|#)/i.test(value)) element.setAttribute(attribute, new URL(value, baseUrl).href);
   });
   const name = answers.businessName.trim() || 'Your Business Name';
-  const owner = answers.ownerName.trim() || 'Your Name';
-  const city = answers.city.trim() || 'Your City';
   const isShopOwner = businessOwnerType === 'barbershop' || businessOwnerType === 'salon';
+  const owner = isShopOwner ? 'our team' : answers.ownerName.trim() || 'Your Name';
+  const city = answers.city.trim() || 'Your City';
   const shopLabel = businessOwnerType === 'salon' ? 'salon' : 'shop';
   const replacements: Record<string, string> = {
     'YOUR BUSINESS NAME': name.toUpperCase(), 'Your Business Name': name,
@@ -246,6 +246,8 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
     node.textContent = value;
   }
   if (isShopOwner) {
+    const wordmarkLocation = doc.querySelector('.wordmark small');
+    if (wordmarkLocation) wordmarkLocation.textContent = city;
     const about = doc.querySelector('#your-barber h2');
     if (about) about.innerHTML = `ABOUT<br><em>OUR ${shopLabel.toUpperCase()}.</em>`;
     const aboutLabel = doc.querySelector('#your-barber .eyebrow');
