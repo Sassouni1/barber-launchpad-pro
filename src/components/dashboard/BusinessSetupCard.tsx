@@ -607,9 +607,9 @@ export function BusinessSetupCard({ showServicesSetup = false, onExpandedChange 
         </p>
       </div>
       {profileCollapsed ? <Button type="button" variant="outline" className="w-auto font-semibold" onClick={() => setProfileCollapsed(false)}>Update profile</Button>
-        : <button type="button" onClick={exitProfile} className="inline-flex items-center gap-2 text-base font-semibold text-primary underline underline-offset-4 transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+        : <Button type="button" variant="outline" onClick={exitProfile} className="h-9 w-auto gap-2 border-primary/70 bg-primary/10 px-3 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/20 hover:text-primary">
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />Dashboard
-        </button>}
+        </Button>}
     </div>
     <div hidden={profileCollapsed} className="space-y-6">
     <SetupSelect id="work-status" label="Select an option" value={workStatus}
