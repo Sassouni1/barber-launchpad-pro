@@ -1,0 +1,1 @@
+- Member Support unread counts (menu badge, dashboard notice) go through src/lib/supportUnread.ts, scoped to the signed-in user's own conversation id and enabled for admins too — admin RLS covers every conversation, so an unscoped count would leak other members' messages.
