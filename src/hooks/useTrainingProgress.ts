@@ -71,7 +71,7 @@ export function useTrainingGamesCompleted() {
   const requiredGames: GameType[] = ['color-match', 'hairline', 'ceran-wrap'];
   
   const completedGames = progress?.filter(p => p.completed).map(p => p.game_type as GameType) || [];
-  const completedCount = completedGames.length;
+  const completedCount = requiredGames.filter(game => completedGames.includes(game)).length;
   const allComplete = requiredGames.every(game => completedGames.includes(game));
 
   return {

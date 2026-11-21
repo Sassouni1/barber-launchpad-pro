@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { isQuizPassed } from "@/lib/quizPass";
+import { moduleCompletionProgressKey } from "@/lib/moduleCompletion";
 import {
   NEW_CERTIFICATION_MODULE_IDS,
   requiresNewCertificationQuizzes,
@@ -11,7 +12,7 @@ import {
 export type ModuleCompletion = {
   bestScore?: number;
   passed: boolean;
-  completionKind?: "quiz" | "video" | "photo" | "exempt";
+  completionKind?: "quiz" | "video" | "photo" | "manual" | "exempt";
 };
 
 const cacheKey = (userId: string) => `completed-modules:${userId}`;
@@ -192,6 +193,22 @@ export function useCompletedModules() {
               completionKind: "video",
             };
           }
+        }
+      }
+
+      // Some displayed modules have no lesson rows. Their manual completion
+      // lives in the existing per-user progress table under a distinct key.
+      const { data: manualProgress, error: manualProgressError } = await supabase
+        .from("user_training_progress")
+        .select("game_type")
+        .eq("user_id", user.id)
+        .eq("completed", true)
+        .like("game_type", "module-complete:%");
+      if (manualProgressError) throw manualProgressError;
+      for (const progress of manualProgress || []) {
+        const moduleId = progress.game_type.slice("module-complete:".length);
+        if (progress.game_type === moduleCompletionProgressKey(moduleId)) {
+          map[moduleId] = { passed: true, completionKind: "manual" };
         }
       }
 

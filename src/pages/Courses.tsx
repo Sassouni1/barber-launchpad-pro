@@ -1065,6 +1065,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               ? "Certification requirement complete"
                               : sheetStatus.completionKind === "video"
                                   ? "Required video time watched · rewatch lesson"
+                                : sheetStatus.completionKind === "manual"
+                                  ? "Marked complete · review lesson anytime"
                                 : `${localizeCourseUi("Quiz passed", locale)}${sheetScore != null ? ` ${sheetScore}%` : ""} · ${localizeCourseUi("rewatch lesson", locale)}`}
                           </p>
                         </div>
@@ -2387,6 +2389,8 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                               <p className="text-xs text-emerald-200/80">
                                 {detailStatus.completionKind === "photo"
                                   ? "Certification requirement complete"
+                                  : detailStatus.completionKind === "manual"
+                                    ? "Marked complete · review lesson anytime"
                                   : `${localizeCourseUi("Quiz passed", locale)}${detailScore != null ? ` ${detailScore}%` : ""} · ${localizeCourseUi("rewatch lesson", locale)}`}
                               </p>
                             </div>

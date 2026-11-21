@@ -1,5 +1,6 @@
 import { FileDownloadButton } from "@/components/ui/file-download-button";
 import { downloadBlob } from "@/lib/fileDownloads";
+import { moduleCompletionProgressKey } from "@/lib/moduleCompletion";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -742,33 +743,45 @@ export default function Lesson() {
     queryKey: ["lesson-completion", module?.id, user?.id],
     queryFn: async () => {
       if (!module?.id || !user?.id)
-        return { lessons: [], completedIds: new Set<string>() };
-      const { data: lessons } = await supabase
+        return { lessons: [], completedIds: new Set<string>(), manualCompleted: false };
+      const { data: lessons, error: lessonsError } = await supabase
         .from("lessons")
         .select("id")
         .eq("module_id", module.id);
+      if (lessonsError) throw lessonsError;
       const lessonIds = (lessons || []).map((l) => l.id);
-      if (lessonIds.length === 0)
-        return { lessons: lessonIds, completedIds: new Set<string>() };
-      const { data: progress } = await supabase
+      if (lessonIds.length === 0) {
+        const { data, error } = await supabase
+          .from("user_training_progress")
+          .select("completed")
+          .eq("user_id", user.id)
+          .eq("game_type", moduleCompletionProgressKey(module.id))
+          .maybeSingle();
+        if (error) throw error;
+        return { lessons: lessonIds, completedIds: new Set<string>(), manualCompleted: !!data?.completed };
+      }
+      const { data: progress, error: progressError } = await supabase
         .from("user_progress")
         .select("lesson_id")
         .eq("user_id", user.id)
         .eq("completed", true)
         .in("lesson_id", lessonIds);
+      if (progressError) throw progressError;
       return {
         lessons: lessonIds,
         completedIds: new Set((progress || []).map((p) => p.lesson_id)),
+        manualCompleted: false,
       };
     },
     enabled: !!module?.id && !!user?.id,
   });
 
   const isModuleCompleted = lessonCompletionData
-    ? lessonCompletionData.lessons.length > 0 &&
-      lessonCompletionData.lessons.every((id) =>
-        lessonCompletionData.completedIds.has(id),
-      )
+    ? lessonCompletionData.lessons.length === 0
+      ? lessonCompletionData.manualCompleted
+      : lessonCompletionData.lessons.every((id) =>
+          lessonCompletionData.completedIds.has(id),
+        )
     : false;
 
   const { data: sublessonCompletion } = useQuery({
@@ -790,53 +803,67 @@ export default function Lesson() {
   const isCurrentLessonCompleted = sublessonId
     ? !!sublessonCompletion
     : isModuleCompleted;
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
   const markModuleComplete = useCallback(async () => {
     if (!user?.id) return;
-
-    if (sublessonId) {
-      await supabase.from("user_progress").upsert(
-        {
-          user_id: user.id,
-          lesson_id: sublessonId,
-          completed: true,
-          completed_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,lesson_id" },
-      );
-      queryClient.invalidateQueries({
-        queryKey: ["sublesson-completion", sublessonId, user.id],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["lesson-completion", module?.id, user.id],
-      });
-      queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] });
-      toast.success("Sub-lesson marked as complete!");
-      return;
+    setIsMarkingComplete(true);
+    try {
+      if (sublessonId) {
+        const { error } = await supabase.from("user_progress").upsert(
+          {
+            user_id: user.id,
+            lesson_id: sublessonId,
+            completed: true,
+            completed_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,lesson_id" },
+        );
+        if (error) throw error;
+      } else {
+        if (!module?.id) return;
+        const { data: lessons, error: lessonsError } = await supabase
+          .from("lessons")
+          .select("id")
+          .eq("module_id", module.id);
+        if (lessonsError) throw lessonsError;
+        if (!lessons?.length) {
+          const { error } = await supabase.from("user_training_progress").upsert(
+            {
+              user_id: user.id,
+              game_type: moduleCompletionProgressKey(module.id),
+              completed: true,
+              completed_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,game_type" },
+          );
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("user_progress").upsert(
+            lessons.map((lesson) => ({
+              user_id: user.id,
+              lesson_id: lesson.id,
+              completed: true,
+              completed_at: new Date().toISOString(),
+            })),
+            { onConflict: "user_id,lesson_id" },
+          );
+          if (error) throw error;
+        }
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["sublesson-completion", sublessonId, user.id] }),
+        queryClient.invalidateQueries({ queryKey: ["lesson-completion", module?.id, user.id] }),
+        queryClient.invalidateQueries({ queryKey: ["completed-modules", user.id] }),
+        queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] }),
+      ]);
+      toast.success(sublessonId ? "Sub-lesson marked as complete!" : "Lesson marked as complete!");
+    } catch (error) {
+      console.error("Failed to mark lesson complete", error);
+      toast.error("Could not save your progress. Please try again.");
+    } finally {
+      setIsMarkingComplete(false);
     }
-
-    if (!module?.id) return;
-    const { data: lessons } = await supabase
-      .from("lessons")
-      .select("id")
-      .eq("module_id", module.id);
-    if (!lessons || lessons.length === 0) return;
-    for (const lesson of lessons) {
-      await supabase.from("user_progress").upsert(
-        {
-          user_id: user.id,
-          lesson_id: lesson.id,
-          completed: true,
-          completed_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,lesson_id" },
-      );
-    }
-    queryClient.invalidateQueries({
-      queryKey: ["lesson-completion", module.id, user.id],
-    });
-    queryClient.invalidateQueries({ queryKey: ["user-progress", user.id] });
-    toast.success("Lesson marked as complete!");
   }, [module?.id, queryClient, sublessonId, user?.id]);
 
   const { locale } = useLocale();
@@ -1140,6 +1167,7 @@ export default function Lesson() {
           ) : allowsManualCompletion ? (
             <Button
               onClick={markModuleComplete}
+              disabled={isMarkingComplete}
               className="gold-gradient"
               size="sm"
             >
