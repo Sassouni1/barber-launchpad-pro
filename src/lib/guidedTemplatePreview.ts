@@ -85,12 +85,6 @@ export function personalizedTemplateHtml(
         link.href = bookingHref;
         if (bookingUrl) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
       });
-      const offersHairSolutions = services.some(service => /system|replacement|topper/i.test(service.name))
-        || /density|hair loss|hair restoration|hair replacement/i.test(name);
-      if (!offersHairSolutions) {
-        doc.querySelector('#hair-systems')?.remove();
-        doc.querySelectorAll<HTMLAnchorElement>('a[href="#hair-systems"], a[href*="hair-loss-solutions/"]').forEach(link => link.remove());
-      }
     }
     const list = doc.querySelector('#service-list');
     if (!list) return `<!doctype html>${doc.documentElement.outerHTML}`;
