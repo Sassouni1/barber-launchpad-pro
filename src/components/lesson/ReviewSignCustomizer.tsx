@@ -52,6 +52,7 @@ export function ReviewSignCustomizer() {
   });
   const [editedName, setEditedName] = useState<string | null>(null);
   const name = editedName ?? (profileLoading ? "" : profileBusinessName || "");
+  const nameLines = wrapSignName(name);
   const [downloading, setDownloading] = useState(false);
   const signSvgRef = useRef<SVGSVGElement>(null);
   const qrUrl = card?.short_code ? `${CARD_BASE}${card.short_code}` : "";
@@ -127,9 +128,10 @@ export function ReviewSignCustomizer() {
                 <circle cx="263" cy="99" r="7.5" />
               </g>
               <circle cx="250" cy="79" r="2.2" fill="#fff" />
-              {wrapSignName(name).map((line, index, lines) => (
-                <text key={`${line}-${index}`} x="250" y={lines.length === 1 ? 156 : 137 + index * 28} textAnchor="middle" fill="#111" fontFamily="Arial, Helvetica, sans-serif" fontSize={line.length > 26 ? 23 : line.length > 19 ? 27 : 33} letterSpacing="1.3" fontWeight="700">{line}</text>
+              {nameLines.map((line, index) => (
+                <text key={`${line}-${index}`} x="250" y={nameLines.length === 1 ? 156 : 145 + index * 28} textAnchor="middle" fill="#111" fontFamily="Arial, Helvetica, sans-serif" fontSize={line.length > 26 ? 23 : line.length > 19 ? 27 : 33} letterSpacing="1.3" fontWeight="700">{line}</text>
               ))}
+              <g transform={nameLines.length > 1 ? "translate(0 20)" : undefined}>
               {qrUrl ? (
                 <QRCodeSVG x={137} y={197} value={qrUrl} size={226} level="M" includeMargin bgColor="#ffffff" fgColor="#000000" />
               ) : (
@@ -138,6 +140,7 @@ export function ReviewSignCustomizer() {
               <text x="250" y="475" textAnchor="middle" fill="#111" fontFamily="Arial, Helvetica, sans-serif" fontSize="25">Scan to leave a review on</text>
               <text x="250" y="558" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontSize="58" fontWeight="500" letterSpacing="-2"><tspan fill="#4285F4">G</tspan><tspan fill="#EA4335">o</tspan><tspan fill="#FBBC05">o</tspan><tspan fill="#4285F4">g</tspan><tspan fill="#34A853">l</tspan><tspan fill="#EA4335">e</tspan></text>
               {[170, 210, 250, 290, 330].map((cx) => <polygon key={cx} points={starPoints(cx, 600)} fill="#fbbc05" />)}
+              </g>
               </g>
             </svg>
           </div>
