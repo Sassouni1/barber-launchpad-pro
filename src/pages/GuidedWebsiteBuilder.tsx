@@ -21,6 +21,7 @@ import { personalizedTemplateHtml, personalizedTemplateOneHairHtml } from '@/lib
 const stages = ['Choose a look', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
 const isGuided = (key: string | null | undefined) => key === 'guided-charlotte' || key === 'guided-kait';
+const savedPersonName = (value?: string) => value?.trim() && !/^your name$/i.test(value.trim()) ? value.trim() : '';
 
 function readAnswers(userId: string): GuidedWebsiteAnswers {
   try {
@@ -81,7 +82,7 @@ export default function GuidedWebsiteBuilder() {
     || profile?.full_name?.trim() || metadataName?.trim() || metadataParts;
   const isBusinessOwner = businessSetup?.business_owner_type === 'barbershop' || businessSetup?.business_owner_type === 'salon';
   const [answers, setAnswers] = useState<GuidedWebsiteAnswers>(emptyGuidedAnswers);
-  const websiteAnswers = useMemo(() => ({ ...answers, ownerName: isBusinessOwner ? '' : answers.ownerName.trim() || accountPersonName }), [answers, isBusinessOwner, accountPersonName]);
+  const websiteAnswers = useMemo(() => ({ ...answers, ownerName: isBusinessOwner ? '' : savedPersonName(answers.ownerName) || accountPersonName }), [answers, isBusinessOwner, accountPersonName]);
   const [hydrated, setHydrated] = useState(false);
   // Services the member confirmed on the dashboard (imported from their booking page or added by hand).
   // Read separately so the builder keeps working if the services columns are not deployed yet.
@@ -183,7 +184,7 @@ export default function GuidedWebsiteBuilder() {
       try {
         const saved = JSON.parse(localStorage.getItem(`guided-second-site:${user.id}`) || 'null') as Partial<GuidedWebsiteAnswers> | null;
         setAnswers({ ...emptyGuidedAnswers, businessName: profile?.business_name || '', phone: profile?.phone || '', ...saved,
-          ownerName: isBusinessOwner ? '' : saved?.ownerName?.trim() || accountPersonName,
+          ownerName: isBusinessOwner ? '' : savedPersonName(saved?.ownerName) || accountPersonName,
           ...(dashboardNameKnown ? { businessName: dashboardBrandName } : {}),
           city: dashboardLocationKnown ? dashboardCity : dashboardLocationBeingEdited ? '' : saved?.city || [profile?.business_city, profile?.business_state].filter(Boolean).join(', ') });
       } catch { setAnswers(emptyGuidedAnswers); }
@@ -194,7 +195,7 @@ export default function GuidedWebsiteBuilder() {
     const remote = isGuided(website?.template_key) ? website?.editor_drafts?.guided as Partial<GuidedWebsiteAnswers> | undefined : undefined;
     const restored = saved ? readAnswers(user.id) : { ...emptyGuidedAnswers, ...remote };
     setAnswers({ ...restored,
-      ownerName: isBusinessOwner ? '' : restored.ownerName?.trim() || accountPersonName,
+      ownerName: isBusinessOwner ? '' : savedPersonName(restored.ownerName) || accountPersonName,
       businessName: dashboardNameKnown ? dashboardBrandName : restored.businessName || profile?.business_name || '',
       city: dashboardLocationKnown ? dashboardCity : dashboardLocationBeingEdited ? '' : restored.city || [profile?.business_city, profile?.business_state].filter(Boolean).join(', '),
       phone: restored.phone || profile?.phone || '',
