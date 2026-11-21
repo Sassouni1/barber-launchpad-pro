@@ -60,6 +60,7 @@ import { Logo } from '@/components/ui/Logo';
 import { Level1CertModal } from '@/components/certification/Level1CertModal';
 import { OPEN_LEVEL_1_CERT_EVENT } from '@/lib/level1CertNavigation';
 import { LanguageToggle } from '@/lib/i18n/LocaleProvider';
+import { MOBILE_NAV_OPEN_ATTR } from '@/lib/aionAssistantPaths';
 
 interface MobileNavProps {
   isAdminView?: boolean;
@@ -123,6 +124,13 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const [impersonating, setImpersonating] = useState<string | null>(null);
   const { data: members = [], isLoading } = useMobileMembers();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // While the menu is open, the floating Aion assistant hides so it cannot cover menu rows.
+  useEffect(() => {
+    if (!menuOpen) return;
+    document.body.setAttribute(MOBILE_NAV_OPEN_ATTR, 'true');
+    return () => document.body.removeAttribute(MOBILE_NAV_OPEN_ATTR);
+  }, [menuOpen]);
 
   useEffect(() => {
     const openCert = () => {

@@ -6,29 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAionConversations, useAionMessages } from '@/hooks/useAionChat';
 import { useAuth } from '@/hooks/useAuth';
+import { isAionAssistantPath } from '@/lib/aionAssistantPaths';
 
 type AssistantState = 'closed' | 'minimized' | 'open';
-
-const MEMBER_PATHS = [
-  '/dashboard',
-  '/courses',
-  '/todos',
-  '/products',
-  '/training',
-  '/schedule-call',
-  '/orders',
-  '/marketing',
-  '/social-media-post',
-  '/support',
-  '/ads',
-  '/website',
-  '/affiliates',
-  '/content-rewards',
-  '/rewards',
-  '/checklist',
-  '/business-card',
-  '/my-links',
-];
 
 const STATE_KEY = 'aion-floating-state';
 const CONVERSATION_KEY = 'aion-floating-conversation';
@@ -52,9 +32,7 @@ export function AionFloatingAssistant() {
   const ownedActiveId = conversations.some((conversation) => conversation.id === activeId) ? activeId : null;
   const { data: dbMessages = [], isLoading: messagesLoading } = useAionMessages(ownedActiveId);
 
-  const isMemberPath = MEMBER_PATHS.some((path) => (
-    location.pathname === path || location.pathname.startsWith(`${path}/`)
-  ));
+  const isMemberPath = isAionAssistantPath(location.pathname);
   const shouldRender = Boolean(
     !authLoading && user && !isManufacturer && isMemberPath && location.pathname !== '/aion'
   );
@@ -126,7 +104,7 @@ export function AionFloatingAssistant() {
   if (!shouldRender) return null;
 
   return (
-    <aside className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[60] flex flex-col items-end px-3 sm:inset-x-auto sm:right-5 sm:px-0" aria-label="Aion assistant">
+    <aside className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[60] flex [body[data-mobile-nav-open]_&]:hidden flex-col items-end px-3 sm:inset-x-auto sm:right-5 sm:px-0" aria-label="Aion assistant">
       {panelState === 'open' && (
         <section
           className="pointer-events-auto mb-3 flex h-[min(68vh,480px)] w-full flex-col overflow-hidden rounded-lg border border-primary/30 bg-background shadow-2xl sm:h-[560px] sm:w-[380px]"
