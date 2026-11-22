@@ -29,8 +29,26 @@ export const ADMIN_ORDER_PHONE = "+17276374672";
 export const ADMIN_ORDER_EMAIL = "chris@invasiondigitalmedia.com";
 
 export function buildAdminOrderSmsBody(order: OrderRow) {
-  const name = String(order.order_details?.full_name ?? order.customer_name ?? "Member").trim();
-  return `Barber Launch: hair system ordered for ${name}. Order ${order.id}. View: https://member.thebarberlaunch.com/newtimes?order=${encodeURIComponent(order.id)}`;
+  const details = order.order_details ?? {};
+  const short = (value: unknown, max: number) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+  const ship = shippingBlock(details);
+  const lines = [
+    "Barber Launch: hair system ordered",
+    `Member: ${short(details.full_name ?? order.customer_name ?? "Member", 80)}`,
+  ];
+  if (short(details["Client Name"], 80)) lines.push(`Client: ${short(details["Client Name"], 80)}`);
+  for (const [label, value] of systemRows(details)) lines.push(`${label}: ${short(value, 55)}`);
+  if (ship.method) lines.push(`Shipping: ${short(ship.method, 50)}`);
+  if (ship.lines.length) lines.push(`Ship to: ${short(ship.lines.join(", "), 120)}`);
+  if (short(details.notes, 100)) lines.push(`Notes: ${short(details.notes, 100)}`);
+  lines.push(`Order: ${order.id}`, `View: https://member.thebarberlaunch.com/newtimes?order=${encodeURIComponent(order.id)}`);
+  // The relay accepts at most 1,000 characters. Keep the order link intact.
+  for (const prefix of ["Notes:", "Ship to:"]) {
+    if (lines.join("\n").length <= 1000) break;
+    const index = lines.findIndex((line) => line.startsWith(prefix));
+    if (index >= 0) lines.splice(index, 1);
+  }
+  return lines.join("\n");
 }
 
 export type OrderRow = {
