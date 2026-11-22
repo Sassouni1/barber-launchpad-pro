@@ -17,7 +17,7 @@
  * NOTE: the worker body below must not use backticks or ${ } so it can live in a
  * String.raw literal.
  */
-export const SITE_WORKER_VERSION = "2026-08-23.generic-pages";
+export const SITE_WORKER_VERSION = "2026-11-22.guided-domain-links";
 
 export const SITE_WORKER_SOURCE = String.raw`
 const SELECT = "site_slug,custom_domain,template_key,published_pages,published_at,legacy_origin";
@@ -117,6 +117,10 @@ export default {
       const parts = url.pathname.split("/").filter(Boolean);
       const slug = parts.shift() || "";
       if (!slug) return new Response("Not found", { status: 404 });
+      if (parts.length === 0 && !url.pathname.endsWith("/")) {
+        url.pathname += "/";
+        return Response.redirect(url.toString(), 308);
+      }
       site = await loadSite(env, "site_slug=eq." + encodeURIComponent(slug));
       path = "/" + parts.join("/");
     } else {

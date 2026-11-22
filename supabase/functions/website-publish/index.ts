@@ -264,7 +264,7 @@ Deno.serve(async (req) => {
       slug = candidate;
     }
 
-    const previewUrl = `${previewBase()}/${slug}`;
+    const previewUrl = `${previewBase()}/${slug}/`;
     // The configured domain is adopted the first time the member publishes.
     const customDomain = guided
       ? ((existing?.custom_domain as string | null) ?? null)
