@@ -21,6 +21,7 @@ export default function CreateAccount() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(true);
+  const [confirmSentTo, setConfirmSentTo] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const fromRef = useRef((location.state as { from?: Parameters<typeof resolvePostAuthPath>[1] } | null)?.from);
@@ -76,6 +77,7 @@ export default function CreateAccount() {
           emailRedirectTo: redirectUrl,
           data: {
             full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+            ...(phone.trim() ? { phone: phone.trim() } : {}),
           },
         },
       });
@@ -87,8 +89,13 @@ export default function CreateAccount() {
           toast.error(error.message);
         }
       } else {
-        toast.success('Account created successfully!');
         const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          // Email confirmation is required before the first sign-in.
+          setConfirmSentTo(email.trim());
+          return;
+        }
+        toast.success('Account created successfully!');
         if (session?.user) {
           const updates: Record<string, any> = {
             agreement_signed_at: new Date().toISOString(),
@@ -121,6 +128,18 @@ export default function CreateAccount() {
           </p>
         </div>
 
+        {confirmSentTo ? (
+          <div role="status" className="space-y-4 rounded-2xl border border-primary/30 bg-card p-6 text-center">
+            <h2 className="text-xl font-display font-semibold text-foreground">Confirm your email</h2>
+            <p className="text-muted-foreground">
+              We sent a confirmation link to <span className="font-medium text-foreground break-all">{confirmSentTo}</span>. Open it, then sign in.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Member training opens once your Barber Launch purchase is matched to this email.
+            </p>
+            <Button asChild className="w-full"><Link to="/login">Go to sign in</Link></Button>
+          </div>
+        ) : (
         <form onSubmit={handleSignUp} className="space-y-6">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -169,8 +188,10 @@ export default function CreateAccount() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
+                aria-describedby="email-help"
                 className="mt-1"
               />
+              <p id="email-help" className="mt-1 text-xs text-muted-foreground">Use the same email you used at checkout.</p>
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
@@ -251,6 +272,7 @@ export default function CreateAccount() {
             )}
           </Button>
         </form>
+        )}
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}

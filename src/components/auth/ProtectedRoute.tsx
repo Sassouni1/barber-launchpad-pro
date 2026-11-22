@@ -2,6 +2,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AccessPending } from './AccessPending';
+import { memberGate } from '@/lib/memberAccessGate';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,7 +14,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false, requireManufacturer = false, skipAgreementCheck = false, skipPasswordResetCheck = false }: ProtectedRouteProps) {
-  const { user, loading, statusError, refreshUserStatus, isAdmin, isManufacturer, hasSignedAgreement, isAgreementRequired, requiresPasswordReset } = useAuth();
+  const { user, loading, statusError, refreshUserStatus, isAdmin, isManufacturer, hasSignedAgreement, isAgreementRequired, requiresPasswordReset, memberAccess } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -46,6 +48,10 @@ export function ProtectedRoute({ children, requireAdmin = false, requireManufact
 
   if (isManufacturer && !isAdmin && !requireManufacturer) {
     return <Navigate to="/newtimes" replace />;
+  }
+
+  if (memberGate({ isAdmin, isManufacturer, access: memberAccess }) === 'pending') {
+    return <AccessPending />;
   }
 
   if (isAgreementRequired && !hasSignedAgreement && !skipAgreementCheck && !isAdmin && !isManufacturer) {

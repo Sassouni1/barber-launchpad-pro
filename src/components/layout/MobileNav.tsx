@@ -231,6 +231,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
     { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
     { to: '/admin/orders', icon: Package, label: 'Order Management' },
     { to: '/admin/members', icon: Users, label: 'Members' },
+    { to: '/admin/member-access', icon: Shield, label: 'Member Access' },
     { to: '/admin/support', icon: MessageSquare, label: 'Member Support' },
     { to: '/admin/courses', icon: FileEdit, label: 'Courses' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos' },

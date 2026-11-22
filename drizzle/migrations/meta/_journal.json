@@ -127,6 +127,20 @@
       "when": 1795305020692,
       "tag": "0017_search_specialists_clamp_distance",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795315493482,
+      "tag": "0018_member_access_entitlements",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795316200514,
+      "tag": "0019_member_access_audit_after_trigger",
+      "breakpoints": true
     }
   ]
 }

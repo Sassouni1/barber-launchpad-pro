@@ -10,6 +10,12 @@ interface AgreementSetting {
 
 const ADMIN_MODE_KEY = 'adminModeActive';
 
+export interface MemberAccess {
+  enforced: boolean;
+  hasAccess: boolean;
+  allowed: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -20,6 +26,8 @@ interface AuthContextType {
   requiresPasswordReset: boolean;
   isAdminModeActive: boolean;
   isAgreementRequired: boolean;
+  /** Server-decided member content access (verified purchase or admin grant, or switch off). */
+  memberAccess: MemberAccess | null;
   toggleAdminMode: () => void;
   refreshUserStatus: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -38,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isManufacturer, setIsManufacturer] = useState(false);
   const [hasSignedAgreement, setHasSignedAgreement] = useState(false);
   const [requiresPasswordReset, setRequiresPasswordReset] = useState(false);
+  const [memberAccess, setMemberAccess] = useState<MemberAccess | null>(null);
   const [isAdminModeActive, setIsAdminModeActive] = useState(() => {
     const stored = localStorage.getItem(ADMIN_MODE_KEY);
     return stored === null ? true : stored === 'true';
@@ -98,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!statusRequests.current.isActive(userId)) return;
     const request = statusRequests.current.begin(userId);
     try {
-    const [rolesResult, profileResult, passwordResetResult] = await Promise.all([
+    const [rolesResult, profileResult, passwordResetResult, accessResult] = await Promise.all([
       supabase
         .from('user_roles')
         .select('role')
@@ -108,10 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('agreement_signed_at, skip_agreement')
         .eq('id', userId)
         .maybeSingle(),
-      (supabase as any).rpc('current_user_requires_password_reset')
+      (supabase as any).rpc('current_user_requires_password_reset'),
+      (supabase as any).rpc('my_member_access'),
     ]);
     if (!statusRequests.current.isCurrent(request)) return;
-    if (rolesResult.error || profileResult.error || passwordResetResult.error) {
+    if (rolesResult.error || profileResult.error || passwordResetResult.error || accessResult.error) {
       throw new Error('Account access could not be checked. Please try again.');
     }
     const roles = (rolesResult.data || []).map((r: any) => r.role);
@@ -119,6 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsManufacturer(roles.includes('manufacturer'));
     setHasSignedAgreement(!!profileResult.data?.agreement_signed_at || !!profileResult.data?.skip_agreement);
     setRequiresPasswordReset(Boolean(passwordResetResult.data));
+    const access = (accessResult.data || {}) as Partial<MemberAccess>;
+    setMemberAccess({ enforced: access.enforced === true, hasAccess: access.hasAccess === true, allowed: access.allowed === true });
     statusRequests.current.resolve(request);
     setStatusError(null);
     setLoading(false);
@@ -148,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsManufacturer(false);
           setHasSignedAgreement(false);
           setRequiresPasswordReset(false);
+          setMemberAccess(null);
           setStatusError(null);
           lastActiveUpdated.current = false;
         }
@@ -161,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsManufacturer(false);
         setHasSignedAgreement(false);
         setRequiresPasswordReset(false);
+        setMemberAccess(null);
         setStatusError(null);
         setLoading(false);
       }
@@ -239,6 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requiresPasswordReset,
       isAdminModeActive,
       isAgreementRequired,
+      memberAccess,
       toggleAdminMode,
       refreshUserStatus,
       signIn,

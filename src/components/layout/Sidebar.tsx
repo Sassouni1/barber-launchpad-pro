@@ -328,6 +328,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
     { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
     { to: '/admin/orders', icon: Package, label: 'Order Management' },
     { to: '/admin/members', icon: Users, label: 'Members' },
+    { to: '/admin/member-access', icon: Shield, label: 'Member Access' },
     { to: '/admin/courses', icon: FileEdit, label: 'Course Builder' },
     { to: '/admin/todos', icon: ListTodo, label: 'Todos Manager' },
     { to: '/admin/products', icon: Package, label: 'Products Manager' },

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAionConversations, useAionMessages } from '@/hooks/useAionChat';
 import { useAuth } from '@/hooks/useAuth';
+import { memberGate } from '@/lib/memberAccessGate';
 import { isAionAssistantPath } from '@/lib/aionAssistantPaths';
 
 type AssistantState = 'closed' | 'minimized' | 'open';
@@ -22,7 +23,7 @@ function readState(): AssistantState {
 export function AionFloatingAssistant() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading: authLoading, isManufacturer } = useAuth();
+  const { user, loading: authLoading, isManufacturer, isAdmin, memberAccess } = useAuth();
   const { conversations, isLoading: conversationsLoading, createConversation, updateTitle } = useAionConversations();
   const [panelState, setPanelState] = useState<AssistantState>(readState);
   const [activeId, setActiveId] = useState<string | null>(() => (
@@ -35,6 +36,7 @@ export function AionFloatingAssistant() {
   const isMemberPath = isAionAssistantPath(location.pathname);
   const shouldRender = Boolean(
     !authLoading && user && !isManufacturer && isMemberPath && location.pathname !== '/aion'
+      && memberGate({ isAdmin, isManufacturer, access: memberAccess }) === 'allow'
   );
 
   const setPersistentState = useCallback((next: AssistantState) => {

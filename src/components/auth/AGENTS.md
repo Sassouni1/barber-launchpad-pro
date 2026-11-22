@@ -1,0 +1,1 @@
+- Member content access is decided server-side by public.member_content_allowed() (RLS on course tables) and has_member_access(); ProtectedRoute only mirrors my_member_access() via src/lib/memberAccessGate.ts — signing up/in never grants access and hiding pages is never the only guard.

@@ -3352,6 +3352,156 @@ export type Database = {
         }
         Relationships: []
       }
+      member_access_events: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          details: Json
+          email_normalized: string | null
+          grant_id: string | null
+          id: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          details?: Json
+          email_normalized?: string | null
+          grant_id?: string | null
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          details?: Json
+          email_normalized?: string | null
+          grant_id?: string | null
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      member_access_evidence: {
+        Row: {
+          amount_cents: number | null
+          amount_refunded_cents: number
+          audited_at: string
+          currency: string | null
+          description: string | null
+          disputed: boolean
+          email_normalized: string | null
+          evidence_ref: string
+          exclusion_reason: string | null
+          id: string
+          livemode: boolean
+          paid_at: string | null
+          qualifies: boolean
+          source: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          amount_refunded_cents?: number
+          audited_at?: string
+          currency?: string | null
+          description?: string | null
+          disputed?: boolean
+          email_normalized?: string | null
+          evidence_ref: string
+          exclusion_reason?: string | null
+          id?: string
+          livemode?: boolean
+          paid_at?: string | null
+          qualifies?: boolean
+          source: string
+        }
+        Update: {
+          amount_cents?: number | null
+          amount_refunded_cents?: number
+          audited_at?: string
+          currency?: string | null
+          description?: string | null
+          disputed?: boolean
+          email_normalized?: string | null
+          evidence_ref?: string
+          exclusion_reason?: string | null
+          id?: string
+          livemode?: boolean
+          paid_at?: string | null
+          qualifies?: boolean
+          source?: string
+        }
+        Relationships: []
+      }
+      member_access_grants: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          email_normalized: string | null
+          evidence_ref: string
+          granted_by: string | null
+          id: string
+          note: string | null
+          paid_at: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_by_system: boolean
+          source: string
+          status: string
+          status_reason: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          email_normalized?: string | null
+          evidence_ref: string
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_by_system?: boolean
+          source: string
+          status?: string
+          status_reason?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          email_normalized?: string | null
+          evidence_ref?: string
+          granted_by?: string | null
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_by_system?: boolean
+          source?: string
+          status?: string
+          status_reason?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       member_billing_profiles: {
         Row: {
           created_at: string
@@ -5839,6 +5989,7 @@ export type Database = {
         Args: { _draft_id: string; _session_id: string; _user_id: string }
         Returns: string[]
       }
+      has_member_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5891,6 +6042,12 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: undefined
       }
+      member_access_enforced: { Args: never; Returns: boolean }
+      member_access_payment_exclusion: {
+        Args: { _p: Database["public"]["Tables"]["affiliate_payments"]["Row"] }
+        Returns: string
+      }
+      member_content_allowed: { Args: never; Returns: boolean }
       meta_agency_activate_credential: {
         Args: {
           _app_id: string
@@ -5902,6 +6059,7 @@ export type Database = {
         }
         Returns: string
       }
+      my_member_access: { Args: never; Returns: Json }
       order_tracking_keys: {
         Args: { _details: Json; _primary: string }
         Returns: string[]

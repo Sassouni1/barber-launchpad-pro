@@ -24,6 +24,7 @@ import AionConversations from "./pages/admin/AionConversations";
 import AdsManager from "./pages/admin/AdsManager";
 import PushNotifications from "./pages/admin/PushNotifications";
 import SupportInbox from "./pages/admin/SupportInbox";
+import MemberAccess from "./pages/admin/MemberAccess";
 import Support from "./pages/Support";
 import AionPage from "./pages/AionPage";
 import Login from "./pages/Login";
@@ -183,6 +184,7 @@ const MemberApp = () => (
         <Route path="/admin/affiliates" element={<ProtectedRoute requireAdmin><AffiliatesAdmin /></ProtectedRoute>} />
         <Route path="/admin/hair-system-test" element={<ProtectedRoute requireAdmin><HairSystemTestCheckout /></ProtectedRoute>} />
         <Route path="/admin/support" element={<ProtectedRoute requireAdmin><SupportInbox /></ProtectedRoute>} />
+        <Route path="/admin/member-access" element={<ProtectedRoute requireAdmin><MemberAccess /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

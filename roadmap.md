@@ -116,3 +116,14 @@
 ## Support inbox SMS alert to Chris
 - [x] Member-only insert trigger + message-ID ledger + notify-support-message (same GHL alert path, Barber Launch location check); admin status/retry; admin inbox opens ?conversation= link.
 - [x] Deployed; rollback rehearsal (member yes, admin reply/reaction/edit no, single claim); live test message from Chris's test member sent once (GHL message hA40V5lQGBAMwmeXjoqf), replay did not resend. Frontend link change unpublished.
+
+## Member access by verified purchase
+- [x] Access records, permanent history, auto-grant from verified live Stripe checkouts and paid hair-system orders; refunds/disputes revoke (switch OFF)
+- [x] Signed-out visitors can no longer read course content; Aion chat requires sign-in
+- [x] Admin Member Access page + server controls (grant/revoke/link with reason, Stripe re-check, guarded switch)
+- [x] Audit: 1,093 Stripe charges read; 71 non-admin accounts matched to real purchases; GoHighLevel payments unreadable (token lacks payments scope)
+- [x] Email confirmation on for new sign-ups (Chris approved); create page explains it
+- [x] "Check my purchase" self-serve check for pending accounts
+- [ ] Review the 36 accounts without a matched purchase (blocked: Chris's decision — link/grant/leave)
+- [ ] Turn the access check on and verify live (blocked: review above)
+- [ ] Make course-files storage private with signed links; gate other paid AI functions by access (do at cutover)
