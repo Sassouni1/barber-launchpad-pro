@@ -165,7 +165,7 @@ Deno.test("saved card: linked Customer, no customer_email, and only the chosen c
   assertEquals(form.get("payment_intent_data[setup_future_usage]"), null);
   assertEquals(form.get("metadata[order_id]"), ORDER_ID);
   assertEquals(form.get("payment_intent_data[metadata][user_id]"), ME);
-  assertEquals(form.get("ui_mode"), "embedded");
+  assertEquals(form.get("ui_mode"), "embedded_page");
   assertEquals(form.get("return_url"), `https://member.thebarberlaunch.com/my-website?domain_order=${ORDER_ID}&session_id={CHECKOUT_SESSION_ID}`);
   assertEquals(form.get("success_url"), null);
   assertEquals(form.get("cancel_url"), null);
