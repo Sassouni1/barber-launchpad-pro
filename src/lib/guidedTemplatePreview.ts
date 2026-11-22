@@ -128,8 +128,20 @@ export function personalizedTemplateHtml(
     list.replaceChildren(...rows);
     const note = doc.querySelector('.price-note');
     if (note) note.textContent = 'Services and prices from your profile.';
-    doc.querySelector('.feature-strip')?.remove();
+    const features = [...doc.querySelectorAll('.feature-grid > div')];
+    features.forEach((feature, index) => {
+      const service = services[index];
+      if (!service) { feature.remove(); return; }
+      const title = feature.querySelector('strong');
+      const copy = feature.querySelector('p');
+      if (title) title.textContent = service.name;
+      if (copy) {
+        const description = descriptionFor(service.name);
+        copy.textContent = description.length > 90 ? `${description.slice(0, 87).trimEnd().replace(/\s+\S*$/, '')}…` : description;
+      }
+    });
     if (!services.length) {
+      doc.querySelector('.feature-strip')?.remove();
       doc.querySelector('#services')?.remove();
       doc.querySelectorAll('a[href="#services"]').forEach(link => link.remove());
     }
