@@ -126,10 +126,12 @@
 - [x] "Check my purchase" self-serve check for pending accounts
 - [ ] Review the 36 accounts without a matched purchase (blocked: Chris's decision — link/grant/leave)
 - [ ] Turn the access check on and verify live (blocked: review above)
-- [ ] Make course-files storage private with signed links; gate other paid AI functions by access (do at cutover)
+- [x] Make course-files storage private with signed links; gate paid AI functions by access
 
 ## Purchase-gated access (Nov 22)
 - [x] Server cutover: accounts created after 2026-11-22 03:10 UTC need verified purchase/admin grant (RLS + paid edge functions); pre-cutover accounts keep temporary access; full legacy gate stays off.
-- [ ] Course-files bucket private + signed links; verify old public URL fails, allowed member opens file.
-- [ ] /create: verify purchase email server-side (rate-limited, no enumeration) BEFORE auth.signUp; no match = no account + guidance with Sign in / Support; phone-only -> support.
-- [ ] Publish, verify live desktop + mobile; report live vs exposed (static lesson assets, Vimeo).
+- [x] Course-files bucket private + signed links; old public URLs return 400 live; admin opens all 17 live (desktop+mobile).
+- [x] /create: purchase checked server-side before any account (member-signup); open sign-up disabled; no match = no account + guidance; phone-only -> Support.
+- [x] Published and verified live desktop + mobile.
+- [ ] Move public/lesson-assets (85 files) + installation checklist PDF behind sign-in (not started)
+- [ ] Vimeo domain-only playback (blocked: Vimeo account setting)
