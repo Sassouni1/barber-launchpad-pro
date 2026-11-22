@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Check, ExternalLink, ImagePlus, Loader2, Monitor, Smartphone, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +23,11 @@ import { personalizedTemplateHtml, personalizedTemplateOneHairHtml, personalized
 
 const stages = ['Choose a look', 'Domain', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
+const domainCandidates = (domain: string) => {
+  const name = domain.split('.')[0];
+  return [...new Set([`${name}.net`, `${name}.co`, `book${name}.com`, `${name}studio.com`, `${name}online.com`])]
+    .filter(candidate => candidate !== domain && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.[a-z]{2,24}$/.test(candidate));
+};
 const isGuided = (key: string | null | undefined) => key === 'guided-charlotte' || key === 'guided-kait';
 const savedPersonName = (value?: string) => value?.trim() && !/^your name$/i.test(value.trim()) ? value.trim() : '';
 
@@ -175,6 +180,9 @@ export default function GuidedWebsiteBuilder() {
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [domainInput, setDomainInput] = useState('');
   const [domainResult, setDomainResult] = useState<DomainResult | null>(null);
+  const [domainSuggestions, setDomainSuggestions] = useState<DomainResult[]>([]);
+  const [findingDomainSuggestions, setFindingDomainSuggestions] = useState(false);
+  const domainSearchId = useRef(0);
   const [domainOrder, setDomainOrder] = useState<DomainOrder | null>(null);
   const [domainBusy, setDomainBusy] = useState('');
   const siteSlug = secondMode ? `second-site-preview-${user?.id.slice(0, 8) || 'demo'}` : website?.site_slug ?? `site-${user?.id.slice(0, 8) || 'preview'}`;
@@ -324,7 +332,10 @@ export default function GuidedWebsiteBuilder() {
 
   const checkDomain = async () => {
     const domain = domainInput.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const searchId = ++domainSearchId.current;
     setDomainResult(null);
+    setDomainSuggestions([]);
+    setFindingDomainSuggestions(false);
     if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z]{2,24})+$/.test(domain)) {
       toast.error('Enter a complete domain, such as yourshop.com.'); return;
     }
@@ -332,7 +343,24 @@ export default function GuidedWebsiteBuilder() {
     try {
       const { data, error } = await supabase.functions.invoke('cloudflare-domains', { body: { action: 'check', domains: [domain] } });
       if (error || data?.error) throw new Error(data?.error || error?.message || 'Could not check that domain.');
-      setDomainResult((data?.results?.[0] || null) as DomainResult | null);
+      if (searchId !== domainSearchId.current) return;
+      const checked = (data?.results?.[0] || null) as DomainResult | null;
+      setDomainResult(checked);
+      if (checked && !checked.available) {
+        const candidates = domainCandidates(domain);
+        if (candidates.length) {
+          setFindingDomainSuggestions(true);
+          try {
+            const alternatives = await supabase.functions.invoke('cloudflare-domains', { body: { action: 'check', domains: candidates } });
+            if (searchId === domainSearchId.current && !alternatives.error && !alternatives.data?.error) {
+              setDomainSuggestions(((alternatives.data?.results || []) as DomainResult[])
+                .filter(item => item.available && item.price !== null).slice(0, 3));
+            }
+          } catch {
+            // The original search result remains useful if alternative lookup fails.
+          } finally { if (searchId === domainSearchId.current) setFindingDomainSuggestions(false); }
+        }
+      }
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not check that domain.'); }
     finally { setDomainBusy(''); }
   };
@@ -429,7 +457,7 @@ export default function GuidedWebsiteBuilder() {
           </article>)}
         </div>
       </div>}
-      {step === 1 && <DomainSetupStep currentDomain={website?.custom_domain || null} input={domainInput} onInput={value => { setDomainInput(value); setDomainResult(null); }} onCheck={() => void checkDomain()} onBuy={payment => void buyDomain(payment)} onSkip={next} result={domainResult} order={domainOrder} busy={domainBusy} previewOnly={previewOnly} />}
+      {step === 1 && <DomainSetupStep currentDomain={secondMode ? null : website?.custom_domain || null} input={domainInput} onInput={value => { domainSearchId.current++; setDomainInput(value); setDomainResult(null); setDomainSuggestions([]); setFindingDomainSuggestions(false); if (answers.domain !== value) update('domain', ''); }} onCheck={() => void checkDomain()} onBuy={payment => void buyDomain(payment)} onSkip={next} result={domainResult} suggestions={domainSuggestions} findingSuggestions={findingDomainSuggestions} onSelectSuggestion={item => { domainSearchId.current++; setDomainInput(item.domain); setDomainResult(item); setDomainSuggestions([]); setFindingDomainSuggestions(false); if (secondMode) update('domain', item.domain); }} selectedDomain={answers.domain} onSelectDomain={domain => update('domain', domain)} order={domainOrder} busy={domainBusy} previewOnly={previewOnly} />}
       {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" />{!isBusinessOwner && <div className="space-y-2"><label htmlFor="website-client-name" className="block font-medium">Name clients will see</label><Input id="website-client-name" value={websiteAnswers.ownerName} readOnly aria-readonly="true" placeholder="Add your name in My Profile" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div>}{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<div className="space-y-2"><label htmlFor="website-client-phone" className="block font-medium">Number clients should see</label><Input id="website-client-phone" type="tel" value={websiteAnswers.phone} readOnly aria-readonly="true" placeholder="No public number added" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
       {step === 3 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
       {step === 4 && answers.template === 'guided-charlotte' && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Social profile</h2><p className="text-muted-foreground">Design 1 keeps its existing editorial photography. Your services appear as a text list without individual photos.</p><label className="block space-y-2"><span className="font-medium">Instagram handle or profile link (optional)</span><Input value={answers.instagram} onChange={event => update('instagram', event.target.value)} placeholder="@yourname" /></label></div>}
@@ -454,7 +482,7 @@ export default function GuidedWebsiteBuilder() {
         </div>
       </DialogContent>
     </Dialog>
-    <div className="flex justify-between gap-3"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)} className="h-12 px-5"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 5 && (step !== 1 || !!website?.custom_domain) && <Button onClick={next} disabled={needsTemplateChoice} className="h-12 px-6 font-semibold">{pickerMode && step === 0 && templateChosen ? `Continue with ${templateDisplayName(answers.template)}` : 'Continue'}<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
+    <div className="flex justify-between gap-3"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)} className="h-12 px-5"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 5 && (step !== 1 || !!website?.custom_domain && !secondMode || secondMode && !!answers.domain) && <Button onClick={next} disabled={needsTemplateChoice} className="h-12 px-6 font-semibold">{pickerMode && step === 0 && templateChosen ? `Continue with ${templateDisplayName(answers.template)}` : 'Continue'}<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
   </main></DashboardLayout>;
 }
 

@@ -23,13 +23,18 @@ type Props = {
   onCheck: () => void;
   onBuy: (payment: DomainPaymentChoice) => void;
   result: DomainResult | null;
+  suggestions: DomainResult[];
+  findingSuggestions: boolean;
+  onSelectSuggestion: (result: DomainResult) => void;
+  selectedDomain: string;
+  onSelectDomain: (domain: string) => void;
   order: DomainOrder | null;
   busy: string;
   previewOnly: boolean;
   onSkip: () => void;
 };
 
-export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, order, busy, previewOnly, onSkip }: Props) {
+export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, suggestions, findingSuggestions, onSelectSuggestion, selectedDomain, onSelectDomain, order, busy, previewOnly, onSkip }: Props) {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onCheck(); };
   const canBuy = !!result?.available && result.price !== null && !previewOnly && !currentDomain;
   const billing = useMemberBilling(canBuy);
@@ -54,6 +59,7 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
       <strong>{currentDomain}</strong>
       <p className="mt-1 text-sm text-muted-foreground">This domain is saved for your website. Publish the site to connect it.</p>
     </div> : <>
+      {previewOnly && selectedDomain && !result && <div className="rounded-lg border border-primary/50 bg-primary/10 p-4"><p className="text-sm font-semibold text-primary">Selected for your draft</p><strong className="mt-1 block break-all">{selectedDomain}</strong><p className="mt-1 text-xs text-muted-foreground">This domain has not been purchased or reserved.</p></div>}
       <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
         <div className="relative min-w-0 flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Domain name" value={input} onChange={event => onInput(event.target.value)} placeholder="yourbarbershop.com" autoComplete="off" className="h-14 border-border/80 bg-muted/50 pl-12 text-base focus-visible:ring-primary" /></div>
         <Button type="submit" variant="outline" disabled={!!busy} className="h-14 border-primary px-7 text-base font-semibold text-foreground hover:bg-primary/10 hover:text-foreground">{busy === 'Checking' ? 'Checking…' : 'Search'}</Button>
@@ -66,6 +72,7 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
         {result.available && result.price !== null ? <>
           <p className="mt-2">Available · {money(result.price, result.currency)} for the first year</p>
           {result.renewalPrice !== null && <p className="text-sm text-muted-foreground">Current renewal price: {money(result.renewalPrice, result.currency)}. Automatic renewal is off.</p>}
+          {previewOnly && <div className="mt-4 space-y-2"><Button type="button" variant={selectedDomain === result.domain ? 'default' : 'outline'} onClick={() => onSelectDomain(result.domain)} className="w-full border-primary sm:w-auto">{selectedDomain === result.domain ? 'Selected for your draft' : 'Select this domain'}</Button><p className="text-xs text-muted-foreground">Selecting saves the name for this draft. It does not purchase or reserve the domain.</p></div>}
           {!previewOnly && <div className="mt-4 border-t pt-4"><fieldset className="space-y-3" disabled={!!busy}>
             <legend className="mb-3 text-sm font-medium">How would you like to pay?</legend>
             {billing.isLoading && <p className="text-sm text-muted-foreground">Checking your saved cards…</p>}
@@ -97,6 +104,11 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
           </fieldset></div>}
           {previewOnly && <p className="mt-2 text-sm text-muted-foreground">Purchase is disabled in this preview.</p>}
         </> : <p className={`mt-2 text-sm font-medium ${!result.available ? 'text-red-200' : 'text-muted-foreground'}`}>{result.available ? 'We could not get a price for this domain. Please search again later.' : 'This domain is already taken. Try another name.'}</p>}
+      </div>}
+      {result && !result.available && (findingSuggestions || suggestions.length > 0) && <div className="space-y-3 rounded-lg border border-primary/40 p-4" aria-live="polite">
+        <h3 className="font-semibold">Available alternatives</h3>
+        {findingSuggestions ? <p className="text-sm text-muted-foreground">Checking similar names…</p> : <div className="grid gap-2">{suggestions.map(item => <button key={item.domain} type="button" onClick={() => onSelectSuggestion(item)} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-3 text-left hover:border-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><span className="min-w-0 break-all text-sm font-medium sm:text-base">{item.domain}</span><span className="shrink-0 text-sm text-primary">{money(item.price!, item.currency)} · Select →</span></button>)}</div>}
+        <p className="text-xs text-muted-foreground">Availability and price are checked again before purchase.</p>
       </div>}
       {order && <div className="rounded-lg border p-4" aria-live="polite">
         <strong>{order.domain}</strong>

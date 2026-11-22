@@ -2,6 +2,7 @@ export type GuidedTemplate = 'guided-charlotte' | 'guided-kait';
 
 export type GuidedWebsiteAnswers = {
   template: GuidedTemplate;
+  domain: string;
   businessName: string;
   ownerName: string;
   city: string;
@@ -17,7 +18,7 @@ export type GuidedWebsiteAnswers = {
 };
 
 export const emptyGuidedAnswers: GuidedWebsiteAnswers = {
-  template: 'guided-charlotte', businessName: '', ownerName: '', city: '', phone: '',
+  template: 'guided-charlotte', domain: '', businessName: '', ownerName: '', city: '', phone: '',
   hasBookingApp: null, bookingUrl: '', hours: '', hasInstagram: null, instagram: '', photoSourceUrl: '',
   services: '', photos: [],
 };
