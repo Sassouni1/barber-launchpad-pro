@@ -109,7 +109,7 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
         {order.last_error && <p className="mt-1 text-sm text-destructive">{order.last_error}</p>}
       </div>}
       <div className="border-t border-border/70 pt-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary"><Link2 className="h-5 w-5" /></span><div><p className="font-serif text-lg font-semibold">Decide on a domain later</p><p className="mt-1 text-sm text-muted-foreground">You can finish the rest of your website setup now.</p></div></div>
           <Button type="button" variant="outline" onClick={onSkip} className="h-11 shrink-0 border-primary/60 px-5 text-primary hover:bg-primary/10 hover:text-primary">Skip domain<ArrowRight className="ml-2 h-4 w-4" /></Button>
         </div>
