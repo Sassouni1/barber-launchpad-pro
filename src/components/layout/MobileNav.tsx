@@ -118,7 +118,8 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
   const restrictNav = isNewAccount && !allQuizzesPassed;
 
   
-  const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
+  // Only the supplier order page uses the supplier menu; manufacturers also get the member menu elsewhere.
+  const isManufacturerView = location.pathname === '/newtimes';
   const [viewOpen, setViewOpen] = useState(false);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
   const [memberPickerOpen, setMemberPickerOpen] = useState(false);
@@ -262,6 +263,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
               </SheetHeader>
               <div className="flex-1 overflow-auto p-4 space-y-2">
                 <NavRow to="/newtimes" icon={Package} label="Orders" onClick={closeMenu} />
+                {isManufacturer && !userIsAdmin && <NavRow to="/dashboard" icon={LayoutDashboard} label="Member Dashboard" onClick={closeMenu} />}
                 {userIsAdmin && (
                   <>
                     <div className="border-t border-border my-2" />
@@ -369,6 +371,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                 {!isAdminView && (
                   <>
                     {/* Member Links */}
+                    {isManufacturer && !userIsAdmin && <NavRow to="/newtimes" icon={Package} label="Supplier Orders" onClick={closeMenu} />}
                     <NavRow to="/dashboard" icon={LayoutDashboard} label="Dashboard" onClick={closeMenu} />
                     <NavRow to="/courses" icon={BookOpen} label="Training" onClick={closeMenu} />
                     {!restrictNav && (

@@ -5,9 +5,8 @@ import type { MemberAccess } from '@/contexts/AuthContext';
  * (verified purchase or admin grant); this only mirrors it for the UI. Database
  * rules enforce the same decision, so hiding pages is never the only guard.
  */
-export function memberGate(input: { isAdmin: boolean; isManufacturer: boolean; access: MemberAccess | null }): 'allow' | 'pending' {
+export function memberGate(input: { isAdmin: boolean; access: MemberAccess | null }): 'allow' | 'pending' {
   if (input.isAdmin) return 'allow';
-  if (input.isManufacturer) return 'allow'; // manufacturers are routed to their order pages separately
   if (!input.access) return 'pending';
   return input.access.allowed ? 'allow' : 'pending';
 }

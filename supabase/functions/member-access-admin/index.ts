@@ -14,7 +14,7 @@ import {
   normalizeEmailOrNull,
 } from "../_shared/memberAccess.ts";
 
-const VERSION = "member-access-admin/2026-11-22-v2";
+const VERSION = "member-access-admin/2026-11-22-v3";
 const reply = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
@@ -32,20 +32,19 @@ async function allUsers(db: Db) {
 }
 
 async function accountSnapshot(db: Db) {
-  const [users, rolesR, grantsR, certsR, ordersR, profilesR, cutoverR, isEnforced] = await Promise.all([
+  const [users, rolesR, grantsR, certsR, ordersR, profilesR, cutoverR] = await Promise.all([
     allUsers(db),
     db.from("user_roles").select("user_id, role"),
-    db.from("member_access_grants").select("id, user_id, email_normalized, source, status, status_reason, amount_cents, currency, paid_at, created_at, note, revoked_by_system, revoked_at"),
+    db.from("member_access_grants").select("id, user_id, email_normalized, source, status, status_reason, amount_cents, currency, paid_at, created_at, note, revoked_by, revoked_by_system, revoked_at"),
     db.from("certifications").select("user_id"),
     db.from("orders").select("user_id, stripe_checkout_session_id, status"),
     db.from("profiles").select("id, full_name"),
     db.rpc("member_access_new_account_cutover"),
-    enforced(db),
   ]);
   for (const r of [rolesR, grantsR, certsR, ordersR, profilesR, cutoverR]) if (r.error) throw new Error("snapshot_failed");
   // Same rule as public.member_legacy_access_allowed(): accounts created before the
-  // cutover keep temporary access while the full check is off, unless a purchase was
-  // refunded/disputed/revoked after the cutover. Manufacturer-only accounts never do.
+  // cutover keep member access (any role, whatever the full switch says) unless an
+  // admin explicitly revoked it after the cutover. Automatic refund updates never do.
   const cutover = new Date(String(cutoverR.data)).getTime();
   if (!Number.isFinite(cutover)) throw new Error("snapshot_failed");
   const roles = new Map<string, string[]>();
@@ -64,9 +63,8 @@ async function accountSnapshot(db: Db) {
     const isAdminRole = r.includes("admin");
     const activeGrant = own.some((g: any) => g.status === "active");
     const hasAccess = isAdminRole || activeGrant;
-    const manufacturerOnly = r.includes("manufacturer") && !isAdminRole;
-    const revokedSinceCutover = own.some((g: any) => g.status === "revoked" && g.revoked_at && new Date(g.revoked_at).getTime() >= cutover);
-    const temporaryAccess = !isEnforced && !hasAccess && !manufacturerOnly && !revokedSinceCutover && new Date(u.created_at).getTime() < cutover;
+    const adminRevokedSinceCutover = own.some((g: any) => g.status === "revoked" && g.revoked_by && !g.revoked_by_system && g.revoked_at && new Date(g.revoked_at).getTime() >= cutover);
+    const temporaryAccess = !hasAccess && !adminRevokedSinceCutover && new Date(u.created_at).getTime() < cutover;
     return {
       id: u.id,
       email: u.email,
@@ -108,8 +106,10 @@ function summarize(accounts: any[]) {
     admins: accounts.filter((a) => a.roles.includes("admin")).length,
     manufacturers: accounts.filter((a) => a.roles.includes("manufacturer") && !a.roles.includes("admin")).length,
     membersWithAccess: members.filter((a) => a.hasAccess).length,
-    membersWithoutAccess: members.filter((a) => !a.hasAccess).length,
-    membersTemporaryAccess: members.filter((a) => !a.hasAccess && a.temporaryAccess).length,
+    membersNoPurchaseMatched: members.filter((a) => !a.hasAccess).length,
+    // Accounts that would actually be blocked from member content (no purchase, grant or existing-account access).
+    membersWithoutAccess: accounts.filter((a) => !a.hasAccess && !a.temporaryAccess).length,
+    membersTemporaryAccess: accounts.filter((a) => !a.hasAccess && a.temporaryAccess).length,
     withoutAccessButCertified: members.filter((a) => !a.hasAccess && a.signals.certified).length,
     withoutAccessButLegacyOrders: members.filter((a) => !a.hasAccess && a.signals.legacyOrders > 0).length,
   };
@@ -328,8 +328,8 @@ Deno.serve(async (req) => {
         const revoked = (byId.data?.length ?? 0) + byEmailCount;
         let endedTemporaryAccess = false;
         if (revoked === 0) {
-          // No purchase on record: record the decision so a pre-cutover account's
-          // temporary access ends too (logged in the permanent history by trigger).
+          // No purchase on record: record the admin's decision so a pre-cutover account's
+          // existing-account access ends too (logged in the permanent history by trigger).
           const { error: markErr } = await db.from("member_access_grants").insert({
             user_id: target.user.id, email_normalized: email, source: "admin_grant",
             evidence_ref: `admin-end-temporary:${crypto.randomUUID()}`, ...patch, granted_by: user.id, note: reason,

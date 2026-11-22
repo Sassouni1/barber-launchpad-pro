@@ -46,11 +46,9 @@ export function ProtectedRoute({ children, requireAdmin = false, requireManufact
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (isManufacturer && !isAdmin && !requireManufacturer) {
-    return <Navigate to="/newtimes" replace />;
-  }
-
-  if (memberGate({ isAdmin, isManufacturer, access: memberAccess }) === 'pending') {
+  // Manufacturer pages are separate from member content; every other page follows the
+  // server's member-access decision (existing accounts, including the manufacturer, keep access).
+  if (!requireManufacturer && memberGate({ isAdmin, access: memberAccess }) === 'pending') {
     return <AccessPending />;
   }
 

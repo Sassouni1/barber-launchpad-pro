@@ -303,7 +303,8 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
 
   
   // Detect if we're currently in the manufacturer/supplier view
-  const isManufacturerView = location.pathname === '/newtimes' || (isManufacturer && !userIsAdmin);
+  // Only the supplier order page uses the supplier menu; manufacturers also get the member menu elsewhere.
+  const isManufacturerView = location.pathname === '/newtimes';
   
   const { data: checklistLists = [] } = useChecklistLists();
   const websiteMenuPath = myWebsiteMenuPath(user?.id);
@@ -389,13 +390,17 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
           {!collapsed && 'Navigation'}
         </div>
         {isManufacturerView ? (
-          <NavItem to="/newtimes" icon={Package} label="Orders" collapsed={collapsed} />
+          <>
+            <NavItem to="/newtimes" icon={Package} label="Orders" collapsed={collapsed} />
+            {isManufacturer && !userIsAdmin && <NavItem to="/dashboard" icon={LayoutDashboard} label="Member Dashboard" collapsed={collapsed} />}
+          </>
         ) : isAdminView ? (
           links.map((link) => (
             <NavItem key={link.to} {...link} collapsed={collapsed} />
           ))
         ) : (
           <>
+            {isManufacturer && !userIsAdmin && <NavItem to="/newtimes" icon={Package} label="Supplier Orders" collapsed={collapsed} />}
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
             <NavItem to="/courses" icon={BookOpen} label="Training" collapsed={collapsed} />
             <TrainingGamesSubNavItem collapsed={collapsed} />

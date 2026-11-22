@@ -135,3 +135,5 @@
 - [x] Published and verified live desktop + mobile.
 - [ ] Move public/lesson-assets (85 files) + installation checklist PDF behind sign-in (not started)
 - [ ] Vimeo domain-only playback (blocked: Vimeo account setting)
+
+- [x] Chris 2026-11-22: every existing account (incl. 36 unmatched + manufacturer) keeps member access; only explicit admin revocation ends it; manufacturer gets member menu + Supplier Orders link.

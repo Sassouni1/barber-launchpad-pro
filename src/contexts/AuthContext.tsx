@@ -13,7 +13,7 @@ const ADMIN_MODE_KEY = 'adminModeActive';
 export interface MemberAccess {
   enforced: boolean;
   hasAccess: boolean;
-  /** Temporary access for accounts created before the new-account cutover (server decides). */
+  /** Existing-account access for accounts created before the new-account cutover (server decides). */
   legacy: boolean;
   allowed: boolean;
 }

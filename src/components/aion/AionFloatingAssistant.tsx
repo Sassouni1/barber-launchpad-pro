@@ -23,7 +23,7 @@ function readState(): AssistantState {
 export function AionFloatingAssistant() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading: authLoading, isManufacturer, isAdmin, memberAccess } = useAuth();
+  const { user, loading: authLoading, isAdmin, memberAccess } = useAuth();
   const { conversations, isLoading: conversationsLoading, createConversation, updateTitle } = useAionConversations();
   const [panelState, setPanelState] = useState<AssistantState>(readState);
   const [activeId, setActiveId] = useState<string | null>(() => (
@@ -35,8 +35,8 @@ export function AionFloatingAssistant() {
 
   const isMemberPath = isAionAssistantPath(location.pathname);
   const shouldRender = Boolean(
-    !authLoading && user && !isManufacturer && isMemberPath && location.pathname !== '/aion'
-      && memberGate({ isAdmin, isManufacturer, access: memberAccess }) === 'allow'
+    !authLoading && user && isMemberPath && location.pathname !== '/aion'
+      && memberGate({ isAdmin, access: memberAccess }) === 'allow'
   );
 
   const setPersistentState = useCallback((next: AssistantState) => {
