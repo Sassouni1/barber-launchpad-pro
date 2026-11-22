@@ -23,6 +23,7 @@ type Props = {
   onInput: (value: string) => void;
   onCheck: () => void;
   onBuy: (payment: DomainPaymentChoice) => void;
+  onResume: (order: DomainOrder) => void;
   result: DomainResult | null;
   suggestions: DomainResult[];
   findingSuggestions: boolean;
@@ -38,7 +39,7 @@ type Props = {
   onCheckoutBack: () => void;
 };
 
-export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, suggestions, findingSuggestions, onSelectSuggestion, selectedDomain, onSelectDomain, order, busy, previewOnly, onSkip, checkoutClientSecret, onCheckoutComplete, onCheckoutBack }: Props) {
+export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, onResume, result, suggestions, findingSuggestions, onSelectSuggestion, selectedDomain, onSelectDomain, order, busy, previewOnly, onSkip, checkoutClientSecret, onCheckoutComplete, onCheckoutBack }: Props) {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onCheck(); };
   const canBuy = !!result?.available && result.price !== null && !previewOnly && !currentDomain;
   const billing = useMemberBilling(canBuy);
@@ -123,13 +124,16 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
         <p className="mt-1 text-sm">{order.status === 'registered'
           ? 'Purchased and ready to connect when you publish.'
           : order.status === 'checkout_open'
-            ? 'Checkout is unfinished. Search this domain again to resume payment.'
+            ? 'Checkout is unfinished. You can pick up where you left off.'
             : order.status === 'checkout_pending'
               ? 'Preparing your checkout. Refresh this page in a moment.'
           : order.status === 'action_required'
             ? 'Your payment or registration needs a manual review. Contact support before trying again.'
             : 'Checkout or registration is still processing.'}</p>
         {order.last_error && <p className="mt-1 text-sm text-destructive">{order.last_error}</p>}
+        {order.status === 'checkout_open' && !previewOnly && <Button type="button" onClick={() => onResume(order)} disabled={!!busy} className="mt-4 h-11 w-full font-semibold sm:w-auto">
+          {busy ? 'Opening checkout…' : 'Resume checkout'}<ArrowRight className="ml-2 h-4 w-4" />
+        </Button>}
       </div>}
       {!checkoutClientSecret && <div className="border-t border-border/70 pt-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

@@ -366,20 +366,20 @@ export default function GuidedWebsiteBuilder() {
     finally { setDomainBusy(''); }
   };
 
-  const buyDomain = async (payment: DomainPaymentChoice) => {
+  const openDomainCheckout = async (confirmed: DomainResult, payment: DomainPaymentChoice) => {
     if (previewOnly) { toast.info('Domain purchase is unavailable in preview mode.'); return; }
-    if (!domainResult?.available || domainResult.price === null || domainResult.domain !== domainInput) return;
+    if (!confirmed.available || confirmed.price === null) return;
     if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) { toast.error('Secure checkout is unavailable right now.'); return; }
     setDomainBusy('Opening checkout');
     try {
       await saveDraft();
       const { data, error } = await supabase.functions.invoke('cloudflare-domains', {
-        body: { action: 'checkout', domain: domainResult.domain,
-          confirmedDomain: domainResult.domain, confirmedPrice: domainResult.price, payment, secondMode },
+        body: { action: 'checkout', domain: confirmed.domain,
+          confirmedDomain: confirmed.domain, confirmedPrice: confirmed.price, payment, secondMode },
       });
       if (error) {
         const details = error instanceof FunctionsHttpError ? await error.context.json().catch(() => null) : null;
-        if (details?.current && details.current.domain === domainResult.domain) {
+        if (details?.current && details.current.domain === confirmed.domain) {
           // The price or availability changed: show the new total and require a fresh confirmation.
           setDomainResult(details.current as DomainResult);
         }
@@ -389,6 +389,38 @@ export default function GuidedWebsiteBuilder() {
       if (typeof data?.clientSecret !== 'string' || !data.clientSecret.startsWith('cs_')) throw new Error('Secure checkout could not open.');
       setDomainCheckoutClientSecret(data.clientSecret);
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not start domain checkout.'); }
+    finally { setDomainBusy(''); }
+  };
+
+  const buyDomain = async (payment: DomainPaymentChoice) => {
+    if (!domainResult?.available || domainResult.price === null || domainResult.domain !== domainInput) return;
+    await openDomainCheckout(domainResult, payment);
+  };
+
+  const resumeDomainOrder = async (order: DomainOrder) => {
+    if (previewOnly || order.status !== 'checkout_open' || domainBusy) return;
+    const searchId = ++domainSearchId.current;
+    setDomainInput(order.domain);
+    setDomainResult(null);
+    setDomainSuggestions([]);
+    setFindingDomainSuggestions(false);
+    setDomainBusy('Checking');
+    try {
+      const { data, error } = await supabase.functions.invoke('cloudflare-domains', {
+        body: { action: 'check', domains: [order.domain] },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || 'Could not check that domain.');
+      if (searchId !== domainSearchId.current) return;
+      const checked = (data?.results?.[0] || null) as DomainResult | null;
+      setDomainResult(checked);
+      if (!checked?.available || checked.price === null) {
+        throw new Error('This domain is no longer available. Search for another name.');
+      }
+      if (checked.currency.toUpperCase() !== 'USD' || Math.round(checked.price * 100) !== order.member_charge_cents) {
+        throw new Error('The price changed since your earlier checkout. Contact support before retrying.');
+      }
+      await openDomainCheckout(checked, { method: 'new', saveCard: false });
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not resume checkout.'); }
     finally { setDomainBusy(''); }
   };
 
@@ -466,7 +498,7 @@ export default function GuidedWebsiteBuilder() {
           </article>)}
         </div>
       </div>}
-      {step === 1 && <DomainSetupStep currentDomain={website?.custom_domain || null} input={domainInput} onInput={value => { domainSearchId.current++; setDomainInput(value); setDomainResult(null); setDomainSuggestions([]); setFindingDomainSuggestions(false); if (answers.domain !== value) update('domain', ''); }} onCheck={() => void checkDomain()} onBuy={payment => void buyDomain(payment)} onSkip={next} result={domainResult} suggestions={domainSuggestions} findingSuggestions={findingDomainSuggestions} onSelectSuggestion={item => { domainSearchId.current++; setDomainInput(item.domain); setDomainResult(item); setDomainSuggestions([]); setFindingDomainSuggestions(false); }} selectedDomain={answers.domain} onSelectDomain={domain => update('domain', domain)} order={domainOrder} busy={domainBusy} previewOnly={previewOnly} checkoutClientSecret={domainCheckoutClientSecret} onCheckoutComplete={() => void domainCheckoutComplete()} onCheckoutBack={() => setDomainCheckoutClientSecret(null)} />}
+      {step === 1 && <DomainSetupStep currentDomain={website?.custom_domain || null} input={domainInput} onInput={value => { domainSearchId.current++; setDomainInput(value); setDomainResult(null); setDomainSuggestions([]); setFindingDomainSuggestions(false); if (answers.domain !== value) update('domain', ''); }} onCheck={() => void checkDomain()} onBuy={payment => void buyDomain(payment)} onResume={order => void resumeDomainOrder(order)} onSkip={next} result={domainResult} suggestions={domainSuggestions} findingSuggestions={findingDomainSuggestions} onSelectSuggestion={item => { domainSearchId.current++; setDomainInput(item.domain); setDomainResult(item); setDomainSuggestions([]); setFindingDomainSuggestions(false); }} selectedDomain={answers.domain} onSelectDomain={domain => update('domain', domain)} order={domainOrder} busy={domainBusy} previewOnly={previewOnly} checkoutClientSecret={domainCheckoutClientSecret} onCheckoutComplete={() => void domainCheckoutComplete()} onCheckoutBack={() => setDomainCheckoutClientSecret(null)} />}
       {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" />{!isBusinessOwner && <div className="space-y-2"><label htmlFor="website-client-name" className="block font-medium">Name clients will see</label><Input id="website-client-name" value={websiteAnswers.ownerName} readOnly aria-readonly="true" placeholder="Add your name in My Profile" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div>}{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<div className="space-y-2"><label htmlFor="website-client-phone" className="block font-medium">Number clients should see</label><Input id="website-client-phone" type="tel" value={websiteAnswers.phone} readOnly aria-readonly="true" placeholder="No public number added" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
       {step === 3 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
       {step === 4 && answers.template === 'guided-charlotte' && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Social profile</h2><p className="text-muted-foreground">Design 1 keeps its existing editorial photography. Your services appear as a text list without individual photos.</p><label className="block space-y-2"><span className="font-medium">Instagram handle or profile link (optional)</span><Input value={answers.instagram} onChange={event => update('instagram', event.target.value)} placeholder="@yourname" /></label></div>}
