@@ -58,10 +58,10 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
         <div className="relative min-w-0 flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Domain name" value={input} onChange={event => onInput(event.target.value)} placeholder="yourbarbershop.com" autoComplete="off" className="h-14 border-border/80 bg-muted/50 pl-12 text-base focus-visible:ring-primary" /></div>
         <Button type="submit" variant="outline" disabled={!!busy} className="h-14 border-primary px-7 text-base font-semibold text-foreground hover:bg-primary/10 hover:text-foreground">{busy === 'Checking' ? 'Checking…' : 'Search'}</Button>
       </form>
-      {result && <div className={`rounded-lg border p-4 ${!result.available ? 'border-destructive/70 bg-destructive/10' : ''}`} aria-live="polite">
+      {result && <div className={`rounded-lg border p-4 ${!result.available ? 'border-red-500/80 bg-red-950/40' : ''}`} aria-live="polite">
         <div className="flex flex-wrap items-center gap-2">
           <strong className="break-all">{result.domain}</strong>
-          {!result.available && <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground"><CircleX className="h-3.5 w-3.5" />Not available</span>}
+          {!result.available && <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white"><CircleX className="h-3.5 w-3.5" />Not available</span>}
         </div>
         {result.available && result.price !== null ? <>
           <p className="mt-2">Available · {money(result.price, result.currency)} for the first year</p>
@@ -96,7 +96,7 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
             <p className="text-xs text-muted-foreground">Manage saved cards on your <Link to="/billing" className="underline">Billing</Link> page.</p>
           </fieldset></div>}
           {previewOnly && <p className="mt-2 text-sm text-muted-foreground">Purchase is disabled in this preview.</p>}
-        </> : <p className={`mt-2 text-sm font-medium ${!result.available ? 'text-destructive' : 'text-muted-foreground'}`}>{result.available ? 'We could not get a price for this domain. Please search again later.' : 'This domain is already taken. Try another name.'}</p>}
+        </> : <p className={`mt-2 text-sm font-medium ${!result.available ? 'text-red-200' : 'text-muted-foreground'}`}>{result.available ? 'We could not get a price for this domain. Please search again later.' : 'This domain is already taken. Try another name.'}</p>}
       </div>}
       {order && <div className="rounded-lg border p-4" aria-live="polite">
         <strong>{order.domain}</strong>
