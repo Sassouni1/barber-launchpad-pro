@@ -5,10 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Eye, EyeOff, LifeBuoy, LogIn } from 'lucide-react';
+import { Loader2, Eye, EyeOff, LifeBuoy, LogIn, CheckCircle2 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { resolvePostAuthPath } from '@/lib/metaReviewerLanding';
+import {
+  CHECKOUT_SESSION_KEY, checkoutProblemText, isCheckoutSessionId, takeCheckoutSessionFromSearch, toCheckoutProblem,
+  type CheckoutProblem,
+} from '@/lib/checkoutSignup';
 
 export default function CreateAccount() {
   const [loading, setLoading] = useState(false);
@@ -26,6 +30,45 @@ export default function CreateAccount() {
   const navigate = useNavigate();
   const location = useLocation();
   const fromRef = useRef((location.state as { from?: Parameters<typeof resolvePostAuthPath>[1] } | null)?.from);
+  // Paid on-site checkout: the session id is the proof; the server verifies it with Stripe.
+  const [checkoutSession, setCheckoutSession] = useState<string | null>(() => {
+    const fromUrl = takeCheckoutSessionFromSearch(location.search).sessionId;
+    if (fromUrl) return fromUrl;
+    try { const saved = sessionStorage.getItem(CHECKOUT_SESSION_KEY); return isCheckoutSessionId(saved) ? saved : null; } catch { return null; }
+  });
+  const [checkoutState, setCheckoutState] = useState<'checking' | 'verified' | CheckoutProblem>('checking');
+
+  useEffect(() => {
+    const { sessionId, rest } = takeCheckoutSessionFromSearch(location.search);
+    if (!sessionId) return;
+    try { sessionStorage.setItem(CHECKOUT_SESSION_KEY, sessionId); } catch { /* ignore */ }
+    navigate({ pathname: location.pathname, search: rest }, { replace: true, state: location.state });
+  }, [location.search, location.pathname, location.state, navigate]);
+
+  const callCheckoutSignup = async (body: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke('member-checkout-signup', { body });
+    if (data) return data as { ok: boolean; reason?: string; status?: string };
+    let parsed: { ok: boolean; reason?: string } | null = null;
+    try { parsed = await (error as any)?.context?.json?.(); } catch { /* ignore */ }
+    return parsed ?? { ok: false, reason: 'check_unavailable' };
+  };
+
+  const verifyCheckout = async (sessionId: string) => {
+    setCheckoutState('checking');
+    const res = await callCheckoutSignup({ action: 'verify', sessionId });
+    setCheckoutState(res.ok ? 'verified' : toCheckoutProblem(res.reason));
+  };
+
+  useEffect(() => {
+    if (checkoutSession) void verifyCheckout(checkoutSession);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkoutSession]);
+
+  const leaveCheckoutPath = () => {
+    try { sessionStorage.removeItem(CHECKOUT_SESSION_KEY); } catch { /* ignore */ }
+    setCheckoutSession(null);
+    setStep('email');
+  };
 
   useEffect(() => {
     const goAfterAuth = (user: Parameters<typeof resolvePostAuthPath>[0]) => {
@@ -101,6 +144,30 @@ export default function CreateAccount() {
 
     setLoading(true);
     try {
+      if (checkoutSession && checkoutState === 'verified') {
+        // The server re-verifies the paid checkout, then creates exactly one account for it.
+        const res = await callCheckoutSignup({
+          action: 'create',
+          sessionId: checkoutSession,
+          email: email.trim(),
+          password,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phone: phone.trim(),
+          redirectTo: `${window.location.origin}/`,
+        });
+        if (res.ok) {
+          try { sessionStorage.removeItem(CHECKOUT_SESSION_KEY); } catch { /* ignore */ }
+          setConfirmSentTo(email.trim());
+        } else if (res.reason === 'email_in_use') {
+          toast.error('An account already uses this email. Sign in, or choose a different email.');
+        } else if (['invalid_email', 'weak_password', 'name_required'].includes(res.reason ?? '')) {
+          showProblem(res.reason);
+        } else {
+          setCheckoutState(toCheckoutProblem(res.reason));
+        }
+        return;
+      }
       // The server re-checks the purchase and only then creates the account.
       const res = await callSignup({
         action: 'create',
@@ -148,6 +215,29 @@ export default function CreateAccount() {
             </p>
             <Button asChild className="w-full"><Link to="/login">Go to sign in</Link></Button>
           </div>
+        ) : checkoutSession && checkoutState === 'checking' ? (
+          <div role="status" className="flex items-center justify-center gap-3 rounded-2xl border border-primary/30 bg-card p-6 text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />Checking your payment...
+          </div>
+        ) : checkoutSession && checkoutState !== 'verified' ? (
+          <div role="alert" className="space-y-4 rounded-2xl border border-primary/30 bg-card p-6 text-center">
+            <h2 className="text-xl font-display font-semibold text-foreground">{checkoutProblemText[checkoutState].title}</h2>
+            <p className="text-muted-foreground">{checkoutProblemText[checkoutState].body}</p>
+            <div className="flex flex-col gap-3">
+              <Button asChild className="w-full gold-gradient text-primary-foreground hover:opacity-90">
+                <Link to="/login"><LogIn className="w-4 h-4 mr-2" />Sign in</Link>
+              </Button>
+              {['not_verified', 'in_progress', 'check_unavailable'].includes(checkoutState) && (
+                <Button variant="outline" className="w-full" onClick={() => void verifyCheckout(checkoutSession)}>Try again</Button>
+              )}
+              {checkoutState === 'not_verified' && (
+                <Button variant="outline" className="w-full" onClick={leaveCheckoutPath}>Use my checkout email instead</Button>
+              )}
+              <Button asChild variant="ghost" className="w-full">
+                <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Barber Launch account access')}`}><LifeBuoy className="w-4 h-4 mr-2" />Contact Support</a>
+              </Button>
+            </div>
+          </div>
         ) : step === 'no_match' ? (
           <div role="alert" className="space-y-4 rounded-2xl border border-primary/30 bg-card p-6 text-center">
             <h2 className="text-xl font-display font-semibold text-foreground">We couldn't verify a purchase</h2>
@@ -164,7 +254,7 @@ export default function CreateAccount() {
               <Button variant="ghost" className="w-full" onClick={() => setStep('email')}>Try another email</Button>
             </div>
           </div>
-        ) : step === 'email' ? (
+        ) : step === 'email' && !checkoutSession ? (
           <form onSubmit={handleCheck} className="space-y-6">
             <div>
               <Label htmlFor="checkout-email">Email used at checkout</Label>
@@ -193,10 +283,19 @@ export default function CreateAccount() {
           </form>
         ) : (
         <form onSubmit={handleSignUp} className="space-y-6">
-          <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
-            Purchase found for <span className="font-medium break-all">{email.trim()}</span>. Finish creating your account.{' '}
-            <button type="button" className="text-primary hover:underline" onClick={() => setStep('email')}>Change</button>
-          </p>
+          {checkoutSession ? (
+            <div role="status" className="flex gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-primary" aria-hidden="true" />
+              <p>
+                <span className="font-medium">Payment verified.</span> Choose the email you want to sign in with. It doesn't have to be the one you used at checkout. We'll send a confirmation link to it.
+              </p>
+            </div>
+          ) : (
+            <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
+              Purchase found for <span className="font-medium break-all">{email.trim()}</span>. Finish creating your account.{' '}
+              <button type="button" className="text-primary hover:underline" onClick={() => setStep('email')}>Change</button>
+            </p>
+          )}
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -224,6 +323,21 @@ export default function CreateAccount() {
                 />
               </div>
             </div>
+            {checkoutSession && (
+              <div>
+                <Label htmlFor="login-email">Login email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="mt-1"
+                />
+              </div>
+            )}
             <div>
               <Label htmlFor="phone">Phone Number <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input

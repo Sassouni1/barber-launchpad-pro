@@ -169,6 +169,13 @@
       "when": 1795322020105,
       "tag": "0023_website_hair_inquiry_delivery_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795323287784,
+      "tag": "0024_member_checkout_session_claims",
+      "breakpoints": true
     }
   ]
 }

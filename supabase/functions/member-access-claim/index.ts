@@ -5,6 +5,7 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { adminClient, rateLimit, requireUser, stripeSecretFor } from "../_shared/affiliate.ts";
 import { classifyStripeCharge, normalizeEmailOrNull } from "../_shared/memberAccess.ts";
+import { withoutConsumed } from "../_shared/memberPurchaseLookup.ts";
 
 const VERSION = "member-access-claim/2026-11-22-v1";
 const reply = (body: unknown, status = 200) =>
@@ -63,6 +64,10 @@ Deno.serve(async (req) => {
       }
     }
   }
+  // Payments already bound to another account (e.g. claimed via a paid checkout session) never qualify again.
+  const unused = await withoutConsumed(db, grantRows);
+  if (unused === null) return reply({ version: VERSION, hasAccess: false, reason: "check_unavailable" }, 503);
+  grantRows.splice(0, grantRows.length, ...unused);
   if (grantRows.length) {
     const { error } = await db.from("member_access_grants").upsert(grantRows, { onConflict: "source,evidence_ref", ignoreDuplicates: true });
     if (error) return reply({ version: VERSION, hasAccess: false, reason: "check_unavailable" }, 500);

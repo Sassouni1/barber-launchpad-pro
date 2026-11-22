@@ -138,3 +138,8 @@
 
 - [x] Chris 2026-11-22: every existing account (incl. 36 unmatched + manufacturer) keeps member access; only explicit admin revocation ends it; manufacturer gets member menu + Supplier Orders link.
 - [x] Final verification without manufacturer login: all-111 DB decisions, rolled-back manufacturer JWT simulation, anon denial, course-files private, live publish confirmed
+
+## Paid checkout account claim
+- [x] member-checkout-signup: Stripe-verified live enrollment session as single-use proof, atomic claim binding to one new account, any login email, standard confirmation only; consumed payments excluded from checkout-email and self-check paths.
+- [x] Rule tests, rolled-back claim rehearsal, real two-connection concurrency check, live denials (made-up, test-mode, unpaid real session); /create checkout flow on desktop/phone.
+- [ ] Real paid buyer end-to-end (waits on the first real purchase; no test purchase or real buyer account made).

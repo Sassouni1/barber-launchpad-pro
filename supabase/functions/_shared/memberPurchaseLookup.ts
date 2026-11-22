@@ -12,8 +12,10 @@ export type PurchaseLookup =
   | { status: "unavailable" };
 
 export async function lookupQualifyingPurchase(db: SupabaseClient, email: string): Promise<PurchaseLookup> {
+  // Grants already bound to an account (e.g. a paid checkout claimed with a different
+  // login email) are consumed and never qualify another account.
   const { data: grants, error: gErr } = await db.from("member_access_grants").select("id")
-    .eq("status", "active").eq("email_normalized", email).limit(1);
+    .eq("status", "active").eq("email_normalized", email).is("user_id", null).limit(1);
   if (gErr) return { status: "unavailable" };
   if ((grants ?? []).length) return { status: "matched", freshGrants: [] };
 
@@ -24,7 +26,10 @@ export async function lookupQualifyingPurchase(db: SupabaseClient, email: string
     email_normalized: email, source: e.source, evidence_ref: e.evidence_ref, amount_cents: e.amount_cents,
     currency: e.currency, paid_at: e.paid_at, description: e.description, status_reason: "signup_audited_payment",
   }));
-  if (freshGrants.length) return { status: "matched", freshGrants };
+  const audited = await withoutConsumed(db, freshGrants);
+  if (audited === null) return { status: "unavailable" };
+  if (audited.length) return { status: "matched", freshGrants: audited };
+  freshGrants.length = 0;
 
   // Fresh read: Stripe customers with this exact email -> their charges.
   if (email.includes("'") || email.includes("\\")) return { status: "no_match" };
@@ -55,7 +60,27 @@ export async function lookupQualifyingPurchase(db: SupabaseClient, email: string
       }
     }
   }
-  return freshGrants.length ? { status: "matched", freshGrants } : { status: "no_match" };
+  const fresh = await withoutConsumed(db, freshGrants);
+  if (fresh === null) return { status: "unavailable" };
+  return fresh.length ? { status: "matched", freshGrants: fresh } : { status: "no_match" };
+}
+
+/** Drops payments already bound to an account or claimed through a paid checkout session. */
+export async function withoutConsumed(db: SupabaseClient, candidates: Record<string, unknown>[]) {
+  if (!candidates.length) return candidates;
+  const refs = [...new Set(candidates.map((g) => String(g.evidence_ref)))];
+  const [bound, claimedCharge, claimedPi] = await Promise.all([
+    db.from("member_access_grants").select("source, evidence_ref").in("evidence_ref", refs).not("user_id", "is", null),
+    db.from("member_checkout_claims").select("charge_id").in("charge_id", refs),
+    db.from("member_checkout_claims").select("payment_intent_id").in("payment_intent_id", refs),
+  ]);
+  if (bound.error || claimedCharge.error || claimedPi.error) return null;
+  const used = new Set<string>([
+    ...(bound.data ?? []).map((g: any) => `${g.source}:${g.evidence_ref}`),
+    ...(claimedCharge.data ?? []).map((c: any) => `*:${c.charge_id}`),
+    ...(claimedPi.data ?? []).map((c: any) => `*:${c.payment_intent_id}`),
+  ]);
+  return candidates.filter((g) => !used.has(`${g.source}:${g.evidence_ref}`) && !used.has(`*:${g.evidence_ref}`));
 }
 
 /** Only these sites may receive the confirmation link. */

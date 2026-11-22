@@ -3534,6 +3534,69 @@ export type Database = {
           },
         ]
       }
+      member_checkout_claims: {
+        Row: {
+          amount_cents: number | null
+          attempts: number
+          charge_id: string | null
+          checkout_email_normalized: string | null
+          checkout_session_id: string
+          claimed_at: string | null
+          created_at: string
+          currency: string | null
+          grant_id: string | null
+          last_error: string | null
+          login_email_normalized: string | null
+          paid_at: string | null
+          payment_intent_id: string | null
+          reservation_id: string
+          reserved_until: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          attempts?: number
+          charge_id?: string | null
+          checkout_email_normalized?: string | null
+          checkout_session_id: string
+          claimed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          grant_id?: string | null
+          last_error?: string | null
+          login_email_normalized?: string | null
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          reservation_id: string
+          reserved_until: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          attempts?: number
+          charge_id?: string | null
+          checkout_email_normalized?: string | null
+          checkout_session_id?: string
+          claimed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          grant_id?: string | null
+          last_error?: string | null
+          login_email_normalized?: string | null
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          reservation_id?: string
+          reserved_until?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       member_onboarding_profiles: {
         Row: {
           booking_app_status: string | null
@@ -6133,6 +6196,36 @@ export type Database = {
       member_access_payment_exclusion: {
         Args: { _p: Database["public"]["Tables"]["affiliate_payments"]["Row"] }
         Returns: string
+      }
+      member_checkout_claim_attach_user: {
+        Args: { _reservation: string; _session_id: string; _user_id: string }
+        Returns: boolean
+      }
+      member_checkout_claim_complete: {
+        Args: { _reservation: string; _session_id: string; _user_id: string }
+        Returns: string
+      }
+      member_checkout_claim_release: {
+        Args: { _error: string; _reservation: string; _session_id: string }
+        Returns: boolean
+      }
+      member_checkout_claim_reserve: {
+        Args: {
+          _amount: number
+          _charge: string
+          _checkout_email: string
+          _currency: string
+          _login_email: string
+          _paid_at: string
+          _payment_intent: string
+          _reservation: string
+          _session_id: string
+        }
+        Returns: string
+      }
+      member_checkout_email_has_account: {
+        Args: { _email: string }
+        Returns: boolean
       }
       member_content_allowed: { Args: never; Returns: boolean }
       member_content_allowed_for: {
