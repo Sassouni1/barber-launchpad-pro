@@ -418,6 +418,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/social-media-post" icon={Megaphone} label="Content Library" />
               <SubNavItem to="/my-links" icon={CreditCard} label="My Links" />
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" emphasize={reviewerOnAds} />
+              <SubNavItem to="/messenger" icon={MessageSquare} label="Facebook Messages" />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
               {websiteMenuPath && <SubNavItem to={websiteMenuPath} icon={Globe} label="My Website" />}
               {canAccessSecondWebsite(user?.email, userIsAdmin) && <SubNavItem to="/my-website?second=1" icon={Globe} label="Build Website" />}
