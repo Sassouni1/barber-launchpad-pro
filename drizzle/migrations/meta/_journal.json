@@ -176,6 +176,13 @@
       "when": 1795323287784,
       "tag": "0024_member_checkout_session_claims",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795323795407,
+      "tag": "0025_checkout_claims_no_visitor_access",
+      "breakpoints": true
     }
   ]
 }
