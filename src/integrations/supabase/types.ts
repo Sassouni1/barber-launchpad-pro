@@ -3597,6 +3597,54 @@ export type Database = {
         }
         Relationships: []
       }
+      member_domain_orders: {
+        Row: {
+          cloudflare_cost_cents: number
+          cloudflare_registration_state: string | null
+          created_at: string
+          currency: string
+          domain: string
+          id: string
+          last_error: string | null
+          member_charge_cents: number
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cloudflare_cost_cents: number
+          cloudflare_registration_state?: string | null
+          created_at?: string
+          currency?: string
+          domain: string
+          id?: string
+          last_error?: string | null
+          member_charge_cents: number
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cloudflare_cost_cents?: number
+          cloudflare_registration_state?: string | null
+          created_at?: string
+          currency?: string
+          domain?: string
+          id?: string
+          last_error?: string | null
+          member_charge_cents?: number
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       member_onboarding_profiles: {
         Row: {
           booking_app_status: string | null
