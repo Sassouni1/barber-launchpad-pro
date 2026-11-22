@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { manufacturerOrderView, highlightedOrderFromQuery } from './manufacturerOrderDetails.ts';
 
+test('supplier curl wording spells out water waves', () => {
+  for (const curl of ['Waves', 'water', 'Water Waves', 'Wave unit']) {
+    const view = manufacturerOrderView({ customerName: 'Buyer', customerEmail: '', orderDetails: { 'Curl Pattern': curl } });
+    assert.equal(view.specs.find(spec => spec.label === 'Curl pattern')?.value, 'Water waves');
+  }
+});
+
 test('order query identifies the card to highlight', () => {
   assert.equal(highlightedOrderFromQuery('?order=ghl%2F123'), 'ghl/123');
   assert.equal(highlightedOrderFromQuery('?order='), '');

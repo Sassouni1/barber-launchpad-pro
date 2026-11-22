@@ -357,7 +357,9 @@ function OrderCard({ order, now, index, isHighlighted = false, kitLabelPreview =
               {specs.map((spec, i) => (
                 <div key={i} className="text-sm flex items-center gap-1.5">
                   <span className="text-muted-foreground">{spec.label}: </span>
-                  <span className="font-medium">{spec.value}</span>
+                  <span className={spec.label === 'Curl pattern' && spec.value === 'Water waves'
+                    ? 'rounded-sm bg-amber-300 px-1 font-bold text-black'
+                    : 'font-medium'}>{spec.value}</span>
                   <CopyBtn text={spec.value} label={spec.label} />
                 </div>
               ))}

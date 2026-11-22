@@ -75,11 +75,15 @@ export function manufacturerOrderView(input: { orderDetails: unknown; customerNa
     [text(shipping.zip) || text(shipping.postal_code), text(shipping.country)].filter(Boolean).join(' '),
   ].filter(Boolean);
   const curl = first(details, ['Curl Pattern', 'Curl Pattern — only if needed']);
+  const supplierCurl = /^(?:water\s*)?waves?$|^water$|^wave unit$/i.test(curl)
+    ? 'Water waves'
+    : curl;
   const specs = isKit ? [] : SPEC_FIELDS.filter(field => (isManualIndividual || field.label === 'Salon service requested')
     ? Boolean(first(details, [...field.keys])) : true).map(field => ({
     label: field.label,
     value: field.label === 'Curl pattern' && curl === 'Standard' ? 'Standard · 3.0 CM'
       : field.label === 'Curl pattern' && curl === 'Extra straight' ? 'Extra straight · 4.0 CM'
+      : field.label === 'Curl pattern' && supplierCurl === 'Water waves' ? supplierCurl
       : field.label === 'Hair length' && first(details, ['Hair Length']) === 'Standard' ? 'Standard · 5"'
       : first(details, [...field.keys]) || 'Not provided',
   }));
