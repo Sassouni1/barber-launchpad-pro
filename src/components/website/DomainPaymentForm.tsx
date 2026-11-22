@@ -50,6 +50,7 @@ function PaymentFields({ domain, price, currency, onComplete, onBack }: Omit<Pro
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-lg font-semibold"><span>Total today</span><span className="text-primary">{total}</span></div>
       <p className="mt-1 text-xs text-muted-foreground">Automatic renewal is off.</p>
     </div>
+    <button type="button" onClick={onBack} disabled={submitting} className="text-left text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">Back to domain search</button>
     <div>
       <h4 className="mb-4 text-lg font-semibold">Card details</h4>
       <div className="overflow-hidden rounded-xl bg-white p-3 sm:p-5">
@@ -61,7 +62,6 @@ function PaymentFields({ domain, price, currency, onComplete, onBack }: Omit<Pro
     <Button type="submit" className="gold-gradient h-12 w-full text-base font-semibold" disabled={checkoutState.type !== 'success' || submitting}>
       {submitting ? 'Processing payment…' : `Pay ${total} and register domain`}
     </Button>
-    <button type="button" onClick={onBack} disabled={submitting} className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">Back to domain search</button>
   </form>;
 }
 
