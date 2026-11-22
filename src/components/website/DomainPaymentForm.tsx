@@ -52,7 +52,7 @@ function PaymentFields({ domain, price, currency, onComplete, onBack }: Omit<Pro
       <p className="mt-1 text-xs text-muted-foreground">Automatic renewal is off.</p>
     </div>
     <Button type="button" variant="outline" onClick={onBack} disabled={submitting} className="h-9 w-auto gap-2 rounded-md border-border bg-transparent px-3 text-sm font-medium text-muted-foreground hover:border-primary/40 hover:bg-muted/40 hover:text-foreground focus-visible:ring-primary">
-      <ArrowLeft className="h-3.5 w-3.5" />Change domain
+      <ArrowLeft className="h-3.5 w-3.5" />Back to domain search
     </Button>
     <div>
       <h4 className="mb-4 text-lg font-semibold">Card details</h4>
