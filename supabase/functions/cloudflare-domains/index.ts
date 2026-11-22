@@ -165,6 +165,14 @@ Deno.serve(async (req) => {
       if (website.custom_domain) return json({ error: "This website already has a domain" }, 409);
       const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
       if (!stripeKey) return json({ error: "Domain checkout is unavailable" }, 503);
+      // Never accept payment when the paid-event delivery path is unable to
+      // verify Stripe's signature and register the domain afterward.
+      if (!Deno.env.get("MEMBER_DOMAIN_STRIPE_WEBHOOK_SECRET"))
+        return json({ error: "Domain checkout is temporarily unavailable" }, 503);
+      const { data: checkoutSwitch, error: switchError } = await db.from("app_settings")
+        .select("value").eq("key", "member_domain_checkout_enabled").maybeSingle();
+      if (switchError || checkoutSwitch?.value !== true)
+        return json({ error: "Domain checkout is temporarily unavailable" }, 503);
       const account = await stripe("account", stripeKey);
       if (!account.ok || account.payload?.id !== STRIPE_ACCOUNT) return json({ error: "Domain checkout account is unavailable" }, 503);
 
