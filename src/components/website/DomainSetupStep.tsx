@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ArrowRight, Link2, Search } from 'lucide-react';
 import { useMemberBilling } from '@/hooks/useMemberBilling';
 import { cardLabel, paymentChoiceFor, usableCards, type DomainPaymentChoice } from '@/lib/memberBilling';
 
@@ -25,9 +26,10 @@ type Props = {
   order: DomainOrder | null;
   busy: string;
   previewOnly: boolean;
+  onSkip: () => void;
 };
 
-export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, order, busy, previewOnly }: Props) {
+export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, order, busy, previewOnly, onSkip }: Props) {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onCheck(); };
   const canBuy = !!result?.available && result.price !== null && !previewOnly && !currentDomain;
   const billing = useMemberBilling(canBuy);
@@ -43,18 +45,18 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
   const money = (amount: number, currency: string) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 
-  return <div className="max-w-xl space-y-5">
+  return <div className="mx-auto max-w-4xl space-y-7">
     <div>
-      <h2 className="font-serif text-2xl">Choose your domain</h2>
-      <p className="mt-2 text-sm text-muted-foreground">Search for the address clients will use to open your website. You can also continue with a free temporary address.</p>
+      <h2 className="font-serif text-3xl tracking-tight sm:text-4xl">Choose your domain</h2>
+      <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">Search for the address clients will use to open your website. You can add one later if you’re still deciding.</p>
     </div>
     {currentDomain ? <div className="rounded-lg border border-primary/50 bg-primary/10 p-4">
       <strong>{currentDomain}</strong>
       <p className="mt-1 text-sm text-muted-foreground">This domain is saved for your website. Publish the site to connect it.</p>
     </div> : <>
-      <form className="flex flex-col gap-2 sm:flex-row" onSubmit={submit}>
-        <Input aria-label="Domain name" value={input} onChange={event => onInput(event.target.value)} placeholder="yourshop.com" autoComplete="off" />
-        <Button type="submit" variant="outline" disabled={!!busy}>{busy === 'Checking' ? 'Checking…' : 'Search'}</Button>
+      <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
+        <div className="relative min-w-0 flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Domain name" value={input} onChange={event => onInput(event.target.value)} placeholder="yourbarbershop.com" autoComplete="off" className="h-14 border-border/80 bg-muted/50 pl-12 text-base focus-visible:ring-primary" /></div>
+        <Button type="submit" variant="outline" disabled={!!busy} className="h-14 border-primary px-7 text-base font-semibold text-foreground hover:bg-primary/10">{busy === 'Checking' ? 'Checking…' : 'Search'}</Button>
       </form>
       {result && <div className="rounded-lg border p-4" aria-live="polite">
         <strong>{result.domain}</strong>
@@ -106,6 +108,12 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
             : 'Checkout or registration is still processing.'}</p>
         {order.last_error && <p className="mt-1 text-sm text-destructive">{order.last_error}</p>}
       </div>}
+      <div className="border-t border-border/70 pt-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary"><Link2 className="h-5 w-5" /></span><div><p className="font-serif text-lg font-semibold">Decide on a domain later</p><p className="mt-1 text-sm text-muted-foreground">You can finish the rest of your website setup now.</p></div></div>
+          <Button type="button" variant="outline" onClick={onSkip} className="h-11 shrink-0 border-primary/60 px-5 text-primary hover:bg-primary/10 hover:text-primary">Skip domain<ArrowRight className="ml-2 h-4 w-4" /></Button>
+        </div>
+      </div>
     </>}
   </div>;
 }

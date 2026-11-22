@@ -27,7 +27,7 @@ export function DashboardLayout({ children, isAdminView = false }: DashboardLayo
         <Sidebar isAdminView={isAdminView} />
       </div>
       
-      <main className="flex-1 overflow-visible relative z-10">
+      <main className="relative z-10 min-w-0 flex-1 overflow-visible">
         <div className="p-4 md:p-8">
           <div className="hidden md:flex justify-end mb-3 md:mb-4">
             <LanguageToggle />
