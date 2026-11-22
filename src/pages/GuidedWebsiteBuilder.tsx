@@ -23,6 +23,15 @@ import { personalizedTemplateHtml, personalizedTemplateOneHairHtml, personalized
 
 const stages = ['Choose a look', 'Domain', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
+const progressKey = (userId: string, secondMode: boolean) => `guided-website-progress:${secondMode ? 'second:' : ''}${userId}`;
+const readProgress = (userId: string, secondMode: boolean) => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(progressKey(userId, secondMode)) || 'null') as { step?: number; furthestStep?: number; templateChosen?: boolean } | null;
+    const step = Number.isInteger(saved?.step) && saved!.step! >= 0 && saved!.step! < stages.length ? saved!.step! : 0;
+    const furthestStep = Number.isInteger(saved?.furthestStep) && saved!.furthestStep! >= step && saved!.furthestStep! < stages.length ? saved!.furthestStep! : step;
+    return { step, furthestStep, templateChosen: saved?.templateChosen === true || step > 0 };
+  } catch { return { step: 0, furthestStep: 0, templateChosen: false }; }
+};
 const domainCandidates = (domain: string) => {
   const name = domain.split('.')[0];
   return [...new Set([`${name}.net`, `${name}.co`, `book${name}.com`, `${name}studio.com`, `${name}online.com`])]
@@ -208,6 +217,11 @@ export default function GuidedWebsiteBuilder() {
 
   useEffect(() => {
     if (!user || loadingWebsite || loadingProfile || loadingBusinessSetup || loadingBusinessCard || hydrated) return;
+    const progress = readProgress(user.id, secondMode);
+    const stepToRestore = new URLSearchParams(window.location.search).has('domain_order') ? 1 : progress.step;
+    setStep(stepToRestore);
+    setFurthestStep(Math.max(progress.furthestStep, stepToRestore));
+    setTemplateChosen(progress.templateChosen || stepToRestore > 0);
     if (demoMode) {
       setAnswers({ ...emptyGuidedAnswers, businessName: 'Your Barber Studio', ownerName: 'Your Name', city: 'Your City', phone: '(555) 123-4567' });
       setHydrated(true);
@@ -245,9 +259,7 @@ export default function GuidedWebsiteBuilder() {
   }, [dashboardCity, dashboardLocationKnown, dashboardLocationBeingEdited, hydrated, demoMode]);
   useEffect(() => { if (user && hydrated && !previewOnly) localStorage.setItem(guidedKey(user.id), JSON.stringify(answers)); }, [answers, user, hydrated, previewOnly]);
   useEffect(() => { if (user && hydrated && secondMode) localStorage.setItem(`guided-second-site:${user.id}`, JSON.stringify(answers)); }, [answers, user, hydrated, secondMode]);
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).has('domain_order')) setStep(1);
-  }, []);
+  useEffect(() => { if (user && hydrated && !previewOnly) localStorage.setItem(progressKey(user.id, secondMode), JSON.stringify({ step, furthestStep, templateChosen })); }, [user, hydrated, previewOnly, secondMode, step, furthestStep, templateChosen]);
   useEffect(() => {
     if (website?.custom_domain) setDomainInput(current => current || website.custom_domain || '');
   }, [website?.custom_domain]);
