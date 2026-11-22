@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, LifeBuoy, LogIn } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { resolvePostAuthPath } from '@/lib/metaReviewerLanding';
@@ -22,6 +22,7 @@ export default function CreateAccount() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [confirmSentTo, setConfirmSentTo] = useState<string | null>(null);
+  const [step, setStep] = useState<'email' | 'details' | 'no_match'>('email');
   const navigate = useNavigate();
   const location = useLocation();
   const fromRef = useRef((location.state as { from?: Parameters<typeof resolvePostAuthPath>[1] } | null)?.from);
@@ -47,6 +48,39 @@ export default function CreateAccount() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const SUPPORT_EMAIL = 'Thebarberlaunch@gmail.com';
+
+  const callSignup = async (body: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke('member-signup', { body });
+    if (data) return data as { ok: boolean; reason?: string };
+    let parsed: { ok: boolean; reason?: string } | null = null;
+    try { parsed = await (error as any)?.context?.json?.(); } catch { /* ignore */ }
+    return parsed ?? { ok: false, reason: 'check_unavailable' };
+  };
+
+  const showProblem = (reason?: string) => {
+    if (reason === 'no_purchase') { setStep('no_match'); return; }
+    const messages: Record<string, string> = {
+      rate_limited: 'Too many tries. Please wait an hour and try again.',
+      invalid_email: 'Please enter a valid email address.',
+      weak_password: 'Password must be at least 8 characters.',
+      name_required: 'Please enter your first and last name.',
+    };
+    toast.error(messages[reason ?? ''] ?? "We couldn't check right now. Please try again in a few minutes.");
+  };
+
+  const handleCheck = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await callSignup({ action: 'check', email: email.trim() });
+      if (res.ok) setStep('details');
+      else showProblem(res.reason);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -60,51 +94,26 @@ export default function CreateAccount() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters');
       return;
     }
 
     setLoading(true);
-
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
+      // The server re-checks the purchase and only then creates the account.
+      const res = await callSignup({
+        action: 'create',
         email: email.trim(),
         password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-            ...(phone.trim() ? { phone: phone.trim() } : {}),
-          },
-        },
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+        redirectTo: `${window.location.origin}/`,
       });
-
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('This email is already registered. Please sign in instead.');
-        } else {
-          toast.error(error.message);
-        }
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          // Email confirmation is required before the first sign-in.
-          setConfirmSentTo(email.trim());
-          return;
-        }
-        toast.success('Account created successfully!');
-        if (session?.user) {
-          const updates: Record<string, any> = {
-            agreement_signed_at: new Date().toISOString(),
-          };
-          if (phone.trim()) updates.phone = phone.trim();
-          await supabase.from('profiles').update(updates).eq('id', session.user.id);
-        }
-      }
-    } catch (error: any) {
+      if (res.ok) setConfirmSentTo(email.trim());
+      else showProblem(res.reason);
+    } catch {
       toast.error('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -124,7 +133,7 @@ export default function CreateAccount() {
             Create Account
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Join Barber Launch today
+            For Barber Launch customers
           </p>
         </div>
 
@@ -135,12 +144,59 @@ export default function CreateAccount() {
               We sent a confirmation link to <span className="font-medium text-foreground break-all">{confirmSentTo}</span>. Open it, then sign in.
             </p>
             <p className="text-sm text-muted-foreground">
-              Member training opens once your Barber Launch purchase is matched to this email.
+              Already have an account with this email? Sign in, or reset your password from the sign-in page.
             </p>
             <Button asChild className="w-full"><Link to="/login">Go to sign in</Link></Button>
           </div>
+        ) : step === 'no_match' ? (
+          <div role="alert" className="space-y-4 rounded-2xl border border-primary/30 bg-card p-6 text-center">
+            <h2 className="text-xl font-display font-semibold text-foreground">We couldn't verify a purchase</h2>
+            <p className="text-muted-foreground">
+              We couldn't verify a purchase with those details. Use the email you used at checkout. If you already have an account, sign in; if you purchased with a different email or phone, contact Barber Launch Support.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button asChild className="w-full gold-gradient text-primary-foreground hover:opacity-90">
+                <Link to="/login"><LogIn className="w-4 h-4 mr-2" />Sign in</Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Barber Launch account access')}`}><LifeBuoy className="w-4 h-4 mr-2" />Contact Support</a>
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => setStep('email')}>Try another email</Button>
+            </div>
+          </div>
+        ) : step === 'email' ? (
+          <form onSubmit={handleCheck} className="space-y-6">
+            <div>
+              <Label htmlFor="checkout-email">Email used at checkout</Label>
+              <Input
+                id="checkout-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                aria-describedby="checkout-email-help"
+                className="mt-1"
+              />
+              <p id="checkout-email-help" className="mt-1 text-xs text-muted-foreground">
+                Accounts are for Barber Launch customers. We'll check your purchase before creating your account.
+              </p>
+            </div>
+            <Button type="submit" className="w-full gold-gradient text-primary-foreground hover:opacity-90" disabled={loading}>
+              {loading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Checking your purchase...</>) : 'Continue'}
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Bought with a phone number only?{' '}
+              <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Barber Launch account access')}`} className="text-primary hover:underline">Contact Barber Launch Support</a>.
+            </p>
+          </form>
         ) : (
         <form onSubmit={handleSignUp} className="space-y-6">
+          <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
+            Purchase found for <span className="font-medium break-all">{email.trim()}</span>. Finish creating your account.{' '}
+            <button type="button" className="text-primary hover:underline" onClick={() => setStep('email')}>Change</button>
+          </p>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -178,20 +234,6 @@ export default function CreateAccount() {
                 placeholder="+1 (555) 000-0000"
                 className="mt-1"
               />
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                aria-describedby="email-help"
-                className="mt-1"
-              />
-              <p id="email-help" className="mt-1 text-xs text-muted-foreground">Use the same email you used at checkout.</p>
             </div>
             <div>
               <Label htmlFor="password">Password</Label>

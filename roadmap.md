@@ -127,3 +127,9 @@
 - [ ] Review the 36 accounts without a matched purchase (blocked: Chris's decision — link/grant/leave)
 - [ ] Turn the access check on and verify live (blocked: review above)
 - [ ] Make course-files storage private with signed links; gate other paid AI functions by access (do at cutover)
+
+## Purchase-gated access (Nov 22)
+- [x] Server cutover: accounts created after 2026-11-22 03:10 UTC need verified purchase/admin grant (RLS + paid edge functions); pre-cutover accounts keep temporary access; full legacy gate stays off.
+- [ ] Course-files bucket private + signed links; verify old public URL fails, allowed member opens file.
+- [ ] /create: verify purchase email server-side (rate-limited, no enumeration) BEFORE auth.signUp; no match = no account + guidance with Sign in / Support; phone-only -> support.
+- [ ] Publish, verify live desktop + mobile; report live vs exposed (static lesson assets, Vimeo).
