@@ -193,14 +193,11 @@ Deno.serve(async (req) => {
         return json({ error: "The domain or price changed. Review the current price before checkout.", current }, 409);
 
       const { data: prior } = await db.from("member_domain_orders").select("*").eq("domain", domain).maybeSingle();
-      if (prior) {
-        if (prior.user_id !== user.id) return json({ error: "This domain is already in another order" }, 409);
-        if (prior.status !== "checkout_open" || !prior.stripe_session_id) return json({ error: `This domain order is ${prior.status}. Contact support before retrying.` }, 409);
-        const session = await stripe(`checkout/sessions/${encodeURIComponent(prior.stripe_session_id)}`, stripeKey);
-        if (session.ok && session.payload?.status === "open" && session.payload?.client_secret)
-          return json({ clientSecret: session.payload.client_secret, orderId: prior.id, domain, price: prior.member_charge_cents / 100, currency: "USD" });
-        return json({ error: "An earlier checkout for this domain cannot be resumed here. Contact support to reopen it safely." }, 409);
-      }
+      if (prior && prior.user_id !== user.id) return json({ error: "This domain is already in another order" }, 409);
+      if (prior && (prior.status !== "checkout_open" || !prior.stripe_session_id))
+        return json({ error: `This domain order is ${prior.status}. Contact support before retrying.` }, 409);
+      if (prior && prior.member_charge_cents !== costCents)
+        return json({ error: "The price changed since the earlier checkout. Contact support before retrying." }, 409);
 
       // The Stripe Customer comes only from a server link or verified payment evidence, never the email.
       const stripeReader = stripeApi(stripeKey);
@@ -217,6 +214,39 @@ Deno.serve(async (req) => {
       const preview = domainCheckoutForm({ orderId: "00000000-0000-0000-0000-000000000000", userId: user.id, domain, amountCents: costCents,
         email: user.email ?? null, resolution, choice, eligibleCards, memberSite: MEMBER_SITE, secondMode: body.secondMode === true });
       if (!preview.ok) return json({ error: preview.error, fallback: "new_card" }, preview.status);
+
+      if (prior) {
+        const session = await stripe(`checkout/sessions/${encodeURIComponent(prior.stripe_session_id)}`, stripeKey);
+        if (!session.ok || session.payload?.status !== "open")
+          return json({ error: "The earlier checkout is no longer open. Contact support to review the order." }, 409);
+        if (session.payload.client_secret)
+          return json({ clientSecret: session.payload.client_secret, orderId: prior.id, domain, price: costCents / 100, currency: "USD" });
+        // A hosted checkout created before the embedded flow must be expired before
+        // a replacement session can be attached to this same auditable order.
+        const expired = await stripe(`checkout/sessions/${encodeURIComponent(prior.stripe_session_id)}/expire`, stripeKey, {
+          method: "POST", headers: { "Idempotency-Key": `member_domain_expire_${prior.id}` },
+        });
+        if (!expired.ok || expired.payload?.status !== "expired")
+          return json({ error: "The earlier checkout could not be closed safely. Contact support before retrying." }, 409);
+        const replacement = domainCheckoutForm({ orderId: prior.id, userId: user.id, domain, amountCents: costCents,
+          email: user.email ?? null, resolution, choice, eligibleCards, memberSite: MEMBER_SITE, secondMode: body.secondMode === true });
+        if (!replacement.ok) return json({ error: replacement.error }, replacement.status);
+        const reopened = await stripe("checkout/sessions", stripeKey, {
+          method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `member_domain_embedded_${prior.id}` },
+          body: replacement.form,
+        });
+        if (!reopened.ok || !reopened.payload?.id || !reopened.payload?.client_secret)
+          return json({ error: "The secure checkout could not open. Contact support to retry this order." }, 502);
+        const { data: updated, error: updateError } = await db.from("member_domain_orders")
+          .update({ stripe_session_id: reopened.payload.id, updated_at: new Date().toISOString() })
+          .eq("id", prior.id).eq("status", "checkout_open").eq("stripe_session_id", prior.stripe_session_id)
+          .select("id").maybeSingle();
+        if (updateError || !updated) {
+          await stripe(`checkout/sessions/${encodeURIComponent(reopened.payload.id)}/expire`, stripeKey, { method: "POST" });
+          return json({ error: "The order changed during checkout. Contact support before retrying." }, 409);
+        }
+        return json({ clientSecret: reopened.payload.client_secret, orderId: prior.id, domain, price: costCents / 100, currency: "USD" });
+      }
 
       const { data: order, error: orderError } = await db.from("member_domain_orders").insert({
         user_id: user.id, domain, cloudflare_cost_cents: costCents,
