@@ -48,7 +48,7 @@ export function AccessPending() {
             You're signed in as <span className="font-medium text-foreground break-all">{user?.email}</span>, but we haven't matched a completed Barber Launch purchase to this email yet.
           </p>
           <p className="text-sm text-muted-foreground">
-            Training opens as soon as a purchase is matched. If you paid with a different email, contact the Barber Launch team and tell them the email you used at checkout.
+            Training opens as soon as a purchase or a Barber Launch access approval is matched to this email. If you paid with a different email, contact the Barber Launch team and tell them the email you used at checkout.
           </p>
         </div>
         {result && <p role="status" className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-foreground">{result}</p>}

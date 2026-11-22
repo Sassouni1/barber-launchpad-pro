@@ -28,6 +28,12 @@ const SOURCE_LABEL: Record<string, string> = {
   hair_system_order: 'Paid hair-system order',
   admin_grant: 'Granted by admin',
   owner_legacy_confirmation: 'Confirmed by owner',
+  ghl_member_tag: 'HighLevel tag “barber-launch-member-access” (not a purchase)',
+};
+
+const STATUS_REASON_LABEL: Record<string, string> = {
+  ghl_tag_removed: 'tag removed in HighLevel',
+  ghl_tag_email_changed: 'account email no longer matches the tagged contact',
 };
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
@@ -186,7 +192,7 @@ export default function MemberAccess() {
                           <span className="text-foreground">{SOURCE_LABEL[g.source] ?? g.source}</span>
                           {g.amount_cents != null && <span>{money(g.amount_cents)}</span>}
                           <span className="text-muted-foreground">{day(g.paid_at)}</span>
-                          {g.status !== 'active' && <span>({g.status_reason})</span>}
+                          {g.status !== 'active' && <span>({(g.status_reason && STATUS_REASON_LABEL[g.status_reason]) ?? g.status_reason})</span>}
                           {g.note && <span className="text-muted-foreground">— {g.note}</span>}
                         </li>
                       ))}

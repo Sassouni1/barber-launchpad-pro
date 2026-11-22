@@ -27,6 +27,7 @@ export default function CreateAccount() {
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [confirmSentTo, setConfirmSentTo] = useState<string | null>(null);
   const [step, setStep] = useState<'email' | 'details' | 'no_match'>('email');
+  const [matchedVia, setMatchedVia] = useState<'purchase' | 'member_tag'>('purchase');
   const navigate = useNavigate();
   const location = useLocation();
   const fromRef = useRef((location.state as { from?: Parameters<typeof resolvePostAuthPath>[1] } | null)?.from);
@@ -95,8 +96,8 @@ export default function CreateAccount() {
 
   const callSignup = async (body: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke('member-signup', { body });
-    if (data) return data as { ok: boolean; reason?: string };
-    let parsed: { ok: boolean; reason?: string } | null = null;
+    if (data) return data as { ok: boolean; reason?: string; via?: string };
+    let parsed: { ok: boolean; reason?: string; via?: string } | null = null;
     try { parsed = await (error as any)?.context?.json?.(); } catch { /* ignore */ }
     return parsed ?? { ok: false, reason: 'check_unavailable' };
   };
@@ -117,7 +118,10 @@ export default function CreateAccount() {
     setLoading(true);
     try {
       const res = await callSignup({ action: 'check', email: email.trim() });
-      if (res.ok) setStep('details');
+      if (res.ok) {
+        setMatchedVia(res.via === 'member_tag' ? 'member_tag' : 'purchase');
+        setStep('details');
+      }
       else showProblem(res.reason);
     } finally {
       setLoading(false);
@@ -292,7 +296,8 @@ export default function CreateAccount() {
             </div>
           ) : (
             <p role="status" className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
-              Purchase found for <span className="font-medium break-all">{email.trim()}</span>. Finish creating your account.{' '}
+              {matchedVia === 'member_tag' ? 'Member access approved by Barber Launch for' : 'Purchase found for'}{' '}
+              <span className="font-medium break-all">{email.trim()}</span>. Finish creating your account.{' '}
               <button type="button" className="text-primary hover:underline" onClick={() => setStep('email')}>Change</button>
             </p>
           )}

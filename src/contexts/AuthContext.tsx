@@ -98,6 +98,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const lastActiveUpdated = useRef(false);
+  // HighLevel member-access tag: checked server-side once per account per page load.
+  const tagSynced = useRef<Set<string>>(new Set());
+
+  const syncMemberTag = (userId: string) => {
+    if (tagSynced.current.has(userId)) return;
+    tagSynced.current.add(userId);
+    void supabase.functions.invoke('member-access-claim', { body: { action: 'tag_sync' } })
+      .then(({ data }) => {
+        // The server added or removed tag access: re-read the server decision.
+        if (data?.changed === true && statusRequests.current.isActive(userId)) {
+          void checkUserStatus(userId).catch(() => {});
+        }
+      })
+      .catch(() => { /* a failed check never changes access */ });
+  };
 
   const updateLastActive = async (userId: string) => {
     if (lastActiveUpdated.current) return;
@@ -138,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
 
     void updateLastActive(userId).catch(() => {});
+    syncMemberTag(userId);
     } catch {
       if (!statusRequests.current.isCurrent(request)) return;
       // Never turn a failed lookup into a role, agreement or reset decision.

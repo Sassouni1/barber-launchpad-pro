@@ -14,8 +14,9 @@ export type PurchaseLookup =
 export async function lookupQualifyingPurchase(db: SupabaseClient, email: string): Promise<PurchaseLookup> {
   // Grants already bound to an account (e.g. a paid checkout claimed with a different
   // login email) are consumed and never qualify another account.
+  // HighLevel tag grants are not purchases: they are re-checked live by the tag path.
   const { data: grants, error: gErr } = await db.from("member_access_grants").select("id")
-    .eq("status", "active").eq("email_normalized", email).is("user_id", null).limit(1);
+    .eq("status", "active").eq("email_normalized", email).is("user_id", null).neq("source", "ghl_member_tag").limit(1);
   if (gErr) return { status: "unavailable" };
   if ((grants ?? []).length) return { status: "matched", freshGrants: [] };
 
