@@ -5688,6 +5688,68 @@ export type Database = {
           },
         ]
       }
+      website_hair_system_inquiries: {
+        Row: {
+          concern: string
+          created_at: string
+          email: string
+          email_provider_id: string | null
+          email_status: string
+          first_name: string
+          id: string
+          last_name: string
+          member_id: string
+          notes: string
+          phone: string
+          request_id: string
+          sms_provider_id: string | null
+          sms_status: string
+          website_id: string
+        }
+        Insert: {
+          concern: string
+          created_at?: string
+          email: string
+          email_provider_id?: string | null
+          email_status?: string
+          first_name: string
+          id?: string
+          last_name: string
+          member_id: string
+          notes?: string
+          phone: string
+          request_id: string
+          sms_provider_id?: string | null
+          sms_status?: string
+          website_id: string
+        }
+        Update: {
+          concern?: string
+          created_at?: string
+          email?: string
+          email_provider_id?: string | null
+          email_status?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          member_id?: string
+          notes?: string
+          phone?: string
+          request_id?: string
+          sms_provider_id?: string | null
+          sms_status?: string
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_hair_system_inquiries_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "member_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_templates: {
         Row: {
           asset_origin: string | null
