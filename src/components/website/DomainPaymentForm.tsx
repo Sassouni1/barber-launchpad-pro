@@ -42,21 +42,23 @@ function PaymentFields({ domain, price, currency, onComplete, onBack }: Omit<Pro
     }
   };
 
-  return <form onSubmit={event => void submit(event)} className="space-y-6">
-    <div className="rounded-xl border border-primary/50 bg-primary/10 p-5">
+  return <form onSubmit={event => void submit(event)} className="space-y-5">
+    <div className="rounded-xl border border-border bg-background/40 p-5">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Your order</p>
       <h4 className="mt-2 break-all text-lg font-semibold">{domain}</h4>
       <p className="mt-1 text-sm text-muted-foreground">Domain registration · 1 year</p>
-      <div className="mt-4 flex items-center justify-between border-t border-primary/30 pt-4 text-lg font-semibold"><span>Total today</span><span>{total}</span></div>
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-lg font-semibold"><span>Total today</span><span className="text-primary">{total}</span></div>
       <p className="mt-1 text-xs text-muted-foreground">Automatic renewal is off.</p>
     </div>
     <div>
       <h4 className="mb-4 text-lg font-semibold">Card details</h4>
-      {checkoutState.type === 'error' ? <p role="alert" className="text-sm text-destructive">{checkoutState.error.message}</p> :
-        <PaymentElement options={{ wallets: { link: 'never', applePay: 'never', googlePay: 'never' } }} />}
+      <div className="overflow-hidden rounded-xl bg-white p-3 sm:p-5">
+        {checkoutState.type === 'error' ? <p role="alert" className="text-sm text-destructive">{checkoutState.error.message}</p> :
+          <PaymentElement options={{ wallets: { link: 'never', applePay: 'never', googlePay: 'never' } }} />}
+      </div>
     </div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    <Button type="submit" className="h-12 w-full text-base font-semibold" disabled={checkoutState.type !== 'success' || submitting}>
+    <Button type="submit" className="gold-gradient h-12 w-full text-base font-semibold" disabled={checkoutState.type !== 'success' || submitting}>
       {submitting ? 'Processing payment…' : `Pay ${total} and register domain`}
     </Button>
     <button type="button" onClick={onBack} disabled={submitting} className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">Back to domain search</button>
@@ -66,12 +68,12 @@ function PaymentFields({ domain, price, currency, onComplete, onBack }: Omit<Pro
 export function DomainPaymentForm({ clientSecret, domain, price, currency, onComplete, onBack }: Props) {
   const stripeInstance = stripe();
   if (!stripeInstance) return <p role="alert">Secure payment is unavailable right now.</p>;
-  return <section className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6" aria-label="Domain checkout">
-    <h3 className="mb-2 font-serif text-2xl">Complete your purchase</h3>
+  return <section className="glass-card mt-6 rounded-xl p-5 sm:p-7" aria-label="Domain checkout">
+    <h3 className="mb-2 text-xl font-bold">Secure payment</h3>
     <p className="mb-6 text-sm text-muted-foreground">Enter your card below. Your payment details are processed securely.</p>
     <CheckoutElementsProvider stripe={stripeInstance} options={{
       clientSecret,
-      elementsOptions: { appearance: { theme: 'night', variables: { colorPrimary: '#facc15', colorBackground: '#10151d', colorText: '#f8f6ef', borderRadius: '8px' } } },
+      elementsOptions: { appearance: { theme: 'stripe', variables: { colorPrimary: '#b88717', colorBackground: '#ffffff', colorText: '#171717', colorDanger: '#dc2626', borderRadius: '8px' } } },
     }}>
       <PaymentFields domain={domain} price={price} currency={currency} onComplete={onComplete} onBack={onBack} />
     </CheckoutElementsProvider>
