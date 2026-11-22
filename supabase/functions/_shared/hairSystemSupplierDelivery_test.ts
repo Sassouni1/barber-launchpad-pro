@@ -153,7 +153,7 @@ Deno.test("successful CRM preserves supplier then buyer receipt and SMS behavior
     await run(f.db);
     assertEquals(calls.map((c) => c.action === "send_email" ? c.role : c.action), ["upsert_order_contact", "supplier", "send_sms", "buyer"]);
     assertEquals(calls.find((c) => c.action === "send_sms")?.phone, "+17276374672");
-    assertEquals(calls.find((c) => c.action === "send_sms")?.message.includes(`Order ${ORDER}`), true);
+    assertEquals(calls.find((c) => c.action === "send_sms")?.message.includes(`Order: ${ORDER}`), true);
     assertEquals(f.states.get("admin_order_sms"), "sent");
     assertEquals(f.states.get("customer_sms"), "skipped"); // No fixture phone; existing consent behavior.
     assertEquals(f.states.get("customer_receipt"), "sent");
