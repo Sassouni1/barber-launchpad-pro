@@ -51,8 +51,8 @@ function PaymentFields({ domain, price, currency, onComplete, onBack }: Omit<Pro
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-lg font-semibold"><span>Total today</span><span className="text-primary">{total}</span></div>
       <p className="mt-1 text-xs text-muted-foreground">Automatic renewal is off.</p>
     </div>
-    <Button type="button" variant="outline" onClick={onBack} disabled={submitting} className="h-11 w-full gap-2 rounded-lg border-primary/60 bg-primary/10 px-5 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/20 hover:text-primary focus-visible:ring-primary sm:w-auto">
-      <ArrowLeft className="h-4 w-4" />Back to domain search
+    <Button type="button" variant="outline" onClick={onBack} disabled={submitting} className="h-9 w-auto gap-2 rounded-md border-border bg-transparent px-3 text-sm font-medium text-muted-foreground hover:border-primary/40 hover:bg-muted/40 hover:text-foreground focus-visible:ring-primary">
+      <ArrowLeft className="h-3.5 w-3.5" />Change domain
     </Button>
     <div>
       <h4 className="mb-4 text-lg font-semibold">Card details</h4>
