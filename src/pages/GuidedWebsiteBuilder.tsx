@@ -72,10 +72,10 @@ export default function GuidedWebsiteBuilder() {
         ? formatServiceCity(businessSetup?.service_city || '')
         : '';
   const dashboardLocationKnown = !!dashboardCity;
-  const dashboardLocationBeingEdited = !!businessSetup?.business_setup_draft_updated_at &&
-    (!businessSetup.business_setup_completed_at ||
-      Date.parse(businessSetup.business_setup_draft_updated_at) > Date.parse(businessSetup.business_setup_completed_at));
-  const dashboardNameKnown = !!businessSetup && !!(businessSetup.business_owner_type || businessSetup.professional_role || businessSetup.business_setup_draft || businessSetup.business_setup_completed_at);
+  const dashboardLocationBeingEdited = !!businessSetup?.business_setup_completed_at &&
+    !!businessSetup.business_setup_draft_updated_at &&
+    Date.parse(businessSetup.business_setup_draft_updated_at) > Date.parse(businessSetup.business_setup_completed_at);
+  const dashboardNameKnown = !!businessSetup && !!(businessSetup.business_owner_type || businessSetup.professional_role || businessSetup.business_name?.trim() || businessSetup.business_setup_completed_at);
   const dashboardBrandName = businessSetup?.business_name?.trim() || profile?.full_name?.trim() || '';
   const metadata = user?.user_metadata || {};
   const metadataName = [metadata.full_name, metadata.name, metadata.fullName]
