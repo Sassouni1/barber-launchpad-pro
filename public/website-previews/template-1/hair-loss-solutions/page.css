@@ -81,3 +81,8 @@
 @media(max-width:700px){.hs-swim h2{font-size:clamp(50px,11vw,70px)}.hs-swim-copy>p:not(.eyebrow){font-size:15px}}
 }
 .hs-featured-grid figcaption{color:#dfd0be;font-size:9px;letter-spacing:.2em;padding:18px 20px}
+.hero-booking{display:flex;flex-direction:column;align-items:flex-start}
+.hero-or-call{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:12px 0 0;color:#f4f1ec;font:500 15px/1.4 "DM Sans",sans-serif}
+.hero-or-call a{font:500 22px/1.1 Oswald,sans-serif;color:var(--warm);white-space:nowrap}
+.hero-or-call a:hover,.hero-or-call a:focus-visible{text-decoration:underline}
+@media(max-width:700px){.hero-or-call{font-size:14px;margin-top:10px}.hero-or-call a{font-size:21px}}

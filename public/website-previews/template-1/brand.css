@@ -1,4 +1,8 @@
 /* Additional layout for the fixed warm palette. */
+.hero-booking{display:flex;flex-direction:column;align-items:flex-start}
+.hero-or-call{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:12px 0 0;color:#f4f1ec;font:500 15px/1.4 "DM Sans",sans-serif}
+.hero-or-call a{font:500 22px/1.1 Oswald,sans-serif;color:var(--warm);white-space:nowrap}
+.hero-or-call a:hover,.hero-or-call a:focus-visible{text-decoration:underline}
 .systems{min-height:auto;padding:105px 0;background:#101011}
 .systems-grid{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);gap:4%;align-items:center}
 .systems-collage{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:10px;min-width:0}
@@ -15,6 +19,8 @@
 
 @media(max-width:900px){.header-inner{gap:16px}.systems-grid{grid-template-columns:1fr;gap:30px}.systems-copy{padding:0}.systems-collage .systems-collage-main{height:440px}.systems-collage img{height:220px}}
 @media(max-width:700px){
+  .hero-or-call{font-size:14px;margin-top:10px}
+  .hero-or-call a{font-size:21px}
   .systems{padding:70px 0}
   .systems-grid{display:flex;flex-direction:column;align-items:stretch;gap:0}
   .systems-copy{display:contents}

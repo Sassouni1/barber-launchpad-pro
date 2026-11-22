@@ -2,6 +2,28 @@ import { instagramUrl, normalizedWebUrl, parseGuidedServices, type GuidedTemplat
 import { limitServiceDescription } from './serviceDescription';
 import { template2ServiceContent } from './template2ServiceCatalog';
 
+function addHeroCallLink(doc: Document, selector: string, phone: string) {
+  const button = doc.querySelector<HTMLAnchorElement>(selector);
+  const digits = phone.replace(/\D/g, '');
+  if (!button || digits.length < 7) return;
+  const usNumber = digits.length === 10 ? digits : digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : '';
+  const displayNumber = usNumber
+    ? `(${usNumber.slice(0, 3)}) ${usNumber.slice(3, 6)}-${usNumber.slice(6)}`
+    : phone.trim();
+  const wrapper = doc.createElement('div');
+  wrapper.className = 'hero-booking';
+  button.replaceWith(wrapper);
+  wrapper.append(button);
+  const callLine = doc.createElement('p');
+  callLine.className = 'hero-or-call';
+  callLine.append(doc.createTextNode('or call '));
+  const link = doc.createElement('a');
+  link.href = `tel:${usNumber ? `+1${usNumber}` : phone.replace(/[^+\d]/g, '')}`;
+  link.textContent = displayNumber;
+  callLine.append(link);
+  wrapper.append(callLine);
+}
+
 // Build the iframe document before loading it. Preview frames may be isolated from their
 // parent, so changing their DOM after load is unreliable.
 export function personalizedTemplateHtml(
@@ -85,6 +107,7 @@ export function personalizedTemplateHtml(
         link.href = bookingHref;
         if (bookingUrl) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
       });
+      addHeroCallLink(doc, '.hero-actions .button', phone);
     }
     const list = doc.querySelector('#service-list');
     if (!list) return `<!doctype html>${doc.documentElement.outerHTML}`;
@@ -252,6 +275,7 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
       if (booking) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
     }
   });
+  addHeroCallLink(doc, '.hs-actions .button', phone);
   doc.querySelectorAll<HTMLAnchorElement>('a[href="../"], a[href^="../#"]').forEach(link => {
     const oldHref = link.getAttribute('href') || '';
     if (siteRoot) link.href = `${siteRoot}${oldHref.startsWith('../#') ? oldHref.slice(2) : ''}`;
