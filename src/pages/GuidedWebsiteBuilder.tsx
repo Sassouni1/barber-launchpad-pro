@@ -316,7 +316,7 @@ export default function GuidedWebsiteBuilder() {
       return { id: website.id, site_slug: website.site_slug };
     }
     const slug = `site-${user.id.slice(0, 8)}`;
-    const { data: created, error } = await supabase.from('member_websites').insert({ user_id: user.id, site_slug: slug, deployment_status: 'draft', template_key: answers.template, editor_drafts: data }).select('id,site_slug').single();
+    const { data: created, error } = await supabase.from('member_websites').insert({ user_id: user.id, site_slug: slug, deployment_status: 'not_published', template_key: answers.template, editor_drafts: data }).select('id,site_slug').single();
     if (error) throw error;
     await refetch();
     return created;
