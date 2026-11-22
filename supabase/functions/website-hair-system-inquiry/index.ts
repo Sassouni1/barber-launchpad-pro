@@ -165,7 +165,7 @@ async function isAdminCaller(req: Request) {
 
 /** Admin-only: re-read GHL delivery status for one lead's email and text. */
 async function verify(inquiryId: string) {
-  const { data: row } = await db.from(TABLE).select("id, email_status, sms_status, email_provider_id, sms_provider_id, notified_phone_last4, email_error, sms_error").eq("id", inquiryId).maybeSingle();
+  const { data: row } = await db.from(TABLE).select("id, email_status, sms_status, email_provider_id, sms_provider_id, notified_phone_last4, email_error, sms_error, ghl_contact_id").eq("id", inquiryId).maybeSingle();
   if (!row) return { found: false };
   const accesses = await readAccesses();
   const out: Record<string, unknown> = { found: true, version: VERSION, emailStatus: row.email_status, smsStatus: row.sms_status, phoneLast4: row.notified_phone_last4, emailError: row.email_error, smsError: row.sms_error };
@@ -173,14 +173,32 @@ async function verify(inquiryId: string) {
     const id = row[`${ch}_provider_id`];
     if (!id) continue;
     const facts = await readProviderMessage(accesses, id).catch(() => null);
-    let readHttp: number[] = [];
+    const readHttp: string[] = [];
+    let listed: Record<string, unknown> | null = null;
     if (!facts) {
       for (const a of accesses) {
         const r = await fetch(`${GHL_BASE}/conversations/messages/${encodeURIComponent(id)}`, { headers: ghlHeaders(a.accessToken, "2021-04-15") }).catch(() => null);
-        readHttp.push(r?.status ?? 0); await r?.body?.cancel();
+        readHttp.push(`message:${r?.status ?? 0}:${(await r?.text().catch(() => "") ?? "").replace(/\s+/g, " ").slice(0, 160)}`);
+        if (!row.ghl_contact_id || listed) continue;
+        // Fallback: find the message in the member's conversation history.
+        const sr = await fetch(`${GHL_BASE}/conversations/search?locationId=${a.locationId}&contactId=${row.ghl_contact_id}&limit=5`, { headers: ghlHeaders(a.accessToken, "2021-04-15") }).catch(() => null);
+        const sBody = sr ? await sr.text().catch(() => "") : "";
+        readHttp.push(`search:${sr?.status ?? 0}`);
+        if (!sr?.ok) { readHttp.push(sBody.replace(/\s+/g, " ").slice(0, 160)); continue; }
+        const convs = (JSON.parse(sBody)?.conversations ?? []) as { id: string }[];
+        for (const c of convs) {
+          const mr = await fetch(`${GHL_BASE}/conversations/${c.id}/messages?limit=50`, { headers: ghlHeaders(a.accessToken, "2021-04-15") }).catch(() => null);
+          readHttp.push(`list:${mr?.status ?? 0}`);
+          if (!mr?.ok) { await mr?.body?.cancel(); continue; }
+          const mb = await mr.json().catch(() => null);
+          const msgs = (mb?.messages?.messages ?? mb?.messages ?? []) as Record<string, any>[];
+          const m = msgs.find((x) => x.id === id || x.altId === id || x.meta?.email?.messageIds?.includes?.(id));
+          if (m) { listed = { status: m.status ?? null, messageType: m.messageType ?? m.type ?? null, direction: m.direction ?? null, dateAdded: m.dateAdded ?? null, toLast4: m.to ? String(m.to).slice(-4) : null }; break; }
+        }
       }
     }
-    out[`${ch}Provider`] = facts ? { status: facts.status, direction: facts.direction, from: ch === "sms" ? facts.from : undefined, toLast4: facts.to ? String(facts.to).slice(-4) : null, error: facts.error } : { readable: false, credentials: accesses.length, readHttp };
+    out[`${ch}Provider`] = facts ? { status: facts.status, direction: facts.direction, from: ch === "sms" ? facts.from : undefined, toLast4: facts.to ? String(facts.to).slice(-4) : null, error: facts.error } : listed ?? { readable: false, credentials: accesses.length, readHttp };
+    if (!facts && listed?.status) await db.from(TABLE).update({ [`${ch}_provider_status`]: listed.status, updated_at: now() }).eq("id", row.id);
     if (facts?.status) await db.from(TABLE).update({ [`${ch}_provider_status`]: facts.status, updated_at: now() }).eq("id", row.id);
   }
   return out;
