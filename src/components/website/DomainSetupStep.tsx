@@ -98,7 +98,7 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
                 : "You'll enter your card on Stripe's secure page."}</p>
             </div>
             <Button type="button" className="w-full sm:w-auto" disabled={!!busy} onClick={() => onBuy(choice)}>
-              {busy === 'Opening checkout' ? 'Opening secure checkout…' : `Pay ${money(result.price, result.currency)} for ${result.domain}`}
+              {busy === 'Opening checkout' ? 'Opening secure checkout…' : 'Purchase domain'}
             </Button>
             <p className="text-xs text-muted-foreground">Manage saved cards on your <Link to="/billing" className="underline">Billing</Link> page.</p>
           </fieldset></div>}

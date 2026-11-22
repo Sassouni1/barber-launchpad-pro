@@ -457,7 +457,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           <span className="font-medium">Digital Business Card</span>
                         </NavLink>
                         {websiteMenuPath && <NavRow to={websiteMenuPath} icon={Globe} label="My Website" onClick={closeMenu} />}
-                        {canAccessSecondWebsite(user?.email, userIsAdmin) && <NavRow to="/my-website?second=1" icon={Globe} label="Build Second Website" onClick={closeMenu} />}
+                        {canAccessSecondWebsite(user?.email, userIsAdmin) && <NavRow to="/my-website?second=1" icon={Globe} label="Build Website" onClick={closeMenu} />}
                       </CollapsibleContent>
                     </Collapsible>
 

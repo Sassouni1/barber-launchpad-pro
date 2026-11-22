@@ -420,7 +420,7 @@ export function Sidebar({ isAdminView = false }: SidebarProps) {
               <SubNavItem to="/ads" icon={Megaphone} label="Ads" emphasize={reviewerOnAds} />
               <SubNavItem to="/business-card" icon={CreditCard} label="Digital Business Card" />
               {websiteMenuPath && <SubNavItem to={websiteMenuPath} icon={Globe} label="My Website" />}
-              {canAccessSecondWebsite(user?.email, userIsAdmin) && <SubNavItem to="/my-website?second=1" icon={Globe} label="Build Second Website" />}
+              {canAccessSecondWebsite(user?.email, userIsAdmin) && <SubNavItem to="/my-website?second=1" icon={Globe} label="Build Website" />}
             </ExpandableNavItem>
 
             <ExpandableNavItem icon={Package} label="Order Hair & Products" collapsed={collapsed}>
