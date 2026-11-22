@@ -5846,6 +5846,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_specialists_by_state: {
+        Args: { state_code: string }
+        Returns: {
+          bio: string
+          booking_url: string
+          business_name: string
+          city: string
+          first_name: string
+          hero_photo_url: string
+          id: string
+          instagram_handle: string
+          last_name: string
+          latitude: number
+          longitude: number
+          phone: string
+          state: string
+        }[]
+      }
       manual_individual_duplicate_state: {
         Args: {
           _address1: string
