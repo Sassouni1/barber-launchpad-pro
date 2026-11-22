@@ -197,9 +197,9 @@ Deno.serve(async (req) => {
         if (prior.user_id !== user.id) return json({ error: "This domain is already in another order" }, 409);
         if (prior.status !== "checkout_open" || !prior.stripe_session_id) return json({ error: `This domain order is ${prior.status}. Contact support before retrying.` }, 409);
         const session = await stripe(`checkout/sessions/${encodeURIComponent(prior.stripe_session_id)}`, stripeKey);
-        if (session.ok && session.payload?.status === "open" && session.payload?.url)
-          return json({ checkoutUrl: session.payload.url, domain, price: prior.member_charge_cents / 100, currency: "USD" });
-        return json({ error: "The earlier checkout expired. Contact support to reopen it safely." }, 409);
+        if (session.ok && session.payload?.status === "open" && session.payload?.client_secret)
+          return json({ clientSecret: session.payload.client_secret, orderId: prior.id, domain, price: prior.member_charge_cents / 100, currency: "USD" });
+        return json({ error: "An earlier checkout for this domain cannot be resumed here. Contact support to reopen it safely." }, 409);
       }
 
       // The Stripe Customer comes only from a server link or verified payment evidence, never the email.
@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
       }
       // Check the payment plan before reserving the domain so a refused card never blocks the name.
       const preview = domainCheckoutForm({ orderId: "00000000-0000-0000-0000-000000000000", userId: user.id, domain, amountCents: costCents,
-        email: user.email ?? null, resolution, choice, eligibleCards, memberSite: MEMBER_SITE });
+        email: user.email ?? null, resolution, choice, eligibleCards, memberSite: MEMBER_SITE, secondMode: body.secondMode === true });
       if (!preview.ok) return json({ error: preview.error, fallback: "new_card" }, preview.status);
 
       const { data: order, error: orderError } = await db.from("member_domain_orders").insert({
@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
       if (orderError || !order) return json({ error: "Could not reserve this domain order" }, 409);
 
       const plan = domainCheckoutForm({ orderId: order.id, userId: user.id, domain, amountCents: costCents,
-        email: user.email ?? null, resolution, choice, eligibleCards, memberSite: MEMBER_SITE });
+        email: user.email ?? null, resolution, choice, eligibleCards, memberSite: MEMBER_SITE, secondMode: body.secondMode === true });
       if (!plan.ok) {
         await db.from("member_domain_orders").delete().eq("id", order.id).eq("status", "checkout_pending");
         return json({ error: plan.error }, plan.status);
@@ -235,12 +235,12 @@ Deno.serve(async (req) => {
         method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `member_domain_${order.id}` },
         body: form,
       });
-      if (!checkout.ok || !checkout.payload?.id || !checkout.payload?.url) {
+      if (!checkout.ok || !checkout.payload?.id || !checkout.payload?.client_secret) {
         await db.from("member_domain_orders").update({ status: "failed", last_error: "Could not create Stripe checkout" }).eq("id", order.id);
         return json({ error: "Could not open secure checkout" }, 502);
       }
       await db.from("member_domain_orders").update({ status: "checkout_open", stripe_session_id: checkout.payload.id }).eq("id", order.id);
-      return json({ checkoutUrl: checkout.payload.url, domain, price: costCents / 100, currency: "USD" });
+      return json({ clientSecret: checkout.payload.client_secret, orderId: order.id, domain, price: costCents / 100, currency: "USD" });
     }
 
     if (action === "status") {

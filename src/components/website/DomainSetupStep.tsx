@@ -6,6 +6,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowRight, CircleX, Link2, Search } from 'lucide-react';
 import { useMemberBilling } from '@/hooks/useMemberBilling';
 import { cardLabel, paymentChoiceFor, usableCards, type DomainPaymentChoice } from '@/lib/memberBilling';
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
+import { loadStripe, type Stripe } from '@stripe/stripe-js';
+
+const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+let stripePromise: Promise<Stripe | null> | null = null;
+const stripe = () => {
+  if (!publishableKey) return null;
+  if (!stripePromise) stripePromise = loadStripe(publishableKey);
+  return stripePromise;
+};
 
 export type DomainResult = {
   domain: string; available: boolean; price: number | null;
@@ -32,9 +42,11 @@ type Props = {
   busy: string;
   previewOnly: boolean;
   onSkip: () => void;
+  checkoutClientSecret: string | null;
+  onCheckoutComplete: () => void;
 };
 
-export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, suggestions, findingSuggestions, onSelectSuggestion, selectedDomain, onSelectDomain, order, busy, previewOnly, onSkip }: Props) {
+export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, suggestions, findingSuggestions, onSelectSuggestion, selectedDomain, onSelectDomain, order, busy, previewOnly, onSkip, checkoutClientSecret, onCheckoutComplete }: Props) {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onCheck(); };
   const canBuy = !!result?.available && result.price !== null && !previewOnly && !currentDomain;
   const billing = useMemberBilling(canBuy);
@@ -61,8 +73,8 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
     </div> : <>
       {previewOnly && selectedDomain && !result && <div className="rounded-lg border border-primary/50 bg-primary/10 p-4"><p className="text-sm font-semibold text-primary">Selected for your draft</p><strong className="mt-1 block break-all">{selectedDomain}</strong><p className="mt-1 text-xs text-muted-foreground">This domain has not been purchased or reserved.</p></div>}
       <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
-        <div className="relative min-w-0 flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Domain name" value={input} onChange={event => onInput(event.target.value)} placeholder="yourbarbershop.com" autoComplete="off" className="h-14 border-border/80 bg-muted/50 pl-12 text-base focus-visible:ring-primary" /></div>
-        <Button type="submit" variant="outline" disabled={!!busy} className="h-14 border-primary px-7 text-base font-semibold text-foreground hover:bg-primary/10 hover:text-foreground">{busy === 'Checking' ? 'Checking…' : 'Search'}</Button>
+        <div className="relative min-w-0 flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Domain name" value={input} onChange={event => onInput(event.target.value)} disabled={!!checkoutClientSecret} placeholder="yourbarbershop.com" autoComplete="off" className="h-14 border-border/80 bg-muted/50 pl-12 text-base focus-visible:ring-primary" /></div>
+        <Button type="submit" variant="outline" disabled={!!busy || !!checkoutClientSecret} className="h-14 border-primary px-7 text-base font-semibold text-foreground hover:bg-primary/10 hover:text-foreground">{busy === 'Checking' ? 'Checking…' : 'Search'}</Button>
       </form>
       {result && <div className={`rounded-lg border p-4 ${!result.available ? 'border-red-500/80 bg-red-950/40' : ''}`} aria-live="polite">
         <div className="flex flex-wrap items-center gap-2">
@@ -73,7 +85,7 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
           <p className="mt-2">Available · {money(result.price, result.currency)} for the first year</p>
           {result.renewalPrice !== null && <p className="text-sm text-muted-foreground">Current renewal price: {money(result.renewalPrice, result.currency)}. Automatic renewal is off.</p>}
           {previewOnly && <div className="mt-4 space-y-2"><Button type="button" variant={selectedDomain === result.domain ? 'default' : 'outline'} onClick={() => onSelectDomain(result.domain)} className="w-full border-primary sm:w-auto">{selectedDomain === result.domain ? 'Selected for your draft' : 'Select this domain'}</Button><p className="text-xs text-muted-foreground">Selecting saves the name for this draft. It does not purchase or reserve the domain.</p></div>}
-          {!previewOnly && <div className="mt-4 border-t pt-4"><fieldset className="space-y-3" disabled={!!busy}>
+          {!previewOnly && !checkoutClientSecret && <div className="mt-4 border-t pt-4"><fieldset className="space-y-3" disabled={!!busy}>
             <legend className="mb-3 text-sm font-medium">How would you like to pay?</legend>
             {billing.isLoading && <p className="text-sm text-muted-foreground">Checking your saved cards…</p>}
             {cards.map(card => <label key={card.id} className="flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm has-[:checked]:border-primary">
@@ -94,14 +106,23 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
               <p><strong>{result.domain}</strong> · 1-year registration</p>
               <p className="mt-1 text-base font-semibold">Total today: {money(result.price, result.currency)}</p>
               <p className="mt-1 text-xs text-muted-foreground">Automatic renewal is off. {selectedCard
-                ? `On Stripe's secure page, select the card ending ${selectedCard.last4} and confirm.`
-                : "You'll enter your card on Stripe's secure page."}</p>
+                ? `In the secure form here, select the card ending ${selectedCard.last4} and confirm.`
+                : "You'll enter your card in the secure form here."}</p>
             </div>
             <Button type="button" className="w-full sm:w-auto" disabled={!!busy} onClick={() => onBuy(choice)}>
               {busy === 'Opening checkout' ? 'Opening secure checkout…' : 'Purchase domain'}
             </Button>
             <p className="text-xs text-muted-foreground">Manage saved cards on your <Link to="/billing" className="underline">Billing</Link> page.</p>
           </fieldset></div>}
+          {checkoutClientSecret && stripe() && <div className="mt-5 border-t pt-5">
+            <h3 className="text-lg font-semibold">Secure checkout</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Complete payment here to register {result.domain}. Your card details are entered securely in the form below.</p>
+            <div className="mt-4 overflow-hidden rounded-xl bg-white p-2">
+              <EmbeddedCheckoutProvider stripe={stripe()!} options={{ clientSecret: checkoutClientSecret, onComplete: onCheckoutComplete }}>
+                <EmbeddedCheckout className="min-h-[540px]" />
+              </EmbeddedCheckoutProvider>
+            </div>
+          </div>}
           {previewOnly && <p className="mt-2 text-sm text-muted-foreground">Purchase is disabled in this preview.</p>}
         </> : <p className={`mt-2 text-sm font-medium ${!result.available ? 'text-red-200' : 'text-muted-foreground'}`}>{result.available ? 'We could not get a price for this domain. Please search again later.' : 'This domain is already taken. Try another name.'}</p>}
       </div>}
@@ -123,12 +144,12 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
             : 'Checkout or registration is still processing.'}</p>
         {order.last_error && <p className="mt-1 text-sm text-destructive">{order.last_error}</p>}
       </div>}
-      <div className="border-t border-border/70 pt-6">
+      {!checkoutClientSecret && <div className="border-t border-border/70 pt-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary"><Link2 className="h-5 w-5" /></span><div><p className="font-serif text-lg font-semibold">Decide on a domain later</p><p className="mt-1 text-sm text-muted-foreground">You can finish the rest of your website setup now.</p></div></div>
           <Button type="button" variant="outline" onClick={onSkip} className="h-11 shrink-0 border-primary/60 px-5 text-primary hover:bg-primary/10 hover:text-primary">Skip domain<ArrowRight className="ml-2 h-4 w-4" /></Button>
         </div>
-      </div>
+      </div>}
     </>}
   </div>;
 }

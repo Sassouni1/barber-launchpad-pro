@@ -208,11 +208,11 @@ export function parsePaymentChoice(raw: unknown): PaymentChoice | null {
 
 export type DomainCheckoutInput = {
   orderId: string; userId: string; domain: string; amountCents: number; email: string | null;
-  resolution: Resolution; choice: PaymentChoice; eligibleCards: CardView[]; memberSite: string;
+  resolution: Resolution; choice: PaymentChoice; eligibleCards: CardView[]; memberSite: string; secondMode?: boolean;
 };
 
 export function domainCheckoutForm(input: DomainCheckoutInput): { ok: true; form: URLSearchParams } | { ok: false; status: number; error: string } {
-  const { orderId, userId, domain, amountCents, email, resolution, choice, eligibleCards, memberSite } = input;
+  const { orderId, userId, domain, amountCents, email, resolution, choice, eligibleCards, memberSite, secondMode } = input;
   if (!Number.isInteger(amountCents) || amountCents < 100) return { ok: false, status: 409, error: "This domain needs manual pricing review" };
   const linked = resolution.status === "resolved" ? resolution.customerId : null;
   let selected: CardView | undefined;
@@ -224,13 +224,13 @@ export function domainCheckoutForm(input: DomainCheckoutInput): { ok: true; form
   const saveCard = choice.method === "new" && choice.saveCard;
   const form = new URLSearchParams({
     mode: "payment",
+    ui_mode: "embedded",
     "payment_method_types[0]": "card",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(amountCents),
     "line_items[0][price_data][product_data][name]": `Domain registration (1 year): ${domain}`,
     "line_items[0][quantity]": "1",
-    success_url: `${memberSite}/my-website?domain_order=${orderId}`,
-    cancel_url: `${memberSite}/my-website?domain_order=${orderId}&cancelled=1`,
+    return_url: `${memberSite}/my-website?domain_order=${orderId}${secondMode ? "&second=1" : ""}&session_id={CHECKOUT_SESSION_ID}`,
     "metadata[source]": DOMAIN_SOURCE, "metadata[order_id]": orderId,
     "metadata[user_id]": userId, "metadata[domain]": domain,
     "metadata[payment_choice]": choice.method, "metadata[save_card]": String(saveCard),

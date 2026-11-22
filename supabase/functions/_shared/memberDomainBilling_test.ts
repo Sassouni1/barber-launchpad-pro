@@ -165,6 +165,16 @@ Deno.test("saved card: linked Customer, no customer_email, and only the chosen c
   assertEquals(form.get("payment_intent_data[setup_future_usage]"), null);
   assertEquals(form.get("metadata[order_id]"), ORDER_ID);
   assertEquals(form.get("payment_intent_data[metadata][user_id]"), ME);
+  assertEquals(form.get("ui_mode"), "embedded");
+  assertEquals(form.get("return_url"), `https://member.thebarberlaunch.com/my-website?domain_order=${ORDER_ID}&session_id={CHECKOUT_SESSION_ID}`);
+  assertEquals(form.get("success_url"), null);
+  assertEquals(form.get("cancel_url"), null);
+});
+
+Deno.test("embedded checkout returns to the same website builder route for admin review", () => {
+  const plan = domainCheckoutForm({ ...base, secondMode: true, resolution: resolved, choice: { method: "new", saveCard: false }, eligibleCards: [] });
+  assert(plan.ok);
+  assertEquals(plan.form.get("return_url"), `https://member.thebarberlaunch.com/my-website?domain_order=${ORDER_ID}&second=1&session_id={CHECKOUT_SESSION_ID}`);
 });
 
 Deno.test("saved-card fallback: an ineligible, foreign or unresolved card is refused so the member uses a new card", () => {
