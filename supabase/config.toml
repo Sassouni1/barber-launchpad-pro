@@ -128,3 +128,6 @@ verify_jwt = false
 
 [functions.hair-system-kit]
 verify_jwt = false
+
+[functions.website-hair-system-inquiry]
+verify_jwt = false

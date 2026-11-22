@@ -16,7 +16,7 @@ import { emptyGuidedAnswers, guidedTemplates, guidedWebsitePages, instagramUrl, 
 import { formatServiceCity } from '@/lib/formatServiceCity';
 import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
 import { TemplatePicker, templateDisplayName } from '@/components/website/TemplatePicker';
-import { personalizedTemplateHtml, personalizedTemplateOneHairHtml } from '@/lib/guidedTemplatePreview';
+import { personalizedTemplateHtml, personalizedTemplateOneHairHtml, personalizedTemplateTwoHairHtml } from '@/lib/guidedTemplatePreview';
 
 const stages = ['Choose a look', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
@@ -126,9 +126,12 @@ export default function GuidedWebsiteBuilder() {
         if (!response.ok) throw new Error(`Could not load ${template.name} preview.`);
         return [template.key, await response.text()] as const;
       }));
-      const hairResponse = await fetch('/website-previews/template-1/hair-loss-solutions/index.html');
-      if (!hairResponse.ok) throw new Error('Could not load the Classic hair systems page.');
-      return { ...Object.fromEntries(entries), 'guided-charlotte-hair': await hairResponse.text() } as Record<GuidedTemplate | 'guided-charlotte-hair', string>;
+      const [classicHair, boldHair] = await Promise.all([
+        fetch('/website-previews/template-1/hair-loss-solutions/index.html'),
+        fetch('/website-previews/template-2/hair-loss-solutions/index.html'),
+      ]);
+      if (!classicHair.ok || !boldHair.ok) throw new Error('Could not load the hair systems pages.');
+      return { ...Object.fromEntries(entries), 'guided-charlotte-hair': await classicHair.text(), 'guided-kait-hair': await boldHair.text() } as Record<GuidedTemplate | 'guided-charlotte-hair' | 'guided-kait-hair', string>;
     },
     staleTime: Infinity,
   });
@@ -153,8 +156,8 @@ export default function GuidedWebsiteBuilder() {
       if (event.origin !== window.location.origin || event.data?.type !== 'guided-template-page') return;
       const page = event.data.page;
       if (page !== '/' && page !== '/hair-loss-solutions/') return;
-      if (previewTemplate === 'guided-charlotte') setPreviewTemplatePage(page);
-      else if (!previewTemplate && step === 4 && answers.template === 'guided-charlotte') setPreviewPage(page);
+      if (previewTemplate) setPreviewTemplatePage(page);
+      else if (step === 4) setPreviewPage(page);
     };
     window.addEventListener('message', onPageRequest);
     return () => window.removeEventListener('message', onPageRequest);
@@ -178,6 +181,10 @@ export default function GuidedWebsiteBuilder() {
       if (answers.template === 'guided-charlotte') generated['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
         templateSources['guided-charlotte-hair'],
         new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
+        websiteAnswers, undefined, businessSetup?.business_owner_type);
+      else generated['/hair-loss-solutions/'] = personalizedTemplateTwoHairHtml(
+        templateSources['guided-kait-hair'],
+        new URL('/website-previews/template-2/hair-loss-solutions/index.html', window.location.origin).href,
         websiteAnswers, undefined, businessSetup?.business_owner_type);
     }
     return generated;
@@ -311,6 +318,10 @@ export default function GuidedWebsiteBuilder() {
         templateSources!['guided-charlotte-hair'],
         new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
         websiteAnswers, `/${site.site_slug}/`, businessSetup?.business_owner_type);
+      else publishedPages['/hair-loss-solutions/'] = personalizedTemplateTwoHairHtml(
+        templateSources!['guided-kait-hair'],
+        new URL('/website-previews/template-2/hair-loss-solutions/index.html', window.location.origin).href,
+        websiteAnswers, `/${site.site_slug}/`, businessSetup?.business_owner_type);
       const { error } = await supabase.from('member_websites').update({
         published_pages: publishedPages as unknown as never, live_url: liveUrl,
         deployment_status: 'published', published_at: new Date().toISOString(), template_key: answers.template,
@@ -363,8 +374,10 @@ export default function GuidedWebsiteBuilder() {
           <Button type="button" size="sm" className="ml-auto h-11 sm:ml-0 sm:h-9" onClick={() => { if (previewTemplate) { update('template', previewTemplate); setTemplateChosen(true); } setPreviewTemplate(null); }}>Choose this design</Button>
         </div>
         <div className="flex min-h-0 flex-1 justify-center overflow-hidden bg-neutral-900 p-2 sm:p-4">
-          {previewTemplate && <iframe key={`${previewTemplate}:${previewTemplatePage}:${previewDevice}:${previewServicesText}`} title={`Full ${previewDevice} website preview`} src={personalizedPreviews ? undefined : guidedTemplates.find(template => template.key === previewTemplate)?.url} srcDoc={previewTemplate === 'guided-charlotte' && previewTemplatePage === '/hair-loss-solutions/' && templateSources
-            ? personalizedTemplateOneHairHtml(templateSources['guided-charlotte-hair'], new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href, websiteAnswers, undefined, businessSetup?.business_owner_type)
+          {previewTemplate && <iframe key={`${previewTemplate}:${previewTemplatePage}:${previewDevice}:${previewServicesText}`} title={`Full ${previewDevice} website preview`} src={personalizedPreviews ? undefined : guidedTemplates.find(template => template.key === previewTemplate)?.url} srcDoc={previewTemplatePage === '/hair-loss-solutions/' && templateSources
+            ? previewTemplate === 'guided-charlotte'
+              ? personalizedTemplateOneHairHtml(templateSources['guided-charlotte-hair'], new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href, websiteAnswers, undefined, businessSetup?.business_owner_type)
+              : personalizedTemplateTwoHairHtml(templateSources['guided-kait-hair'], new URL('/website-previews/template-2/hair-loss-solutions/index.html', window.location.origin).href, websiteAnswers, undefined, businessSetup?.business_owner_type)
             : personalizedPreviews?.[previewTemplate]} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />}
         </div>
       </DialogContent>

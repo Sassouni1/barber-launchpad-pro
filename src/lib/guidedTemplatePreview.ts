@@ -223,6 +223,11 @@ export function personalizedTemplateHtml(
     return card;
   });
   cards.replaceChildren(...cardRows);
+  if (!siteRoot) {
+    const previewNavigation = doc.createElement('script');
+    previewNavigation.textContent = `document.addEventListener('click',function(event){const link=event.target.closest('a');if(link&&link.getAttribute('href')?.includes('hair-loss-solutions/')){event.preventDefault();parent.postMessage({type:'guided-template-page',page:'/hair-loss-solutions/'},'*')}});`;
+    doc.body.append(previewNavigation);
+  }
   return `<!doctype html>${doc.documentElement.outerHTML}`;
 }
 
@@ -265,16 +270,15 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
   doc.querySelector('meta[name="description"]')?.setAttribute('content', `Explore hair systems and hair loss solutions at ${name} in ${city}.`);
   doc.querySelector('.wordmark')?.setAttribute('aria-label', `${name} home`);
   if (siteRoot) doc.querySelector('meta[name="robots"]')?.remove();
-  const booking = answers.hasBookingApp ? normalizedWebUrl(answers.bookingUrl) : null;
   const phone = answers.phone.trim();
-  const bookHref = booking || (phone ? `tel:${phone.replace(/[^+\d]/g, '')}` : '#');
   doc.querySelectorAll<HTMLAnchorElement>('a[href="../#visit"]').forEach(link => {
     if (/book|consultation|ask about/i.test(link.textContent || '')) {
-      link.href = bookHref;
-      link.textContent = 'Book a hair system consultation ↗';
-      if (booking) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+      link.href = '#hair-system-request';
+      link.textContent = 'Ask about hair systems ↗';
     }
   });
+  const inquiryForm = doc.querySelector<HTMLFormElement>('#hair-inquiry-form');
+  if (inquiryForm && siteRoot) inquiryForm.dataset.siteSlug = siteRoot.split('/').filter(Boolean)[0];
   addHeroCallLink(doc, '.hs-actions .button', phone);
   doc.querySelectorAll<HTMLAnchorElement>('a[href="../"], a[href^="../#"]').forEach(link => {
     const oldHref = link.getAttribute('href') || '';
@@ -295,6 +299,59 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
       if (target) { event.preventDefault(); target.scrollIntoView({behavior:'smooth'}); }
     });`;
     doc.body.append(previewNavigation);
+  }
+  return `<!doctype html>${doc.documentElement.outerHTML}`;
+}
+
+export function personalizedTemplateTwoHairHtml(html: string, baseUrl: string, answers: GuidedWebsiteAnswers, siteRoot?: string, businessOwnerType?: string | null) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll<HTMLLinkElement | HTMLScriptElement | HTMLImageElement>('link[href], script[src], img[src]').forEach(element => {
+    const attr = element.hasAttribute('href') ? 'href' : 'src';
+    const value = element.getAttribute(attr) || '';
+    if (value && !/^(?:https?:|data:|#)/i.test(value)) element.setAttribute(attr, new URL(value, baseUrl).href);
+  });
+  const name = answers.businessName.trim() || 'Your Business Name';
+  const city = answers.city.trim() || 'Your City';
+  const isShopOwner = businessOwnerType === 'barbershop' || businessOwnerType === 'salon';
+  const owner = isShopOwner ? 'our team' : answers.ownerName.trim() || 'Your Name';
+  const phone = answers.phone.trim();
+  const replacements: Record<string, string> = {
+    'YOUR BUSINESS NAME': name.toUpperCase(), 'Your Business Name': name,
+    'YOUR CITY, YOUR STATE': city.toUpperCase(), 'Your City, Your State': city,
+    'YOUR CITY': city.toUpperCase(), 'Your City': city,
+    'YOUR NAME': owner.toUpperCase(), 'Your Name': owner,
+    'Your Business Address': '', 'Your Business Phone': phone,
+  };
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    let value = node.textContent || '';
+    for (const [placeholder, actual] of Object.entries(replacements)) value = value.split(placeholder).join(actual);
+    node.textContent = value;
+  }
+  doc.title = `Hair Loss Solutions | ${name}`;
+  doc.querySelector('meta[name="description"]')?.setAttribute('content', `Explore hair systems and hair loss solutions at ${name} in ${city}.`);
+  if (siteRoot) doc.querySelector('meta[name="robots"]')?.remove();
+  const form = doc.querySelector<HTMLFormElement>('#hair-inquiry-form');
+  if (form && siteRoot) form.dataset.siteSlug = siteRoot.split('/').filter(Boolean)[0];
+  doc.querySelectorAll<HTMLElement>('.cta-stack strong').forEach(label => {
+    if (phone) {
+      label.replaceChildren(doc.createTextNode('Or call '));
+      const call = doc.createElement('a');
+      call.href = `tel:${phone.replace(/[^+\d]/g, '')}`;
+      call.textContent = phone;
+      label.append(call);
+    } else label.textContent = 'Send an inquiry using the form below';
+  });
+  doc.querySelectorAll<HTMLAnchorElement>('a[href="../index.html"], a[href^="../index.html#"]').forEach(link => {
+    const oldHref = link.getAttribute('href') || '';
+    if (siteRoot) link.href = `${siteRoot}${oldHref.includes('#') ? oldHref.slice(oldHref.indexOf('#')) : ''}`;
+    else { link.href = '#'; link.dataset.guidedPage = '/'; }
+  });
+  if (!siteRoot) {
+    const navigation = doc.createElement('script');
+    navigation.textContent = `document.addEventListener('click',function(event){const link=event.target.closest('a[data-guided-page]');if(link){event.preventDefault();parent.postMessage({type:'guided-template-page',page:'/'},'*')}});`;
+    doc.body.append(navigation);
   }
   return `<!doctype html>${doc.documentElement.outerHTML}`;
 }

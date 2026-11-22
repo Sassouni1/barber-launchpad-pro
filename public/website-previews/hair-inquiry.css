@@ -1,0 +1,20 @@
+.hair-inquiry{padding:clamp(64px,8vw,120px) max(5vw,24px);background:#252320;color:#f4f1ec}
+.hair-inquiry-inner{max-width:1100px;margin:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,80px);align-items:start}
+.hair-inquiry h2{font-family:Oswald,Impact,sans-serif;font-size:clamp(44px,5vw,76px);line-height:1.08;text-transform:uppercase;margin:12px 0 22px}
+.hair-inquiry p{line-height:1.55}.hair-inquiry .hair-inquiry-kicker{text-transform:uppercase;letter-spacing:.2em;color:#c9ad8d;font-size:13px;font-weight:700}
+.hair-inquiry-form{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.hair-inquiry-form label{display:grid;gap:7px;font-size:14px;font-weight:600}
+.hair-inquiry-form .wide{grid-column:1/-1}
+.hair-inquiry-form input,.hair-inquiry-form select,.hair-inquiry-form textarea{box-sizing:border-box;width:100%;min-width:0;border:1px solid #756f68;border-radius:0;background:#191817;color:#fff;padding:13px 15px;font:inherit;font-size:16px}
+.hair-inquiry-form textarea{min-height:110px;resize:vertical}
+.hair-inquiry-form button{border:0;background:#e8e3da;color:#161616;padding:16px 22px;font-family:inherit;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;cursor:pointer}
+.hair-inquiry-form button:disabled{opacity:.65;cursor:wait}
+.hair-inquiry-status{grid-column:1/-1;min-height:1.5em;margin:0;color:#ffd7cb}
+.hair-inquiry-success{padding:24px;border:1px solid #c9ad8d;background:#171615;color:#fff}
+.hair-inquiry-honeypot{position:absolute!important;left:-9999px!important;opacity:0!important}
+.hair-inquiry-modal{max-width:min(680px,calc(100vw - 32px));width:100%;max-height:calc(100dvh - 32px);overflow:auto;border:1px solid #8a7764;background:#252320;color:#f4f1ec;padding:clamp(22px,5vw,42px)}
+.hair-inquiry-modal::backdrop{background:rgba(0,0,0,.78)}
+.hair-inquiry-modal-header{display:flex;justify-content:space-between;align-items:start;gap:20px}
+.hair-inquiry-modal h2{font-family:Oswald,Impact,sans-serif;font-size:clamp(28px,5vw,44px);line-height:1.1;text-transform:uppercase;margin:0 0 24px}
+.hair-inquiry-close{border:1px solid #7c746d;background:transparent;color:#fff;font-size:27px;width:44px;height:44px;cursor:pointer}
+@media(max-width:700px){.hair-inquiry-inner{grid-template-columns:1fr}.hair-inquiry-form{grid-template-columns:1fr}.hair-inquiry-form .wide{grid-column:1}}
