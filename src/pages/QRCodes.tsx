@@ -5,14 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useQRLinks, useCreateQRLink, useUpdateQRLink, useDeleteQRLink, QRLink } from '@/hooks/useQRLinks';
+import { useQRLinks, useCreateQRLink, useUpdateQRLink, QRLink } from '@/hooks/useQRLinks';
 import { usePosterTemplate } from '@/hooks/usePosterTemplate';
 import { toast } from 'sonner';
-import { Download, Pencil, Trash2, QrCode, Check, X, Loader2, Image as ImageIcon } from 'lucide-react';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { Download, QrCode, Check, X, Loader2, Image as ImageIcon } from 'lucide-react';
 
 const BASE_URL = 'https://member.thebarberlaunch.com';
 
@@ -196,7 +192,6 @@ function QRLinkCard({ link, posterUrl, qrX, qrY, qrSize }: {
   const [editLabel, setEditLabel] = useState(link.label);
   const [editUrl, setEditUrl] = useState(link.destination_url);
   const updateMutation = useUpdateQRLink();
-  const deleteMutation = useDeleteQRLink();
 
   const handleSave = async () => {
     try {
@@ -204,13 +199,6 @@ function QRLinkCard({ link, posterUrl, qrX, qrY, qrSize }: {
       toast.success('QR code updated');
       setEditing(false);
     } catch { toast.error('Failed to update'); }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await deleteMutation.mutateAsync(link.id);
-      toast.success('QR code deleted');
-    } catch { toast.error('Failed to delete'); }
   };
 
   return (
@@ -253,7 +241,6 @@ export default function QRCodes() {
   const { data: links = [], isLoading } = useQRLinks();
   const { data: poster } = usePosterTemplate();
   const createMutation = useCreateQRLink();
-  const deleteMutation = useDeleteQRLink();
   const [url, setUrl] = useState('');
 
   const posterUrl = poster?.image_url ?? null;
@@ -269,14 +256,6 @@ export default function QRCodes() {
       toast.success('QR code created!');
       setUrl('');
     } catch { toast.error('Failed to create QR code'); }
-  };
-
-  const handleRedo = async () => {
-    if (!existingLink) return;
-    try {
-      await deleteMutation.mutateAsync(existingLink.id);
-      toast.success('QR code removed — create a new one below');
-    } catch { toast.error('Failed to remove QR code'); }
   };
 
   return (
@@ -314,25 +293,6 @@ export default function QRCodes() {
                 qrY={poster?.qr_y ?? 50}
                 qrSize={poster?.qr_size ?? 15}
               />
-              <div className="flex justify-end mt-4">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="outline">
-                      <Trash2 className="w-4 h-4 mr-1" /> Start Over
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Start over?</AlertDialogTitle>
-                      <AlertDialogDescription>This will delete your current QR code. Anyone who already scanned it will see "Link Not Found". You can create a new one right after.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleRedo}>Delete &amp; Start Over</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
             </CardContent>
           </Card>
         ) : (

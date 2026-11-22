@@ -12,7 +12,6 @@ export interface QRLink {
   created_at: string;
   updated_at: string;
 }
-
 function generateShortCode(length = 8): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -68,18 +67,6 @@ export function useUpdateQRLink() {
       if (destination_url !== undefined) updates.destination_url = destination_url;
       if (label !== undefined) updates.label = label;
       const { error } = await supabase.from('qr_links').update(updates).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['qr-links'] }),
-  });
-}
-
-export function useDeleteQRLink() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('qr_links').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['qr-links'] }),
