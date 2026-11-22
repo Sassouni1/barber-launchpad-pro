@@ -6,16 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowRight, CircleX, Link2, Search } from 'lucide-react';
 import { useMemberBilling } from '@/hooks/useMemberBilling';
 import { cardLabel, paymentChoiceFor, usableCards, type DomainPaymentChoice } from '@/lib/memberBilling';
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
-import { loadStripe, type Stripe } from '@stripe/stripe-js';
-
-const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
-let stripePromise: Promise<Stripe | null> | null = null;
-const stripe = () => {
-  if (!publishableKey) return null;
-  if (!stripePromise) stripePromise = loadStripe(publishableKey);
-  return stripePromise;
-};
+import { DomainPaymentForm } from './DomainPaymentForm';
 
 export type DomainResult = {
   domain: string; available: boolean; price: number | null;
@@ -44,9 +35,10 @@ type Props = {
   onSkip: () => void;
   checkoutClientSecret: string | null;
   onCheckoutComplete: () => void;
+  onCheckoutBack: () => void;
 };
 
-export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, suggestions, findingSuggestions, onSelectSuggestion, selectedDomain, onSelectDomain, order, busy, previewOnly, onSkip, checkoutClientSecret, onCheckoutComplete }: Props) {
+export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy, result, suggestions, findingSuggestions, onSelectSuggestion, selectedDomain, onSelectDomain, order, busy, previewOnly, onSkip, checkoutClientSecret, onCheckoutComplete, onCheckoutBack }: Props) {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onCheck(); };
   const canBuy = !!result?.available && result.price !== null && !previewOnly && !currentDomain;
   const billing = useMemberBilling(canBuy);
@@ -61,6 +53,10 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
   const selectedCard = choice.method === 'saved' ? cards.find(card => card.id === choice.paymentMethodId) : undefined;
   const money = (amount: number, currency: string) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+
+  if (checkoutClientSecret && result?.available && result.price !== null) {
+    return <div className="mx-auto max-w-2xl"><DomainPaymentForm clientSecret={checkoutClientSecret} domain={result.domain} price={result.price} currency={result.currency} onComplete={onCheckoutComplete} onBack={onCheckoutBack} /></div>;
+  }
 
   return <div className="mx-auto max-w-4xl space-y-7">
     <div>
@@ -114,15 +110,6 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
             </Button>
             <p className="text-xs text-muted-foreground">Manage saved cards on your <Link to="/billing" className="underline">Billing</Link> page.</p>
           </fieldset></div>}
-          {checkoutClientSecret && stripe() && <div className="mt-5 border-t pt-5">
-            <h3 className="text-lg font-semibold">Secure checkout</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Complete payment here to register {result.domain}. Your card details are entered securely in the form below.</p>
-            <div className="mt-4 overflow-hidden rounded-xl bg-white p-2">
-              <EmbeddedCheckoutProvider stripe={stripe()!} options={{ clientSecret: checkoutClientSecret, onComplete: onCheckoutComplete }}>
-                <EmbeddedCheckout className="min-h-[540px]" />
-              </EmbeddedCheckoutProvider>
-            </div>
-          </div>}
           {previewOnly && <p className="mt-2 text-sm text-muted-foreground">Purchase is disabled in this preview.</p>}
         </> : <p className={`mt-2 text-sm font-medium ${!result.available ? 'text-red-200' : 'text-muted-foreground'}`}>{result.available ? 'We could not get a price for this domain. Please search again later.' : 'This domain is already taken. Try another name.'}</p>}
       </div>}

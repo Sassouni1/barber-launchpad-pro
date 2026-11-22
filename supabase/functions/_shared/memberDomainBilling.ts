@@ -224,7 +224,7 @@ export function domainCheckoutForm(input: DomainCheckoutInput): { ok: true; form
   const saveCard = choice.method === "new" && choice.saveCard;
   const form = new URLSearchParams({
     mode: "payment",
-    ui_mode: "embedded_page",
+    ui_mode: "elements",
     "payment_method_types[0]": "card",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(amountCents),
