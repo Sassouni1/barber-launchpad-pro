@@ -2,11 +2,12 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { requireUser, serviceClient } from "../_shared/websiteAuth.ts";
 import { SITE_WORKER_SOURCE, SITE_WORKER_VERSION, deploySiteWorker } from "../_shared/siteWorker.ts";
 import { requireMemberContentAccess } from "../_shared/memberGate.ts";
+import { domainCheckoutForm, eligibleSavedCards, parsePaymentChoice, resolveMemberStripeCustomer, toCardViews } from "../_shared/memberDomainBilling.ts";
+import { resolveDepsFor, stripeApi } from "../_shared/memberDomainBillingRuntime.ts";
 
 
 const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z]{2,24})+$/;
 const STRIPE_ACCOUNT = "acct_1LMNKMI6LFtj88Bq";
-const DOMAIN_SOURCE = "barber_launch_member_domain";
 const MEMBER_SITE = "https://member.thebarberlaunch.com";
 
 function json(body: unknown, status = 200) {
@@ -157,6 +158,8 @@ Deno.serve(async (req) => {
 
       const domain = typeof body.domain === "string" ? body.domain.trim().toLowerCase() : "";
       if (!DOMAIN_RE.test(domain)) return json({ error: "Enter a complete domain name" }, 400);
+      const choice = parsePaymentChoice(body.payment);
+      if (!choice) return json({ error: "Choose a saved card or a new card" }, 400);
       const db = serviceClient();
       const { data: website, error: websiteError } = await db.from("member_websites")
         .select("id, template_key, custom_domain").eq("user_id", user.id).maybeSingle();
@@ -199,23 +202,35 @@ Deno.serve(async (req) => {
         return json({ error: "The earlier checkout expired. Contact support to reopen it safely." }, 409);
       }
 
+      // The Stripe Customer comes only from a server link or verified payment evidence, never the email.
+      const stripeReader = stripeApi(stripeKey);
+      const resolution = await resolveMemberStripeCustomer(resolveDepsFor(db, stripeReader.get), user.id);
+      if (choice.method === "saved" && resolution.status === "unresolved" && resolution.reason === "lookup_failed")
+        return json({ error: "Saved cards could not be checked right now. Try again or use a new card." }, 503);
+      let eligibleCards: ReturnType<typeof eligibleSavedCards> = [];
+      if (choice.method === "saved" && resolution.status === "resolved") {
+        const methods = await stripeReader.get(`customers/${encodeURIComponent(resolution.customerId)}/payment_methods?type=card&limit=20`);
+        if (!methods) return json({ error: "Saved cards could not be checked right now. Try again or use a new card." }, 503);
+        eligibleCards = eligibleSavedCards(toCardViews(methods.data ?? [], resolution.customerId, resolution.defaultPaymentMethodId, new Date()));
+      }
+      // Check the payment plan before reserving the domain so a refused card never blocks the name.
+      const preview = domainCheckoutForm({ orderId: "00000000-0000-0000-0000-000000000000", userId: user.id, domain, amountCents: costCents,
+        email: user.email ?? null, resolution, choice, eligibleCards, memberSite: MEMBER_SITE });
+      if (!preview.ok) return json({ error: preview.error, fallback: "new_card" }, preview.status);
+
       const { data: order, error: orderError } = await db.from("member_domain_orders").insert({
         user_id: user.id, domain, cloudflare_cost_cents: costCents,
         member_charge_cents: costCents, status: "checkout_pending",
       }).select("id").single();
       if (orderError || !order) return json({ error: "Could not reserve this domain order" }, 409);
 
-      const form = new URLSearchParams({
-        mode: "payment", "line_items[0][price_data][currency]": "usd",
-        "line_items[0][price_data][unit_amount]": String(costCents),
-        "line_items[0][price_data][product_data][name]": `Domain registration: ${domain}`,
-        "line_items[0][quantity]": "1",
-        success_url: `${MEMBER_SITE}/my-website?domain_order=${order.id}`,
-        cancel_url: `${MEMBER_SITE}/my-website?domain_order=${order.id}&cancelled=1`,
-        customer_email: user.email ?? "",
-        "metadata[source]": DOMAIN_SOURCE, "metadata[order_id]": order.id,
-        "metadata[user_id]": user.id, "metadata[domain]": domain,
-      });
+      const plan = domainCheckoutForm({ orderId: order.id, userId: user.id, domain, amountCents: costCents,
+        email: user.email ?? null, resolution, choice, eligibleCards, memberSite: MEMBER_SITE });
+      if (!plan.ok) {
+        await db.from("member_domain_orders").delete().eq("id", order.id).eq("status", "checkout_pending");
+        return json({ error: plan.error }, plan.status);
+      }
+      const form = plan.form;
       const checkout = await stripe("checkout/sessions", stripeKey, {
         method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": `member_domain_${order.id}` },
         body: form,

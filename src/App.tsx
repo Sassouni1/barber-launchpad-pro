@@ -41,6 +41,7 @@ import SettingUpYourFacebook from "./pages/lessons/SettingUpYourFacebook";
 import Agreement from "./pages/Agreement";
 import ScheduleCall from "./pages/ScheduleCall";
 import Orders from "./pages/Orders";
+import Billing from "./pages/Billing";
 // CustomHairSystemRequest kept for a later release — route hidden for now
 import ManufacturerOrders from "./pages/ManufacturerOrders";
 import Marketing from "./pages/Marketing";
@@ -133,6 +134,7 @@ const MemberApp = () => (
         
         <Route path="/schedule-call" element={<ProtectedRoute><ScheduleCall /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+        <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
         {/* Custom Hair Systems hidden for now — feature preserved for a later release */}
         <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
         <Route path="/social-media-post" element={<ProtectedRoute><SocialMediaPost /></ProtectedRoute>} />

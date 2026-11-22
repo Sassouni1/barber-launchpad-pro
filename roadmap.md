@@ -143,3 +143,10 @@
 - [x] member-checkout-signup: Stripe-verified live enrollment session as single-use proof, atomic claim binding to one new account, any login email, standard confirmation only; consumed payments excluded from checkout-email and self-check paths.
 - [x] Rule tests, rolled-back claim rehearsal, real two-connection concurrency check, live denials (made-up, test-mode, unpaid real session); /create checkout flow on desktop/phone.
 - [ ] Real paid buyer end-to-end (waits on the first real purchase; no test purchase or real buyer account made).
+
+## Member billing and saved-card domain checkout (review before deploy/publish)
+- [x] Guarded Stripe Customer link (checked-in migration, not applied) and shared resolver from claims/grants with ambiguity checks.
+- [x] member-billing function (masked cards, Stripe-hosted add/replace, remove, domain receipts) and Billing page + menu entry.
+- [x] Domain checkout: linked customer, explicit saved-card or new-card choice with opt-in save, exact total confirmation; checkout guard stays off.
+- [x] Webhook attaches customer/approved card only after full payment match; registration idempotency preserved; tests for cross-member, ambiguity, fallback, stale price, duplicates, failed registration.
+- [ ] Hold: apply migration, deploy functions, publish — waits on owner diff review.

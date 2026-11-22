@@ -12,11 +12,13 @@ import { useMemberWebsite, uploadWebsiteImage } from '@/hooks/useMemberWebsite';
 import { useBusinessCard } from '@/hooks/useBusinessCard';
 import { useWebsiteEditorEntitlement } from '@/hooks/useWebsiteEditor';
 import { supabase } from '@/integrations/supabase/client';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { emptyGuidedAnswers, guidedTemplates, guidedWebsitePages, instagramUrl, normalizedWebUrl, type GuidedTemplate, type GuidedWebsiteAnswers } from '@/lib/guidedWebsite';
 import { formatServiceCity } from '@/lib/formatServiceCity';
 import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
 import { TemplatePicker, templateDisplayName } from '@/components/website/TemplatePicker';
 import { DomainSetupStep, type DomainOrder, type DomainResult } from '@/components/website/DomainSetupStep';
+import { isStripeCheckoutUrl, type DomainPaymentChoice } from '@/lib/memberBilling';
 import { personalizedTemplateHtml, personalizedTemplateOneHairHtml, personalizedTemplateTwoHairHtml } from '@/lib/guidedTemplatePreview';
 
 const stages = ['Choose a look', 'Domain', 'Your business', 'Booking', 'Photos & social', 'Review'];
@@ -335,7 +337,7 @@ export default function GuidedWebsiteBuilder() {
     finally { setDomainBusy(''); }
   };
 
-  const buyDomain = async () => {
+  const buyDomain = async (payment: DomainPaymentChoice) => {
     if (previewOnly) { toast.info('Domain purchase is unavailable in preview mode.'); return; }
     if (!domainResult?.available || domainResult.price === null || domainResult.domain !== domainInput) return;
     setDomainBusy('Opening checkout');
@@ -343,13 +345,19 @@ export default function GuidedWebsiteBuilder() {
       await saveDraft();
       const { data, error } = await supabase.functions.invoke('cloudflare-domains', {
         body: { action: 'checkout', domain: domainResult.domain,
-          confirmedDomain: domainResult.domain, confirmedPrice: domainResult.price },
+          confirmedDomain: domainResult.domain, confirmedPrice: domainResult.price, payment },
       });
-      if (error || data?.error) throw new Error(data?.error || error?.message || 'Could not start domain checkout.');
-      const checkoutUrl = new URL(data.checkoutUrl);
-      if (checkoutUrl.protocol !== 'https:' || checkoutUrl.hostname !== 'checkout.stripe.com')
-        throw new Error('Checkout returned an unexpected address.');
-      window.location.assign(checkoutUrl.href);
+      if (error) {
+        const details = error instanceof FunctionsHttpError ? await error.context.json().catch(() => null) : null;
+        if (details?.current && details.current.domain === domainResult.domain) {
+          // The price or availability changed: show the new total and require a fresh confirmation.
+          setDomainResult(details.current as DomainResult);
+        }
+        throw new Error(details?.error || 'Could not start domain checkout.');
+      }
+      if (data?.error) throw new Error(data.error);
+      if (!isStripeCheckoutUrl(data?.checkoutUrl)) throw new Error('Checkout returned an unexpected address.');
+      window.location.assign(data.checkoutUrl);
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not start domain checkout.'); setDomainBusy(''); }
   };
 
@@ -419,7 +427,7 @@ export default function GuidedWebsiteBuilder() {
           </article>)}
         </div>
       </div>}
-      {step === 1 && <DomainSetupStep currentDomain={website?.custom_domain || null} input={domainInput} onInput={value => { setDomainInput(value); setDomainResult(null); }} onCheck={() => void checkDomain()} onBuy={() => void buyDomain()} result={domainResult} order={domainOrder} busy={domainBusy} previewOnly={previewOnly} />}
+      {step === 1 && <DomainSetupStep currentDomain={website?.custom_domain || null} input={domainInput} onInput={value => { setDomainInput(value); setDomainResult(null); }} onCheck={() => void checkDomain()} onBuy={payment => void buyDomain(payment)} result={domainResult} order={domainOrder} busy={domainBusy} previewOnly={previewOnly} />}
       {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" />{!isBusinessOwner && <div className="space-y-2"><label htmlFor="website-client-name" className="block font-medium">Name clients will see</label><Input id="website-client-name" value={websiteAnswers.ownerName} readOnly aria-readonly="true" placeholder="Add your name in My Profile" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div>}{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<div className="space-y-2"><label htmlFor="website-client-phone" className="block font-medium">Number clients should see</label><Input id="website-client-phone" type="tel" value={websiteAnswers.phone} readOnly aria-readonly="true" placeholder="No public number added" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
       {step === 3 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
       {step === 4 && answers.template === 'guided-charlotte' && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Social profile</h2><p className="text-muted-foreground">Design 1 keeps its existing editorial photography. Your services appear as a text list without individual photos.</p><label className="block space-y-2"><span className="font-medium">Instagram handle or profile link (optional)</span><Input value={answers.instagram} onChange={event => update('instagram', event.target.value)} placeholder="@yourname" /></label></div>}
