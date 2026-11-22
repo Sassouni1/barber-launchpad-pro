@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { CheckoutElementsProvider, PaymentElement, useCheckoutElements } from '@stripe/react-stripe-js/checkout';
 import { loadStripe, type Stripe } from '@stripe/stripe-js';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
@@ -50,7 +51,9 @@ function PaymentFields({ domain, price, currency, onComplete, onBack }: Omit<Pro
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-lg font-semibold"><span>Total today</span><span className="text-primary">{total}</span></div>
       <p className="mt-1 text-xs text-muted-foreground">Automatic renewal is off.</p>
     </div>
-    <button type="button" onClick={onBack} disabled={submitting} className="text-left text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">Back to domain search</button>
+    <Button type="button" variant="outline" onClick={onBack} disabled={submitting} className="h-11 w-full gap-2 rounded-lg border-primary/60 bg-primary/10 px-5 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/20 hover:text-primary focus-visible:ring-primary sm:w-auto">
+      <ArrowLeft className="h-4 w-4" />Back to domain search
+    </Button>
     <div>
       <h4 className="mb-4 text-lg font-semibold">Card details</h4>
       <div className="overflow-hidden rounded-xl bg-white p-3 sm:p-5">
