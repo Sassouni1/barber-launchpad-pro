@@ -523,7 +523,7 @@ export default function GuidedWebsiteBuilder() {
         </div>
       </DialogContent>
     </Dialog>
-    <div className="flex justify-between gap-3"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)} className="h-12 px-5"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 5 && (step !== 1 || !!website?.custom_domain || domainOrder?.status === 'registered') && <Button onClick={next} disabled={needsTemplateChoice} className="h-12 px-6 font-semibold">{pickerMode && step === 0 && templateChosen ? `Continue with ${templateDisplayName(answers.template)}` : 'Continue'}<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
+    <div className="flex justify-between gap-3"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => { if (step === 1 && domainCheckoutClientSecret) setDomainCheckoutClientSecret(null); else setStep(current => current - 1); }} className="h-12 px-5"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 5 && (step !== 1 || !!website?.custom_domain || domainOrder?.status === 'registered') && <Button onClick={next} disabled={needsTemplateChoice} className="h-12 px-6 font-semibold">{pickerMode && step === 0 && templateChosen ? `Continue with ${templateDisplayName(answers.template)}` : 'Continue'}<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
   </main></DashboardLayout>;
 }
 

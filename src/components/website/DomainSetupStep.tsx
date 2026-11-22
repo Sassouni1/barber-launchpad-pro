@@ -45,7 +45,7 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
   const billing = useMemberBilling(canBuy);
   const cards = usableCards(billing.data?.cards ?? []);
   const [selection, setSelection] = useState('new');
-  const [saveNewCard, setSaveNewCard] = useState(false);
+  const [saveNewCard, setSaveNewCard] = useState(true);
   useEffect(() => {
     // Never preselect a saved card; the member chooses it explicitly for this purchase.
     if (selection !== 'new' && !cards.some(card => card.id === selection)) setSelection('new');
@@ -93,8 +93,8 @@ export function DomainSetupStep({ currentDomain, input, onInput, onCheck, onBuy,
               <input type="radio" name="domain-payment" className="mt-1 accent-primary" checked={selection === 'new'} onChange={() => setSelection('new')} />
               <span>Use a new card</span>
             </label>
-            {selection === 'new' && <label className="flex items-start gap-3 text-sm text-muted-foreground">
-              <Checkbox className="mt-0.5" checked={saveNewCard} onCheckedChange={value => setSaveNewCard(value === true)} />
+            {selection === 'new' && <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Checkbox className="mt-0.5 !h-3 !w-3 !rounded-none [&_svg]:!h-2.5 [&_svg]:!w-2.5" checked={saveNewCard} onCheckedChange={value => setSaveNewCard(value === true)} />
               <span>Save this card for future Barber Launch purchases. It is only charged when you choose it and confirm.</span>
             </label>}
             {billing.data?.customer.status === 'unresolved' && <p className="text-xs text-muted-foreground">Cards from past purchases are hidden because we couldn't confirm they belong only to your account.</p>}
