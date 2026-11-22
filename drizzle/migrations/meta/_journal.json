@@ -141,6 +141,13 @@
       "when": 1795316200514,
       "tag": "0019_member_access_audit_after_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795316474111,
+      "tag": "0020_gate_todo_templates",
+      "breakpoints": true
     }
   ]
 }
