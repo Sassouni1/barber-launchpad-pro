@@ -231,7 +231,7 @@ export function personalizedTemplateHtml(
   return `<!doctype html>${doc.documentElement.outerHTML}`;
 }
 
-export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, answers: GuidedWebsiteAnswers, siteRoot?: string, businessOwnerType?: string | null) {
+export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, answers: GuidedWebsiteAnswers, siteRoot?: string, businessOwnerType?: string | null, siteSlug?: string) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   doc.querySelectorAll<HTMLLinkElement | HTMLScriptElement | HTMLImageElement | HTMLSourceElement>('link[href], script[src], img[src], video[poster], source[src]').forEach(element => {
     const attribute = element.hasAttribute('href') ? 'href' : element.hasAttribute('poster') ? 'poster' : 'src';
@@ -278,7 +278,7 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
     }
   });
   const inquiryForm = doc.querySelector<HTMLFormElement>('#hair-inquiry-form');
-  if (inquiryForm && siteRoot) inquiryForm.dataset.siteSlug = siteRoot.split('/').filter(Boolean)[0];
+  if (inquiryForm && siteRoot) inquiryForm.dataset.siteSlug = siteSlug || siteRoot.split('/').filter(Boolean)[0];
   addHeroCallLink(doc, '.hs-actions .button', phone);
   doc.querySelectorAll<HTMLAnchorElement>('a[href="../"], a[href^="../#"]').forEach(link => {
     const oldHref = link.getAttribute('href') || '';
@@ -303,7 +303,7 @@ export function personalizedTemplateOneHairHtml(html: string, baseUrl: string, a
   return `<!doctype html>${doc.documentElement.outerHTML}`;
 }
 
-export function personalizedTemplateTwoHairHtml(html: string, baseUrl: string, answers: GuidedWebsiteAnswers, siteRoot?: string, businessOwnerType?: string | null) {
+export function personalizedTemplateTwoHairHtml(html: string, baseUrl: string, answers: GuidedWebsiteAnswers, siteRoot?: string, businessOwnerType?: string | null, siteSlug?: string) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   doc.querySelectorAll<HTMLLinkElement | HTMLScriptElement | HTMLImageElement>('link[href], script[src], img[src]').forEach(element => {
     const attr = element.hasAttribute('href') ? 'href' : 'src';
@@ -333,7 +333,7 @@ export function personalizedTemplateTwoHairHtml(html: string, baseUrl: string, a
   doc.querySelector('meta[name="description"]')?.setAttribute('content', `Explore hair systems and hair loss solutions at ${name} in ${city}.`);
   if (siteRoot) doc.querySelector('meta[name="robots"]')?.remove();
   const form = doc.querySelector<HTMLFormElement>('#hair-inquiry-form');
-  if (form && siteRoot) form.dataset.siteSlug = siteRoot.split('/').filter(Boolean)[0];
+  if (form && siteRoot) form.dataset.siteSlug = siteSlug || siteRoot.split('/').filter(Boolean)[0];
   doc.querySelectorAll<HTMLElement>('.cta-stack strong').forEach(label => {
     if (phone) {
       label.replaceChildren(doc.createTextNode('Or call '));

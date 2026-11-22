@@ -38,7 +38,7 @@ type AttachOutcome = {
  * registration status is irrelevant. Idempotent: an existing binding is reused.
  * Only ever called from a member-initiated publish.
  */
-async function attachCustomDomain(hostname: string): Promise<AttachOutcome> {
+async function attachCustomDomain(hostname: string, purchasedForMember = false): Promise<AttachOutcome> {
   const cf = cloudflareConfig();
   if (!cf) {
     return { status: "unavailable", workerDomainId: null, error: "Cloudflare credentials are not configured" };
@@ -66,6 +66,36 @@ async function attachCustomDomain(hostname: string): Promise<AttachOutcome> {
       workerDomainId: null,
       error: "This domain is not an active zone in the connected Cloudflare account yet",
     };
+  }
+
+  // A new Registrar purchase has no origin DNS record. A Worker Route would
+  // appear attached but the hostname would not resolve. A Custom Domain
+  // creates the DNS record and certificate for the Worker automatically.
+  if (purchasedForMember) {
+    const existingRes = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${cf.accountId}/workers/domains?hostname=${encodeURIComponent(hostname)}`,
+      { headers },
+    );
+    const existingJson = await existingRes.json().catch(() => ({}));
+    const existingDomain = Array.isArray(existingJson?.result)
+      ? existingJson.result.find((item: { hostname?: string }) => item.hostname === hostname)
+      : null;
+    if (existingDomain?.id) {
+      return { status: "active", workerDomainId: String(existingDomain.id), error: null };
+    }
+    const attachRes = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${cf.accountId}/workers/domains`,
+      { method: "PUT", headers, body: JSON.stringify({
+        environment: "production", hostname, service: cf.worker,
+        zone_id: zone.id, zone_name: zone.name ?? hostname,
+      }) },
+    );
+    const attachJson = await attachRes.json().catch(() => ({}));
+    if (!attachRes.ok || attachJson?.success === false) {
+      return { status: "pending", workerDomainId: null,
+        error: String(attachJson?.errors?.[0]?.message ?? `Cloudflare error ${attachRes.status}`) };
+    }
+    return { status: "active", workerDomainId: attachJson?.result?.id ? String(attachJson.result.id) : null, error: null };
   }
 
   // The hostname lives in an active Cloudflare zone (it may already be serving an
@@ -197,17 +227,19 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!entitlement) {
-      return json({ error: "Your account is not set up for website publishing" }, 403);
-    }
-
-
     const { data: existing, error: loadError } = await supabase
       .from("member_websites")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
     if (loadError) return json({ error: loadError.message }, 500);
+
+    // Guided Classic drafts are created by the member builder; the older
+    // Website Editor instead uses a separate entitlement record.
+    const guided = existing && ["guided-charlotte", "guided-kait"].includes(existing.template_key);
+    if (!entitlement && !guided) {
+      return json({ error: "Your account is not set up for website publishing" }, 403);
+    }
 
     // Resolve a stable slug for this member.
     let slug = existing?.site_slug as string | undefined;
@@ -234,8 +266,9 @@ Deno.serve(async (req) => {
 
     const previewUrl = `${previewBase()}/${slug}`;
     // The configured domain is adopted the first time the member publishes.
-    const customDomain = (entitlement.custom_domain as string | null) ??
-      (existing?.custom_domain as string | null) ?? null;
+    const customDomain = guided
+      ? ((existing?.custom_domain as string | null) ?? null)
+      : ((entitlement?.custom_domain as string | null) ?? (existing?.custom_domain as string | null) ?? null);
 
     let attachment: AttachOutcome = {
       status: (existing?.cloudflare_attachment_status as AttachOutcome["status"]) ?? "none",
@@ -244,6 +277,9 @@ Deno.serve(async (req) => {
     };
     let workerSync: WorkerSyncResult | null = null;
     if (customDomain) {
+      const { data: purchasedDomain } = await supabase.from("member_domain_orders")
+        .select("id,status").eq("user_id", user.id).eq("domain", customDomain)
+        .in("status", ["registered", "registration_pending"]).maybeSingle();
       // Never point a live domain at a stale Worker: sync the canonical Worker
       // source first, and only attach the domain if that succeeded.
       const cf = cloudflareConfig();
@@ -254,7 +290,7 @@ Deno.serve(async (req) => {
         if (!workerSync.ok) {
           attachment = { status: "failed", workerDomainId: null, error: `Site host update failed: ${workerSync.error}` };
         } else {
-          attachment = await attachCustomDomain(customDomain);
+          attachment = await attachCustomDomain(customDomain, Boolean(purchasedDomain));
         }
       }
     }
@@ -272,7 +308,7 @@ Deno.serve(async (req) => {
     const payload = {
       user_id: user.id,
       site_slug: slug,
-      template_key: entitlement.template_key,
+      template_key: entitlement?.template_key ?? existing?.template_key,
       custom_domain: customDomain,
       published_pages: publishedPages,
       deployment_status: deploymentStatus,

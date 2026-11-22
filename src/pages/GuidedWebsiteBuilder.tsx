@@ -16,9 +16,10 @@ import { emptyGuidedAnswers, guidedTemplates, guidedWebsitePages, instagramUrl, 
 import { formatServiceCity } from '@/lib/formatServiceCity';
 import { canAccessMyWebsite, canAccessSecondWebsite } from '@/lib/myWebsiteAccess';
 import { TemplatePicker, templateDisplayName } from '@/components/website/TemplatePicker';
+import { DomainSetupStep, type DomainOrder, type DomainResult } from '@/components/website/DomainSetupStep';
 import { personalizedTemplateHtml, personalizedTemplateOneHairHtml, personalizedTemplateTwoHairHtml } from '@/lib/guidedTemplatePreview';
 
-const stages = ['Choose a look', 'Your business', 'Booking', 'Photos & social', 'Review'];
+const stages = ['Choose a look', 'Domain', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
 const isGuided = (key: string | null | undefined) => key === 'guided-charlotte' || key === 'guided-kait';
 const savedPersonName = (value?: string) => value?.trim() && !/^your name$/i.test(value.trim()) ? value.trim() : '';
@@ -157,7 +158,7 @@ export default function GuidedWebsiteBuilder() {
       const page = event.data.page;
       if (page !== '/' && page !== '/hair-loss-solutions/') return;
       if (previewTemplate) setPreviewTemplatePage(page);
-      else if (step === 4) setPreviewPage(page);
+      else if (step === 5) setPreviewPage(page);
     };
     window.addEventListener('message', onPageRequest);
     return () => window.removeEventListener('message', onPageRequest);
@@ -170,6 +171,10 @@ export default function GuidedWebsiteBuilder() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [busy, setBusy] = useState('');
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [domainInput, setDomainInput] = useState('');
+  const [domainResult, setDomainResult] = useState<DomainResult | null>(null);
+  const [domainOrder, setDomainOrder] = useState<DomainOrder | null>(null);
+  const [domainBusy, setDomainBusy] = useState('');
   const siteSlug = secondMode ? `second-site-preview-${user?.id.slice(0, 8) || 'demo'}` : website?.site_slug ?? `site-${user?.id.slice(0, 8) || 'preview'}`;
   const pages = useMemo(() => {
     const generated = guidedWebsitePages(answers, siteSlug);
@@ -229,22 +234,45 @@ export default function GuidedWebsiteBuilder() {
   }, [dashboardCity, dashboardLocationKnown, dashboardLocationBeingEdited, hydrated, demoMode]);
   useEffect(() => { if (user && hydrated && !previewOnly) localStorage.setItem(guidedKey(user.id), JSON.stringify(answers)); }, [answers, user, hydrated, previewOnly]);
   useEffect(() => { if (user && hydrated && secondMode) localStorage.setItem(`guided-second-site:${user.id}`, JSON.stringify(answers)); }, [answers, user, hydrated, secondMode]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('domain_order')) setStep(1);
+  }, []);
+  useEffect(() => {
+    if (website?.custom_domain) setDomainInput(current => current || website.custom_domain || '');
+  }, [website?.custom_domain]);
+  useEffect(() => {
+    if (!user || previewOnly) return;
+    const returnedOrder = new URLSearchParams(window.location.search).get('domain_order');
+    let stopped = false;
+    const refresh = async () => {
+      const { data, error } = await supabase.functions.invoke('cloudflare-domains', {
+        body: { action: 'status', ...(returnedOrder ? { orderId: returnedOrder } : {}) },
+      });
+      if (!stopped && !error && data?.order) {
+        setDomainOrder(data.order as DomainOrder);
+        if (data.order.status === 'registered') void refetch();
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => { if (step === 1) void refresh(); }, 8000);
+    return () => { stopped = true; window.clearInterval(timer); };
+  }, [user, previewOnly, step, refetch]);
   const update = <K extends keyof GuidedWebsiteAnswers>(key: K, value: GuidedWebsiteAnswers[K]) => setAnswers(current => ({ ...current, [key]: value }));
 
   const next = () => {
     if (needsTemplateChoice) { toast.error('Pick a design to continue.'); return; }
-    if (step === 1 && (!answers.businessName.trim() || !answers.city.trim())) {
+    if (step === 2 && (!answers.businessName.trim() || !answers.city.trim())) {
       toast.error('Add your business name and city.'); return;
     }
-    if (step === 2) {
+    if (step === 3) {
       if (answers.hasBookingApp === null) { toast.error('Choose whether you use a booking app.'); return; }
       if (answers.hasBookingApp && !normalizedWebUrl(answers.bookingUrl)) { toast.error('Enter a valid booking link.'); return; }
       if (!answers.hasBookingApp && !answers.hours.trim()) { toast.error('Add your hours of operation.'); return; }
     }
-    if (step === 3 && answers.instagram.trim() && !instagramUrl(answers.instagram)) {
+    if (step === 4 && answers.instagram.trim() && !instagramUrl(answers.instagram)) {
       toast.error('Enter a valid Instagram handle or profile link.'); return;
     }
-    setStep(current => { const nextStep = Math.min(4, current + 1); setFurthestStep(previous => Math.max(previous, nextStep)); return nextStep; });
+    setStep(current => { const nextStep = Math.min(5, current + 1); setFurthestStep(previous => Math.max(previous, nextStep)); return nextStep; });
   };
 
   const findPhotos = async () => {
@@ -279,7 +307,7 @@ export default function GuidedWebsiteBuilder() {
     if (!user) throw new Error('Sign in to save your website.');
     const data = { guided: websiteAnswers } as unknown as never;
     if (website) {
-      if (!isGuided(website.template_key) || website.custom_domain) throw new Error('This account already has a website. Your existing site was left untouched.');
+      if (!isGuided(website.template_key)) throw new Error('This account already has a website. Your existing site was left untouched.');
       const { error } = await supabase.from('member_websites').update({ editor_drafts: data, template_key: answers.template }).eq('id', website.id).eq('user_id', user.id);
       if (error) throw error;
       await refetch();
@@ -290,6 +318,39 @@ export default function GuidedWebsiteBuilder() {
     if (error) throw error;
     await refetch();
     return created;
+  };
+
+  const checkDomain = async () => {
+    const domain = domainInput.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    setDomainResult(null);
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z]{2,24})+$/.test(domain)) {
+      toast.error('Enter a complete domain, such as yourshop.com.'); return;
+    }
+    setDomainInput(domain); setDomainBusy('Checking');
+    try {
+      const { data, error } = await supabase.functions.invoke('cloudflare-domains', { body: { action: 'check', domains: [domain] } });
+      if (error || data?.error) throw new Error(data?.error || error?.message || 'Could not check that domain.');
+      setDomainResult((data?.results?.[0] || null) as DomainResult | null);
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not check that domain.'); }
+    finally { setDomainBusy(''); }
+  };
+
+  const buyDomain = async () => {
+    if (previewOnly) { toast.info('Domain purchase is unavailable in preview mode.'); return; }
+    if (!domainResult?.available || domainResult.price === null || domainResult.domain !== domainInput) return;
+    setDomainBusy('Opening checkout');
+    try {
+      await saveDraft();
+      const { data, error } = await supabase.functions.invoke('cloudflare-domains', {
+        body: { action: 'checkout', domain: domainResult.domain,
+          confirmedDomain: domainResult.domain, confirmedPrice: domainResult.price },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || 'Could not start domain checkout.');
+      const checkoutUrl = new URL(data.checkoutUrl);
+      if (checkoutUrl.protocol !== 'https:' || checkoutUrl.hostname !== 'checkout.stripe.com')
+        throw new Error('Checkout returned an unexpected address.');
+      window.location.assign(checkoutUrl.href);
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not start domain checkout.'); setDomainBusy(''); }
   };
 
   const save = async () => {
@@ -308,37 +369,37 @@ export default function GuidedWebsiteBuilder() {
     setBusy('Publishing');
     try {
       const site = await saveDraft();
-      const liveUrl = `https://sites.thebarberlaunch.com/${site.site_slug}`;
       const publishedPages = { ...pages };
       const template = guidedTemplates.find(item => item.key === answers.template)!;
       publishedPages['/'] = personalizedTemplateHtml(templateSources![answers.template], answers.template, previewServicesText,
         new URL(template.url, window.location.origin).href,
-        serviceDetails, serviceRole, `/${site.site_slug}/`, websiteAnswers, businessSetup?.business_owner_type);
+        serviceDetails, serviceRole, './', websiteAnswers, businessSetup?.business_owner_type);
       if (answers.template === 'guided-charlotte') publishedPages['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
         templateSources!['guided-charlotte-hair'],
         new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
-        websiteAnswers, `/${site.site_slug}/`, businessSetup?.business_owner_type);
+        websiteAnswers, '../', businessSetup?.business_owner_type, site.site_slug);
       else publishedPages['/hair-loss-solutions/'] = personalizedTemplateTwoHairHtml(
         templateSources!['guided-kait-hair'],
         new URL('/website-previews/template-2/hair-loss-solutions/index.html', window.location.origin).href,
-        websiteAnswers, `/${site.site_slug}/`, businessSetup?.business_owner_type);
-      const { error } = await supabase.from('member_websites').update({
-        published_pages: publishedPages as unknown as never, live_url: liveUrl,
-        deployment_status: 'published', published_at: new Date().toISOString(), template_key: answers.template,
-      }).eq('id', site.id).eq('user_id', user!.id);
-      if (error) throw error;
-      setPublishedUrl(liveUrl); await refetch(); toast.success('Website published.');
+        websiteAnswers, '../', businessSetup?.business_owner_type, site.site_slug);
+      const { data, error } = await supabase.functions.invoke('website-publish', {
+        body: { siteSlug: site.site_slug, pages: Object.entries(publishedPages).map(([path, html]) => ({ path, html })) },
+      });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || 'Could not publish your website.');
+      setPublishedUrl(data.liveUrl); await refetch();
+      if (data.deploymentStatus === 'domain_pending') toast.info('Website published at its temporary address while the domain connects.');
+      else toast.success('Website published.');
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not publish your website.'); }
     finally { setBusy(''); }
   };
 
   if (!canAccessMyWebsite(user?.id) && !(secondMode && canAccessSecondWebsite(user?.email, isAdmin))) return <DashboardLayout><div className="mx-auto max-w-xl p-6"><h1 className="font-serif text-3xl">My Website is unavailable</h1></div></DashboardLayout>;
   if (loadingWebsite || loadingEntitlement || loadingProfile || loadingBusinessSetup || !hydrated) return <DashboardLayout><div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div></DashboardLayout>;
-  if (!previewOnly && (entitlement || (website && !isGuided(website.template_key)))) return <DashboardLayout><div className="mx-auto max-w-xl p-6"><h1 className="font-serif text-3xl">Your website is already set up</h1><p className="mt-3 text-muted-foreground">Your existing website and editor are unchanged.</p>{entitlement ? <a className="mt-5 inline-block text-primary underline" href="/website">Open your Website Editor</a> : website?.live_url ? <a className="mt-5 inline-block text-primary underline" href={website.live_url} target="_blank" rel="noreferrer">View your website</a> : null}</div></DashboardLayout>;
+  if (!previewOnly && ((entitlement && !isGuided(website?.template_key)) || (website && !isGuided(website.template_key)))) return <DashboardLayout><div className="mx-auto max-w-xl p-6"><h1 className="font-serif text-3xl">Your website is already set up</h1><p className="mt-3 text-muted-foreground">Your existing website and editor are unchanged.</p>{entitlement ? <a className="mt-5 inline-block text-primary underline" href="/website">Open your Website Editor</a> : website?.live_url ? <a className="mt-5 inline-block text-primary underline" href={website.live_url} target="_blank" rel="noreferrer">View your website</a> : null}</div></DashboardLayout>;
 
   return <DashboardLayout><main className="mx-auto max-w-6xl space-y-6 p-4 sm:p-8">
     <div><p className="text-xs font-bold uppercase tracking-[.22em] text-primary">My Website</p><h1 className="mt-2 font-serif text-3xl sm:text-4xl">{secondMode ? 'Build your second website' : 'Let’s build your website'}</h1><p className="mt-2 text-muted-foreground">Answer a few questions. We’ll build a draft you can review before publishing.</p>{demoMode && <p className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm text-primary">Admin preview only. Your answers will not save or publish, and your existing website will not change.</p>}{secondMode && <p className="mt-4 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm text-primary">Second-site draft. Your answers are saved in this browser. Your current website will not change, and this draft cannot publish yet.</p>}</div>
-    <div className="grid grid-cols-5 gap-2" aria-label="Website setup progress">{stages.map((label, index) => <button key={label} type="button" disabled={index > furthestStep} onClick={() => setStep(index)} className={`rounded-lg border p-2 text-left text-xs sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 ${index === step ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}><span className="block font-bold">{index < step ? <Check className="inline h-4 w-4" /> : index + 1}</span>{label}</button>)}</div>
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" aria-label="Website setup progress">{stages.map((label, index) => <button key={label} type="button" disabled={index > furthestStep} onClick={() => setStep(index)} className={`rounded-lg border p-2 text-left text-xs sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 ${index === step ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}><span className="block font-bold">{index < step ? <Check className="inline h-4 w-4" /> : index + 1}</span>{label}</button>)}</div>
     <section className="rounded-xl border border-primary/25 bg-card p-5 sm:p-8">
       {step === 0 && pickerMode && <TemplatePicker
         selected={templateChosen ? answers.template : null}
@@ -358,11 +419,12 @@ export default function GuidedWebsiteBuilder() {
           </article>)}
         </div>
       </div>}
-      {step === 1 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" />{!isBusinessOwner && <div className="space-y-2"><label htmlFor="website-client-name" className="block font-medium">Name clients will see</label><Input id="website-client-name" value={websiteAnswers.ownerName} readOnly aria-readonly="true" placeholder="Add your name in My Profile" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div>}{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<div className="space-y-2"><label htmlFor="website-client-phone" className="block font-medium">Number clients should see</label><Input id="website-client-phone" type="tel" value={websiteAnswers.phone} readOnly aria-readonly="true" placeholder="No public number added" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
-      {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
-      {step === 3 && answers.template === 'guided-charlotte' && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Social profile</h2><p className="text-muted-foreground">Design 1 keeps its existing editorial photography. Your services appear as a text list without individual photos.</p><label className="block space-y-2"><span className="font-medium">Instagram handle or profile link (optional)</span><Input value={answers.instagram} onChange={event => update('instagram', event.target.value)} placeholder="@yourname" /></label></div>}
-      {step === 3 && answers.template !== 'guided-charlotte' && <div className="max-w-2xl space-y-5"><h2 className="font-serif text-2xl">Show your work</h2><p>Do you have an Instagram with a few haircuts or hair systems?</p><YesNo value={answers.hasInstagram} onChange={value => update('hasInstagram', value)} />{answers.hasInstagram && <Field label="Instagram handle or profile link" value={answers.instagram} onChange={value => update('instagram', value)} placeholder="@yourname" />}<Field label="Public page to find your photos (optional)" value={answers.photoSourceUrl} onChange={value => update('photoSourceUrl', value)} placeholder="Your website, portfolio, or Instagram link" /><Button type="button" variant="outline" disabled={!!busy} onClick={findPhotos}><Sparkles className="mr-2 h-4 w-4" />Find photos</Button>{suggestions.length > 0 && <div><p className="mb-3 text-sm text-muted-foreground">Select only photos that belong to you. Nothing is added automatically.</p><div className="grid grid-cols-3 gap-2">{suggestions.map(url => <button type="button" key={url} aria-pressed={answers.photos.includes(url)} onClick={() => update('photos', answers.photos.includes(url) ? answers.photos.filter(item => item !== url) : [...answers.photos, url].slice(0, 6))} className={`relative overflow-hidden rounded-lg border-2 ${answers.photos.includes(url) ? 'border-primary' : 'border-transparent'}`}><img src={url} alt="Suggested work photo" className="h-28 w-full object-cover" />{answers.photos.includes(url) && <Check className="absolute right-2 top-2 h-5 w-5 rounded-full bg-primary p-1 text-black" />}</button>)}</div></div>}<label className="block cursor-pointer rounded-lg border border-dashed border-primary/50 p-5 text-center"><ImagePlus className="mx-auto mb-2 h-6 w-6 text-primary" />Upload your own photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={e => void uploadPhotos(e.target.files)} /></label>{answers.photos.length > 0 && <div className="grid grid-cols-3 gap-2">{answers.photos.map(url => <button key={url} type="button" onClick={() => update('photos', answers.photos.filter(item => item !== url))} className="relative"><img src={url} alt="Selected work photo" className="h-28 w-full rounded-lg object-cover" /><span className="absolute bottom-1 right-1 rounded bg-black/80 px-2 py-1 text-xs text-white">Remove</span></button>)}</div>}</div>}
-      {step === 4 && <div className="space-y-5"><div><h2 className="font-serif text-2xl">Review your website</h2><p className="text-muted-foreground">Your answers built this preview. Check the details and photos before publishing.</p></div><div className="flex gap-2"><Button type="button" variant={previewPage === '/' ? 'default' : 'outline'} onClick={() => setPreviewPage('/')}>Home</Button><Button type="button" variant={previewPage !== '/' ? 'default' : 'outline'} onClick={() => setPreviewPage('/hair-loss-solutions/')}>Hair Systems</Button></div><iframe key={`${answers.template}:${previewPage}`} title="Your website preview" srcDoc={pages[previewPage]} className="h-[65vh] w-full rounded-lg border bg-white" />{!previewOnly && <div className="flex flex-wrap gap-3"><Button disabled={!!busy} variant="outline" onClick={() => void save()}>{busy === 'Saving draft' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save draft</Button><Button disabled={!!busy} onClick={() => void publish()}>{busy === 'Publishing' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Publish website</Button></div>}{publishedUrl && <a href={publishedUrl} target="_blank" rel="noreferrer" className="text-primary underline">Open your live website <ExternalLink className="inline h-4 w-4" /></a>}</div>}
+      {step === 1 && <DomainSetupStep currentDomain={website?.custom_domain || null} input={domainInput} onInput={value => { setDomainInput(value); setDomainResult(null); }} onCheck={() => void checkDomain()} onBuy={() => void buyDomain()} result={domainResult} order={domainOrder} busy={domainBusy} previewOnly={previewOnly} />}
+      {step === 2 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Tell us about your business</h2><Field label="What’s your business name?" value={answers.businessName} onChange={value => update('businessName', value)} placeholder="Your business name" />{!isBusinessOwner && <div className="space-y-2"><label htmlFor="website-client-name" className="block font-medium">Name clients will see</label><Input id="website-client-name" value={websiteAnswers.ownerName} readOnly aria-readonly="true" placeholder="Add your name in My Profile" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div>}{dashboardLocationKnown ? <div className="space-y-2"><label htmlFor="website-dashboard-city" className="block font-medium">City and state for your website</label><Input id="website-dashboard-city" value={dashboardCity} readOnly aria-readonly="true" placeholder="Add your work location on the dashboard" /><p className="text-xs text-muted-foreground">{dashboardCity ? "This comes from your saved dashboard business details." : <>Complete your work location on the <a className="underline" href="/dashboard">dashboard</a> first.</>}</p></div> : <Field label="What city are you currently working from?" value={answers.city} onChange={value => update('city', value)} placeholder="City, State" />}<div className="space-y-2"><label htmlFor="website-client-phone" className="block font-medium">Number clients should see</label><Input id="website-client-phone" type="tel" value={websiteAnswers.phone} readOnly aria-readonly="true" placeholder="No public number added" /><p className="text-xs text-muted-foreground">Change this in <a className="underline" href="/dashboard#profile">My Profile</a>.</p></div><label className="block space-y-2"><span className="block font-medium">What services do you want to show?</span><Textarea value={previewServicesText} onChange={e => update('services', e.target.value)} readOnly={!!dashboardServicesText} rows={5} placeholder="One service per line" /></label>{!!dashboardServicesText && <p className="text-xs text-muted-foreground">Services and prices come from <a className="underline" href="/dashboard#profile">My Profile</a>.</p>}</div>}
+      {step === 3 && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">How do clients book with you?</h2><p>Do you have a booking app?</p><YesNo value={answers.hasBookingApp} onChange={value => update('hasBookingApp', value)} />{answers.hasBookingApp === true && <Field label="Paste your booking page link" value={answers.bookingUrl} onChange={value => update('bookingUrl', value)} placeholder="https://…" />}{answers.hasBookingApp === false && <label className="block space-y-2"><span className="font-medium">What are your hours of operation?</span><Textarea value={answers.hours} onChange={e => update('hours', e.target.value)} rows={5} placeholder="Mon–Fri 9 AM–6 PM" /></label>}</div>}
+      {step === 4 && answers.template === 'guided-charlotte' && <div className="max-w-xl space-y-5"><h2 className="font-serif text-2xl">Social profile</h2><p className="text-muted-foreground">Design 1 keeps its existing editorial photography. Your services appear as a text list without individual photos.</p><label className="block space-y-2"><span className="font-medium">Instagram handle or profile link (optional)</span><Input value={answers.instagram} onChange={event => update('instagram', event.target.value)} placeholder="@yourname" /></label></div>}
+      {step === 4 && answers.template !== 'guided-charlotte' && <div className="max-w-2xl space-y-5"><h2 className="font-serif text-2xl">Show your work</h2><p>Do you have an Instagram with a few haircuts or hair systems?</p><YesNo value={answers.hasInstagram} onChange={value => update('hasInstagram', value)} />{answers.hasInstagram && <Field label="Instagram handle or profile link" value={answers.instagram} onChange={value => update('instagram', value)} placeholder="@yourname" />}<Field label="Public page to find your photos (optional)" value={answers.photoSourceUrl} onChange={value => update('photoSourceUrl', value)} placeholder="Your website, portfolio, or Instagram link" /><Button type="button" variant="outline" disabled={!!busy} onClick={findPhotos}><Sparkles className="mr-2 h-4 w-4" />Find photos</Button>{suggestions.length > 0 && <div><p className="mb-3 text-sm text-muted-foreground">Select only photos that belong to you. Nothing is added automatically.</p><div className="grid grid-cols-3 gap-2">{suggestions.map(url => <button type="button" key={url} aria-pressed={answers.photos.includes(url)} onClick={() => update('photos', answers.photos.includes(url) ? answers.photos.filter(item => item !== url) : [...answers.photos, url].slice(0, 6))} className={`relative overflow-hidden rounded-lg border-2 ${answers.photos.includes(url) ? 'border-primary' : 'border-transparent'}`}><img src={url} alt="Suggested work photo" className="h-28 w-full object-cover" />{answers.photos.includes(url) && <Check className="absolute right-2 top-2 h-5 w-5 rounded-full bg-primary p-1 text-black" />}</button>)}</div></div>}<label className="block cursor-pointer rounded-lg border border-dashed border-primary/50 p-5 text-center"><ImagePlus className="mx-auto mb-2 h-6 w-6 text-primary" />Upload your own photos<input type="file" accept="image/jpeg,image/png,image/webp" multiple className="sr-only" onChange={e => void uploadPhotos(e.target.files)} /></label>{answers.photos.length > 0 && <div className="grid grid-cols-3 gap-2">{answers.photos.map(url => <button key={url} type="button" onClick={() => update('photos', answers.photos.filter(item => item !== url))} className="relative"><img src={url} alt="Selected work photo" className="h-28 w-full rounded-lg object-cover" /><span className="absolute bottom-1 right-1 rounded bg-black/80 px-2 py-1 text-xs text-white">Remove</span></button>)}</div>}</div>}
+      {step === 5 && <div className="space-y-5"><div><h2 className="font-serif text-2xl">Review your website</h2><p className="text-muted-foreground">Your answers built this preview. Check the details and photos before publishing.</p></div><div className="flex gap-2"><Button type="button" variant={previewPage === '/' ? 'default' : 'outline'} onClick={() => setPreviewPage('/')}>Home</Button><Button type="button" variant={previewPage !== '/' ? 'default' : 'outline'} onClick={() => setPreviewPage('/hair-loss-solutions/')}>Hair Systems</Button></div><iframe key={`${answers.template}:${previewPage}`} title="Your website preview" srcDoc={pages[previewPage]} className="h-[65vh] w-full rounded-lg border bg-white" />{!previewOnly && <div className="flex flex-wrap gap-3"><Button disabled={!!busy} variant="outline" onClick={() => void save()}>{busy === 'Saving draft' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save draft</Button><Button disabled={!!busy} onClick={() => void publish()}>{busy === 'Publishing' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Publish website</Button></div>}{publishedUrl && <a href={publishedUrl} target="_blank" rel="noreferrer" className="text-primary underline">Open your live website <ExternalLink className="inline h-4 w-4" /></a>}</div>}
     </section>
     <Dialog open={!!previewTemplate} onOpenChange={open => { if (!open) setPreviewTemplate(null); }}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-screen max-w-none flex-col gap-0 rounded-none border-0 p-0 sm:max-w-none [&>button:last-child]:top-[max(1.1rem,calc(env(safe-area-inset-top)+0.6rem))]">
@@ -382,7 +444,7 @@ export default function GuidedWebsiteBuilder() {
         </div>
       </DialogContent>
     </Dialog>
-    <div className="flex justify-between"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 4 && <Button onClick={next} disabled={needsTemplateChoice}>{pickerMode && step === 0 && templateChosen ? `Continue with ${templateDisplayName(answers.template)}` : 'Continue'}<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
+    <div className="flex justify-between"><Button variant="outline" disabled={step === 0 || !!busy} onClick={() => setStep(current => current - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>{step < 5 && <Button onClick={next} disabled={needsTemplateChoice}>{pickerMode && step === 0 && templateChosen ? `Continue with ${templateDisplayName(answers.template)}` : 'Continue'}<ArrowRight className="ml-2 h-4 w-4" /></Button>}</div>
   </main></DashboardLayout>;
 }
 

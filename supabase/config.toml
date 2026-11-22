@@ -93,6 +93,9 @@ verify_jwt = false
 [functions.cloudflare-domains]
 verify_jwt = false
 
+[functions.member-domain-stripe-webhook]
+verify_jwt = false
+
 [functions.website-image-expand]
 verify_jwt = false
 
