@@ -4,6 +4,13 @@ ALTER TABLE public.member_billing_profiles
   ADD COLUMN IF NOT EXISTS stripe_customer_source text,
   ADD COLUMN IF NOT EXISTS stripe_customer_verified_at timestamptz;
 
+-- Keep all paths, including older edge-function versions, from assigning a
+-- Stripe Customer to more than one member. Resolve any existing duplicates
+-- before applying this migration; do not silently pick an owner.
+CREATE UNIQUE INDEX IF NOT EXISTS member_billing_profiles_stripe_customer_unique
+  ON public.member_billing_profiles (stripe_customer_id)
+  WHERE stripe_customer_id IS NOT NULL;
+
 CREATE OR REPLACE FUNCTION public.link_member_stripe_customer(
   _user_id uuid,
   _stripe_customer_id text,

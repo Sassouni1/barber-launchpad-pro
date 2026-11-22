@@ -167,11 +167,23 @@ Deno.serve(async (req) => {
       const customerResponse = await fetch("https://api.stripe.com/v1/customers", { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/x-www-form-urlencoded" }, body: customerForm });
       const customer = await customerResponse.json();
       if (!customerResponse.ok || !customer.id) throw new Error("Unable to prepare your secure payment profile.");
-      stripeCustomerId = customer.id;
-      const { error } = await admin.from("member_billing_profiles")
-        .update({ stripe_customer_id: stripeCustomerId })
-        .eq("customer_id", user.id);
-      if (error) throw error;
+      const { data: linkResult, error: linkError } = await admin.rpc("link_member_stripe_customer", {
+        _user_id: user.id,
+        _stripe_customer_id: customer.id,
+        _source: "hair_system_checkout",
+      });
+      if (linkError) throw linkError;
+      if (linkResult === "linked" || linkResult === "already_linked") {
+        stripeCustomerId = customer.id;
+      } else if (linkResult === "member_has_other_customer") {
+        // A concurrent checkout linked this member first. Use that Customer.
+        const { data: current, error: currentError } = await admin.from("member_billing_profiles")
+          .select("stripe_customer_id").eq("customer_id", user.id).single();
+        if (currentError || !current?.stripe_customer_id) throw new Error("Unable to prepare your secure payment profile.");
+        stripeCustomerId = current.stripe_customer_id;
+      } else {
+        throw new Error("Unable to prepare your secure payment profile.");
+      }
     }
     if (!stripeCustomerId) throw new Error("Unable to prepare your secure payment profile.");
 

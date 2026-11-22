@@ -53,7 +53,17 @@ Deno.test("an existing server link wins and no payment evidence is searched", as
   });
   const result = await resolveMemberStripeCustomer(deps, ME);
   assertEquals(result, { status: "resolved", customerId: "cus_LINKED", source: "existing_link", defaultPaymentMethodId: "pm_1" });
-  assertEquals(links.length, 0);
+  assertEquals(links, [[ME, "cus_LINKED", "existing_link"]]);
+});
+
+Deno.test("an older Customer link shared with another member never exposes cards", async () => {
+  const stripe = stripeFixture({ "customers/cus_SHARED": liveCustomer("cus_SHARED") });
+  const { deps } = resolveDeps({
+    stripe, loadProfile: async () => ({ stripe_customer_id: "cus_SHARED", default_payment_method_id: "pm_1" }),
+    linkCustomer: async () => "customer_owned_by_other",
+  });
+  assertEquals(await resolveMemberStripeCustomer(deps, ME), { status: "unresolved", reason: "owned_by_other" });
+  assertEquals(stripe.calls.length, 0);
 });
 
 Deno.test("a verified checkout claim traces to its Customer and is linked once", async () => {

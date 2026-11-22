@@ -118,15 +118,23 @@ export async function fulfillPaidSession(
       const pm = session.payment_intent?.payment_method;
       const pmId = typeof pm === "string" ? pm : pm?.id;
       if (pmId) {
-        await fetch(`https://api.stripe.com/v1/customers/${encodeURIComponent(session.customer)}`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${opts.stripeSecret}`, "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ "invoice_settings[default_payment_method]": pmId }),
+        const { data: linkResult, error: linkError } = await db.rpc("link_member_stripe_customer", {
+          _user_id: session.metadata.user_id,
+          _stripe_customer_id: session.customer,
+          _source: "hair_system_paid_checkout",
+          _payment_method_id: pmId,
         });
-        await db.from("member_billing_profiles").upsert(
-          { customer_id: session.metadata.user_id, stripe_customer_id: session.customer, default_payment_method_id: pmId },
-          { onConflict: "customer_id" },
-        );
+        if (linkError) throw linkError;
+        if (linkResult === "linked" || linkResult === "already_linked") {
+          const response = await fetch(`https://api.stripe.com/v1/customers/${encodeURIComponent(session.customer)}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${opts.stripeSecret}`, "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ "invoice_settings[default_payment_method]": pmId }),
+          });
+          if (!response.ok) console.error("saved-card default update failed", response.status);
+        } else {
+          console.error("saved-card sync skipped: billing customer link conflicts");
+        }
       }
     } catch (e) {
       console.error("saved-card sync failed", e instanceof Error ? e.message : e);

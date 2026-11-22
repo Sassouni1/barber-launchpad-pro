@@ -100,7 +100,11 @@ export async function resolveMemberStripeCustomer(deps: ResolveDeps, userId: str
   try {
     const profile = await deps.loadProfile(userId);
     if (profile?.stripe_customer_id) {
-      // A link already stored by a server path is authoritative and never replaced here.
+      // Older server paths could write the same Customer to two members. Check
+      // exclusive ownership before showing any card from an existing link.
+      const ownership = await deps.linkCustomer(userId, profile.stripe_customer_id, "existing_link");
+      if (ownership !== "linked" && ownership !== "already_linked")
+        return { status: "unresolved", reason: ownership === "customer_owned_by_other" ? "owned_by_other" : "ambiguous" };
       const usable = await verifyCustomerUsable(deps.stripeGet, profile.stripe_customer_id, userId);
       if (usable === "ok") return { status: "resolved", customerId: profile.stripe_customer_id, source: "existing_link", defaultPaymentMethodId: profile.default_payment_method_id };
       return { status: "unresolved", reason: usable === "other_member" ? "owned_by_other" : "customer_unavailable" };
@@ -162,7 +166,7 @@ export type CardView = {
 };
 
 export function cardExpired(expMonth: number, expYear: number, now: Date): boolean {
-  if (!Number.isInteger(expMonth) || !Number.isInteger(expYear)) return true;
+  if (!Number.isInteger(expMonth) || expMonth < 1 || expMonth > 12 || !Number.isInteger(expYear)) return true;
   // A card is valid through the last day of its expiry month (UTC).
   return now.getTime() >= Date.UTC(expYear, expMonth, 1);
 }
