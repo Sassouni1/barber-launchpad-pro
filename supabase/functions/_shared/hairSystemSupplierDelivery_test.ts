@@ -151,20 +151,23 @@ Deno.test("successful CRM preserves supplier then buyer receipt and SMS behavior
   await withRelay(async (calls) => {
     const f = fixture();
     await run(f.db);
-    assertEquals(calls.map((c) => c.action === "send_email" ? c.role : c.action), ["upsert_order_contact", "supplier", "buyer"]);
+    assertEquals(calls.map((c) => c.action === "send_email" ? c.role : c.action), ["upsert_order_contact", "supplier", "send_sms", "buyer"]);
+    assertEquals(calls.find((c) => c.action === "send_sms")?.phone, "+17276374672");
+    assertEquals(calls.find((c) => c.action === "send_sms")?.message.includes(`Order ${ORDER}`), true);
+    assertEquals(f.states.get("admin_order_sms"), "sent");
     assertEquals(f.states.get("customer_sms"), "skipped"); // No fixture phone; existing consent behavior.
     assertEquals(f.states.get("customer_receipt"), "sent");
   }, false, false);
 });
 
-Deno.test("shared supplier-only helper claims only supplier; sent terminal, failures retry and no buyer or CRM calls", async () => {
+Deno.test("supplier helper texts Chris once per supplier order and retries do not duplicate", async () => {
   await withRelay(async (calls) => {
     const f = fixture();
     const input = { orders: [{ id: ORDER, customer_email: "fixture@example.invalid", customer_name: "Fixture Buyer", order_details: DETAILS }], buyer: { name: "Paid Buyer", email: "paid@example.invalid", phone: "", address: [] }, eventId: "supplier-only-fixture" };
     assertEquals((await dispatchSupplierOrderNotifications(f.db, input))[0].result, "sent");
     assertEquals((await dispatchSupplierOrderNotifications(f.db, input))[0].result, "duplicate");
-    assertEquals(calls.map((c) => [c.action, c.role, c.to]), [["send_email", "supplier", "sales30@newtimeshair.com"]]);
-    assertEquals(f.claims, ["supplier_email", "supplier_email"]);
-    assertEquals(f.logs.map((l) => l.channel), ["supplier_email"]);
+    assertEquals(calls.map((c) => [c.action, c.role, c.to]), [["send_email", "supplier", "sales30@newtimeshair.com"], ["send_sms", undefined, undefined]]);
+    assertEquals(f.claims, ["supplier_email", "admin_order_sms", "supplier_email", "admin_order_sms"]);
+    assertEquals(f.logs.map((l) => l.channel), ["supplier_email", "admin_order_sms"]);
   });
 });
