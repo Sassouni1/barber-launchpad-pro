@@ -134,7 +134,7 @@ async function persistDraft(userId: string, templateKey: string, draft: EditorDr
     {
       user_id: userId,
       site_slug: `site-${userId.slice(0, 8)}`,
-      deployment_status: 'draft',
+      deployment_status: 'not_published',
       template_key: templateKey,
       editor_drafts: nextDrafts,
     },
