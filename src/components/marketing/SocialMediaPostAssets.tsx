@@ -10,6 +10,7 @@ import JSZip from 'jszip';
 import { toast } from 'sonner';
 import { FileDownloadButton } from '@/components/ui/file-download-button';
 import { deliverFile, fetchDownload } from '@/lib/fileDownloads';
+import { withSignedCourseFiles } from '@/lib/courseFiles';
 
 const LOCATION_KEY = 'hair-system-content-location';
 
@@ -58,7 +59,7 @@ export function SocialMediaPostAssets() {
       : name;
 
   const { data: files = [], isLoading } = useQuery({
-    queryKey: ['social-media-post-assets', 'deduped-v2'],
+    queryKey: ['social-media-post-assets', 'deduped-v3-signed'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('module_files')
@@ -73,14 +74,16 @@ export function SocialMediaPostAssets() {
         }
       );
       const seen = new Set<string>();
-      return images.filter((f) => {
+      const unique = images.filter((f) => {
         const key = normalizeAssetKey(f);
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
+      // Course files are private: show and save them through short-lived signed links.
+      return withSignedCourseFiles(unique, 'file_url');
     },
-    staleTime: 300000,
+    staleTime: 20 * 60 * 1000,
   });
 
   const downloadAll = async () => {

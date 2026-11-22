@@ -14,7 +14,7 @@ import {
   normalizeEmailOrNull,
 } from "../_shared/memberAccess.ts";
 
-const VERSION = "member-access-admin/2026-11-22-v1";
+const VERSION = "member-access-admin/2026-11-22-v2";
 const reply = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
@@ -32,15 +32,22 @@ async function allUsers(db: Db) {
 }
 
 async function accountSnapshot(db: Db) {
-  const [users, rolesR, grantsR, certsR, ordersR, profilesR] = await Promise.all([
+  const [users, rolesR, grantsR, certsR, ordersR, profilesR, cutoverR, isEnforced] = await Promise.all([
     allUsers(db),
     db.from("user_roles").select("user_id, role"),
-    db.from("member_access_grants").select("id, user_id, email_normalized, source, status, status_reason, amount_cents, currency, paid_at, created_at, note, revoked_by_system"),
+    db.from("member_access_grants").select("id, user_id, email_normalized, source, status, status_reason, amount_cents, currency, paid_at, created_at, note, revoked_by_system, revoked_at"),
     db.from("certifications").select("user_id"),
     db.from("orders").select("user_id, stripe_checkout_session_id, status"),
     db.from("profiles").select("id, full_name"),
+    db.rpc("member_access_new_account_cutover"),
+    enforced(db),
   ]);
-  for (const r of [rolesR, grantsR, certsR, ordersR, profilesR]) if (r.error) throw new Error("snapshot_failed");
+  for (const r of [rolesR, grantsR, certsR, ordersR, profilesR, cutoverR]) if (r.error) throw new Error("snapshot_failed");
+  // Same rule as public.member_legacy_access_allowed(): accounts created before the
+  // cutover keep temporary access while the full check is off, unless a purchase was
+  // refunded/disputed/revoked after the cutover. Manufacturer-only accounts never do.
+  const cutover = new Date(String(cutoverR.data)).getTime();
+  if (!Number.isFinite(cutover)) throw new Error("snapshot_failed");
   const roles = new Map<string, string[]>();
   for (const r of rolesR.data ?? []) roles.set(r.user_id, [...(roles.get(r.user_id) ?? []), r.role]);
   const certified = new Set((certsR.data ?? []).map((c: any) => c.user_id));
@@ -56,6 +63,10 @@ async function accountSnapshot(db: Db) {
     const r = roles.get(u.id) ?? [];
     const isAdminRole = r.includes("admin");
     const activeGrant = own.some((g: any) => g.status === "active");
+    const hasAccess = isAdminRole || activeGrant;
+    const manufacturerOnly = r.includes("manufacturer") && !isAdminRole;
+    const revokedSinceCutover = own.some((g: any) => g.status === "revoked" && g.revoked_at && new Date(g.revoked_at).getTime() >= cutover);
+    const temporaryAccess = !isEnforced && !hasAccess && !manufacturerOnly && !revokedSinceCutover && new Date(u.created_at).getTime() < cutover;
     return {
       id: u.id,
       email: u.email,
@@ -63,7 +74,8 @@ async function accountSnapshot(db: Db) {
       createdAt: u.created_at,
       lastSignInAt: u.last_sign_in_at ?? null,
       roles: r,
-      hasAccess: isAdminRole || activeGrant,
+      hasAccess,
+      temporaryAccess,
       grants: own,
       signals: { certified: certified.has(u.id), legacyOrders: legacyOrders.get(u.id) ?? 0 },
     };
@@ -76,7 +88,7 @@ async function accountSnapshot(db: Db) {
     (a as any).suggestions = suggestEvidence(a.email ?? "", a.name, orphan).slice(0, 5);
   }
   const unmatchedGrants = grants.filter((g: any) => !g.user_id && g.email_normalized && !emails.has(g.email_normalized));
-  return { accounts, grants, unmatchedGrants };
+  return { accounts, grants, unmatchedGrants, cutoverAt: new Date(cutover).toISOString() };
 }
 
 /** Possible payments made under another email: same last name or same email name. Admin must confirm. */
@@ -97,6 +109,7 @@ function summarize(accounts: any[]) {
     manufacturers: accounts.filter((a) => a.roles.includes("manufacturer") && !a.roles.includes("admin")).length,
     membersWithAccess: members.filter((a) => a.hasAccess).length,
     membersWithoutAccess: members.filter((a) => !a.hasAccess).length,
+    membersTemporaryAccess: members.filter((a) => !a.hasAccess && a.temporaryAccess).length,
     withoutAccessButCertified: members.filter((a) => !a.hasAccess && a.signals.certified).length,
     withoutAccessButLegacyOrders: members.filter((a) => !a.hasAccess && a.signals.legacyOrders > 0).length,
   };
@@ -228,7 +241,24 @@ async function applyEvidence(db: Db, actor: string, dryRun: boolean) {
   }
   const users = new Set(rows.map((r) => r.user_id));
   const newlyCovered = [...users].filter((id) => !accounts.find((a) => a.id === id)?.hasAccess).length;
+  // Payments that were later fully refunded or disputed stop counting.
+  const { data: lost, error: lostErr } = await db.from("member_access_evidence").select("source, evidence_ref, exclusion_reason")
+    .eq("qualifies", false).in("exclusion_reason", ["refunded", "disputed"]);
+  if (lostErr) throw new Error("evidence_read_failed");
+  const lostRefs = new Map<string, string[]>();
+  for (const e of lost ?? []) lostRefs.set(`${e.source}|${e.exclusion_reason}`, [...(lostRefs.get(`${e.source}|${e.exclusion_reason}`) ?? []), e.evidence_ref]);
   if (dryRun) return { dryRun: true, evidenceRows: rows.length, accounts: users.size, newlyCoveredAccounts: newlyCovered };
+  let revokedForRefund = 0;
+  for (const [key, refs] of lostRefs) {
+    const [source, why] = key.split("|");
+    for (let i = 0; i < refs.length; i += 200) {
+      const { data: rv, error: rvErr } = await db.from("member_access_grants")
+        .update({ status: "revoked", revoked_by_system: true, revoked_at: new Date().toISOString(), status_reason: why })
+        .eq("source", source).eq("status", "active").is("revoked_by", null).in("evidence_ref", refs.slice(i, i + 200)).select("id");
+      if (rvErr) throw new Error("grant_write_failed");
+      revokedForRefund += rv?.length ?? 0;
+    }
+  }
   let inserted = 0;
   for (let i = 0; i < rows.length; i += 200) {
     const { data, error: insErr } = await db.from("member_access_grants")
@@ -236,7 +266,7 @@ async function applyEvidence(db: Db, actor: string, dryRun: boolean) {
     if (insErr) throw new Error("grant_write_failed");
     inserted += data?.length ?? 0;
   }
-  return { dryRun: false, evidenceRows: rows.length, inserted, accounts: users.size, newlyCoveredAccounts: newlyCovered };
+  return { dryRun: false, evidenceRows: rows.length, inserted, revokedForRefund, accounts: users.size, newlyCoveredAccounts: newlyCovered };
 }
 
 Deno.serve(async (req) => {
@@ -253,17 +283,17 @@ Deno.serve(async (req) => {
   try {
     switch (action) {
       case "status": {
-        const { accounts, unmatchedGrants } = await accountSnapshot(db);
+        const { accounts, unmatchedGrants, cutoverAt } = await accountSnapshot(db);
         const { count: evidence } = await db.from("member_access_evidence").select("id", { count: "exact", head: true });
         return reply({
-          version: VERSION, enforced: await enforced(db), summary: summarize(accounts),
+          version: VERSION, enforced: await enforced(db), cutoverAt, summary: summarize(accounts),
           unmatchedPurchases: unmatchedGrants.filter((g: any) => g.status === "active").length,
           missingStripeGrants: await missingStripeGrants(db), evidenceRows: evidence ?? 0,
         });
       }
       case "list": {
-        const { accounts, unmatchedGrants } = await accountSnapshot(db);
-        return reply({ enforced: await enforced(db), summary: summarize(accounts), accounts, unmatchedGrants });
+        const { accounts, unmatchedGrants, cutoverAt } = await accountSnapshot(db);
+        return reply({ enforced: await enforced(db), cutoverAt, summary: summarize(accounts), accounts, unmatchedGrants });
       }
       case "grant": {
         const reason = cleanReason(body.reason);
@@ -295,8 +325,19 @@ Deno.serve(async (req) => {
           if (byEmail.error) return reply({ error: "revoke_failed" }, 500);
           byEmailCount = byEmail.data?.length ?? 0;
         }
-        const data = [...(byId.data ?? []), ...Array(byEmailCount)];
-        return reply({ ok: true, revoked: data?.length ?? 0 });
+        const revoked = (byId.data?.length ?? 0) + byEmailCount;
+        let endedTemporaryAccess = false;
+        if (revoked === 0) {
+          // No purchase on record: record the decision so a pre-cutover account's
+          // temporary access ends too (logged in the permanent history by trigger).
+          const { error: markErr } = await db.from("member_access_grants").insert({
+            user_id: target.user.id, email_normalized: email, source: "admin_grant",
+            evidence_ref: `admin-end-temporary:${crypto.randomUUID()}`, ...patch, granted_by: user.id, note: reason,
+          });
+          if (markErr) return reply({ error: "revoke_failed" }, 500);
+          endedTemporaryAccess = true;
+        }
+        return reply({ ok: true, revoked, endedTemporaryAccess });
       }
       case "link": {
         const reason = cleanReason(body.reason);

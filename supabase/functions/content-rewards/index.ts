@@ -8,6 +8,7 @@
 // them through short-lived signed URLs only.
 import { corsHeaders } from "../_shared/cors.ts";
 import { adminClient, isAdmin, json, newAffiliateCode, requireUser } from "../_shared/affiliate.ts";
+import { requireMemberContentAccess } from "../_shared/memberGate.ts";
 
 const BUCKET = "content-rewards";
 const KINDS = ["before_after", "install_video", "other"];
@@ -56,6 +57,9 @@ async function signPaths(db: ReturnType<typeof adminClient>, paths: string[]) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Member-only: verified purchase / admin grant, or pre-cutover account while the full check is off.
+  const memberGate = await requireMemberContentAccess(req, corsHeaders);
+  if (!memberGate.ok) return memberGate.response;
   const h = { ...corsHeaders };
 
   try {

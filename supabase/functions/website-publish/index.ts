@@ -1,6 +1,7 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { requireUser, serviceClient, slugify } from "../_shared/websiteAuth.ts";
 import { deploySiteWorker, type WorkerSyncResult } from "../_shared/siteWorker.ts";
+import { requireMemberContentAccess } from "../_shared/memberGate.ts";
 
 const MAX_HTML_BYTES = 1_500_000;
 
@@ -152,6 +153,9 @@ async function attachCustomDomain(hostname: string): Promise<AttachOutcome> {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Member-only: verified purchase / admin grant, or pre-cutover account while the full check is off.
+  const memberGate = await requireMemberContentAccess(req, corsHeaders);
+  if (!memberGate.ok) return memberGate.response;
 
   try {
     const { user, error: authError } = await requireUser(req);

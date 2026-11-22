@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { requireMemberContentAccess } from "../_shared/memberGate.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,6 +49,9 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return json({ success: false, error: 'Method not allowed. Use POST.' }, 405);
   }
+  // Member-only: verified purchase / admin grant, or pre-cutover account while the full check is off.
+  const memberGate = await requireMemberContentAccess(req, corsHeaders);
+  if (!memberGate.ok) return memberGate.response;
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
   const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireMemberContentAccess } from "../_shared/memberGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -863,37 +864,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Member-only: a signed-in account whose access is allowed (entitled, or access switch off).
-  {
-    const gateToken = (req.headers.get("authorization") || "").replace("Bearer ", "");
-    let gateUserId: string | null = null;
-    if (gateToken && gateToken !== Deno.env.get("SUPABASE_ANON_KEY")) {
-      try {
-        const { data: { user } } = await getSupabaseAdmin().auth.getUser(gateToken);
-        if (user) gateUserId = user.id;
-      } catch { /* treated as signed out */ }
-    }
-    if (!gateUserId) {
-      return new Response(JSON.stringify({ error: "Authentication required" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const admin = getSupabaseAdmin();
-    const [{ data: enforcedFlag, error: e1 }, { data: entitled, error: e2 }] = await Promise.all([
-      admin.rpc("member_access_enforced"),
-      admin.rpc("has_member_access", { _user_id: gateUserId }),
-    ]);
-    if (e1 || e2) {
-      return new Response(JSON.stringify({ error: "Access could not be checked" }), {
-        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (enforcedFlag === true && entitled !== true) {
-      return new Response(JSON.stringify({ error: "Member access pending" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-  }
+  // Member-only: verified purchase / admin grant, or pre-cutover account while the full check is off.
+  const memberGate = await requireMemberContentAccess(req, corsHeaders);
+  if (!memberGate.ok) return memberGate.response;
 
   try {
     const body = await req.json();

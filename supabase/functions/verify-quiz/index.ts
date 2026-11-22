@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireMemberContentAccess } from "../_shared/memberGate.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // Member-only: verified purchase / admin grant, or pre-cutover account while the full check is off.
+  const memberGate = await requireMemberContentAccess(req, corsHeaders);
+  if (!memberGate.ok) return memberGate.response;
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

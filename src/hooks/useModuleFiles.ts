@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { courseFilePath, withSignedCourseFiles } from '@/lib/courseFiles';
 
 export interface ModuleFile {
   id: string;
@@ -9,6 +10,8 @@ export interface ModuleFile {
   file_type: string | null;
   order_index: number;
   created_at: string;
+  /** Stored (non-expiring) link; file_url holds the signed link for display. */
+  storage_url?: string | null;
 }
 
 export function useModuleFiles(moduleId: string | undefined) {
@@ -22,10 +25,12 @@ export function useModuleFiles(moduleId: string | undefined) {
         .eq('module_id', moduleId)
         .order('order_index');
       if (error) throw error;
-      return data as ModuleFile[];
+      // Course files are private: swap stored links for short-lived signed links.
+      return withSignedCourseFiles(data as ModuleFile[], 'file_url');
     },
     enabled: !!moduleId,
-    staleTime: 5 * 60 * 1000,
+    // Signed links last an hour; refresh well before they expire.
+    staleTime: 20 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 }
@@ -83,10 +88,9 @@ export function useDeleteModuleFile() {
 
   return useMutation({
     mutationFn: async ({ fileId, moduleId, fileUrl }: { fileId: string; moduleId: string; fileUrl: string }) => {
-      // Extract file path from URL
-      const urlParts = fileUrl.split('/course-files/');
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
+      // Works for stored and signed links alike.
+      const filePath = courseFilePath(fileUrl);
+      if (filePath) {
         await supabase.storage.from('course-files').remove([filePath]);
       }
 

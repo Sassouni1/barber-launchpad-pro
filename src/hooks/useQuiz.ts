@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { canonicalCourseFileUrl, signCourseFileUrls } from '@/lib/courseFiles';
 
 export interface QuizAnswer {
   id: string;
@@ -54,6 +55,11 @@ export function useQuizQuestions(scope: QuizScope | string | undefined, includeC
 
       const questionIds = questions.map(q => q.id);
       if (questionIds.length === 0) return [];
+      // Question images in the private course-files folder are shown through short-lived signed links.
+      const signedImages = await signCourseFileUrls(questions.map(q => q.question_image_url));
+      for (const q of questions) {
+        if (q.question_image_url) q.question_image_url = signedImages.get(q.question_image_url) ?? q.question_image_url;
+      }
 
       if (includeCorrectAnswers) {
         const { data: answers, error: answersError } = await supabase
@@ -82,7 +88,7 @@ export function useQuizQuestions(scope: QuizScope | string | undefined, includeC
       }
     },
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 20 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 }
@@ -114,7 +120,7 @@ export function useCreateQuizQuestion() {
           module_id: data.module_id ?? null,
           lesson_id: data.lesson_id ?? null,
           question_text: data.question_text,
-          question_image_url: data.question_image_url || null,
+          question_image_url: canonicalCourseFileUrl(data.question_image_url) || null,
           question_type: data.question_type,
           order_index: maxOrder + 1,
         })
@@ -159,7 +165,7 @@ export function useUpdateQuizQuestion() {
         .from('quiz_questions')
         .update({
           question_text: data.question_text,
-          question_image_url: data.question_image_url || null,
+          question_image_url: canonicalCourseFileUrl(data.question_image_url) || null,
           question_type: data.question_type,
         })
         .eq('id', data.id);
@@ -216,11 +222,12 @@ export function useUploadQuestionImage() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Return a short-lived signed link for the preview; saving stores the stable link.
+      const { data: signed, error: signError } = await supabase.storage
         .from('course-files')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
+        .createSignedUrl(filePath, 60 * 60);
+      if (signError || !signed?.signedUrl) throw signError ?? new Error('Could not prepare the image preview');
+      return signed.signedUrl;
     },
   });
 }

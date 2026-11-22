@@ -16,10 +16,10 @@ type Grant = { id: string; source: string; status: string; status_reason: string
 type Suggestion = { id: string; email_normalized: string; amount_cents: number; paid_at: string | null; description: string | null };
 type Account = {
   id: string; email: string | null; name: string | null; createdAt: string; lastSignInAt: string | null; roles: string[];
-  hasAccess: boolean; grants: Grant[]; signals: { certified: boolean; legacyOrders: number }; suggestions?: Suggestion[];
+  hasAccess: boolean; temporaryAccess?: boolean; grants: Grant[]; signals: { certified: boolean; legacyOrders: number }; suggestions?: Suggestion[];
 };
-type Summary = { accounts: number; admins: number; manufacturers: number; membersWithAccess: number; membersWithoutAccess: number };
-type ListResponse = { enforced: boolean; summary: Summary; accounts: Account[]; unmatchedGrants: Grant[] };
+type Summary = { accounts: number; admins: number; manufacturers: number; membersWithAccess: number; membersWithoutAccess: number; membersTemporaryAccess?: number };
+type ListResponse = { enforced: boolean; cutoverAt?: string; summary: Summary; accounts: Account[]; unmatchedGrants: Grant[] };
 
 const SOURCE_LABEL: Record<string, string> = {
   stripe_checkout: 'Stripe checkout',
@@ -117,15 +117,20 @@ export default function MemberAccess() {
               <div className={cn('rounded-xl border p-4', list.data?.enforced ? 'border-primary/50 bg-primary/10' : 'border-border bg-card')}>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Access check</p>
                 <p className="mt-1 text-xl font-semibold text-foreground">{list.data?.enforced ? 'On' : 'Off'}</p>
-                <p className="text-xs text-muted-foreground">{list.data?.enforced ? 'Only matched members get in' : 'Every signed-in account gets in'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {list.data?.enforced
+                    ? 'Only matched members get in'
+                    : `New accounts need a purchase. Accounts made before ${list.data?.cutoverAt ? new Date(list.data.cutoverAt).toLocaleString() : 'the cutover'} keep temporary access.`}
+                </p>
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">With access</p>
                 <p className="mt-1 text-xl font-semibold text-foreground">{s?.membersWithAccess}</p>
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Without access</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">No purchase matched</p>
                 <p className="mt-1 text-xl font-semibold text-foreground">{s?.membersWithoutAccess}</p>
+                {!list.data?.enforced && <p className="text-xs text-muted-foreground">{s?.membersTemporaryAccess ?? 0} on temporary access</p>}
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Purchases, no account yet</p>
@@ -169,7 +174,7 @@ export default function MemberAccess() {
                       <p className="text-xs text-muted-foreground">Joined {day(a.createdAt)} · Last sign-in {day(a.lastSignInAt)}</p>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant={a.hasAccess ? 'default' : 'outline'}>{a.hasAccess ? 'Has access' : 'No access'}</Badge>
+                      <Badge variant={a.hasAccess ? 'default' : 'outline'}>{a.hasAccess ? 'Has access' : a.temporaryAccess ? 'Temporary access' : 'No access'}</Badge>
                       {a.roles.map((r) => <Badge key={r} variant="secondary">{r}</Badge>)}
                       {a.signals.certified && <Badge variant="secondary">Certified</Badge>}
                       {a.signals.legacyOrders > 0 && <Badge variant="secondary">{a.signals.legacyOrders} older order(s)</Badge>}
@@ -206,7 +211,7 @@ export default function MemberAccess() {
                   {!a.roles.includes('admin') && (
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant={a.hasAccess ? 'outline' : 'default'} onClick={() => setPending({ kind: 'grant', account: a })}>Grant access</Button>
-                      {a.hasAccess && <Button size="sm" variant="outline" onClick={() => setPending({ kind: 'revoke', account: a })}>Revoke access</Button>}
+                      {(a.hasAccess || a.temporaryAccess) && <Button size="sm" variant="outline" onClick={() => setPending({ kind: 'revoke', account: a })}>{a.hasAccess ? 'Revoke access' : 'End temporary access'}</Button>}
                     </div>
                   )}
                 </li>
@@ -222,7 +227,7 @@ export default function MemberAccess() {
           <DialogHeader>
             <DialogTitle>
               {pending?.kind === 'grant' && 'Grant member access'}
-              {pending?.kind === 'revoke' && 'Revoke member access'}
+              {pending?.kind === 'revoke' && (pending.account.hasAccess ? 'Revoke member access' : 'End temporary access')}
               {pending?.kind === 'link' && 'Link payment to this account'}
               {pending?.kind === 'switch' && (pending.enable ? 'Turn the access check on' : 'Turn the access check off')}
             </DialogTitle>

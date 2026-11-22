@@ -13,6 +13,8 @@ const ADMIN_MODE_KEY = 'adminModeActive';
 export interface MemberAccess {
   enforced: boolean;
   hasAccess: boolean;
+  /** Temporary access for accounts created before the new-account cutover (server decides). */
+  legacy: boolean;
   allowed: boolean;
 }
 
@@ -130,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHasSignedAgreement(!!profileResult.data?.agreement_signed_at || !!profileResult.data?.skip_agreement);
     setRequiresPasswordReset(Boolean(passwordResetResult.data));
     const access = (accessResult.data || {}) as Partial<MemberAccess>;
-    setMemberAccess({ enforced: access.enforced === true, hasAccess: access.hasAccess === true, allowed: access.allowed === true });
+    setMemberAccess({ enforced: access.enforced === true, hasAccess: access.hasAccess === true, legacy: access.legacy === true, allowed: access.allowed === true });
     statusRequests.current.resolve(request);
     setStatusError(null);
     setLoading(false);

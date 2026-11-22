@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { enrichServicePrices } from './vlix/service-price-import.ts';
 import { parseServicePrice, servicePriceLabel } from './vlix/service-price.ts';
 import type { ImportedService } from './vlix/model.ts';
+import { requireMemberContentAccess } from "../_shared/memberGate.ts";
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +27,9 @@ const minutesLabel = (value: string) => {
 Deno.serve(async request => {
   if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
+  // Member-only: verified purchase / admin grant, or pre-cutover account while the full check is off.
+  const memberGate = await requireMemberContentAccess(request, cors);
+  if (!memberGate.ok) return memberGate.response;
   try {
     const authorization = request.headers.get('Authorization') || '';
     if (!authorization.startsWith('Bearer ')) return json({ error: 'Please sign in.' }, 401);

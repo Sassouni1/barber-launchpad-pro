@@ -6043,11 +6043,20 @@ export type Database = {
         Returns: undefined
       }
       member_access_enforced: { Args: never; Returns: boolean }
+      member_access_new_account_cutover: { Args: never; Returns: string }
       member_access_payment_exclusion: {
         Args: { _p: Database["public"]["Tables"]["affiliate_payments"]["Row"] }
         Returns: string
       }
       member_content_allowed: { Args: never; Returns: boolean }
+      member_content_allowed_for: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      member_legacy_access_allowed: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       meta_agency_activate_credential: {
         Args: {
           _app_id: string
