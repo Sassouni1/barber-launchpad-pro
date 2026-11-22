@@ -5693,51 +5693,75 @@ export type Database = {
           concern: string
           created_at: string
           email: string
+          email_error: string | null
           email_provider_id: string | null
+          email_provider_status: string | null
           email_status: string
           first_name: string
+          ghl_contact_id: string | null
           id: string
           last_name: string
           member_id: string
           notes: string
+          notified_phone_last4: string | null
+          origin_url: string | null
           phone: string
           request_id: string
+          sms_error: string | null
           sms_provider_id: string | null
+          sms_provider_status: string | null
           sms_status: string
+          updated_at: string
           website_id: string
         }
         Insert: {
           concern: string
           created_at?: string
           email: string
+          email_error?: string | null
           email_provider_id?: string | null
+          email_provider_status?: string | null
           email_status?: string
           first_name: string
+          ghl_contact_id?: string | null
           id?: string
           last_name: string
           member_id: string
           notes?: string
+          notified_phone_last4?: string | null
+          origin_url?: string | null
           phone: string
           request_id: string
+          sms_error?: string | null
           sms_provider_id?: string | null
+          sms_provider_status?: string | null
           sms_status?: string
+          updated_at?: string
           website_id: string
         }
         Update: {
           concern?: string
           created_at?: string
           email?: string
+          email_error?: string | null
           email_provider_id?: string | null
+          email_provider_status?: string | null
           email_status?: string
           first_name?: string
+          ghl_contact_id?: string | null
           id?: string
           last_name?: string
           member_id?: string
           notes?: string
+          notified_phone_last4?: string | null
+          origin_url?: string | null
           phone?: string
           request_id?: string
+          sms_error?: string | null
           sms_provider_id?: string | null
+          sms_provider_status?: string | null
           sms_status?: string
+          updated_at?: string
           website_id?: string
         }
         Relationships: [

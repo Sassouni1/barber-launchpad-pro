@@ -162,6 +162,13 @@
       "when": 1795320989688,
       "tag": "0022_existing_accounts_keep_member_access",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795322020105,
+      "tag": "0023_website_hair_inquiry_delivery_hardening",
+      "breakpoints": true
     }
   ]
 }
