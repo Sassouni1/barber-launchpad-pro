@@ -137,3 +137,4 @@
 - [ ] Vimeo domain-only playback (blocked: Vimeo account setting)
 
 - [x] Chris 2026-11-22: every existing account (incl. 36 unmatched + manufacturer) keeps member access; only explicit admin revocation ends it; manufacturer gets member menu + Supplier Orders link.
+- [x] Final verification without manufacturer login: all-111 DB decisions, rolled-back manufacturer JWT simulation, anon denial, course-files private, live publish confirmed
