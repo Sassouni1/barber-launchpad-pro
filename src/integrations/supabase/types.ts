@@ -4499,6 +4499,78 @@ export type Database = {
         }
         Relationships: []
       }
+      program_enrollment_evidence: {
+        Row: {
+          amount_received_minor: number
+          billing_email_normalized: string | null
+          contact_email_normalized: string | null
+          created_at: string
+          currency: string
+          ghl_contact_id: string
+          ghl_location_id: string
+          ghl_order_id: string
+          id: string
+          offer_description: string
+          order_created_at: string
+          paid_at: string
+          revoked_at: string | null
+          revoked_reason: string | null
+          source: string
+          source_event_id: string | null
+          status: string
+          stripe_charge_id: string
+          stripe_payment_intent_id: string
+          updated_at: string
+          verified_at: string
+        }
+        Insert: {
+          amount_received_minor: number
+          billing_email_normalized?: string | null
+          contact_email_normalized?: string | null
+          created_at?: string
+          currency: string
+          ghl_contact_id: string
+          ghl_location_id: string
+          ghl_order_id: string
+          id?: string
+          offer_description: string
+          order_created_at: string
+          paid_at: string
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          source: string
+          source_event_id?: string | null
+          status?: string
+          stripe_charge_id: string
+          stripe_payment_intent_id: string
+          updated_at?: string
+          verified_at?: string
+        }
+        Update: {
+          amount_received_minor?: number
+          billing_email_normalized?: string | null
+          contact_email_normalized?: string | null
+          created_at?: string
+          currency?: string
+          ghl_contact_id?: string
+          ghl_location_id?: string
+          ghl_order_id?: string
+          id?: string
+          offer_description?: string
+          order_created_at?: string
+          paid_at?: string
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          source?: string
+          source_event_id?: string | null
+          status?: string
+          stripe_charge_id?: string
+          stripe_payment_intent_id?: string
+          updated_at?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
       push_notification_deliveries: {
         Row: {
           attempted_count: number
@@ -6317,6 +6389,14 @@ export type Database = {
       verify_support_sms_alert_token: {
         Args: { _token: string }
         Returns: boolean
+      }
+      vlix_certification_facts: {
+        Args: { p_email: string }
+        Returns: {
+          certified: boolean
+          certified_at: string
+          confirmed_account: boolean
+        }[]
       }
       vlix_has_issued_hair_system_certificate: {
         Args: { p_email: string }

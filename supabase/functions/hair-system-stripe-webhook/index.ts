@@ -22,6 +22,8 @@ import { processKit } from "../_shared/hairSystemKit/logic.ts";
 import { readStripeEvidenceByPaymentIntent } from "../_shared/hairSystemKit/readStripeEvidence.ts";
 import { kitPaymentEvent } from "../_shared/hairSystemKit/stripeEvent.ts";
 import { kitStorage } from "../_shared/hairSystemKit/storage.ts";
+import { recordProgramEnrollment } from "../_shared/programEnrollment/server.ts";
+import { runAfterResponseOrAwait } from "../_shared/programEnrollment/logic.ts";
 
 const encoder = new TextEncoder();
 
@@ -151,6 +153,14 @@ Deno.serve(async (req) => {
   if (event.type === "payment_intent.succeeded") {
     const match = kitPaymentEvent(event);
     if (!match) { await record("ignored_non_kit_payment"); return json({ received: true, ignored: "non_kit_payment" }); }
+    // Program enrollment evidence for the Vlix trial bridge. Runs beside the
+    // kit path and never changes its response, retries, sends or storage.
+    // Idempotent per GHL order / PaymentIntent; writes only enrollment evidence.
+    const enrollment = recordProgramEnrollment(db, match, String(event.id), stripeSecret)
+      .then((r) => record(`enrollment_${r.status}`), () => record("enrollment_error"));
+    // Background when the runtime keeps tasks alive; otherwise awaited here.
+    // The task never rejects, so the kit branch below runs exactly as before.
+    await runAfterResponseOrAwait(enrollment);
     const { data: gate, error: gateError } = await db.from("hair_system_kit_activation")
       .select("enabled,activation_cutoff").eq("singleton", true).maybeSingle();
     if (gateError) { await record("kit_gate_unavailable"); return json({ received: false, retry: true }, 503); }

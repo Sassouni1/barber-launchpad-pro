@@ -183,6 +183,13 @@
       "when": 1795323795407,
       "tag": "0025_checkout_claims_no_visitor_access",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795323855407,
+      "tag": "0026_program_enrollment_evidence_for_vlix_trial",
+      "breakpoints": true
     }
   ]
 }

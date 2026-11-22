@@ -1,4 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { certificationTrialStatus } from "../_shared/programEnrollment/logic.ts";
+import { enrollmentStore } from "../_shared/programEnrollment/server.ts";
+import { readStripeEvidenceByPaymentIntent } from "../_shared/hairSystemKit/readStripeEvidence.ts";
+
+// Response: { certified, certifiedAt, programStartedAt, enrollmentOrderId }.
+// certifiedAt = earliest issued_at of a hair-system certificate for the
+// confirmed Auth email. Enrollment fields come only from stored, server-verified
+// GHL program orders that re-verify against current Stripe state; otherwise null.
 
 function json(body: Record<string, unknown>, status: number) {
   return new Response(JSON.stringify(body), {
@@ -45,12 +53,27 @@ Deno.serve(async (request) => {
   if (!supabaseUrl || !serviceKey) return json({ error: "Certification bridge unavailable" }, 503);
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const { data, error } = await supabase.rpc("vlix_has_issued_hair_system_certificate", {
-    p_email: email.trim(),
-  });
-  if (error) {
-    console.error("Certification lookup failed", error.code ?? "unknown");
+  const normalizedEmail = email.trim();
+  const store = enrollmentStore(supabase);
+  const stripeSecret = Deno.env.get("HAIR_SYSTEM_STRIPE_SECRET_KEY") || Deno.env.get("STRIPE_SECRET_KEY") || "";
+  try {
+    const status = await certificationTrialStatus(normalizedEmail, {
+      facts: async (value) => {
+        const { data, error } = await supabase.rpc("vlix_certification_facts", { p_email: value });
+        if (error) {
+          console.error("Certification lookup failed", error.code ?? "unknown");
+          throw new Error("certification_lookup_failed");
+        }
+        const row = Array.isArray(data) ? data[0] : data;
+        return { confirmed_account: row?.confirmed_account === true, certified: row?.certified === true,
+          certified_at: typeof row?.certified_at === "string" ? row.certified_at : null };
+      },
+      candidates: store.candidates,
+      readFresh: (paymentId, orderId) => readStripeEvidenceByPaymentIntent(paymentId, orderId, "", stripeSecret),
+      revoke: store.revoke,
+    });
+    return json(status, 200);
+  } catch {
     return json({ error: "Certification lookup unavailable" }, 503);
   }
-  return json({ certified: data === true }, 200);
 });

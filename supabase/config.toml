@@ -131,3 +131,6 @@ verify_jwt = false
 
 [functions.website-hair-system-inquiry]
 verify_jwt = false
+
+[functions.program-enrollment-admin]
+verify_jwt = false

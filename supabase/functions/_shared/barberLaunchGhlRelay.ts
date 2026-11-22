@@ -67,6 +67,23 @@ export async function ghlOrderContact(contactId: string): Promise<{ phone: strin
   return { phone, email };
 }
 
+/** Email of a GHL contact in The Barber Launch location (read-only; phone not
+ * required). Used as enrollment evidence for the Vlix trial bridge. */
+export async function ghlContactEmail(contactId: string): Promise<string | null> {
+  if (!/^[A-Za-z0-9]{20}$/.test(contactId)) throw new Error('invalid_ghl_contact_id');
+  const key = (Deno.env.get('GHL_API_KEY') ?? '').trim();
+  if (!key) throw new Error('ghl_contact_key_missing');
+  const response = await fetchImpl(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
+    headers: { Authorization: `Bearer ${key}`, Version: '2021-04-15', Accept: 'application/json' },
+  });
+  if (!response.ok) throw new Error(`ghl_contact_http_${response.status}`);
+  const data = await response.json().catch(() => ({}));
+  const contact = data?.contact ?? data;
+  if (contact?.id !== contactId || contact?.locationId !== RELAY_LOCATION_ID) throw new Error('ghl_contact_location_mismatch');
+  const email = String(contact.email ?? '').trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
+}
+
 /** These failures happen before the relay calls GHL's send endpoint. Other
  * failures are ambiguous and must keep the permanent delivery reservation. */
 export function relayDefinitelyDidNotSend(reason: string): boolean {
