@@ -24,7 +24,14 @@ export const VERIFICATION_BANNER = "TEST ONLY — DO NOT PRODUCE OR SHIP";
 const verificationBannerHtml = `<div style="background:#b91c1c;color:#fff;padding:20px;font-size:22px;font-weight:700">${VERIFICATION_BANNER}</div>`;
 export const supplierSubject = (order: OrderRow) => order.order_details?.live_verification_test === true ? `${VERIFICATION_BANNER} — ${SUPPLIER_SUBJECT}` : SUPPLIER_SUBJECT;
 
-export type Channel = "supplier_email" | "customer_receipt" | "customer_sms";
+export type Channel = "supplier_email" | "admin_order_sms" | "customer_receipt" | "customer_sms";
+export const ADMIN_ORDER_PHONE = "+17276374672";
+export const ADMIN_ORDER_EMAIL = "chris@invasiondigitalmedia.com";
+
+export function buildAdminOrderSmsBody(order: OrderRow) {
+  const name = String(order.order_details?.full_name ?? order.customer_name ?? "Member").trim();
+  return `Barber Launch: hair system ordered for ${name}. Order ${order.id}. View: https://member.thebarberlaunch.com/newtimes?order=${encodeURIComponent(order.id)}`;
+}
 
 export type OrderRow = {
   id: string;
@@ -378,7 +385,7 @@ async function runChannel(
     return { channel, result: outcome.status, reason: outcome.reason ?? undefined };
   } catch (e) {
     const reason = e instanceof Error ? e.message.slice(0, 300) : "send_error";
-    const status = channel === "supplier_email" ? "uncertain" : "failed";
+    const status = channel === "supplier_email" || channel === "admin_order_sms" ? "uncertain" : "failed";
     await finish(db, orderId, channel, { status, reason });
     return { channel, result: status, reason };
   }
@@ -397,11 +404,10 @@ export async function dispatchSupplierOrderNotifications(
 
   // Stop on first failure: later channels stay unclaimed for a clean retry.
   const outcomes: ChannelOutcome[] = [];
-  const failedYet = () => outcomes.some((o) => ["failed", "claim_failed", "uncertain", "in_progress"].includes(o.result));
+  const failedYet = () => outcomes.some((o) => o.channel === "supplier_email" && ["failed", "claim_failed", "uncertain", "in_progress"].includes(o.result));
   for (const order of orders) {
     if (failedYet()) break;
-    outcomes.push(
-      await runChannel(db, order.id, "supplier_email", input.eventId, async () => {
+    const supplier = await runChannel(db, order.id, "supplier_email", input.eventId, async () => {
         const res = await sendSupplierEmail(db, {
           to: supplierEmail,
           subject: supplierSubject(order),
@@ -410,8 +416,22 @@ export async function dispatchSupplierOrderNotifications(
         return res.ok
           ? { status: "sent", messageId: res.messageId, recipient: `${supplierEmail} (from: ${res.sender})` }
           : { status: res.safeRetry ? "failed" : "uncertain", reason: res.reason, recipient: supplierEmail };
-      }),
-    );
+      });
+    outcomes.push(supplier);
+    if (supplier.result !== "sent" && supplier.result !== "duplicate") continue;
+    // The supplier sheet is the actual placement event. Claim the admin text
+    // separately, so retries and multi-system purchases stay one text per order.
+    outcomes.push(await runChannel(db, order.id, "admin_order_sms", input.eventId, async () => {
+      const r = await relayCall("send_sms", {
+        email: ADMIN_ORDER_EMAIL,
+        phone: ADMIN_ORDER_PHONE,
+        name: "Chris Sassouni",
+        message: buildAdminOrderSmsBody(order),
+      });
+      return r.ok
+        ? { status: "sent", messageId: r.messageId, recipient: ADMIN_ORDER_PHONE }
+        : { status: relayDefinitelyDidNotSend(r.reason) ? "failed" : "uncertain", reason: r.reason, recipient: ADMIN_ORDER_PHONE };
+    }));
   }
 
   return outcomes;
@@ -425,7 +445,7 @@ export async function dispatchPaidOrderNotifications(
   const orders = input.orders;
   if (!orders.length) return [];
   const outcomes = await dispatchSupplierOrderNotifications(db, input);
-  const failedYet = () => outcomes.some((o) => ["failed", "claim_failed", "uncertain", "in_progress"].includes(o.result));
+  const failedYet = () => outcomes.some((o) => o.channel !== "admin_order_sms" && ["failed", "claim_failed", "uncertain", "in_progress"].includes(o.result));
 
   // Supplier delivery is independent of CRM; buyer behavior remains gated by it.
   if (input.buyerCommunicationsAllowed === false) return outcomes;

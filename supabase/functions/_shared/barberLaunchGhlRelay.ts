@@ -89,5 +89,7 @@ export async function ghlContactEmail(contactId: string): Promise<string | null>
 export function relayDefinitelyDidNotSend(reason: string): boolean {
   return reason === 'relay_key_missing' ||
     reason.startsWith('relay_send_email_http_401:') ||
-    reason === 'relay_send_email_http_503:vlix_oauth_not_connected';
+    reason.startsWith('relay_send_sms_http_401:') ||
+    reason === 'relay_send_email_http_503:vlix_oauth_not_connected' ||
+    reason === 'relay_send_sms_http_503:vlix_oauth_not_connected';
 }
