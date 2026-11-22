@@ -420,7 +420,7 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                         <button
                           className={cn(
                             'flex items-center justify-between w-full px-3 py-3 rounded-xl transition-all text-sm font-medium',
-                            ['/marketing', '/social-media-post', '/my-links', '/ads', '/messenger', '/business-card', '/my-website', '/website'].some(p => location.pathname.startsWith(p))
+                            ['/marketing', '/social-media-post', '/my-links', '/ads', '/business-card', '/my-website', '/website'].some(p => location.pathname.startsWith(p))
                               ? 'bg-primary/10 text-primary'
                               : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                           )}
@@ -451,10 +451,6 @@ export function MobileNav({ isAdminView = false }: MobileNavProps) {
                           {reviewerOnAds && (
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 gold-gradient rounded-r-full" />
                           )}
-                        </NavLink>
-                        <NavLink to="/messenger" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
-                          <MessageSquare className="w-4 h-4" />
-                          <span className="font-medium">Facebook Messages</span>
                         </NavLink>
                         <NavLink to="/business-card" onClick={closeMenu} className={({ isActive }) => cn('flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50')}>
                           <CreditCard className="w-4 h-4" />

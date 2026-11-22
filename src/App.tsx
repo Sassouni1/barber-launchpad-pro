@@ -57,8 +57,6 @@ import HairSystemChecklist from "./pages/HairSystemChecklist";
 import MyLinks from "./pages/MyLinks";
 import GHLCallback from "./pages/GHLCallback";
 import FacebookCallback from "./pages/FacebookCallback";
-import Messenger from "./pages/Messenger";
-import MessengerCallback from "./pages/MessengerCallback";
 import Ads from "./pages/Ads";
 import WebsiteEditor from "./pages/WebsiteEditor";
 import GuidedWebsiteBuilder from "./pages/GuidedWebsiteBuilder";
@@ -163,8 +161,6 @@ const MemberApp = () => (
         <Route path="/integrations/crm/callback" element={<GHLCallback />} />
         <Route path="/integrations/ghl/callback" element={<GHLCallback />} />
         <Route path="/integrations/facebook/callback" element={<ProtectedRoute><FacebookCallback /></ProtectedRoute>} />
-        <Route path="/integrations/messenger/callback" element={<ProtectedRoute><MessengerCallback /></ProtectedRoute>} />
-        <Route path="/messenger" element={<ProtectedRoute><Messenger /></ProtectedRoute>} />
         <Route path="/card/:shortCode" element={<CardView />} />
         <Route path="/client/:userId" element={<ClientHub />} />
         <Route path="/business-card" element={<ProtectedRoute><BusinessCardSetup /></ProtectedRoute>} />
