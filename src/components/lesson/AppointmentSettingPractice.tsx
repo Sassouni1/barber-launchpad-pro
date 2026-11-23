@@ -3,7 +3,7 @@ import { Mic, MicOff, PhoneOff, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 type Difficulty = "easy" | "medium" | "difficult";
-type CallState = "idle" | "connecting" | "listening" | "speaking";
+type CallState = "idle" | "ringing" | "connecting" | "listening" | "speaking";
 
 const levels: { value: Difficulty; label: string }[] = [
   { value: "easy", label: "Easy" },
@@ -24,6 +24,7 @@ export function AppointmentSettingPractice() {
   const channelRef = useRef<RTCDataChannel | null>(null);
   const timerRef = useRef<number | null>(null);
   const connectTimerRef = useRef<number | null>(null);
+  const ringAudioRef = useRef<AudioContext | null>(null);
   const runRef = useRef(0);
 
   const endPractice = useCallback(() => {
@@ -32,6 +33,8 @@ export function AppointmentSettingPractice() {
     timerRef.current = null;
     if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
     connectTimerRef.current = null;
+    if (ringAudioRef.current) void ringAudioRef.current.close();
+    ringAudioRef.current = null;
     channelRef.current?.close();
     channelRef.current = null;
     peerRef.current?.close();
@@ -52,6 +55,7 @@ export function AppointmentSettingPractice() {
     runRef.current += 1;
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
+    if (ringAudioRef.current) void ringAudioRef.current.close();
     channelRef.current?.close();
     peerRef.current?.close();
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -69,13 +73,37 @@ export function AppointmentSettingPractice() {
 
     const run = ++runRef.current;
     setError(null);
-    setCallState("connecting");
-    connectTimerRef.current = window.setTimeout(() => {
-      if (run !== runRef.current) return;
-      endPractice();
-      setError("The voice connection timed out. Check microphone permission and try again.");
-    }, 25000);
+    setCallState("ringing");
     try {
+      const ringAudio = new AudioContext();
+      ringAudioRef.current = ringAudio;
+      await ringAudio.resume();
+      const now = ringAudio.currentTime;
+      for (const offset of [0, 1.15]) {
+        const gain = ringAudio.createGain();
+        gain.gain.setValueAtTime(0, now + offset);
+        gain.gain.linearRampToValueAtTime(0.12, now + offset + 0.03);
+        gain.gain.setValueAtTime(0.12, now + offset + 0.66);
+        gain.gain.linearRampToValueAtTime(0, now + offset + 0.73);
+        gain.connect(ringAudio.destination);
+        for (const frequency of [440, 480]) {
+          const oscillator = ringAudio.createOscillator();
+          oscillator.frequency.value = frequency;
+          oscillator.connect(gain);
+          oscillator.start(now + offset);
+          oscillator.stop(now + offset + 0.74);
+        }
+      }
+      await new Promise(resolve => window.setTimeout(resolve, 2100));
+      if (run !== runRef.current) return;
+      await ringAudio.close();
+      ringAudioRef.current = null;
+      setCallState("connecting");
+      connectTimerRef.current = window.setTimeout(() => {
+        if (run !== runRef.current) return;
+        endPractice();
+        setError("The voice connection timed out. Check microphone permission and try again.");
+      }, 25000);
       const { data, error: sessionError } = await supabase.functions.invoke("appointment-practice-session", {
         body: { difficulty },
       });
@@ -114,6 +142,7 @@ export function AppointmentSettingPractice() {
         if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
         connectTimerRef.current = null;
         setCallState("listening");
+        channel.send(JSON.stringify({ type: "response.create", response: { instructions: "You just answered the phone. Say exactly one word: Hello. Then stop and wait for the caller." } }));
         timerRef.current = window.setTimeout(() => {
           endPractice();
           setError("Practice ended after 15 minutes. Start another call whenever you're ready.");
@@ -159,13 +188,14 @@ export function AppointmentSettingPractice() {
       void startPractice();
       return;
     }
-    if (callState === "connecting") return;
+    if (callState === "connecting" || callState === "ringing") return;
     const nextMuted = !muted;
     streamRef.current?.getAudioTracks().forEach(track => { track.enabled = !nextMuted; });
     setMuted(nextMuted);
   };
 
-  const status = callState === "connecting" ? "Connecting to Mark…"
+  const status = callState === "ringing" ? "Ringing Mark…"
+    : callState === "connecting" ? "Connecting to Mark…"
     : muted ? "Microphone muted"
     : callState === "speaking" ? "Mark is speaking"
     : callState === "listening" ? "Mark is listening"
@@ -202,7 +232,7 @@ export function AppointmentSettingPractice() {
             {bars.map((height, index) => <span key={index} className={`w-1 rounded-full bg-[#e5b748] ${callState === "speaking" ? "animate-pulse" : ""}`} style={{ height }} />)}
           </div>
           <p role="status" className="mx-auto mt-3 rounded-full border border-[#d4a944]/40 bg-[#27261d] px-4 py-1.5 text-sm text-[#f8f2e9]">{status}</p>
-          <button type="button" onClick={toggleMicrophone} disabled={callState === "connecting"} aria-label={callState === "idle" ? "Start voice practice" : muted ? "Unmute microphone" : "Mute microphone"} className="mx-auto mt-5 flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#f8d176] bg-gradient-to-br from-[#f7cf67] to-[#bd8325] text-[#17110a] shadow-[0_0_35px_rgba(212,169,68,0.25)] transition hover:scale-105 disabled:cursor-wait disabled:opacity-60">
+          <button type="button" onClick={toggleMicrophone} disabled={callState === "connecting" || callState === "ringing"} aria-label={callState === "idle" ? "Start voice practice" : muted ? "Unmute microphone" : "Mute microphone"} className="mx-auto mt-5 flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#f8d176] bg-gradient-to-br from-[#f7cf67] to-[#bd8325] text-[#17110a] shadow-[0_0_35px_rgba(212,169,68,0.25)] transition hover:scale-105 disabled:cursor-wait disabled:opacity-60">
             {muted ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
           </button>
           <p className="mt-2 font-semibold text-[#f8f2e9]">{callState === "idle" ? "Speak to client" : muted ? "Tap to unmute" : "Tap to mute"}</p>
