@@ -208,43 +208,43 @@ export function AppointmentSettingPractice() {
         <h2 className="mt-1 font-display text-3xl font-bold text-[#f2bf50] sm:text-4xl">Practice with Mark</h2>
         <p className="mt-2 text-sm text-[#d6d0c6] sm:text-base">Have a real conversation with a prospective client before you make your next appointment-setting call.</p>
       </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(310px,1fr)]">
-        <div className="grid gap-4 rounded-2xl border border-white/15 bg-[#101115] p-4 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] sm:p-5">
-          <div className="flex flex-col rounded-xl border border-white/15 bg-[#141519] p-5">
-            <div className="flex items-center gap-2 text-[#f2bf50]"><Target className="h-5 w-5" /><h3 className="font-display text-xl font-bold">Scenario</h3></div>
-            <p className="mt-4 text-base leading-relaxed text-[#f8f2e9]">Mark is nervous about his thinning hair and unsure whether a hair system is right for him.</p>
-            <p className="mt-5 text-sm leading-relaxed text-[#bcb6ab]">He requested information but has not booked a free consultation.</p>
+      <div className="rounded-2xl border border-[#d4a944]/45 bg-[#141519] p-4 text-[#f8f2e9] sm:flex sm:items-center sm:gap-6 sm:p-5">
+        <div className="flex shrink-0 items-center gap-2 text-[#f2bf50]"><Target className="h-5 w-5" /><h3 className="font-display text-xl font-bold">Scenario</h3></div>
+        <p className="mt-2 text-sm leading-relaxed sm:mt-0 sm:text-base">Mark is nervous about his thinning hair and unsure whether a hair system is right for him. <span className="text-[#bcb6ab]">He requested information but has not booked a free consultation.</span></p>
+      </div>
+      <div className="relative min-h-[1020px] overflow-hidden rounded-2xl border border-[#d4a944]/65 bg-[#101115] lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1.6fr)_minmax(310px,1fr)] lg:gap-4 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent">
+        <figure className="absolute inset-0 overflow-hidden lg:relative lg:inset-auto lg:min-h-[600px] lg:rounded-2xl lg:border lg:border-white/15 lg:bg-[#101115] lg:p-5">
+          <div className="absolute inset-0 lg:inset-5 lg:overflow-hidden lg:rounded-xl">
+            <img src="/lesson-assets/appointment-setting/mark.png" alt="Mark, the practice client with thinning hair" className="h-[60%] w-full object-cover object-top lg:h-full lg:object-center" />
+            <div aria-hidden="true" className="absolute inset-x-0 top-[45%] h-[25%] bg-gradient-to-b from-transparent to-[#101115] lg:hidden" />
           </div>
-          <figure className="relative min-h-[360px] overflow-hidden rounded-xl bg-[#222] sm:min-h-[440px]">
-            <img src="/lesson-assets/appointment-setting/mark.png" alt="Mark, the practice client with thinning hair" className="h-full w-full object-cover object-center" />
-            <figcaption className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-xl border border-[#d4a944]/65 bg-[#111317]/90 px-6 py-2 text-center shadow-lg backdrop-blur-sm">
-              <span className="block text-xl font-bold text-white">Mark</span>
-              <span className="block whitespace-nowrap text-xs text-[#d6d0c6]">Practice client</span>
-            </figcaption>
-          </figure>
-        </div>
+          <figcaption className="absolute left-1/2 top-[43%] z-10 -translate-x-1/2 rounded-xl border border-[#d4a944]/65 bg-[#111317]/90 px-6 py-2 text-center shadow-lg backdrop-blur-sm lg:bottom-9 lg:top-auto">
+            <span className="block text-xl font-bold text-white">Mark</span>
+            <span className="block whitespace-nowrap text-xs text-[#d6d0c6]">Practice client</span>
+          </figcaption>
+        </figure>
 
-        <div className="flex flex-col rounded-2xl border border-white/15 bg-[#101115] p-5 text-center sm:p-6">
-          <div className="rounded-xl border border-white/15 bg-[#141519] px-4 py-4 text-left">
+        <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col bg-gradient-to-b from-transparent via-[#0b0c0f]/90 to-[#0b0c0f] px-4 pb-5 pt-20 text-center sm:px-6 lg:static lg:rounded-2xl lg:border lg:border-white/15 lg:bg-[#101115] lg:bg-none lg:p-6">
+          <div className="rounded-xl border border-white/25 bg-[#141519]/80 px-4 py-3 text-left backdrop-blur-sm lg:border-white/15 lg:bg-[#141519] lg:py-4 lg:backdrop-blur-none">
             <div className="flex items-start gap-3"><Target className="mt-0.5 h-5 w-5 shrink-0 text-[#f2bf50]" /><div><h3 className="font-semibold text-[#f2bf50]">Your goal</h3><p className="mt-1 text-sm leading-relaxed text-[#f8f2e9]">Understand his concern and invite him to a consultation.</p></div></div>
           </div>
-          <div aria-hidden="true" className="mt-6 flex h-14 items-center justify-center gap-1">
+          <div aria-hidden="true" className="mt-4 flex h-12 items-center justify-center gap-1 lg:mt-6 lg:h-14">
             {bars.map((height, index) => <span key={index} className={`w-1 rounded-full bg-[#e5b748] ${callState === "speaking" ? "animate-pulse" : ""}`} style={{ height }} />)}
           </div>
-          <p role="status" className="mx-auto mt-3 rounded-full border border-[#d4a944]/40 bg-[#27261d] px-4 py-1.5 text-sm text-[#f8f2e9]">{status}</p>
-          <button type="button" onClick={toggleMicrophone} disabled={callState === "connecting" || callState === "ringing"} aria-label={callState === "idle" ? "Start voice practice" : muted ? "Unmute microphone" : "Mute microphone"} className="mx-auto mt-5 flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#f8d176] bg-gradient-to-br from-[#f7cf67] to-[#bd8325] text-[#17110a] shadow-[0_0_35px_rgba(212,169,68,0.25)] transition hover:scale-105 disabled:cursor-wait disabled:opacity-60">
+          <p role="status" className="mx-auto mt-2 rounded-full border border-[#d4a944]/40 bg-[#27261d]/90 px-4 py-1.5 text-sm text-[#f8f2e9] lg:mt-3">{status}</p>
+          <button type="button" onClick={toggleMicrophone} disabled={callState === "connecting" || callState === "ringing"} aria-label={callState === "idle" ? "Start voice practice" : muted ? "Unmute microphone" : "Mute microphone"} className="mx-auto mt-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#f8d176] bg-gradient-to-br from-[#f7cf67] to-[#bd8325] text-[#17110a] shadow-[0_0_35px_rgba(212,169,68,0.25)] transition hover:scale-105 disabled:cursor-wait disabled:opacity-60 lg:mt-5">
             {muted ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
           </button>
           <p className="mt-2 font-semibold text-[#f8f2e9]">{callState === "idle" ? "Speak to client" : muted ? "Tap to unmute" : "Tap to mute"}</p>
-          <div className="mt-5 border-t border-white/15 pt-5">
+          <div className="mt-4 border-t border-white/15 pt-4 lg:mt-5 lg:pt-5">
             <p id="practice-difficulty-label" className="font-semibold text-[#f8f2e9]">Difficulty</p>
             <div role="group" aria-labelledby="practice-difficulty-label" className="mt-3 grid grid-cols-3 gap-2">
               {levels.map(level => <button key={level.value} type="button" disabled={callState !== "idle"} aria-pressed={difficulty === level.value} onClick={() => setDifficulty(level.value)} className={`rounded-lg border px-2 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${difficulty === level.value ? "border-[#f2bf50] bg-[#e5b748] text-[#17110a]" : "border-[#d4a944]/70 text-[#f8f2e9] hover:bg-[#d4a944]/15"}`}>{level.label}</button>)}
             </div>
           </div>
-          {callState === "idle" ? <button type="button" onClick={() => void startPractice()} className="mt-5 rounded-lg bg-[#e5b748] px-5 py-3 font-semibold text-[#17110a] transition hover:bg-[#f3cc73]">Start practice</button>
-            : <button type="button" onClick={endPractice} className="mt-5 flex items-center justify-center gap-2 rounded-lg border border-[#d4a944]/70 px-5 py-3 font-semibold text-[#f8f2e9] transition hover:bg-[#d4a944]/15"><PhoneOff className="h-4 w-4" /> End practice</button>}
-          <p className="mt-3 text-xs leading-relaxed text-[#9d968c]">This is a practice call. No real appointment is booked.</p>
+          {callState === "idle" ? <button type="button" onClick={() => void startPractice()} className="mt-5 hidden rounded-lg bg-[#e5b748] px-5 py-3 font-semibold text-[#17110a] transition hover:bg-[#f3cc73] lg:block">Start practice</button>
+            : <button type="button" onClick={endPractice} className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-[#d4a944]/70 bg-[#101115]/70 px-5 py-3 font-semibold text-[#f8f2e9] transition hover:bg-[#d4a944]/15 lg:mt-5"><PhoneOff className="h-4 w-4" /> End practice</button>}
+          <p className="mt-3 text-xs leading-relaxed text-[#c2b9a9] lg:text-[#9d968c]">This is a practice call. No real appointment is booked.</p>
           {error && <p role="alert" className="mt-3 rounded-lg border border-red-400/40 bg-red-950/30 p-3 text-left text-sm text-red-200">{error}</p>}
         </div>
       </div>
