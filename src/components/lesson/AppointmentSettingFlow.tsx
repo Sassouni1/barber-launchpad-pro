@@ -138,7 +138,7 @@ export function AppointmentSettingFlow() {
       <Section number="02" title="Call Script" id="call-script">
         <div className="space-y-3">
           <div className="space-y-3 rounded-2xl border border-[#d4a944]/45 bg-[#121416] p-3 sm:p-4">
-            <ScriptCard label="Pattern interrupt">
+            <ScriptCard label="Start call">
               Hey [Name], this is [Your Name] from [Company]. I saw you were interested in our hair replacement service — does that ring a bell?
             </ScriptCard>
             <div className="space-y-3 pl-3 sm:pl-6">
