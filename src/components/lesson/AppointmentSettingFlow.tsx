@@ -133,18 +133,12 @@ export function AppointmentSettingFlow() {
             );
           })}
         </div>
-        <ScriptCard label="If they reply">
-          Hey [Name], this is [Your Name] from [Company]. Saw you were interested in our hair replacement service in [City], but didn’t get a chance to schedule your free consultation.
-        </ScriptCard>
       </Section>
 
       <Section number="02" title="Call Script" id="call-script">
         <div className="space-y-3">
-          <ScriptCard label="V1 · Direct recall">
-            Hey [Name], this is [Your Name] from [Company]. I saw you were interested in our hair replacement service here in [City], but didn’t get a chance to schedule your free consultation. How long have you been interested in hair systems?
-          </ScriptCard>
           <div className="space-y-3 rounded-2xl border border-[#d4a944]/45 bg-[#121416] p-3 sm:p-4">
-            <ScriptCard label="V2 · Pattern interrupt">
+            <ScriptCard label="Pattern interrupt">
               Hey [Name], this is [Your Name] from [Company]. I saw you were interested in our hair replacement service — does that ring a bell?
             </ScriptCard>
             <div className="space-y-3 pl-3 sm:pl-6">
