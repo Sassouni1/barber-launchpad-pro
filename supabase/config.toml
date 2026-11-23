@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.program-enrollment-admin]
 verify_jwt = false
+
+[functions.appointment-practice-session]
+verify_jwt = true
