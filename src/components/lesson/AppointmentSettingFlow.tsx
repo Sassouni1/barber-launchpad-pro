@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { CalendarDays, Check, Clipboard, MessageSquare, Phone } from "lucide-react";
 import { toast } from "sonner";
+import { AppointmentSettingPractice } from "./AppointmentSettingPractice";
 
 const sections = [
   ["call-flow", "Call Flow"],
@@ -90,7 +91,8 @@ function Objection({ title, children }: { title: string; children: string }) {
 
 export function AppointmentSettingFlow() {
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-12 text-[#f8f2e9]">
+    <div className="mx-auto max-w-5xl space-y-8 pb-12 text-[#f8f2e9]">
+      <AppointmentSettingPractice />
       <div className="rounded-3xl border border-[#d4a944]/55 bg-gradient-to-br from-[#221b12] via-[#111317] to-[#0c0d10] p-5 shadow-xl shadow-black/25 sm:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#edc465]">A live call playbook</p>
         <h2 className="mt-2 font-display text-3xl font-bold leading-tight sm:text-5xl">Appointment Setting Flow</h2>
