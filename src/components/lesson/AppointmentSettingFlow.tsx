@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
-import { CalendarDays, Check, Clipboard, MessageSquare, Phone } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, Clipboard, MessageSquare, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { AppointmentSettingPractice } from "./AppointmentSettingPractice";
+import { Link } from "react-router-dom";
+import { APPOINTMENT_SETTING_PRACTICE_PATH } from "@/data/appointmentSettingPractice";
 
 const sections = [
   ["call-flow", "Call Flow"],
@@ -92,7 +93,6 @@ function Objection({ title, children }: { title: string; children: string }) {
 export function AppointmentSettingFlow() {
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12 text-[#f8f2e9]">
-      <AppointmentSettingPractice />
       <div className="rounded-3xl border border-[#d4a944]/55 bg-gradient-to-br from-[#221b12] via-[#111317] to-[#0c0d10] p-5 shadow-xl shadow-black/25 sm:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#edc465]">A live call playbook</p>
         <h2 className="mt-2 font-display text-3xl font-bold leading-tight sm:text-5xl">Appointment Setting Flow</h2>
@@ -103,6 +103,15 @@ export function AppointmentSettingFlow() {
           Remember: You may ask yourself, is this worth your time? What else could you do that would make you $1,000 in an hour? Many fall back into cutting hair instead of going after the most important and profitable aspects.
         </p>
       </div>
+
+      <Link to={APPOINTMENT_SETTING_PRACTICE_PATH} className="flex items-center justify-between gap-4 rounded-2xl border border-[#d4a944]/55 bg-[#17191d] p-5 transition hover:bg-[#24221e] sm:p-6">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#edc465]">Voice practice</p>
+          <h3 className="mt-1 font-display text-xl font-bold sm:text-2xl">Practicing Appointment Settings</h3>
+          <p className="mt-1 text-sm text-[#c9c3b9]">Practice the conversation with Mark on its own page.</p>
+        </div>
+        <ArrowRight className="h-5 w-5 shrink-0 text-[#edc465]" />
+      </Link>
 
       <nav aria-label="Lesson sections" className="rounded-2xl border border-white/15 bg-[#111317] p-4 sm:p-5">
         <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.16em] text-[#edc465]">Follow the flow</p>

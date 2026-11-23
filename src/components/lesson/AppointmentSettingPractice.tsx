@@ -23,12 +23,15 @@ export function AppointmentSettingPractice() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const channelRef = useRef<RTCDataChannel | null>(null);
   const timerRef = useRef<number | null>(null);
+  const connectTimerRef = useRef<number | null>(null);
   const runRef = useRef(0);
 
   const endPractice = useCallback(() => {
     runRef.current += 1;
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     timerRef.current = null;
+    if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
+    connectTimerRef.current = null;
     channelRef.current?.close();
     channelRef.current = null;
     peerRef.current?.close();
@@ -48,6 +51,7 @@ export function AppointmentSettingPractice() {
   useEffect(() => () => {
     runRef.current += 1;
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
     channelRef.current?.close();
     peerRef.current?.close();
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -66,6 +70,11 @@ export function AppointmentSettingPractice() {
     const run = ++runRef.current;
     setError(null);
     setCallState("connecting");
+    connectTimerRef.current = window.setTimeout(() => {
+      if (run !== runRef.current) return;
+      endPractice();
+      setError("The voice connection timed out. Check microphone permission and try again.");
+    }, 25000);
     try {
       const { data, error: sessionError } = await supabase.functions.invoke("appointment-practice-session", {
         body: { difficulty },
@@ -102,6 +111,8 @@ export function AppointmentSettingPractice() {
       channelRef.current = channel;
       channel.onopen = () => {
         if (run !== runRef.current) return;
+        if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
+        connectTimerRef.current = null;
         setCallState("listening");
         timerRef.current = window.setTimeout(() => {
           endPractice();

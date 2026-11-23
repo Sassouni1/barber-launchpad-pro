@@ -1,4 +1,5 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { APPOINTMENT_SETTING_MODULE_ID, APPOINTMENT_SETTING_PRACTICE_ID, APPOINTMENT_SETTING_PRACTICE_PATH } from "@/data/appointmentSettingPractice";
 import { useCourses, type Module } from "@/hooks/useCourses";
 import {
   BookOpen,
@@ -131,7 +132,9 @@ type ModuleLessonPreview = { id: string; title: string; order_index: number };
 type SidebarScrollMode = "restore" | "click";
 
 const getModuleLessons = (module: Module): ModuleLessonPreview[] =>
-  [...(((module as any).lessons || []) as ModuleLessonPreview[])].sort(
+  [...(((module as any).lessons || []) as ModuleLessonPreview[]),
+    ...(module.id === APPOINTMENT_SETTING_MODULE_ID ? [{ id: APPOINTMENT_SETTING_PRACTICE_ID, title: "Practicing Appointment Settings", order_index: 999 }] : []),
+  ].sort(
     (a, b) => a.order_index - b.order_index,
   );
 
@@ -1642,9 +1645,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                   module.id === FIRST_POST_MODULE_ID ? 2 : 1
                                 }
                                 onLessonClick={(lessonId) =>
-                                  navigate(
-                                    `/courses/${category.id}/lesson/${module.id}?sublesson=${lessonId}`,
-                                  )
+                                  navigate(lessonId === APPOINTMENT_SETTING_PRACTICE_ID
+                                    ? APPOINTMENT_SETTING_PRACTICE_PATH
+                                    : `/courses/${category.id}/lesson/${module.id}?sublesson=${lessonId}`)
                                 }
                               />
                             </div>
@@ -2166,9 +2169,9 @@ export default function Courses({ courseType = "hair-system" }: CoursesProps) {
                                     module.id === FIRST_POST_MODULE_ID ? 2 : 1
                                   }
                                   onLessonClick={(lessonId) =>
-                                    navigate(
-                                      `/courses/${courseType}/lesson/${module.id}?sublesson=${lessonId}`,
-                                    )
+                                    navigate(lessonId === APPOINTMENT_SETTING_PRACTICE_ID
+                                      ? APPOINTMENT_SETTING_PRACTICE_PATH
+                                      : `/courses/${courseType}/lesson/${module.id}?sublesson=${lessonId}`)
                                   }
                                 />
                               </div>

@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Lesson from "./pages/Lesson";
+import AppointmentSettingPracticePage from "./pages/AppointmentSettingPracticePage";
 import LessonLegacyRedirect from "./pages/LessonLegacyRedirect";
 import Todos from "./pages/Todos";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -76,6 +77,7 @@ import { LocaleProvider } from "./lib/i18n/LocaleProvider";
 import { AccessLogger } from "./components/AccessLogger";
 import { NotificationPrompt } from "./components/notifications/NotificationPrompt";
 import { AionFloatingAssistant } from "./components/aion/AionFloatingAssistant";
+import { APPOINTMENT_SETTING_PRACTICE_PATH } from "./data/appointmentSettingPractice";
 
 const queryClient = new QueryClient();
 
@@ -122,6 +124,7 @@ const MemberApp = () => (
         <Route path="/courses" element={<Navigate to="/courses/hair-system?choose=1" replace />} />
         <Route path="/courses/hair-system" element={<ProtectedRoute><Courses courseType="hair-system" /></ProtectedRoute>} />
         <Route path="/courses/business" element={<ProtectedRoute><Courses courseType="business" /></ProtectedRoute>} />
+        <Route path={APPOINTMENT_SETTING_PRACTICE_PATH} element={<ProtectedRoute><AppointmentSettingPracticePage /></ProtectedRoute>} />
         <Route path="/courses/:courseType/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
         <Route path="/courses/lesson/:lessonId" element={<ProtectedRoute><Lesson /></ProtectedRoute>} />
         <Route path="/courses/business/lesson/setting-up-your-yelp" element={<ProtectedRoute><SettingUpYourYelp /></ProtectedRoute>} />
