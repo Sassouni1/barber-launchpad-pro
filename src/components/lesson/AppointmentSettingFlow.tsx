@@ -148,6 +148,11 @@ export function AppointmentSettingFlow() {
               <div className="relative"><ScriptCard label="✕ No" tone="no">No worries — I saw you signed up to learn more about our hair loss solutions. How long have you been interested in something like this?</ScriptCard></div>
             </div>
           </div>
+          <div className="space-y-3 rounded-2xl border border-dashed border-[#d4a944]/45 bg-[#171716] p-3 sm:p-4">
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#f3cc73]">Optional · for short answers</p>
+            <ScriptCard>Okay got it, how long have you actually been struggling with hair loss for?</ScriptCard>
+            <ScriptCard>What made you start looking into hair systems now?</ScriptCard>
+          </div>
           <ScriptCard label="After they respond">
             Awesome. We would love to have you come in for a free consultation this week — Do mornings or afternoons work better for you? Would [nearby day/time] or [alt day/time] work better for you?
           </ScriptCard>
