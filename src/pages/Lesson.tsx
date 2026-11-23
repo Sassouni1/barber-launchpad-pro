@@ -65,6 +65,7 @@ import { AnnouncementPostImage } from "@/components/lesson/AnnouncementPostImage
 import { AnnouncementActionList } from "@/components/lesson/AnnouncementActionList";
 import { StripeSignupCard } from "@/components/lesson/StripeSignupCard";
 import { ReviewSignCustomizer } from "@/components/lesson/ReviewSignCustomizer";
+import { AppointmentSettingFlow } from "@/components/lesson/AppointmentSettingFlow";
 import {
   TrackedVimeoPlayer,
   type VimeoWatchProgress,
@@ -155,6 +156,7 @@ VideoPlayer.displayName = "VideoPlayer";
 const PLACING_ORDER_MODULE_ID = "60c268c9-5df7-4161-8d91-2c185fc791d0";
 
 const CONSUMER_FINANCING_MODULE_ID = "b1040000-0000-4000-8000-000000000104";
+const APPOINTMENT_SETTING_MODULE_ID = "10c2fd99-aff7-4afd-a87b-32978d3009d6";
 const SOCIAL_MEDIA_101_MODULE_ID = "b1010000-0000-4000-8000-000000000101";
 const SOCIAL_MEDIA_101_THUMBNAIL =
   "/lesson-assets/thumbnails/social-media-101-thumbnail.png";
@@ -1141,6 +1143,7 @@ export default function Lesson() {
     !(module as any).is_directory_enrollment;
   const activeHasHomework = sublessonId ? false : module.has_homework;
   const notesContent = sublessonId ? null : module.notes_content;
+  const isAppointmentSettingLesson = !sublessonId && module.id === APPOINTMENT_SETTING_MODULE_ID;
   const firstPostCopyDownloadFileName =
     module.id === FIRST_POST_MODULE_ID ? "first-post.txt" : undefined;
   const isFirstPostMainLesson = !sublessonId && module.id === FIRST_POST_MODULE_ID;
@@ -1781,7 +1784,9 @@ export default function Lesson() {
         )}
 
         {/* Notes Section - only show if there are notes */}
-        {notesContent && !isGettingReviewsLesson && (
+        {isAppointmentSettingLesson && <AppointmentSettingFlow />}
+
+        {notesContent && !isGettingReviewsLesson && !isAppointmentSettingLesson && (
           <div
             className="glass-card p-4 md:p-6 rounded-2xl animate-fade-up"
             style={{ animationDelay: "0.4s" }}
