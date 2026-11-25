@@ -69,7 +69,7 @@ Deno.serve(async req => {
               noise_reduction: { type: "far_field" },
               transcription: { model: "gpt-transcribe", language: "en" },
             },
-            output: { voice: difficulty === "medium" ? "echo" : "cedar" },
+            output: { voice: difficulty === "medium" ? "ash" : "cedar" },
           },
         },
       }),
