@@ -295,7 +295,8 @@ export function AppointmentSettingPractice() {
       <div className="overflow-hidden rounded-2xl border border-[#d4a944]/65 bg-[#101115] lg:grid lg:grid-cols-[minmax(0,1.6fr)_minmax(310px,1fr)] lg:gap-4 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent">
         <figure className="relative h-60 overflow-hidden sm:h-80 lg:h-auto lg:min-h-[600px] lg:rounded-2xl lg:border lg:border-white/15 lg:bg-[#101115] lg:p-5">
           <div className="absolute inset-0 lg:inset-5 lg:overflow-hidden lg:rounded-xl">
-            <img src={`/lesson-assets/appointment-setting/${difficulty === "medium" ? "david" : "mark"}.png`} alt={`${prospectName}, the practice client with thinning hair`} className="h-full w-full object-cover object-top lg:object-center" />
+            <img src="/lesson-assets/appointment-setting/mark.webp" alt="Mark, the practice client with thinning hair" aria-hidden={difficulty === "medium"} fetchPriority="high" className={`absolute inset-0 h-full w-full object-cover object-top lg:object-center ${difficulty === "medium" ? "opacity-0" : "opacity-100"}`} />
+            <img src="/lesson-assets/appointment-setting/david.webp" alt="David, the practice client with thinning hair" aria-hidden={difficulty !== "medium"} fetchPriority="high" className={`absolute inset-0 h-full w-full object-cover object-top lg:object-center ${difficulty === "medium" ? "opacity-100" : "opacity-0"}`} />
           </div>
           <figcaption className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-xl border border-[#d4a944]/65 bg-[#111317]/90 px-5 py-1.5 text-center shadow-lg backdrop-blur-sm lg:bottom-9 lg:px-6 lg:py-2">
             <span className="block text-xl font-bold text-white">{prospectName}</span>
