@@ -1616,6 +1616,36 @@ export type Database = {
         }
         Relationships: []
       }
+      appointment_practice_calls: {
+        Row: {
+          difficulty: string
+          ended_at: string | null
+          id: string
+          started_at: string
+          status: string
+          transcript: Json
+          user_id: string
+        }
+        Insert: {
+          difficulty: string
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          transcript?: Json
+          user_id: string
+        }
+        Update: {
+          difficulty?: string
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          transcript?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       barber_launch_payment_links: {
         Row: {
           active: boolean
