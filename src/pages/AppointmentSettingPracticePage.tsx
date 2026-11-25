@@ -12,8 +12,7 @@ export default function AppointmentSettingPracticePage() {
           <ArrowLeft className="h-4 w-4" /> Back to Appointment Setting
         </Link>
         <div className="border-b border-[#d4a944]/35 pb-5">
-          <p className="text-sm text-[#bcb6ab]">Business Mastery / Sales and Appointment Setting / Appointment Setting</p>
-          <h1 className="mt-2 font-display text-3xl font-bold text-[#f8f2e9] sm:text-4xl">Practicing Appointment Settings</h1>
+          <h1 className="font-display text-3xl font-bold text-[#f8f2e9] sm:text-4xl">Practicing Appointment Settings</h1>
         </div>
         <AppointmentSettingPractice />
       </main>
