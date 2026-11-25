@@ -3,6 +3,7 @@ import { Mic, MicOff, PhoneOff, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePracticeCallHistory } from "./usePracticeCallHistory";
 import { PracticeCallHistory } from "./PracticeCallHistory";
+import { isBriefAcknowledgment, offersConsultation } from "./appointmentPracticeTurn";
 
 type Difficulty = "easy" | "medium" | "difficult";
 type CallState = "idle" | "ringing" | "connecting" | "listening" | "speaking" | "saving" | "save_failed";
@@ -124,7 +125,7 @@ export function AppointmentSettingPractice() {
         body: { difficulty },
       });
       if (run !== runRef.current) return;
-      if (sessionError || typeof data?.clientSecret !== "string") {
+      if (sessionError || typeof data?.clientSecret !== "string" || (difficulty === "medium" && typeof data?.instructions !== "string")) {
         throw new Error(data?.error || "Voice practice is unavailable right now. Please try again.");
       }
       await startSavedCall(difficulty);
@@ -169,11 +170,32 @@ export function AppointmentSettingPractice() {
 
       const channel = peer.createDataChannel("oai-events");
       channelRef.current = channel;
+      const pendingMediumTurns: string[] = [];
+      const handledMediumItems = new Set<string>();
+      let responding = false;
+      let bookingOffered = false;
+      const respondToMediumTurn = () => {
+        if (difficulty !== "medium" || responding || !greetingCompleteRef.current || channel.readyState !== "open") return;
+        const transcript = pendingMediumTurns.shift();
+        if (!transcript) return;
+        const firstOffer = !bookingOffered && offersConsultation(transcript);
+        if (firstOffer) bookingOffered = true;
+        const stageDirections = firstOffer
+          ? "The caller has just invited you to a consultation or offered a time. You are interested but a little hesitant. Briefly say you are pretty busy this week. Do not volunteer a time or ask for openings. Answer only this invitation and do not claim a real booking occurred."
+          : bookingOffered
+            ? "You have already hesitated once about booking. Do not repeat that objection. Answer the caller's current question briefly. If they offer workable specific times after addressing your concern, choose one naturally. Never claim a real booking or confirmation occurred."
+            : null;
+        responding = true;
+        channel.send(JSON.stringify({ type: "response.create", response: stageDirections
+          ? { instructions: `${data.instructions} ${stageDirections}` }
+          : {} }));
+      };
       channel.onopen = () => {
         if (run !== runRef.current) return;
         if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
         connectTimerRef.current = null;
         setCallState("speaking");
+        responding = true;
         channel.send(JSON.stringify({ type: "response.create", response: { instructions: "You just answered the phone. Say exactly one word: Hello. Then stop and wait for the caller." } }));
         timerRef.current = window.setTimeout(() => {
           endPractice("interrupted");
@@ -191,6 +213,17 @@ export function AppointmentSettingPractice() {
           }
           if (!endingRef.current && (message.type === "response.created" || message.type === "response.output_audio.delta")) setCallState("speaking");
           if (!endingRef.current && greetingCompleteRef.current && (message.type === "response.done" || message.type === "input_audio_buffer.speech_started")) setCallState("listening");
+          if (difficulty === "medium" && message.type === "conversation.item.input_audio_transcription.completed" && message.item_id && message.transcript?.trim() && !handledMediumItems.has(message.item_id)) {
+            handledMediumItems.add(message.item_id);
+            if (!isBriefAcknowledgment(message.transcript)) {
+              pendingMediumTurns.push(message.transcript);
+              respondToMediumTurn();
+            }
+          }
+          if (message.type === "response.done") {
+            responding = false;
+            respondToMediumTurn();
+          }
           if (message.type === "error") setError(message.error?.message || "The call had a problem. Please try again.");
         } catch {
           // Ignore non-JSON data channel messages.
