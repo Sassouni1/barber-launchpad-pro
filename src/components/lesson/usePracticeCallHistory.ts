@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PracticeDifficulty = "easy" | "medium" | "difficult";
-export type PracticeTurn = { itemId: string; speaker: "You" | "Mark"; text: string; order: number };
+export type PracticeTurn = { itemId: string; speaker: "You" | "Mark" | "David"; text: string; order: number };
 export type PracticeCall = {
   id: string;
   difficulty: PracticeDifficulty;
@@ -22,6 +22,7 @@ export function usePracticeCallHistory() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const activeId = useRef<string | null>(null);
+  const activeDifficulty = useRef<PracticeDifficulty>("medium");
   const turns = useRef<Map<string, PracticeTurn>>(new Map());
   const itemOrder = useRef<Map<string, number>>(new Map());
   const nextOrder = useRef(0);
@@ -54,6 +55,7 @@ export function usePracticeCallHistory() {
       .select("id").single();
     if (error || !data?.id) throw new Error("Could not save this call. Please try again before practicing.");
     activeId.current = data.id as string;
+    activeDifficulty.current = difficulty;
     turns.current = new Map();
     itemOrder.current = new Map();
     nextOrder.current = 0;
@@ -108,7 +110,7 @@ export function usePracticeCallHistory() {
       return;
     }
     const speaker = event.type === "conversation.item.input_audio_transcription.completed" ? "You"
-      : event.type === "response.output_audio_transcript.done" ? "Mark" : null;
+      : event.type === "response.output_audio_transcript.done" ? (activeDifficulty.current === "medium" ? "David" : "Mark") : null;
     if (!speaker || !event.item_id || !event.transcript?.trim()) return;
     turns.current.set(event.item_id, {
       itemId: event.item_id,

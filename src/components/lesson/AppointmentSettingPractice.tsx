@@ -31,10 +31,16 @@ export function AppointmentSettingPractice() {
   const ringAudioRef = useRef<AudioContext | null>(null);
   const runRef = useRef(0);
   const endingRef = useRef(false);
+  const greetingCompleteRef = useRef(false);
+  const greetingFallbackRef = useRef<number | null>(null);
+  const prospectName = difficulty === "medium" ? "David" : "Mark";
 
   const endPractice = useCallback((status: "completed" | "interrupted" = "completed") => {
     runRef.current += 1;
     endingRef.current = false;
+    greetingCompleteRef.current = false;
+    if (greetingFallbackRef.current !== null) window.clearTimeout(greetingFallbackRef.current);
+    greetingFallbackRef.current = null;
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     timerRef.current = null;
     if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
@@ -62,6 +68,7 @@ export function AppointmentSettingPractice() {
     runRef.current += 1;
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
+    if (greetingFallbackRef.current !== null) window.clearTimeout(greetingFallbackRef.current);
     if (ringAudioRef.current) void ringAudioRef.current.close();
     channelRef.current?.close();
     peerRef.current?.close();
@@ -80,6 +87,7 @@ export function AppointmentSettingPractice() {
 
     const run = ++runRef.current;
     endingRef.current = false;
+    greetingCompleteRef.current = false;
     setError(null);
     setCallState("ringing");
     try {
@@ -133,6 +141,17 @@ export function AppointmentSettingPractice() {
         return;
       }
       streamRef.current = stream;
+      // Keep the caller's mic out of the Realtime session while the prospect says hello.
+      stream.getAudioTracks().forEach(track => { track.enabled = false; });
+
+      const finishGreeting = () => {
+        if (run !== runRef.current || greetingCompleteRef.current || endingRef.current) return;
+        greetingCompleteRef.current = true;
+        if (greetingFallbackRef.current !== null) window.clearTimeout(greetingFallbackRef.current);
+        greetingFallbackRef.current = null;
+        stream.getAudioTracks().forEach(track => { track.enabled = true; });
+        setCallState("listening");
+      };
 
       const peer = new RTCPeerConnection();
       peerRef.current = peer;
@@ -154,7 +173,7 @@ export function AppointmentSettingPractice() {
         if (run !== runRef.current) return;
         if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
         connectTimerRef.current = null;
-        setCallState("listening");
+        setCallState("speaking");
         channel.send(JSON.stringify({ type: "response.create", response: { instructions: "You just answered the phone. Say exactly one word: Hello. Then stop and wait for the caller." } }));
         timerRef.current = window.setTimeout(() => {
           endPractice("interrupted");
@@ -166,8 +185,12 @@ export function AppointmentSettingPractice() {
         try {
           const message = JSON.parse(event.data) as { type?: string; error?: { message?: string }; item_id?: string; item?: { id?: string }; transcript?: string };
           receiveTranscript(message);
+          if (message.type === "output_audio_buffer.stopped" && !greetingCompleteRef.current) finishGreeting();
+          if (message.type === "response.done" && !greetingCompleteRef.current && greetingFallbackRef.current === null) {
+            greetingFallbackRef.current = window.setTimeout(finishGreeting, 3000);
+          }
           if (!endingRef.current && (message.type === "response.created" || message.type === "response.output_audio.delta")) setCallState("speaking");
-          if (!endingRef.current && (message.type === "response.done" || message.type === "input_audio_buffer.speech_started")) setCallState("listening");
+          if (!endingRef.current && greetingCompleteRef.current && (message.type === "response.done" || message.type === "input_audio_buffer.speech_started")) setCallState("listening");
           if (message.type === "error") setError(message.error?.message || "The call had a problem. Please try again.");
         } catch {
           // Ignore non-JSON data channel messages.
@@ -216,34 +239,34 @@ export function AppointmentSettingPractice() {
     window.setTimeout(() => endPractice(), 1500);
   };
 
-  const status = callState === "ringing" ? "Ringing Mark…"
-    : callState === "connecting" ? "Connecting to Mark…"
+  const status = callState === "ringing" ? `Ringing ${prospectName}…`
+    : callState === "connecting" ? `Connecting to ${prospectName}…`
     : callState === "saving" ? "Saving transcript…"
     : callState === "save_failed" ? "Save failed — retry below"
     : muted ? "Microphone muted"
-    : callState === "speaking" ? "Mark is speaking"
-    : callState === "listening" ? "Mark is listening"
+    : callState === "speaking" ? `${prospectName} is speaking`
+    : callState === "listening" ? `${prospectName} is listening`
     : "Ready to practice";
 
   return (
     <section aria-label="Appointment setting voice practice" className="space-y-5">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#edc465]">Voice practice</p>
-        <h2 className="mt-1 font-display text-3xl font-bold text-[#f2bf50] sm:text-4xl">Practice with Mark</h2>
+        <h2 className="mt-1 font-display text-3xl font-bold text-[#f2bf50] sm:text-4xl">Practice with {prospectName}</h2>
         <p className="mt-2 text-sm text-[#d6d0c6] sm:text-base">Have a real conversation with a prospective client before you make your next appointment-setting call.</p>
       </div>
       <div className="rounded-2xl border border-[#d4a944]/45 bg-[#141519] p-4 text-[#f8f2e9] sm:flex sm:items-center sm:gap-6 sm:p-5">
         <div className="flex shrink-0 items-center gap-2 text-[#f2bf50]"><Target className="h-5 w-5" /><h3 className="font-display text-xl font-bold">Scenario</h3></div>
-        <p className="mt-2 text-sm leading-relaxed sm:mt-0 sm:text-base">Mark is nervous about his thinning hair and unsure whether a hair system is right for him. <span className="text-[#bcb6ab]">He requested information but has not booked a free consultation.</span></p>
+        <p className="mt-2 text-sm leading-relaxed sm:mt-0 sm:text-base">{prospectName} is nervous about his thinning hair and unsure whether a hair system is right for him. <span className="text-[#bcb6ab]">He requested information but has not booked a free consultation.</span></p>
       </div>
       <div className="relative min-h-[1020px] overflow-hidden rounded-2xl border border-[#d4a944]/65 bg-[#101115] lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1.6fr)_minmax(310px,1fr)] lg:gap-4 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent">
         <figure className="absolute inset-0 overflow-hidden lg:relative lg:inset-auto lg:min-h-[600px] lg:rounded-2xl lg:border lg:border-white/15 lg:bg-[#101115] lg:p-5">
           <div className="absolute inset-0 lg:inset-5 lg:overflow-hidden lg:rounded-xl">
-            <img src="/lesson-assets/appointment-setting/mark.png" alt="Mark, the practice client with thinning hair" className="h-[60%] w-full object-cover object-top lg:h-full lg:object-center" />
+            <img src="/lesson-assets/appointment-setting/mark.png" alt={`${prospectName}, the practice client with thinning hair`} className="h-[60%] w-full object-cover object-top lg:h-full lg:object-center" />
             <div aria-hidden="true" className="absolute inset-x-0 top-[45%] h-[25%] bg-gradient-to-b from-transparent to-[#101115] lg:hidden" />
           </div>
           <figcaption className="absolute left-1/2 top-[43%] z-10 -translate-x-1/2 rounded-xl border border-[#d4a944]/65 bg-[#111317]/90 px-6 py-2 text-center shadow-lg backdrop-blur-sm lg:bottom-9 lg:top-auto">
-            <span className="block text-xl font-bold text-white">Mark</span>
+            <span className="block text-xl font-bold text-white">{prospectName}</span>
             <span className="block whitespace-nowrap text-xs text-[#d6d0c6]">Practice client</span>
           </figcaption>
         </figure>

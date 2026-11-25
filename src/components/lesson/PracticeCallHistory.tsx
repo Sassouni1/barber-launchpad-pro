@@ -25,7 +25,7 @@ export function PracticeCallHistory({ calls, selectedId, onSelect, onRefresh, er
         </button>)}
       </div>
       <div className="max-h-96 space-y-3 overflow-y-auto rounded-xl border border-white/15 bg-[#0b0c0f] p-4" aria-label="Call transcript">
-        {selected.transcript.length ? selected.transcript.map(turn => <p key={turn.itemId} className="text-sm leading-relaxed"><strong className={turn.speaker === "Mark" ? "text-[#edc465]" : "text-white"}>{turn.speaker}:</strong> {turn.text}</p>)
+        {selected.transcript.length ? selected.transcript.map(turn => <p key={turn.itemId} className="text-sm leading-relaxed"><strong className={turn.speaker !== "You" ? "text-[#edc465]" : "text-white"}>{turn.speaker}:</strong> {turn.text}</p>)
           : <p className="text-sm text-[#c2b9a9]">No speech was transcribed for this call.</p>}
       </div>
     </div>}
