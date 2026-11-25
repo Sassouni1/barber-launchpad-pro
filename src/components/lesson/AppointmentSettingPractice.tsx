@@ -262,7 +262,7 @@ export function AppointmentSettingPractice() {
       <div className="relative min-h-[1020px] overflow-hidden rounded-2xl border border-[#d4a944]/65 bg-[#101115] lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1.6fr)_minmax(310px,1fr)] lg:gap-4 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent">
         <figure className="absolute inset-0 overflow-hidden lg:relative lg:inset-auto lg:min-h-[600px] lg:rounded-2xl lg:border lg:border-white/15 lg:bg-[#101115] lg:p-5">
           <div className="absolute inset-0 lg:inset-5 lg:overflow-hidden lg:rounded-xl">
-            <img src="/lesson-assets/appointment-setting/mark.png" alt={`${prospectName}, the practice client with thinning hair`} className="h-[60%] w-full object-cover object-top lg:h-full lg:object-center" />
+            <img src={`/lesson-assets/appointment-setting/${difficulty === "medium" ? "david" : "mark"}.png`} alt={`${prospectName}, the practice client with thinning hair`} className="h-[60%] w-full object-cover object-top lg:h-full lg:object-center" />
             <div aria-hidden="true" className="absolute inset-x-0 top-[45%] h-[25%] bg-gradient-to-b from-transparent to-[#101115] lg:hidden" />
           </div>
           <figcaption className="absolute left-1/2 top-[43%] z-10 -translate-x-1/2 rounded-xl border border-[#d4a944]/65 bg-[#111317]/90 px-6 py-2 text-center shadow-lg backdrop-blur-sm lg:bottom-9 lg:top-auto">
