@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, PhoneOff, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePracticeCallHistory } from "./usePracticeCallHistory";
+import { PracticeCallHistory } from "./PracticeCallHistory";
 
 type Difficulty = "easy" | "medium" | "difficult";
-type CallState = "idle" | "ringing" | "connecting" | "listening" | "speaking";
+type CallState = "idle" | "ringing" | "connecting" | "listening" | "speaking" | "saving" | "save_failed";
 
 const levels: { value: Difficulty; label: string }[] = [
   { value: "easy", label: "Easy" },
@@ -18,6 +20,8 @@ export function AppointmentSettingPractice() {
   const [callState, setCallState] = useState<CallState>("idle");
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
+  const { history, historyError, saveError, refreshHistory, start: startSavedCall, receive: receiveTranscript, finish: finishSavedCall } = usePracticeCallHistory();
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -26,9 +30,11 @@ export function AppointmentSettingPractice() {
   const connectTimerRef = useRef<number | null>(null);
   const ringAudioRef = useRef<AudioContext | null>(null);
   const runRef = useRef(0);
+  const endingRef = useRef(false);
 
-  const endPractice = useCallback(() => {
+  const endPractice = useCallback((status: "completed" | "interrupted" = "completed") => {
     runRef.current += 1;
+    endingRef.current = false;
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     timerRef.current = null;
     if (connectTimerRef.current !== null) window.clearTimeout(connectTimerRef.current);
@@ -48,8 +54,9 @@ export function AppointmentSettingPractice() {
     }
     audioRef.current = null;
     setMuted(false);
-    setCallState("idle");
-  }, []);
+    setCallState("saving");
+    void finishSavedCall(status).then(saved => setCallState(saved ? "idle" : "save_failed"));
+  }, [finishSavedCall]);
 
   useEffect(() => () => {
     runRef.current += 1;
@@ -72,6 +79,7 @@ export function AppointmentSettingPractice() {
     }
 
     const run = ++runRef.current;
+    endingRef.current = false;
     setError(null);
     setCallState("ringing");
     try {
@@ -101,7 +109,7 @@ export function AppointmentSettingPractice() {
       setCallState("connecting");
       connectTimerRef.current = window.setTimeout(() => {
         if (run !== runRef.current) return;
-        endPractice();
+        endPractice("interrupted");
         setError("The voice connection timed out. Check microphone permission and try again.");
       }, 25000);
       const { data, error: sessionError } = await supabase.functions.invoke("appointment-practice-session", {
@@ -110,6 +118,11 @@ export function AppointmentSettingPractice() {
       if (run !== runRef.current) return;
       if (sessionError || typeof data?.clientSecret !== "string") {
         throw new Error(data?.error || "Voice practice is unavailable right now. Please try again.");
+      }
+      await startSavedCall(difficulty);
+      if (run !== runRef.current) {
+        await finishSavedCall("interrupted");
+        return;
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -144,16 +157,17 @@ export function AppointmentSettingPractice() {
         setCallState("listening");
         channel.send(JSON.stringify({ type: "response.create", response: { instructions: "You just answered the phone. Say exactly one word: Hello. Then stop and wait for the caller." } }));
         timerRef.current = window.setTimeout(() => {
-          endPractice();
+          endPractice("interrupted");
           setError("Practice ended after 15 minutes. Start another call whenever you're ready.");
         }, 15 * 60 * 1000);
       };
       channel.onmessage = event => {
         if (run !== runRef.current) return;
         try {
-          const message = JSON.parse(event.data) as { type?: string; error?: { message?: string } };
-          if (message.type === "response.created" || message.type === "response.output_audio.delta") setCallState("speaking");
-          if (message.type === "response.done" || message.type === "input_audio_buffer.speech_started") setCallState("listening");
+          const message = JSON.parse(event.data) as { type?: string; error?: { message?: string }; item_id?: string; item?: { id?: string }; transcript?: string };
+          receiveTranscript(message);
+          if (!endingRef.current && (message.type === "response.created" || message.type === "response.output_audio.delta")) setCallState("speaking");
+          if (!endingRef.current && (message.type === "response.done" || message.type === "input_audio_buffer.speech_started")) setCallState("listening");
           if (message.type === "error") setError(message.error?.message || "The call had a problem. Please try again.");
         } catch {
           // Ignore non-JSON data channel messages.
@@ -161,7 +175,7 @@ export function AppointmentSettingPractice() {
       };
       peer.onconnectionstatechange = () => {
         if (run !== runRef.current || peer.connectionState !== "failed") return;
-        endPractice();
+        endPractice("interrupted");
         setError("The voice connection dropped. Please start a new practice call.");
       };
 
@@ -178,24 +192,34 @@ export function AppointmentSettingPractice() {
       await peer.setRemoteDescription({ type: "answer", sdp });
     } catch (cause) {
       if (run !== runRef.current) return;
-      endPractice();
+      endPractice("interrupted");
       setError(cause instanceof Error ? cause.message : "Voice practice could not start.");
     }
-  }, [callState, difficulty, endPractice]);
+  }, [callState, difficulty, endPractice, finishSavedCall, receiveTranscript, startSavedCall]);
 
   const toggleMicrophone = () => {
     if (callState === "idle") {
       void startPractice();
       return;
     }
-    if (callState === "connecting" || callState === "ringing") return;
+    if (callState === "connecting" || callState === "ringing" || callState === "saving" || callState === "save_failed") return;
     const nextMuted = !muted;
     streamRef.current?.getAudioTracks().forEach(track => { track.enabled = !nextMuted; });
     setMuted(nextMuted);
   };
 
+  const requestEndPractice = () => {
+    if (endingRef.current) return;
+    endingRef.current = true;
+    setCallState("saving");
+    streamRef.current?.getAudioTracks().forEach(track => { track.enabled = false; });
+    window.setTimeout(() => endPractice(), 1500);
+  };
+
   const status = callState === "ringing" ? "Ringing Mark…"
     : callState === "connecting" ? "Connecting to Mark…"
+    : callState === "saving" ? "Saving transcript…"
+    : callState === "save_failed" ? "Save failed — retry below"
     : muted ? "Microphone muted"
     : callState === "speaking" ? "Mark is speaking"
     : callState === "listening" ? "Mark is listening"
@@ -232,10 +256,10 @@ export function AppointmentSettingPractice() {
             {bars.map((height, index) => <span key={index} className={`w-1 rounded-full bg-[#e5b748] ${callState === "speaking" ? "animate-pulse" : ""}`} style={{ height }} />)}
           </div>
           <p role="status" className="mx-auto mt-2 rounded-full border border-[#d4a944]/40 bg-[#27261d]/90 px-4 py-1.5 text-sm text-[#f8f2e9] lg:mt-3">{status}</p>
-          <button type="button" onClick={toggleMicrophone} disabled={callState === "connecting" || callState === "ringing"} aria-label={callState === "idle" ? "Start voice practice" : muted ? "Unmute microphone" : "Mute microphone"} className="mx-auto mt-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#f8d176] bg-gradient-to-br from-[#f7cf67] to-[#bd8325] text-[#17110a] shadow-[0_0_35px_rgba(212,169,68,0.25)] transition hover:scale-105 disabled:cursor-wait disabled:opacity-60 lg:mt-5">
+          <button type="button" onClick={toggleMicrophone} disabled={callState === "connecting" || callState === "ringing" || callState === "saving" || callState === "save_failed"} aria-label={callState === "idle" ? "Start voice practice" : muted ? "Unmute microphone" : "Mute microphone"} className="mx-auto mt-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#f8d176] bg-gradient-to-br from-[#f7cf67] to-[#bd8325] text-[#17110a] shadow-[0_0_35px_rgba(212,169,68,0.25)] transition hover:scale-105 disabled:cursor-wait disabled:opacity-60 lg:mt-5">
             {muted ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
           </button>
-          <p className="mt-2 font-semibold text-[#f8f2e9]">{callState === "idle" ? "Speak to client" : muted ? "Tap to unmute" : "Tap to mute"}</p>
+          <p className="mt-2 font-semibold text-[#f8f2e9]">{callState === "idle" ? "Speak to client" : callState === "saving" ? "Saving" : callState === "save_failed" ? "Save needed" : muted ? "Tap to unmute" : "Tap to mute"}</p>
           <div className="mt-4 border-t border-white/15 pt-4 lg:mt-5 lg:pt-5">
             <p id="practice-difficulty-label" className="font-semibold text-[#f8f2e9]">Difficulty</p>
             <div role="group" aria-labelledby="practice-difficulty-label" className="mt-3 grid grid-cols-3 gap-2">
@@ -243,11 +267,15 @@ export function AppointmentSettingPractice() {
             </div>
           </div>
           {callState === "idle" ? <button type="button" onClick={() => void startPractice()} className="mt-5 hidden rounded-lg bg-[#e5b748] px-5 py-3 font-semibold text-[#17110a] transition hover:bg-[#f3cc73] lg:block">Start practice</button>
-            : <button type="button" onClick={endPractice} className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-[#d4a944]/70 bg-[#101115]/70 px-5 py-3 font-semibold text-[#f8f2e9] transition hover:bg-[#d4a944]/15 lg:mt-5"><PhoneOff className="h-4 w-4" /> End practice</button>}
+            : callState === "save_failed" ? <button type="button" onClick={() => { setCallState("saving"); void finishSavedCall().then(saved => setCallState(saved ? "idle" : "save_failed")); }} className="mt-4 rounded-lg bg-[#e5b748] px-5 py-3 font-semibold text-[#17110a]">Retry saving transcript</button>
+            : callState === "saving" ? null
+            : <button type="button" onClick={requestEndPractice} className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-[#d4a944]/70 bg-[#101115]/70 px-5 py-3 font-semibold text-[#f8f2e9] transition hover:bg-[#d4a944]/15 lg:mt-5"><PhoneOff className="h-4 w-4" /> End practice</button>}
           <p className="mt-3 text-xs leading-relaxed text-[#c2b9a9] lg:text-[#9d968c]">This is a practice call. No real appointment is booked.</p>
           {error && <p role="alert" className="mt-3 rounded-lg border border-red-400/40 bg-red-950/30 p-3 text-left text-sm text-red-200">{error}</p>}
+          {saveError && <p role="alert" className="mt-3 rounded-lg border border-red-400/40 bg-red-950/30 p-3 text-left text-sm text-red-200">{saveError}</p>}
         </div>
       </div>
+      <PracticeCallHistory calls={history} selectedId={selectedCallId} onSelect={setSelectedCallId} onRefresh={() => void refreshHistory()} error={historyError} />
     </section>
   );
 }

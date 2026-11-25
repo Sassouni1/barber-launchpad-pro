@@ -63,7 +63,10 @@ Deno.serve(async req => {
           instructions,
           output_modalities: ["audio"],
           audio: {
-            input: { turn_detection: { type: "server_vad" } },
+            input: {
+              turn_detection: { type: "server_vad" },
+              transcription: { model: "gpt-transcribe", language: "en" },
+            },
             output: { voice: "cedar" },
           },
         },
