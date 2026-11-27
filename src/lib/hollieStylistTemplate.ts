@@ -153,7 +153,7 @@ export function personalizedHollieStylistHtml(
     }
     const meetImage = doc.querySelector<HTMLImageElement>('.meet-grid > img');
     if (meetImage) {
-      meetImage.src = new URL('assets/hollie-cutting-hair.png', baseUrl).href;
+      meetImage.src = new URL('assets/hollie-cutting-hair-working.png', baseUrl).href;
       meetImage.alt = 'Illustrative image of Hollie cutting a client’s hair';
     }
     setText('.meet-copy h2', `MEET ${owner.toUpperCase()}`);
@@ -205,6 +205,11 @@ export function personalizedHollieStylistHtml(
     setText('.solution-hero h1', `HAIR LOSS SOLUTIONS IN ${city.toUpperCase()}`);
     setText('.solution-story-copy p:last-child', `Ask ${owner} about available options and next steps in a private conversation.`);
     setText('.solution-consultation-copy', `Call ${owner} to ask about hair systems and arrange a private consultation.`);
+    const stylingImage = doc.querySelector<HTMLImageElement>('.solution-card:nth-child(2) img');
+    if (stylingImage) {
+      stylingImage.src = new URL('assets/hollie-styling-mens-hair.png', baseUrl).href;
+      stylingImage.alt = 'Illustrative image of Hollie styling a man’s hair';
+    }
   }
   const style = doc.createElement('style');
   style.textContent = `.hollie-wordmark{display:flex;align-items:center;color:#c4a56d;font:600 clamp(20px,2.5vw,34px)/1 Oswald,sans-serif;letter-spacing:.04em;text-transform:uppercase;max-width:320px}.site-header .hollie-wordmark{min-height:85px}footer .hollie-wordmark{min-height:50px}footer a{color:#fff}.services{min-height:0}.service-head{background-color:#35302b;background-blend-mode:multiply}.rates{height:auto;min-height:913px}.rates-grid{height:auto;grid-template-columns:48% 52%;gap:20px}.price-list{padding:30px 25px 20px 0}.price-list p{font-size:clamp(15px,1.6vw,21px)}.price-list b{font-size:.8em;color:#b99b61}.rates-actions{padding:24px 0 40px}.meet{height:auto;min-height:660px}.meet-copy h2{margin-bottom:24px}.hollie-headshot{display:block;width:96px;height:96px;object-fit:cover;border-radius:50%;border:3px solid #b99b61;margin:0 0 24px}.contact{height:auto;min-height:440px}.contact a:not(.hollie-directions){color:#9c713b}.hollie-map{width:100%;min-height:340px;border:2px solid #be8c4d;background:#e8dfd1}.hollie-map iframe{display:block;width:100%;height:290px;border:0}.hollie-directions{display:block;padding:13px 16px;background:#e8dfd1;color:#171717;font:600 19px/1.2 Oswald,sans-serif;text-align:center;text-decoration:none}@media(max-width:900px){.rates-grid{grid-template-columns:1fr}.price-list{padding:0}.hollie-wordmark{max-width:220px}.site-header .hollie-wordmark{min-height:50px}.contact-grid{grid-template-columns:1fr}.hero h1,.solution-hero h1{font-size:clamp(42px,11vw,57px)}}`;
