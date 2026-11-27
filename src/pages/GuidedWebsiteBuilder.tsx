@@ -161,7 +161,7 @@ export default function GuidedWebsiteBuilder() {
   });
   const personalizedPreviews = useMemo(() => templateSources && Object.fromEntries(guidedTemplates.map(template => [
     template.key, isHollieStylist && template.key === 'guided-charlotte'
-      ? personalizedHollieStylistHtml(templateSources['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home')
+      ? personalizedHollieStylistHtml(templateSources['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home', undefined, serviceDetails)
       : personalizedTemplateHtml(templateSources[template.key], template.key, previewServicesText,
       new URL(template.url, window.location.origin).href, serviceDetails, serviceRole, undefined, websiteAnswers, businessSetup?.business_owner_type),
   ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu, serviceRole, websiteAnswers, businessSetup?.business_owner_type, isHollieStylist]);
@@ -210,7 +210,7 @@ export default function GuidedWebsiteBuilder() {
     if (templateSources?.[answers.template]) {
       const template = guidedTemplates.find(item => item.key === answers.template)!;
       generated['/'] = isHollieStylist && answers.template === 'guided-charlotte'
-        ? personalizedHollieStylistHtml(templateSources['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home')
+        ? personalizedHollieStylistHtml(templateSources['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home', undefined, serviceDetails)
         : personalizedTemplateHtml(templateSources[answers.template], answers.template, previewServicesText,
         new URL(template.url, window.location.origin).href,
         serviceDetails, serviceRole, undefined, websiteAnswers, businessSetup?.business_owner_type);
@@ -476,7 +476,7 @@ export default function GuidedWebsiteBuilder() {
       const publishedPages = { ...pages };
       const template = guidedTemplates.find(item => item.key === answers.template)!;
       publishedPages['/'] = isHollieStylist && answers.template === 'guided-charlotte'
-        ? personalizedHollieStylistHtml(templateSources!['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home', './')
+        ? personalizedHollieStylistHtml(templateSources!['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home', './', serviceDetails)
         : personalizedTemplateHtml(templateSources![answers.template], answers.template, previewServicesText,
         new URL(template.url, window.location.origin).href,
         serviceDetails, serviceRole, './', websiteAnswers, businessSetup?.business_owner_type);
