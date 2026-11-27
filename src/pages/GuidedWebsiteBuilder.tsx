@@ -20,6 +20,9 @@ import { TemplatePicker, templateDisplayName } from '@/components/website/Templa
 import { DomainSetupStep, type DomainOrder, type DomainResult } from '@/components/website/DomainSetupStep';
 import { type DomainPaymentChoice } from '@/lib/memberBilling';
 import { personalizedTemplateHtml, personalizedTemplateOneHairHtml, personalizedTemplateTwoHairHtml } from '@/lib/guidedTemplatePreview';
+import { personalizedHollieStylistHtml } from '@/lib/hollieStylistTemplate';
+import hollieStylistSource from '@/templates/hollie/index.html?raw';
+import hollieStylistHairSource from '@/templates/hollie/hair-loss-solutions.html?raw';
 
 const stages = ['Choose a look', 'Domain', 'Your business', 'Booking', 'Photos & social', 'Review'];
 const guidedKey = (userId: string) => `guided-website-v1:${userId}`;
@@ -49,6 +52,7 @@ function readAnswers(userId: string): GuidedWebsiteAnswers {
 
 export default function GuidedWebsiteBuilder() {
   const { user, isAdmin } = useAuth();
+  const isHollieStylist = user?.id === 'c133a7dd-ab6f-4c0b-af79-68b81c1c20db';
   const demoMode = isAdmin && new URLSearchParams(window.location.search).get('demo') === '1';
   const secondMode = isAdmin && new URLSearchParams(window.location.search).get('second') === '1';
   const previewOnly = demoMode;
@@ -136,7 +140,7 @@ export default function GuidedWebsiteBuilder() {
   const serviceDetails = (savedServices?.service_menu as Array<{ name: string; description?: string; duration?: string }> | null) || [];
   const serviceRole = businessSetup?.professional_role || businessSetup?.business_owner_type || '';
   const { data: templateSources } = useQuery({
-    queryKey: ['guided-website-template-sources'],
+    queryKey: ['guided-website-template-sources', isHollieStylist],
     queryFn: async () => {
       const entries = await Promise.all(guidedTemplates.map(async template => {
         const response = await fetch(template.url);
@@ -148,14 +152,19 @@ export default function GuidedWebsiteBuilder() {
         fetch('/website-previews/template-2/hair-loss-solutions/index.html'),
       ]);
       if (!classicHair.ok || !boldHair.ok) throw new Error('Could not load the hair systems pages.');
-      return { ...Object.fromEntries(entries), 'guided-charlotte-hair': await classicHair.text(), 'guided-kait-hair': await boldHair.text() } as Record<GuidedTemplate | 'guided-charlotte-hair' | 'guided-kait-hair', string>;
+      return { ...Object.fromEntries(entries), 'guided-charlotte-hair': await classicHair.text(), 'guided-kait-hair': await boldHair.text(),
+        'hollie-stylist': isHollieStylist ? hollieStylistSource : '',
+        'hollie-stylist-hair': isHollieStylist ? hollieStylistHairSource : '',
+      } as Record<GuidedTemplate | 'guided-charlotte-hair' | 'guided-kait-hair' | 'hollie-stylist' | 'hollie-stylist-hair', string>;
     },
     staleTime: Infinity,
   });
   const personalizedPreviews = useMemo(() => templateSources && Object.fromEntries(guidedTemplates.map(template => [
-    template.key, personalizedTemplateHtml(templateSources[template.key], template.key, previewServicesText,
+    template.key, isHollieStylist && template.key === 'guided-charlotte'
+      ? personalizedHollieStylistHtml(templateSources['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home')
+      : personalizedTemplateHtml(templateSources[template.key], template.key, previewServicesText,
       new URL(template.url, window.location.origin).href, serviceDetails, serviceRole, undefined, websiteAnswers, businessSetup?.business_owner_type),
-  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu, serviceRole, websiteAnswers, businessSetup?.business_owner_type]);
+  ])) as Record<GuidedTemplate, string>, [templateSources, previewServicesText, savedServices?.service_menu, serviceRole, websiteAnswers, businessSetup?.business_owner_type, isHollieStylist]);
   useEffect(() => {
     if (!hydrated || !dashboardServicesText) return;
     setAnswers(current => {
@@ -200,10 +209,15 @@ export default function GuidedWebsiteBuilder() {
     const generated = guidedWebsitePages(answers, siteSlug);
     if (templateSources?.[answers.template]) {
       const template = guidedTemplates.find(item => item.key === answers.template)!;
-      generated['/'] = personalizedTemplateHtml(templateSources[answers.template], answers.template, previewServicesText,
+      generated['/'] = isHollieStylist && answers.template === 'guided-charlotte'
+        ? personalizedHollieStylistHtml(templateSources['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home')
+        : personalizedTemplateHtml(templateSources[answers.template], answers.template, previewServicesText,
         new URL(template.url, window.location.origin).href,
         serviceDetails, serviceRole, undefined, websiteAnswers, businessSetup?.business_owner_type);
-      if (answers.template === 'guided-charlotte') generated['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
+      if (isHollieStylist && answers.template === 'guided-charlotte') generated['/hair-loss-solutions/'] = personalizedHollieStylistHtml(
+        templateSources['hollie-stylist-hair'], new URL('/website-previews/hollie-stylist/hair-loss-solutions.html', window.location.origin).href,
+        websiteAnswers, 'hair');
+      else if (answers.template === 'guided-charlotte') generated['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
         templateSources['guided-charlotte-hair'],
         new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
         websiteAnswers, undefined, businessSetup?.business_owner_type);
@@ -213,7 +227,7 @@ export default function GuidedWebsiteBuilder() {
         websiteAnswers, undefined, businessSetup?.business_owner_type);
     }
     return generated;
-  }, [answers, siteSlug, templateSources, previewServicesText, savedServices?.service_menu, serviceRole, websiteAnswers, businessSetup?.business_owner_type]);
+  }, [answers, siteSlug, templateSources, previewServicesText, savedServices?.service_menu, serviceRole, websiteAnswers, businessSetup?.business_owner_type, isHollieStylist]);
 
   useEffect(() => {
     if (!user || loadingWebsite || loadingProfile || loadingBusinessSetup || loadingBusinessCard || hydrated) return;
@@ -461,10 +475,15 @@ export default function GuidedWebsiteBuilder() {
       const site = await saveDraft();
       const publishedPages = { ...pages };
       const template = guidedTemplates.find(item => item.key === answers.template)!;
-      publishedPages['/'] = personalizedTemplateHtml(templateSources![answers.template], answers.template, previewServicesText,
+      publishedPages['/'] = isHollieStylist && answers.template === 'guided-charlotte'
+        ? personalizedHollieStylistHtml(templateSources!['hollie-stylist'], new URL('/website-previews/hollie-stylist/index.html', window.location.origin).href, { ...websiteAnswers, services: previewServicesText }, 'home', './')
+        : personalizedTemplateHtml(templateSources![answers.template], answers.template, previewServicesText,
         new URL(template.url, window.location.origin).href,
         serviceDetails, serviceRole, './', websiteAnswers, businessSetup?.business_owner_type);
-      if (answers.template === 'guided-charlotte') publishedPages['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
+      if (isHollieStylist && answers.template === 'guided-charlotte') publishedPages['/hair-loss-solutions/'] = personalizedHollieStylistHtml(
+        templateSources!['hollie-stylist-hair'], new URL('/website-previews/hollie-stylist/hair-loss-solutions.html', window.location.origin).href,
+        websiteAnswers, 'hair', '../');
+      else if (answers.template === 'guided-charlotte') publishedPages['/hair-loss-solutions/'] = personalizedTemplateOneHairHtml(
         templateSources!['guided-charlotte-hair'],
         new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href,
         websiteAnswers, '../', businessSetup?.business_owner_type, site.site_slug);
@@ -528,7 +547,9 @@ export default function GuidedWebsiteBuilder() {
         </div>
         <div className="flex min-h-0 flex-1 justify-center overflow-hidden bg-neutral-900 p-2 sm:p-4">
           {previewTemplate && <iframe key={`${previewTemplate}:${previewTemplatePage}:${previewDevice}:${previewServicesText}`} title={`Full ${previewDevice} website preview`} src={personalizedPreviews ? undefined : guidedTemplates.find(template => template.key === previewTemplate)?.url} srcDoc={previewTemplatePage === '/hair-loss-solutions/' && templateSources
-            ? previewTemplate === 'guided-charlotte'
+            ? isHollieStylist && previewTemplate === 'guided-charlotte'
+              ? personalizedHollieStylistHtml(templateSources['hollie-stylist-hair'], new URL('/website-previews/hollie-stylist/hair-loss-solutions.html', window.location.origin).href, websiteAnswers, 'hair')
+              : previewTemplate === 'guided-charlotte'
               ? personalizedTemplateOneHairHtml(templateSources['guided-charlotte-hair'], new URL('/website-previews/template-1/hair-loss-solutions/index.html', window.location.origin).href, websiteAnswers, undefined, businessSetup?.business_owner_type)
               : personalizedTemplateTwoHairHtml(templateSources['guided-kait-hair'], new URL('/website-previews/template-2/hair-loss-solutions/index.html', window.location.origin).href, websiteAnswers, undefined, businessSetup?.business_owner_type)
             : personalizedPreviews?.[previewTemplate]} className={`h-full border-0 bg-white shadow-2xl ${previewDevice === 'mobile' ? 'w-full max-w-[390px]' : 'w-full max-w-[1440px]'}`} />}
