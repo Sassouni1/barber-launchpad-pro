@@ -23,11 +23,11 @@ const serviceContent: Record<string, { catalogName?: string; description?: strin
     description: 'Bring dimension throughout your hair with highlights from crown to underneath. Choose a soft blend or brighter contrast, then finish with a tone that suits your cut and natural color.',
   },
   'deep conditioning & scalp treatments': {
-    image: 'keratin-treatment.png',
+    image: 'assets/hollie-scalp-treatment.png',
     description: 'Give your hair and scalp some focused care. Hollie can discuss conditioning and scalp treatment options for your needs, then help you choose the right next step.',
   },
   'corrective color': {
-    image: 'hollie-stylist/color.webp',
+    image: 'assets/color.webp',
     description: 'Corrective color starts with a close look at your current shade, hair history, and desired result. Hollie can discuss a plan to even out tone or change unwanted color.',
   },
 };
@@ -129,8 +129,8 @@ export function personalizedHollieStylistHtml(
         const article = doc.createElement('article');
         article.className = 'service-card';
         const image = doc.createElement('img');
-        image.src = content?.image === 'hollie-stylist/color.webp'
-          ? new URL('assets/color.webp', baseUrl).href
+        image.src = content?.image?.startsWith('assets/')
+          ? new URL(content.image, baseUrl).href
           : new URL(`/website-previews/template-2/service-images/${content?.image || 'haircut.jpg'}`, baseUrl).href;
         image.alt = `Illustrative photo for ${service.name}`;
         const body = doc.createElement('div');
