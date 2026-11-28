@@ -143,18 +143,31 @@ export function personalizedHollieStylistHtml(
         body.append(heading, description); article.append(image, body); cards.append(article);
       }
     }
-    setText('.rates h2', 'SERVICES & PRICING');
+    const listedServices = parseGuidedServices(answers.services);
+    setText('.rates h2', listedServices.some(service => service.price) ? 'SERVICES & PRICING' : 'SERVICE MENU');
     const ratesImage = doc.querySelector<HTMLImageElement>('.rates-grid > img');
     if (ratesImage) ratesImage.alt = 'Haircut examples';
     const prices = doc.querySelector('.price-list');
     if (prices) {
       prices.replaceChildren();
-      for (const service of parseGuidedServices(answers.services)) {
+      for (const service of listedServices) {
         const row = doc.createElement('p');
         const label = doc.createElement('span'); label.textContent = service.name;
-        const line = doc.createElement('i');
-        const price = doc.createElement('b'); price.textContent = service.price || 'Call for pricing';
-        row.append(label, line, price); prices.append(row);
+        row.append(label);
+        if (service.price) {
+          const line = doc.createElement('i');
+          const price = doc.createElement('b'); price.textContent = service.price;
+          row.append(line, price);
+        } else {
+          row.className = 'service-name-only';
+        }
+        prices.append(row);
+      }
+      if (listedServices.some(service => !service.price)) {
+        const note = doc.createElement('p');
+        note.className = 'pricing-note';
+        note.textContent = `Call ${owner} for current pricing.`;
+        prices.append(note);
       }
     }
     const meetImage = doc.querySelector<HTMLImageElement>('.meet-grid > img');
@@ -225,6 +238,7 @@ export function personalizedHollieStylistHtml(
   }
   const style = doc.createElement('style');
   style.textContent = `.hollie-wordmark{display:flex;align-items:center;color:#c4a56d;font:600 clamp(20px,2.5vw,34px)/1 Oswald,sans-serif;letter-spacing:.04em;text-transform:uppercase;max-width:320px;text-decoration:none}.site-header .hollie-wordmark{min-height:85px}footer .hollie-wordmark{min-height:50px}footer a{color:#fff}.hollie-home-link{display:none;color:#c4a56d;font:600 16px/1 Oswald,sans-serif;text-decoration:none;white-space:nowrap}.services{min-height:0}.service-head{background-color:#35302b;background-blend-mode:multiply}.rates{height:auto;min-height:913px}.rates-grid{height:auto;grid-template-columns:48% 52%;gap:20px}.price-list{padding:30px 25px 20px 0}.price-list p{font-size:clamp(15px,1.6vw,21px)}.price-list b{font-size:.8em;color:#b99b61}.rates-actions{padding:24px 0 40px}.meet{height:auto;min-height:660px}.meet-copy h2{margin-bottom:24px}.hollie-headshot{display:block;width:96px;height:96px;object-fit:cover;border-radius:50%;border:3px solid #b99b61;margin:0 0 24px}.contact{height:auto;min-height:440px}.contact a:not(.hollie-directions){color:#9c713b}.hollie-map{width:100%;min-height:340px;border:2px solid #be8c4d;background:#e8dfd1}.hollie-map iframe{display:block;width:100%;height:290px;border:0}.hollie-directions{display:block;padding:13px 16px;background:#e8dfd1;color:#171717;font:600 19px/1.2 Oswald,sans-serif;text-align:center;text-decoration:none}@media(max-width:900px){.rates-grid{grid-template-columns:1fr}.price-list{padding:0}.hollie-wordmark{max-width:220px}.site-header .hollie-wordmark{min-height:50px}.hollie-home-link{display:block}.contact-grid{grid-template-columns:1fr}.hero h1,.solution-hero h1{font-size:clamp(42px,11vw,57px)}}`;
+  style.textContent += '.price-list p.service-name-only{grid-template-columns:1fr}.price-list p.pricing-note{display:block;border:0;margin-top:18px;color:#8b6b40;font:400 18px/1.4 Barlow,sans-serif}';
   doc.head.append(style);
   if (!siteRoot) {
     const previewNavigation = doc.createElement('script');
